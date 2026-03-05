@@ -262,7 +262,8 @@ export default async function handler(req, res) {
           poker_tables: parseInt(clubInfo.tables) || null,
           games_offered: clubInfo.gamesOffered,
           registration_completed_at: new Date().toISOString(),
-          onboarding_step: 5
+          onboarding_step: 5,
+          ...(venueZip ? { zip: venueZip } : {}),
         })
         .eq('id', venueId);
     } else {

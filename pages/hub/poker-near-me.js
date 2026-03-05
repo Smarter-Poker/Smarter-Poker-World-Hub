@@ -1223,8 +1223,8 @@ export default function PokerNearMePage() {
                 params.set('search', searchQuery);
             }
 
-            const res = await fetch('/api/poker/series?' + params);
-            const json = await res.json();
+            const url = '/api/poker/series?' + params;
+            const json = await cachedFetch(url);
             setSeries(json.data || []);
         } catch (e) {
             console.error('Fetch series error:', e);
@@ -1362,6 +1362,12 @@ export default function PokerNearMePage() {
     // Read deep link params on mount
     useEffect(() => {
         if (router.query.q) setSearchQuery(String(router.query.q));
+        if (router.query.tab && TAB_ORDER.includes(router.query.tab)) {
+            setActiveTab(String(router.query.tab));
+        }
+        if (router.query.filter) {
+            setFilters(prev => ({ ...prev, venueType: String(router.query.filter) }));
+        }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ═══ SWIPE GESTURE HANDLERS ═══
@@ -1491,6 +1497,8 @@ export default function PokerNearMePage() {
         setSearchQuery('');
         setHasSearched(false);
         setVenues([]);
+        setShowCitySuggestions(false);
+        setFetchError(null);
         setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
             radius: 50,

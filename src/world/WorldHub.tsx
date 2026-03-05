@@ -616,9 +616,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
         // Employee Portal removed — Work Schedule merged into Toke Tracker
 
-        // Toke Tracker card routes directly to the bankroll manager toke tab
+        // Toke Tracker card routes to dedicated hub page with 4 icon cards
         if (cardId === 'toke-tracker') {
-            router.push('/hub/bankroll-manager?view=toke-tracker');
+            router.push('/hub/toke-tracker');
             return;
         }
 
@@ -666,9 +666,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
         // Employee Portal removed — Work Schedule merged into Toke Tracker
 
-        // Toke Tracker card routes directly to the bankroll manager toke tab
+        // Toke Tracker card routes to dedicated hub page with 4 icon cards
         if (orbId === 'toke-tracker') {
-            router.push('/hub/bankroll-manager?view=toke-tracker');
+            router.push('/hub/toke-tracker');
             return;
         }
 

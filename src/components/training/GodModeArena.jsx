@@ -9,7 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameUIRouter from './GameUIRouter';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
@@ -59,68 +59,307 @@ function getEngineType(gameId) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function HandHistoryRow({ entry, index }) {
+    const [expanded, setExpanded] = useState(false);
     const config = CLASSIFICATION_CONFIG[entry.classification] || CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.WRONG];
+    const handData = entry.handData || {};
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: index * 0.05 }}
+            onClick={() => setExpanded(!expanded)}
+            style={{ cursor: 'pointer' }}
+        >
+            {/* Main row */}
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '10px 14px',
+                    background: index % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
+                    borderLeft: `3px solid ${config.borderColor}`,
+                    borderRadius: 4,
+                }}
+            >
+                <div style={{ color: '#64748b', fontSize: 11, fontWeight: '600', minWidth: 24 }}>
+                    #{entry.handNumber}
+                </div>
+                <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '3px 10px', borderRadius: 12,
+                    background: config.bgColor, border: `1px solid ${config.borderColor}`,
+                    color: config.color, fontSize: 11, fontWeight: 'bold',
+                    minWidth: 80, justifyContent: 'center',
+                }}>
+                    <span>{config.icon}</span>
+                    <span>{config.label}</span>
+                </div>
+                <div style={{
+                    flex: 1, color: '#cbd5e1', fontSize: 12,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                    {entry.question || `Hand ${entry.handNumber}`}
+                </div>
+                <div style={{
+                    color: entry.evLoss > 0 ? '#ef4444' : '#22c55e',
+                    fontSize: 12, fontWeight: 'bold', fontFamily: "'Orbitron', monospace",
+                    minWidth: 60, textAlign: 'right',
+                }}>
+                    {entry.evLoss > 0 ? `-${entry.evLoss.toFixed(2)}` : '0.00'} BB
+                </div>
+                <span style={{ color: '#64748b', fontSize: 10 }}>{expanded ? '▲' : '▼'}</span>
+            </div>
+
+            {/* F3: Expanded Hand Replay Detail */}
+            <AnimatePresence>
+                {expanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{
+                            overflow: 'hidden',
+                            background: 'rgba(0,0,0,0.3)',
+                            borderLeft: `3px solid ${config.borderColor}`,
+                            padding: expanded ? '10px 14px 10px 40px' : 0,
+                            fontSize: 11,
+                            color: '#94a3b8',
+                        }}
+                    >
+                        {handData.board && (
+                            <div style={{ marginBottom: 4 }}>
+                                <span style={{ color: '#64748b', fontWeight: 'bold' }}>Board: </span>
+                                <span style={{ color: '#e2e8f0' }}>{handData.board}</span>
+                            </div>
+                        )}
+                        {handData.heroCards && (
+                            <div style={{ marginBottom: 4 }}>
+                                <span style={{ color: '#64748b', fontWeight: 'bold' }}>Hero: </span>
+                                <span style={{ color: '#00d4ff' }}>{Array.isArray(handData.heroCards) ? handData.heroCards.join(' ') : handData.heroCards}</span>
+                                {handData.heroPosition && <span> ({handData.heroPosition})</span>}
+                            </div>
+                        )}
+                        <div style={{ marginBottom: 4 }}>
+                            <span style={{ color: '#64748b', fontWeight: 'bold' }}>Your Action: </span>
+                            <span style={{ color: config.color }}>{handData.action || '?'}</span>
+                            {handData.correctAction && handData.action !== handData.correctAction && (
+                                <span> → Optimal: <span style={{ color: '#22c55e', fontWeight: 'bold' }}>{handData.correctAction}</span></span>
+                            )}
+                        </div>
+                        {entry.isRealData && (
+                            <div style={{ marginTop: 4 }}>
+                                <span style={{
+                                    padding: '1px 6px', borderRadius: 4, fontSize: 9,
+                                    background: 'rgba(0,212,255,0.15)', color: '#00d4ff',
+                                    border: '1px solid rgba(0,212,255,0.3)', fontWeight: 'bold',
+                                }}>PIO DATA</span>
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F4: EV LOSS GRAPH — Cumulative EV loss sparkline
+// ═══════════════════════════════════════════════════════════════════════════
+
+function EVLossGraph({ handHistory }) {
+    if (!handHistory || handHistory.length < 2) return null;
+
+    // Build cumulative EV loss data points
+    const dataPoints = useMemo(() => {
+        let cumulative = 0;
+        return handHistory.map((h, i) => {
+            cumulative += (h.evLoss || 0);
+            return cumulative;
+        });
+    }, [handHistory]);
+
+    const maxLoss = Math.max(...dataPoints, 0.1);
+    const graphHeight = 60;
+    const graphWidth = 280;
+    const barWidth = Math.max(2, (graphWidth / dataPoints.length) - 1);
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                EV Loss Trend
+            </div>
+            <div style={{
+                display: 'flex', alignItems: 'flex-end', gap: 1,
+                height: graphHeight, padding: '0 4px',
+                background: 'rgba(0,0,0,0.2)', borderRadius: 8,
+                overflow: 'hidden',
+            }}>
+                {dataPoints.map((val, i) => {
+                    const height = maxLoss > 0 ? (val / maxLoss) * graphHeight : 0;
+                    const color = val > maxLoss * 0.7 ? '#ef4444' : val > maxLoss * 0.3 ? '#fbbf24' : '#22c55e';
+                    return (
+                        <motion.div
+                            key={i}
+                            initial={{ height: 0 }}
+                            animate={{ height: Math.max(2, height) }}
+                            transition={{ delay: i * 0.03, duration: 0.3 }}
+                            title={`Hand ${i + 1}: -${val.toFixed(2)} BB`}
+                            style={{
+                                width: barWidth, flexShrink: 0,
+                                background: color, borderRadius: '2px 2px 0 0',
+                                cursor: 'default',
+                            }}
+                        />
+                    );
+                })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#64748b', marginTop: 2 }}>
+                <span>Hand 1</span>
+                <span>-{maxLoss.toFixed(1)} BB max</span>
+                <span>Hand {dataPoints.length}</span>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F7: DRILL FILTERS — Pre-session position/street filter modal
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DrillFilters({ show, onClose, onApply }) {
+    const [positions, setPositions] = useState(['all']);
+    const [streets, setStreets] = useState(['all']);
+
+    if (!show) return null;
+
+    const posOpts = ['all', 'BTN', 'CO', 'HJ', 'MP', 'UTG', 'SB', 'BB'];
+    const streetOpts = ['all', 'preflop', 'flop', 'turn', 'river'];
+
+    const toggleFilter = (arr, setter, val) => {
+        if (val === 'all') { setter(['all']); return; }
+        const without = arr.filter(x => x !== 'all');
+        if (without.includes(val)) {
+            const next = without.filter(x => x !== val);
+            setter(next.length === 0 ? ['all'] : next);
+        } else {
+            setter([...without, val]);
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '10px 14px',
-                background: index % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent',
-                borderLeft: `3px solid ${config.borderColor}`,
-                borderRadius: 4,
+                position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
             }}
         >
-            {/* Hand # */}
-            <div style={{ color: '#64748b', fontSize: 11, fontWeight: '600', minWidth: 24 }}>
-                #{entry.handNumber}
-            </div>
+            <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                style={{
+                    background: 'linear-gradient(180deg, #1e1e2e, #0f0f1a)',
+                    border: '1px solid rgba(0,212,255,0.3)', borderRadius: 16,
+                    padding: 20, width: '90%', maxWidth: 360,
+                }}
+            >
+                <div style={{ fontSize: 16, fontWeight: 'bold', color: '#e2e8f0', marginBottom: 16, textAlign: 'center' }}>
+                    ⚙️ Drill Filters
+                </div>
 
-            {/* Classification badge */}
-            <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '3px 10px',
-                borderRadius: 12,
-                background: config.bgColor,
-                border: `1px solid ${config.borderColor}`,
-                color: config.color,
-                fontSize: 11,
-                fontWeight: 'bold',
-                minWidth: 80,
-                justifyContent: 'center',
-            }}>
-                <span>{config.icon}</span>
-                <span>{config.label}</span>
-            </div>
+                <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Position</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {posOpts.map(p => (
+                            <button key={p} onClick={() => toggleFilter(positions, setPositions, p)} style={{
+                                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 'bold',
+                                background: positions.includes(p) ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: positions.includes(p) ? '#00d4ff' : '#94a3b8',
+                                border: `1px solid ${positions.includes(p) ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                cursor: 'pointer',
+                            }}>{p.toUpperCase()}</button>
+                        ))}
+                    </div>
+                </div>
 
-            {/* Question summary */}
-            <div style={{
-                flex: 1,
-                color: '#cbd5e1',
-                fontSize: 12,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-            }}>
-                {entry.question || `Hand ${entry.handNumber}`}
-            </div>
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Street</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {streetOpts.map(s => (
+                            <button key={s} onClick={() => toggleFilter(streets, setStreets, s)} style={{
+                                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 'bold',
+                                background: streets.includes(s) ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: streets.includes(s) ? '#a78bfa' : '#94a3b8',
+                                border: `1px solid ${streets.includes(s) ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                cursor: 'pointer', textTransform: 'capitalize',
+                            }}>{s}</button>
+                        ))}
+                    </div>
+                </div>
 
-            {/* EV Loss */}
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <button onClick={onClose} style={{
+                        flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 'bold',
+                        background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'pointer',
+                    }}>Cancel</button>
+                    <button onClick={() => { onApply({ positions, streets }); onClose(); }} style={{
+                        flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 'bold',
+                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: '#fff',
+                        border: 'none', cursor: 'pointer',
+                    }}>Apply & Start</button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F13: DAILY CHALLENGE BANNER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
+    const achieved = gtowScore >= targetScore;
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 14px', marginBottom: 12,
+                background: achieved
+                    ? 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(16,163,74,0.1))'
+                    : 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1))',
+                border: `1px solid ${achieved ? 'rgba(34,197,94,0.3)' : 'rgba(139,92,246,0.3)'}`,
+                borderRadius: 10,
+            }}
+        >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>{achieved ? '🏆' : '🎯'}</span>
+                <div>
+                    <div style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#a78bfa' }}>
+                        {achieved ? 'Daily Challenge Complete!' : 'Daily Challenge'}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#94a3b8' }}>
+                        Score {targetScore}%+ this session
+                    </div>
+                </div>
+            </div>
             <div style={{
-                color: entry.evLoss > 0 ? '#ef4444' : '#22c55e',
-                fontSize: 12,
-                fontWeight: 'bold',
-                fontFamily: "'Orbitron', monospace",
-                minWidth: 60,
-                textAlign: 'right',
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8,
+                background: achieved ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${achieved ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
             }}>
-                {entry.evLoss > 0 ? `-${entry.evLoss.toFixed(2)}` : '0.00'} BB
+                <span style={{ fontSize: 14 }}>💎</span>
+                <span style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#94a3b8' }}>
+                    {achieved ? '+25' : '25'}
+                </span>
             </div>
         </motion.div>
     );
@@ -178,6 +417,25 @@ export default function GodModeArena({
         resetGame,
     } = useMillionaireGame(gameId, 'PIO', level);
 
+    const [showDrillFilters, setShowDrillFilters] = useState(false);
+    const [drillFilters, setDrillFilters] = useState(null);
+
+    // F5: Mixed strategy adherence tracking
+    const mixedStrategyScore = useMemo(() => {
+        if (!handHistory || handHistory.length < 5) return null;
+        // Count how often player chose the most common action vs mixing
+        const actionCounts = {};
+        handHistory.forEach(h => {
+            const action = h.handData?.action || 'unknown';
+            actionCounts[action] = (actionCounts[action] || 0) + 1;
+        });
+        const totalHands = handHistory.length;
+        const maxActionCount = Math.max(...Object.values(actionCounts));
+        // Perfect mixing = evenly distributed. Overfocusing = one action dominates
+        const diversityScore = Math.round((1 - (maxActionCount / totalHands)) * 100);
+        return Math.min(100, Math.max(0, diversityScore));
+    }, [handHistory]);
+
     // Auto-advance after feedback
     useEffect(() => {
         if (showFeedback) {
@@ -213,6 +471,9 @@ export default function GodModeArena({
                 </div>
 
                 <div style={styles.reviewScrollArea}>
+                    {/* F13: Daily Challenge Banner */}
+                    <DailyChallengeBanner gtowScore={gtowScore} />
+
                     {/* GTOW SCORE — Hero display */}
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -274,7 +535,48 @@ export default function GodModeArena({
                         </div>
                     </div>
 
-                    {/* HAND HISTORY — Scrollable list */}
+                    {/* F4: EV LOSS GRAPH */}
+                    <EVLossGraph handHistory={handHistory} />
+
+                    {/* F5: MIXED STRATEGY ADHERENCE */}
+                    {mixedStrategyScore !== null && (
+                        <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                                Action Diversity
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{
+                                    width: '100%', height: 6, background: '#1e293b',
+                                    borderRadius: 3, overflow: 'hidden',
+                                }}>
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${mixedStrategyScore}%` }}
+                                        transition={{ duration: 0.8, delay: 0.3 }}
+                                        style={{
+                                            height: '100%', borderRadius: 3,
+                                            background: mixedStrategyScore >= 50
+                                                ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                                                : mixedStrategyScore >= 30
+                                                    ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                                    : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                                        }}
+                                    />
+                                </div>
+                                <span style={{
+                                    fontSize: 13, fontWeight: 'bold', minWidth: 40,
+                                    color: mixedStrategyScore >= 50 ? '#22c55e' : mixedStrategyScore >= 30 ? '#fbbf24' : '#ef4444',
+                                }}>
+                                    {mixedStrategyScore}%
+                                </span>
+                            </div>
+                            <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
+                                {mixedStrategyScore >= 60 ? 'Great mixing — GTO-balanced!' : mixedStrategyScore >= 35 ? 'Moderate — try diversifying your actions' : 'Too predictable — mix in more actions'}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* HAND HISTORY — Scrollable list (F3: Click to expand) */}
                     <div style={styles.historySection}>
                         <div style={styles.sectionTitle}>Hand History</div>
                         <div style={styles.historyList}>
@@ -335,6 +637,15 @@ export default function GodModeArena({
                             />
                         </div>
                     </div>
+
+                    {/* F7: Drill Filters */}
+                    <AnimatePresence>
+                        <DrillFilters
+                            show={showDrillFilters}
+                            onClose={() => setShowDrillFilters(false)}
+                            onApply={(filters) => setDrillFilters(filters)}
+                        />
+                    </AnimatePresence>
                 </div>
             </div>
         );
