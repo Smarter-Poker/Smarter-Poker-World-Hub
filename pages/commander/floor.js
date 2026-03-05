@@ -80,9 +80,9 @@ export default function FloorMap() {
     try {
       const headers = getHeaders();
       const [tablesRes, waitlistRes, gamesRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { signal, headers }).then(r => r.json()),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { signal, headers }).then(r => r.json()).catch(() => ({ success: false })),
-        fetch(`/api/commander/games/venue/${venueId}`, { signal, headers }).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/games/venue/${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
       ]);
 
       let rawTables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.tables || []);

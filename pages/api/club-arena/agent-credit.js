@@ -151,7 +151,7 @@ export default async function handler(req, res) {
         .update({ business_balance: oldBal + amount })
         .eq('id', agentRecord.id)
         .eq('business_balance', oldBal) // optimistic lock
-        .select('id');
+        .select('id')
 
       // Retry once on conflict
       if (!balUpd?.length) {

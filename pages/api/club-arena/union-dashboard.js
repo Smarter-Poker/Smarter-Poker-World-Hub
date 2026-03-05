@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     const { data: unionClubs } = await supabaseAdmin
       .from('union_clubs')
       .select('club_id')
-      .eq('union_id', unionId);
+      .eq('union_id', unionId)
 
     const clubIds = (unionClubs || []).map(uc => uc.club_id);
 

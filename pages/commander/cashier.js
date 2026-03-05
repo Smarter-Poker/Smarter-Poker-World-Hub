@@ -129,7 +129,7 @@ export default function Cashier() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const today = new Date().toISOString().split('T')[0];
-      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { signal,  headers };
+      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { headers };
       const txJson = await txRes.json();
       setTransactions(txJson.data || []);
 
@@ -140,7 +140,7 @@ export default function Cashier() {
       setSelectedPlayer(prev => {
         if (!prev?.id || String(prev.id).startsWith('wl-')) return prev;
         // Fire async refresh for the selected player
-        fetch(`/api/commander/members/${prev.id}`, { signal, 
+        fetch(`/api/commander/members/${prev.id}`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         }.then(r => r.json()).then(json => {
           if (json.success && json.data?.member) {
@@ -182,7 +182,7 @@ export default function Cashier() {
         const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-        const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { signal,  headers };
+        const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { headers };
         const json = await res.json();
         if (json.success && (json.data?.member || json.data)) {
           const m = json.data?.member || json.data;
@@ -228,7 +228,7 @@ export default function Cashier() {
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
         // Time billing settings
-        const settingsRes = await fetch('/api/commander/settings', { signal,  headers };
+        const settingsRes = await fetch('/api/commander/settings', { headers };
         const settingsJson = await settingsRes.json();
         if (settingsJson.success && settingsJson.data) {
           setTimeBillingRate(settingsJson.data.time_billing_rate || 0);
@@ -236,7 +236,7 @@ export default function Cashier() {
         }
 
         // Membership plans
-        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { signal,  headers };
+        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers };
         const plansJson = await plansRes.json();
         if (plansJson.success && plansJson.data?.plans) {
           setMembershipPlans(plansJson.data.plans.filter(p => p.is_active !== false));
@@ -330,7 +330,7 @@ export default function Cashier() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { signal,  headers };
+      const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { headers };
       const json = await res.json();
       const members = json.data?.members || json.data || [];
       if (json.success && members.length > 0) {
@@ -384,7 +384,7 @@ export default function Cashier() {
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
         const params = query ? `q=${encodeURIComponent(query)}&` : '';
-        const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { signal,  headers };
+        const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers };
         const json = await res.json();
         setSearchResults(json.data || []);
       } catch { setSearchResults([]); }
@@ -422,10 +422,10 @@ export default function Cashier() {
     setPinVerifying(true);
     setPinError('');
     try {
-      const pinRes = await fetch('/api/commander/staff/verify-pin', { signal, 
+      const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ venue_id: venueId, pin_code: digits }
+        body: JSON.stringify({ venue_id: venueId, pin_code: digits })
       });
       const pinJson = await pinRes.json();
       if (!pinJson.success || !pinJson.data?.valid) {
@@ -538,8 +538,8 @@ export default function Cashier() {
       const newBalance = (selectedPlayer.time_balance_minutes || 0) + mins;
 
       // 1. Update member time balance
-      const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, { signal, 
-        method: 'PUT', headers, body: JSON.stringify({ time_balance_minutes: newBalance }
+      const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
+        method: 'PUT', headers, body: JSON.stringify({ time_balance_minutes: newBalance })
       });
       const json = await res.json();
       if (!json.success) { setMessage({ type: 'error', text: json.error || 'Failed To Add Time' }); setActionLoading(false); return; }
@@ -603,7 +603,7 @@ export default function Cashier() {
       expires.setDate(expires.getDate() + (tierInfo?.duration || 1));
 
       // 1. Update member tier
-      const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, { signal, 
+      const res = await fetch(`/api/commander/members/${selectedPlayer.id}`, {
         method: 'PUT', headers,
         body: JSON.stringify({ membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString( })
       });
@@ -692,13 +692,13 @@ export default function Cashier() {
       if (!voidJson.success) console.warn('Void transaction record failed:', voidJson.error);
 
       // 2. Mark the ORIGINAL transaction as voided (audit trail)
-      const patchRes = await fetch('/api/commander/cashier', { signal, 
+      const patchRes = await fetch('/api/commander/cashier', {
         method: 'PATCH', headers,
         body: JSON.stringify({
           transaction_id: txId,
           voided_by: staff?.id || null,
           void_reason: `${actionLabel} by ${staff?.display_name || 'Staff'} — ${type}`
-        }
+        })
       });
       const patchJson = await patchRes.json();
       if (!patchJson.success) {
@@ -720,7 +720,7 @@ export default function Cashier() {
       } else if (details.player_name && details.player_name !== 'Unknown') {
         // Lookup member by name for balance correction
         try {
-          const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { signal,  headers };
+          const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { headers };
           const searchJson = await searchRes.json();
           const match = (searchJson.data || []).find(m => {
             const mName = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
@@ -736,9 +736,9 @@ export default function Cashier() {
       // 4. If time void, subtract the minutes back
       if (type === 'time' && memberId && details.minutes) {
         const newBal = Math.max(0, (memberBalance || 0) - details.minutes);
-        await fetch(`/api/commander/members/${memberId}`, { signal, 
+        await fetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
-          body: JSON.stringify({ time_balance_minutes: newBal }
+          body: JSON.stringify({ time_balance_minutes: newBal })
         });
         if (selectedPlayer?.id === memberId) {
           setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBal }));
@@ -747,7 +747,7 @@ export default function Cashier() {
 
       // 5. If membership void, revert membership to none
       if (type === 'membership' && memberId) {
-        await fetch(`/api/commander/members/${memberId}`, { signal, 
+        await fetch(`/api/commander/members/${memberId}`, {
           method: 'PUT', headers,
           body: JSON.stringify({ membership_tier: null, membership_status: 'expired', membership_expires: new Date(.toISOString() })
         });
@@ -814,7 +814,7 @@ export default function Cashier() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       // Use server-side player_name filter for efficiency
-      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { signal,  headers };
+      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { headers };
       const json = await res.json();
       setPlayerHistory(json.data || []);
     } catch { setPlayerHistory([]); }
@@ -1645,7 +1645,7 @@ export default function Cashier() {
                             const token = getToken();
                             const staffSession = localStorage.getItem('commander_staff') || '';
                             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-                            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(val)}&venue_id=${venueId}&limit=8`, { signal,  headers };
+                            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(val)}&venue_id=${venueId}&limit=8`, { headers };
                             const json = await res.json();
                             setPrintCardSearchResults(json.data || []);
                           } catch { setPrintCardSearchResults([]); }

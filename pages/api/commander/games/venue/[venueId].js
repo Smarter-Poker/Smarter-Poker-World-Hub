@@ -39,7 +39,6 @@ export default async function handler(req, res) {
       const result = await supabase
         .from('commander_games')
         .select(`
-        .limit(100)
           *,
           commander_tables!commander_games_table_id_fkey (
             id,
@@ -62,7 +61,7 @@ export default async function handler(req, res) {
         .eq('venue_id', venueId)
         .in('status', ['waiting', 'running', 'breaking'])
         .order('created_at', { ascending: false })
-            .limit(100);
+            .limit(100)
       games = result.data || [];
     }
 
@@ -71,7 +70,7 @@ export default async function handler(req, res) {
       .from('commander_tables')
       .select('*')
       .eq('venue_id', venueId)
-      .order('table_number', { ascending: true });
+      .order('table_number', { ascending: true })
 
     if (tablesError) {
       console.error('Commander venue tables query error:', tablesError);

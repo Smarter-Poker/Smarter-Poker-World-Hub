@@ -213,7 +213,6 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
         try {
             await fetch('/api/social/interactions', {
-                signal,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'like' })
@@ -240,7 +239,6 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setSubmittingComment(true);
         try {
             const res = await fetch('/api/social/interactions', {
-                signal,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'comment', content: commentText.trim() })
@@ -263,7 +261,6 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             setTimeout(() => setShareMsg(''), 2000);
             if (currentUserId) {
                 fetch('/api/social/interactions', {
-                    signal,
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })

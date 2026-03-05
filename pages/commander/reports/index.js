@@ -90,7 +90,7 @@ export default function ReportsPage() {
         const { signal } = controller;
       try {
         const token = getToken();
-        const res = await fetch(`/api/commander/reports/summary?range=${ signal, dateRange}`, {
+        const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();

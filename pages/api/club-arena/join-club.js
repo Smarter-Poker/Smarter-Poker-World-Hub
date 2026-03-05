@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('club_id', club.id)
             .eq('user_id', user.id)
-            .maybeSingle();
+            .maybeSingle()
 
         if (existing) {
             return res.status(409).json({ error: 'You are already a member of this club' });

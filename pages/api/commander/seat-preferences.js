@@ -38,7 +38,7 @@ async function getPreferences(req, res) {
       .eq('player_id', player_id)
           .limit(100);
 
-    if (venue_id) query = query.eq('venue_id', venue_id)
+    if (venue_id) query = query.eq('venue_id', venue_id);
 
     const { data: prefs, error } = await query.maybeSingle();
     if (error) throw error;

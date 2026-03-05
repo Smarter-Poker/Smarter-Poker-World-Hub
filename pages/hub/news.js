@@ -943,8 +943,6 @@ export default function NewsHub() {
     if (searchQuery) newsParams.set('search', searchQuery);
     const { data: newsData, isLoading: loading } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
     const news = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState('all');
 
     // Article reader state - uses server-side proxy to display articles in-app
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
@@ -1145,10 +1143,10 @@ export default function NewsHub() {
         setSubscribeError('');
 
         try {
-            const res = await fetch('/api/news/subscribe', { signal, 
+            const res = await fetch('/api/news/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }
+                body: JSON.stringify({ email })
             });
 
             const { success, error } = await res.json();
@@ -1171,10 +1169,10 @@ export default function NewsHub() {
     // Article navigation - uses link containment
     const openArticle = async (article) => {
         try {
-            await fetch('/api/news/articles', { signal, 
+            await fetch('/api/news/articles', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: article.id }
+                body: JSON.stringify({ id: article.id })
             });
         } catch (e) { }
 

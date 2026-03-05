@@ -214,8 +214,8 @@ async function processExport(exportId) {
           .eq('venue_id', job.venue_id)
           .eq('status', 'completed')
               .limit(100);
-        if (job.date_from) query = query.gte('check_in_time', job.date_from)
-        if (job.date_to) query = query.lte('check_in_time', job.date_to + 'T23:59:59')
+        if (job.date_from) query = query.gte('check_in_time', job.date_from);
+        if (job.date_to) query = query.lte('check_in_time', job.date_to + 'T23:59:59');
         break;
 
       case 'tournaments':
@@ -224,8 +224,8 @@ async function processExport(exportId) {
           .select('*, commander_tournament_entries(*)')
           .eq('venue_id', job.venue_id)
               .limit(100);
-        if (job.date_from) query = query.gte('scheduled_start', job.date_from)
-        if (job.date_to) query = query.lte('scheduled_start', job.date_to + 'T23:59:59')
+        if (job.date_from) query = query.gte('scheduled_start', job.date_from);
+        if (job.date_to) query = query.lte('scheduled_start', job.date_to + 'T23:59:59');
         break;
 
       case 'analytics':
@@ -234,8 +234,8 @@ async function processExport(exportId) {
           .select('*')
           .eq('venue_id', job.venue_id)
               .limit(100);
-        if (job.date_from) query = query.gte('date', job.date_from)
-        if (job.date_to) query = query.lte('date', job.date_to)
+        if (job.date_from) query = query.gte('date', job.date_from);
+        if (job.date_to) query = query.lte('date', job.date_to);
         break;
 
       case 'comps':
@@ -244,8 +244,8 @@ async function processExport(exportId) {
           .select('*, commander_members:member_id(first_name, last_name)')
           .eq('venue_id', job.venue_id)
               .limit(100);
-        if (job.date_from) query = query.gte('created_at', job.date_from)
-        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59')
+        if (job.date_from) query = query.gte('created_at', job.date_from);
+        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
         break;
 
       case 'audit_logs':
@@ -254,8 +254,8 @@ async function processExport(exportId) {
           .select('*')
           .eq('venue_id', job.venue_id)
               .limit(100);
-        if (job.date_from) query = query.gte('created_at', job.date_from)
-        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59')
+        if (job.date_from) query = query.gte('created_at', job.date_from);
+        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
         break;
 
       default:

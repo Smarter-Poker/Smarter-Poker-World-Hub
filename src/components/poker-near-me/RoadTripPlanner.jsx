@@ -108,13 +108,13 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
         setCalculating(true);
         try {
             const stops = [origin, ...waypoints.filter(w => w.trim()), destination].filter(Boolean);
-            if (stops.length < 2) { setError('Enter at least an origin and destination.'); return; }
+            if (stops.length < 2) { setError('Enter at least an origin and destination.'); setCalculating(false); return; }
 
             // Geocode all stops
             const geoStops = [];
             for (const stop of stops) {
                 const geo = await geocodeCity(stop);
-                if (!geo) { setError(`Could not locate: "${stop}"`); return; }
+                if (!geo) { setError(`Could not locate: "${stop}"`); setCalculating(false); return; }
                 geoStops.push({ name: stop, ...geo });
             }
 
@@ -145,10 +145,17 @@ export default function RoadTripPlanner({ venues = [], userLocation, dailyTourna
                 const startDate = new Date(dateRange.start);
                 const endDate = new Date(dateRange.end);
                 const venueIds = new Set(nearbyVenues.map(v => String(v.id)));
+                // Build set of day abbreviations within travel window
+                const travelDays = new Set();
+                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    travelDays.add(dayNames[d.getDay()]);
+                }
                 matchingTournaments = dailyTournaments.filter(t => {
                     if (!venueIds.has(String(t.venue_id))) return false;
-                    // Simple day-of-week check or date overlap
-                    return true;
+                    // Match day_of_week against travel window days
+                    const tDay = t.day_of_week || '';
+                    return travelDays.has(tDay) || travelDays.size === 0;
                 });
             }
 

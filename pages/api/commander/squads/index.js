@@ -98,8 +98,7 @@ async function handleList(req, res) {
       .order('created_at', { ascending: false })
           .limit(100);
 
-    if (venue_id) query = query.eq('venue_id', venue_id)
-        .limit(100);
+    if (venue_id) query = query.eq('venue_id', venue_id);
     if (status) query = query.eq('status', status);
 
     const { data: squads, error } = await query;

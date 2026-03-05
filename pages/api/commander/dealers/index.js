@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('venue_id', venue_id)
       .order('name')
-          .limit(100);
+          .limit(100)
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { dealers: data } });
   }

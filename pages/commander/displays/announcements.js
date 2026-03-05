@@ -248,7 +248,7 @@ export default function AnnouncementsDisplay() {
       <div onClick={goFullscreen}
         style={{
           height: '100vh', background: '#18191A', color: '#E4E6EB',
-          fontFamily: "var(--font-inter), sans-serif" , userSelect: 'none',
+          fontFamily: "var(--font-inter), sans-serif", userSelect: 'none',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}>
 

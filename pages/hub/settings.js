@@ -246,13 +246,13 @@ export default function SettingsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            await fetch('/api/auth/sessions/track', { signal, 
+            await fetch('/api/auth/sessions/track', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({}
+                body: JSON.stringify({})
             });
         } catch (error) {
             console.error('Error tracking session:', error);
@@ -274,12 +274,12 @@ export default function SettingsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const response = await fetch('/api/auth/mfa/setup', { signal, 
+            const response = await fetch('/api/auth/mfa/setup', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
-            };
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -309,13 +309,13 @@ export default function SettingsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const response = await fetch('/api/auth/mfa/verify', { signal, 
+            const response = await fetch('/api/auth/mfa/verify', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ code: verificationCode }
+                body: JSON.stringify({ code: verificationCode })
             });
 
             if (response.ok) {
@@ -348,12 +348,12 @@ export default function SettingsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const response = await fetch('/api/auth/mfa/disable', { signal, 
+            const response = await fetch('/api/auth/mfa/disable', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
-            };
+            });
 
             if (response.ok) {
                 setTwoFactorEnabled(false);
@@ -446,10 +446,10 @@ export default function SettingsPage() {
                 return;
             }
 
-            const response = await fetch('/api/auth/delete-account', { signal, 
+            const response = await fetch('/api/auth/delete-account', {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${session.access_token}` }
-            };
+            });
 
             if (response.ok) {
                 await supabase.auth.signOut();
@@ -507,7 +507,7 @@ export default function SettingsPage() {
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-                session ? fetch(`/api/store/diamond-transactions?limit=10`, { signal,  headers }.then(r => r.json()) : Promise.resolve({ transactions: [] }),
+                session ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }.then(r => r.json()) : Promise.resolve({ transactions: [] }),
                 supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
                 supabase.from('profiles').select('diamonds').eq('id', user.id).single(),
             ]);
@@ -551,13 +551,13 @@ export default function SettingsPage() {
                 setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
                 return;
             }
-            const res = await fetch('/api/promo/redeem', { signal, 
+            const res = await fetch('/api/promo/redeem', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ code: promoCode.trim( })
+                body: JSON.stringify({ code: promoCode.trim() })
             });
             const data = await res.json();
             if (res.ok && data.success) {
@@ -1995,10 +1995,10 @@ export default function SettingsPage() {
                                             try {
                                                 const { data: { session } } = await supabase.auth.getSession();
                                                 if (!session) { alert('Session expired. Please log in again.'); return; }
-                                                const response = await fetch('/api/auth/delete-account', { signal, 
+                                                const response = await fetch('/api/auth/delete-account', {
                                                     method: 'DELETE',
                                                     headers: { 'Authorization': 'Bearer ' + session.access_token }
-                                                };
+                                                });
                                                 if (response.ok) {
                                                     await supabase.auth.signOut();
                                                     alert('Your account has been scheduled for deletion.');

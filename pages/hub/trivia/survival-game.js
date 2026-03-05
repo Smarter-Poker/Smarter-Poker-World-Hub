@@ -311,7 +311,6 @@ export default function SurvivalGamePage() {
             let query = supabase
                 .from('trivia_questions')
                 .select('*')
-                .limit(500) // question pool
             // Strict difficulty filtering for proper level progression
             // Levels 1-2 (easy): Only easy questions
             // Levels 3-5 (medium): Primarily medium, some easy fallback

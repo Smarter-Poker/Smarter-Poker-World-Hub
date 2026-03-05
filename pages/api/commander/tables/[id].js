@@ -48,7 +48,6 @@ async function handleGet(req, res, tableId) {
     const { data: table, error } = await supabase
       .from('commander_tables')
       .select(`
-      .limit(100)
         *,
         commander_games (
           id,
@@ -150,7 +149,6 @@ async function handlePatch(req, res, tableId) {
       const { data: tableWithGames } = await supabase
         .from('commander_tables')
         .select(`
-        .limit(100)
           mode, table_purpose,
           commander_games!commander_games_table_id_fkey (id, status, game_type, stakes)
         `)

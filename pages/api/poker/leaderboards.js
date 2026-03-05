@@ -42,8 +42,7 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('venue_checkins')
                 .select('user_id, created_at');
-            if (dateFilter) query = query.gte('created_at', dateFilter)
-                .limit(100);
+            if (dateFilter) query = query.gte('created_at', dateFilter);
             const { data: checkins } = await query;
 
             const counts = {};
@@ -86,8 +85,7 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('venue_reviews')
                 .select('user_id, created_at');
-            if (dateFilter) query = query.gte('created_at', dateFilter)
-                .limit(100);
+            if (dateFilter) query = query.gte('created_at', dateFilter);
             const { data: reviews } = await query;
 
             const counts = {};
@@ -129,8 +127,7 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('social_posts')
                 .select('author_id, created_at');
-            if (dateFilter) query = query.gte('created_at', dateFilter)
-                .limit(100);
+            if (dateFilter) query = query.gte('created_at', dateFilter);
             const { data: posts } = await query;
 
             const counts = {};

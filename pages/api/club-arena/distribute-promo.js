@@ -167,7 +167,7 @@ export default async function handler(req, res) {
           const { data: profs } = await supabaseAdmin
             .from('profiles')
             .select('id, display_name, username')
-            .in('id', playerIds);
+            .in('id', playerIds)
           (profs || []).forEach(p => { profiles[p.id] = p.display_name || p.username || p.id.slice(0, 8); });
         }
 

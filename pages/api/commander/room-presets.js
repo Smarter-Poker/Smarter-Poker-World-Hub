@@ -133,7 +133,7 @@ export default async function handler(req, res) {
             .eq('venue_id', venueId)
             .eq('status', 'available')
             .order('table_number', { ascending: true })
-                .limit(100);
+                .limit(100)
 
           let tableIdx = 0;
           for (const config of tables) {

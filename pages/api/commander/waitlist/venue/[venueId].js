@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .eq('venue_id', venueId)
       .in('status', ['waiting', 'called'])
       .order('position', { ascending: true })
-          .limit(100);
+          .limit(100)
 
     if (error) {
       console.error('Commander venue waitlist query error:', error);

@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         .from('commander_members')
         .select('id, time_balance_minutes, membership_tier, membership_status, membership_expires')
         .in('id', memberIds)
-            .limit(100);
+            .limit(100)
       if (members) {
         memberMap = Object.fromEntries(members.map(m => [m.id, m]));
       }
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         .from('commander_tables')
         .select('table_number, mode, table_purpose')
         .in('table_number', tableNums)
-            .limit(100);
+            .limit(100)
       if (venue_id) tableQuery = tableQuery.eq('venue_id', parseInt(venue_id));
       const { data: tables } = await tableQuery;
       (tables || []).forEach(t => {

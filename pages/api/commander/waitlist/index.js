@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         .select('*')
         .in('status', ['waiting', 'called'])
         .order('position', { ascending: true })
-            .limit(100);
+            .limit(100)
 
       if (venue_id) {
         query.eq('venue_id', venue_id);
@@ -179,7 +179,7 @@ export default async function handler(req, res) {
           .from('commander_player_sessions')
           .select('id', { count: 'exact' })
           .eq('player_id', player_id)
-          .gte('check_in_at', today);
+          .gte('check_in_at', today)
 
         // If player has more than 3 sessions today and has limits set, warn them
         if (todaySessions >= 3 && limits.daily_limit) {

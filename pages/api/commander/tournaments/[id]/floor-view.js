@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         .select('table_number, max_seats')
         .eq('venue_id', tournament.venue_id)
         .in('table_number', tableNumbers)
-            .limit(100);
+            .limit(100)
       if (dbTables) {
         dbTables.forEach(t => { tableConfigs[t.table_number] = t.max_seats || 9; });
       }
