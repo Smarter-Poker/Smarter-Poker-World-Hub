@@ -188,6 +188,7 @@ export const MENU_CONFIGS = {
             createMenuItem.section('Dealer Tools'),
             createMenuItem.navigation('🎰 Toke Tracker', '/hub/toke-tracker'),
             createMenuItem.navigation('📋 Work Schedule & Dealer Downs', '/hub/toke-tracker'),
+            createMenuItem.navigation('🎯 Set Monthly Goal', '/hub/toke-tracker/shift'),
             createMenuItem.divider(),
             createMenuItem.navigation('Reels', '/hub/reels', MenuIcons.video),
             createMenuItem.navigation('News', '/hub/news'),

@@ -1351,6 +1351,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                     onClick={() => setShowCreateForm(true)}
                     style={styles.createGigBtn}
                 >
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Event</span>
                     <div>
                         <div style={styles.createGigTitle}>Start A New Event</div>
                         <div style={styles.createGigSub}>Track Downs, Tokes, Income And Expenses</div>
@@ -1784,11 +1785,54 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                 )}
             </div>
 
+            {/* ── MONTHLY INCOME GOAL (at bottom) ── */}
+            {(monthlyGoal > 0 || showGoalEdit) && (
+                <div style={styles.goalCard}>
+                    <div style={styles.goalHeader}>
+                        <span style={styles.goalTitle}>Monthly Goal</span>
+                        <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
+                    </div>
+                    {showGoalEdit ? (
+                        <div style={styles.goalEditRow}>
+                            <input
+                                type="number"
+                                style={styles.goalInput}
+                                placeholder="Monthly $ Goal"
+                                value={goalInput}
+                                onChange={e => setGoalInput(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && saveGoal()}
+                                autoFocus
+                            />
+                            <button style={styles.goalSaveBtn} onClick={saveGoal}>Save</button>
+                            <button style={styles.goalCancelBtn} onClick={() => setShowGoalEdit(false)}>×</button>
+                        </div>
+                    ) : (() => {
+                        const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
+                        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                        const daysLeft = daysInMonth - new Date().getDate();
+                        const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#f59e0b' : '#f02849';
+                        return (
+                            <>
+                                <div style={styles.goalText}>
+                                    You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) — {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
+                                </div>
+                                <div style={styles.goalBarBg}>
+                                    <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
+                                </div>
+                            </>
+                        );
+                    })()}
+                </div>
+            )}
+            {!monthlyGoal && !showGoalEdit && (
+                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>Set Monthly Income Goal</button>
+            )}
+
             {/* ── JARVIS DEALER REFERENCE PANEL ── */}
             <div style={styles.jarvisPanel}>
                 <button style={styles.jarvisPanelHeader} onClick={() => setJarvisExpanded(e => !e)}>
                     <span style={styles.jarvisHeaderLeft}>
-                        <span style={styles.jarvisIcon}>🤖</span>
+                        <img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={styles.jarvisAvatarImg} />
                         <div>
                             <div style={styles.jarvisTitle}>Jarvis — Dealer Reference</div>
                             <div style={styles.jarvisSub}>Ask For Rules, TDA Lookups & Game Refreshers</div>
@@ -1805,19 +1849,6 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                             exit={{ opacity: 0, height: 0 }}
                             style={{ overflow: 'hidden' }}
                         >
-                            {/* Quick-pick chips */}
-                            <div style={styles.jarvisChips}>
-                                {JARVIS_CHIPS.map(chip => (
-                                    <button
-                                        key={chip}
-                                        onClick={() => handleAskJarvis(chip)}
-                                        style={styles.jarvisChip}
-                                        disabled={jarvisLoading}
-                                    >
-                                        {chip}
-                                    </button>
-                                ))}
-                            </div>
 
                             {/* Input row */}
                             <div style={styles.jarvisInputRow}>
@@ -1843,12 +1874,12 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                             {jarvisLoading && (
                                 <div style={styles.jarvisLoading}>
                                     <span style={styles.jarvisLoadingDot} />
-                                    Jarvis is thinking...
+                                    Jarvis Is Thinking...
                                 </div>
                             )}
                             {jarvisAnswer && !jarvisLoading && (
                                 <div style={styles.jarvisAnswer}>
-                                    <div style={styles.jarvisAnswerLabel}>🤖 Jarvis</div>
+                                    <div style={styles.jarvisAnswerLabel}><img src="/images/jarvis-avatar-circle.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 6, verticalAlign: 'middle' }} />Jarvis</div>
                                     <div style={styles.jarvisAnswerText}>{jarvisAnswer}</div>
                                 </div>
                             )}
@@ -2194,6 +2225,7 @@ const styles = {
     },
     jarvisHeaderLeft: { display: 'flex', alignItems: 'center', gap: 10 },
     jarvisIcon: { fontSize: 26 },
+    jarvisAvatarImg: { width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 },
     jarvisTitle: { fontSize: 16, fontWeight: 700, color: '#E4E6EB', textAlign: 'left' },
     jarvisSub: { fontSize: 12, color: '#64748b', marginTop: 1, textAlign: 'left' },
     jarvisChevron: { fontSize: 14, color: '#64748b', transition: 'transform 0.2s', flexShrink: 0 },
