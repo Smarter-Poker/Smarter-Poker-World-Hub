@@ -39,7 +39,8 @@ async function handleGet(req, res) {
             .eq('venue_id', venue_id)
             .gte('clock_in', start.toISOString())
             .lte('clock_in', end.toISOString())
-            .order('clock_in', { ascending: false });
+            .order('clock_in', { ascending: false })
+                .limit(100);
 
         if (error) throw error;
 
@@ -50,7 +51,9 @@ async function handleGet(req, res) {
             const { data: staffList } = await supabase
                 .from('commander_staff')
                 .select('id, display_name, role, qr_code')
-                .in('id', staffIds);
+                .in('id', staffIds)
+                    .limit(100);
+                .limit(100);
             if (staffList) {
                 staffMap = Object.fromEntries(staffList.map(s => [s.id, s]));
             }

@@ -130,11 +130,14 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('social_page_followers')
                 .select('id, user_id, role, status, notifications_enabled, created_at')
-                .eq('page_id', page_id);
+                .eq('page_id', page_id)
+                    .limit(100);
 
-            if (role) query = query.eq('role', role);
+            if (role) query = query.eq('role', role)
+                .limit(100);
 
-            const { data, error } = await query.order('created_at', { ascending: false });
+            const { data, error } = await query.order('created_at', { ascending: false })
+                .limit(100);
             if (error) return res.status(500).json({ error: error.message });
 
             // Determine if requester is page owner
@@ -152,7 +155,8 @@ export default async function handler(req, res) {
                     const { data: profileData } = await supabase
                         .from('profiles')
                         .select('id, username, full_name, avatar_url')
-                        .in('id', userIds);
+                        .in('id', userIds)
+                            .limit(100);
                     (profileData || []).forEach(p => { profiles[p.id] = p; });
                 }
                 const enriched = approvedFollowers.map(f => ({
@@ -184,7 +188,8 @@ export default async function handler(req, res) {
             const { data, error } = await supabase
                 .from('social_page_followers')
                 .select('page_id, role, created_at')
-                .eq('user_id', user_id);
+                .eq('user_id', user_id)
+                    .limit(100);
 
             if (error) return res.status(500).json({ error: error.message });
 
@@ -195,7 +200,8 @@ export default async function handler(req, res) {
                 const { data: pageData } = await supabase
                     .from('social_pages')
                     .select('*')
-                    .in('id', pageIds);
+                    .in('id', pageIds)
+                        .limit(100);
                 (pageData || []).forEach(p => { pages[p.id] = p; });
             }
 

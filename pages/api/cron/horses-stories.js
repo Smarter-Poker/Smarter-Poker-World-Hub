@@ -217,7 +217,8 @@ export default async function handler(req, res) {
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
-            .not('profile_id', 'is', null);
+            .not('profile_id', 'is', null)
+                .limit(100);
 
         if (horseError || !allHorses?.length) {
             return res.status(200).json({

@@ -129,7 +129,8 @@ async function discoverGroups(req, res, options) {
       .from('commander_home_members')
       .select('group_id, status')
       .eq('user_id', userId)
-      .in('group_id', groups.map(g => g.id));
+      .in('group_id', groups.map(g => g.id))
+          .limit(100);
 
     const membershipMap = {};
     memberships?.forEach(m => {

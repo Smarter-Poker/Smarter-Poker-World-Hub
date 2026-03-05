@@ -105,7 +105,8 @@ export default function Players() {
                     .from('club_members')
                     .select('*, profiles(username, display_name, avatar_url, email, last_seen)')
                     .eq('club_id', clubData.id)
-                    .order('created_at', { ascending: true });
+                    .order('created_at', { ascending: true })
+                    .limit(200) // players list
 
                 if (memberData) {
                     setMembers(memberData);

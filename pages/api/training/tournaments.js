@@ -72,15 +72,19 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('training_tournaments')
                 .select('*, entry_count')
-                .order('start_time', { ascending: true });
+                .order('start_time', { ascending: true })
+                    .limit(100);
 
             if (status === 'live') {
                 const now = new Date().toISOString();
-                query = query.eq('status', 'live');
+                query = query.eq('status', 'live')
+                    .limit(100);
             } else if (status === 'upcoming') {
-                query = query.eq('status', 'scheduled');
+                query = query.eq('status', 'scheduled')
+                    .limit(100);
             } else if (status === 'completed') {
-                query = query.eq('status', 'complete');
+                query = query.eq('status', 'complete')
+                    .limit(100);
             }
 
             const { data: tournaments } = await query.limit(20);
@@ -293,7 +297,8 @@ export default async function handler(req, res) {
                 .from('training_tournament_entries')
                 .select('id')
                 .eq('tournament_id', tournamentId)
-                .gt('score', finalScore);
+                .gt('score', finalScore)
+                    .limit(100);
 
             const currentRank = (betterScores?.length || 0) + 1;
 

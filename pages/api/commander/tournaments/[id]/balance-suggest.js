@@ -55,7 +55,8 @@ export default async function handler(req, res) {
     }
 
     // Get unique table numbers from entries
-    const tableNumbers = [...new Set(entries.map(e => e.table_number).filter(Boolean))];
+    const tableNumbers = [...new Set(entries.map(e => e.table_number).filter(Boolean))]
+        .limit(100);
     if (tableNumbers.length < 2) {
       return res.status(200).json({ success: true, data: { type: 'none', moves: [], message: 'Only one table active' } });
     }
@@ -65,7 +66,9 @@ export default async function handler(req, res) {
       .from('commander_tables')
       .select('id, table_number, max_seats, status')
       .eq('venue_id', tournament.venue_id)
-      .in('table_number', tableNumbers);
+      .in('table_number', tableNumbers)
+          .limit(100);
+      .limit(100)
 
     const maxSeats = tables?.[0]?.max_seats || 9;
 

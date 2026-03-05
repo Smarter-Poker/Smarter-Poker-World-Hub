@@ -29,11 +29,14 @@ export default async function handler(req, res) {
         .from('commander_cash_transactions')
         .select('type, amount, created_at, payment_method')
         .eq('session_id', session_id)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+            .limit(100);
 
       const transactions = txns || [];
-      const buyIns = transactions.filter(t => t.type === 'buy_in' || t.type === 'add_on');
-      const cashOuts = transactions.filter(t => t.type === 'cash_out');
+      const buyIns = transactions.filter(t => t.type === 'buy_in' || t.type === 'add_on')
+          .limit(100);
+      const cashOuts = transactions.filter(t => t.type === 'cash_out')
+          .limit(100);
 
       return res.status(200).json({
         success: true,
@@ -54,7 +57,8 @@ export default async function handler(req, res) {
         .select('id, player_name, seat_number, started_at')
         .eq('venue_id', venue_id)
         .eq('table_number', parseInt(table_number))
-        .eq('status', 'active');
+        .eq('status', 'active')
+            .limit(100);
 
       if (!sessions || sessions.length === 0) {
         return res.status(200).json({ success: true, data: [] });
@@ -64,7 +68,8 @@ export default async function handler(req, res) {
       const { data: allTxns } = await supabase
         .from('commander_cash_transactions')
         .select('session_id, type, amount')
-        .in('session_id', sessionIds);
+        .in('session_id', sessionIds)
+            .limit(100);
 
       const txnMap = {};
       (allTxns || []).forEach(t => {
@@ -74,7 +79,8 @@ export default async function handler(req, res) {
 
       const result = sessions.map(s => {
         const txns = txnMap[s.id] || [];
-        const bought = txns.filter(t => t.type === 'buy_in' || t.type === 'add_on').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        const bought = txns.filter(t => t.type === 'buy_in' || t.type === 'add_on').reduce((sum, t) => sum + parseFloat(t.amount), 0)
+            .limit(100);
         const cashed = txns.filter(t => t.type === 'cash_out').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         return {
           session_id: s.id,

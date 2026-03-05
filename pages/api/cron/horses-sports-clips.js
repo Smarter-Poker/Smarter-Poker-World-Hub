@@ -82,7 +82,8 @@ async function getRandomSportsClip(excludeIds = []) {
 
         // Only apply exclusion filter if there are IDs to exclude
         if (excludeIds.length > 0) {
-            query = query.not('id', 'in', `(${excludeIds.join(',')})`);
+            query = query.not('id', 'in', `(${excludeIds.join(',')})`)
+                .limit(100);
         }
 
         const { data: clips, error } = await query
@@ -144,7 +145,8 @@ export default async function handler(req, res) {
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
-            .not('profile_id', 'is', null);
+            .not('profile_id', 'is', null)
+                .limit(100);
 
         if (!allHorses?.length) {
             return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });

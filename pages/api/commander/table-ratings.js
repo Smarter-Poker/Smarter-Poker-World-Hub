@@ -88,7 +88,8 @@ async function getVibes(req, res) {
       .select('table_number, action_level, friendliness, pace, game_type, stakes, comment, created_at')
       .eq('venue_id', venue_id)
       .gte('created_at', since)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+          .limit(100);
 
     if (error) throw error;
 

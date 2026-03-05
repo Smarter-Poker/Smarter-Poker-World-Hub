@@ -51,6 +51,7 @@ async function handleGet(req, res) {
       const result = await supabase
         .from('commander_tables')
         .select(`
+        .limit(100)
           *,
           commander_games!commander_games_table_id_fkey (
             id,
@@ -73,7 +74,8 @@ async function handleGet(req, res) {
           .from('commander_table_seats')
           .select('table_number, seat_number, status, player_name, seated_at')
           .eq('venue_id', venue_id)
-          .eq('status', 'occupied');
+          .eq('status', 'occupied')
+              .limit(100);
         // Merge seats into table data
         if (seats && data) {
           const seatsByTable = {};
@@ -92,7 +94,8 @@ async function handleGet(req, res) {
           const { data: tournaments } = await supabase
             .from('commander_tournaments')
             .select('id, name, status, buyin_amount, buyin_fee, current_level, players_remaining, current_entries, starting_chips, tournament_type')
-            .in('id', tournamentIds);
+            .in('id', tournamentIds)
+                .limit(100);
           if (tournaments) {
             const tournMap = Object.fromEntries(tournaments.map(t => [t.id, t]));
             data = data.map(t => t.tournament_id ? { ...t, tournament: tournMap[t.tournament_id] || null } : t);
@@ -105,7 +108,9 @@ async function handleGet(req, res) {
         .from('commander_tables')
         .select('*')
         .eq('venue_id', venue_id)
-        .order('table_number', { ascending: true });
+        .order('table_number', { ascending: true })
+            .limit(100);
+        .limit(100)
       data = result.data;
       error = result.error;
     }

@@ -380,7 +380,8 @@ export default async function handler(req, res) {
     const { data: existingLeaks } = await supabase
       .from('user_leaks')
       .select('*')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+          .limit(100);
 
     const existingLeakMap = {};
     (existingLeaks || []).forEach(leak => {
@@ -468,10 +469,13 @@ export default async function handler(req, res) {
     const { data: updatedLeaks } = await supabase
       .from('user_leaks')
       .select('status')
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+          .limit(100);
 
-    const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
-    const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
+    const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0
+        .limit(100);
+    const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0
+        .limit(100);
 
     // Fetch existing stats to increment hands
     const { data: existingStats } = await supabase

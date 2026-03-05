@@ -157,7 +157,8 @@ export default async function handler(req, res) {
         const { count: existingCount } = await supabase
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
-            .eq('daily_date', targetDate);
+            .eq('daily_date', targetDate)
+                .limit(100);
 
         if (existingCount >= QUESTIONS_PER_CATEGORY * CATEGORIES.length) {
             return res.status(200).json({

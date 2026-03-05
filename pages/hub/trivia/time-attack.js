@@ -68,7 +68,8 @@ export default function TimeAttackPage() {
             .select('diamonds_earned')
             .eq('user_id', user.id)
             .eq('mode', 'time-attack')
-            .gte('created_at', today);
+            .gte('created_at', today)
+            .limit(50) // time attack scores
 
         if (scores) {
             const total = scores.reduce((sum, s) => sum + (s.diamonds_earned || 0), 0);
@@ -94,6 +95,7 @@ export default function TimeAttackPage() {
         const { data } = await supabase
             .from('trivia_scores')
             .select(`
+            .limit(50) // time attack scores
                 correct_count,
                 user_id,
                 profiles!inner(username)
@@ -134,7 +136,8 @@ export default function TimeAttackPage() {
                 .from('trivia_user_question_history')
                 .select('question_id')
                 .eq('user_id', userId)
-                .gte('seen_at', sixtyDaysAgo.toISOString());
+                .gte('seen_at', sixtyDaysAgo.toISOString())
+                .limit(200) // seen questions
 
             if (recentHistory) {
                 excludeIds = recentHistory.map(h => h.question_id);

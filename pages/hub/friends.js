@@ -450,13 +450,15 @@ export default function FriendsPage() {
             .from('friendships')
             .select('friend_id, friend:profiles!friendships_friend_id_fkey(*)')
             .eq('user_id', authUser.id)
-            .eq('status', 'accepted');
+            .eq('status', 'accepted')
+            .limit(100) // friends list
 
         const { data: friendshipsAsFriend } = await supabase
             .from('friendships')
             .select('user_id, requester:profiles!friendships_user_id_fkey(*)')
             .eq('friend_id', authUser.id)
-            .eq('status', 'accepted');
+            .eq('status', 'accepted')
+            .limit(100) // friends list
 
         let currentFriendIdsList = [];
         const allFriends = [];
@@ -490,7 +492,8 @@ export default function FriendsPage() {
             .from('friendships')
             .select('id, user_id, requester:profiles!friendships_user_id_fkey(*)')
             .eq('friend_id', authUser.id)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .limit(100) // friends list
 
         if (incomingRequests) {
             setFriendRequests(incomingRequests);
@@ -501,7 +504,8 @@ export default function FriendsPage() {
             .from('friendships')
             .select('friend_id')
             .eq('user_id', authUser.id)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+            .limit(100) // friends list
 
         if (outgoingRequests) {
             setPendingIds(new Set(outgoingRequests.map(r => r.friend_id)));
@@ -653,7 +657,7 @@ export default function FriendsPage() {
 
         const { error } = await supabase
             .from('friendships')
-            .insert({ user_id: user.id, friend_id: friendId, status: 'pending' });
+            .insert({ user_id: user.id, friend_id: friendId, status: 'pending' })
 
         if (!error) {
             setPendingIds(prev => new Set([...prev, friendId]));
@@ -667,14 +671,14 @@ export default function FriendsPage() {
         const { error: updateError } = await supabase
             .from('friendships')
             .update({ status: 'accepted' })
-            .eq('id', request.id);
+            .eq('id', request.id)
 
         if (updateError) return;
 
         // Create reverse friendship
         await supabase
             .from('friendships')
-            .insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' });
+            .insert({ user_id: user.id, friend_id: request.user_id, status: 'accepted' })
 
         // Update UI
         const newFriend = request.requester;
@@ -691,7 +695,7 @@ export default function FriendsPage() {
         await supabase
             .from('friendships')
             .delete()
-            .eq('id', request.id);
+            .eq('id', request.id)
 
         //  Auto-convert declined requester to follower
         // The REQUESTER now FOLLOWS the person who declined
@@ -722,13 +726,13 @@ export default function FriendsPage() {
             .from('friendships')
             .delete()
             .eq('user_id', user.id)
-            .eq('friend_id', friendId);
+            .eq('friend_id', friendId)
 
         await supabase
             .from('friendships')
             .delete()
             .eq('user_id', friendId)
-            .eq('friend_id', user.id);
+            .eq('friend_id', user.id)
 
         const removedFriend = friends.find(f => f.id === friendId);
         if (removedFriend) {

@@ -20,9 +20,11 @@ export default function TournamentResultsReport() {
 
   useEffect(() => {
     const fetchTournaments = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       try {
         const staffSession = getStaffSession();
-        const res = await fetch('/api/commander/tournaments?status=completed&limit=50', {
+        const res = await fetch('/api/commander/tournaments?status=completed&limit=50', { signal, 
           headers: { 'x-staff-session': staffSession }
         });
         const json = await res.json();
@@ -41,7 +43,7 @@ export default function TournamentResultsReport() {
     setExpanded(tournamentId);
     try {
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {
+      const res = await fetch(`/api/commander/tournaments/${ signal, tournamentId}/entries?status=all`, {
         headers: { 'x-staff-session': staffSession }
       });
       const json = await res.json();

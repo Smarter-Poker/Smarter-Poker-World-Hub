@@ -299,7 +299,8 @@ export default function SurvivalGamePage() {
                     .from('trivia_user_question_history')
                     .select('question_id')
                     .eq('user_id', userId)
-                    .gte('seen_at', sixtyDaysAgo.toISOString());
+                    .gte('seen_at', sixtyDaysAgo.toISOString())
+                    .limit(200) // survival seen
 
                 if (history) {
                     excludeIds = history.map(h => h.question_id);
@@ -310,7 +311,7 @@ export default function SurvivalGamePage() {
             let query = supabase
                 .from('trivia_questions')
                 .select('*');
-
+                .limit(500) // question pool
             // Strict difficulty filtering for proper level progression
             // Levels 1-2 (easy): Only easy questions
             // Levels 3-5 (medium): Primarily medium, some easy fallback

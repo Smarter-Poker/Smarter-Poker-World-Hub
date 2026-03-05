@@ -3,9 +3,9 @@
  * Statistical analysis — driven by entries prop for real-time filter reactivity
  */
 
-import { useMemo } from 'react';
+import { memo,  useMemo  } from 'react';
 
-export default function VarianceCalculator({ entries = [] }) {
+function VarianceCalculator({ entries = [] }) {
     const stats = useMemo(() => {
         if (!entries || entries.length < 2) return null;
 
@@ -170,3 +170,5 @@ const styles = {
         textAlign: 'center',
     },
 };
+
+export default memo(VarianceCalculator);

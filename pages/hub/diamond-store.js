@@ -9,6 +9,8 @@
       Preserve the clickable zone coordinates.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import dynamic from 'next/dynamic';
+const ShoppingCart = dynamic(() => import('../../src/components/store/ShoppingCart'), { ssr: false });
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -19,7 +21,6 @@ import confetti from 'canvas-confetti';
 // God-Mode Stack
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import ShoppingCart from '../../src/components/store/ShoppingCart';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 

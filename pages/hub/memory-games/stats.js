@@ -83,7 +83,8 @@ export default function MemoryGamesStats() {
                 .from('memory_game_sessions')
                 .select('*')
                 .eq('user_id', user.id)
-                .eq('status', 'completed');
+                .eq('status', 'completed')
+                .limit(50) // game sessions
 
             if (error) {
                 console.error('[Stats] Error fetching sessions:', error);

@@ -28,7 +28,8 @@ export default async function handler(req, res) {
             .from('commander_table_displays')
             .select('device_id, device_name, device_type, is_online, last_heartbeat')
             .eq('venue_id', venue_id)
-            .order('device_name', { ascending: true });
+            .order('device_name', { ascending: true })
+                .limit(100);
 
         if (error) {
             // Table might not exist yet — return empty

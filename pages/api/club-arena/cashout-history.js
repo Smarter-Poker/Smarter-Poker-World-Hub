@@ -60,7 +60,8 @@ export default async function handler(req, res) {
       const { data: profs } = await supabaseAdmin
         .from('profiles')
         .select('id, username, display_name')
-        .in('id', playerIds);
+        .in('id', playerIds)
+            .limit(100);
       for (const p of (profs || [])) profiles[p.id] = p;
     }
 

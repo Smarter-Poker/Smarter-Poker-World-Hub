@@ -306,7 +306,8 @@ export default function PvPPage() {
                 .from('trivia_user_question_history')
                 .select('question_id')
                 .eq('user_id', userId)
-                .gte('seen_at', sixtyDaysAgo.toISOString());
+                .gte('seen_at', sixtyDaysAgo.toISOString())
+                .limit(200) // pvp seen questions
 
             if (recentHistory) {
                 excludeIds = recentHistory.map(h => h.question_id);

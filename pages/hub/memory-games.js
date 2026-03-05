@@ -1882,10 +1882,10 @@ export default function MemoryGamesPage() {
                     format: scenarioFilters.format || undefined,
                 };
 
-                const response = await fetch('/api/gto/generate-scenario', {
+                const response = await fetch('/api/gto/generate-scenario', { signal, 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody),
+                    body: JSON.stringify(requestBody,
                 });
 
                 const result = await response.json();
@@ -2354,10 +2354,12 @@ export default function MemoryGamesPage() {
 
     // Fetch user's weak spots for adaptive training
     const fetchWeakSpots = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!userId) return;
 
         try {
-            const response = await fetch(`/api/gto/get-weak-spots?userId=${userId}`);
+            const response = await fetch(`/api/gto/get-weak-spots?userId=${userId}`, { signal });
             const result = await response.json();
 
             if (result.success && result.weakSpots) {
@@ -2370,15 +2372,17 @@ export default function MemoryGamesPage() {
 
     // Start adaptive training targeting weaknesses
     const startAdaptiveTraining = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!userId) return;
 
         setAdaptiveLoading(true);
 
         try {
-            const response = await fetch('/api/gto/generate-adaptive', {
+            const response = await fetch('/api/gto/generate-adaptive', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
+                body: JSON.stringify({ userId }
             });
 
             const result = await response.json();
@@ -2400,10 +2404,12 @@ export default function MemoryGamesPage() {
 
     // Fetch lobby suggestions for proactive learning
     const fetchLobbySuggestions = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!userId) return;
 
         try {
-            const response = await fetch(`/api/gto/lobby-suggestions?userId=${userId}`);
+            const response = await fetch(`/api/gto/lobby-suggestions?userId=${userId}`, { signal });
             const result = await response.json();
 
             if (result.success && result.suggestions) {
@@ -2425,6 +2431,8 @@ export default function MemoryGamesPage() {
     // Load leaderboard data
 
     const loadLeaderboard = useCallback(async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
         setLeaderboardLoading(true);
         try {
             // Initialize service with supabase client if not done
@@ -2453,6 +2461,8 @@ export default function MemoryGamesPage() {
 
     // Load daily challenge data
     const loadDailyChallenge = useCallback(async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
         setChallengeLoading(true);
         try {
             // Initialize service with supabase client if not done
@@ -2531,6 +2541,8 @@ export default function MemoryGamesPage() {
 
     // Handle VIP upgrade - initiate Stripe checkout for VIP subscription
     const handleVipUpgrade = useCallback(async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
         // Check if user is logged in
         if (!userId) {
             alert('Please log in to upgrade to VIP!');

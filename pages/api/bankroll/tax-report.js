@@ -53,7 +53,8 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .gte('entry_date', startDate)
             .lte('entry_date', endDate)
-            .order('entry_date', { ascending: true });
+            .order('entry_date', { ascending: true })
+                .limit(500);
 
         if (sessionsError) throw sessionsError;
 
@@ -63,7 +64,8 @@ export default async function handler(req, res) {
             .select('*')
             .eq('user_id', user.id)
             .gte('start_date', startDate)
-            .lte('end_date', endDate);
+            .lte('end_date', endDate)
+                .limit(100);
 
         // Fetch uploaded W-2G forms for the year
         const { data: uploadedW2g } = await supabase
@@ -71,7 +73,8 @@ export default async function handler(req, res) {
             .select('*')
             .eq('user_id', user.id)
             .eq('tax_year', parseInt(year))
-            .order('upload_date', { ascending: true });
+            .order('upload_date', { ascending: true })
+                .limit(100);
 
         // Calculate totals
         const report = calculateTaxReport(sessions || [], trips || [], year);

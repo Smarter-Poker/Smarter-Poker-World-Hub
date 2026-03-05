@@ -24,7 +24,8 @@ export default async function handler(req, res) {
         const { data: allProfiles, error: profileError } = await supabase
             .from('profiles')
             .select('id, username, full_name, email, created_at')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+                .limit(100);
 
         // Search for specific user if provided
         let searchResults = [];

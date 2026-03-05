@@ -56,6 +56,7 @@ async function handleGet(req, res) {
     const { data: staff, error } = await supabase
       .from('commander_staff')
       .select(`
+      .limit(100)
         *,
         profiles (
           id,
@@ -221,7 +222,9 @@ async function handlePost(req, res) {
       const { count } = await supabase
         .from('commander_members')
         .select('id', { count: 'exact', head: true })
-        .eq('venue_id', venue_id);
+        .eq('venue_id', venue_id)
+            .limit(100);
+        .limit(500);
       const memberNumber = `${prefix}-${String((count || 0) + 1).padStart(5, '0')}`;
 
       const nameParts = (display_name || '').trim().split(' ');

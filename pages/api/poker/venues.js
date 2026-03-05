@@ -256,16 +256,21 @@ export default async function handler(req, res) {
                     .from('social_pages')
                     .select('id, name, description, avatar_url, page_type, location_city, location_state, follower_count, metadata, linked_venue_id, owner_id')
                     .eq('is_public', true)
-                    .not('location_city', 'is', null);
+                    .not('location_city', 'is', null)
+                        .limit(100);
 
                 // Apply matching filters to social pages query
-                if (state) spQuery = spQuery.ilike('location_state', state);
-                if (city) spQuery = spQuery.ilike('location_city', `%${city}%`);
+                if (state) spQuery = spQuery.ilike('location_state', state)
+                    .limit(100);
+                if (city) spQuery = spQuery.ilike('location_city', `%${city}%`)
+                    .limit(100);
                 if (type && ['club', 'charity', 'home_game'].includes(type)) {
-                    spQuery = spQuery.eq('page_type', type);
+                    spQuery = spQuery.eq('page_type', type)
+                        .limit(100);
                 } else if (type && ['poker_club'].includes(type)) {
                     // poker_club maps to club page_type
-                    spQuery = spQuery.eq('page_type', 'club');
+                    spQuery = spQuery.eq('page_type', 'club')
+                        .limit(100);
                 } else if (type && !['club', 'charity', 'home_game', 'poker_club'].includes(type)) {
                     // Type filter is for a poker_venues-only type (e.g. 'casino'), skip social pages
                     spQuery = null;
@@ -297,7 +302,8 @@ export default async function handler(req, res) {
                                 const { data: clubs } = await supabase
                                     .from('clubs')
                                     .select('id, owner_id, name')
-                                    .in('owner_id', ownerIds);
+                                    .in('owner_id', ownerIds)
+                                        .limit(100);
                                 if (clubs) {
                                     for (const c of clubs) {
                                         if (!clubsByOwner[c.owner_id]) clubsByOwner[c.owner_id] = [];
@@ -310,7 +316,8 @@ export default async function handler(req, res) {
                                             .select('club_id')
                                             .in('club_id', clubIds)
                                             .in('status', ['ANNOUNCED', 'RUNNING', 'SCHEDULED'])
-                                            .gte('start_time', new Date().toISOString());
+                                            .gte('start_time', new Date().toISOString())
+                                                .limit(100);
                                         if (tourneys) {
                                             for (const t of tourneys) {
                                                 tournamentCountByClub[t.club_id] = (tournamentCountByClub[t.club_id] || 0) + 1;
@@ -395,7 +402,8 @@ export default async function handler(req, res) {
                                     .from('poker_venues')
                                     .select('id, games_offered, stakes_cash, trust_score, is_featured, has_tournaments, hours_weekday, hours_weekend, poker_tables')
                                     .in('id', missedIds)
-                                    .eq('is_active', true);
+                                    .eq('is_active', true)
+                                        .limit(100);
                                 if (pvRows) {
                                     for (const pv of pvRows) supabaseVenuesByIdMap[pv.id] = pv;
                                 }

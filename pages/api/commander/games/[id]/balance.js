@@ -59,7 +59,9 @@ export default async function handler(req, res) {
       .eq('venue_id', refGame.venue_id)
       .eq('game_type', refGame.game_type)
       .eq('stakes', refGame.stakes)
-      .eq('status', 'running');
+      .eq('status', 'running')
+          .limit(100);
+      .limit(100)
 
     if (gamesError) throw gamesError;
 

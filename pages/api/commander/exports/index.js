@@ -203,7 +203,8 @@ async function processExport(exportId) {
         query = supabase
           .from('commander_player_stats')
           .select('*, profiles:player_id(display_name, email)')
-          .eq('venue_id', job.venue_id);
+          .eq('venue_id', job.venue_id)
+              .limit(100);
         break;
 
       case 'sessions':
@@ -211,52 +212,68 @@ async function processExport(exportId) {
           .from('commander_player_sessions')
           .select('*, profiles:player_id(display_name)')
           .eq('venue_id', job.venue_id)
-          .eq('status', 'completed');
-        if (job.date_from) query = query.gte('check_in_time', job.date_from);
-        if (job.date_to) query = query.lte('check_in_time', job.date_to + 'T23:59:59');
+          .eq('status', 'completed')
+              .limit(100);
+        if (job.date_from) query = query.gte('check_in_time', job.date_from)
+            .limit(100);
+        if (job.date_to) query = query.lte('check_in_time', job.date_to + 'T23:59:59')
+            .limit(100);
         break;
 
       case 'tournaments':
         query = supabase
           .from('commander_tournaments')
           .select('*, commander_tournament_entries(*)')
-          .eq('venue_id', job.venue_id);
-        if (job.date_from) query = query.gte('scheduled_start', job.date_from);
-        if (job.date_to) query = query.lte('scheduled_start', job.date_to + 'T23:59:59');
+          .eq('venue_id', job.venue_id)
+              .limit(100);
+        if (job.date_from) query = query.gte('scheduled_start', job.date_from)
+            .limit(100);
+        if (job.date_to) query = query.lte('scheduled_start', job.date_to + 'T23:59:59')
+            .limit(100);
         break;
 
       case 'analytics':
         query = supabase
           .from('commander_analytics_daily')
           .select('*')
-          .eq('venue_id', job.venue_id);
-        if (job.date_from) query = query.gte('date', job.date_from);
-        if (job.date_to) query = query.lte('date', job.date_to);
+          .eq('venue_id', job.venue_id)
+              .limit(100);
+        if (job.date_from) query = query.gte('date', job.date_from)
+            .limit(100);
+        if (job.date_to) query = query.lte('date', job.date_to)
+            .limit(100);
         break;
 
       case 'comps':
         query = supabase
           .from('commander_member_comp_log')
           .select('*, commander_members:member_id(first_name, last_name)')
-          .eq('venue_id', job.venue_id);
-        if (job.date_from) query = query.gte('created_at', job.date_from);
-        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
+          .eq('venue_id', job.venue_id)
+              .limit(100);
+        if (job.date_from) query = query.gte('created_at', job.date_from)
+            .limit(100);
+        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59')
+            .limit(100);
         break;
 
       case 'audit_logs':
         query = supabase
           .from('commander_audit_logs')
           .select('*')
-          .eq('venue_id', job.venue_id);
-        if (job.date_from) query = query.gte('created_at', job.date_from);
-        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
+          .eq('venue_id', job.venue_id)
+              .limit(100);
+        if (job.date_from) query = query.gte('created_at', job.date_from)
+            .limit(100);
+        if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59')
+            .limit(100);
         break;
 
       default:
         throw new Error(`Unknown export type: ${job.export_type}`);
     }
 
-    const { data: exportData, error } = await query.order('created_at', { ascending: false });
+    const { data: exportData, error } = await query.order('created_at', { ascending: false })
+        .limit(100);
 
     if (error) throw error;
 

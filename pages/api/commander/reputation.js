@@ -60,7 +60,8 @@ async function getReputation(req, res) {
       const { data: reviews } = await supabase
         .from('commander_player_reputation')
         .select('player_id')
-        .eq('venue_id', venue_id);
+        .eq('venue_id', venue_id)
+            .limit(100);
 
       const playerIds = [...new Set((reviews || []).map(r => r.player_id))];
 
@@ -72,7 +73,8 @@ async function getReputation(req, res) {
         .from('commander_player_reputation_scores')
         .select('*')
         .in('player_id', playerIds.slice(0, parseInt(limit)))
-        .order('overall_score', { ascending: false });
+        .order('overall_score', { ascending: false })
+            .limit(100);
 
       // Get names
       const { data: profiles } = await supabase

@@ -95,7 +95,8 @@ export default function Leaderboard() {
                 const { data: memberData } = await supabase
                     .from('club_members')
                     .select('*, profiles(username, display_name, avatar_url)')
-                    .eq('club_id', clubData.id);
+                    .eq('club_id', clubData.id)
+                    .limit(100) // leaderboard
 
                 if (memberData) {
                     // Calculate date filter for period-specific stats
@@ -119,7 +120,8 @@ export default function Leaderboard() {
                             let handQuery = supabase
                                 .from('hand_histories')
                                 .select('player_ids, winner_ids, hand_data, pot_total, completed_at')
-                                .eq('club_id', clubData.id);
+                                .eq('club_id', clubData.id)
+                                .limit(100) // recent hands
 
                             if (dateFilter) {
                                 handQuery = handQuery.gte('completed_at', dateFilter);

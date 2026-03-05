@@ -155,7 +155,8 @@ export default function ClubLobby() {
                     .from('tables')
                     .select('id, current_players, status')
                     .eq('club_id', club.id)
-                    .neq('status', 'deleted');
+                    .neq('status', 'deleted')
+                    .limit(100) // lobby tables;
                 if (data) {
                     setTables(prev => prev.map(t => {
                         const fresh = data.find(d => d.id === t.id);
@@ -205,7 +206,8 @@ export default function ClubLobby() {
                     .from('tables')
                     .select('*')
                     .eq('club_id', clubData.id)
-                    .neq('status', 'deleted');
+                    .neq('status', 'deleted')
+                    .limit(100) // lobby tables
                 setTables(tableData || []);
 
                 // Load club announcements

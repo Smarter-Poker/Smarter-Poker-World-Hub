@@ -66,6 +66,7 @@ export default async function handler(req, res) {
                 .from('commander_members')
                 .select('*')
                 .eq('member_number', lookupCode);
+                .limit(500);
             if (venue_id) mnQuery = mnQuery.eq('venue_id', venue_id);
             const { data: byMn, error: mnError } = await mnQuery.limit(1);
             if (mnError) throw mnError;
@@ -117,6 +118,7 @@ export default async function handler(req, res) {
                 .from('commander_dealers')
                 .select('id, name')
                 .eq('venue_id', venueId);
+                .limit(50)
 
             const matched = (nameMatch || []).find(d => {
                 const dName = (d.name || '').toLowerCase();

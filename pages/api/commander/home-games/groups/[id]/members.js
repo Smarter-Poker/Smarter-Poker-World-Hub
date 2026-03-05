@@ -84,11 +84,13 @@ async function listMembers(req, res, groupId) {
         invited_by_profile:invited_by (id, display_name)
       `)
       .eq('group_id', groupId)
-      .order('joined_at', { ascending: false });
+      .order('joined_at', { ascending: false })
+          .limit(100);
 
     // Only admins can see pending/declined members
     if (status && (myMembership.role === 'owner' || myMembership.role === 'admin')) {
-      query = query.eq('status', status);
+      query = query.eq('status', status)
+          .limit(100);
     } else if (myMembership.role !== 'owner' && myMembership.role !== 'admin') {
       query = query.eq('status', 'approved');
     }

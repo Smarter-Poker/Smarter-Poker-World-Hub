@@ -1177,7 +1177,8 @@ export default function MessengerPage() {
                         .from('friendships')
                         .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, username, full_name, avatar_url)')
                         .eq('user_id', authUser.id)
-                        .eq('status', 'accepted');
+                        .eq('status', 'accepted')
+                        .limit(100) // messenger friends
 
                     if (friendships) {
                         setFriends(friendships.map(f => f.friend).filter(Boolean));

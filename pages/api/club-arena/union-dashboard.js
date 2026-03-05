@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       const { data: clubData } = await supabaseAdmin
         .from('clubs')
         .select('id, name, club_id, member_count, chip_treasury, total_rake, owner_id, settings, created_at')
-        .in('id', clubIds);
+        .in('id', clubIds)
+            .limit(100);
       clubs = clubData || [];
     }
 
@@ -74,7 +75,8 @@ export default async function handler(req, res) {
         .from('agents')
         .select('id, user_id, club_id, commission_rate, is_prepaid, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
         .in('club_id', clubIds)
-        .eq('status', 'active');
+        .eq('status', 'active')
+            .limit(100);
       agents = agentData || [];
 
       // Enrich agents with profile names
@@ -83,7 +85,8 @@ export default async function handler(req, res) {
         const { data: agentProfiles } = await supabaseAdmin
           .from('profiles')
           .select('id, username, display_name')
-          .in('id', agentUserIds);
+          .in('id', agentUserIds)
+              .limit(100);
 
         const profMap = {};
         for (const p of (agentProfiles || [])) profMap[p.id] = p;
@@ -116,7 +119,8 @@ export default async function handler(req, res) {
       const { data: adminProfiles } = await supabaseAdmin
         .from('profiles')
         .select('id, username, display_name, avatar_url')
-        .in('id', adminUserIds);
+        .in('id', adminUserIds)
+            .limit(100);
       const profMap = {};
       for (const p of (adminProfiles || [])) profMap[p.id] = p;
       admins = admins.map(a => ({ ...a, profile: profMap[a.user_id] || null }));

@@ -48,7 +48,9 @@ export default async function handler(req, res) {
       .select('player_id, check_in_at, total_time_minutes, total_buyin')
       .eq('venue_id', venue_id)
       .gte('check_in_at', ninetyDaysAgo)
-      .order('check_in_at', { ascending: false });
+      .order('check_in_at', { ascending: false })
+          .limit(100);
+      .limit(500)
 
     if (error) throw error;
 

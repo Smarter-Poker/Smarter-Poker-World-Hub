@@ -483,7 +483,8 @@ export default function ClubMessages() {
             if (clubData) {
                 setClub(clubData);
 
-                const { data: members } = await supabase.from('club_members').select('*, profiles(id, username, display_name, avatar_url)').eq('club_id', clubData.id);
+                const { data: members } = await supabase.from('club_members').select('*, profiles(id, username, display_name, avatar_url)').eq('club_id', clubData.id)
+                    .limit(200) // members for messaging
                 setClubMembers(members || []);
 
                 const memberIds = new Set((members || []).map(m => m.user_id));

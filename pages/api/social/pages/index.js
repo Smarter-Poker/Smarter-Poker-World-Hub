@@ -144,23 +144,29 @@ export default async function handler(req, res) {
         // Only filter by is_public when NOT fetching own pages
         if (!owner_id) query = query.eq('is_public', true);
 
-        if (page_type) query = query.eq('page_type', page_type);
-        if (owner_id) query = query.eq('owner_id', owner_id);
-        if (category && category !== 'all') query = query.eq('category', category);
-        if (search) query = query.ilike('name', `%${search}%`);
+        if (page_type) query = query.eq('page_type', page_type)
+            .limit(100);
+        if (owner_id) query = query.eq('owner_id', owner_id)
+            .limit(100);
+        if (category && category !== 'all') query = query.eq('category', category)
+            .limit(100);
+        if (search) query = query.ilike('name', `%${search}%`)
+            .limit(100);
 
         // If followed_only, join with followers
         if (followed_only === 'true' && user_id) {
             const { data: followedIds } = await supabase
                 .from('social_page_followers')
                 .select('page_id')
-                .eq('user_id', user_id);
+                .eq('user_id', user_id)
+                    .limit(100);
 
             const ids = (followedIds || []).map(f => f.page_id);
             if (ids.length === 0) {
                 return res.status(200).json({ success: true, data: [], total: 0 });
             }
-            query = query.in('id', ids);
+            query = query.in('id', ids)
+                .limit(100);
         }
 
         query = query
@@ -179,7 +185,8 @@ export default async function handler(req, res) {
                 .from('social_page_followers')
                 .select('page_id')
                 .eq('user_id', user_id)
-                .in('page_id', pageIds);
+                .in('page_id', pageIds)
+                    .limit(100);
 
             const followSet = new Set((follows || []).map(f => f.page_id));
             enriched = enriched.map(p => ({

@@ -32,7 +32,8 @@ export default async function handler(req, res) {
     const { data: archetypes, error } = await supabase
       .from('villain_archetypes')
       .select('*')
-      .order('id');
+      .order('id')
+          .limit(100);
 
     if (error || !archetypes || archetypes.length === 0) {
       return res.status(200).json({

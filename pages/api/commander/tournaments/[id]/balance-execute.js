@@ -43,7 +43,8 @@ export default async function handler(req, res) {
       .from('commander_tournament_entries')
       .select('table_number, seat_number, player_name')
       .eq('tournament_id', tournamentId)
-      .in('status', ['active', 'seated']);
+      .in('status', ['active', 'seated'])
+          .limit(100);
 
     const occupiedList = (conflictingSeats || []).filter(e =>
       moves.some(m => m.to_table === e.table_number && m.to_seat === e.seat_number)

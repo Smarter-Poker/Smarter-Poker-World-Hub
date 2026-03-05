@@ -127,9 +127,12 @@ async function handlePost(req, res, staff) {
         .eq('session_id', session_id);
 
       if (txns) {
-        const active = txns.filter(t => !t.voided_at && t.type !== 'void');
-        const ins = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
-        const outs = active.filter(t => ['cash_out'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
+        const active = txns.filter(t => !t.voided_at && t.type !== 'void')
+            .limit(100);
+        const ins = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0)
+            .limit(100);
+        const outs = active.filter(t => ['cash_out'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0)
+            .limit(100);
         playerTotals = { total_bought: ins, total_cashed: outs, net: outs - ins };
       }
     }

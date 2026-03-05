@@ -35,6 +35,7 @@ export default async function handler(req, res) {
     const { data: entries, error } = await supabase
       .from('commander_waitlist')
       .select(`
+      .limit(200)
         *,
         poker_venues (
           id,

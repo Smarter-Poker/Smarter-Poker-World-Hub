@@ -97,7 +97,8 @@ export default async function handler(req, res) {
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
             .eq('reward_type', 'strategy_comment')
-            .eq('claim_date', today);
+            .eq('claim_date', today)
+                .limit(200);
 
         if ((count || 0) >= MAX_PER_DAY) {
             return res.status(200).json({
@@ -134,7 +135,8 @@ export default async function handler(req, res) {
             .select('diamonds_awarded')
             .eq('user_id', userId)
             .eq('claim_date', today)
-            .neq('reward_type', 'referral');
+            .neq('reward_type', 'referral')
+                .limit(200);
 
         const todayTotal = (todayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
 

@@ -51,7 +51,8 @@ export default async function handler(req, res) {
                 .from('club_live_games').select('*')
                 .eq('page_id', page_id)
                 .in('status', ['open', 'running'])
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                    .limit(100);
 
             if (error) return res.status(500).json({ error: error.message });
 
@@ -61,19 +62,22 @@ export default async function handler(req, res) {
             if (gameIds.length > 0) {
                 const { data: seatData } = await supabase
                     .from('club_game_seats').select('*').in('game_id', gameIds)
-                    .order('seat_number', { ascending: true, nullsFirst: false });
+                    .order('seat_number', { ascending: true, nullsFirst: false })
+                        .limit(100);
                 allSeats = seatData || [];
             }
 
             // Enrich social seats with profile pictures
-            const socialPlayerIds = allSeats.map(s => s.player_id).filter(Boolean);
+            const socialPlayerIds = allSeats.map(s => s.player_id).filter(Boolean)
+                .limit(100);
             let socialProfilePicMap = {};
             if (socialPlayerIds.length > 0) {
                 try {
                     const { data: profiles } = await supabase
                         .from('profiles')
                         .select('id, avatar_url')
-                        .in('id', socialPlayerIds);
+                        .in('id', socialPlayerIds)
+                            .limit(100);
                     (profiles || []).forEach(p => { socialProfilePicMap[p.id] = p.avatar_url; });
                 } catch (e) { /* no profile pics */ }
             }
@@ -113,30 +117,35 @@ export default async function handler(req, res) {
                             .from('commander_seats')
                             .select('id, game_id, seat_number, player_name, player_id, status')
                             .in('game_id', cmdGameIds)
-                            .order('seat_number', { ascending: true });
+                            .order('seat_number', { ascending: true })
+                                .limit(100);
                         const allCmdSeats = cmdSeats || [];
 
                         // Fetch profile pictures for players with Smarter.Poker accounts
-                        const playerIds = allCmdSeats.map(s => s.player_id).filter(Boolean);
+                        const playerIds = allCmdSeats.map(s => s.player_id).filter(Boolean)
+                            .limit(100);
                         let profilePicMap = {};
                         if (playerIds.length > 0) {
                             try {
                                 const { data: profiles } = await supabase
                                     .from('profiles')
                                     .select('id, avatar_url')
-                                    .in('id', playerIds);
+                                    .in('id', playerIds)
+                                        .limit(100);
                                 (profiles || []).forEach(p => { profilePicMap[p.id] = p.avatar_url; });
                             } catch (e) { /* no profile pics */ }
                         }
 
                         // Fetch table names for display
-                        const tableIds = cmdGames.map(g => g.table_id).filter(Boolean);
+                        const tableIds = cmdGames.map(g => g.table_id).filter(Boolean)
+                            .limit(100);
                         let tableMap = {};
                         if (tableIds.length > 0) {
                             const { data: tables } = await supabase
                                 .from('commander_tables')
                                 .select('id, table_name, table_number')
-                                .in('id', tableIds);
+                                .in('id', tableIds)
+                                    .limit(100);
                             (tables || []).forEach(t => { tableMap[t.id] = t; });
                         }
 
@@ -200,7 +209,8 @@ export default async function handler(req, res) {
                                     .select('*')
                                     .in('table_number', tableNumbers)
                                     .in('status', ['active', 'paused', 'meal_break'])
-                                    .order('seat_number', { ascending: true });
+                                    .order('seat_number', { ascending: true })
+                                        .limit(100);
                                 allSessions = sessions || [];
                             } catch (e) { /* no session data */ }
                         }
@@ -208,7 +218,8 @@ export default async function handler(req, res) {
                         const now = new Date();
 
                         const mapped = cmdGames.map(g => {
-                            const gameSeats = allCmdSeats.filter(s => s.game_id === g.id);
+                            const gameSeats = allCmdSeats.filter(s => s.game_id === g.id)
+                                .limit(100);
                             const occupiedSeats = gameSeats.filter(s => s.status === 'occupied');
                             const table = g.table_id ? tableMap[g.table_id] : null;
                             const tableName = table ? (table.table_name || `Table ${table.table_number}`) : null;

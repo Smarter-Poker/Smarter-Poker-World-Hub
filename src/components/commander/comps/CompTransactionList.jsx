@@ -15,7 +15,7 @@ const TRANSACTION_STYLES = {
   transfer: { icon: User, color: '#3B82F6', label: 'Transfer' }
 };
 
-export default function CompTransactionList({
+function CompTransactionList({
   transactions = [],
   isLoading = false,
   showPlayer = false,
@@ -149,3 +149,5 @@ export default function CompTransactionList({
     </div>
   );
 }
+
+export default React.memo(CompTransactionList);

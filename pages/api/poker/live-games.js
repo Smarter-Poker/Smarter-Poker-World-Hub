@@ -107,10 +107,12 @@ export default async function handler(req, res) {
           .select('*')
           .eq('venue_id', String(venueIdNum))
           .gt('expires_at', now)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+              .limit(100);
 
         if (game_type) {
-          query = query.eq('game_type', game_type);
+          query = query.eq('game_type', game_type)
+              .limit(100);
         }
 
         const { data, error } = await query;
@@ -129,10 +131,12 @@ export default async function handler(req, res) {
           .from('live_games')
           .select('*')
           .gt('expires_at', now)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+              .limit(100);
 
         if (game_type) {
-          query = query.eq('game_type', game_type);
+          query = query.eq('game_type', game_type)
+              .limit(100);
         }
 
         const { data, error } = await query;

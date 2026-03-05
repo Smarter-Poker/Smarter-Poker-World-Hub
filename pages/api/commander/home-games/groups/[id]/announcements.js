@@ -182,10 +182,12 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
       .select('user_id, notify_announcements')
       .eq('group_id', groupId)
       .eq('status', 'approved')
-      .eq('notifications_enabled', true);
+      .eq('notifications_enabled', true)
+          .limit(100);
 
     if (!targetAll && targetMemberIds?.length > 0) {
-      memberQuery = memberQuery.in('user_id', targetMemberIds);
+      memberQuery = memberQuery.in('user_id', targetMemberIds)
+          .limit(100);
     }
 
     const { data: members } = await memberQuery;
@@ -205,7 +207,8 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
       .select('user_id, device_token, device_type')
       .in('user_id', notifyUserIds)
       .eq('group_id', groupId)
-      .eq('is_active', true);
+      .eq('is_active', true)
+          .limit(100);
 
     if (!subscriptions || subscriptions.length === 0) return;
 

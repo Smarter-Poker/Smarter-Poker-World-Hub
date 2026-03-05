@@ -3,8 +3,7 @@
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
  * Dark industrial sci-fi gaming theme
  */
-import React, { memo } from 'react'; // memo added
-import React, { useState, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import {
   Users, Clock, DollarSign, TrendingUp, TrendingDown,
   Calendar, Trophy, Gift, Activity, ChevronDown

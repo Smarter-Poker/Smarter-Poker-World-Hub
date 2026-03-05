@@ -25,7 +25,7 @@ function parseCard(cardStr) {
     return { rank, suit, ...SUIT_MAP[suit] };
 }
 
-export default function SceneCards({
+function SceneCards({
     cards = [],
     size = 'medium',
     showFlip = false,
@@ -170,3 +170,5 @@ const styles = {
         fontSize: '1.8em',
     },
 };
+
+export default React.memo(SceneCards);

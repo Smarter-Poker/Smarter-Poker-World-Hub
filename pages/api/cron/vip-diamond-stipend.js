@@ -41,7 +41,8 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, username')
             .eq('is_vip', true)
-            .gt('vip_expires_at', now.toISOString());
+            .gt('vip_expires_at', now.toISOString())
+                .limit(100);
 
         if (fetchErr) {
             console.error('[VIP Stipend] Error fetching VIP users:', fetchErr);

@@ -342,7 +342,8 @@ export default async function handler(req, res) {
               .from('tournament_registrations')
               .select('user_id, display_name')
               .eq('tournament_id', tournamentId)
-              .eq('status', 'registered');
+              .eq('status', 'registered')
+                  .limit(100);
 
             const sngCreate = await controller.createTournament({
               tournamentId,
@@ -465,7 +466,8 @@ export default async function handler(req, res) {
             .from('tournament_registrations')
             .select('user_id, display_name')
             .eq('tournament_id', tournamentId)
-            .eq('status', 'registered');
+            .eq('status', 'registered')
+                .limit(100);
 
           // Create tournament in engine
           const createResult = await controller.createTournament({

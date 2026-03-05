@@ -9,8 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { memo } from 'react'; // memo added
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameUIRouter from './GameUIRouter';
 import useMillionaireGame from '../../hooks/useMillionaireGame';

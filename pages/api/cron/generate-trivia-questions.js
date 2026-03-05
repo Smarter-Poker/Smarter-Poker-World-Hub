@@ -362,25 +362,29 @@ async function getPoolStats() {
         const { count: total } = await supabase
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
-            .eq('category', cat.id);
+            .eq('category', cat.id)
+                .limit(100);
 
         const { count: easy } = await supabase
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
-            .eq('difficulty', 'easy');
+            .eq('difficulty', 'easy')
+                .limit(100);
 
         const { count: medium } = await supabase
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
-            .eq('difficulty', 'medium');
+            .eq('difficulty', 'medium')
+                .limit(100);
 
         const { count: hard } = await supabase
             .from('trivia_questions')
             .select('*', { count: 'exact', head: true })
             .eq('category', cat.id)
-            .eq('difficulty', 'hard');
+            .eq('difficulty', 'hard')
+                .limit(100);
 
         stats[cat.id] = {
             total: total || 0,

@@ -234,7 +234,7 @@ export default function TriviaModePage() {
         // Used when daily questions haven't been rotated yet
         // ═══════════════════════════════════════════════════════════════
 
-        let poolQuery = supabase.from('trivia_questions').select('*');
+        let poolQuery = supabase.from('trivia_questions').select('*').limit(500); // question pool
         if (categories && categories.length > 0) {
             poolQuery = poolQuery.in('category', categories);
         }

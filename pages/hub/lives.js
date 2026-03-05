@@ -49,7 +49,8 @@ export default function LivesPage() {
                 .from('live_streams')
                 .select('*, profiles!broadcaster_id(username, avatar_url, full_name)')
                 .eq('status', 'live')
-                .order('started_at', { ascending: false });
+                .order('started_at', { ascending: false })
+                .limit(50) // live streams
 
             // Get recorded streams with video URLs (posted ones)
             const { data: recordedStreams } = await supabase

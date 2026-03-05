@@ -143,7 +143,8 @@ async function handlePost(req, res, id) {
                 .from('live_game_confirmations')
                 .select('*', { count: 'exact', head: true })
                 .eq('live_game_id', id)
-                .in('action', ['expired', 'incorrect']);
+                .in('action', ['expired', 'incorrect'])
+                    .limit(100);
 
             if (count >= 2) {
                 updateData.is_active = false;

@@ -110,7 +110,8 @@ export default function MixedModePage() {
             const { data: mastery } = await supabase
                 .from('trivia_category_mastery')
                 .select('*')
-                .eq('user_id', user.id);
+                .eq('user_id', user.id)
+                .limit(50) // category mastery
 
             if (mastery) {
                 const masteryMap = {};
@@ -162,7 +163,8 @@ export default function MixedModePage() {
                 .from('trivia_user_question_history')
                 .select('question_id')
                 .eq('user_id', uid)
-                .gte('seen_at', sixtyDaysAgo.toISOString());
+                .gte('seen_at', sixtyDaysAgo.toISOString())
+                .limit(200) // seen questions
 
             if (history) {
                 excludeIds = history.map(h => h.question_id);

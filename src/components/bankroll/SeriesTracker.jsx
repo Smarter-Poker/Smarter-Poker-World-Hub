@@ -6,8 +6,7 @@
  * ---------------------------------------------------------------
  */
 
-import React, { memo } from 'react'; // memo added
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     getActiveSeries,

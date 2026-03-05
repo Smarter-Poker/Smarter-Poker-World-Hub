@@ -45,7 +45,8 @@ async function getClubsInfo(clubIds) {
   const { data } = await supabaseAdmin
     .from('clubs')
     .select('id, name, club_id')
-    .in('id', clubIds);
+    .in('id', clubIds)
+        .limit(100);
   return data || [];
 }
 

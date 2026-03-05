@@ -40,7 +40,9 @@ export default async function handler(req, res) {
     const { data: sessions, error: sessionsError } = await supabase
       .from('commander_player_sessions')
       .select('*')
-      .eq('player_id', user.id);
+      .eq('player_id', user.id)
+          .limit(100);
+      .limit(500)
 
     if (sessionsError) throw sessionsError;
 
@@ -62,30 +64,36 @@ export default async function handler(req, res) {
     const { data: tournamentEntries } = await supabase
       .from('commander_tournament_entries')
       .select('finish_position, payout_amount')
-      .eq('player_id', user.id);
+      .eq('player_id', user.id)
+          .limit(100);
 
     const tournamentsPlayed = tournamentEntries?.length || 0;
-    const tournamentWins = tournamentEntries?.filter(e => e.finish_position === 1).length || 0;
-    const tournamentCashes = tournamentEntries?.filter(e => e.payout_amount > 0).length || 0;
+    const tournamentWins = tournamentEntries?.filter(e => e.finish_position === 1).length || 0
+        .limit(100);
+    const tournamentCashes = tournamentEntries?.filter(e => e.payout_amount > 0).length || 0
+        .limit(100);
     const totalWinnings = tournamentEntries?.reduce((sum, e) => sum + (e.payout_amount || 0), 0) || 0;
 
     // Get home game stats
     const { count: homeGamesHosted } = await supabase
       .from('commander_home_games')
       .select('id', { count: 'exact', head: true })
-      .eq('host_id', user.id);
+      .eq('host_id', user.id)
+          .limit(100);
 
     const { count: homeGamesAttended } = await supabase
       .from('commander_home_rsvps')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('response', 'going');
+      .eq('response', 'going')
+          .limit(100);
 
     // Get waitlist stats
     const { data: waitlistHistory } = await supabase
       .from('commander_waitlist_history')
       .select('wait_time_minutes, was_seated')
-      .eq('player_id', user.id);
+      .eq('player_id', user.id)
+          .limit(100);
 
     const totalWaitlistJoins = waitlistHistory?.length || 0;
     const avgWaitTime = waitlistHistory?.length > 0

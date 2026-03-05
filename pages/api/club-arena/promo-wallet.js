@@ -81,7 +81,8 @@ export default async function handler(req, res) {
           const { data } = await supabaseAdmin
             .from('profiles')
             .select('id, display_name, username, avatar_url')
-            .in('id', agentIds);
+            .in('id', agentIds)
+                .limit(100);
           profiles = data || [];
         }
 

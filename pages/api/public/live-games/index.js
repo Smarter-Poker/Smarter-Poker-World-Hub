@@ -80,10 +80,12 @@ async function handleGet(req, res) {
             `)
             .eq('is_active', true)
             .gt('expires_at', new Date().toISOString())
-            .order('reported_at', { ascending: false });
+            .order('reported_at', { ascending: false })
+                .limit(100);
 
         if (venue_id) {
-            query = query.eq('venue_id', parseInt(venue_id));
+            query = query.eq('venue_id', parseInt(venue_id))
+                .limit(100);
         }
 
         if (game_type) {

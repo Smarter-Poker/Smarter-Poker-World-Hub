@@ -91,7 +91,8 @@ export default async function handler(req, res) {
     const { data: clubs } = await supabaseAdmin
       .from('clubs')
       .select('id, name, owner_id, union_id, chip_treasury, auto_settlement_enabled, settings')
-      .eq('auto_settlement_enabled', true);
+      .eq('auto_settlement_enabled', true)
+          .limit(100);
 
     if (!clubs?.length) {
       return res.status(200).json({
@@ -181,7 +182,8 @@ export default async function handler(req, res) {
             rakeback_percentage, active_player_count
           `)
           .eq('club_id', club.id)
-          .eq('status', 'active');
+          .eq('status', 'active')
+              .limit(100);
 
         // Get union settings
         let unionRakeHold = 0.10;
@@ -487,7 +489,8 @@ export default async function handler(req, res) {
               .eq('club_id', club.id)
               .eq('agent_id', agent.user_id)
               .eq('role', 'player')
-              .gt('player_rakeback_pct', 0);
+              .gt('player_rakeback_pct', 0)
+                  .limit(200);
 
             for (const player of (agentPlayers || [])) {
               const playerRakebackPct = player.player_rakeback_pct || 0;
@@ -498,7 +501,8 @@ export default async function handler(req, res) {
                 .select('player_contributions')
                 .eq('club_id', club.id)
                 .gte('created_at', openPeriod.start_at)
-                .lte('created_at', now.toISOString());
+                .lte('created_at', now.toISOString())
+                    .limit(100);
 
               let playerRakeContributed = 0;
               for (const record of (rakeContrib || [])) {

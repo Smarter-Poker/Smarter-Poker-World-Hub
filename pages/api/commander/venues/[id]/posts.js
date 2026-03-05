@@ -66,7 +66,8 @@ export default async function handler(req, res) {
         .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
       if (!include_unpublished) {
-        query = query.eq('is_published', true);
+        query = query.eq('is_published', true)
+            .limit(100);
       }
 
       const { data, error, count } = await query;

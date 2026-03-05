@@ -31,15 +31,19 @@ export default async function handler(req, res) {
         let query = supabase
             .from('social_reels')
             .select('*')
-            .eq('is_public', true);
+            .eq('is_public', true)
+                .limit(100);
 
         // Sorting options
         if (sort === 'popular') {
-            query = query.order('view_count', { ascending: false });
+            query = query.order('view_count', { ascending: false })
+                .limit(100);
         } else if (sort === 'random') {
-            query = query.order('created_at', { ascending: false });
+            query = query.order('created_at', { ascending: false })
+                .limit(100);
         } else {
-            query = query.order('created_at', { ascending: false });
+            query = query.order('created_at', { ascending: false })
+                .limit(100);
         }
 
         query = query.limit(parseInt(limit));
@@ -63,7 +67,8 @@ export default async function handler(req, res) {
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, username, full_name, avatar_url')
-                .in('id', authorIds);
+                .in('id', authorIds)
+                    .limit(100);
 
             if (profiles) {
                 profilesMap = profiles.reduce((acc, p) => {

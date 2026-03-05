@@ -35,7 +35,8 @@ export default function MyReels() {
                 .from('social_reels')
                 .select('*')
                 .eq('user_id', authUser.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(50) // my reels
 
             if (error) throw error;
             setReels(data || []);

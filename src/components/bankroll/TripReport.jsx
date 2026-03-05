@@ -18,7 +18,7 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function TripReport({ report, onBack }) {
+function TripReport({ report, onBack }) {
     const { trip, stats, categoryBreakdown, dailyBreakdown, entries } = report;
 
     return (
@@ -327,3 +327,5 @@ const styles = {
         margin: 0,
     },
 };
+
+export default React.memo(TripReport);

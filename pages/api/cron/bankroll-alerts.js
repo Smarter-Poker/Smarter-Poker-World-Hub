@@ -22,7 +22,8 @@ export default async function handler(req, res) {
         const { data: goals, error: goalsError } = await supabase
             .from('bankroll_goals')
             .select('id, user_id, goal_type, target_amount, current_amount, stop_loss_amount, notified_complete, notified_stop_loss')
-            .eq('is_active', true);
+            .eq('is_active', true)
+                .limit(100);
 
         if (goalsError) throw goalsError;
         if (!goals?.length) {

@@ -32,13 +32,16 @@ export default async function handler(req, res) {
         let query = supabase
             .from('social_interactions')
             .select('id, post_id, user_id, interaction_type, created_at')
-            .eq('post_id', post_id);
+            .eq('post_id', post_id)
+                .limit(100);
 
         if (type) {
-            query = query.eq('interaction_type', type);
+            query = query.eq('interaction_type', type)
+                .limit(100);
         }
 
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data, error } = await query.order('created_at', { ascending: false })
+            .limit(100);
 
         if (error) {
             return res.status(500).json({ error: error.message });
@@ -52,11 +55,13 @@ export default async function handler(req, res) {
                     .from('social_comments')
                     .select('id, post_id, user_id, content, created_at, parent_id')
                     .eq('post_id', post_id)
-                    .order('created_at', { ascending: true });
+                    .order('created_at', { ascending: true })
+                        .limit(100);
 
                 if (commentError && commentError.code === '42P01') {
                     // Table doesn't exist - use comment interactions instead
-                    const commentInteractions = (data || []).filter(i => i.interaction_type === 'comment');
+                    const commentInteractions = (data || []).filter(i => i.interaction_type === 'comment')
+                        .limit(100);
                     comments = commentInteractions;
                 } else if (commentData) {
                     // Enrich comments with user info
@@ -65,7 +70,8 @@ export default async function handler(req, res) {
                         const { data: profiles } = await supabase
                             .from('profiles')
                             .select('id, username, full_name, avatar_url')
-                            .in('id', userIds);
+                            .in('id', userIds)
+                                .limit(100);
 
                         const profileMap = {};
                         (profiles || []).forEach(p => { profileMap[p.id] = p; });

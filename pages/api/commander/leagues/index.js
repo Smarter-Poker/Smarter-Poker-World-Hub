@@ -68,7 +68,8 @@ async function listLeagues(req, res) {
     const { data: standingsCounts } = await supabase
       .from('commander_league_standings')
       .select('league_id')
-      .in('league_id', leagueIds.length > 0 ? leagueIds : ['none']);
+      .in('league_id', leagueIds.length > 0 ? leagueIds : ['none'])
+          .limit(100);
 
     const playerCounts = {};
     (standingsCounts || []).forEach(s => {

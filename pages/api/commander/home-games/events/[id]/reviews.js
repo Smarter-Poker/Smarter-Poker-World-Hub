@@ -42,7 +42,8 @@ async function handleGet(req, res, eventId) {
         profiles (id, display_name, avatar_url)
       `)
       .eq('game_id', eventId)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+          .limit(100);
 
     if (error) throw error;
 

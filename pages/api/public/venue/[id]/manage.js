@@ -90,7 +90,8 @@ async function handleGet(req, res, venueId, user, manager) {
                 user:profiles(id, username, avatar_url, email)
             `)
             .eq('venue_id', parseInt(venueId))
-            .eq('is_active', true);
+            .eq('is_active', true)
+                .limit(100);
 
         // Get recent activity
         const { data: activity } = await supabaseAdmin

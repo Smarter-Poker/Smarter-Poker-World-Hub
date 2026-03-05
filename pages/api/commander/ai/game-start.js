@@ -44,7 +44,9 @@ export default async function handler(req, res) {
       .select('game_type, player_name, created_at')
       .eq('venue_id', venue_id)
       .eq('status', 'waiting')
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+          .limit(100);
+      .limit(200)
 
     const waitlistByGame = {};
     (waitlistEntries || []).forEach(w => {
@@ -57,7 +59,9 @@ export default async function handler(req, res) {
     const { data: tables } = await supabase
       .from('commander_tables')
       .select('id, table_number, game_type, status, seats')
-      .eq('venue_id', venue_id);
+      .eq('venue_id', venue_id)
+          .limit(100);
+      .limit(100)
 
     const openTables = (tables || []).filter(t => t.status === 'available' || t.status === 'inactive');
     const activeTables = (tables || []).filter(t => t.status === 'active' || t.status === 'in_use');
@@ -72,7 +76,9 @@ export default async function handler(req, res) {
     const { data: dealers } = await supabase
       .from('commander_dealers')
       .select('id, status')
-      .eq('venue_id', venue_id);
+      .eq('venue_id', venue_id)
+          .limit(100);
+      .limit(50)
 
     const availableDealers = (dealers || []).filter(d => d.status === 'available' || d.status === 'on_break').length;
     const busyDealers = (dealers || []).filter(d => d.status === 'dealing' || d.status === 'assigned').length;
@@ -84,6 +90,7 @@ export default async function handler(req, res) {
       .select('check_in_at, game_type')
       .eq('venue_id', venue_id)
       .gte('check_in_at', twoWeeksAgo);
+      .limit(500)
 
     // Count sessions that started on same day-of-week within +/- 2 hours
     const demandByGame = {};

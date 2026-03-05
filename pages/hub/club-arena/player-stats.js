@@ -111,7 +111,8 @@ export default function PlayerStats() {
                     let handQuery = supabase
                         .from('hand_histories')
                         .select('*')
-                        .contains('player_ids', [authUser.id]);
+                        .contains('player_ids', [authUser.id])
+                        .limit(100) // player hands
 
                     // hand_history may not have user_id/club_id columns — wrap in try/catch
                     let hands = [];
@@ -200,7 +201,8 @@ export default function PlayerStats() {
                             .select('*')
                             .eq('club_id', clubData.id)
                             .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
-                            .in('transaction_type', ['win', 'loss', 'table_win', 'table_loss']);
+                            .in('transaction_type', ['win', 'loss', 'table_win', 'table_loss'])
+                            .limit(100) // transactions
 
                         if (dateFilter) {
                             txQuery = txQuery.gte('created_at', dateFilter);

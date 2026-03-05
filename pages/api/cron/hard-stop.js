@@ -57,7 +57,8 @@ export default async function handler(req, res) {
             .from('commander_venue_settings')
             .select('venue_id, hard_stop_time, room_open, last_hard_stop_date, auto_comp_rate')
             .eq('hard_stop_enabled', true)
-            .not('hard_stop_time', 'is', null);
+            .not('hard_stop_time', 'is', null)
+                .limit(100);
 
         if (fetchError) {
             console.error('Hard stop fetch error:', fetchError);
@@ -92,7 +93,8 @@ export default async function handler(req, res) {
                 .select('id')
                 .eq('venue_id', venue.venue_id)
                 .in('status', ['active', 'open'])
-                .neq('mode', 'tournament');
+                .neq('mode', 'tournament')
+                    .limit(100);
 
             if (openTables && openTables.length > 0) {
                 await supabase
@@ -113,19 +115,22 @@ export default async function handler(req, res) {
                 .from('commander_tables')
                 .select('table_number')
                 .eq('venue_id', venue.venue_id)
-                .eq('mode', 'tournament');
+                .eq('mode', 'tournament')
+                    .limit(100);
             const tournTableNums = (tournTables || []).map(t => t.table_number);
 
             let sessionQuery = supabase
                 .from('commander_table_sessions')
                 .select('id, member_id, started_at, table_number')
                 .eq('venue_id', venue.venue_id)
-                .eq('status', 'active');
+                .eq('status', 'active')
+                    .limit(100);
 
             // Exclude tournament table sessions if any exist
             if (tournTableNums.length > 0) {
                 // Use NOT filter — sessions at tournament tables are untouched
-                sessionQuery = sessionQuery.not('table_number', 'in', `(${tournTableNums.join(',')})`);
+                sessionQuery = sessionQuery.not('table_number', 'in', `(${tournTableNums.join(',')})`)
+                    .limit(100);
             }
 
             const { data: tableSessions } = await sessionQuery;
@@ -213,7 +218,8 @@ export default async function handler(req, res) {
                 .from('commander_table_sessions')
                 .select('id')
                 .eq('venue_id', venue.venue_id)
-                .eq('status', 'active');
+                .eq('status', 'active')
+                    .limit(100);
 
             if (activeSessions && activeSessions.length > 0) {
                 await supabase

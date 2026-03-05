@@ -5,8 +5,7 @@
  * Features: Matrix-style loading, Accept/Regenerate flow, Gallery management
  */
 
-import React, { memo } from 'react'; // memo added
-import React, { useState, useEffect } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import supabase from '../../lib/supabase.ts';

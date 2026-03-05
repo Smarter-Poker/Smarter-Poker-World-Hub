@@ -45,7 +45,8 @@ export default async function handler(req, res) {
             .eq('user_id', userId)
             .gte('entry_date', ninetyDaysAgo.toISOString().split('T')[0])
             .not('category', 'in', `(${ACCOUNTING_CATEGORIES.join(',')})`)
-            .order('entry_date', { ascending: false });
+            .order('entry_date', { ascending: false })
+                .limit(500);
 
         if (entriesError) {
             console.error('[Jarvis Bankroll] Error fetching entries:', entriesError);

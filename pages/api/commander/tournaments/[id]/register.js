@@ -96,7 +96,8 @@ async function handleRegister(req, res, tournamentId) {
       .from('commander_tournament_entries')
       .select('id', { count: 'exact', head: true })
       .eq('tournament_id', tournamentId)
-      .in('status', ['registered', 'seated', 'active']);
+      .in('status', ['registered', 'seated', 'active'])
+          .limit(100);
 
     if (tournament.max_entries && count >= tournament.max_entries) {
       return res.status(400).json({

@@ -157,7 +157,8 @@ export default function TournamentsPage() {
             .from('trivia_tournaments')
             .select('*')
             .in('status', ['upcoming', 'active'])
-            .order('start_time', { ascending: true });
+            .order('start_time', { ascending: true })
+            .limit(50) // tournaments
 
         setTournaments(tournamentData || []);
 

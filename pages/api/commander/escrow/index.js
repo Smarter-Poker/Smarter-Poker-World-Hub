@@ -88,7 +88,8 @@ export default async function handler(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq('status', status)
+          .limit(100);
     }
 
     const { data, error, count } = await query;

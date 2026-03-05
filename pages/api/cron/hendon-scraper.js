@@ -37,7 +37,8 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, hendon_url, hendon_last_scraped')
             .not('hendon_url', 'is', null)
-            .or('hendon_last_scraped.is.null,hendon_last_scraped.lt.' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+            .or('hendon_last_scraped.is.null,hendon_last_scraped.lt.' + new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+                .limit(100);
 
         if (fetchError) {
             console.error('Error fetching profiles:', fetchError);

@@ -41,7 +41,8 @@ export default async function handler(req, res) {
             .select('*, trivia_tournaments(*)')
             .eq('status', 'active')
             .gt('deadline', now.toISOString())
-            .lte('deadline', oneHourFromNow.toISOString());
+            .lte('deadline', oneHourFromNow.toISOString())
+                .limit(100);
 
         for (const round of warningRounds || []) {
             const matchups = round.matchups || [];
@@ -88,7 +89,8 @@ export default async function handler(req, res) {
             .from('trivia_tournament_rounds')
             .select('*, trivia_tournaments(*)')
             .eq('status', 'active')
-            .lte('deadline', now.toISOString());
+            .lte('deadline', now.toISOString())
+                .limit(100);
 
         for (const round of expiredRounds || []) {
             const tournament = round.trivia_tournaments;
@@ -263,7 +265,8 @@ async function completeTournament(tournament, winnerId, finalRound) {
         .select('*, profiles(username)')
         .eq('tournament_id', tournament.id)
         .order('eliminated_round', { ascending: false, nullsFirst: true })
-        .order('score', { ascending: false });
+        .order('score', { ascending: false })
+            .limit(100);
 
     if (!entries || entries.length === 0) {
         await supabase

@@ -60,18 +60,21 @@ export default async function handler(req, res) {
       .select('table_number, started_at, ended_at, duration_minutes, status')
       .eq('venue_id', venue_id)
       .gte('created_at', start)
-      .lte('created_at', end);
+      .lte('created_at', end)
+          .limit(100);
 
     // Get tournament entries (for tournament table usage)
     const { data: tEntries } = await supabase
       .from('commander_tournament_entries')
       .select('table_number, created_at, status')
       .eq('status', 'active')
-      .gte('created_at', start);
+      .gte('created_at', start)
+          .limit(100);
 
     // Build per-table stats
     const tableStats = (tables || []).map(table => {
-      const tSessions = (sessions || []).filter(s => s.table_number === table.table_number);
+      const tSessions = (sessions || []).filter(s => s.table_number === table.table_number)
+          .limit(100);
       const totalMinutes = tSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
       const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
       const sessionCount = tSessions.length;

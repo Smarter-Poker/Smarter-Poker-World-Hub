@@ -32,14 +32,16 @@ export default async function handler(req, res) {
       .select('*')
       .eq('player_id', playerId)
       .is('lifted_at', null)
-      .gte('expires_at', new Date().toISOString());
+      .gte('expires_at', new Date().toISOString())
+          .limit(100);
 
     // Check venue-specific or global exclusions
     if (venue_id) {
       // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
       const safeVenueId = String(venue_id).replace(/[^a-zA-Z0-9-]/g, '');
       if (safeVenueId) {
-        query = query.or(`venue_id.eq.${safeVenueId},venue_id.is.null`);
+        query = query.or(`venue_id.eq.${safeVenueId},venue_id.is.null`)
+            .limit(100);
       }
     }
 
@@ -67,6 +69,7 @@ export default async function handler(req, res) {
         .select('total_buyin')
         .eq('player_id', playerId)
         .gte('check_in_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        .limit(500)
 
       if (sessions) {
         const dailyTotal = sessions.reduce((sum, s) => sum + (s.total_buyin || 0), 0);

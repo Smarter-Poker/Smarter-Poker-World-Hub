@@ -32,9 +32,11 @@ export default async function handler(req, res) {
       .from('commander_membership_plans')
       .select('*')
       .eq('venue_id', venue_id)
-      .order('sort_order', { ascending: true });
+      .order('sort_order', { ascending: true })
+          .limit(100);
 
-    if (!include_inactive) query = query.eq('is_active', true);
+    if (!include_inactive) query = query.eq('is_active', true)
+        .limit(100);
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ success: false, error: error.message });

@@ -165,7 +165,8 @@ export default async function handler(req, res) {
             .select('id, game_type, stakes, current_players, max_players, status, started_at')
             .eq('venue_id', venueIdForCommander)
             .in('status', ['running', 'waiting'])
-            .order('started_at', { ascending: false });
+            .order('started_at', { ascending: false })
+                .limit(100);
           liveGames = games || [];
         } catch (cmdErr) {
           console.warn('[venue-detail] Commander live games query failed:', cmdErr.message);
@@ -249,7 +250,8 @@ export default async function handler(req, res) {
             .from('commander_waitlist')
             .select('*', { count: 'exact', head: true })
             .eq('venue_id', venueIdForCommander)
-            .eq('status', 'waiting');
+            .eq('status', 'waiting')
+                .limit(100);
 
           waitlistStats = {
             total_waiting: waitingCount || 0,
@@ -343,7 +345,8 @@ export default async function handler(req, res) {
           `)
           .eq('venue_id', id)
           .in('status', ['running', 'waiting'])
-          .order('started_at', { ascending: false });
+          .order('started_at', { ascending: false })
+              .limit(100);
 
         liveGames = games || [];
       } catch (cmdErr) {
@@ -387,7 +390,8 @@ export default async function handler(req, res) {
         .select('*')
         .eq('venue_id', id)
         .eq('is_active', true)
-        .order('day_of_week');
+        .order('day_of_week')
+            .limit(100);
       dailyTournaments = dtData || [];
     } catch (cmdErr) {
       console.warn('[venue-detail] Daily tournaments query failed (pv path):', cmdErr.message);
@@ -425,7 +429,8 @@ export default async function handler(req, res) {
           .from('commander_waitlist')
           .select('*', { count: 'exact', head: true })
           .eq('venue_id', id)
-          .eq('status', 'waiting');
+          .eq('status', 'waiting')
+              .limit(100);
 
         waitlistStats = {
           total_waiting: waitingCount || 0,

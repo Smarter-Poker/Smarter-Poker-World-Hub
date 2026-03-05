@@ -84,7 +84,9 @@ async function awardComp(req, res, staffAuth) {
             .from('commander_members')
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
             .eq('venue_id', staffRecord.venue_id)
-            .ilike('first_name', sfFirst);
+            .ilike('first_name', sfFirst)
+                .limit(100);
+            .limit(500);
           if (sfLast) matchQuery = matchQuery.ilike('last_name', sfLast);
           const { data: existingMember } = await matchQuery.maybeSingle();
           if (existingMember) {
@@ -304,6 +306,7 @@ async function getBalances(req, res) {
         .from('commander_members')
         .select('id, first_name, last_name')
         .in('id', memberIds.length > 0 ? memberIds : ['none']);
+        .limit(500)
 
       const memberMap = {};
       (members || []).forEach(m => { memberMap[m.id] = `${m.first_name} ${m.last_name}`; });
@@ -358,7 +361,8 @@ async function getBalances(req, res) {
           poker_venues:venue_id (id, name, city, state)
         `)
         .eq('player_id', userId)
-        .order('current_balance', { ascending: false });
+        .order('current_balance', { ascending: false })
+            .limit(100);
 
       if (error) throw error;
 
@@ -370,7 +374,9 @@ async function getBalances(req, res) {
       const { data: sessions } = await supabase
         .from('commander_player_sessions')
         .select('total_time_minutes')
-        .eq('player_id', userId);
+        .eq('player_id', userId)
+            .limit(100);
+        .limit(500)
 
       const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 
@@ -405,7 +411,8 @@ async function getBalances(req, res) {
         .eq('venue_id', venue_id);
 
       if (player_id) {
-        query = query.eq('player_id', player_id);
+        query = query.eq('player_id', player_id)
+            .limit(100);
       }
 
       const validSortFields = ['current_balance', 'lifetime_earned', 'lifetime_redeemed', 'last_earned_at'];
@@ -422,7 +429,8 @@ async function getBalances(req, res) {
       const { data: totals } = await supabase
         .from('commander_comp_balances')
         .select('current_balance, lifetime_earned, lifetime_redeemed')
-        .eq('venue_id', venue_id);
+        .eq('venue_id', venue_id)
+            .limit(100);
 
       const summary = totals?.reduce((acc, b) => ({
         total_outstanding: acc.total_outstanding + parseFloat(b.current_balance || 0),

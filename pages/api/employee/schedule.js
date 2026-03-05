@@ -62,7 +62,8 @@ export default async function handler(req, res) {
             .eq('venue_id', venue_id)
             .gte('shift_date', start.toISOString().split('T')[0])
             .lte('shift_date', end.toISOString().split('T')[0])
-            .order('shift_date', { ascending: true });
+            .order('shift_date', { ascending: true })
+                .limit(100);
 
         if (shiftErr) throw shiftErr;
 

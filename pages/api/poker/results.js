@@ -56,7 +56,8 @@ async function handleGet(req, res) {
             .from('tournament_results')
             .select('*')
             .eq('series_id', seriesIdNum)
-            .order('event_date', { ascending: true });
+            .order('event_date', { ascending: true })
+                .limit(100);
 
         if (error) {
             console.error('[Tournament Results API] GET series_id error:', error);
@@ -74,7 +75,8 @@ async function handleGet(req, res) {
             .from('tournament_results')
             .select('*')
             .eq('tour_code', tour_code)
-            .order('event_date', { ascending: false });
+            .order('event_date', { ascending: false })
+                .limit(100);
 
         if (error) {
             console.error('[Tournament Results API] GET tour_code error:', error);
@@ -93,7 +95,8 @@ async function handleGet(req, res) {
             .from('tournament_results')
             .select('*')
             .ilike('winner_name', `%${searchTerm}%`)
-            .order('event_date', { ascending: false });
+            .order('event_date', { ascending: false })
+                .limit(100);
 
         if (winnerError) {
             console.error('[Tournament Results API] GET player_name (winner) error:', winnerError);
@@ -105,7 +108,8 @@ async function handleGet(req, res) {
             .from('tournament_results')
             .select('*')
             .filter('results_json::text', 'ilike', `%${searchTerm}%`)
-            .order('event_date', { ascending: false });
+            .order('event_date', { ascending: false })
+                .limit(100);
 
         if (jsonError) {
             console.error('[Tournament Results API] GET player_name (json) error:', jsonError);

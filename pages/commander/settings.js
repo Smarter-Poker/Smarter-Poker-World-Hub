@@ -69,8 +69,11 @@ export default function CommanderSettingsPage() {
     if (!venueId) return;
     const storedStaffData = localStorage.getItem('commander_staff');
     if (!storedStaffData) return;
+    const controller = new AbortController();
+    const { signal } = controller;
     try {
       fetch('/api/commander/settings', {
+        signal,
         headers: { 'x-staff-session': storedStaffData }
       })
         .then(r => r.json())
@@ -101,6 +104,7 @@ export default function CommanderSettingsPage() {
         })
         .catch(() => { });
     } catch (e) { }
+    return () => controller.abort();
   }, [venueId]);
 
   // Cross-tab + cross-device real-time sync — reload settings when changed from other pages

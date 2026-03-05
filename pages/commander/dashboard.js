@@ -159,6 +159,8 @@ export default function CommanderDashboard() {
 
   // Auth guard — validate localStorage AND Supabase session
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     async function validateSession() {
       const stored = localStorage.getItem('commander_staff');
       if (!stored) {
@@ -208,6 +210,7 @@ export default function CommanderDashboard() {
       } catch { }
     }
     validateSession();
+    return () => controller.abort();
   }, [router]);
 
   // Hard Stop countdown logic
@@ -217,7 +220,7 @@ export default function CommanderDashboard() {
       const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const token = stored.token || stored.access_token;
       if (!token) return;
-      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
+      fetch('/api/commander/settings', { signal,  headers: { Authorization: `Bearer ${token}` } }
         .then(r => r.json())
         .then(data => {
           if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {

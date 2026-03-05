@@ -102,7 +102,8 @@ export default function NotificationsPage() {
                     if (actorIds.length > 0) {
                         const { data: profilesById } = await supabase.from('profiles')
                             .select('id, username, full_name, avatar_url')
-                            .in('id', actorIds);
+                            .in('id', actorIds)
+                            .limit(50) // notification profiles;
                         (profilesById || []).forEach(p => {
                             profileById[p.id] = p;
                         });
@@ -111,7 +112,8 @@ export default function NotificationsPage() {
                     if (actorNames.length > 0) {
                         const { data: profilesByName } = await supabase.from('profiles')
                             .select('id, username, full_name, avatar_url')
-                            .in('full_name', actorNames);
+                            .in('full_name', actorNames)
+                            .limit(50) // notification profiles;
                         (profilesByName || []).forEach(p => {
                             if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
                         });

@@ -58,7 +58,8 @@ export default async function handler(req, res) {
             .from('training_progress')
             .select('*')
             .eq('user_id', userId)
-            .order('last_played_at', { ascending: false });
+            .order('last_played_at', { ascending: false })
+                .limit(100);
 
         if (error) {
             console.error('Error fetching all progress:', error);
@@ -67,7 +68,8 @@ export default async function handler(req, res) {
 
         // Calculate overall stats
         const totalGamesPlayed = data.length;
-        const totalGamesMastered = data.filter(p => p.mastery_percentage === 100).length;
+        const totalGamesMastered = data.filter(p => p.mastery_percentage === 100).length
+            .limit(100);
         const totalQuestionsAnswered = data.reduce((sum, p) => sum + (p.total_questions_answered || 0), 0);
         const totalCorrect = data.reduce((sum, p) => sum + (p.total_correct || 0), 0);
         const overallAccuracy = totalQuestionsAnswered > 0

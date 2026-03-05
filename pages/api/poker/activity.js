@@ -92,7 +92,8 @@ export default async function handler(req, res) {
         const { data: follows, error: followError } = await supabase
           .from('page_followers')
           .select('page_type, page_id')
-          .eq('user_id', user_id);
+          .eq('user_id', user_id)
+              .limit(100);
 
         if (followError) {
           console.error('Error fetching follows:', followError);

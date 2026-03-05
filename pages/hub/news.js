@@ -916,7 +916,7 @@ export default function NewsHub() {
     const [activeTab, setActiveTab] = useState('all');
 
     // SWR-backed static data — cached 60s, survive navigation
-    const jsonFetch = (url) => fetch(url).then(r => r.json());
+    const jsonFetch = (url) => fetch(url, { signal }).then(r => r.json());
     const { data: sourceBoxesData } = useSWR('/api/news/source-boxes', jsonFetch);
     const sourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
 
@@ -1117,6 +1117,8 @@ export default function NewsHub() {
     // Refresh button handler (triggers SWR revalidation)
     const { mutate: mutateNews } = useSWR(`/api/news/articles?${newsParams}`, null, { revalidateOnMount: false });
     const refreshData = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         setIsRefreshing(true);
         await mutateNews();
         setLastUpdate(new Date());
@@ -1143,10 +1145,10 @@ export default function NewsHub() {
         setSubscribeError('');
 
         try {
-            const res = await fetch('/api/news/subscribe', {
+            const res = await fetch('/api/news/subscribe', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email }
             });
 
             const { success, error } = await res.json();
@@ -1169,10 +1171,10 @@ export default function NewsHub() {
     // Article navigation - uses link containment
     const openArticle = async (article) => {
         try {
-            await fetch('/api/news/articles', {
+            await fetch('/api/news/articles', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: article.id })
+                body: JSON.stringify({ id: article.id }
             });
         } catch (e) { }
 

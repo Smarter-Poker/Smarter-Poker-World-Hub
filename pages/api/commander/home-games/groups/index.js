@@ -52,7 +52,8 @@ async function listGroups(req, res) {
         profiles:owner_id (id, display_name, avatar_url)
       `)
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+          .limit(100);
 
     // Filter to user's groups
     if (my_groups === 'true' && userId) {
@@ -60,11 +61,13 @@ async function listGroups(req, res) {
         .from('commander_home_members')
         .select('group_id')
         .eq('user_id', userId)
-        .eq('status', 'approved');
+        .eq('status', 'approved')
+            .limit(100);
 
       const groupIds = memberships?.map(m => m.group_id) || [];
       if (groupIds.length > 0) {
-        query = query.in('id', groupIds);
+        query = query.in('id', groupIds)
+            .limit(100);
       } else {
         return res.status(200).json({ groups: [] });
       }

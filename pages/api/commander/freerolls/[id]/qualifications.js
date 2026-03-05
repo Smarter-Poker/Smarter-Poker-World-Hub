@@ -47,7 +47,8 @@ async function listQualifications(req, res, freerollId) {
             .eq('freeroll_id', freerollId)
             .order('is_qualified', { ascending: false })
             .order('hours_logged', { ascending: false })
-            .order('points_earned', { ascending: false });
+            .order('points_earned', { ascending: false })
+                .limit(100);
 
         if (error) throw error;
 

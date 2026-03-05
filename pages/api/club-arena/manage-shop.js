@@ -55,7 +55,8 @@ export default async function handler(req, res) {
       const { data: purchases } = await supabaseAdmin
         .from('club_shop_purchases')
         .select('item_id')
-        .eq('club_id', clubId);
+        .eq('club_id', clubId)
+            .limit(100);
 
       const purchaseCounts = {};
       for (const p of (purchases || [])) {

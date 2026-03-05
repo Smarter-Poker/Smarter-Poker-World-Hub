@@ -48,7 +48,8 @@ export default async function handler(req, res) {
             // BUG #270 FIX: Sanitize type to prevent PostgREST filter injection
             const safeType = type.replace(/[,().]/g, '');
             if (safeType) {
-                query = query.or(`transaction_type.eq.${safeType},type.eq.${safeType}`);
+                query = query.or(`transaction_type.eq.${safeType},type.eq.${safeType}`)
+                    .limit(100);
             }
         }
 

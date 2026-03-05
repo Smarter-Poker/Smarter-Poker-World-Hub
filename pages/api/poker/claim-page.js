@@ -132,7 +132,8 @@ export default async function handler(req, res) {
           .from('page_claims')
           .select('*')
           .eq('user_id', user_id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+              .limit(100);
 
         if (error) {
           console.error('Error fetching user claims:', error);

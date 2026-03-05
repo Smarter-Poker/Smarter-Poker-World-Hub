@@ -79,7 +79,8 @@ export default async function handler(req, res) {
       .from('rakeback_distributions')
       .select('*')
       .eq('status', 'pending')
-      .order('club_id', { ascending: true });
+      .order('club_id', { ascending: true })
+          .limit(100);
 
     if (!pendingDistributions?.length) {
       results.phase = 'no_distributions';
@@ -292,7 +293,8 @@ export default async function handler(req, res) {
     const { data: activeLocks } = await supabaseAdmin
       .from('settlement_locks')
       .select('id, club_id')
-      .eq('is_active', true);
+      .eq('is_active', true)
+          .limit(100);
 
     for (const lock of (activeLocks || [])) {
       await supabaseAdmin

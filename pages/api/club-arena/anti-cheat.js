@@ -77,9 +77,12 @@ export default async function handler(req, res) {
           .order('flagged_at', { ascending: false })
           .range(offset, offset + limit - 1);
 
-        if (status !== 'all') query = query.eq('status', status);
-        if (severity) query = query.eq('severity', severity);
-        if (flagType) query = query.eq('flag_type', flagType);
+        if (status !== 'all') query = query.eq('status', status)
+            .limit(200);
+        if (severity) query = query.eq('severity', severity)
+            .limit(200);
+        if (flagType) query = query.eq('flag_type', flagType)
+            .limit(200);
 
         const { data, error, count } = await query;
         if (error) throw error;
@@ -103,8 +106,10 @@ export default async function handler(req, res) {
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1);
 
-        if (eventType) query = query.eq('event_type', eventType);
-        if (playerId) query = query.eq('player_id', playerId);
+        if (eventType) query = query.eq('event_type', eventType)
+            .limit(200);
+        if (playerId) query = query.eq('player_id', playerId)
+            .limit(200);
 
         const { data, error } = await query;
         if (error) throw error;
@@ -126,9 +131,11 @@ export default async function handler(req, res) {
           `)
           .eq('club_id', clubId)
           .eq('is_active', true)
-          .order('seated_at', { ascending: false });
+          .order('seated_at', { ascending: false })
+              .limit(200);
 
-        if (tableId) query = query.eq('table_id', tableId);
+        if (tableId) query = query.eq('table_id', tableId)
+            .limit(200);
 
         const { data, error } = await query;
         if (error) throw error;

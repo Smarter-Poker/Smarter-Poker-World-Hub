@@ -79,7 +79,8 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('id, name, metadata, location_city, location_state')
             .eq('page_type', 'charity')
-            .eq('is_public', true);
+            .eq('is_public', true)
+                .limit(100);
 
         if (error) {
             console.error('Failed to fetch charity pages:', error);

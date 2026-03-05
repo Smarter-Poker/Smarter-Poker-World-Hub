@@ -100,10 +100,12 @@ export default function TabletDisplay() {
     /* ─── Data Fetching ─────────────────────────────────────────── */
 
     const fetchData = useCallback(async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!tableNumber) return;
         try {
             const url = `/api/commander/dealer/tablet-data?table=${tableNumber}${venueId ? `&venue_id=${venueId}` : ''}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { signal });
             const json = await res.json();
             if (json.success) {
                 setData(json.data);
@@ -147,6 +149,8 @@ export default function TabletDisplay() {
     useEffect(() => {
         let wakeLock = null;
         const requestWakeLock = async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
@@ -170,7 +174,7 @@ export default function TabletDisplay() {
     useEffect(() => {
         if (!tableNumber || !venueId) return;
         const sendHeartbeat = () => {
-            fetch('/api/commander/displays/heartbeat', {
+            fetch('/api/commander/displays/heartbeat', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }),

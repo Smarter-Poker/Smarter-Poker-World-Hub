@@ -568,7 +568,8 @@ export default function MyClubsPage() {
                         .from('club_members')
                         .select('club_id, role, clubs(*)')
                         .eq('user_id', authUser.id)
-                        .eq('status', 'active');
+                        .eq('status', 'active')
+                        .limit(50) // my clubs list;
                     if (memberships && memberships.length > 0) {
                         const clubs = memberships
                             .map(m => ({ ...m.clubs, userRole: m.role }))

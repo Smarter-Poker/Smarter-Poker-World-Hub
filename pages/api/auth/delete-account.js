@@ -45,7 +45,8 @@ export default async function handler(req, res) {
             .from('club_members')
             .select('club_id, chip_balance, locked_chips')
             .eq('user_id', userId)
-            .or('chip_balance.gt.0,locked_chips.gt.0');
+            .or('chip_balance.gt.0,locked_chips.gt.0')
+                .limit(200);
 
         if (activeBalances?.length > 0) {
             const totalChips = activeBalances.reduce((sum, m) => sum + (m.chip_balance || 0) + (m.locked_chips || 0), 0);
@@ -75,7 +76,8 @@ export default async function handler(req, res) {
         const { data: ownedClubs } = await supabaseAdmin
             .from('clubs')
             .select('id, name')
-            .eq('owner_id', userId);
+            .eq('owner_id', userId)
+                .limit(100);
 
         if (ownedClubs?.length > 0) {
             return res.status(400).json({
@@ -89,7 +91,8 @@ export default async function handler(req, res) {
         const { data: ownedUnions } = await supabaseAdmin
             .from('unions')
             .select('id, name')
-            .eq('owner_id', userId);
+            .eq('owner_id', userId)
+                .limit(50);
 
         if (ownedUnions?.length > 0) {
             return res.status(400).json({

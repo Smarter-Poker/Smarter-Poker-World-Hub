@@ -68,7 +68,8 @@ export default function SurvivalModePage() {
             .from('trivia_survival_runs')
             .select('diamonds_earned')
             .eq('user_id', user.id)
-            .gte('created_at', today);
+            .gte('created_at', today)
+            .limit(50) // survival runs
 
         if (runs) {
             const total = runs.reduce((sum, r) => sum + (r.diamonds_earned || 0), 0);
@@ -93,6 +94,7 @@ export default function SurvivalModePage() {
         const { data } = await supabase
             .from('trivia_survival_runs')
             .select(`
+            .limit(50) // survival runs
                 correct_count,
                 user_id,
                 profiles!inner(username, avatar_url)

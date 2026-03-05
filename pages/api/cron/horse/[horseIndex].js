@@ -347,7 +347,8 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             .from('social_posts')
             .select('media_urls')
             .eq('content_type', 'video')
-            .gte('created_at', since48h);
+            .gte('created_at', since48h)
+                .limit(100);
 
         const usedUrls = new Set();
         (recentVideos || []).forEach(p => {
@@ -437,12 +438,14 @@ async function postNewsLink(horse, horseIndex, newsType) {
             .from('social_posts')
             .select('link_url')
             .not('link_url', 'is', null)
-            .gte('created_at', since48h);
+            .gte('created_at', since48h)
+                .limit(100);
 
         const usedLinks = new Set((recentPosts || []).map(p => p.link_url));
 
         // Filter out already-posted articles
-        const freshArticles = allArticles.filter(a => !usedLinks.has(a.link));
+        const freshArticles = allArticles.filter(a => !usedLinks.has(a.link))
+            .limit(100);
 
         if (!freshArticles.length) {
             return { success: false, error: 'All articles already posted' };
@@ -510,7 +513,8 @@ export default async function handler(req, res) {
             .select('*')
             .eq('is_active', true)
             .not('profile_id', 'is', null)
-            .order('profile_id');
+            .order('profile_id')
+                .limit(100);
 
         if (!horses?.length || index >= horses.length) {
             return res.status(200).json({ success: false, error: 'No horse' });

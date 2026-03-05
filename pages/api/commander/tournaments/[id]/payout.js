@@ -52,7 +52,8 @@ async function handleGetPayouts(req, res, tournamentId) {
 
     const totalEntries = (entries || []).length;
     const totalRebuys = (entries || []).reduce((sum, e) => sum + (e.rebuy_count || 0), 0);
-    const totalAddons = (entries || []).filter(e => e.addon_taken).length;
+    const totalAddons = (entries || []).filter(e => e.addon_taken).length
+        .limit(100);
     const buyinAmount = tournament.buyin_amount || 0;
     const buyinFee = tournament.buyin_fee || 0;
     const rebuyAmount = tournament.rebuy_amount || buyinAmount;
@@ -110,7 +111,8 @@ async function handleGetPayouts(req, res, tournamentId) {
       .select('*, profiles(id, display_name, avatar_url)')
       .eq('tournament_id', tournamentId)
       .not('payout_amount', 'is', null)
-      .order('finish_position', { ascending: true });
+      .order('finish_position', { ascending: true })
+          .limit(100);
 
     if (error) throw error;
 

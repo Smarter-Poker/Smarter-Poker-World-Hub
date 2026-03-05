@@ -105,10 +105,12 @@ export default async function handler(req, res) {
       .range(offsetNum, offsetNum + limitNum - 1);
 
     if (page_type && page_type !== 'all') {
-      query = query.eq('page_type', page_type);
+      query = query.eq('page_type', page_type)
+          .limit(100);
     }
     if (page_id) {
-      query = query.eq('page_id', page_id);
+      query = query.eq('page_id', page_id)
+          .limit(100);
     }
 
     const { data, error } = await query;
@@ -127,10 +129,12 @@ export default async function handler(req, res) {
       .range(offsetNum, offsetNum + limitNum - 1);
 
     if (page_type && page_type !== 'all') {
-      notifQuery = notifQuery.eq('page_type', page_type);
+      notifQuery = notifQuery.eq('page_type', page_type)
+          .limit(100);
     }
     if (page_id) {
-      notifQuery = notifQuery.eq('page_id', page_id);
+      notifQuery = notifQuery.eq('page_id', page_id)
+          .limit(100);
     }
 
     const { data: notifData, error: notifError } = await notifQuery;

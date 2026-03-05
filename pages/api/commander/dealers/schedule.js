@@ -57,10 +57,12 @@ async function handleList(req, res) {
         commander_tables (id, table_number, status)
       `)
       .eq('venue_id', venue_id)
-      .order('started_at', { ascending: false });
+      .order('started_at', { ascending: false })
+          .limit(100);
 
     if (dealer_id) {
-      query = query.eq('dealer_id', dealer_id);
+      query = query.eq('dealer_id', dealer_id)
+          .limit(100);
     }
 
     if (date) {

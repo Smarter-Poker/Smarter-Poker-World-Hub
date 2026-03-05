@@ -51,7 +51,8 @@ export default async function handler(req, res) {
             .eq('venue_id', venue_id)
             .gte('clock_in', from)
             .lte('clock_in', to)
-            .order('clock_in', { ascending: false });
+            .order('clock_in', { ascending: false })
+                .limit(100);
 
         if (error) throw error;
 

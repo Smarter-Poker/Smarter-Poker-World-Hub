@@ -53,14 +53,16 @@ export default async function handler(req, res) {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('read', false);
+            .eq('read', false)
+                .limit(50);
 
         // Count unread messages - using social messaging schema
         // Get user's conversations with their last_read_at timestamp
         const { data: conversations } = await supabase
             .from('social_conversation_participants')
             .select('conversation_id, last_read_at')
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+                .limit(50);
 
         let unreadMessages = 0;
         if (conversations && conversations.length > 0) {
@@ -77,7 +79,8 @@ export default async function handler(req, res) {
                 .in('conversation_id', conversationIds)
                 .neq('sender_id', userId)
                 .eq('is_deleted', false)
-                .gt('created_at', earliestRead);
+                .gt('created_at', earliestRead)
+                    .limit(100);
 
             // Count locally per-conversation last_read_at
             const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));

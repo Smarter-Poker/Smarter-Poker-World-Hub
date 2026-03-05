@@ -69,7 +69,8 @@ export default async function handler(req, res) {
                 .from('user_seen_questions')
                 .select('question_id')
                 .eq('user_id', userId)
-                .eq('game_id', gameId);
+                .eq('game_id', gameId)
+                    .limit(100);
 
             seenQuestionIds = (seen || []).map(s => s.question_id);
         }

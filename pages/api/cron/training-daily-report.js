@@ -41,7 +41,8 @@ export default async function handler(req, res) {
             .from('jarvis_training_sessions')
             .select('user_id, game_id, category, accuracy, questions_answered, questions_correct, answers_data, leaks_detected')
             .gte('created_at', dayStart.toISOString())
-            .order('user_id');
+            .order('user_id')
+                .limit(100);
 
         if (sessionsError) {
             throw sessionsError;

@@ -37,7 +37,8 @@ export default function OrderHistory() {
                 .from('orders')
                 .select('*')
                 .eq('user_id', authUser.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(50) // order history
 
             if (error && error.code !== 'PGRST116') {
                 console.error('Error fetching orders:', error);

@@ -56,7 +56,9 @@ async function getTableData(tournamentId, venueId) {
     .select('id, table_number, max_seats')
     .eq('venue_id', venueId)
     .eq('tournament_id', tournamentId)
-    .eq('mode', 'tournament');
+    .eq('mode', 'tournament')
+        .limit(100);
+    .limit(100)
 
   if (!tables || tables.length < 2) return { tables: tables || [], entries: [], tableMap: {} };
 

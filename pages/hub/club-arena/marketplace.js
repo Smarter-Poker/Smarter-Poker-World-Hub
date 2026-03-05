@@ -141,7 +141,8 @@ export default function Marketplace() {
                         .select('*')
                         .eq('club_id', clubData.id)
                         .eq('is_active', true)
-                        .order('price', { ascending: true });
+                        .order('price', { ascending: true })
+                        .limit(100) // shop items
 
                     // Use database items or fallback to defaults
                     if (shopItems && shopItems.length > 0) {
@@ -159,7 +160,8 @@ export default function Marketplace() {
                         .from('club_shop_purchases')
                         .select('*, item:item_id(*)')
                         .eq('buyer_id', authUser.id)
-                        .eq('club_id', clubData.id);
+                        .eq('club_id', clubData.id)
+                        .limit(50) // purchase history
 
                     if (purchases) {
                         setOwnedItems(purchases.map(p => p.item_id || p.item?.id));

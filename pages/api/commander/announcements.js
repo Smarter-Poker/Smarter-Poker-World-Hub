@@ -37,7 +37,8 @@ export default async function handler(req, res) {
         .select('*')
         .eq('venue_id', venueId)
         .order('priority', { ascending: true }) // urgent first
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+            .limit(100);
       if (error) throw error;
 
       // Filter expired and not-yet-started

@@ -60,7 +60,8 @@ async function listHighHands(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (promotion_id) {
-      query = query.eq('promotion_id', promotion_id);
+      query = query.eq('promotion_id', promotion_id)
+          .limit(100);
     }
 
     if (date) {

@@ -42,6 +42,7 @@ export default async function handler(req, res) {
     const { data: sessions, error } = await supabase
       .from('commander_games')
       .select(`
+      .limit(100)
         id,
         table_id,
         game_type,
@@ -70,7 +71,8 @@ export default async function handler(req, res) {
     const { data: handCounts } = await supabase
       .from('commander_hand_history')
       .select('game_id')
-      .in('game_id', gameIds);
+      .in('game_id', gameIds)
+          .limit(100);
 
     const countMap = {};
     handCounts?.forEach(h => {

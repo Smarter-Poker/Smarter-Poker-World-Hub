@@ -34,11 +34,15 @@ export default async function handler(req, res) {
         let query = supabase
             .from('social_page_posts')
             .select('*')
-            .eq('is_approved', true);
+            .eq('is_approved', true)
+                .limit(100);
 
-        if (page_id) query = query.eq('page_id', page_id);
-        if (author_id) query = query.eq('author_id', author_id);
-        if (pinned_only === 'true') query = query.eq('is_pinned', true);
+        if (page_id) query = query.eq('page_id', page_id)
+            .limit(100);
+        if (author_id) query = query.eq('author_id', author_id)
+            .limit(100);
+        if (pinned_only === 'true') query = query.eq('is_pinned', true)
+            .limit(100);
 
         // Pinned first, then by date
         query = query
@@ -56,7 +60,8 @@ export default async function handler(req, res) {
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('id, username, full_name, avatar_url')
-                .in('id', authorIds);
+                .in('id', authorIds)
+                    .limit(100);
             (profileData || []).forEach(p => { profiles[p.id] = p; });
         }
 
@@ -68,7 +73,8 @@ export default async function handler(req, res) {
                 .from('social_page_post_likes')
                 .select('post_id')
                 .eq('user_id', user_id)
-                .in('post_id', postIds);
+                .in('post_id', postIds)
+                    .limit(100);
             (likes || []).forEach(l => userLikes.add(l.post_id));
         }
 

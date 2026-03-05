@@ -77,7 +77,8 @@ async function handler(req, res) {
         profiles:player_id (id, display_name, first_name, last_name, city, state, country)
       `)
       .eq('tournament_id', tournament_id)
-      .order('finish_position', { ascending: true, nullsFirst: false });
+      .order('finish_position', { ascending: true, nullsFirst: false })
+          .limit(100);
 
     if (entriesError) throw entriesError;
 

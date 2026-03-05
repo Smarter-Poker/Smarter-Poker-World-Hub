@@ -71,6 +71,7 @@ async function getProfile(req, res, user) {
     const { data: sessions } = await supabase
       .from('commander_player_sessions')
       .select(`
+      .limit(500)
         venue_id,
         poker_venues (id, name, city, state)
       `)
@@ -91,7 +92,9 @@ async function getProfile(req, res, user) {
     const { count: sessionCount } = await supabase
       .from('commander_player_sessions')
       .select('id', { count: 'exact', head: true })
-      .eq('player_id', user.id);
+      .eq('player_id', user.id)
+          .limit(100);
+      .limit(500)
 
     const achievements = [];
     if (sessionCount >= 1) achievements.push({ id: 'first_session', name: 'First Session', icon: 'trophy' });

@@ -86,9 +86,11 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const fetchSummary = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       try {
         const token = getToken();
-        const res = await fetch(`/api/commander/reports/summary?range=${dateRange}`, {
+        const res = await fetch(`/api/commander/reports/summary?range=${ signal, dateRange}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();

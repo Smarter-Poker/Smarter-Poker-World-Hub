@@ -104,7 +104,8 @@ export default async function handler(req, res) {
       const { data: allRatings, error: ratingsError } = await supabase
         .from('venue_reviews')
         .select('rating')
-        .eq('venue_id', String(venueIdNum));
+        .eq('venue_id', String(venueIdNum))
+            .limit(100);
 
       if (ratingsError) {
         console.error('Error fetching ratings:', ratingsError);

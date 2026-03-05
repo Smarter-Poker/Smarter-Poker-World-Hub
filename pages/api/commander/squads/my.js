@@ -44,12 +44,14 @@ export default async function handler(req, res) {
       .from('commander_waitlist_group_members')
       .select('id, player_id, group_id, joined_at')
       .eq('player_id', user.id)
-      .order('joined_at', { ascending: false });
+      .order('joined_at', { ascending: false })
+          .limit(100);
 
     if (error) throw error;
 
     // Fetch group details for each membership
-    const groupIds = [...new Set((memberships || []).map(m => m.group_id).filter(Boolean))];
+    const groupIds = [...new Set((memberships || []).map(m => m.group_id).filter(Boolean))]
+        .limit(100);
 
     let groupsMap = {};
     if (groupIds.length > 0) {
@@ -60,7 +62,8 @@ export default async function handler(req, res) {
           poker_venues:venue_id (id, name, city, state),
           profiles:leader_id (id, display_name, avatar_url)
         `)
-        .in('id', groupIds);
+        .in('id', groupIds)
+            .limit(100);
       (groups || []).forEach(g => { groupsMap[g.id] = g; });
     }
 

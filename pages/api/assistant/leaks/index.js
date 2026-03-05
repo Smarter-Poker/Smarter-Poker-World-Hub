@@ -59,10 +59,12 @@ export default async function handler(req, res) {
           .from('user_leaks')
           .select('*')
           .eq('user_id', userId)
-          .order('last_detected_at', { ascending: false });
+          .order('last_detected_at', { ascending: false })
+              .limit(100);
 
         if (status) {
-          query = query.eq('status', status);
+          query = query.eq('status', status)
+              .limit(100);
         }
 
         const { data } = await query;
@@ -78,10 +80,12 @@ export default async function handler(req, res) {
           .from('user_training_leaks')
           .select('*')
           .eq('user_id', userId)
-          .order('detected_at', { ascending: false });
+          .order('detected_at', { ascending: false })
+              .limit(100);
 
         if (status === 'resolved') {
-          query = query.not('fixed_at', 'is', null);
+          query = query.not('fixed_at', 'is', null)
+              .limit(100);
         } else if (status) {
           query = query.is('fixed_at', null);
         }

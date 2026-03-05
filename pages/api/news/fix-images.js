@@ -28,7 +28,8 @@ export default async function handler(req, res) {
         const { data: articles, error: fetchError } = await supabase
             .from('poker_news')
             .select('id, category, image_url')
-            .or('image_url.is.null,image_url.eq.');
+            .or('image_url.is.null,image_url.eq.')
+                .limit(100);
 
         if (fetchError) throw fetchError;
 

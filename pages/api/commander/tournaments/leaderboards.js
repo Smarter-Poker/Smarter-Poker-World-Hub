@@ -35,10 +35,12 @@ async function listLeaderboards(req, res) {
             .from('commander_tournament_leaderboards')
             .select('*')
             .eq('venue_id', venue_id)
-            .order('season_start', { ascending: false });
+            .order('season_start', { ascending: false })
+                .limit(100);
 
         if (active_only === 'true') {
-            query = query.eq('is_active', true);
+            query = query.eq('is_active', true)
+                .limit(100);
         }
 
         const { data, error } = await query;
@@ -49,7 +51,8 @@ async function listLeaderboards(req, res) {
             const { data: points } = await supabase
                 .from('commander_tournament_points')
                 .select('player_id, player_name, points, finish_position, entry_points')
-                .eq('leaderboard_id', lb.id);
+                .eq('leaderboard_id', lb.id)
+                    .limit(100);
 
             // Aggregate points per player
             const playerMap = {};

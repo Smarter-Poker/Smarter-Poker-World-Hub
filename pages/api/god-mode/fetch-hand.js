@@ -203,7 +203,8 @@ export default async function handler(req, res) {
             .from('god_mode_hand_history')
             .select('source_file_id, variant_hash')
             .eq('user_id', userId)
-            .eq('game_id', gameConfig.id);
+            .eq('game_id', gameConfig.id)
+                .limit(100);
 
         const seenSet = new Set(
             (seenHands || []).map(h => `${h.source_file_id}_${h.variant_hash}`)
@@ -217,14 +218,16 @@ export default async function handler(req, res) {
 
             // Filter by game_type (Cash, MTT_ChipEV, hu_cash, etc.)
             if (config.game_type) {
-                query = query.eq('game_type', config.game_type);
+                query = query.eq('game_type', config.game_type)
+                    .limit(100);
             }
 
             // Filter by stack depth range
             if (config.stack_depth) {
                 const depth = config.stack_depth;
                 const range = config.stack_range || 10; // +/- range
-                query = query.gte('stack_depth', depth - range).lte('stack_depth', depth + range);
+                query = query.gte('stack_depth', depth - range).lte('stack_depth', depth + range)
+                    .limit(100);
             }
 
             // Filter by street (case-insensitive check)

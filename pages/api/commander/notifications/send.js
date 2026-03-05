@@ -431,7 +431,8 @@ async function sendPushNotification(notification) {
     .from('commander_push_subscriptions')
     .select('subscription_data, endpoint')
     .eq('user_id', notification.player_id)
-    .eq('is_active', true);
+    .eq('is_active', true)
+        .limit(100);
 
   if (!subscriptions || subscriptions.length === 0) {
     // No push subscription, try sending by external_user_id (player_id)

@@ -138,6 +138,9 @@ export default function CompSystem() {
 
   // ─── Fetch tab data ───
   const fetchData = useCallback(async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
     setLoading(true);
     try {
       const venueId = getVenueId();

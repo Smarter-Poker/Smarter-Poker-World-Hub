@@ -28,12 +28,14 @@ export default async function handler(req, res) {
         const { data: profiles, error: profileError } = await supabase
             .from('profiles')
             .select('id, username, full_name, email, created_at')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+                .limit(100);
 
         const profileIds = new Set(profiles?.map(p => p.id) || []);
 
         // Find auth users WITHOUT profiles (orphaned users)
-        const orphanedUsers = authData?.users?.filter(u => !profileIds.has(u.id)) || [];
+        const orphanedUsers = authData?.users?.filter(u => !profileIds.has(u.id)) || []
+            .limit(100);
 
         // Get the most recent users from auth
         const recentAuthUsers = authData?.users

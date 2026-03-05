@@ -40,7 +40,7 @@ function cachedFetch(url, ttl = API_CACHE_TTL) {
     if (apiCache[url] && (now - apiCache[url].time) < ttl) {
         return Promise.resolve(apiCache[url].data);
     }
-    return fetch(url).then(r => r.json()).then(data => {
+    return fetch(url).then(r => r.json(, { signal })).then(data => {
         apiCache[url] = { data, time: now };
         return data;
     });
@@ -802,7 +802,7 @@ export default function PokerNearMePage() {
         } catch (e) { /* ignore */ }
         // Fetch fresh and update cache
         fetch('/data/all-venues.json')
-            .then(function (r) { return r.json(); })
+            .then(function (r, { signal }) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
                 var arr = Array.isArray(v) ? v : [];
@@ -956,7 +956,7 @@ export default function PokerNearMePage() {
     // --- NEW: Fetch promotion venue IDs on mount ---
     useEffect(() => {
         fetch('/api/poker/promotions?limit=200')
-            .then(r => r.json())
+            .then(r => r.json(, { signal }))
             .then(json => {
                 const ids = new Set();
                 (json.promotions || json.data || []).forEach(p => { if (p.page_id) ids.add(String(p.page_id)); });
@@ -1264,7 +1264,7 @@ export default function PokerNearMePage() {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
             }
-            const res = await fetch('/api/poker/live-games?' + params);
+            const res = await fetch('/api/poker/live-games?' + params, { signal });
             const json = await res.json();
             // API returns { venues: { venueId: [games] } } for active=true
             // Flatten grouped object into a flat array
@@ -1440,6 +1440,8 @@ export default function PokerNearMePage() {
     }, []);
 
     const requestPushPermission = useCallback(async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!('Notification' in window)) return;
         try {
             const result = await Notification.requestPermission();

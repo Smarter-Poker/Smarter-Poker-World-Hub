@@ -26,7 +26,8 @@ export default async function handler(req, res) {
             .from('commander_staff')
             .select('id, venue_id, display_name, role, is_active, email, phone, created_at')
             .eq('linked_user_id', user.id)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+                .limit(100);
 
         if (error) throw error;
 
@@ -39,7 +40,8 @@ export default async function handler(req, res) {
         const { data: venues } = await supabase
             .from('poker_venues')
             .select('id, name, logo_url, city, state')
-            .in('id', venueIds);
+            .in('id', venueIds)
+                .limit(100);
 
         const venueMap = Object.fromEntries((venues || []).map(v => [v.id, v]));
 

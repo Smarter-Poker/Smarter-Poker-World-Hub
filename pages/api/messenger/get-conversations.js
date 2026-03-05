@@ -36,7 +36,8 @@ export default async function handler(req, res) {
         const { data: participations, error: partError } = await supabaseAdmin
             .from('social_conversation_participants')
             .select('conversation_id, last_read_at')
-            .eq('user_id', userId);
+            .eq('user_id', userId)
+                .limit(100);
 
         if (partError) {
             console.error('[GET-CONVERSATIONS] Participation query error:', partError);
@@ -54,7 +55,8 @@ export default async function handler(req, res) {
             .from('social_conversations')
             .select('id, last_message_at, last_message_preview, is_group')
             .in('id', conversationIds)
-            .order('last_message_at', { ascending: false });
+            .order('last_message_at', { ascending: false })
+                .limit(100);
 
         if (convError) {
             console.error('[GET-CONVERSATIONS] Conversation query error:', convError);
@@ -71,7 +73,8 @@ export default async function handler(req, res) {
                     .from('social_conversation_participants')
                     .select('user_id')
                     .eq('conversation_id', conv.id)
-                    .neq('user_id', userId);
+                    .neq('user_id', userId)
+                        .limit(100);
 
                 let otherUser = null;
                 if (otherParticipants?.[0]?.user_id) {

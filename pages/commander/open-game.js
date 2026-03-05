@@ -53,12 +53,14 @@ export default function OpenGame() {
   useEffect(() => {
     if (step !== 2) return;
     const fetchTables = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       setLoading(true);
       try {
         const token = getToken();
         const venueId = getVenueId();
         const staffSession = localStorage.getItem('commander_staff') || '';
-        const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+        const res = await fetch(`/api/commander/tables?venue_id=${ signal, venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
         const json = await res.json();
         if (json.success) {
           const tablesArr = Array.isArray(json.data) ? json.data
@@ -75,11 +77,13 @@ export default function OpenGame() {
   useEffect(() => {
     if (step !== 3 || !selectedGame) return;
     const fetchWaitlist = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       try {
         const token = getToken();
         const venueId = getVenueId();
         const staffSession = localStorage.getItem('commander_staff') || '';
-        const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
+        const res = await fetch(`/api/commander/waitlist?venue_id=${ signal, venueId}`, { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
         const json = await res.json();
         if (json.success) {
           const matching = (json.data || []).filter(w =>
@@ -124,7 +128,7 @@ export default function OpenGame() {
       }
 
       // 2. Update table status to active
-      const res = await fetch(`/api/commander/tables/${selectedTable.id}`, {
+      const res = await fetch(`/api/commander/tables/${ signal, selectedTable.id}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({

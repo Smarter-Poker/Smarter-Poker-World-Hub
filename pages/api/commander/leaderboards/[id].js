@@ -67,7 +67,8 @@ async function getLeaderboard(req, res, id) {
       `)
       .eq('leaderboard_id', id)
       .order('rank', { ascending: true, nullsFirst: false })
-      .order('score', { ascending: false });
+      .order('score', { ascending: false })
+          .limit(100);
 
     return res.status(200).json({
       leaderboard,

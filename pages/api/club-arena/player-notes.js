@@ -60,7 +60,8 @@ export default async function handler(req, res) {
           .from('player_notes')
           .select('target_user_id, player_type, color_label, notes, tells, tendencies')
           .eq('user_id', userId)
-          .in('target_user_id', targetUserIds);
+          .in('target_user_id', targetUserIds)
+              .limit(100);
 
         if (error) return res.status(500).json({ error: error.message });
 

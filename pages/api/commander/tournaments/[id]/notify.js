@@ -91,11 +91,13 @@ export default async function handler(req, res) {
                 .from('commander_tournament_entries')
                 .select('player_id')
                 .eq('tournament_id', tournamentId)
-                .in('status', ['registered', 'seated', 'active']);
+                .in('status', ['registered', 'seated', 'active'])
+                    .limit(100);
 
             targetUserIds = (entries || [])
                 .map(e => e.player_id)
-                .filter(Boolean);
+                .filter(Boolean)
+                    .limit(100);
         }
 
         if (targetUserIds.length === 0) {

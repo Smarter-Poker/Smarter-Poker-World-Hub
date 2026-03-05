@@ -11,8 +11,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { memo } from 'react'; // memo added
-import React, { useMemo, useEffect, useCallback, useState, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     MOVE_CLASSIFICATIONS,

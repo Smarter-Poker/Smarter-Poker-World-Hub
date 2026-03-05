@@ -103,7 +103,8 @@ export default async function handler(req, res) {
       .eq('venue_id', squad.venue_id)
       .eq('game_type', squad.game_type)
       .eq('stakes', squad.stakes)
-      .eq('status', 'waiting');
+      .eq('status', 'waiting')
+          .limit(100);
 
     const position = (currentPosition || 0) + 1;
 

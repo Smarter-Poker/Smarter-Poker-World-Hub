@@ -129,7 +129,7 @@ function PlayerSeat({ seat, stack }) {
 // MAIN TABLE — EXACT GOLDEN TEMPLATE CLONE
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function TrainingGameTable({
+function TrainingGameTable({
     heroCards = ['Ah', 'Kh'],
     communityCards = [],
     pot = 0,
@@ -443,3 +443,5 @@ export default function TrainingGameTable({
         </div >
     );
 }
+
+export default React.memo(TrainingGameTable);

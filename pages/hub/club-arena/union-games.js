@@ -27,7 +27,7 @@ const getToken = async () => {
 
 const api = async (action, params) => {
   const token = await getToken();
-  const res = await fetch('/api/club-arena/union-games', {
+  const res = await fetch('/api/club-arena/union-games', { signal, 
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ action, ...params }),
@@ -69,7 +69,7 @@ export default function UnionGames() {
     if (!unionId || !user) return;
     (async () => {
       const token = await getToken();
-      const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionId}`, {
+      const res = await fetch(`/api/club-arena/union-dashboard?unionId=${ signal, unionId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await res.json();
@@ -78,6 +78,8 @@ export default function UnionGames() {
   }, [unionId, user]);
 
   const loadTournaments = useCallback(async () => {
+      const controller = new AbortController();
+      const { signal } = controller;
     if (!unionId) return;
     const statusMap = {
       upcoming: ['scheduled', 'registering', 'late_reg'],
@@ -92,6 +94,8 @@ export default function UnionGames() {
   }, [unionId, subTab]);
 
   const loadTables = useCallback(async () => {
+      const controller = new AbortController();
+      const { signal } = controller;
     if (!unionId) return;
     const res = await api('list_tables', { unionId });
     if (res.success) {
@@ -104,6 +108,8 @@ export default function UnionGames() {
   }, [unionId, tableFilter]);
 
   const loadData = useCallback(async () => {
+      const controller = new AbortController();
+      const { signal } = controller;
     setLoading(true);
     if (tab === 'tournaments') await loadTournaments();
     else await loadTables();
@@ -706,9 +712,11 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     if (!['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status)) return;
     let active = true;
     const poll = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       try {
         const token = await getToken();
-        const res = await fetch('/api/poker/engine/tournament', {
+        const res = await fetch('/api/poker/engine/tournament', { signal, 
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: 'state', tournamentId: t.id }),

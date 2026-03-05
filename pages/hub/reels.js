@@ -219,7 +219,8 @@ export default function ReelsPage() {
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, avatar_url, full_name')
-                    .in('id', authorIds);
+                    .in('id', authorIds)
+                    .limit(50) // reel profiles
 
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });

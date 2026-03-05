@@ -52,18 +52,22 @@ async function listEntries(req, res, leaderboardId) {
         profiles:player_id (id, display_name, avatar_url)
       `)
       .eq('leaderboard_id', leaderboardId)
-      .order('rank', { ascending: true, nullsFirst: false });
+      .order('rank', { ascending: true, nullsFirst: false })
+          .limit(100);
 
     if (error) throw error;
 
     // Enrich with member data for player_name
-    const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
+    const playerIds = (entries || []).map(e => e.player_id).filter(Boolean)
+        .limit(100);
     let memberMap = {};
     if (playerIds.length > 0) {
       const { data: members } = await supabase
         .from('commander_members')
         .select('id, first_name, last_name, photo_url, membership_tier')
-        .in('id', playerIds);
+        .in('id', playerIds)
+            .limit(100);
+        .limit(500);
       (members || []).forEach(m => { memberMap[m.id] = m; });
     }
 
@@ -173,7 +177,9 @@ async function calculateAllEntries(req, res, leaderboard) {
     const { data: playerStats } = await supabase
       .from('commander_player_stats')
       .select('*')
-      .eq('venue_id', leaderboard.venue_id);
+      .eq('venue_id', leaderboard.venue_id)
+          .limit(100);
+      .limit(500)
 
     if (!playerStats || playerStats.length === 0) {
       return res.status(200).json({
@@ -189,7 +195,9 @@ async function calculateAllEntries(req, res, leaderboard) {
       .eq('venue_id', leaderboard.venue_id)
       .eq('status', 'completed')
       .gte('check_in_time', `${leaderboard.start_date}T00:00:00`)
-      .lte('check_in_time', `${leaderboard.end_date}T23:59:59`);
+      .lte('check_in_time', `${leaderboard.end_date}T23:59:59`)
+          .limit(100);
+      .limit(500)
 
     // Aggregate by player
     const playerData = {};
@@ -261,7 +269,8 @@ async function updateRankings(leaderboardId) {
     .from('commander_leaderboard_entries')
     .select('id, score')
     .eq('leaderboard_id', leaderboardId)
-    .order('score', { ascending: false });
+    .order('score', { ascending: false })
+        .limit(100);
 
   if (!entries || entries.length === 0) return;
 

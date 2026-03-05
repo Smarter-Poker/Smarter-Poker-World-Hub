@@ -42,7 +42,8 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('venue_checkins')
                 .select('user_id, created_at');
-            if (dateFilter) query = query.gte('created_at', dateFilter);
+            if (dateFilter) query = query.gte('created_at', dateFilter)
+                .limit(100);
             const { data: checkins } = await query;
 
             const counts = {};
@@ -56,7 +57,8 @@ export default async function handler(req, res) {
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .in('id', userIds);
+                    .in('id', userIds)
+                        .limit(100);
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
@@ -84,7 +86,8 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('venue_reviews')
                 .select('user_id, created_at');
-            if (dateFilter) query = query.gte('created_at', dateFilter);
+            if (dateFilter) query = query.gte('created_at', dateFilter)
+                .limit(100);
             const { data: reviews } = await query;
 
             const counts = {};
@@ -98,7 +101,8 @@ export default async function handler(req, res) {
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .in('id', userIds);
+                    .in('id', userIds)
+                        .limit(100);
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
@@ -125,7 +129,8 @@ export default async function handler(req, res) {
             let query = supabase
                 .from('social_posts')
                 .select('author_id, created_at');
-            if (dateFilter) query = query.gte('created_at', dateFilter);
+            if (dateFilter) query = query.gte('created_at', dateFilter)
+                .limit(100);
             const { data: posts } = await query;
 
             const counts = {};
@@ -139,7 +144,8 @@ export default async function handler(req, res) {
                 const { data: profiles } = await supabase
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .in('id', userIds);
+                    .in('id', userIds)
+                        .limit(100);
                 const profileMap = {};
                 (profiles || []).forEach(p => { profileMap[p.id] = p; });
 
@@ -169,7 +175,8 @@ export default async function handler(req, res) {
         const { data: profiles } = await supabase
             .from('profiles')
             .select('id, username, full_name, avatar_url')
-            .in('id', userIds);
+            .in('id', userIds)
+                .limit(100);
         const profileMap = {};
         (profiles || []).forEach(p => { profileMap[p.id] = p; });
 

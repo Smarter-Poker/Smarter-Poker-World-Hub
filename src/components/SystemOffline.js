@@ -8,7 +8,7 @@
 
 import React from 'react';
 
-export default function SystemOffline({ bootState }) {
+function SystemOffline({ bootState }) {
     const errors = bootState?.errors || [];
 
     return (
@@ -172,3 +172,5 @@ const styles = {
         fontFamily: 'monospace',
     },
 };
+
+export default React.memo(SystemOffline);

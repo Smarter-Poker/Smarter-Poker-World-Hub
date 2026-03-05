@@ -245,10 +245,12 @@ export default async function handler(req, res) {
         const { data: existingSlugs } = await supabase
             .from('poker_news')
             .select('slug')
-            .in('slug', allArticles.map(a => a.slug));
+            .in('slug', allArticles.map(a => a.slug))
+                .limit(100);
 
         const existingSet = new Set(existingSlugs?.map(e => e.slug) || []);
-        const newArticles = allArticles.filter(a => !existingSet.has(a.slug));
+        const newArticles = allArticles.filter(a => !existingSet.has(a.slug))
+            .limit(100);
 
         // Insert new articles
         let insertedCount = 0;

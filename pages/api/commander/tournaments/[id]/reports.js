@@ -128,13 +128,15 @@ async function cashierReport(req, res, tournamentId) {
         if (error) throw error;
 
         // Get staff names for cashier IDs
-        const cashierIds = [...new Set((entries || []).map(e => e.cashier_staff_id).filter(Boolean))];
+        const cashierIds = [...new Set((entries || []).map(e => e.cashier_staff_id).filter(Boolean))]
+            .limit(100);
         let staffMap = {};
         if (cashierIds.length > 0) {
             const { data: staff } = await supabase
                 .from('commander_staff')
                 .select('id, first_name, last_name')
-                .in('id', cashierIds);
+                .in('id', cashierIds)
+                    .limit(100);
             (staff || []).forEach(s => {
                 staffMap[s.id] = `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Unknown';
             });
@@ -204,7 +206,8 @@ async function activityReport(req, res, tournamentId) {
         profiles (display_name, avatar_url)
       `)
             .eq('tournament_id', tournamentId)
-            .order('registered_at', { ascending: true });
+            .order('registered_at', { ascending: true })
+                .limit(100);
 
         if (error) throw error;
 

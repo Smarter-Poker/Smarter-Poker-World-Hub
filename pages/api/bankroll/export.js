@@ -38,14 +38,17 @@ export default async function handler(req, res) {
             .select('*')
             .eq('user_id', userId)
             .eq('is_revision', false)
-            .order('entry_date', { ascending: false });
+            .order('entry_date', { ascending: false })
+                .limit(500);
 
         // Apply date range filter
         if (dateRange?.start) {
-            query = query.gte('entry_date', dateRange.start);
+            query = query.gte('entry_date', dateRange.start)
+                .limit(500);
         }
         if (dateRange?.end) {
-            query = query.lte('entry_date', dateRange.end);
+            query = query.lte('entry_date', dateRange.end)
+                .limit(500);
         }
 
         const { data: entries, error } = await query;

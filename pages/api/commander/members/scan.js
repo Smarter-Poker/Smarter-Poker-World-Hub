@@ -34,7 +34,9 @@ export default async function handler(req, res) {
     let query = supabase
         .from('commander_members')
         .select('*')
-        .eq('qr_code', qr_code);
+        .eq('qr_code', qr_code)
+            .limit(100);
+        .limit(500)
 
     if (venue_id) {
         query = query.eq('venue_id', venue_id);

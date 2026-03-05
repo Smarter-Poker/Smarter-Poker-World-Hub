@@ -55,7 +55,8 @@ async function listDealers(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (area) {
-      query = query.contains('service_area', [area]);
+      query = query.contains('service_area', [area])
+          .limit(100);
     }
 
     if (game) {

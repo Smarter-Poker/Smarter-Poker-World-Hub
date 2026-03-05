@@ -97,7 +97,8 @@ export default async function handler(req, res) {
         .from('commander_room_presets')
         .select('*')
         .eq('venue_id', venueId)
-        .order('name', { ascending: true });
+        .order('name', { ascending: true })
+            .limit(100);
 
       if (error) return res.status(500).json({ success: false, error: error.message });
       return res.status(200).json({ success: true, data: (data || []).map(normalizePreset) });
@@ -131,7 +132,9 @@ export default async function handler(req, res) {
             .select('id, table_number, status')
             .eq('venue_id', venueId)
             .eq('status', 'available')
-            .order('table_number', { ascending: true });
+            .order('table_number', { ascending: true })
+                .limit(100);
+            .limit(100)
 
           let tableIdx = 0;
           for (const config of tables) {

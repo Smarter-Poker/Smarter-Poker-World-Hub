@@ -83,7 +83,8 @@ export default async function handler(req, res) {
       const { data: follows, error: followError } = await supabase
         .from('page_followers')
         .select('page_type, page_id')
-        .eq('user_id', user_id);
+        .eq('user_id', user_id)
+            .limit(100);
 
       if (followError) {
         console.error('Error fetching follows:', followError);
@@ -123,7 +124,8 @@ export default async function handler(req, res) {
         .from('notification_reads')
         .select('notification_id')
         .eq('user_id', user_id)
-        .in('notification_id', notificationIds);
+        .in('notification_id', notificationIds)
+            .limit(100);
 
       if (readError) {
         console.error('Error fetching read status:', readError);
@@ -156,7 +158,8 @@ export default async function handler(req, res) {
         const { data: follows, error: followError } = await supabase
           .from('page_followers')
           .select('page_type, page_id')
-          .eq('user_id', user_id);
+          .eq('user_id', user_id)
+              .limit(100);
 
         if (followError) {
           console.error('Error fetching follows:', followError);
@@ -175,7 +178,8 @@ export default async function handler(req, res) {
         const { data: notifications, error: notifError } = await supabase
           .from('page_notifications')
           .select('id')
-          .or(orConditions);
+          .or(orConditions)
+              .limit(100);
 
         if (notifError) {
           console.error('Error fetching notifications:', notifError);
@@ -193,7 +197,8 @@ export default async function handler(req, res) {
           .from('notification_reads')
           .select('notification_id')
           .eq('user_id', user_id)
-          .in('notification_id', allNotifIds);
+          .in('notification_id', allNotifIds)
+              .limit(100);
 
         if (existingError) {
           console.error('Error fetching existing reads:', existingError);
@@ -201,7 +206,8 @@ export default async function handler(req, res) {
         }
 
         const alreadyRead = new Set((existingReads || []).map((r) => r.notification_id));
-        const unreadIds = allNotifIds.filter((id) => !alreadyRead.has(id));
+        const unreadIds = allNotifIds.filter((id) => !alreadyRead.has(id))
+            .limit(100);
 
         if (unreadIds.length === 0) {
           return res.status(200).json({ success: true, marked: 0 });

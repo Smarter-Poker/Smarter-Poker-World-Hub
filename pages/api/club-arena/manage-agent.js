@@ -240,7 +240,8 @@ export default async function handler(req, res) {
         .from('club_members')
         .select('user_id')
         .eq('club_id', clubId)
-        .eq('agent_id', targetUserId);
+        .eq('agent_id', targetUserId)
+            .limit(200);
 
       const playerCount = agentPlayers?.length || 0;
 
@@ -745,7 +746,8 @@ export default async function handler(req, res) {
         const { data: profs } = await supabaseAdmin
           .from('profiles')
           .select('id, username, display_name, avatar_url')
-          .in('id', subIds);
+          .in('id', subIds)
+              .limit(100);
         for (const p of (profs || [])) profiles[p.id] = p;
       }
 
@@ -909,7 +911,8 @@ export default async function handler(req, res) {
         .from('agents')
         .select('id, user_id, commission_rate')
         .eq('club_id', clubId)
-        .eq('parent_agent_id', targetAgent.id);
+        .eq('parent_agent_id', targetAgent.id)
+            .limit(100);
 
       for (const sub of (subAgents || [])) {
         if (sub.commission_rate >= commissionRate) {

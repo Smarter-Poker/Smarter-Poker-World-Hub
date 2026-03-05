@@ -87,7 +87,8 @@ async function getRsvps(req, res, eventId) {
         profiles:user_id (id, display_name, avatar_url)
       `)
       .eq('game_id', eventId)
-      .order('responded_at', { ascending: true });
+      .order('responded_at', { ascending: true })
+          .limit(100);
 
     if (error) throw error;
 

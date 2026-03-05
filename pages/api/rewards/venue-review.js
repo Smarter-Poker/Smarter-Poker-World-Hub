@@ -141,7 +141,8 @@ export default async function handler(req, res) {
             .select('id')
             .eq('user_id', userId)
             .eq('reward_type', 'venue_review')
-            .eq('claim_date', today);
+            .eq('claim_date', today)
+                .limit(200);
 
         if ((todayVenueClaims || []).length >= MAX_PER_DAY) {
             return res.status(200).json({
@@ -156,7 +157,8 @@ export default async function handler(req, res) {
             .from('diamond_reward_claims')
             .select('diamonds_awarded')
             .eq('user_id', userId)
-            .eq('claim_date', today);
+            .eq('claim_date', today)
+                .limit(200);
 
         const todayTotal = (allTodayClaims || []).reduce((sum, c) => sum + (c.diamonds_awarded || 0), 0);
         if (todayTotal >= DAILY_GLOBAL_CAP) {

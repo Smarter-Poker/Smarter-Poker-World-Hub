@@ -44,7 +44,8 @@ export default async function handler(req, res) {
           )
         `)
         .eq('user_id', user.id)
-        .eq('status', 'accepted');
+        .eq('status', 'accepted')
+            .limit(100);
 
       if (friendsError) {
         // Table might not exist, return empty array

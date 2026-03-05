@@ -84,7 +84,8 @@ async function getRotations(req, res) {
         `)
         .eq('venue_id', venue_id)
         .is('ended_at', null)
-        .order('started_at', { ascending: false });
+        .order('started_at', { ascending: false })
+            .limit(100);
 
       if (result.error) throw result.error;
       rotations = result.data || [];
@@ -95,7 +96,8 @@ async function getRotations(req, res) {
         .select('*')
         .eq('venue_id', venue_id)
         .is('ended_at', null)
-        .order('started_at', { ascending: false });
+        .order('started_at', { ascending: false })
+            .limit(100);
 
       if (result.error) throw result.error;
       rotations = result.data || [];

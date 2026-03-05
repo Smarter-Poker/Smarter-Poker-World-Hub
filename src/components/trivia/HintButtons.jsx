@@ -34,7 +34,7 @@ const HINTS = [
     }
 ];
 
-export default function HintButtons({
+function HintButtons({
     userDiamonds = 0,
     onUseHint,
     disabledHints = [], // Array of hint IDs that can't be used
@@ -204,3 +204,5 @@ export function applyHint(hintId, question, currentState) {
 }
 
 export { HINTS };
+
+export default React.memo(HintButtons);

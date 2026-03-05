@@ -78,13 +78,16 @@ export default async function handler(req, res) {
     const { data: activeGames } = await supabase
       .from('commander_games')
       .select('venue_id, game_type, stakes, status')
-      .in('status', ['running', 'waiting']);
+      .in('status', ['running', 'waiting'])
+          .limit(100);
+      .limit(100)
 
     // Fetch waitlist counts in one query
     const { data: waitlistEntries } = await supabase
       .from('commander_waitlist')
       .select('venue_id')
       .eq('status', 'waiting');
+      .limit(200)
 
     // Build lookup maps
     const gamesByVenue = {};

@@ -47,7 +47,8 @@ export default function TrainingProgress() {
                 .from('jarvis_training_sessions')
                 .select('*')
                 .eq('user_id', authUser.id)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(100) // training sessions
 
 
             if (error) throw error;

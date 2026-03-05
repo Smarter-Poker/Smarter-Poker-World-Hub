@@ -74,13 +74,15 @@ export default function FloorMap() {
   };
 
   const fetchAll = useCallback(async () => {
+          const controller = new AbortController();
+          const { signal } = controller;
     if (!venueId) return;
     try {
       const headers = getHeaders();
       const [tablesRes, waitlistRes, gamesRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
-        fetch(`/api/commander/games/venue/${venueId}`, { headers }).then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/tables?venue_id=${venueId}`, { signal,  headers }.then(r => r.json()),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { signal,  headers }.then(r => r.json()).catch(() => ({ success: false })),
+        fetch(`/api/commander/games/venue/${venueId}`, { signal,  headers }.then(r => r.json()).catch(() => ({ success: false })),
       ]);
 
       let rawTables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.tables || []);
@@ -167,9 +169,9 @@ export default function FloorMap() {
         const pos = positions[t.id];
         if (!pos) return Promise.resolve();
         const rot = rotations[t.id] || 0;
-        return fetch(`/api/commander/tables/${t.id}`, {
+        return fetch(`/api/commander/tables/${t.id}`, { signal, 
           method: 'PATCH', headers,
-          body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot }),
+          body: JSON.stringify({ position_x: pos.x, position_y: pos.y, rotation: rot },
         });
       }));
       setHasChanges(false);

@@ -72,7 +72,8 @@ async function listTaxEvents(req, res) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, full_name')
-        .in('id', playerIds);
+        .in('id', playerIds)
+            .limit(100);
       (profiles || []).forEach(p => { playerMap[p.id] = p.display_name || p.full_name || 'Unknown'; });
     }
 

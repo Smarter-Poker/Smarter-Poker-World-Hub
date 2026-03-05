@@ -157,20 +157,23 @@ export default function Admin() {
                     .from('club_members')
                     .select('*, profiles(username, display_name, avatar_url, email)')
                     .eq('club_id', clubData.id)
-                    .order('role', { ascending: true });
+                    .order('role', { ascending: true })
+                    .limit(200) // admin member list
                 setMembers(memberData || []);
 
                 // Get stats
                 const { count: memberCount } = await supabase
                     .from('club_members')
                     .select('*', { count: 'exact', head: true })
-                    .eq('club_id', clubData.id);
+                    .eq('club_id', clubData.id)
+                    .limit(200) // admin member list
 
                 const { data: tableData } = await supabase
                     .from('tables')
                     .select('id')
                     .eq('club_id', clubData.id)
-                    .eq('status', 'active');
+                    .eq('status', 'active')
+                    .limit(100) // admin tables
 
                 setStats({
                     totalMembers: memberCount || 0,

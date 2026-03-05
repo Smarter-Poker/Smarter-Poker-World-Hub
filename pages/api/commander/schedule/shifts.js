@@ -56,7 +56,8 @@ async function handleGet(req, res) {
             .gte('shift_date', week_start)
             .lt('shift_date', endStr)
             .order('shift_date')
-            .order('start_time');
+            .order('start_time')
+                .limit(100);
 
         if (error) throw error;
 

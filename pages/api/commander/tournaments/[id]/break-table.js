@@ -89,7 +89,8 @@ export default async function handler(req, res) {
       .from('commander_tournament_entries')
       .select('table_number, seat_number, player_name')
       .eq('tournament_id', tournamentId)
-      .in('status', ['active', 'seated']);
+      .in('status', ['active', 'seated'])
+          .limit(100);
 
     const occupiedSet = new Set(
       (conflictingSeats || [])

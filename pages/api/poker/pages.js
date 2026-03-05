@@ -92,14 +92,17 @@ async function buildSocialPages(pageType) {
         let query = supabase
             .from('social_pages')
             .select('id, name, description, avatar_url, cover_url, category, page_type, location_city, location_state, follower_count, metadata, is_public, created_at')
-            .eq('is_public', true);
+            .eq('is_public', true)
+                .limit(100);
 
         // Filter by page_type column
         if (pageType) {
-            query = query.eq('page_type', pageType);
+            query = query.eq('page_type', pageType)
+                .limit(100);
         }
 
-        const { data, error } = await query.order('follower_count', { ascending: false });
+        const { data, error } = await query.order('follower_count', { ascending: false })
+            .limit(100);
         if (error || !data) return [];
 
         const CATEGORY_LABELS = {
@@ -210,7 +213,8 @@ export default async function handler(req, res) {
                 const { data: follows } = await supabase
                     .from('page_followers')
                     .select('page_type, page_id')
-                    .eq('user_id', user_id);
+                    .eq('user_id', user_id)
+                        .limit(100);
 
                 if (follows) {
                     follows.forEach(f => {

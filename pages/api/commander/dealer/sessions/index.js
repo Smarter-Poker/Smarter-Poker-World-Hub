@@ -33,11 +33,13 @@ export default async function handler(req, res) {
       .select('*')
       .eq('table_number', parseInt(table))
       .in('status', ['active', 'paused', 'meal_break'])
-      .order('seat_number', { ascending: true });
+      .order('seat_number', { ascending: true })
+          .limit(100);
 
     // Filter by venue_id if provided (security: prevents cross-venue leakage)
     if (venue_id) {
-      query = query.eq('venue_id', parseInt(venue_id));
+      query = query.eq('venue_id', parseInt(venue_id))
+          .limit(100);
     }
 
     const { data: sessions, error } = await query;
@@ -52,7 +54,9 @@ export default async function handler(req, res) {
       const { data: members } = await supabase
         .from('commander_members')
         .select('id, time_balance_minutes, membership_tier, membership_status, membership_expires')
-        .in('id', memberIds);
+        .in('id', memberIds)
+            .limit(100);
+        .limit(500);
       if (members) {
         memberMap = Object.fromEntries(members.map(m => [m.id, m]));
       }
@@ -65,7 +69,9 @@ export default async function handler(req, res) {
       let tableQuery = supabase
         .from('commander_tables')
         .select('table_number, mode, table_purpose')
-        .in('table_number', tableNums);
+        .in('table_number', tableNums)
+            .limit(100);
+        .limit(100);
       if (venue_id) tableQuery = tableQuery.eq('venue_id', parseInt(venue_id));
       const { data: tables } = await tableQuery;
       (tables || []).forEach(t => {

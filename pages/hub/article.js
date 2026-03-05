@@ -93,7 +93,8 @@ export default function ArticlePage() {
     const fetchArticle = async () => {
         setLoading(true);
         try {
-            let query = supabase.from('poker_news').select('*');
+            let query = supabase.from('poker_news').select('*')
+                .limit(50) // related articles
 
             if (id) {
                 query = query.eq('id', id);

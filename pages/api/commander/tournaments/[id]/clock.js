@@ -506,9 +506,11 @@ async function fireTournamentStartNotification(tournamentId, tournamentName) {
     .from('commander_tournament_entries')
     .select('player_id')
     .eq('tournament_id', tournamentId)
-    .in('status', ['registered', 'seated', 'active']);
+    .in('status', ['registered', 'seated', 'active'])
+        .limit(100);
 
-  const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
+  const playerIds = (entries || []).map(e => e.player_id).filter(Boolean)
+      .limit(100);
   if (playerIds.length === 0) return;
 
   await sendPushNotification({

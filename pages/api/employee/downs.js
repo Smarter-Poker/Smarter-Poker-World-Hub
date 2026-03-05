@@ -52,7 +52,8 @@ export default async function handler(req, res) {
             .eq('dealer_id', staff_id)
             .gte('started_at', `${from}T00:00:00`)
             .lte('started_at', `${to}T23:59:59`)
-            .order('started_at', { ascending: false });
+            .order('started_at', { ascending: false })
+                .limit(100);
 
         const { data: rotations, error: rotErr } = await query;
         if (rotErr) throw rotErr;

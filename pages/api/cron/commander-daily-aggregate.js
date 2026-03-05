@@ -50,7 +50,8 @@ export default async function handler(req, res) {
     const { data: venues } = await supabase
       .from('poker_venues')
       .select('id, name')
-      .eq('status', 'active');
+      .eq('status', 'active')
+          .limit(100);
 
     if (!venues || venues.length === 0) {
       return res.status(200).json({ message: 'No active venues', aggregated: 0 });

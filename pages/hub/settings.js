@@ -4,6 +4,8 @@
    Last Updated: 2026-01-29 - Avatar race condition fix deployed
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import dynamic from 'next/dynamic';
+const CustomAvatarBuilder = dynamic(() => import('../../src/components/avatars/CustomAvatarBuilder'), { ssr: false });
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -11,7 +13,6 @@ import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
-import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
@@ -237,19 +238,21 @@ export default function SettingsPage() {
 
     // Track current session function
     const trackCurrentSession = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!user?.id) return;
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            await fetch('/api/auth/sessions/track', {
+            await fetch('/api/auth/sessions/track', { signal, 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({})
+                body: JSON.stringify({}
             });
         } catch (error) {
             console.error('Error tracking session:', error);
@@ -264,17 +267,19 @@ export default function SettingsPage() {
     }, [show2FAModal]);
 
     const setup2FA = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         setLoadingMFA(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const response = await fetch('/api/auth/mfa/setup', {
+            const response = await fetch('/api/auth/mfa/setup', { signal, 
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
-            });
+            };
 
             if (response.ok) {
                 const data = await response.json();
@@ -292,6 +297,8 @@ export default function SettingsPage() {
     };
 
     const verify2FA = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (verificationCode.length !== 6) {
             alert('Please enter a valid 6-digit code');
             return;
@@ -302,13 +309,13 @@ export default function SettingsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const response = await fetch('/api/auth/mfa/verify', {
+            const response = await fetch('/api/auth/mfa/verify', { signal, 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ code: verificationCode })
+                body: JSON.stringify({ code: verificationCode }
             });
 
             if (response.ok) {
@@ -330,6 +337,8 @@ export default function SettingsPage() {
     };
 
     const disable2FA = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
             return;
         }
@@ -339,12 +348,12 @@ export default function SettingsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const response = await fetch('/api/auth/mfa/disable', {
+            const response = await fetch('/api/auth/mfa/disable', { signal, 
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
-            });
+            };
 
             if (response.ok) {
                 setTwoFactorEnabled(false);
@@ -381,6 +390,8 @@ export default function SettingsPage() {
     };
 
     const saveSettings = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!user?.id) return;
 
         const { error } = await supabase
@@ -400,6 +411,8 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         try {
             await supabase.auth.signOut();
             // Force hard redirect to clear all cached state
@@ -412,6 +425,8 @@ export default function SettingsPage() {
     };
 
     const exportData = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         try {
             // TODO: Implement data export API endpoint
             alert('Data export requested! You will receive an email when your data is ready.');
@@ -422,6 +437,8 @@ export default function SettingsPage() {
     };
 
     const handleDeleteAccount = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -429,10 +446,10 @@ export default function SettingsPage() {
                 return;
             }
 
-            const response = await fetch('/api/auth/delete-account', {
+            const response = await fetch('/api/auth/delete-account', { signal, 
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${session.access_token}` }
-            });
+            };
 
             if (response.ok) {
                 await supabase.auth.signOut();
@@ -450,6 +467,8 @@ export default function SettingsPage() {
 
     // ── PROMO CODE FUNCTIONS ──
     const loadPromoHistory = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!user?.id) return;
         setPromoHistoryLoading(true);
         try {
@@ -457,7 +476,8 @@ export default function SettingsPage() {
                 .from('promo_code_redemptions')
                 .select('*, promo_codes(code, description, reward_type, reward_value)')
                 .eq('user_id', user.id)
-                .order('redeemed_at', { ascending: false });
+                .order('redeemed_at', { ascending: false })
+                .limit(50) // promo history;
             if (!error && data) setPromoHistory(data);
         } catch (err) {
             console.error('[Settings] Error loading promo history:', err);
@@ -476,6 +496,8 @@ export default function SettingsPage() {
 
     // ── BILLING DATA LOADER ──
     const loadBillingData = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!user?.id) return;
         setBillingLoading(true);
         try {
@@ -485,7 +507,7 @@ export default function SettingsPage() {
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-                session ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
+                session ? fetch(`/api/store/diamond-transactions?limit=10`, { signal,  headers }.then(r => r.json()) : Promise.resolve({ transactions: [] }),
                 supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
                 supabase.from('profiles').select('diamonds').eq('id', user.id).single(),
             ]);
@@ -518,6 +540,8 @@ export default function SettingsPage() {
     }, [activeSection, user?.id]);
 
     const redeemPromoCode = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!promoCode.trim()) return;
         setPromoLoading(true);
         setPromoResult(null);
@@ -527,13 +551,13 @@ export default function SettingsPage() {
                 setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
                 return;
             }
-            const res = await fetch('/api/promo/redeem', {
+            const res = await fetch('/api/promo/redeem', { signal, 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${session.access_token}`
                 },
-                body: JSON.stringify({ code: promoCode.trim() })
+                body: JSON.stringify({ code: promoCode.trim( })
             });
             const data = await res.json();
             if (res.ok && data.success) {
@@ -1872,7 +1896,8 @@ export default function SettingsPage() {
                                                     const { data, error } = await supabase
                                                         .from('hand_histories')
                                                         .select('*')
-                                                        .eq('user_id', user.id);
+                                                        .eq('user_id', user.id)
+                                                        .limit(50) // hand history;
                                                     const rows = data || [];
                                                     if (rows.length === 0) { alert('No hand history data found.'); return; }
                                                     const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
@@ -1970,10 +1995,10 @@ export default function SettingsPage() {
                                             try {
                                                 const { data: { session } } = await supabase.auth.getSession();
                                                 if (!session) { alert('Session expired. Please log in again.'); return; }
-                                                const response = await fetch('/api/auth/delete-account', {
+                                                const response = await fetch('/api/auth/delete-account', { signal, 
                                                     method: 'DELETE',
                                                     headers: { 'Authorization': 'Bearer ' + session.access_token }
-                                                });
+                                                };
                                                 if (response.ok) {
                                                     await supabase.auth.signOut();
                                                     alert('Your account has been scheduled for deletion.');

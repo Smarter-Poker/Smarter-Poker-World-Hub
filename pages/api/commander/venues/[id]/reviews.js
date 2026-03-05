@@ -33,12 +33,15 @@ export default async function handler(req, res) {
           reviewer:reviewer_id (id, display_name, avatar_url)
         `, { count: 'exact' })
         .eq('venue_id', id)
-        .eq('is_published', true);
+        .eq('is_published', true)
+            .limit(100);
 
       if (sort === 'helpful') {
-        query = query.order('helpful_count', { ascending: false });
+        query = query.order('helpful_count', { ascending: false })
+            .limit(100);
       } else if (sort === 'rating_high') {
-        query = query.order('overall_rating', { ascending: false });
+        query = query.order('overall_rating', { ascending: false })
+            .limit(100);
       } else if (sort === 'rating_low') {
         query = query.order('overall_rating', { ascending: true });
       } else {

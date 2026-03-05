@@ -263,9 +263,11 @@ export default function TournamentSettings() {
   useEffect(() => {
     if (!id) return;
     const fetch_ = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       try {
         const staffSession = getStaffSession();
-        const res = await fetch(`/api/commander/tournaments/${id}`, {
+        const res = await fetch(`/api/commander/tournaments/${ signal, id}`, {
           headers: { 'x-staff-session': staffSession }
         });
         const json = await res.json();

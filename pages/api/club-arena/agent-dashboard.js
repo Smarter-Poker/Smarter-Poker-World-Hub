@@ -51,7 +51,8 @@ export default async function handler(req, res) {
     // 2. Get agent record(s)
     let agentFilter = isOwnerAdmin
       ? supabaseAdmin.from('agents').select('*').eq('club_id', clubId)
-      : supabaseAdmin.from('agents').select('*').eq('club_id', clubId).eq('user_id', user.id);
+      : supabaseAdmin.from('agents').select('*').eq('club_id', clubId).eq('user_id', user.id)
+          .limit(100);
 
     const { data: agents } = await agentFilter;
 
@@ -63,10 +64,12 @@ export default async function handler(req, res) {
       .from('club_members')
       .select('user_id, role, chip_balance, agent_id, status, nickname, tier, xp')
       .eq('club_id', clubId)
-      .eq('role', 'player');
+      .eq('role', 'player')
+          .limit(100);
 
     if (isAgent) {
-      playersQuery = playersQuery.eq('agent_id', user.id);
+      playersQuery = playersQuery.eq('agent_id', user.id)
+          .limit(200);
     }
 
     const { data: players } = await playersQuery;
@@ -78,7 +81,8 @@ export default async function handler(req, res) {
       const { data: profs } = await supabaseAdmin
         .from('profiles')
         .select('id, username, display_name, avatar_url, is_online, last_seen')
-        .in('id', playerIds);
+        .in('id', playerIds)
+            .limit(100);
       profiles = profs || [];
     }
 
@@ -95,10 +99,12 @@ export default async function handler(req, res) {
       .from('cashout_requests')
       .select('*')
       .eq('club_id', clubId)
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+          .limit(200);
 
     if (isAgent) {
-      cashoutQuery = cashoutQuery.eq('agent_id', user.id);
+      cashoutQuery = cashoutQuery.eq('agent_id', user.id)
+          .limit(200);
     }
 
     const { data: pendingCashouts } = await cashoutQuery;

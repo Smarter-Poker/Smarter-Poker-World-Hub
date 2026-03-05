@@ -92,7 +92,8 @@ export default async function handler(req, res) {
             .not('expiry_date', 'is', null)
             .gte('expiry_date', cutoffBack.toISOString().split('T')[0])
             .lte('expiry_date', in90Days.toISOString().split('T')[0])
-            .or(`last_reminder_sent_at.is.null,last_reminder_sent_at.lt.${rateLimitCutoff}`);
+            .or(`last_reminder_sent_at.is.null,last_reminder_sent_at.lt.${rateLimitCutoff}`)
+                .limit(100);
 
         if (error) throw error;
 

@@ -95,6 +95,7 @@ export default async function handler(req, res) {
     const { data: staff, error } = await supabase
       .from('commander_staff')
       .select(`
+      .limit(100)
         id,
         role,
         permissions,

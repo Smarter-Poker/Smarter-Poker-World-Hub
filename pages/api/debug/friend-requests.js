@@ -35,7 +35,8 @@ export default async function handler(req, res) {
                 receiver:profiles!friendships_friend_id_fkey(id, username, full_name, avatar_url)
             `)
             .eq('status', 'pending')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+                .limit(100);
 
         // Check incoming requests to Daniel specifically
         const { data: danielIncoming, error: danielError } = await supabase
@@ -49,7 +50,8 @@ export default async function handler(req, res) {
                 requester:profiles!friendships_user_id_fkey(id, username, full_name, avatar_url)
             `)
             .eq('friend_id', DANIEL_USER_ID)
-            .eq('status', 'pending');
+            .eq('status', 'pending')
+                .limit(100);
 
         // Check all notifications for Daniel
         const { data: danielNotifs, error: notifError } = await supabase

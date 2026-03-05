@@ -277,14 +277,16 @@ export default function ClubArenaPage() {
             const { count: memberCount } = await supabase
                 .from('club_members')
                 .select('*', { count: 'exact', head: true })
-                .eq('club_id', club.id);
+                .eq('club_id', club.id)
+                .limit(200) // club members
 
             let activePlayers = 0;
             try {
                 const { data: clubTables } = await supabase
                     .from('tables')
                     .select('id')
-                    .eq('club_id', club.id);
+                    .eq('club_id', club.id)
+                    .limit(200) // tables per club;
                 if (clubTables && clubTables.length > 0) {
                     const tableIds = clubTables.map(t => t.id);
                     const { count: seatCount } = await supabase
@@ -349,7 +351,8 @@ export default function ClubArenaPage() {
                 .from('club_members')
                 .select('club_id, role, clubs(*)')
                 .eq('user_id', userId)
-                .eq('status', 'active');
+                .eq('status', 'active')
+                .limit(200) // club members
 
             if (memberships && memberships.length > 0) {
                 const userClubs = memberships.map(m => ({

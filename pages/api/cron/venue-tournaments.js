@@ -212,10 +212,13 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .select('id, name, city, state, scrape_source, scrape_url, pokeratlas_url, last_scraped')
             .eq('is_active', true)
-            .order('name');
+            .order('name')
+                .limit(100);
 
-        if (state) query = query.eq('state', state.toUpperCase());
-        if (source) query = query.eq('scrape_source', source);
+        if (state) query = query.eq('state', state.toUpperCase())
+            .limit(100);
+        if (source) query = query.eq('scrape_source', source)
+            .limit(100);
         if (limit) query = query.limit(parseInt(limit));
 
         if (force !== 'true') {

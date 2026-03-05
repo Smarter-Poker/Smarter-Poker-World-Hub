@@ -82,7 +82,8 @@ export default async function handler(req, res) {
       .from('commander_tournament_entries')
       .select('*', { count: 'exact', head: true })
       .eq('tournament_id', tournamentId)
-      .in('status', ['seated', 'active']);
+      .in('status', ['seated', 'active'])
+          .limit(100);
 
     const finishPosition = remainingCount;
 
@@ -296,7 +297,8 @@ async function getTotalRebuys(tournamentId) {
   const { data } = await supabase
     .from('commander_tournament_entries')
     .select('rebuy_count')
-    .eq('tournament_id', tournamentId);
+    .eq('tournament_id', tournamentId)
+        .limit(100);
 
   return data?.reduce((sum, e) => sum + (e.rebuy_count || 0), 0) || 0;
 }
@@ -306,7 +308,8 @@ async function getTotalAddons(tournamentId) {
     .from('commander_tournament_entries')
     .select('*', { count: 'exact', head: true })
     .eq('tournament_id', tournamentId)
-    .eq('addon_taken', true);
+    .eq('addon_taken', true)
+        .limit(100);
 
   return count || 0;
 }

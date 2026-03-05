@@ -38,14 +38,17 @@ export default async function handler(req, res) {
         let sessionQuery = supabase
             .from('commander_table_sessions')
             .select('*')
-            .in('status', ['active', 'paused', 'meal_break']);
+            .in('status', ['active', 'paused', 'meal_break'])
+                .limit(100);
 
         if (session_id) {
-            sessionQuery = sessionQuery.eq('id', session_id);
+            sessionQuery = sessionQuery.eq('id', session_id)
+                .limit(100);
         } else {
             sessionQuery = sessionQuery
                 .eq('table_number', parseInt(table_number))
-                .eq('seat_number', parseInt(seat_number));
+                .eq('seat_number', parseInt(seat_number))
+                    .limit(100);
         }
 
         const { data: sessions, error: fetchError } = await sessionQuery.limit(1);

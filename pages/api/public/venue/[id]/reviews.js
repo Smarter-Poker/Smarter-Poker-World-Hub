@@ -90,7 +90,8 @@ export default async function handler(req, res) {
             created_at
           `, { count: 'exact' })
           .eq('page_id', id)
-          .eq('is_published', true);
+          .eq('is_published', true)
+              .limit(100);
 
         if (sort === 'helpful') {
           spQuery = spQuery.order('helpful_count', { ascending: false });
@@ -127,7 +128,8 @@ export default async function handler(req, res) {
           .from('social_page_reviews')
           .select('overall_rating')
           .eq('page_id', id)
-          .eq('is_published', true);
+          .eq('is_published', true)
+              .limit(100);
 
         const spDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
         let spTotal = 0;
@@ -157,7 +159,8 @@ export default async function handler(req, res) {
       .from('commander_venue_reviews')
       .select('overall_rating')
       .eq('venue_id', id)
-      .eq('is_published', true);
+      .eq('is_published', true)
+          .limit(100);
 
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     let totalRating = 0;

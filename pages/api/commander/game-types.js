@@ -46,10 +46,12 @@ export default async function handler(req, res) {
         .select('*')
         .eq('venue_id', venueId)
         .order('sort_order', { ascending: true })
-        .order('name', { ascending: true });
+        .order('name', { ascending: true })
+            .limit(100);
 
       if (!showInactive) {
-        query = query.eq('is_active', true);
+        query = query.eq('is_active', true)
+            .limit(100);
       }
 
       const { data, error } = await query;

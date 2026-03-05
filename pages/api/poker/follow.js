@@ -64,7 +64,8 @@ async function handleGet(req, res) {
         const { data, error } = await supabase
             .from('page_followers')
             .select('*')
-            .eq('user_id', user_id);
+            .eq('user_id', user_id)
+                .limit(100);
 
         if (error) {
             console.error('Error fetching follows:', error);
@@ -84,7 +85,8 @@ async function handleGet(req, res) {
             .from('page_followers')
             .select('*', { count: 'exact', head: true })
             .eq('page_type', page_type)
-            .eq('page_id', String(page_id));
+            .eq('page_id', String(page_id))
+                .limit(100);
 
         if (error) {
             console.error('Error fetching follower count:', error);

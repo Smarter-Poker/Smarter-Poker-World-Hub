@@ -53,7 +53,8 @@ async function listEvents(req, res) {
       .from('commander_home_members')
       .select('group_id')
       .eq('user_id', user.id)
-      .eq('status', 'approved');
+      .eq('status', 'approved')
+          .limit(100);
 
     const groupIds = memberships?.map(m => m.group_id) || [];
 
@@ -71,10 +72,12 @@ async function listEvents(req, res) {
       `)
       .in('group_id', groupIds)
       .neq('status', 'cancelled')
-      .order('scheduled_date', { ascending: true });
+      .order('scheduled_date', { ascending: true })
+          .limit(100);
 
     if (group_id) {
-      query = query.eq('group_id', group_id);
+      query = query.eq('group_id', group_id)
+          .limit(100);
     }
 
     if (upcoming === 'true') {

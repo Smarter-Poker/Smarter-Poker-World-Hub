@@ -64,7 +64,9 @@ async function handleGet(req, res, venueId) {
       .select('*')
       .eq('venue_id', venueId)
       .in('status', ['waiting', 'running'])
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+          .limit(100);
+      .limit(100)
 
     // Get waitlist summaries by game type/stakes
     const { data: waitlists } = await supabase
@@ -72,6 +74,7 @@ async function handleGet(req, res, venueId) {
       .select('game_type, stakes, id')
       .eq('venue_id', venueId)
       .eq('status', 'waiting');
+      .limit(200)
 
     // Group waitlists by game type and stakes
     const waitlistSummary = {};

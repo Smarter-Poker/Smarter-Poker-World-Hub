@@ -12,7 +12,7 @@ const RANK_STYLES = {
   3: { bg: '#FED7AA', text: '#9A3412', icon: '#F97316' }
 };
 
-export default function LeaderboardDisplay({
+function LeaderboardDisplay({
   leaderboard,
   entries = [],
   currentUserId,
@@ -240,3 +240,5 @@ export default function LeaderboardDisplay({
     </div>
   );
 }
+
+export default React.memo(LeaderboardDisplay);

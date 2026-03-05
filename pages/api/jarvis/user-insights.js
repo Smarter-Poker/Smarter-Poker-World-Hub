@@ -196,7 +196,8 @@ export default async function handler(req, res) {
                     .select('location_id, net_result, bankroll_locations(name)')
                     .eq('user_id', userId)
                     .eq('is_revision', false)
-                    .not('location_id', 'is', null);
+                    .not('location_id', 'is', null)
+                        .limit(500);
 
                 const locMap = {};
                 (locationStats || []).forEach(e => {

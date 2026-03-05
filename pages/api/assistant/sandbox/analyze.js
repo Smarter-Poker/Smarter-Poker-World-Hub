@@ -343,10 +343,12 @@ async function findSolverTemplate(supabase, params) {
       .select('*')
       .eq('game_type', gameType === 'tournament' ? 'mtt' : 'cash')
       .eq('stack_depth_bb', stackDepth)
-      .ilike('position_config', `%${heroPosition}%`);
+      .ilike('position_config', `%${heroPosition}%`)
+          .limit(100);
 
     if (boardTexture) {
-      query = query.ilike('board_texture', `%${boardTexture.split('_')[0]}%`);
+      query = query.ilike('board_texture', `%${boardTexture.split('_')[0]}%`)
+          .limit(100);
     }
 
     const { data: exactMatch } = await query.limit(1).single();

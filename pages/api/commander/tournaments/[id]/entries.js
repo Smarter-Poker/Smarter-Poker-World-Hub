@@ -54,10 +54,12 @@ async function listEntries(req, res, tournamentId) {
         profiles (id, display_name, avatar_url)
       `)
       .eq('tournament_id', tournamentId)
-      .order('registered_at', { ascending: true });
+      .order('registered_at', { ascending: true })
+          .limit(100);
 
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq('status', status)
+          .limit(100);
     }
 
     const { data, error } = await query;
@@ -120,7 +122,8 @@ async function registerPlayer(req, res, tournamentId) {
         .from('commander_tournament_entries')
         .select('id', { count: 'exact', head: true })
         .eq('tournament_id', tournamentId)
-        .in('status', ['registered', 'seated', 'active']);
+        .in('status', ['registered', 'seated', 'active'])
+            .limit(100);
 
       if (count >= tournament.max_entries) {
         return res.status(400).json({ error: 'Tournament is full' });

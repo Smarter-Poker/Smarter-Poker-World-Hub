@@ -63,10 +63,12 @@ async function listRates(req, res) {
       .select('*')
       .eq('venue_id', venue_id)
       .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+          .limit(100);
 
     if (active_only === 'true') {
-      query = query.eq('is_active', true);
+      query = query.eq('is_active', true)
+          .limit(100);
     }
 
     const { data, error } = await query;

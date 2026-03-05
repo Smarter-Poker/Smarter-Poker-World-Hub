@@ -106,7 +106,8 @@ export default async function handler(req, res) {
             .from('venue_checkins')
             .select('*', { count: 'exact', head: true })
             .eq('venue_id', String(venueIdNum))
-            .gte('created_at', twentyFourHoursAgo);
+            .gte('created_at', twentyFourHoursAgo)
+                .limit(100);
 
           if (error) {
             console.error('Error counting checkins:', error);
@@ -121,7 +122,8 @@ export default async function handler(req, res) {
           .select('*')
           .eq('venue_id', String(venueIdNum))
           .gte('created_at', twentyFourHoursAgo)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+              .limit(100);
 
         if (error) {
           console.error('Error fetching checkins:', error);
@@ -141,7 +143,8 @@ export default async function handler(req, res) {
           .from('venue_checkins')
           .select('*')
           .eq('user_id', user_id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+              .limit(100);
 
         if (error) {
           console.error('Error fetching user checkins:', error);

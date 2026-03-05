@@ -198,7 +198,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
     useEffect(() => {
         if (!currentUserId || !post.id) return;
         fetch('/api/social/interactions?post_id=' + post.id + '&type=like')
-            .then(r => r.json())
+            .then(r => r.json(, { signal }))
             .then(json => {
                 const myLike = (json.interactions || []).find(i => i.user_id === currentUserId);
                 if (myLike) setLiked(true);
@@ -212,7 +212,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setLiked(!wasLiked);
         setLikeCount(prev => wasLiked ? Math.max(0, prev - 1) : prev + 1);
         try {
-            await fetch('/api/social/interactions', {
+            await fetch('/api/social/interactions', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'like' })
@@ -227,7 +227,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setShowComments(!showComments);
         if (!showComments && comments.length === 0) {
             try {
-                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment');
+                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment', { signal });
                 const json = await res.json();
                 setComments(json.comments || []);
             } catch (e) { console.error('Load comments error:', e); }
@@ -238,7 +238,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         if (!commentText.trim() || !currentUserId) return;
         setSubmittingComment(true);
         try {
-            const res = await fetch('/api/social/interactions', {
+            const res = await fetch('/api/social/interactions', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'comment', content: commentText.trim() })
@@ -260,7 +260,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             setShareMsg('Link copied!');
             setTimeout(() => setShareMsg(''), 2000);
             if (currentUserId) {
-                fetch('/api/social/interactions', {
+                fetch('/api/social/interactions', { signal, 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ post_id: post.id, user_id: currentUserId, interaction_type: 'share' })
@@ -469,6 +469,8 @@ export default function UserProfilePage() {
         if (!username) return;
 
         const fetchProfile = async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
             try {
                 // Get current user
                 const { data: { user } } = await supabase.auth.getUser();
@@ -614,11 +616,11 @@ export default function UserProfilePage() {
                 try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
                 var pokerUid = data.id || anonUid;
                 if (pokerUid) {
-                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid))
+                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid, { signal }))
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
                         .catch(function () { });
-                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid))
+                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid, { signal }))
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
                         .catch(function () { });

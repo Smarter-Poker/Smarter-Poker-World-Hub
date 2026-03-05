@@ -53,7 +53,9 @@ export default async function handler(req, res) {
       .from('commander_tables')
       .select(selectQuery)
       .eq('venue_id', venueId)
-      .order('table_number', { ascending: true });
+      .order('table_number', { ascending: true })
+          .limit(100);
+      .limit(100)
 
     if (status) {
       query = query.eq('status', status);

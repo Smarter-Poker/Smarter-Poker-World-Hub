@@ -189,7 +189,8 @@ export default async function handler(req, res) {
             .from('content_authors')
             .select('id, profile_id, name, avatar_url')
             .eq('is_active', true)
-            .not('profile_id', 'is', null);
+            .not('profile_id', 'is', null)
+                .limit(100);
 
         if (!forceRegenerate) {
             query = query.is('avatar_url', null);

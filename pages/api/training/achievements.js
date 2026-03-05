@@ -34,13 +34,15 @@ export default async function handler(req, res) {
             const { data: definitions } = await supabase
                 .from('training_achievement_definitions')
                 .select('*')
-                .order('category', { ascending: true });
+                .order('category', { ascending: true })
+                    .limit(100);
 
             // Get user's unlocked achievements
             const { data: userAchievements } = await supabase
                 .from('training_user_achievements')
                 .select('achievement_id, unlocked_at, progress')
-                .eq('user_id', userId);
+                .eq('user_id', userId)
+                    .limit(100);
 
             const unlockedMap = new Map(
                 (userAchievements || []).map(a => [a.achievement_id, a])
@@ -118,7 +120,8 @@ export default async function handler(req, res) {
             const { data: existing } = await supabase
                 .from('training_user_achievements')
                 .select('achievement_id')
-                .eq('user_id', userId);
+                .eq('user_id', userId)
+                    .limit(100);
 
             const unlockedIds = new Set((existing || []).map(e => e.achievement_id));
 

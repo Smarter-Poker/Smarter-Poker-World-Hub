@@ -143,7 +143,8 @@ export default async function handler(req, res) {
             .from('trivia_questions')
             .select('id, category, difficulty, question, options, correct_index, explanation')
             .eq('daily_date', today)
-            .order('order_index', { ascending: true });
+            .order('order_index', { ascending: true })
+                .limit(100);
 
         if (error) {
             console.error('[Trivia API] Database error:', error);

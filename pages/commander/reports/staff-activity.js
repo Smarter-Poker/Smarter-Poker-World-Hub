@@ -15,9 +15,11 @@ export default function StaffActivity() {
 
   useEffect(() => {
     const fetchActivity = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
       try {
         const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
-        const res = await fetch('/api/commander/incidents?status=all&limit=50', {
+        const res = await fetch('/api/commander/incidents?status=all&limit=50', { signal, 
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();

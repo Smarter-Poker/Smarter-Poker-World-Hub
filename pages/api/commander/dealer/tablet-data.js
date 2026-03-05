@@ -34,7 +34,9 @@ export default async function handler(req, res) {
         let tableQuery = supabase
             .from('commander_tables')
             .select('id, venue_id, table_number, table_name, max_seats, status, mode, game_type, stakes')
-            .eq('table_number', tableNum);
+            .eq('table_number', tableNum)
+                .limit(100);
+            .limit(100)
 
         if (venue_id) {
             tableQuery = tableQuery.eq('venue_id', venue_id);
@@ -69,10 +71,12 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('table_number', tableNum)
                 .eq('status', 'active')
-                .order('seat_number', { ascending: true });
+                .order('seat_number', { ascending: true })
+                    .limit(100);
 
             if (resolvedVenueId) {
-                sessionsQuery = sessionsQuery.eq('venue_id', resolvedVenueId);
+                sessionsQuery = sessionsQuery.eq('venue_id', resolvedVenueId)
+                    .limit(100);
             }
 
             const { data, error } = await sessionsQuery;
@@ -84,10 +88,12 @@ export default async function handler(req, res) {
                         .select('*')
                         .eq('table_number', tableNum)
                         .eq('status', 'active')
-                        .order('seat_number', { ascending: true });
+                        .order('seat_number', { ascending: true })
+                            .limit(100);
 
                     if (resolvedVenueId) {
-                        fallbackQuery = fallbackQuery.eq('venue_id', resolvedVenueId);
+                        fallbackQuery = fallbackQuery.eq('venue_id', resolvedVenueId)
+                            .limit(100);
                     }
 
                     const { data: fbData } = await fallbackQuery;
@@ -259,7 +265,8 @@ export default async function handler(req, res) {
                     .eq('tournament_id', tableData.tournament_id)
                     .eq('table_number', tableNum)
                     .in('status', ['active', 'seated'])
-                    .order('seat_number', { ascending: true });
+                    .order('seat_number', { ascending: true })
+                        .limit(100);
 
                 tournamentPlayers = (tEntries || []).map(e => ({
                     session_id: `tournament-${e.id}`,

@@ -41,7 +41,8 @@ async function handleGet(req, res) {
             .select('id, display_name, role, venue_id, email')
             .eq('email', userEmail)
             .is('linked_user_id', null)
-            .eq('is_active', true);
+            .eq('is_active', true)
+                .limit(100);
 
         if (!matches?.length) {
             return res.status(200).json({ success: true, data: { matches: [] } });
@@ -52,7 +53,8 @@ async function handleGet(req, res) {
         const { data: venues } = await supabase
             .from('poker_venues')
             .select('id, name')
-            .in('id', venueIds);
+            .in('id', venueIds)
+                .limit(100);
 
         const venueMap = Object.fromEntries((venues || []).map(v => [v.id, v.name]));
 

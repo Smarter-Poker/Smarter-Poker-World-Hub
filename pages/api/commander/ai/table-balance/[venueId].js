@@ -38,6 +38,7 @@ export default async function handler(req, res) {
     const { data: games, error: gamesError } = await supabase
       .from('commander_games')
       .select(`
+      .limit(100)
         id,
         table_id,
         game_type,
@@ -64,7 +65,9 @@ export default async function handler(req, res) {
       .from('commander_seats')
       .select('game_id, seat_number, player_id, player_name, seated_at, status')
       .in('game_id', gameIds.length > 0 ? gameIds : ['none'])
-      .eq('status', 'occupied');
+      .eq('status', 'occupied')
+          .limit(100);
+      .limit(200)
 
     if (seatsError) {
       console.error('Seats fetch error:', seatsError);

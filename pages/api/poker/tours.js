@@ -106,7 +106,8 @@ export default async function handler(req, res) {
                 .from('tour_source_registry')
                 .select('*')
                 .eq('is_active', true)
-                .order('tour_type', { ascending: true });
+                .order('tour_type', { ascending: true })
+                    .limit(100);
 
             if (!error && data && data.length > 0) {
                 dbTours = data;

@@ -44,7 +44,8 @@ export default async function handler(req, res) {
         const { data: users, error: fetchError } = await supabase
             .from('profiles')
             .select('id, username, email, player_number, skill_tier, state, created_at')
-            .order('player_number', { ascending: true });
+            .order('player_number', { ascending: true })
+                .limit(100);
 
         if (fetchError) {
             throw new Error(`Failed to fetch users: ${fetchError.message}`);

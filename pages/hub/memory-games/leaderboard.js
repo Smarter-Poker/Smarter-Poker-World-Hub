@@ -43,6 +43,7 @@ export default function MemoryGamesLeaderboard() {
             const { data, error } = await supabase
                 .from('memory_leaderboards')
                 .select(`
+                .limit(100) // leaderboard
                     id,
                     user_id,
                     game_mode,

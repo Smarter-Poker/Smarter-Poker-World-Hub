@@ -10,7 +10,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
 
-export default function AnswerGrid({
+function AnswerGrid({
     answers = [],
     onSelect = null,
     selectedId = null,
@@ -186,3 +186,5 @@ const styles = {
         fontWeight: 'bold',
     },
 };
+
+export default React.memo(AnswerGrid);

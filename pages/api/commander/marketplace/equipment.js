@@ -54,7 +54,8 @@ async function listEquipment(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (category) {
-      query = query.eq('category', category);
+      query = query.eq('category', category)
+          .limit(100);
     }
 
     if (area) {
@@ -73,9 +74,11 @@ async function listEquipment(req, res) {
     const { data: categories } = await supabase
       .from('commander_equipment_rentals')
       .select('category')
-      .eq('available', true);
+      .eq('available', true)
+          .limit(100);
 
-    const uniqueCategories = [...new Set(categories?.map(c => c.category).filter(Boolean))];
+    const uniqueCategories = [...new Set(categories?.map(c => c.category).filter(Boolean))]
+        .limit(100);
 
     return res.status(200).json({
       success: true,

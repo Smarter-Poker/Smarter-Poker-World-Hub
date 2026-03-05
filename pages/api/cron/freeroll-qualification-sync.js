@@ -111,7 +111,8 @@ async function getTournamentPointsPerPlayer(venueId, dateRange) {
         .eq('venue_id', venueId)
         .gte('scheduled_start', dateRange.start)
         .lte('scheduled_start', dateRange.end)
-        .in('status', ['completed', 'running', 'final_table']);
+        .in('status', ['completed', 'running', 'final_table'])
+            .limit(100);
 
     if (tError || !tournaments || tournaments.length === 0) {
         if (tError) console.error('Tournament query error:', tError);
@@ -180,7 +181,8 @@ async function syncFreeroll(freeroll) {
     const { data: existingQuals } = await supabase
         .from('commander_freeroll_qualifications')
         .select('player_id, manually_added, is_qualified')
-        .eq('freeroll_id', freeroll.id);
+        .eq('freeroll_id', freeroll.id)
+            .limit(100);
 
     const manualPlayerIds = new Set(
         (existingQuals || [])
@@ -272,13 +274,15 @@ export default async function handler(req, res) {
             .from('commander_freerolls')
             .select('*')
             .in('status', ['qualifying', 'upcoming'])
-            .in('qualification_type', ['cash_hours', 'tournament_points']);
+            .in('qualification_type', ['cash_hours', 'tournament_points'])
+                .limit(100);
 
         if (specificFreerollId) {
             query = supabase
                 .from('commander_freerolls')
                 .select('*')
-                .eq('id', specificFreerollId);
+                .eq('id', specificFreerollId)
+                    .limit(100);
         }
 
         const { data: freerolls, error: fetchError } = await query;

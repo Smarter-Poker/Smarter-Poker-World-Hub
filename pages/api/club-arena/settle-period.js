@@ -85,7 +85,8 @@ export default async function handler(req, res) {
           .from('commission_records')
           .select('*, agents!inner(user_id)')
           .eq('period_id', commissionPeriod.id)
-          .eq('status', 'pending');
+          .eq('status', 'pending')
+              .limit(100);
         pendingCommissions = comms || [];
       }
 
@@ -499,7 +500,8 @@ export default async function handler(req, res) {
         .from('commission_records')
         .select('id, agent_id, commission_amount')
         .eq('period_id', periodId)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+            .limit(100);
 
       if (!pending?.length) {
         return res.status(200).json({ success: true, message: 'No pending commissions to pay', paid: 0 });

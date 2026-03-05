@@ -36,7 +36,8 @@ export default async function handler(req, res) {
             .from('bankroll_locations')
             .select('id, name, venue_type, latitude, longitude, poker_venue_id')
             .eq('user_id', userId)
-            .not('poker_venue_id', 'is', null);
+            .not('poker_venue_id', 'is', null)
+                .limit(100);
 
         if (error) throw error;
 

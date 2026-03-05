@@ -1,4 +1,5 @@
 import dynamic from 'next/dynamic';
+const InviteFriendsModal = dynamic(() => import('../../src/components/ui/InviteFriendsModal'), { ssr: false });
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
  * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
@@ -56,7 +57,6 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
 const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
-import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // God-Mode Stack
@@ -388,7 +388,7 @@ function LinkPreviewCard({ url }) {
                 if (linkPreviewInflight.has(url)) {
                     data = await linkPreviewInflight.get(url);
                 } else {
-                    const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
+                    const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`, { signal })
                         .then(r => r.json());
                     linkPreviewInflight.set(url, promise);
                     data = await promise;
@@ -705,11 +705,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
                     const { data: { session: _uploadSess } } = await supabase.auth.getSession();
-                    const metaRes = await fetch('/api/social/upload-url', {
+                    const metaRes = await fetch('/api/social/upload-url', { signal, 
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_uploadSess?.access_token ? { Authorization: `Bearer ${_uploadSess.access_token}` } : {}),
+                            ...(_uploadSess?.access_token ? { Authorization: `Bearer ${_uploadSess.access_token}` } : {},
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -725,11 +725,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                         continue;
                     }
                     // Upload directly to Supabase Storage via signed URL
-                    const uploadRes = await fetch(meta.signedUrl, {
+                    const uploadRes = await fetch(meta.signedUrl, { signal, 
                         method: 'PUT',
                         headers: { 'Content-Type': file.type },
                         body: file,
-                    });
+                    };
                     if (!uploadRes.ok) {
                         setError('Video upload failed — please try again');
                         continue;
@@ -742,11 +742,11 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     formData.append('folder', folder);
                     formData.append('prefix', user.id);
                     const { data: { session: _imgSess } } = await supabase.auth.getSession();
-                    const res = await fetch('/api/social/upload', {
+                    const res = await fetch('/api/social/upload', { signal, 
                         method: 'POST',
                         headers: _imgSess?.access_token ? { Authorization: `Bearer ${_imgSess.access_token}` } : {},
                         body: formData,
-                    });
+                    };
                     const json = await res.json();
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
@@ -820,7 +820,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     } else {
                         // For non-YouTube links, fetch real metadata via API
                         try {
-                            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(detectedUrl)}`);
+                            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(detectedUrl)}`, { signal });
                             const metadata = await response.json();
 
                             setLinkPreview({
@@ -910,6 +910,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     // - author_id set from user.id
     // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
         setError('');
@@ -1323,6 +1325,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
 
     const handleBookmark = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!currentUserId) return;
         const newBookmarked = !bookmarked;
         setBookmarked(newBookmarked);
@@ -1342,6 +1346,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const handleLike = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         const newLiked = !liked;
         setLiked(newLiked);
         setLikeCount(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
@@ -1349,6 +1355,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const loadComments = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (comments.length > 0) return;
         setLoadingComments(true);
         try {
@@ -1378,7 +1386,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             if (authorIds.length > 0) {
                 const { data: profilesData } = await supabase.from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .in('id', authorIds);
+                    .in('id', authorIds)
+                    .limit(50) // suggested profiles
 
                 if (profilesData) {
                     profilesData.forEach(p => { profilesMap[p.id] = p; });
@@ -1410,6 +1419,8 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const handleSubmitComment = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!newComment.trim() || !currentUserId) return;
         try {
             const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').single();
@@ -1665,6 +1676,8 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
     useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     const send = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!text.trim()) return;
         await onSend(text);
         setText('');
@@ -1711,15 +1724,17 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
     ];
 
     const handleCreate = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!pageName.trim()) { setError('Page name is required'); return; }
         setCreating(true);
         setError('');
         try {
-            const res = await fetch('/api/social/pages', {
+            const res = await fetch('/api/social/pages', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: pageName.trim(),
+                    name: pageName.trim(,
                     page_type: 'club',
                     description: description.trim(),
                     category,
@@ -1877,7 +1892,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         let cancelled = false;
         (async () => {
             try {
-                const res = await fetch(`/api/public/venue/${page.id}`);
+                const res = await fetch(`/api/public/venue/${page.id}`, { signal });
                 const data = await res.json();
                 if (!cancelled && data.success) {
                     setTournaments(data.data.upcoming_tournaments || []);
@@ -1923,11 +1938,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('folder', 'covers');
             formData.append('prefix', page.id);
             const { data: { session: _coverSess } } = await supabase.auth.getSession();
-            const uploadRes = await fetch('/api/social/upload', {
+            const uploadRes = await fetch('/api/social/upload', { signal, 
                 method: 'POST',
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
                 body: formData,
-            });
+            };
             const uploadJson = await uploadRes.json();
             if (uploadJson.success && uploadJson.url) {
                 const url = uploadJson.url;
@@ -1936,9 +1951,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 const merged = { ...page.metadata, cover_photo_url: url };
                 setMetaSaving(true); setMetaSaved('');
                 try {
-                    const res = await fetch('/api/social/pages', {
+                    const res = await fetch('/api/social/pages', { signal, 
                         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged }),
+                        body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged },
                     });
                     const json = await res.json();
                     if (json.success && json.data) {
@@ -1965,11 +1980,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('folder', 'logos');
             formData.append('prefix', page.id);
             const { data: { session: _logoSess } } = await supabase.auth.getSession();
-            const uploadRes = await fetch('/api/social/upload', {
+            const uploadRes = await fetch('/api/social/upload', { signal, 
                 method: 'POST',
                 headers: _logoSess?.access_token ? { Authorization: `Bearer ${_logoSess.access_token}` } : {},
                 body: formData,
-            });
+            };
             const uploadJson = await uploadRes.json();
             if (uploadJson.success && uploadJson.url) {
                 const url = uploadJson.url;
@@ -1978,9 +1993,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 const merged = { ...page.metadata, logo_url: url };
                 setMetaSaving(true); setMetaSaved('');
                 try {
-                    const res = await fetch('/api/social/pages', {
+                    const res = await fetch('/api/social/pages', { signal, 
                         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged }),
+                        body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged },
                     });
                     const json = await res.json();
                     if (json.success && json.data) {
@@ -2012,11 +2027,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
                     const { data: { session: _clubVidSess } } = await supabase.auth.getSession();
-                    const metaRes = await fetch('/api/social/upload-url', {
+                    const metaRes = await fetch('/api/social/upload-url', { signal, 
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {}),
+                            ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {},
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -2031,11 +2046,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         alert('Upload failed: ' + (meta.error || 'Unknown error'));
                         continue;
                     }
-                    const uploadRes = await fetch(meta.signedUrl, {
+                    const uploadRes = await fetch(meta.signedUrl, { signal, 
                         method: 'PUT',
                         headers: { 'Content-Type': file.type },
                         body: file,
-                    });
+                    };
                     if (!uploadRes.ok) {
                         alert('Video upload failed — please try again');
                         continue;
@@ -2048,11 +2063,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     formData.append('folder', 'club-posts');
                     formData.append('prefix', page.id);
                     const { data: { session: _clubImgSess } } = await supabase.auth.getSession();
-                    const res = await fetch('/api/social/upload', {
+                    const res = await fetch('/api/social/upload', { signal, 
                         method: 'POST',
                         headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
                         body: formData,
-                    });
+                    };
                     const json = await res.json();
                     if (json.success && json.url) {
                         uploaded.push({ type: json.type || 'photo', url: json.url });
@@ -2077,7 +2092,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             const fetchGames = async () => {
                 setLoadingGames(true);
                 try {
-                    const res = await fetch(`/api/social/pages/games?page_id=${page.id}`);
+                    const res = await fetch(`/api/social/pages/games?page_id=${page.id}`, { signal });
                     const json = await res.json();
                     if (json.success) { setLiveGames(json.data || []); setTimerTick(0); }
                 } catch (e) { console.error('Games fetch error:', e); }
@@ -2085,7 +2100,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             };
             const fetchPending = async () => {
                 try {
-                    const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`);
+                    const res = await fetch(`/api/social/pages/follow?page_id=${page.id}&requester_id=${userId}`, { signal });
                     const json = await res.json();
                     if (json.success) setPendingFollowers((json.data || []).filter(f => f.status === 'pending'));
                 } catch (e) { console.error('Pending fetch error:', e); }
@@ -2099,9 +2114,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
     const handleApproveFollower = async (followerId, action) => {
         try {
-            await fetch('/api/social/pages/follow', {
+            await fetch('/api/social/pages/follow', { signal, 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
+                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId },
             });
             setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
         } catch (e) { console.error('Approve/reject error:', e); }
@@ -2112,9 +2127,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         setMetaSaving(true); setMetaSaved('');
         try {
             const merged = { ...page.metadata, ...newMeta };
-            const res = await fetch('/api/social/pages', {
+            const res = await fetch('/api/social/pages', { signal, 
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
+                body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged },
             });
             const json = await res.json();
             if (json.success && json.data) {
@@ -2139,10 +2154,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     const existing = merged.geocoded_locations || {};
                     const unique = [...new Set(locations)].filter(loc => !existing[loc]);
                     if (unique.length > 0) {
-                        fetch('/api/social/geocode-locations', {
+                        fetch('/api/social/geocode-locations', { signal, 
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ page_id: page.id, locations: unique }),
+                            body: JSON.stringify({ page_id: page.id, locations: unique },
                         }).catch(() => { });
                     }
                 } catch (geoErr) {
@@ -2157,7 +2172,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         const fetchPosts = async () => {
             setLoadingPosts(true);
             try {
-                const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`);
+                const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`, { signal });
                 const json = await res.json();
                 if (json.success) setPosts(json.data || []);
             } catch (e) { console.error('Club page posts fetch error:', e); }
@@ -2167,14 +2182,16 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     }, [page.id, userId]);
 
     const handlePost = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!postContent.trim() && postMedia.length === 0) return;
         setPosting(true);
         try {
             const mediaUrls = postMedia.map(m => m.url);
             const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
-            const res = await fetch('/api/social/pages/posts', {
+            const res = await fetch('/api/social/pages/posts', { signal, 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
+                body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(, content_type: contentType, media_urls: mediaUrls }),
             });
             const json = await res.json();
             if (json.success && json.data) {
@@ -2192,17 +2209,19 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     };
 
     const handleDeletePost = async (postId) => {
-        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { method: 'DELETE' }); setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
+        try { await fetch(`/api/social/pages/posts?id=${postId}&author_id=${userId}`, { signal,  method: 'DELETE' }; setPosts(prev => prev.filter(p => p.id !== postId)); } catch (e) { console.error('Delete error:', e); }
     };
 
     const handleSavePage = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         setSaving(true);
         try {
             // Merge address into metadata
             const updatedMetadata = { ...page.metadata, address: editAddress.trim() };
-            const res = await fetch('/api/social/pages', {
+            const res = await fetch('/api/social/pages', { signal, 
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim(), metadata: updatedMetadata }),
+                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(, description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim(), metadata: updatedMetadata }),
             });
             const json = await res.json();
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
@@ -2212,7 +2231,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
 
     const handleTogglePin = async (post) => {
         try {
-            await fetch('/api/social/pages/posts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned }) });
+            await fetch('/api/social/pages/posts', { signal,  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: post.id, author_id: userId, is_pinned: !post.is_pinned } });
             setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: !p.is_pinned } : p));
         } catch (e) { console.error('Pin error:', e); }
     };
@@ -3080,9 +3099,11 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
     // Check follow status
     const checkFollowStatus = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!userId) { setFollowStatus('none'); setFollowLoading(false); return; }
         try {
-            const res = await fetch(`/api/social/pages/follow?page_id=${pageId}&requester_id=${userId}`);
+            const res = await fetch(`/api/social/pages/follow?page_id=${pageId}&requester_id=${userId}`, { signal });
             const json = await res.json();
             if (json.success) {
                 setFollowStatus(json.my_status || (json.is_following ? 'approved' : 'none'));
@@ -3092,8 +3113,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     };
 
     const fetchGames = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         try {
-            const res = await fetch(`/api/social/pages/games?page_id=${pageId}`);
+            const res = await fetch(`/api/social/pages/games?page_id=${pageId}`, { signal });
             const json = await res.json();
             if (json.success) {
                 setGames(json.data || []);
@@ -3117,12 +3140,14 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const showMsg = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 3000); };
 
     const handleFollow = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!userId) { showMsg('You must be logged in to follow this page'); return; }
         setFollowLoading(true);
         try {
-            const res = await fetch('/api/social/pages/follow', {
+            const res = await fetch('/api/social/pages/follow', { signal, 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' }),
+                body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' },
             });
             const json = await res.json();
             if (json.success) {
@@ -3138,9 +3163,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const handleTakeSeat = async (gameId, seatNumber) => {
         if (!playerName.trim()) { showMsg('Please enter your name first'); return; }
         try {
-            const res = await fetch('/api/social/pages/games', {
+            const res = await fetch('/api/social/pages/games', { signal, 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'take_seat', game_id: gameId, seat_number: seatNumber, player_id: userId || null, player_name: playerName.trim() }),
+                body: JSON.stringify({ action: 'take_seat', game_id: gameId, seat_number: seatNumber, player_id: userId || null, player_name: playerName.trim( }),
             });
             const json = await res.json();
             if (json.success) { showMsg(`Seat ${seatNumber} reserved!`); fetchGames(); }
@@ -3156,9 +3181,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             return;
         }
         try {
-            const res = await fetch('/api/social/pages/games', {
+            const res = await fetch('/api/social/pages/games', { signal, 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'join_waitlist', game_id: gameId, player_id: userId || null, player_name: playerName.trim() }),
+                body: JSON.stringify({ action: 'join_waitlist', game_id: gameId, player_id: userId || null, player_name: playerName.trim( }),
             });
             const json = await res.json();
             if (json.success) { showMsg(`Added to waitlist (position #${json.position})`); fetchGames(); }
@@ -3169,9 +3194,9 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const handleLeave = async (gameId) => {
         if (!playerName.trim()) return;
         try {
-            await fetch('/api/social/pages/games', {
+            await fetch('/api/social/pages/games', { signal, 
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'leave', game_id: gameId, player_name: playerName.trim() }),
+                body: JSON.stringify({ action: 'leave', game_id: gameId, player_name: playerName.trim( }),
             });
             showMsg('You have been removed from the game'); fetchGames();
         } catch (e) { showMsg('Error leaving game'); }
@@ -3641,10 +3666,10 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             localStorage.setItem(storageKey, JSON.stringify(stored));
         } catch { }
         try {
-            await fetch('/api/poker/follow', {
+            await fetch('/api/poker/follow', { signal, 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
+                body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId( }),
             });
         } catch { }
     };
@@ -4113,7 +4138,7 @@ export default function SocialMediaPage() {
                     supabase.from('profiles')
                         .update({ last_active: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
-                        .then(() => console.log('[Social] Updated last_active timestamp'));
+                        .then(() => console.log('[Social] Updated last_active timestamp'))
 
                     // Load notifications with actor profile data
                     const { data: notifs, error: notifsError } = await supabase.from('notifications')
@@ -4143,7 +4168,8 @@ export default function SocialMediaPage() {
                         if (actorIds.length > 0) {
                             const { data: profilesById } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('id', actorIds);
+                                .in('id', actorIds)
+                                .limit(50) // suggested profiles;
                             (profilesById || []).forEach(p => {
                                 profileById[p.id] = p;
                             });
@@ -4153,7 +4179,8 @@ export default function SocialMediaPage() {
                         if (actorNames.length > 0) {
                             const { data: profilesByName } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('full_name', actorNames);
+                                .in('full_name', actorNames)
+                                .limit(50) // suggested profiles;
                             (profilesByName || []).forEach(p => {
                                 if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
                             });
@@ -4209,7 +4236,7 @@ export default function SocialMediaPage() {
 
                     // Fetch if this Commander already has a club page
                     setMyPageLoading(true);
-                    fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`)
+                    fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`, { signal })
                         .then(r => r.json())
                         .then(json => {
                             if (json.success && json.data && json.data.length > 0) {
@@ -4217,7 +4244,7 @@ export default function SocialMediaPage() {
                             } else if (json.success && json.data) {
                                 // Also check by owner_id if no linked_venue_id match
                                 if (user?.id) {
-                                    fetch(`/api/social/pages?owner_id=${user.id}`)
+                                    fetch(`/api/social/pages?owner_id=${user.id}`, { signal })
                                         .then(r2 => r2.json())
                                         .then(json2 => {
                                             if (json2.success && json2.data && json2.data.length > 0) {
@@ -4252,7 +4279,7 @@ export default function SocialMediaPage() {
             const pageId = router.query.viewPage;
             (async () => {
                 try {
-                    const res = await fetch(`/api/social/pages?id=${pageId}`);
+                    const res = await fetch(`/api/social/pages?id=${pageId}`, { signal });
                     const json = await res.json();
                     if (json.success && json.data) {
                         const pageData = Array.isArray(json.data) ? json.data[0] : json.data;
@@ -4274,14 +4301,14 @@ export default function SocialMediaPage() {
             (async () => {
                 try {
                     // Look up the page by referral code
-                    const res = await fetch(`/api/social/pages/qrcode?ref=${refCode}`);
+                    const res = await fetch(`/api/social/pages/qrcode?ref=${refCode}`, { signal });
                     const json = await res.json();
                     if (json.success && json.data) {
                         const refPage = json.data;
                         // Auto-follow the page
-                        await fetch('/api/social/pages/follow', {
+                        await fetch('/api/social/pages/follow', { signal, 
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ page_id: refPage.id, user_id: user.id, action: 'follow' }),
+                            body: JSON.stringify({ page_id: refPage.id, user_id: user.id, action: 'follow' },
                         });
                         // Show the club pages view and navigate to the referred page's live games
                         setShowClubPages(true);
@@ -4315,7 +4342,8 @@ export default function SocialMediaPage() {
                 if (actorIds.length > 0) {
                     const { data: profiles } = await supabase.from('profiles')
                         .select('id, username, full_name, avatar_url')
-                        .in('id', actorIds);
+                        .in('id', actorIds)
+                        .limit(50) // suggested profiles;
                     (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
@@ -4598,6 +4626,8 @@ export default function SocialMediaPage() {
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (loadingMoreRef.current || !hasMorePostsRef.current) return;
         const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
         setFeedOffset(newOffset);
@@ -4735,7 +4765,8 @@ export default function SocialMediaPage() {
                 const { data: mentionedUsers } = await supabase
                     .from('profiles')
                     .select('id, username')
-                    .in('username', mentions);
+                    .in('username', mentions)
+                    .limit(50) // suggested profiles
 
                 if (mentionedUsers?.length > 0) {
                     const mentionInserts = mentionedUsers.map(u => ({
@@ -4817,13 +4848,13 @@ export default function SocialMediaPage() {
             }
 
             // Call server-side API (bypasses RLS for god mode)
-            const response = await fetch('/api/posts/delete', {
+            const response = await fetch('/api/posts/delete', { signal, 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ postId: id })
+                body: JSON.stringify({ postId: id }
             });
 
             const result = await response.json();
@@ -4871,7 +4902,8 @@ export default function SocialMediaPage() {
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, username')
-                .in('id', uniqueUserIds);
+                .in('id', uniqueUserIds)
+                .limit(50) // suggested profiles;
             const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
 
             // Assemble contacts in-memory
@@ -4932,7 +4964,8 @@ export default function SocialMediaPage() {
                 let enrichedPosts = [];
                 if (posts?.length) {
                     const authorIds = [...new Set(posts.map(p => p.author_id))];
-                    const { data: authors } = await supabase.from('profiles').select('id, username').in('id', authorIds);
+                    const { data: authors } = await supabase.from('profiles').select('id, username').in('id', authorIds)
+                        .limit(50) // suggested profiles;
                     const authorMap = Object.fromEntries((authors || []).map(a => [a.id, a]));
                     enrichedPosts = posts.map(p => ({
                         ...p,

@@ -74,7 +74,8 @@ async function getAverageAccuracy(supabase, userId, periodKey, isWeekly) {
         .select('accuracy')
         .eq('user_id', userId)
         .gte('created_at', startDate.toISOString())
-        .not('accuracy', 'is', null);
+        .not('accuracy', 'is', null)
+            .limit(100);
 
     if (!sessions?.length) return 0;
 
@@ -100,7 +101,8 @@ async function getUniqueCategoriesPlayed(supabase, userId, periodKey, isWeekly) 
         .from('jarvis_training_sessions')
         .select('game_id')
         .eq('user_id', userId)
-        .gte('created_at', startDate.toISOString());
+        .gte('created_at', startDate.toISOString())
+            .limit(100);
 
     if (!sessions?.length) return 0;
 
@@ -148,14 +150,16 @@ export default async function handler(req, res) {
                 .from('training_challenge_definitions')
                 .select('*')
                 .eq('is_active', true)
-                .order('challenge_type', { ascending: true });
+                .order('challenge_type', { ascending: true })
+                    .limit(100);
 
             // Get user's progress for current periods
             const { data: userProgress } = await supabase
                 .from('training_user_challenges')
                 .select('*')
                 .eq('user_id', userId)
-                .in('period_key', [periods.weekly, periods.monthly]);
+                .in('period_key', [periods.weekly, periods.monthly])
+                    .limit(100);
 
             const progressMap = new Map(
                 (userProgress || []).map(p => [`${p.challenge_id}-${p.period_key}`, p])
@@ -239,7 +243,8 @@ export default async function handler(req, res) {
             const { data: definitions } = await supabase
                 .from('training_challenge_definitions')
                 .select('*')
-                .eq('is_active', true);
+                .eq('is_active', true)
+                    .limit(100);
 
             const updatedChallenges = [];
 

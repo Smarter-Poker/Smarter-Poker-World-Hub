@@ -72,7 +72,8 @@ async function listFreerolls(req, res) {
             const { data: quals } = await supabase
                 .from('commander_freeroll_qualifications')
                 .select('freeroll_id, is_qualified')
-                .in('freeroll_id', freerollIds);
+                .in('freeroll_id', freerollIds)
+                    .limit(100);
 
             (quals || []).forEach(q => {
                 if (!qualCounts[q.freeroll_id]) {

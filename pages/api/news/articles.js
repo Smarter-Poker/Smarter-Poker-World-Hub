@@ -22,10 +22,12 @@ export default async function handler(req, res) {
                 .from('poker_news')
                 .select('*')
                 .eq('is_published', true)
-                .order('published_at', { ascending: false });
+                .order('published_at', { ascending: false })
+                    .limit(100);
 
             if (category && category !== 'all') {
-                query = query.eq('category', category);
+                query = query.eq('category', category)
+                    .limit(100);
             }
 
             if (search) {

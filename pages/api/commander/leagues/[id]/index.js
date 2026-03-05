@@ -39,7 +39,8 @@ export default async function handler(req, res) {
     const { count: playerCount } = await supabase
       .from('commander_league_standings')
       .select('*', { count: 'exact', head: true })
-      .eq('league_id', id);
+      .eq('league_id', id)
+          .limit(100);
 
     // Check if current user is joined (if authenticated)
     let isJoined = false;

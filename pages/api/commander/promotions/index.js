@@ -74,7 +74,8 @@ async function listPromotions(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (resolvedVenueId) {
-      query = query.eq('venue_id', resolvedVenueId);
+      query = query.eq('venue_id', resolvedVenueId)
+          .limit(100);
     }
 
     if (status && status !== 'all') {

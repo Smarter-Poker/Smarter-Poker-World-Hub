@@ -316,6 +316,8 @@ export default function BankrollManagerPage() {
 
   // Load all data
   const loadData = useCallback(async () => {
+      const controller = new AbortController();
+      const { signal } = controller;
     // Fix: Set isLoading false even when no user (prevents infinite skeleton)
     if (!userId) {
       setIsLoading(false);
@@ -442,7 +444,7 @@ export default function BankrollManagerPage() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`);
+        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`, { signal });
         const data = await res.json();
         if (data.success && data.venues?.length > 0) {
           gf.start(data.venues, async (venue) => {
@@ -527,6 +529,8 @@ export default function BankrollManagerPage() {
 
   // Gate Log+ behind bankroll check
   const handleLogClick = useCallback(async () => {
+      const controller = new AbortController();
+      const { signal } = controller;
     if (!userId) { setShowLogModal(true); return; } // Will show login prompt
     if (bankrollInitialized === false) {
       setShowStartingBankroll(true);
@@ -1380,7 +1384,7 @@ export default function BankrollManagerPage() {
                       onClick={async () => {
                         if (!userId) return;
                         try {
-                          const res = await fetch('/api/bankroll/export', {
+                          const res = await fetch('/api/bankroll/export', { signal, 
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ userId, format: 'csv' })
@@ -1422,7 +1426,7 @@ export default function BankrollManagerPage() {
                       onClick={async () => {
                         if (!userId) return;
                         try {
-                          const res = await fetch('/api/bankroll/export', {
+                          const res = await fetch('/api/bankroll/export', { signal, 
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ userId, format: 'json' })
@@ -1466,7 +1470,7 @@ export default function BankrollManagerPage() {
                         try {
                           const { data: { session } } = await supabase.auth.getSession();
                           const token = session?.access_token;
-                          const res = await fetch('/api/bankroll/export-pdf', {
+                          const res = await fetch('/api/bankroll/export-pdf', { signal, 
                             headers: { Authorization: `Bearer ${token}` }
                           });
                           if (res.ok) {

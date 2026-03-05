@@ -34,7 +34,8 @@ export default async function handler(req, res) {
             .from('trivia_pvp_matches')
             .select('*')
             .eq('status', 'active')
-            .lt('created_at', tenMinutesAgo.toISOString());
+            .lt('created_at', tenMinutesAgo.toISOString())
+                .limit(100);
 
         let refunded = 0;
         let forfeited = 0;

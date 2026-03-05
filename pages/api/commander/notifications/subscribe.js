@@ -69,9 +69,11 @@ async function subscribe(req, res) {
       .select('id');
 
     if (subscription?.endpoint) {
-      query = query.eq('endpoint', subscription.endpoint);
+      query = query.eq('endpoint', subscription.endpoint)
+          .limit(100);
     } else if (onesignal_player_id) {
-      query = query.eq('endpoint', onesignal_player_id);
+      query = query.eq('endpoint', onesignal_player_id)
+          .limit(100);
     }
 
     const { data: existing } = await query.single();

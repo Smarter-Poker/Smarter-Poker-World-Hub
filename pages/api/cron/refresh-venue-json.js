@@ -39,7 +39,8 @@ export default async function handler(req, res) {
         created_at, updated_at
       `)
       .eq('is_active', true)
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+          .limit(100);
 
     if (error) {
       console.error('Failed to fetch venues:', error);

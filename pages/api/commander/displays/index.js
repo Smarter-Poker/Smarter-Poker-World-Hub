@@ -55,7 +55,8 @@ async function handleGet(req, res) {
         )
       `)
       .eq('venue_id', venue_id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+          .limit(100);
 
     if (error) throw error;
 

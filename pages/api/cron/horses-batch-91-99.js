@@ -47,7 +47,8 @@ export default async function handler(req, res) {
             .select('*')
             .eq('is_active', true)
             .not('profile_id', 'is', null)
-            .order('profile_id');
+            .order('profile_id')
+                .limit(100);
 
         if (!horses?.length) {
             return res.status(200).json({ success: false, error: 'No horses found' });

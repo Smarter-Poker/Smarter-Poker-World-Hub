@@ -29,16 +29,21 @@ export default async function handler(req, res) {
                 .from('social_page_reviews')
                 .select('id, page_id, reviewer_id, overall_rating, title, content, helpful_count, created_at', { count: 'exact' })
                 .eq('page_id', page_id)
-                .eq('is_published', true);
+                .eq('is_published', true)
+                    .limit(100);
 
             if (sort === 'helpful') {
-                query = query.order('helpful_count', { ascending: false });
+                query = query.order('helpful_count', { ascending: false })
+                    .limit(100);
             } else if (sort === 'rating_high') {
-                query = query.order('overall_rating', { ascending: false });
+                query = query.order('overall_rating', { ascending: false })
+                    .limit(100);
             } else if (sort === 'rating_low') {
-                query = query.order('overall_rating', { ascending: true });
+                query = query.order('overall_rating', { ascending: true })
+                    .limit(100);
             } else {
-                query = query.order('created_at', { ascending: false });
+                query = query.order('created_at', { ascending: false })
+                    .limit(100);
             }
 
             const { data: reviews, error, count } = await query

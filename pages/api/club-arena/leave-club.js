@@ -89,7 +89,8 @@ export default async function handler(req, res) {
       .select('id, amount')
       .eq('club_id', clubId)
       .eq('player_id', user.id)
-      .eq('status', 'pending');
+      .eq('status', 'pending')
+          .limit(200);
 
     let heldChipsReturned = 0;
     for (const co of (pendingCashouts || [])) {

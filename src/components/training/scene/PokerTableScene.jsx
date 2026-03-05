@@ -12,7 +12,7 @@ import TrainingGameTable from '../../poker/TrainingGameTable';
 // MAIN COMPONENT — Adapter for GoldenTemplateTable
 // =============================================================================
 
-export default function PokerTableScene({
+function PokerTableScene({
     seatCount = 6,
     seats = [],
     currentState = {},
@@ -90,3 +90,5 @@ const styles = {
         zIndex: 500,
     },
 };
+
+export default React.memo(PokerTableScene);

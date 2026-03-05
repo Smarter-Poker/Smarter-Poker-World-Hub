@@ -566,6 +566,8 @@ export default function VideoLibraryPage() {
 
     // Handle Jarvis button click - fetch analysis ON DEMAND only
     const handleJarvisClick = useCallback(async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
         if (!selectedVideo) return;
 
         // Toggle panel
@@ -581,9 +583,7 @@ export default function VideoLibraryPage() {
 
         setAiAnalysisLoading(true);
         try {
-            const response = await fetch(
-                `/api/video/analyze?videoId=${selectedVideo.videoId}&title=${encodeURIComponent(selectedVideo.title)}`
-            );
+            const response = await fetch(`/api/video/analyze?videoId=${selectedVideo.videoId}&title=${encodeURIComponent(selectedVideo.title)}`, { signal });
             const data = await response.json();
             if (data.success && data.analysis) {
                 setAiAnalysis(data.analysis);
@@ -598,6 +598,8 @@ export default function VideoLibraryPage() {
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
         if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
             const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
             const video = currentWatchingVideoRef.current;

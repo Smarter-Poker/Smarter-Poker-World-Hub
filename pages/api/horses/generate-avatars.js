@@ -173,6 +173,7 @@ async function getRemainingCount() {
         .from('content_authors')
         .select('*', { count: 'exact', head: true })
         .is('avatar_url', null)
-        .not('profile_id', 'is', null);
+        .not('profile_id', 'is', null)
+            .limit(100);
     return count || 0;
 }

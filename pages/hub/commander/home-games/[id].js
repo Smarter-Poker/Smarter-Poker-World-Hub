@@ -157,6 +157,8 @@ export default function HomeGameDetailPage() {
 
   // Fetch group data
   const fetchGroup = useCallback(async () => {
+      const controller = new AbortController();
+      const { signal } = controller;
     if (!id) return;
 
     try {
@@ -164,10 +166,10 @@ export default function HomeGameDetailPage() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [groupRes, eventsRes, membersRes, postsRes] = await Promise.all([
-        fetch(`/api/commander/home-games/groups/${id}`, { headers }),
-        fetch(`/api/commander/home-games/events?group_id=${id}`, { headers }),
-        fetch(`/api/commander/home-games/groups/${id}/members`, { headers }),
-        fetch(`/api/commander/home-games/${id}/posts`, { headers }).catch(() => ({ ok: false }))
+        fetch(`/api/commander/home-games/groups/${ signal, id}`, { headers }),
+        fetch(`/api/commander/home-games/events?group_id=${ signal, id}`, { headers }),
+        fetch(`/api/commander/home-games/groups/${ signal, id}/members`, { headers }),
+        fetch(`/api/commander/home-games/${ signal, id}/posts`, { headers }).catch(() => ({ ok: false }))
       ]);
 
       const groupData = await groupRes.json();
@@ -228,7 +230,7 @@ export default function HomeGameDetailPage() {
         // Fetch reviews for up to 5 most recent past events
         const recentPast = pastEvents.slice(0, 5);
         for (const event of recentPast) {
-          const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`);
+          const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`, { signal });
           const data = await res.json();
           if (data.success && data.data?.reviews) {
             allReviews.push(...data.data.reviews);
@@ -257,7 +259,7 @@ export default function HomeGameDetailPage() {
 
     setJoining(true);
     try {
-      const res = await fetch(`/api/commander/home-games/groups/${id}/members`, {
+      const res = await fetch(`/api/commander/home-games/groups/${ signal, id}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -285,7 +287,7 @@ export default function HomeGameDetailPage() {
     }
 
     try {
-      const res = await fetch(`/api/commander/home-games/events/${event.id}/rsvp`, {
+      const res = await fetch(`/api/commander/home-games/events/${ signal, event.id}/rsvp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

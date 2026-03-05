@@ -53,7 +53,8 @@ export default async function handler(req, res) {
             .from('geeves_messages')
             .select('id, content, is_user, cache_id, from_cache, created_at')
             .eq('conversation_id', id)
-            .order('created_at', { ascending: true });
+            .order('created_at', { ascending: true })
+                .limit(100);
 
         if (msgError) throw msgError;
 

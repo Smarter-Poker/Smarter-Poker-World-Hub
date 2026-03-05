@@ -127,6 +127,9 @@ function ScheduleTab({ staffId, venueId, token }) {
     const [loading, setLoading] = useState(true);
 
     const fetchSchedule = useCallback(async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
         setLoading(true);
         try {
             const d = new Date();

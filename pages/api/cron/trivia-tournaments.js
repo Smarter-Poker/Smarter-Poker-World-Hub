@@ -37,7 +37,8 @@ export default async function handler(req, res) {
             .from('trivia_tournaments')
             .select('*')
             .eq('status', 'upcoming')
-            .lte('start_time', now.toISOString());
+            .lte('start_time', now.toISOString())
+                .limit(100);
 
         for (const tournament of upcomingTournaments || []) {
             // Get registered entries
@@ -45,7 +46,8 @@ export default async function handler(req, res) {
                 .from('trivia_tournament_entries')
                 .select('*')
                 .eq('tournament_id', tournament.id)
-                .order('created_at', { ascending: true });
+                .order('created_at', { ascending: true })
+                    .limit(100);
 
             if (!entries || entries.length < 2) {
                 // Not enough players — cancel and refund

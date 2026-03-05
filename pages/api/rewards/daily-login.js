@@ -112,7 +112,8 @@ export default async function handler(req, res) {
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', userId)
                     .eq('reward_type', 'daily_login')
-                    .gte('claim_date', new Date(todayDate.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+                    .gte('claim_date', new Date(todayDate.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+                        .limit(200);
                 streak = (count || 0) + 1;
             }
         }

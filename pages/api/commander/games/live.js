@@ -24,6 +24,7 @@ export default async function handler(req, res) {
     let query = supabase
       .from('commander_games')
       .select(`
+      .limit(100)
         *,
         poker_venues (
           id,
@@ -74,7 +75,9 @@ export default async function handler(req, res) {
         .eq('venue_id', game.venue_id)
         .eq('game_type', game.game_type)
         .eq('stakes', game.stakes)
-        .eq('status', 'waiting');
+        .eq('status', 'waiting')
+            .limit(100);
+        .limit(200)
 
       return {
         ...game,

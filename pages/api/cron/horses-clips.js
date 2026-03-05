@@ -214,7 +214,8 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             const { data: assignments, error: assignError } = await supabase
                 .from('horse_source_assignments')
                 .select('source_name, is_primary')
-                .eq('horse_id', horse.profile_id);
+                .eq('horse_id', horse.profile_id)
+                    .limit(100);
 
             if (!assignError && assignments && assignments.length > 0) {
                 assignedSources = assignments.map(a => a.source_name);
@@ -690,7 +691,8 @@ export default async function handler(req, res) {
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
-            .not('profile_id', 'is', null);
+            .not('profile_id', 'is', null)
+                .limit(100);
 
         if (horseError || !allHorses?.length) {
             return res.status(200).json({

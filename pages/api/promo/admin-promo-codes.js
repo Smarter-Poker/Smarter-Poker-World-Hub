@@ -47,7 +47,8 @@ export default async function handler(req, res) {
                     *,
                     promo_code_redemptions(count)
                 `)
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                    .limit(100);
 
             if (error) throw error;
 
