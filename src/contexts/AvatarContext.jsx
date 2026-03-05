@@ -88,12 +88,21 @@ export function AvatarProvider({ children }) {
 
     // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
     useEffect(() => {
-        async function ensureUserProfile(user) {
+        async function ensureUserProfile(user, session) {
             if (!user) return;
             try {
-                // Get current session token for authenticated API call
-                const { data: { session: currentSession } } = await supabase.auth.getSession();
-                const token = currentSession?.access_token;
+                // Use the session passed in directly (avoids race condition where
+                // getSession() returns null because the new session isn't persisted yet)
+                let token = session?.access_token || null;
+                if (!token) {
+                    // Fallback: try getSession() if no session was passed
+                    const { data: { session: currentSession } } = await supabase.auth.getSession();
+                    if (!currentSession?.access_token) {
+                        console.warn('[AvatarContext] ensureUserProfile skipped — no auth token available yet');
+                        return; // Skip silently — will be called again on next auth event
+                    }
+                    token = currentSession.access_token;
+                }
 
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
@@ -149,7 +158,7 @@ export function AvatarProvider({ children }) {
                     // Use the existing session IMMEDIATELY — don't block on refresh
                     console.log('[AvatarContext] Session found, using immediately');
                     setUser(session.user);
-                    await ensureUserProfile(session.user);
+                    await ensureUserProfile(session.user, session);
                     await fetchVipStatus(session.user.id);
 
                     // Background refresh — non-blocking, won't affect UI if it fails
@@ -190,7 +199,7 @@ export function AvatarProvider({ children }) {
             setUser(session?.user ?? null);
             if (session?.user) {
                 if (event === 'SIGNED_IN') {
-                    await ensureUserProfile(session.user);
+                    await ensureUserProfile(session.user, session);
                 }
                 await fetchVipStatus(session.user.id);
             }
