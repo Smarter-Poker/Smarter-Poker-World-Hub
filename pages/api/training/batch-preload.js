@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         // ═══ ENRICH LEGACY CACHED QUESTIONS WITH GTO FREQUENCY DATA ═══
         const enrichedBatch = batch.map(q => {
             const qData = q.question_data;
-            if (!qData) return q.question_data;
+            if (!qData) return null; // Skip null entries
 
             // If question has raw frequencies but no gtoFrequencies (pre-upgrade cache),
             // build gtoFrequencies from the raw 0.0-1.0 frequency data
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
             }
 
             return qData;
-        });
+        }).filter(Boolean); // Remove null entries from corrupted cache rows
 
         console.log(`[BatchPreload] Returning ${enrichedBatch.length} questions for ${gameId}`);
 

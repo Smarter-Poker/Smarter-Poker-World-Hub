@@ -201,6 +201,8 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setLastGTOFrequencies(frequencies);
 
         // Record to GTOW scoring engine
+        const selectedText = options.find(o => o.id === selectedOptionId)?.text || selectedOptionId;
+        const correctText = options.find(o => o.id === correctAnswer)?.text || correctAnswer;
         gtowScoring.recordMove({
             classification: moveResult.classification,
             evLoss: moveResult.evLoss,
@@ -211,8 +213,8 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 board: scenario.board,
                 heroPosition: scenario.heroPosition || scenario.position,
                 pot: scenario.pot,
-                action: selectedOptionId,
-                correctAction: correctAnswer,
+                action: selectedText,
+                correctAction: correctText,
                 question: currentQuestion.question || currentQuestion.text,
                 source: currentQuestion.source || 'UNKNOWN',
             },

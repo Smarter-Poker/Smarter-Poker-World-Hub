@@ -427,6 +427,14 @@ function VenueMap({ venues, userLocation }) {
 
         mapInstanceRef.current = map;
 
+        // Cleanup on unmount: destroy the Leaflet map to prevent memory leaks
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+
         // Add venue markers
         const goldIcon = L.divIcon({
             className: 'venue-map-marker',
@@ -600,15 +608,6 @@ export default function PokerNearMePage() {
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
 
-    // Handle query parameters for deep linking
-    useEffect(() => {
-        if (router.query.tab) {
-            setActiveTab(router.query.tab);
-        }
-        if (router.query.filter) {
-            setFilters(prev => ({ ...prev, venueType: router.query.filter }));
-        }
-    }, [router.query]);
 
     // Data states
     const [venues, setVenues] = useState([]);

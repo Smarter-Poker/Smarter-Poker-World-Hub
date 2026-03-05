@@ -3,21 +3,36 @@
  * Tax documents, licenses, W-2s
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import DealerVault from '../../../src/components/bankroll/DealerVault';
+import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
 
 export default function DealerVaultPage() {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
+    const [completedGigs, setCompletedGigs] = useState([]);
 
     useEffect(() => { setMounted(true); }, []);
+
+    // Load completed gigs for 1099 threshold alerts
+    const loadGigs = useCallback(async () => {
+        if (!userId) return;
+        try {
+            const gigs = await fetchGigs(userId);
+            setCompletedGigs(gigs.filter(g => g.status === 'completed'));
+        } catch (err) {
+            console.error('Error loading gigs for vault:', err);
+        }
+    }, [userId]);
+
+    useEffect(() => { loadGigs(); }, [loadGigs]);
 
     if (!mounted) return null;
 
@@ -40,7 +55,7 @@ export default function DealerVaultPage() {
                     <h1 style={s.title}>Dealer Vault</h1>
                     <p style={s.subtitle}>Secure Document Storage</p>
 
-                    <DealerVault userId={userId} completedGigs={[]} />
+                    <DealerVault userId={userId} completedGigs={completedGigs} />
                 </div>
             </div>
         </PageTransition>

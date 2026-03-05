@@ -142,10 +142,9 @@ const SoundEngine = {
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 function RangeMatrixViewer({ rawFrequencies, correctAnswer, show }) {
-    if (!show || !rawFrequencies) return null;
-
-    // Build the 13x13 matrix
+    // Build the 13x13 matrix (always compute — hooks can't be after early return)
     const matrix = useMemo(() => {
+        if (!rawFrequencies) return [];
         const grid = [];
         const actionFreqs = rawFrequencies[correctAnswer] || {};
 
@@ -168,6 +167,9 @@ function RangeMatrixViewer({ rawFrequencies, correctAnswer, show }) {
         }
         return grid;
     }, [rawFrequencies, correctAnswer]);
+
+    // Early return AFTER hooks
+    if (!show || !rawFrequencies || matrix.length === 0) return null;
 
     const getColor = (freq) => {
         if (freq >= 0.9) return '#22c55e';
@@ -617,37 +619,6 @@ export default function UniversalDynamicTable({
         prevStreakRef.current = streak;
     }, [streak]);
 
-    // F9: Keyboard shortcuts
-    useEffect(() => {
-        if (showFeedback || !question) return;
-        const options = question?.options || [];
-        const handler = (e) => {
-            const key = e.key;
-            // Number keys 1-4 map to options
-            if (key >= '1' && key <= '4') {
-                const idx = parseInt(key) - 1;
-                if (idx < options.length) {
-                    const optId = options[idx].id || String.fromCharCode(97 + idx);
-                    handleAnswer(optId);
-                }
-            }
-            // Letter shortcuts: F=fold, C=check/call, R=raise/bet
-            const lower = key.toLowerCase();
-            if (lower === 'f') {
-                const foldOpt = options.find(o => /fold/i.test(o.text));
-                if (foldOpt) handleAnswer(foldOpt.id);
-            } else if (lower === 'c') {
-                const checkCallOpt = options.find(o => /check|call/i.test(o.text));
-                if (checkCallOpt) handleAnswer(checkCallOpt.id);
-            } else if (lower === 'r') {
-                const raiseOpt = options.find(o => /raise|bet|all.in|shove/i.test(o.text));
-                if (raiseOpt) handleAnswer(raiseOpt.id);
-            }
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [showFeedback, question]);
-
     // ════════════════════════════════════════════════════════════════════════
     // LOADING STATE — Show skeleton while question is being fetched
     // ════════════════════════════════════════════════════════════════════════
@@ -755,6 +726,35 @@ export default function UniversalDynamicTable({
         setSelectedAnswer(answerId);
         onAnswer(answerId);
     }, [showFeedback, onAnswer]);
+
+    // F9: Keyboard shortcuts (must be after handleAnswer definition)
+    useEffect(() => {
+        if (showFeedback || !question) return;
+        const opts = question?.options || [];
+        const handler = (e) => {
+            const key = e.key;
+            if (key >= '1' && key <= '4') {
+                const idx = parseInt(key) - 1;
+                if (idx < opts.length) {
+                    const optId = opts[idx].id || String.fromCharCode(97 + idx);
+                    handleAnswer(optId);
+                }
+            }
+            const lower = key.toLowerCase();
+            if (lower === 'f') {
+                const foldOpt = opts.find(o => /fold/i.test(o.text));
+                if (foldOpt) handleAnswer(foldOpt.id);
+            } else if (lower === 'c') {
+                const checkCallOpt = opts.find(o => /check|call/i.test(o.text));
+                if (checkCallOpt) handleAnswer(checkCallOpt.id);
+            } else if (lower === 'r') {
+                const raiseOpt = opts.find(o => /raise|bet|all.in|shove/i.test(o.text));
+                if (raiseOpt) handleAnswer(raiseOpt.id);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [showFeedback, question, handleAnswer]);
 
     // F6: Board texture classification
     const boardTexture = useMemo(() => classifyBoardTexture(boardCards), [boardCards]);
@@ -1707,6 +1707,7 @@ const styles = {
     },
 
     actionButton: {
+        position: 'relative',
         padding: '14px 8px',
         fontSize: 13,
         fontWeight: 'bold',
