@@ -86,13 +86,23 @@ export function AvatarProvider({ children }) {
 
     // Load user on mount - WAIT for INITIAL_SESSION before concluding user is null
     useEffect(() => {
-        // 🛡️ ANTIGRAVITY: Ensure user has profile (catches orphaned users)
         async function ensureUserProfile(user) {
             if (!user) return;
             try {
+                // Get current session token for authenticated API call
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                const token = currentSession?.access_token;
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
                 const res = await fetch('/api/auth/ensure-profile', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                    },
+                    signal: controller.signal,
                     body: JSON.stringify({
                         user_id: user.id,
                         email: user.email,
@@ -102,12 +112,17 @@ export function AvatarProvider({ children }) {
                         metadata: user.user_metadata
                     })
                 });
+                clearTimeout(timeoutId);
                 const data = await res.json();
                 if (data.created) {
                     console.log('[ANTIGRAVITY] Profile was missing - created:', data.profile?.username);
                 }
             } catch (err) {
-                console.error('[ANTIGRAVITY] ensure-profile failed:', err);
+                if (err.name === 'AbortError') {
+                    console.warn('[ANTIGRAVITY] ensure-profile timed out (non-blocking)');
+                } else {
+                    console.error('[ANTIGRAVITY] ensure-profile failed:', err);
+                }
             }
         }
 
