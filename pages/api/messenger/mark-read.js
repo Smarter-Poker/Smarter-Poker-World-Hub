@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // Use service role to bypass RLS
 const supabaseAdmin = createClient(
@@ -12,6 +13,10 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }

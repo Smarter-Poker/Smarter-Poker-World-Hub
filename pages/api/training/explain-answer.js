@@ -9,6 +9,7 @@
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,6 +30,10 @@ function generateCacheKey(question, correctAnswer) {
 }
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

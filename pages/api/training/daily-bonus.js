@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { notifyDailyBonus } from '../../../src/utils/trainingNotifications';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -23,6 +24,10 @@ const STREAK_BONUSES = {
 };
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 

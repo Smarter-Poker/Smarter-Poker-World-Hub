@@ -8,6 +8,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,6 +20,10 @@ const INDIFFERENCE_THRESHOLD = 0.40;
 const MAX_CHIP_PENALTY = 25;
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

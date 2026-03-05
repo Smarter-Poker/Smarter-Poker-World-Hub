@@ -2,10 +2,15 @@
 // Sends welcome email to new Club Commander users
 
 import { Resend } from 'resend';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

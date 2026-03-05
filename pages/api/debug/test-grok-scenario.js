@@ -7,10 +7,15 @@
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     // Block debug endpoints in production
     if (process.env.NODE_ENV === 'production') {
         return res.status(404).json({ error: 'Not found' });

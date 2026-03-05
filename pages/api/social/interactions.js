@@ -10,7 +10,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 export default async function handler(req, res) {
+  if (req.method === 'POST' || req.method === 'DELETE') {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
     if (!supabaseUrl || !supabaseServiceKey) {
         return res.status(500).json({ error: 'Server configuration error' });
     }
@@ -150,9 +155,10 @@ export default async function handler(req, res) {
                 // Unlike - delete
                 await supabase.from('social_interactions').delete().eq('id', existing.id);
 
-                // Decrement like count
-                const { data: p } = await supabase.from('social_posts').select('like_count').eq('id', post_id).single();
-                await supabase.from('social_posts').update({ like_count: Math.max(0, (p?.like_count || 1) - 1) }).eq('id', post_id);
+                // Atomic decrement like count
+                await supabase.rpc('decrement_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(() => {
+                  supabase.from('social_posts').update({ like_count: supabase.raw('GREATEST(like_count - 1, 0)') }).eq('id', post_id).catch(() => {});
+                });
 
                 return res.status(200).json({ action: 'unliked', liked: false });
             } else {
@@ -163,9 +169,10 @@ export default async function handler(req, res) {
 
                 if (error) return res.status(500).json({ error: error.message });
 
-                // Increment like count
-                const { data: p } = await supabase.from('social_posts').select('like_count').eq('id', post_id).single();
-                await supabase.from('social_posts').update({ like_count: (p?.like_count || 0) + 1 }).eq('id', post_id);
+                // Atomic increment like count
+                await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(() => {
+                  supabase.from('social_posts').update({ like_count: supabase.raw('like_count + 1') }).eq('id', post_id).catch(() => {});
+                });
 
                 return res.status(201).json({ action: 'liked', liked: true });
             }
@@ -180,9 +187,10 @@ export default async function handler(req, res) {
                 return res.status(500).json({ error: error.message });
             }
 
-            // Increment share count
-            const { data: p } = await supabase.from('social_posts').select('share_count').eq('id', post_id).single();
-            await supabase.from('social_posts').update({ share_count: (p?.share_count || 0) + 1 }).eq('id', post_id);
+            // Atomic increment share count
+            await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'share_count' }).catch(() => {
+              supabase.from('social_posts').update({ share_count: supabase.raw('share_count + 1') }).eq('id', post_id).catch(() => {});
+            });
 
             return res.status(201).json({ action: 'shared' });
         }

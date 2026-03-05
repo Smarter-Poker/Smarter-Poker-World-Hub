@@ -9,6 +9,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardStaff } from '../../../../src/lib/commander/auth';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,6 +19,10 @@ const supabase = createClient(
 const FEDERAL_WITHHOLDING_RATE = 0.24;
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   // Auth guard: require staff auth
   const _staff = await guardStaff(req, res);
   if (!_staff) return;

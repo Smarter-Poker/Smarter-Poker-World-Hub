@@ -8,10 +8,15 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardWriteStaff, verifyStaffSession } from '../../../src/lib/commander/auth';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   // For GET requests we try staff session first, then allow unauthenticated (display pages)
   // For write requests, guardWriteStaff handles auth
   let venueId = req.query.venue_id;

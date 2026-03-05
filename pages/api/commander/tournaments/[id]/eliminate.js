@@ -13,6 +13,7 @@ import {
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
 import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tournamentAutoBreak';
+import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 
 const supabase = createClient(
@@ -21,6 +22,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   const _g = await guardWriteStaff(req, res); if (!_g) return;
 
   if (req.method !== 'POST') {

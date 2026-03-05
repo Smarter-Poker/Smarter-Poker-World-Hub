@@ -9,12 +9,16 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.auth)) return;
+
     if (req.method !== 'DELETE') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

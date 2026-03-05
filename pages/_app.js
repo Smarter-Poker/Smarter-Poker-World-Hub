@@ -447,3 +447,19 @@ export default function App({ Component, pageProps }) {
 
 
 
+
+// Report Web Vitals to Sentry for performance monitoring
+export function reportWebVitals({ id, name, label, value }) {
+  try {
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.metrics?.distribution(name, value, {
+        tags: { id, label },
+        unit: name === 'CLS' ? 'none' : 'millisecond',
+      });
+    }
+    // Also log to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);
+    }
+  } catch (_) {}
+}

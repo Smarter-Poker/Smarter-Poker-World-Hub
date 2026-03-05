@@ -11,6 +11,8 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 // Increase timeout for AI generation
 export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
@@ -121,6 +123,8 @@ async function removeBackgroundWithSharp(inputBuffer) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

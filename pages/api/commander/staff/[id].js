@@ -5,6 +5,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -14,6 +15,10 @@ const supabase = createClient(
 const VALID_ROLES = ['owner', 'manager', 'dualrate', 'floor', 'cashier', 'brush', 'dealer', 'security'];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   const { id } = req.query;
 
   if (!id) {

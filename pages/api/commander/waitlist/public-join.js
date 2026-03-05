@@ -10,6 +10,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -26,6 +27,10 @@ const AVERAGE_WAIT_PER_POSITION = 15;
 const WEB_EXPIRY_MINUTES = 60; // Auto-delete after 1 hour
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }

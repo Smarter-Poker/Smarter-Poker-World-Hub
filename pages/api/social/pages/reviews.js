@@ -5,12 +5,18 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     try {
         if (req.method === 'GET') {
             const { page_id, limit = 20, offset = 0, sort = 'recent' } = req.query;

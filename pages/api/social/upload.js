@@ -14,6 +14,8 @@ import { createClient } from '@supabase/supabase-js';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 export const config = {
     api: {
         bodyParser: false, // Required for multipart/form-data
@@ -30,6 +32,10 @@ const ALLOWED_TYPES = [
 ];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'POST only' });
     }

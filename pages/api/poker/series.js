@@ -12,6 +12,7 @@ import wsopCEvents from '../../../data/wsopc-2026-events.json';
 import msptEvents from '../../../data/mspt-2026-events.json';
 import rgpsEvents from '../../../data/rgps-2026-events.json';
 import venetianEvents from '../../../data/venetian-2026-events.json';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -121,6 +122,8 @@ function loadEventsForSeries(series) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

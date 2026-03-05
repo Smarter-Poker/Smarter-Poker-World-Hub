@@ -6,6 +6,7 @@
  * Players can share milestone moments from their tournament journey.
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -26,6 +27,10 @@ const TOURNAMENT_GRADIENTS = {
 const VALID_STORY_TYPES = ['registered', 'chip_update', 'itm', 'final_table', 'winner', 'bubble', 'custom'];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
         return res.status(405).json({ success: false, error: 'Method not allowed' });

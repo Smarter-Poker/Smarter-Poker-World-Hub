@@ -10,6 +10,8 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 export const config = {
     maxDuration: 60, // 60 second timeout for Vercel
 };
@@ -97,6 +99,8 @@ async function removeBackgroundWithSharp(inputBuffer) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
         const _token = req.headers.authorization?.replace('Bearer ', '');

@@ -12,7 +12,11 @@ const supabase = createClient(
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.auth)) return;
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

@@ -17,6 +17,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -61,6 +62,10 @@ const ACTION_COLORS = {
 };
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
   const { createClient: _createAuthClient } = await import('@supabase/supabase-js');
   const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);

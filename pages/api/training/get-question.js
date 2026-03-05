@@ -14,6 +14,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,6 +22,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     // BUG #245 FIX: Require JWT auth
     const _token = req.headers.authorization?.replace('Bearer ', '');
     if (!_token) return res.status(401).json({ error: 'Auth required' });

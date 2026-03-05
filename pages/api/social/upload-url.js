@@ -12,6 +12,8 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 const BUCKET = 'social-media';
 const MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB — Supabase Pro max, no practical limit
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;        // 10MB for images
@@ -22,6 +24,10 @@ const ALLOWED_TYPES = [
 ];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'POST only' });
     }

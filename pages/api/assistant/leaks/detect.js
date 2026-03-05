@@ -12,6 +12,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { getGrokClient } from '../../../../src/lib/grokClient';
 
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -340,6 +342,8 @@ function generateExplanation(leakType, currentValue, optimalRange) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+
   // Require JWT auth for write operations
   if (req.method !== 'GET') {
     const _token = req.headers.authorization?.replace('Bearer ', '');

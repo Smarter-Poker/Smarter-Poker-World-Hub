@@ -15,6 +15,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,6 +23,10 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   // Accept engine key or bearer token

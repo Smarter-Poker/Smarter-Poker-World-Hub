@@ -11,6 +11,8 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+
 // Increase body size limit for base64 images (10MB)
 export const config = {
     api: {
@@ -106,6 +108,8 @@ async function removeBackgroundWithSharp(inputBuffer) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

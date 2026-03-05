@@ -6,6 +6,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { guardStaff } from '../../../src/lib/commander/auth';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,6 +16,10 @@ const supabase = createClient(
 const VALID_TYPES = ['buy_in', 'cash_out', 'add_on', 'time_purchase', 'membership', 'void'];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   const staff = await guardStaff(req, res); if (!staff) return;
 
   if (req.method === 'GET') return handleGet(req, res, staff);

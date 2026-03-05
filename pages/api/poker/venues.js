@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js';
 import { captureError, captureMessage, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
 import dailyTournamentData from '../../../data/daily-tournament-schedules.json';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -187,6 +188,8 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Only GET allowed' } });
     }

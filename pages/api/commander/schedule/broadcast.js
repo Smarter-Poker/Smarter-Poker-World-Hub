@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import twilio from 'twilio';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,6 +19,10 @@ const twilioClient = twilio(
 const TWILIO_FROM = process.env.TWILIO_PHONE_NUMBER;
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: { message: 'Method not allowed' } });
     }

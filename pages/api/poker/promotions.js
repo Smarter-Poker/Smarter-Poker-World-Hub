@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import allVenuesData from '../../../data/all-venues.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -77,6 +78,8 @@ const CORS_HEADERS = {
 };
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   Object.entries(CORS_HEADERS).forEach(([key, value]) => {
     res.setHeader(key, value);
   });

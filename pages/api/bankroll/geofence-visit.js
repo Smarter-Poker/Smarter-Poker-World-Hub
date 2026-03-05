@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,6 +14,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
   const _token = req.headers.authorization?.replace('Bearer ', '');
   if (!_token) return res.status(401).json({ error: 'Auth required' });

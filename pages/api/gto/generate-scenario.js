@@ -9,6 +9,7 @@
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 // Position configurations by difficulty
 const POSITION_CONFIGS = {
@@ -67,6 +68,10 @@ const SCENARIO_TYPES = {
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
   const { createClient: _createAuthClient } = await import('@supabase/supabase-js');
   const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);

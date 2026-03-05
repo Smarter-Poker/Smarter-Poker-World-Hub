@@ -8,6 +8,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { getAgentConfig, buildSystemPrompt } from '../../../src/lib/liveHelp/agentPrompts';
 import { collectUserContext } from '../../../src/lib/liveHelp/contextCollector';
 import { injectKnowledge } from '../../../src/lib/liveHelp/knowledgeInjection';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 
 const supabase = createClient(
@@ -16,6 +17,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

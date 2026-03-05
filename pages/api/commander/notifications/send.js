@@ -9,6 +9,7 @@ import { sendSMS as twilioSendSMS, isTwilioConfigured } from '../../../../src/li
 import { isOneSignalConfigured, sendPushNotification as pushNotifySend } from '../../../../src/lib/commander/pushNotifications';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,6 +20,10 @@ const VALID_TYPES = ['seat_available', 'tournament_starting', 'called_for_seat',
 const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
   const _g = await guardWriteStaff(req, res); if (!_g) return;
 
   // Rate limit: 20 notifications per minute per IP

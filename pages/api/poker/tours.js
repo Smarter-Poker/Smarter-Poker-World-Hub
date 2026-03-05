@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import tourRegistry from '../../../data/tour-source-registry.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import allVenuesData from '../../../data/all-venues.json';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -82,6 +83,8 @@ function getUpcomingSeries(tourCode) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
     }

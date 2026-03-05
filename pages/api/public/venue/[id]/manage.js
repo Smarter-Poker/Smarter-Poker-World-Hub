@@ -8,6 +8,7 @@
 
 import { supabase } from '../../../../../src/lib/supabase';
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,6 +16,10 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     const { id } = req.query;
 
     if (!id) {

@@ -6,6 +6,7 @@
  * Used by tournament public page "Post to My Page" button.
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,11 +31,19 @@ export default async function handler(req, res) {
         return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
 
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+
     try {
         const { content, content_type = 'text', visibility = 'public', metadata, media_urls } = req.body;
 
         if (!content || content.trim().length === 0) {
             return res.status(400).json({ success: false, error: 'Content is required' });
+        }
+        if (content.length > 10000) {
+            return res.status(400).json({ success: false, error: 'Content exceeds maximum length of 10,000 characters' });
+        }
+        if (media_urls && media_urls.length > 10) {
+            return res.status(400).json({ success: false, error: 'Maximum 10 media attachments allowed' });
         }
 
         // Try RPC first (handles RLS), fallback to direct insert

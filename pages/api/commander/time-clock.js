@@ -4,6 +4,7 @@
  * GET: List today's time clock entries for a venue
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,10 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+    if (!applyRateLimit(req, res, LIMITS.write)) return;
+  }
+
     if (req.method === 'GET') return handleGet(req, res);
     if (req.method === 'POST') return handlePost(req, res);
     return res.status(405).json({ success: false, error: 'Method not allowed' });
