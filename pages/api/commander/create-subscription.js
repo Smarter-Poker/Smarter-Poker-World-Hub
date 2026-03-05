@@ -286,14 +286,12 @@ export default async function handler(req, res) {
         onboarding_step: 5,
         source: 'self_registration'
       };
-      // Only include address fields if provided (optional for home_game/charity)
+      // Address fields: city/state have NOT NULL constraints, always provide defaults
       if (venueAddress) venueInsert.address = venueAddress;
-      if (venueCity) venueInsert.city = venueCity;
       if (venueZip) venueInsert.zip = venueZip;
-      if (venueState) {
-        venueInsert.state = venueState;
-        venueInsert.country = 'US';
-      }
+      venueInsert.city = venueCity || '';
+      venueInsert.state = venueState || '';
+      venueInsert.country = 'US';
 
       const { data: newVenue, error: venueError } = await supabase
         .from('poker_venues')
