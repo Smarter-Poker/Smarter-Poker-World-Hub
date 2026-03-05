@@ -577,7 +577,7 @@ export default function CommanderDashboard() {
                   style={{ boxShadow: `0 0 20px ${card.glow}30, inset 0 0 1px ${card.glow}40` }}
                   onClick={() => { setActiveCard(card.id); router.push(`/commander/dashboard?card=${card.id}`, undefined, { shallow: true }); }}
                 >
-                  <img src={card.image} alt={card.title} loading="lazy" decoding="async">
+                  <img src={card.image} alt={card.title} loading="lazy" decoding="async" />
                   <div className="cmd-card-overlay" />
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -629,7 +629,7 @@ export default function CommanderDashboard() {
                         }}
                         onClick={() => handleFeatureClick(feat)}
                       >
-                        <img src={feat.icon} alt={feat.label} loading="lazy" decoding="async">
+                        <img src={feat.icon} alt={feat.label} loading="lazy" decoding="async" />
                         {isLocked && (
                           <div style={{
                             position: 'absolute', inset: 0, display: 'flex',

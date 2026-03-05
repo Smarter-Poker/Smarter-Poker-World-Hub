@@ -183,8 +183,7 @@ function EVLossGraph({ handHistory }) {
 
     const maxLoss = Math.max(...dataPoints, 0.1);
     const graphHeight = 60;
-    const graphWidth = 280;
-    const barWidth = Math.max(2, (graphWidth / dataPoints.length) - 1);
+    const barWidth = Math.max(2, Math.floor(100 / dataPoints.length) - 1);
 
     return (
         <div style={{ marginBottom: 16 }}>
@@ -195,7 +194,7 @@ function EVLossGraph({ handHistory }) {
                 display: 'flex', alignItems: 'flex-end', gap: 1,
                 height: graphHeight, padding: '0 4px',
                 background: 'rgba(0,0,0,0.2)', borderRadius: 8,
-                overflow: 'hidden',
+                overflow: 'hidden', width: '100%',
             }}>
                 {dataPoints.map((val, i) => {
                     const height = maxLoss > 0 ? (val / maxLoss) * graphHeight : 0;
@@ -208,7 +207,7 @@ function EVLossGraph({ handHistory }) {
                             transition={{ delay: i * 0.03, duration: 0.3 }}
                             title={`Hand ${i + 1}: -${val.toFixed(2)} BB`}
                             style={{
-                                width: barWidth, flexShrink: 0,
+                                width: barWidth + '%', flexShrink: 0,
                                 background: color, borderRadius: '2px 2px 0 0',
                                 cursor: 'default',
                             }}
@@ -277,7 +276,8 @@ function DrillFilters({ show, onClose, onApply }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {posOpts.map(p => (
                             <button key={p} onClick={() => toggleFilter(positions, setPositions, p)} style={{
-                                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 'bold',
+                                padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 'bold',
+                                minHeight: 44,
                                 background: positions.includes(p) ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
                                 color: positions.includes(p) ? '#00d4ff' : '#94a3b8',
                                 border: `1px solid ${positions.includes(p) ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
@@ -292,7 +292,8 @@ function DrillFilters({ show, onClose, onApply }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {streetOpts.map(s => (
                             <button key={s} onClick={() => toggleFilter(streets, setStreets, s)} style={{
-                                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 'bold',
+                                padding: '8px 14px', borderRadius: 8, fontSize: 12, fontWeight: 'bold',
+                                minHeight: 44,
                                 background: streets.includes(s) ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.05)',
                                 color: streets.includes(s) ? '#a78bfa' : '#94a3b8',
                                 border: `1px solid ${streets.includes(s) ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
@@ -304,14 +305,14 @@ function DrillFilters({ show, onClose, onApply }) {
 
                 <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={onClose} style={{
-                        flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 'bold',
-                        background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)',
-                        cursor: 'pointer',
+                        flex: 1, padding: '12px', borderRadius: 8, fontSize: 14, fontWeight: 'bold',
+                        minHeight: 48, background: 'transparent', color: '#94a3b8',
+                        border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
                     }}>Cancel</button>
                     <button onClick={() => { onApply({ positions, streets }); onClose(); }} style={{
-                        flex: 1, padding: '10px', borderRadius: 8, fontSize: 13, fontWeight: 'bold',
-                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: '#fff',
-                        border: 'none', cursor: 'pointer',
+                        flex: 1, padding: '12px', borderRadius: 8, fontSize: 14, fontWeight: 'bold',
+                        minHeight: 48, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                        color: '#fff', border: 'none', cursor: 'pointer',
                     }}>Apply & Start</button>
                 </div>
             </motion.div>

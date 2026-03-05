@@ -1709,6 +1709,7 @@ const styles = {
     actionButton: {
         position: 'relative',
         padding: '14px 8px',
+        minHeight: 48,
         fontSize: 13,
         fontWeight: 'bold',
         fontFamily: "'Inter', sans-serif",
