@@ -4,7 +4,7 @@
  * chartType is driven by parent via prop — no internal selectors.
  */
 
-import { useMemo } from 'react';
+import { memo,  useMemo } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamic imports (no SSR)
@@ -58,7 +58,7 @@ function getFilterStartDate(timeFilter) {
     }
 }
 
-export default function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line', timeFilter = 'Last 30 Days' }) {
+function BankrollTrendChart({ entries = [], isLoading = false, chartType = 'line', timeFilter = 'Last 30 Days' }) {
     // ── Data Pipelines ──────────────────────────────────────────
 
     const filteredEntries = useMemo(() => {
@@ -814,3 +814,5 @@ const S = {
         color: 'rgba(255,255,255,0.9)',
     },
 };
+
+export default memo(BankrollTrendChart);

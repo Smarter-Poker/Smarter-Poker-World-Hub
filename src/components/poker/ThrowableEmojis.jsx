@@ -12,6 +12,7 @@
  * Modeled after PokerBros / PokerStars / PartyPoker throwables
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -876,7 +877,7 @@ function ThrowablePicker({ onSelect, onClose }) {
 // MAIN EXPORT — ThrowableEmojis (replaces old EmojiThrower)
 // ═══════════════════════════════════════════════════════════════
 
-export default function ThrowableEmojis({
+function ThrowableEmojis({
   userId,
   seats,
   seatPositions,
@@ -1062,3 +1063,5 @@ export default function ThrowableEmojis({
 
 // Re-export seat target handler for LivePokerTable integration
 export { THROWABLES, CATEGORIES };
+
+export default memo(ThrowableEmojis);

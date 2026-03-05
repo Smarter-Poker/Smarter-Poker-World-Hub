@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { memo,  useState, useEffect, useCallback, useRef } from 'react';
 import { Camera, Scan, Loader2, Upload, Check, RefreshCw, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from '../../stores/toastStore';
@@ -71,7 +71,7 @@ function expiryBadge(expiry_date) {
 
 // ── Main Component ───────────────────────────────────────────────
 
-export default function DealerVault({ userId, completedGigs = [] }) {
+function DealerVault({ userId, completedGigs = [] }) {
     const [activeTab, setActiveTab] = useState('gaming_license');
     const [docs, setDocs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -988,3 +988,5 @@ const s = {
         padding: '30px 20px',
     },
 };
+
+export default memo(DealerVault);

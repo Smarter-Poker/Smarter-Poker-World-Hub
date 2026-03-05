@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,7 +33,7 @@ function getCalendarDays(year, month) {
     return days;
 }
 
-export default function TokeCalendar({ userId }) {
+function TokeCalendar({ userId }) {
     const [events, setEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -539,3 +540,5 @@ const calStyles = {
         borderRadius: 10, padding: '10px 16px', fontSize: 13, cursor: 'pointer',
     },
 };
+
+export default memo(TokeCalendar);

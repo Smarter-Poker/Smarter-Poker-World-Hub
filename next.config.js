@@ -1,5 +1,49 @@
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require('@sentry/nextjs');
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development', // Only active in production
+  fallbacks: {
+    document: '/offline.html',  // Shown when user is offline and requests a page
+  },
+  runtimeCaching: [
+    // Cache static assets (images, fonts) - cache first
+    {
+      urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-assets',
+        expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+      },
+    },
+    // Cache public venue and game data - stale while revalidate
+    {
+      urlPattern: /^https:\/\/smarter\.poker\/api\/public\//,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'public-api',
+        expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
+      },
+    },
+    // Cache training + trivia content - stale while revalidate
+    {
+      urlPattern: /^https:\/\/smarter\.poker\/api\/(training|trivia|arcade\/leaderboard)/,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'training-content',
+        expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 }, // 1 hour
+      },
+    },
+    // Never cache auth, financial, or realtime routes
+    {
+      urlPattern: /\/api\/(auth|club-arena\/(?:cashout|mint|distribute|clawback)|poker\/engine)\//,
+      handler: 'NetworkOnly',
+    },
+  ],
+  buildExcludes: [/middleware-manifest\.json$/],
+});
 
 const nextConfig = {
   reactStrictMode: false, // Kept false — Supabase auth triggers double-invoke side effects in strict mode
@@ -109,6 +153,7 @@ const sentryOptions = {
 
 // Only wrap with Sentry if DSN is configured AND auth token is present
 // TEMP FIX: Bypass Sentry wrapping to diagnose Vercel deployment Internal Error
+const pwaConfig = withPWA(nextConfig);
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN && process.env.SENTRY_AUTH_TOKEN
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions, sentryOptions)
-  : nextConfig;
+  ? withSentryConfig(pwaConfig, sentryWebpackPluginOptions, sentryOptions)
+  : pwaConfig;

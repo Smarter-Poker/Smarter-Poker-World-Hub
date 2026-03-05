@@ -5,6 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -257,8 +258,10 @@ export default function ClubArenaPage() {
     const [sharkClubStats, setSharkClubStats] = useState({ totalMembers: 0, clubLevel: 1, activePlayers: 0 });
 
     useEffect(() => {
+        const controller = new AbortController();
         loadUserData();
         fetchSharkClubStats();
+        return () => controller.abort();
     }, []);
 
     // Fetch real stats from Supabase for the Shark Club card

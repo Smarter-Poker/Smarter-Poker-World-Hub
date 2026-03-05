@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 /**
  * BANKROLL MANAGER PAGE
  * /hub/bankroll-manager — Financial Truth Engine
@@ -27,7 +28,7 @@ import { formatCurrency } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components
 import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
-import LogEntryModal from '../../src/components/bankroll/LogEntryModal';
+const LogEntryModal = dynamic(() => import('../../src/components/bankroll/LogEntryModal'), { ssr: false });
 import LeakAlertPanel from '../../src/components/bankroll/LeakAlertPanel';
 import BankrollRulesCard from '../../src/components/bankroll/BankrollRulesCard';
 import BankrollTrendChart from '../../src/components/bankroll/BankrollTrendChart';
@@ -56,7 +57,7 @@ import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
 import TokeTracker from '../../src/components/bankroll/TokeTracker';
 import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
-import StartingBankrollModal from '../../src/components/bankroll/StartingBankrollModal';
+const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';

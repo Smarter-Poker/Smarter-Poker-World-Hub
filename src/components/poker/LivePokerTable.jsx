@@ -26,6 +26,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTableConnection } from '../../hooks/useTableConnection';
@@ -2150,7 +2151,7 @@ function ResultOverlay({ result, send, userId }) {
 // MAIN COMPONENT: LivePokerTable
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function LivePokerTable({
+function LivePokerTable({
   tableId,
   supabase,
   userId,
@@ -3267,3 +3268,5 @@ export default function LivePokerTable({
     </div>
   );
 }
+
+export default memo(LivePokerTable);

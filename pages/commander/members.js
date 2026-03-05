@@ -1,16 +1,18 @@
+import dynamic from 'next/dynamic';
 /**
  * Club Commander — Members Page
  * Full member management: list, search, add, scan, detail view
  * NO EMOJIS (per /no-emoji-commander)
  */
 import { useState, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, UserPlus, ScanLine, Search, Filter, ChevronDown, User, Clock, Loader2, DollarSign, CreditCard } from 'lucide-react';
 import AddMemberModal from '../../src/components/commander/members/AddMemberModal';
 import ScanMemberModal from '../../src/components/commander/members/ScanMemberModal';
-import MemberDetailPanel from '../../src/components/commander/members/MemberDetailPanel';
+const MemberDetailPanel = dynamic(() => import('../../src/components/commander/members/MemberDetailPanel'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
@@ -27,7 +29,6 @@ export default function MembersPage() {
     // Data
     const [members, setMembers] = useState([]);
     const [total, setTotal] = useState(0);
-    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
 
     // Filters
@@ -53,36 +54,33 @@ export default function MembersPage() {
         } catch { router.push('/commander/login').catch(() => { }); }
     }, [router]);
 
-    // Fetch members
-    const fetchMembers = useCallback(async () => {
-        if (!venueId) return;
-        setLoading(true);
-        try {
-            const params = new URLSearchParams({ venue_id: venueId, page, limit: 50 });
-            if (search) params.set('search', search);
-            if (statusFilter) params.set('status', statusFilter);
-            if (tierFilter) params.set('tier', tierFilter);
+    // SWR-backed members list — auto-revalidates on focus/interval
+    const membersKey = venueId ? (() => {
+        const params = new URLSearchParams({ venue_id: venueId, page, limit: 50 });
+        if (search) params.set('search', search);
+        if (statusFilter) params.set('status', statusFilter);
+        if (tierFilter) params.set('tier', tierFilter);
+        return `/api/commander/members?${params}`;
+    })() : null;
 
-            const res = await fetch(`/api/commander/members?${params}`);
-            const data = await res.json();
-            if (data.success) {
-                setMembers(data.data.members);
-                setTotal(data.data.total);
-                // ═══ CRITICAL: Refresh selectedMember with fresh data from API ═══
-                // When bus events fire from other pages (cashier adding time, comps issuing),
-                // the selectedMember state must be updated with the latest values
-                setSelectedMember(prev => {
-                    if (!prev) return null;
-                    const fresh = (data.data.members || []).find(m => m.id === prev.id);
-                    return fresh || prev;
-                });
-            }
-        } catch (err) {
-            console.error('Fetch members error:', err);
-        } finally { setLoading(false); }
-    }, [venueId, page, search, statusFilter, tierFilter]);
+    const { data: membersData, isLoading: loading, mutate: fetchMembers } = useSWR(
+        membersKey,
+        (url) => fetch(url).then(r => r.json()),
+        { revalidateOnFocus: true, dedupingInterval: 5000 }
+    );
 
-    useEffect(() => { fetchMembers(); }, [fetchMembers]);
+    useEffect(() => {
+        if (membersData?.success) {
+            setMembers(membersData.data.members || []);
+            setTotal(membersData.data.total || 0);
+            // ═══ CRITICAL: Refresh selectedMember with fresh data from API ═══
+            setSelectedMember(prev => {
+                if (!prev) return null;
+                const fresh = (membersData.data.members || []).find(m => m.id === prev.id);
+                return fresh || prev;
+            });
+        }
+    }, [membersData]);
 
     // Commander Data Bus — sync members across tabs
     useCommanderSync(venueId, fetchMembers, { entities: ['members'] });

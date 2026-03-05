@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { memo,  useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
 
@@ -73,7 +73,7 @@ function KpiTile({ icon, label, value, sub, color = '#f59e0b' }) {
 }
 
 // ── Main Component ─────────────────────────────────────────────
-export default function TokeDashboard({ userId, refreshTrigger }) {
+function TokeDashboard({ userId, refreshTrigger }) {
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeChart, setActiveChart] = useState('trend');
@@ -488,3 +488,5 @@ const S = {
         minHeight: 200,
     },
 };
+
+export default memo(TokeDashboard);

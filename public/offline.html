@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smarter.Poker — Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      background: #0a0a15;
+      color: #fff;
+      font-family: var(--font-inter, 'Inter', -apple-system, sans-serif);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+    }
+    .container { max-width: 400px; }
+    .logo { font-size: 48px; margin-bottom: 24px; }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #FFD700, #FF8C00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p {
+      color: rgba(255,255,255,0.6);
+      font-size: 16px;
+      line-height: 1.5;
+      margin-bottom: 32px;
+    }
+    button {
+      background: linear-gradient(135deg, #FFD700, #FF8C00);
+      color: #0a0a15;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">♠</div>
+    <h1>You're Offline</h1>
+    <p>Check your connection and try again. Your recent data has been cached for offline access.</p>
+    <button onclick="window.location.reload()">Try Again</button>
+  </div>
+</body>
+</html>

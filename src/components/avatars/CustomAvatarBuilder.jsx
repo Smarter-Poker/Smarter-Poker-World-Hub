@@ -5,13 +5,14 @@
  * Features: Matrix-style loading, Accept/Regenerate flow, Gallery management
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
 import supabase from '../../lib/supabase.ts';
 import toast from '../../stores/toastStore';
 
-export default function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
+function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = null }) {
   const { user: contextUser, createCustomAvatar, isVip: contextIsVip, initializing } = useAvatar();
   // Use prop user as fallback when context is still initializing
   const user = contextUser || propUser;
@@ -1017,3 +1018,5 @@ export default function CustomAvatarBuilder({ isVip = false, onClose = null, use
     </div>
   );
 }
+
+export default memo(CustomAvatarBuilder);

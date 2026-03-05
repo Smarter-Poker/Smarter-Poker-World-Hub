@@ -60,6 +60,7 @@ export default async function handler(req, res) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, avatar_url, display_name')
+            .limit(500)
         .in('id', playerIds);
       if (profiles) {
         profiles.forEach(p => { avatarMap[p.id] = { avatar_url: p.avatar_url, display_name: p.display_name }; });

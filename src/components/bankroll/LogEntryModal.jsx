@@ -3,7 +3,7 @@
  * Category-first session logging with minimal required fields
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { memo,  useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { createLedgerEntry, updateLedgerEntry, getActiveTrip, getActiveSeries } from '../../lib/bankroll/bankrollSelectors';
@@ -41,7 +41,7 @@ const SPORTS = ['baseball', 'basketball', 'football', 'hockey', 'boxing_mma'];
 const BET_TYPES = ['moneyline', 'spread', 'over_under', 'parlay', 'prop', 'live'];
 const EMOTIONAL_TAGS = ['neutral', 'confident', 'tilted', 'exhausted', 'rushed', 'revenge'];
 
-export default function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, onClose, onSubmit }) {
+function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, defaultMediaUrls, defaultPrefillData, onClose, onSubmit }) {
   const isEditMode = !!editEntry;
   const [step, setStep] = useState(isEditMode || defaultCategory ? 'details' : 'category');
   const [category, setCategory] = useState(isEditMode ? editEntry.category : (defaultCategory || null));
@@ -1730,3 +1730,5 @@ const styles = {
     cursor: 'pointer',
   },
 };
+
+export default memo(LogEntryModal);

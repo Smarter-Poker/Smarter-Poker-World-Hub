@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
  * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
@@ -54,7 +55,7 @@ import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
 import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
-import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
+const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 

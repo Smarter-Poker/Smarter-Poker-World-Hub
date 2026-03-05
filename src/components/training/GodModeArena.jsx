@@ -9,6 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameUIRouter from './GameUIRouter';
@@ -370,7 +371,7 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function GodModeArena({
+function GodModeArena({
     userId,
     gameId,
     gameName,
@@ -1062,3 +1063,5 @@ const styles = {
         background: 'linear-gradient(90deg, #3b82f6, #8b5cf6)',
     },
 };
+
+export default memo(GodModeArena);

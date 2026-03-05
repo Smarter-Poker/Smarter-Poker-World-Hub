@@ -11,6 +11,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useMemo, useEffect, useCallback, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -569,7 +570,7 @@ function FrequencyBar({ frequency, color, show }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function UniversalDynamicTable({
+function UniversalDynamicTable({
     question,
     questionNumber,
     totalQuestions,
@@ -1822,3 +1823,5 @@ const styles = {
         color: '#475569',
     },
 };
+
+export default memo(UniversalDynamicTable);

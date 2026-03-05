@@ -6,6 +6,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Image as ImageIcon } from 'lucide-react';
@@ -81,7 +82,7 @@ const EXPENSE_CATEGORIES = [
     { id: 'tip_out', label: 'Tip Out' },
 ];
 
-export default function TokeTracker({ userId, refreshTrigger, standalone = false }) {
+function TokeTracker({ userId, refreshTrigger, standalone = false }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
@@ -2349,3 +2350,5 @@ const styles = {
         padding: '8px 16px', fontSize: 13, cursor: 'pointer',
     },
 };
+
+export default memo(TokeTracker);

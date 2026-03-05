@@ -3,6 +3,7 @@
  * Reference: IMPLEMENTATION_PHASES.md - Phase 5
  * Dark industrial sci-fi gaming theme
  */
+import React, { memo } from 'react'; // memo added
 import React, { useState, useMemo } from 'react';
 import {
   Users, Clock, DollarSign, TrendingUp, TrendingDown,
@@ -73,7 +74,7 @@ function MiniChart({ data, color = '#22D3EE' }) {
   );
 }
 
-export default function AnalyticsDashboard({
+function AnalyticsDashboard({
   analytics = [],
   summary = {},
   isLoading = false,
@@ -326,3 +327,5 @@ export default function AnalyticsDashboard({
     </div>
   );
 }
+
+export default memo(AnalyticsDashboard);

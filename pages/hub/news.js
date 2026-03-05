@@ -1,3 +1,4 @@
+import dynamic from 'next/dynamic';
 /**
  * SMARTER.POKER NEWS HUB - REDESIGNED UI
  * Build: 20260205-v3-metallic-icons
@@ -31,7 +32,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
-import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
+const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
 
 // Fallback data
 const FALLBACK_NEWS = [

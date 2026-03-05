@@ -4,7 +4,7 @@
  * Step 2: Customize tournament details
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect } from 'react';
+import { memo,  useState, useEffect } from 'react';
 import {
   X, Trophy, Calendar, DollarSign, Users, Clock, Loader2,
   ChevronLeft, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
@@ -42,7 +42,7 @@ const SCRATCH_BLINDS = [
   { level: 12, small_blind: 1000, big_blind: 2000, ante: 300, duration: 15 },
 ];
 
-export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
+function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
   const [step, setStep] = useState(1); // 1 = template picker, 2 = customize
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
@@ -685,3 +685,5 @@ export default function CreateTournamentModal({ isOpen, onClose, onSubmit, venue
     </div>
   );
 }
+
+export default memo(CreateTournamentModal);

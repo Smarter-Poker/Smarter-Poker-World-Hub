@@ -6,6 +6,7 @@
  * ---------------------------------------------------------------
  */
 
+import React, { memo } from 'react'; // memo added
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,7 +33,7 @@ const CATEGORY_LABELS = {
     expense: 'Expenses',
 };
 
-export default function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger }) {
+function SeriesTracker({ userId, onOpenLog, onEditEntry, onDeleteEntry, refreshTrigger }) {
     const [activeSeries, setActiveSeries] = useState(null);
     const [completedSeries, setCompletedSeries] = useState([]);
     const [seriesEntries, setSeriesEntries] = useState([]);
@@ -1132,3 +1133,5 @@ const styles = {
         fontWeight: 500,
     },
 };
+
+export default memo(SeriesTracker);

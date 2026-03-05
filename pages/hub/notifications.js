@@ -7,7 +7,6 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 
@@ -43,6 +42,8 @@ export default function NotificationsPage() {
     useEffect(() => {
         // Low-value notification types to suppress (noise reduction)
         const BLOCKED_TYPES = ['like', 'comment', 'share', 'mention', 'tag', 'hand_reaction'];
+        const controller = new AbortController();
+        const { signal } = controller;
 
         const fetchNotifications = async () => {
             //  BULLETPROOF: Use authUtils to avoid AbortError
@@ -59,7 +60,7 @@ export default function NotificationsPage() {
                         .not('type', 'in', `(${BLOCKED_TYPES.join(',')})`)
                         .order('created_at', { ascending: false })
                         .limit(50),
-                    fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30')
+                    fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30', { signal })
                         .then(r => r.json())
                         .catch(() => ({ success: false })),
                 ]);
@@ -151,6 +152,7 @@ export default function NotificationsPage() {
             setLoading(false);
         };
         fetchNotifications();
+        return () => controller.abort();
     }, []);
 
     const markAsRead = async (id) => {
