@@ -23,11 +23,11 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-        return res.status(500).json({ error: 'OneSignal not configured' });
+        return res.status(500).json({ success: false, error: 'OneSignal not configured' });
     }
 
     // ── Auth: verify JWT identity OR admin secret (for internal server-to-server calls) ──
@@ -37,18 +37,18 @@ export default async function handler(req, res) {
 
     if (!hasAdminAuth) {
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Auth required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
         const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         // BUG #243 FIX: JWT users can only send to specific users (not broadcast to segments)
         // This prevents any authenticated user from spamming all users via segments: ['All']
         const { segments, playerIds, externalUserIds, tags } = req.body;
         if (segments || tags || (playerIds && playerIds.length > 5) || (externalUserIds && externalUserIds.length > 5)) {
-            return res.status(403).json({ error: 'Broadcast notifications require admin access' });
+            return res.status(403).json({ success: false, error: 'Broadcast notifications require admin access' });
         }
         if (!externalUserIds?.length && !playerIds?.length) {
-            return res.status(400).json({ error: 'Must specify target user(s) for notification' });
+            return res.status(400).json({ success: false, error: 'Must specify target user(s) for notification' });
         }
     }
 
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         } = req.body;
 
         if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
+            return res.status(400).json({ success: false, error: 'Message is required' });
         }
 
         // Build notification payload
@@ -179,6 +179,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Send notification error:', error);
-        return res.status(500).json({ error: 'Failed to send notification' });
+        return res.status(500).json({ success: false, error: 'Failed to send notification' });
     }
 }

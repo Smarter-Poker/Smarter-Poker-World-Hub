@@ -20,20 +20,20 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.auth)) return;
 
     if (req.method !== 'DELETE') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── AUTH CHECK ──
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Not authenticated' });
+        return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
-        return res.status(401).json({ error: 'Invalid or expired session' });
+        return res.status(401).json({ success: false, error: 'Invalid or expired session' });
     }
 
     try {
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         if (activeBalances?.length > 0) {
             const totalChips = activeBalances.reduce((sum, m) => sum + (m.chip_balance || 0) + (m.locked_chips || 0), 0);
             return res.status(400).json({
-                error: 'Cannot delete account with active chip balances',
+                success: false, error: 'Cannot delete account with active chip balances',
                 details: `You have ${totalChips.toLocaleString()} chips across ${activeBalances.length} club(s). Please cash out or contact your agent first.`,
                 clubs_with_balance: activeBalances.length,
             });
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
         if (activeAgent?.length > 0) {
             return res.status(400).json({
-                error: 'Cannot delete account while active as an agent',
+                success: false, error: 'Cannot delete account while active as an agent',
                 details: 'Please have the club owner remove your agent role first.',
             });
         }
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
 
         if (ownedClubs?.length > 0) {
             return res.status(400).json({
-                error: 'Cannot delete account while you own clubs',
+                success: false, error: 'Cannot delete account while you own clubs',
                 details: `You own ${ownedClubs.length} club(s): ${ownedClubs.map(c => c.name).join(', ')}. Transfer ownership or delete the club(s) first.`,
                 clubs_owned: ownedClubs.length,
             });
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
         if (ownedUnions?.length > 0) {
             return res.status(400).json({
-                error: 'Cannot delete account while you own unions',
+                success: false, error: 'Cannot delete account while you own unions',
                 details: `You own ${ownedUnions.length} union(s): ${ownedUnions.map(u => u.name).join(', ')}. Transfer ownership first.`,
                 unions_owned: ownedUnions.length,
             });
@@ -190,6 +190,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[delete-account] Error:', error);
-        return res.status(500).json({ error: 'Failed to delete account. Please contact support.' });
+        return res.status(500).json({ success: false, error: 'Failed to delete account. Please contact support.' });
     }
 }

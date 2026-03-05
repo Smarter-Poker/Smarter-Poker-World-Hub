@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   // Internal-only endpoint — called server-side by create-subscription.js.
@@ -21,13 +21,13 @@ export default async function handler(req, res) {
   const envSecret = process.env.ADMIN_ROUTE_SECRET;
   
   if (!envSecret || !adminSecret || adminSecret !== envSecret) {
-    return res.status(403).json({ error: 'This endpoint is for internal use only' });
+    return res.status(403).json({ success: false, error: 'This endpoint is for internal use only' });
   }
 
   const { to, name, clubName, tier, loginUrl } = req.body;
 
   if (!to || !name || !clubName) {
-    return res.status(400).json({ error: 'Missing required fields: to, name, clubName' });
+    return res.status(400).json({ success: false, error: 'Missing required fields: to, name, clubName' });
   }
 
   const tierInfo = {
@@ -161,6 +161,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, id: data.id });
   } catch (error) {
     console.error('Email error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

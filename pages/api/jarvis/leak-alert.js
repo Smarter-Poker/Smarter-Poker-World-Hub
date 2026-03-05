@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
     // BUG #242 FIX: Removed req.query.userId fallback — IDOR allowed viewing anyone's leak alerts
     if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     switch (method) {
@@ -58,7 +58,7 @@ async function getUnreadAlerts(userId, res) {
 
         if (error) {
             console.error('[Jarvis Leak Alert] Error fetching alerts:', error);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         return res.status(200).json({
@@ -68,7 +68,7 @@ async function getUnreadAlerts(userId, res) {
         });
     } catch (err) {
         console.error('[Jarvis Leak Alert] Server error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 
@@ -79,7 +79,7 @@ async function markAlertRead(userId, body, res) {
     const { alertId, dismiss = false } = body;
 
     if (!alertId) {
-        return res.status(400).json({ error: 'alertId required' });
+        return res.status(400).json({ success: false, error: 'alertId required' });
     }
 
     try {
@@ -94,12 +94,12 @@ async function markAlertRead(userId, body, res) {
 
         if (error) {
             console.error('[Jarvis Leak Alert] Error marking alert read:', error);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         return res.status(200).json({ success: true });
     } catch (err) {
         console.error('[Jarvis Leak Alert] Server error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

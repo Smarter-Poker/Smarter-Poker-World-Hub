@@ -18,16 +18,16 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Auth: require valid JWT — userId must match authenticated user
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const {
         userId,
@@ -47,12 +47,12 @@ export default async function handler(req, res) {
     } = req.body;
 
     if (!userId || !gameId) {
-        return res.status(400).json({ error: 'userId and gameId are required' });
+        return res.status(400).json({ success: false, error: 'userId and gameId are required' });
     }
 
     // Enforce: userId must match authenticated user (prevents spoofing)
     if (userId !== user.id) {
-        return res.status(403).json({ error: 'userId must match authenticated user' });
+        return res.status(403).json({ success: false, error: 'userId must match authenticated user' });
     }
 
 

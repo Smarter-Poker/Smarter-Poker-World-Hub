@@ -347,19 +347,19 @@ export default async function handler(req, res) {
   // Require JWT auth for write operations
   if (req.method !== 'GET') {
     const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ error: 'Authentication required' });
+    if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
     const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
     if (req.body) req.body.userId = _authUser.id;
   }
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   const { userId } = req.body;
 
   if (!userId) {
-    return res.status(400).json({ error: 'userId required' });
+    return res.status(400).json({ success: false, error: 'userId required' });
   }
 
   try {

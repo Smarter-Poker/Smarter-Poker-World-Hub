@@ -21,14 +21,14 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const {
         gameId,
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     } = req.body;
 
     if (!gameId || !level || questionsAnswered === undefined) {
-        return res.status(400).json({ error: 'Missing required fields' });
+        return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
     try {

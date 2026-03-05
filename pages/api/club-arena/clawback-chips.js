@@ -27,17 +27,17 @@ const supabaseAdmin = createClient(
 const CLAWBACK_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { transactionId, clubId, amount: requestedAmount } = req.body;
   if (!transactionId || !clubId) {
-    return res.status(400).json({ error: 'transactionId and clubId required' });
+    return res.status(400).json({ success: false, error: 'transactionId and clubId required' });
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
@@ -58,29 +58,29 @@ export default async function handler(req, res) {
       .single();
 
     if (txnErr || !txn) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
     }
 
     // ═════════════════════════════════════════════════════════════
     // 2. Verify this is the agent who sent the chips
     // ═════════════════════════════════════════════════════════════
     if (txn.from_user_id !== user.id) {
-      return res.status(403).json({ error: 'You can only clawback your own distributions' });
+      return res.status(403).json({ success: false, error: 'You can only clawback your own distributions' });
     }
 
     if (txn.club_id !== clubId) {
-      return res.status(400).json({ error: 'Club ID mismatch' });
+      return res.status(400).json({ success: false, error: 'Club ID mismatch' });
     }
 
     // Must be an agent→player distribution, not a cashout or other type
     const clawbackableTypes = ['agent_to_player', 'promo_agent_to_player', 'send'];
     if (!clawbackableTypes.includes(txn.transaction_type) || txn.from_user_id === txn.to_user_id) {
-      return res.status(400).json({ error: 'Can only clawback agent→player distributions' });
+      return res.status(400).json({ success: false, error: 'Can only clawback agent→player distributions' });
     }
 
     // Check if already clawed back (idempotency)
     if (txn.notes?.includes('[CLAWED BACK]')) {
-      return res.status(409).json({ error: 'This transaction has already been clawed back' });
+      return res.status(409).json({ success: false, error: 'This transaction has already been clawed back' });
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     if (elapsed > CLAWBACK_WINDOW_MS) {
       const minutesAgo = Math.floor(elapsed / 60000);
       return res.status(403).json({
-        error: 'Clawback window expired',
+        success: false, error: 'Clawback window expired',
         message: `This distribution was ${minutesAgo} minutes ago. The 10-minute clawback window has closed.`,
         suggestion: 'The player must submit a cashout request for you to approve.',
       });
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
       : txn.amount;
 
     if (clawbackAmount <= 0) {
-      return res.status(400).json({ error: 'Invalid clawback amount' });
+      return res.status(400).json({ success: false, error: 'Invalid clawback amount' });
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
       .single();
 
     if (claimErr || !claimed) {
-      return res.status(409).json({ error: 'Transaction already clawed back or claim failed' });
+      return res.status(409).json({ success: false, error: 'Transaction already clawed back or claim failed' });
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         .update({ notes: txn.notes || '' })
         .eq('id', transactionId);
       return res.status(400).json({
-        error: 'Player has insufficient chips for clawback',
+        success: false, error: 'Player has insufficient chips for clawback',
         requested: clawbackAmount,
         message: 'Player may have already played or transferred some chips.',
       });
@@ -198,6 +198,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[clawback-chips]', err);
-    return res.status(500).json({ error: 'Clawback failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Clawback failed', details: err.message });
   }
 }

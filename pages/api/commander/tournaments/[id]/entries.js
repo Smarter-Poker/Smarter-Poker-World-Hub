@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const { id: tournamentId } = req.query;
 
   if (!tournamentId) {
-    return res.status(400).json({ error: 'Tournament ID required' });
+    return res.status(400).json({ success: false, error: 'Tournament ID required' });
   }
 
   if (req.method === 'GET') {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function listEntries(req, res, tournamentId) {
@@ -69,7 +69,7 @@ async function listEntries(req, res, tournamentId) {
     return res.status(200).json({ success: true, data: { entries: data } });
   } catch (error) {
     console.error('List entries error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -101,18 +101,18 @@ async function registerPlayer(req, res, tournamentId) {
       .single();
 
     if (tournamentError || !tournament) {
-      return res.status(404).json({ error: 'Tournament not found' });
+      return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
 
     // Check if registration is allowed
     if (!['scheduled', 'registering', 'running'].includes(tournament.status)) {
-      return res.status(400).json({ error: 'Registration is closed for this tournament' });
+      return res.status(400).json({ success: false, error: 'Registration is closed for this tournament' });
     }
 
     // Check late registration
     if (tournament.status === 'running') {
       if (tournament.current_level > tournament.late_registration_levels) {
-        return res.status(400).json({ error: 'Late registration period has ended' });
+        return res.status(400).json({ success: false, error: 'Late registration period has ended' });
       }
     }
 
@@ -126,7 +126,7 @@ async function registerPlayer(req, res, tournamentId) {
             .limit(100);
 
       if (count >= tournament.max_entries) {
-        return res.status(400).json({ error: 'Tournament is full' });
+        return res.status(400).json({ success: false, error: 'Tournament is full' });
       }
     }
 
@@ -142,7 +142,7 @@ async function registerPlayer(req, res, tournamentId) {
         .single();
 
       if (staffError || !staff) {
-        return res.status(403).json({ error: 'Only staff can register other players' });
+        return res.status(403).json({ success: false, error: 'Only staff can register other players' });
       }
     }
 
@@ -157,7 +157,7 @@ async function registerPlayer(req, res, tournamentId) {
         .single();
 
       if (existing) {
-        return res.status(400).json({ error: 'Player is already registered' });
+        return res.status(400).json({ success: false, error: 'Player is already registered' });
       }
     }
 
@@ -190,7 +190,7 @@ async function registerPlayer(req, res, tournamentId) {
     return res.status(201).json({ success: true, data: { entry } });
   } catch (error) {
     console.error('Register player error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -198,20 +198,20 @@ async function unregisterPlayer(req, res, tournamentId) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { entry_id } = req.body;
 
     if (!entry_id) {
-      return res.status(400).json({ error: 'Entry ID required' });
+      return res.status(400).json({ success: false, error: 'Entry ID required' });
     }
 
     // Get entry
@@ -223,7 +223,7 @@ async function unregisterPlayer(req, res, tournamentId) {
       .single();
 
     if (entryError || !entry) {
-      return res.status(404).json({ error: 'Entry not found' });
+      return res.status(404).json({ success: false, error: 'Entry not found' });
     }
 
     const tournament = entry.commander_tournaments;
@@ -240,7 +240,7 @@ async function unregisterPlayer(req, res, tournamentId) {
         .single();
 
       if (!staff) {
-        return res.status(400).json({ error: 'Cannot unregister after tournament has started' });
+        return res.status(400).json({ success: false, error: 'Cannot unregister after tournament has started' });
       }
     }
 
@@ -256,7 +256,7 @@ async function unregisterPlayer(req, res, tournamentId) {
         .single();
 
       if (!staff) {
-        return res.status(403).json({ error: 'Access denied' });
+        return res.status(403).json({ success: false, error: 'Access denied' });
       }
     }
 
@@ -270,6 +270,6 @@ async function unregisterPlayer(req, res, tournamentId) {
     return res.status(200).json({ success: true, message: 'Player unregistered' });
   } catch (error) {
     console.error('Unregister player error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

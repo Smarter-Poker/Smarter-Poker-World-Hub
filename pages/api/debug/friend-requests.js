@@ -10,7 +10,7 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGci
 export default async function handler(req, res) {
     // Block debug endpoints in production
     if (process.env.NODE_ENV === 'production') {
-        return res.status(404).json({ error: 'Not found' });
+        return res.status(404).json({ success: false, error: 'Not found' });
     }
     // Use service role key to bypass RLS (for admin debug only)
     const supabase = createClient(
@@ -93,6 +93,6 @@ export default async function handler(req, res) {
             }
         });
     } catch (e) {
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ success: false, error: e.message });
     }
 }

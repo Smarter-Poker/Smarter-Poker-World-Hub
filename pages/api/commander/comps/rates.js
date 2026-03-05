@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function listRates(req, res) {
@@ -99,20 +99,20 @@ async function createRate(req, res) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { venue_id } = req.body;
 
     if (!venue_id) {
-      return res.status(400).json({ error: 'Venue ID required' });
+      return res.status(400).json({ success: false, error: 'Venue ID required' });
     }
 
     // Check if user is manager/owner at this venue
@@ -126,7 +126,7 @@ async function createRate(req, res) {
       .single();
 
     if (!staff) {
-      return res.status(403).json({ error: 'Manager or owner role required' });
+      return res.status(403).json({ success: false, error: 'Manager or owner role required' });
     }
 
     const {
@@ -148,7 +148,7 @@ async function createRate(req, res) {
     } = req.body;
 
     if (!name || !rate_type || !comp_value) {
-      return res.status(400).json({ error: 'Name, rate type, and comp value are required' });
+      return res.status(400).json({ success: false, error: 'Name, rate type, and comp value are required' });
     }
 
     // If setting as default, unset other defaults
@@ -188,6 +188,6 @@ async function createRate(req, res) {
     return res.status(201).json({ rate });
   } catch (error) {
     console.error('Create comp rate error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

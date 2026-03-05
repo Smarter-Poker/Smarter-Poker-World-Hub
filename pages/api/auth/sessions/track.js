@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
@@ -48,14 +48,14 @@ export default async function handler(req, res) {
         // Get authenticated user from session
         const authHeader = req.headers.authorization;
         if (!authHeader) {
-            return res.status(401).json({ error: 'Not authenticated' });
+            return res.status(401).json({ success: false, error: 'Not authenticated' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
         if (userError || !user) {
-            return res.status(401).json({ error: 'Invalid session' });
+            return res.status(401).json({ success: false, error: 'Invalid session' });
         }
 
         // Get IP address and user agent
@@ -113,6 +113,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Session track error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

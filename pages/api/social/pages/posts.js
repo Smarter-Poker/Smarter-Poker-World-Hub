@@ -19,7 +19,7 @@ export default async function handler(req, res) {
   }
 
     if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         const { page_id, author_id, user_id, pinned_only, limit = '20', offset = '0' } = req.query;
 
         if (!page_id && !author_id) {
-            return res.status(400).json({ error: 'page_id or author_id required' });
+            return res.status(400).json({ success: false, error: 'page_id or author_id required' });
         }
 
         let query = supabase
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
         const { data, error } = await query;
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Enrich with author profiles
         const authorIds = [...new Set((data || []).map(p => p.author_id))];
@@ -89,20 +89,20 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
         // Require JWT auth for creating posts
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { page_id, content, content_type, media_urls,
             link_preview, visibility, is_pinned, metadata } = req.body;
         const author_id = authUser.id;
 
         if (!page_id) {
-            return res.status(400).json({ error: 'page_id required' });
+            return res.status(400).json({ success: false, error: 'page_id required' });
         }
 
         if (!content && (!media_urls || media_urls.length === 0)) {
-            return res.status(400).json({ error: 'Content or media required' });
+            return res.status(400).json({ success: false, error: 'Content or media required' });
         }
 
         // Check if page requires approval
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
             .eq('id', page_id)
             .single();
 
-        if (!page) return res.status(404).json({ error: 'Page not found' });
+        if (!page) return res.status(404).json({ success: false, error: 'Page not found' });
 
         const isOwner = page.owner_id === author_id;
 
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
                 .maybeSingle();
 
             if (!membership || !['admin', 'moderator', 'owner'].includes(membership.role)) {
-                return res.status(403).json({ error: 'Only admins can post on this page' });
+                return res.status(403).json({ success: false, error: 'Only admins can post on this page' });
             }
         }
 
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
             .select()
             .single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Mirror to social_posts for global feed visibility (non-blocking)
         // Only mirror approved, public posts
@@ -191,7 +191,7 @@ export default async function handler(req, res) {
         const { id, author_id, content, media_urls, link_preview, is_pinned, visibility } = req.body;
 
         if (!id || !author_id) {
-            return res.status(400).json({ error: 'id and author_id required' });
+            return res.status(400).json({ success: false, error: 'id and author_id required' });
         }
 
         // Verify ownership or admin status
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
             .eq('id', id)
             .single();
 
-        if (!post) return res.status(404).json({ error: 'Post not found' });
+        if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 
         const isAuthor = post.author_id === author_id;
 
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
         const isPageAdmin = page?.owner_id === author_id;
 
         if (!isAuthor && !isPageAdmin) {
-            return res.status(403).json({ error: 'Not authorized' });
+            return res.status(403).json({ success: false, error: 'Not authorized' });
         }
 
         const updates = { updated_at: new Date().toISOString() };
@@ -231,13 +231,13 @@ export default async function handler(req, res) {
             .select()
             .single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true, data });
 
     } else if (req.method === 'DELETE') {
         const { id, author_id } = req.query;
 
-        if (!id) return res.status(400).json({ error: 'id required' });
+        if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
         // Verify ownership
         const { data: post } = await supabase
@@ -246,7 +246,7 @@ export default async function handler(req, res) {
             .eq('id', id)
             .single();
 
-        if (!post) return res.status(404).json({ error: 'Post not found' });
+        if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 
         const isAuthor = post.author_id === author_id;
         let isPageOwner = false;
@@ -260,7 +260,7 @@ export default async function handler(req, res) {
         }
 
         if (!isAuthor && !isPageOwner) {
-            return res.status(403).json({ error: 'Not authorized' });
+            return res.status(403).json({ success: false, error: 'Not authorized' });
         }
 
         const { error } = await supabase
@@ -268,10 +268,10 @@ export default async function handler(req, res) {
             .delete()
             .eq('id', id);
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true });
 
     } else {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 }

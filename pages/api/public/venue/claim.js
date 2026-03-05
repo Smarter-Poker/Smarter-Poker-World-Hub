@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         return handlePost(req, res);
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res) {
@@ -43,7 +43,7 @@ async function handleGet(req, res) {
         const { venue_id } = req.query;
 
         if (!venue_id) {
-            return res.status(400).json({ error: 'venue_id required' });
+            return res.status(400).json({ success: false, error: 'venue_id required' });
         }
 
         // Get auth user
@@ -64,7 +64,7 @@ async function handleGet(req, res) {
             .single();
 
         if (venueError || !venue) {
-            return res.status(404).json({ error: 'Venue not found' });
+            return res.status(404).json({ success: false, error: 'Venue not found' });
         }
 
         // Get user's claim status if logged in
@@ -107,7 +107,7 @@ async function handleGet(req, res) {
 
     } catch (error) {
         console.error('Venue claim GET error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 
@@ -116,14 +116,14 @@ async function handlePost(req, res) {
         // Get auth user
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Authentication required' });
+            return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
         const {
@@ -139,7 +139,7 @@ async function handlePost(req, res) {
         // Validate required fields
         if (!venue_id || !claimant_name || !claimant_email) {
             return res.status(400).json({
-                error: 'Missing required fields',
+                success: false, error: 'Missing required fields',
                 required: ['venue_id', 'claimant_name', 'claimant_email']
             });
         }
@@ -152,13 +152,13 @@ async function handlePost(req, res) {
             .single();
 
         if (venueError || !venue) {
-            return res.status(404).json({ error: 'Venue not found' });
+            return res.status(404).json({ success: false, error: 'Venue not found' });
         }
 
         // Check if venue is already claimed
         if (venue.is_claimed) {
             return res.status(400).json({
-                error: 'Venue already claimed',
+                success: false, error: 'Venue already claimed',
                 message: 'This venue has already been claimed by another user. Contact support if you believe this is an error.'
             });
         }
@@ -174,7 +174,7 @@ async function handlePost(req, res) {
 
         if (existingClaim) {
             return res.status(400).json({
-                error: 'Claim already submitted',
+                success: false, error: 'Claim already submitted',
                 claim_id: existingClaim.id,
                 status: existingClaim.status
             });
@@ -203,7 +203,7 @@ async function handlePost(req, res) {
 
         if (claimError) {
             console.error('Error creating claim:', claimError);
-            return res.status(500).json({ error: 'Failed to create claim' });
+            return res.status(500).json({ success: false, error: 'Failed to create claim' });
         }
 
         // Log the claim submission
@@ -246,6 +246,6 @@ async function handlePost(req, res) {
 
     } catch (error) {
         console.error('Venue claim POST error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

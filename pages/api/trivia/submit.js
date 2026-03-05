@@ -30,14 +30,14 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         const { score, correctCount, xpEarned, totalQuestions } = req.body;
 
         if (typeof score !== 'number' || typeof correctCount !== 'number') {
-            return res.status(400).json({ error: 'Invalid score data' });
+            return res.status(400).json({ success: false, error: 'Invalid score data' });
         }
 
         const today = getTodayCST();

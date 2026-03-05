@@ -42,20 +42,20 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: verify JWT identity (prevents unauthorized AI credit consumption) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
         const { message, context, history } = req.body;
 
         if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
+            return res.status(400).json({ success: false, error: 'Message is required' });
         }
 
         const grok = getGrokClient();
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('[Geeves Chat] Error:', error);
         return res.status(500).json({
-            error: 'Failed to process message',
+            success: false, error: 'Failed to process message',
             response: "I'm having trouble connecting right now. Please try again.",
             message: "I'm having trouble connecting right now. Please try again."
         });

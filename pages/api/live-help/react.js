@@ -17,26 +17,26 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized' });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid token' });
+            return res.status(401).json({ success: false, error: 'Invalid token' });
         }
 
         const { messageId, reaction } = req.body;
 
         if (!messageId) {
-            return res.status(400).json({ error: 'Missing messageId' });
+            return res.status(400).json({ success: false, error: 'Missing messageId' });
         }
 
         // If reaction is null, delete the reaction
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
             if (deleteError) {
                 console.error('Failed to delete reaction:', deleteError);
-                return res.status(500).json({ error: 'Failed to delete reaction' });
+                return res.status(500).json({ success: false, error: 'Failed to delete reaction' });
             }
 
             return res.status(200).json({ success: true, reaction: null });
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
         // Validate reaction value
         if (!['helpful', 'unhelpful'].includes(reaction)) {
-            return res.status(400).json({ error: 'Invalid reaction value' });
+            return res.status(400).json({ success: false, error: 'Invalid reaction value' });
         }
 
         // Upsert reaction (insert or update)
@@ -75,13 +75,13 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('Failed to save reaction:', error);
-            return res.status(500).json({ error: 'Failed to save reaction' });
+            return res.status(500).json({ success: false, error: 'Failed to save reaction' });
         }
 
         return res.status(200).json({ success: true, reaction: data.reaction });
 
     } catch (error) {
         console.error('React API error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

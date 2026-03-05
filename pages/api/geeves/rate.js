@@ -17,30 +17,30 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized' });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid token' });
+            return res.status(401).json({ success: false, error: 'Invalid token' });
         }
 
         const { cacheId, rating, feedback } = req.body;
 
         if (!cacheId) {
-            return res.status(400).json({ error: 'Cache ID is required' });
+            return res.status(400).json({ success: false, error: 'Cache ID is required' });
         }
 
         if (!rating || rating < 1 || rating > 5) {
-            return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+            return res.status(400).json({ success: false, error: 'Rating must be between 1 and 5' });
         }
 
         // Check if user already rated this answer
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('[Geeves Rate] Error:', error);
         return res.status(500).json({
-            error: 'Failed to save rating',
+            success: false, error: 'Failed to save rating',
             details: error.message
         });
     }

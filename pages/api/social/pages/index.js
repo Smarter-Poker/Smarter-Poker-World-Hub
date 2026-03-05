@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
     const supabase = getSupabase();
     if (!supabase) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     if (req.method === 'GET') {
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
                 .eq('id', id)
                 .single();
 
-            if (error) return res.status(404).json({ error: 'Page not found' });
+            if (error) return res.status(404).json({ success: false, error: 'Page not found' });
 
             // Get owner profile
             let owner = null;
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
                 .eq('slug', slug)
                 .single();
 
-            if (error) return res.status(404).json({ error: 'Page not found' });
+            if (error) return res.status(404).json({ success: false, error: 'Page not found' });
 
             // Enrich with owner profile (same as ID lookup)
             let owner = null;
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
                 .eq('linked_venue_id', String(linked_venue_id))
                 .limit(parseInt(limit, 10) || 1);
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
             return res.status(200).json({ success: true, data: data || [] });
         }
 
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
 
         const { data, error, count } = await query;
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Check follow status for each page
         let enriched = data || [];
@@ -200,9 +200,9 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
         // Require JWT auth
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { name, page_type, description, category, avatar_url, cover_url,
             website, contact_email, phone, location_city, location_state,
@@ -211,7 +211,7 @@ export default async function handler(req, res) {
         const owner_id = authUser.id;
 
         if (!name || !page_type) {
-            return res.status(400).json({ error: 'name and page_type are required' });
+            return res.status(400).json({ success: false, error: 'name and page_type are required' });
         }
 
         const slug = generateSlug(name);
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
             .select()
             .single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Auto-follow as owner
         await supabase.from('social_page_followers').insert({
@@ -292,15 +292,15 @@ export default async function handler(req, res) {
     } else if (req.method === 'PUT') {
         // Require JWT auth
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { id, ...updates } = req.body;
         const owner_id = authUser.id;
 
         if (!id) {
-            return res.status(400).json({ error: 'id is required' });
+            return res.status(400).json({ success: false, error: 'id is required' });
         }
 
         // Verify ownership and get existing data for change detection
@@ -311,7 +311,7 @@ export default async function handler(req, res) {
             .single();
 
         if (!existing || existing.owner_id !== owner_id) {
-            return res.status(403).json({ error: 'Not authorized' });
+            return res.status(403).json({ success: false, error: 'Not authorized' });
         }
 
         const { data, error } = await supabase
@@ -321,7 +321,7 @@ export default async function handler(req, res) {
             .select()
             .single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Auto-post for profile changes (non-blocking, fire-and-forget)
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
@@ -378,13 +378,13 @@ export default async function handler(req, res) {
     } else if (req.method === 'DELETE') {
         // Require JWT auth
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { id } = req.query;
 
-        if (!id) return res.status(400).json({ error: 'id is required' });
+        if (!id) return res.status(400).json({ success: false, error: 'id is required' });
 
         // Verify ownership via JWT user
         const { data: existing } = await supabase
@@ -394,7 +394,7 @@ export default async function handler(req, res) {
             .single();
 
         if (!existing || existing.owner_id !== authUser.id) {
-            return res.status(403).json({ error: 'Not authorized — only the page owner can delete' });
+            return res.status(403).json({ success: false, error: 'Not authorized — only the page owner can delete' });
         }
 
         const { error } = await supabase
@@ -402,10 +402,10 @@ export default async function handler(req, res) {
             .delete()
             .eq('id', id);
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true });
 
     } else {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 }

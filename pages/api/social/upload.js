@@ -37,23 +37,23 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'POST only' });
+        return res.status(405).json({ success: false, error: 'POST only' });
     }
 
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
     const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
     if (!supabaseUrl || !serviceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // ── Auth: verify JWT identity (check BEFORE parsing large file body) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
         const form = new IncomingForm({
@@ -74,18 +74,18 @@ export default async function handler(req, res) {
         const prefix = Array.isArray(fields.prefix) ? fields.prefix[0] : (fields.prefix || '');
 
         if (!file) {
-            return res.status(400).json({ error: 'No file provided' });
+            return res.status(400).json({ success: false, error: 'No file provided' });
         }
 
         // Validate file type
         const mimeType = file.mimetype || file.type || '';
         if (!ALLOWED_TYPES.includes(mimeType)) {
-            return res.status(400).json({ error: `File type not allowed: ${mimeType}` });
+            return res.status(400).json({ success: false, error: `File type not allowed: ${mimeType}` });
         }
 
         // Validate file size
         if (file.size > MAX_FILE_SIZE) {
-            return res.status(400).json({ error: `File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)` });
+            return res.status(400).json({ success: false, error: `File too large (max ${MAX_FILE_SIZE / 1024 / 1024}MB)` });
         }
 
         // Build storage path
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
 
         if (uploadError) {
             console.error('[Upload API] Storage upload error:', uploadError.message);
-            return res.status(500).json({ error: 'Upload failed: ' + uploadError.message });
+            return res.status(500).json({ success: false, error: 'Upload failed: ' + uploadError.message });
         }
 
         // Get public URL
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         const publicUrl = urlData?.publicUrl;
 
         if (!publicUrl) {
-            return res.status(500).json({ error: 'Failed to get public URL' });
+            return res.status(500).json({ success: false, error: 'Failed to get public URL' });
         }
 
         const isVideo = mimeType.startsWith('video/');
@@ -135,6 +135,6 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('[Upload API] Error:', err.message);
-        return res.status(500).json({ error: 'Upload failed: ' + err.message });
+        return res.status(500).json({ success: false, error: 'Upload failed: ' + err.message });
     }
 }

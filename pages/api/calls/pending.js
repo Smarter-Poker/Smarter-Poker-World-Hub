@@ -10,14 +10,14 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const userId = authUser.id; // From JWT, NOT query param
 
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[calls/pending] Error:', error);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         // Return the most recent pending call
@@ -59,6 +59,6 @@ export default async function handler(req, res) {
         });
     } catch (e) {
         console.error('[calls/pending] Exception:', e);
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ success: false, error: e.message });
     }
 }

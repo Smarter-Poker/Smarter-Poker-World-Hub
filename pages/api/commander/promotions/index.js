@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'POST']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function listPromotions(req, res) {
@@ -123,20 +123,20 @@ async function createPromotion(req, res) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { venue_id } = req.body;
 
     if (!venue_id) {
-      return res.status(400).json({ error: 'Venue ID required' });
+      return res.status(400).json({ success: false, error: 'Venue ID required' });
     }
 
     // Check if user is staff at this venue
@@ -149,11 +149,11 @@ async function createPromotion(req, res) {
       .single();
 
     if (!staff) {
-      return res.status(403).json({ error: 'You are not authorized to create promotions for this venue' });
+      return res.status(403).json({ success: false, error: 'You are not authorized to create promotions for this venue' });
     }
 
     if (!['owner', 'manager'].includes(staff.role)) {
-      return res.status(403).json({ error: 'Owner or Manager role required to create promotions' });
+      return res.status(403).json({ success: false, error: 'Owner or Manager role required to create promotions' });
     }
 
     const {
@@ -182,7 +182,7 @@ async function createPromotion(req, res) {
     } = req.body;
 
     if (!name || !promotion_type) {
-      return res.status(400).json({ error: 'Name and promotion type are required' });
+      return res.status(400).json({ success: false, error: 'Name and promotion type are required' });
     }
 
     const { data: promotion, error } = await supabase
@@ -237,6 +237,6 @@ async function createPromotion(req, res) {
     return res.status(201).json({ promotion });
   } catch (error) {
     console.error('Create promotion error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

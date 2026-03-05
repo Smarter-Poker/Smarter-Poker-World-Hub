@@ -19,16 +19,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'GET only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const clubId = req.query.clubId;
-  if (!clubId) return res.status(400).json({ error: 'clubId query param required' });
+  if (!clubId) return res.status(400).json({ success: false, error: 'clubId query param required' });
 
   try {
     // 1. Get caller's membership
@@ -39,13 +39,13 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .single();
 
-    if (!callerMember) return res.status(404).json({ error: 'Not a member of this club' });
+    if (!callerMember) return res.status(404).json({ success: false, error: 'Not a member of this club' });
 
     const isOwnerAdmin = ['owner', 'admin'].includes(callerMember.role);
     const isAgent = ['agent', 'sub_agent', 'super_agent'].includes(callerMember.role);
 
     if (!isOwnerAdmin && !isAgent) {
-      return res.status(403).json({ error: 'Agent, owner, or admin role required' });
+      return res.status(403).json({ success: false, error: 'Agent, owner, or admin role required' });
     }
 
     // 2. Get agent record(s)
@@ -177,6 +177,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[agent-dashboard]', err);
-    return res.status(500).json({ error: 'Dashboard load failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Dashboard load failed', details: err.message });
   }
 }

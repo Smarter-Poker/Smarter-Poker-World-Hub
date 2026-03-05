@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       return res.json(controller.getStats());
     }
 
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST or GET' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST or GET' });
 
     // ── Auth: verify JWT identity matches playerId ──
     const { authenticatePlayer } = require('../../../../src/lib/poker-engine/authMiddleware');
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     const { tableId, type, message, latitude, longitude } = req.body;
 
     if (!tableId || !type) {
-      return res.status(400).json({ error: 'tableId, type required' });
+      return res.status(400).json({ success: false, error: 'tableId, type required' });
     }
 
     switch (type) {
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         return res.json({ success: true });
 
       case 'chat':
-        if (!message) return res.status(400).json({ error: 'message required' });
+        if (!message) return res.status(400).json({ success: false, error: 'message required' });
         const chatResult = await controller.sendChat(tableId, playerId, message);
         return res.json(chatResult);
 
@@ -74,10 +74,10 @@ export default async function handler(req, res) {
         return res.json({ success: true });
 
       default:
-        return res.status(400).json({ error: `Unknown type: ${type}` });
+        return res.status(400).json({ success: false, error: `Unknown type: ${type}` });
     }
   } catch (err) {
     console.error('[engine/connect]', err);
-    return res.status(500).json({ error: 'Internal error' });
+    return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

@@ -30,13 +30,13 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   const { id: tournamentId } = req.query;
 
   if (!tournamentId) {
-    return res.status(400).json({ error: 'Tournament ID required' });
+    return res.status(400).json({ success: false, error: 'Tournament ID required' });
   }
 
   try {
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     const { entry_id, eliminated_by_id } = req.body;
 
     if (!entry_id) {
-      return res.status(400).json({ error: 'Entry ID required' });
+      return res.status(400).json({ success: false, error: 'Entry ID required' });
     }
 
     // Get tournament
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       .single();
 
     if (tournamentError || !tournament) {
-      return res.status(404).json({ error: 'Tournament not found' });
+      return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
 
 
@@ -70,11 +70,11 @@ export default async function handler(req, res) {
       .single();
 
     if (entryError || !entry) {
-      return res.status(404).json({ error: 'Entry not found' });
+      return res.status(404).json({ success: false, error: 'Entry not found' });
     }
 
     if (entry.status === 'eliminated') {
-      return res.status(400).json({ error: 'Player already eliminated' });
+      return res.status(400).json({ success: false, error: 'Player already eliminated' });
     }
 
     // Count remaining players to determine finish position
@@ -289,7 +289,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Eliminate player error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 

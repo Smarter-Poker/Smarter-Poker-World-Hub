@@ -27,28 +27,28 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // Accept engine key or bearer token
   const engineKey = req.headers['x-engine-key'];
   const token = req.headers.authorization?.replace('Bearer ', '');
   const validEngineKey = engineKey && process.env.ENGINE_INTERNAL_SECRET && engineKey === process.env.ENGINE_INTERNAL_SECRET;
-  if (!validEngineKey && !token) return res.status(401).json({ error: 'Auth required' });
+  if (!validEngineKey && !token) return res.status(401).json({ success: false, error: 'Auth required' });
 
   let callerUserId = null;
   if (token && !validEngineKey) {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (error || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
     callerUserId = user.id;
   }
 
   const { clubId, tableId, userId, action, amount } = req.body;
   if (!clubId || !userId || !action || amount === undefined || amount <= 0) {
-    return res.status(400).json({ error: 'clubId, userId, action, and positive amount required' });
+    return res.status(400).json({ success: false, error: 'clubId, userId, action, and positive amount required' });
   }
 
   if (!['lock', 'unlock', 'rebuy'].includes(action)) {
-    return res.status(400).json({ error: 'action must be lock, unlock, or rebuy' });
+    return res.status(400).json({ success: false, error: 'action must be lock, unlock, or rebuy' });
   }
 
   // JWT callers can only operate on themselves unless they're club admin
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       .eq('user_id', callerUserId)
       .single();
     if (!callerMember || !['owner', 'admin', 'manager'].includes(callerMember.role)) {
-      return res.status(403).json({ error: 'Cannot operate on another user\'s chips' });
+      return res.status(403).json({ success: false, error: 'Cannot operate on another user\'s chips' });
     }
   }
 
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
       if (rpcErr) throw rpcErr;
       if (!result?.success) {
         return res.status(400).json({
-          error: result?.error || 'Insufficient chips',
+          success: false, error: result?.error || 'Insufficient chips',
           available: result?.balance,
           requested: amount,
         });
@@ -136,6 +136,6 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('[table-chips]', err);
-    return res.status(500).json({ error: 'Table chip operation failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Table chip operation failed', details: err.message });
   }
 }

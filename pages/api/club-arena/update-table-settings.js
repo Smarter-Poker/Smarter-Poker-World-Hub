@@ -23,20 +23,20 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+    if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { tableId, clubId, name, smallBlind, bigBlind, maxPlayers,
             minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
 
     if (!tableId || !clubId) {
-      return res.status(400).json({ error: 'tableId and clubId required' });
+      return res.status(400).json({ success: false, error: 'tableId and clubId required' });
     }
 
     // Verify caller is owner or admin
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .single();
 
     if (!member || !['owner', 'admin'].includes(member.role)) {
-      return res.status(403).json({ error: 'Only owners and admins can update table settings' });
+      return res.status(403).json({ success: false, error: 'Only owners and admins can update table settings' });
     }
 
     // Verify table belongs to club
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       .single();
 
     if (tableErr || !table) {
-      return res.status(404).json({ error: 'Table not found in this club' });
+      return res.status(404).json({ success: false, error: 'Table not found in this club' });
     }
 
     // Build update object
@@ -121,6 +121,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, table: updated });
   } catch (err) {
     console.error('[update-table-settings]', err);
-    return res.status(500).json({ error: err.message || 'Failed to update table settings' });
+    return res.status(500).json({ success: false, error: err.message || 'Failed to update table settings' });
   }
 }

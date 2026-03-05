@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
     if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
             // Single game with all seats
             const { data: game, error: gErr } = await supabase
                 .from('club_live_games').select('*').eq('id', game_id).single();
-            if (gErr) return res.status(404).json({ error: 'Game not found' });
+            if (gErr) return res.status(404).json({ success: false, error: 'Game not found' });
 
             const { data: seats } = await supabase
                 .from('club_game_seats').select('*').eq('game_id', game_id)
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
                 .order('created_at', { ascending: false })
                     .limit(100);
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
 
             // Fetch all seats for these games
             const gameIds = (games || []).map(g => g.id);
@@ -285,16 +285,16 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, data: enriched });
         }
 
-        return res.status(400).json({ error: 'page_id or game_id required' });
+        return res.status(400).json({ success: false, error: 'page_id or game_id required' });
     }
 
     // ===== POST =====
     if (req.method === 'POST') {
         // Require JWT auth for all game write operations
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
         const verified_user_id = authUser.id;
 
         const { action } = req.body;
@@ -322,13 +322,13 @@ export default async function handler(req, res) {
             const { game_id, seat_number, player_name } = req.body;
             const player_id = verified_user_id;
             if (!game_id || !seat_number || !player_name) {
-                return res.status(400).json({ error: 'game_id, seat_number, and player_name required' });
+                return res.status(400).json({ success: false, error: 'game_id, seat_number, and player_name required' });
             }
 
             // Follow-gate: must be an approved follower
             const followCheck = await checkFollowStatus(game_id, player_id);
             if (!followCheck.allowed) {
-                return res.status(403).json({ error: followCheck.reason, code: followCheck.code });
+                return res.status(403).json({ success: false, error: followCheck.reason, code: followCheck.code });
             }
 
             // Check seat is available
@@ -337,7 +337,7 @@ export default async function handler(req, res) {
                 .eq('game_id', game_id).eq('seat_number', seat_number).single();
 
             if (existing) {
-                return res.status(409).json({ error: 'Seat already taken', code: 'SEAT_TAKEN' });
+                return res.status(409).json({ success: false, error: 'Seat already taken', code: 'SEAT_TAKEN' });
             }
 
             // Check player isn't already in this game
@@ -347,7 +347,7 @@ export default async function handler(req, res) {
                 .neq('status', 'waitlist').single();
 
             if (playerSeat) {
-                return res.status(409).json({ error: 'You already have a seat in this game', code: 'ALREADY_SEATED' });
+                return res.status(409).json({ success: false, error: 'You already have a seat in this game', code: 'ALREADY_SEATED' });
             }
 
             const { data, error } = await supabase
@@ -357,8 +357,8 @@ export default async function handler(req, res) {
                 }).select().single();
 
             if (error) {
-                if (error.code === '23505') return res.status(409).json({ error: 'Seat already taken', code: 'SEAT_TAKEN' });
-                return res.status(500).json({ error: error.message });
+                if (error.code === '23505') return res.status(409).json({ success: false, error: 'Seat already taken', code: 'SEAT_TAKEN' });
+                return res.status(500).json({ success: false, error: error.message });
             }
             return res.status(201).json({ success: true, data });
         }
@@ -367,13 +367,13 @@ export default async function handler(req, res) {
             const { game_id, player_name } = req.body;
             const player_id = verified_user_id;
             if (!game_id || !player_name) {
-                return res.status(400).json({ error: 'game_id and player_name required' });
+                return res.status(400).json({ success: false, error: 'game_id and player_name required' });
             }
 
             // Follow-gate: must be an approved follower
             const followCheck = await checkFollowStatus(game_id, player_id);
             if (!followCheck.allowed) {
-                return res.status(403).json({ error: followCheck.reason, code: followCheck.code });
+                return res.status(403).json({ success: false, error: followCheck.reason, code: followCheck.code });
             }
 
             // Get current max waitlist position
@@ -390,28 +390,28 @@ export default async function handler(req, res) {
                     player_name, status: 'waitlist', waitlist_position: nextPos
                 }).select().single();
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
             return res.status(201).json({ success: true, data, position: nextPos });
         }
 
         if (action === 'leave') {
             const { game_id, player_name, seat_id } = req.body;
-            if (!game_id) return res.status(400).json({ error: 'game_id required' });
+            if (!game_id) return res.status(400).json({ success: false, error: 'game_id required' });
 
             let query = supabase.from('club_game_seats').delete().eq('game_id', game_id);
             if (seat_id) query = query.eq('id', seat_id);
             else if (player_name) query = query.eq('player_name', player_name);
-            else return res.status(400).json({ error: 'player_name or seat_id required' });
+            else return res.status(400).json({ success: false, error: 'player_name or seat_id required' });
 
             const { error } = await query;
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
             return res.status(200).json({ success: true });
         }
 
         // === CREATE GAME ===
         const { page_id, game_name, game_type, stakes, max_seats, table_number, notes } = req.body;
         if (!page_id || !game_name) {
-            return res.status(400).json({ error: 'page_id and game_name required' });
+            return res.status(400).json({ success: false, error: 'page_id and game_name required' });
         }
 
         const { data, error } = await supabase
@@ -422,19 +422,19 @@ export default async function handler(req, res) {
                 created_by: verified_user_id, status: 'open'
             }).select().single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(201).json({ success: true, data });
     }
 
     // ===== PUT =====
     if (req.method === 'PUT') {
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { id, status, game_name, stakes, max_seats, notes, table_number } = req.body;
-        if (!id) return res.status(400).json({ error: 'id required' });
+        if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
         const updates = {};
         if (status) {
@@ -451,24 +451,24 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
             .from('club_live_games').update(updates).eq('id', id).select().single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true, data });
     }
 
     // ===== DELETE =====
     if (req.method === 'DELETE') {
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { id } = req.query;
-        if (!id) return res.status(400).json({ error: 'id required' });
+        if (!id) return res.status(400).json({ success: false, error: 'id required' });
 
         const { error } = await supabase.from('club_live_games').delete().eq('id', id);
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

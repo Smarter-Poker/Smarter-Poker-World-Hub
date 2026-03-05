@@ -20,14 +20,14 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: JWT required — userId derived from token, not body ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const userId = authUser.id; // Trust JWT, not request body
 
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
         if (entriesError) {
             console.error('[Jarvis Bankroll] Error fetching entries:', entriesError);
-            return res.status(500).json({ error: entriesError.message });
+            return res.status(500).json({ success: false, error: entriesError.message });
         }
 
         if (!entries || entries.length === 0) {

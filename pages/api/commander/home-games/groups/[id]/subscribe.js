@@ -23,19 +23,19 @@ export default async function handler(req, res) {
   const { id: groupId } = req.query;
 
   if (!groupId) {
-    return res.status(400).json({ error: 'Group ID required' });
+    return res.status(400).json({ success: false, error: 'Group ID required' });
   }
 
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ error: 'Authorization required' });
+    return res.status(401).json({ success: false, error: 'Authorization required' });
   }
 
   const token = authHeader.replace('Bearer ', '');
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
   if (authError || !user) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ success: false, error: 'Invalid token' });
   }
 
   if (req.method === 'POST') {
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['POST', 'DELETE', 'PUT']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function subscribe(req, res, groupId, userId) {
@@ -59,7 +59,7 @@ async function subscribe(req, res, groupId, userId) {
     const { device_token, device_type, device_name } = req.body;
 
     if (!device_token) {
-      return res.status(400).json({ error: 'Device token required' });
+      return res.status(400).json({ success: false, error: 'Device token required' });
     }
 
     // Check membership
@@ -71,7 +71,7 @@ async function subscribe(req, res, groupId, userId) {
       .single();
 
     if (!membership || membership.status !== 'approved') {
-      return res.status(403).json({ error: 'You are not a member of this group' });
+      return res.status(403).json({ success: false, error: 'You are not a member of this group' });
     }
 
     // Upsert subscription
@@ -99,7 +99,7 @@ async function subscribe(req, res, groupId, userId) {
     });
   } catch (error) {
     console.error('Subscribe error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -127,7 +127,7 @@ async function unsubscribe(req, res, groupId, userId) {
     });
   } catch (error) {
     console.error('Unsubscribe error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -149,7 +149,7 @@ async function updatePreferences(req, res, groupId, userId) {
     if (typeof notify_rsvp_updates === 'boolean') updates.notify_rsvp_updates = notify_rsvp_updates;
 
     if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: 'No preferences to update' });
+      return res.status(400).json({ success: false, error: 'No preferences to update' });
     }
 
     const { data: membership, error } = await supabase
@@ -168,6 +168,6 @@ async function updatePreferences(req, res, groupId, userId) {
     });
   } catch (error) {
     console.error('Update preferences error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

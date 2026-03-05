@@ -13,16 +13,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubId, itemId } = req.body;
-    if (!clubId || !itemId) return res.status(400).json({ error: 'clubId and itemId required' });
+    if (!clubId || !itemId) return res.status(400).json({ success: false, error: 'clubId and itemId required' });
 
     // Settlement lock check
     const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .single();
 
-        if (memErr || !member) return res.status(404).json({ error: 'Not a member' });
+        if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
 
         // Get item (scoped to this club)
         const { data: item, error: itemErr } = await supabaseAdmin
@@ -47,15 +47,15 @@ export default async function handler(req, res) {
             .eq('club_id', clubId)
             .single();
 
-        if (itemErr || !item) return res.status(404).json({ error: 'Item not found' });
-        if (!item.is_active) return res.status(400).json({ error: 'Item not available' });
+        if (itemErr || !item) return res.status(404).json({ success: false, error: 'Item not found' });
+        if (!item.is_active) return res.status(400).json({ success: false, error: 'Item not available' });
 
         const price = item.price || 0;
         const balance = member.chip_balance || 0;
 
         if (balance < price) {
             return res.status(400).json({
-                error: `Insufficient chips. Have ${balance}, need ${price}`,
+                success: false, error: `Insufficient chips. Have ${balance}, need ${price}`,
                 available: balance,
                 price,
             });
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
         if (deductErr) {
             if (deductErr.message?.includes('Insufficient')) {
-                return res.status(400).json({ error: 'Insufficient chips', available: balance, price });
+                return res.status(400).json({ success: false, error: 'Insufficient chips', available: balance, price });
             }
             throw deductErr;
         }
@@ -112,6 +112,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('[marketplace-purchase]', err);
-        return res.status(500).json({ error: err.message || 'Purchase failed' });
+        return res.status(500).json({ success: false, error: err.message || 'Purchase failed' });
     }
 }

@@ -11,18 +11,18 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-        return res.status(500).json({ error: 'OneSignal not configured' });
+        return res.status(500).json({ success: false, error: 'OneSignal not configured' });
     }
 
     try {
         const { playerId, userId } = req.body;
 
         if (!playerId || !userId) {
-            return res.status(400).json({ error: 'playerId and userId are required' });
+            return res.status(400).json({ success: false, error: 'playerId and userId are required' });
         }
 
         // BUG #242 FIX: Require JWT auth and verify caller is linking their OWN user ID
@@ -32,11 +32,11 @@ export default async function handler(req, res) {
             process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Auth required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
         const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
         if (user.id !== userId) {
-            return res.status(403).json({ error: 'Cannot link notifications for another user' });
+            return res.status(403).json({ success: false, error: 'Cannot link notifications for another user' });
         }
 
 
@@ -71,6 +71,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[OneSignal] Link user error:', error);
-        return res.status(500).json({ error: 'Failed to link user' });
+        return res.status(500).json({ success: false, error: 'Failed to link user' });
     }
 }

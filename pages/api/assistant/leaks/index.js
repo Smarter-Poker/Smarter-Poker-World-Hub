@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   // Require JWT auth for write operations
   if (req.method !== 'GET' && !userId) {
-    return res.status(401).json({ error: 'Authentication required or invalid token' });
+    return res.status(401).json({ success: false, error: 'Authentication required or invalid token' });
   }
 
   if (req.method === 'GET') {
@@ -275,7 +275,7 @@ export default async function handler(req, res) {
     const leak = req.body;
 
     if (!leak.user_id) {
-      return res.status(400).json({ error: 'user_id required' });
+      return res.status(400).json({ success: false, error: 'user_id required' });
     }
 
     try {
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
     const { id, ...updates } = req.body;
 
     if (!id) {
-      return res.status(400).json({ error: 'id required' });
+      return res.status(400).json({ success: false, error: 'id required' });
     }
 
     try {
@@ -352,7 +352,7 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 // Demo leaks for users without real data

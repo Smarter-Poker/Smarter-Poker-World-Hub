@@ -29,14 +29,14 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const userId = user.id; // From JWT, NOT body
     const { reason, reasonText } = req.body;
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             .single();
 
         if (subErr || !sub) {
-            return res.status(404).json({ error: 'No active VIP subscription found' });
+            return res.status(404).json({ success: false, error: 'No active VIP subscription found' });
         }
 
         // 2. Cancel via Stripe (at end of billing period)
@@ -99,6 +99,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Cancel VIP error:', err);
-        return res.status(500).json({ error: 'Failed to cancel subscription' });
+        return res.status(500).json({ success: false, error: 'Failed to cancel subscription' });
     }
 }

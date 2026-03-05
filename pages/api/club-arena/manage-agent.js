@@ -22,16 +22,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, action, targetUserId, ...params } = req.body;
-  if (!clubId || !action) return res.status(400).json({ error: 'clubId and action required' });
+  if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
   // Settlement lock — block chip-moving actions during settlement window
   const chipMovingActions = ['remove', 'promote', 'demote'];
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       .select('id, owner_id, union_id')
       .eq('id', clubId)
       .single();
-    if (!club) return res.status(404).json({ error: 'Club not found' });
+    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     let authorized = club.owner_id === user.id;
     if (!authorized && club.union_id) {
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       if (callerAsAgent) authorized = true;
     }
 
-    if (!authorized) return res.status(403).json({ error: 'Not authorized' });
+    if (!authorized) return res.status(403).json({ success: false, error: 'Not authorized' });
 
     // ═══════════════════════════════════════════════════════════════
     // PROMOTE: Player → Agent / Super Agent / Sub Agent
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     // Rakeback % to players must be < (agent commission - 10%)
     // ═══════════════════════════════════════════════════════════════
     if (action === 'promote') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
       const {
         commissionRate,          // REQUIRED — no default
@@ -96,14 +96,14 @@ export default async function handler(req, res) {
       // ─── VALIDATION: Commission rate is MANDATORY ───
       if (commissionRate === undefined || commissionRate === null) {
         return res.status(400).json({
-          error: 'commissionRate is REQUIRED before promoting to agent status',
+          success: false, error: 'commissionRate is REQUIRED before promoting to agent status',
           hint: 'Set a commission rate between 0.01 (1%) and 0.90 (90%)',
         });
       }
 
       if (typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
         return res.status(400).json({
-          error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)',
+          success: false, error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)',
           provided: commissionRate,
         });
       }
@@ -111,13 +111,13 @@ export default async function handler(req, res) {
       // ─── VALIDATION: Agent tier ───
       const validTiers = ['super_agent', 'agent', 'sub_agent'];
       if (!validTiers.includes(agentTier)) {
-        return res.status(400).json({ error: `agentTier must be one of: ${validTiers.join(', ')}` });
+        return res.status(400).json({ success: false, error: `agentTier must be one of: ${validTiers.join(', ')}` });
       }
 
       // ─── VALIDATION: Sub-agent requires parent and lower commission ───
       if (agentTier === 'sub_agent') {
         if (!parentAgentId) {
-          return res.status(400).json({ error: 'parentAgentId is REQUIRED for sub_agent tier' });
+          return res.status(400).json({ success: false, error: 'parentAgentId is REQUIRED for sub_agent tier' });
         }
 
         const { data: parentAgent } = await supabaseAdmin
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
           .single();
 
         if (!parentAgent) {
-          return res.status(404).json({ error: 'Parent agent not found or not active in this club' });
+          return res.status(404).json({ success: false, error: 'Parent agent not found or not active in this club' });
         }
 
         // Store the agent RECORD id (not user_id) — all queries use agent.id
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
 
         if (commissionRate >= parentAgent.commission_rate) {
           return res.status(400).json({
-            error: 'Sub-agent commission rate must be LESS than parent agent rate',
+            success: false, error: 'Sub-agent commission rate must be LESS than parent agent rate',
             parent_rate: parentAgent.commission_rate,
             provided: commissionRate,
             hint: `Parent agent is at ${(parentAgent.commission_rate * 100).toFixed(1)}%, sub-agent must be lower`,
@@ -152,14 +152,14 @@ export default async function handler(req, res) {
         const maxRakeback = commissionRate - 0.10;
         if (rakebackPercentage >= commissionRate) {
           return res.status(400).json({
-            error: 'Rakeback percentage must be LESS than agent commission rate',
+            success: false, error: 'Rakeback percentage must be LESS than agent commission rate',
             commission_rate: commissionRate,
             provided_rakeback: rakebackPercentage,
           });
         }
         if (rakebackPercentage > maxRakeback) {
           return res.status(400).json({
-            error: `Rakeback cannot exceed agent commission minus 10%. Max allowed: ${(maxRakeback * 100).toFixed(1)}%`,
+            success: false, error: `Rakeback cannot exceed agent commission minus 10%. Max allowed: ${(maxRakeback * 100).toFixed(1)}%`,
             commission_rate: commissionRate,
             max_rakeback: maxRakeback,
             provided_rakeback: rakebackPercentage,
@@ -175,9 +175,9 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId)
         .single();
 
-      if (!member) return res.status(404).json({ error: 'User not in club' });
+      if (!member) return res.status(404).json({ success: false, error: 'User not in club' });
       if (['agent', 'super_agent', 'sub_agent'].includes(member.role)) {
-        return res.status(409).json({ error: `Already ${member.role}` });
+        return res.status(409).json({ success: false, error: `Already ${member.role}` });
       }
 
       // Update role in club_members
@@ -231,7 +231,7 @@ export default async function handler(req, res) {
     // DEMOTE: Agent → Member (reassigns their players)
     // ═══════════════════════════════════════════════════════════════
     if (action === 'demote') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
       const { reassignTo } = params; // optional: another agent to receive the players
 
@@ -315,7 +315,7 @@ export default async function handler(req, res) {
     // UPDATE: Change agent settings
     // ═══════════════════════════════════════════════════════════════
     if (action === 'update') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
       const { commissionRate, tier, isPrepaid, creditLimit, nickname } = params;
       const updates = {};
@@ -326,7 +326,7 @@ export default async function handler(req, res) {
         // Without this, the generic 'update' action bypasses range checks,
         // sub-agent hierarchy rules, and rakeback ceiling enforcement.
         if (typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
-          return res.status(400).json({ error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
+          return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
         }
 
         // If this agent has a parent, new rate must be less than parent's
@@ -340,7 +340,7 @@ export default async function handler(req, res) {
         if (tgtAgent?.parent_agent_id) {
           const { data: parentAg } = await supabaseAdmin.from('agents').select('commission_rate').eq('id', tgtAgent.parent_agent_id).single();
           if (parentAg && commissionRate >= parentAg.commission_rate) {
-            return res.status(400).json({ error: 'Sub-agent rate must be less than parent rate', parent_rate: parentAg.commission_rate });
+            return res.status(400).json({ success: false, error: 'Sub-agent rate must be less than parent rate', parent_rate: parentAg.commission_rate });
           }
         }
 
@@ -349,7 +349,7 @@ export default async function handler(req, res) {
           const { data: subAgents } = await supabaseAdmin.from('agents').select('user_id, commission_rate').eq('club_id', clubId).eq('parent_agent_id', tgtAgent.id);
           for (const sub of (subAgents || [])) {
             if (sub.commission_rate >= commissionRate) {
-              return res.status(400).json({ error: `Cannot lower below sub-agent ${sub.user_id} at ${(sub.commission_rate * 100).toFixed(1)}%` });
+              return res.status(400).json({ success: false, error: `Cannot lower below sub-agent ${sub.user_id} at ${(sub.commission_rate * 100).toFixed(1)}%` });
             }
           }
 
@@ -357,7 +357,7 @@ export default async function handler(req, res) {
           if ((tgtAgent.rakeback_percentage || 0) > 0) {
             const maxRb = commissionRate - 0.10;
             if (tgtAgent.rakeback_percentage > maxRb) {
-              return res.status(400).json({ error: `Current rakeback (${(tgtAgent.rakeback_percentage * 100).toFixed(1)}%) exceeds new max (${(maxRb * 100).toFixed(1)}%). Lower rakeback first.` });
+              return res.status(400).json({ success: false, error: `Current rakeback (${(tgtAgent.rakeback_percentage * 100).toFixed(1)}%) exceeds new max (${(maxRb * 100).toFixed(1)}%). Lower rakeback first.` });
             }
           }
         }
@@ -397,7 +397,7 @@ export default async function handler(req, res) {
     if (action === 'reassign') {
       const { playerId, fromAgentId, toAgentId } = params;
       if (!playerId) {
-        return res.status(400).json({ error: 'playerId required' });
+        return res.status(400).json({ success: false, error: 'playerId required' });
       }
 
       // toAgentId can be null (un-assign from agent)
@@ -452,7 +452,7 @@ export default async function handler(req, res) {
     // SUSPEND / REACTIVATE
     // ═══════════════════════════════════════════════════════════════
     if (action === 'suspend' || action === 'reactivate') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
       const newStatus = action === 'suspend' ? 'suspended' : 'active';
 
@@ -476,11 +476,11 @@ export default async function handler(req, res) {
     // Handles agent promotion/demotion transitions automatically
     // ═══════════════════════════════════════════════════════════════
     if (action === 'change_role') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
       const { newRole } = params;
       if (!newRole || !['admin', 'agent', 'player'].includes(newRole)) {
-        return res.status(400).json({ error: 'newRole must be admin, agent, or player' });
+        return res.status(400).json({ success: false, error: 'newRole must be admin, agent, or player' });
       }
 
       const { data: targetMember } = await supabaseAdmin
@@ -490,9 +490,9 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId)
         .single();
 
-      if (!targetMember) return res.status(404).json({ error: 'Member not found' });
+      if (!targetMember) return res.status(404).json({ success: false, error: 'Member not found' });
       if (targetMember.role === 'owner') {
-        return res.status(403).json({ error: 'Cannot change the owner\'s role' });
+        return res.status(403).json({ success: false, error: 'Cannot change the owner\'s role' });
       }
 
       const oldRole = targetMember.role;
@@ -522,12 +522,12 @@ export default async function handler(req, res) {
         const cr = params.commissionRate;
         if (cr === undefined || cr === null) {
           return res.status(400).json({
-            error: 'commissionRate is REQUIRED when promoting to agent via change_role',
+            success: false, error: 'commissionRate is REQUIRED when promoting to agent via change_role',
             hint: 'Set a commission rate between 0.01 (1%) and 0.90 (90%)',
           });
         }
         if (typeof cr !== 'number' || cr < 0.01 || cr > 0.90) {
-          return res.status(400).json({ error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
+          return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
         }
 
         const { data: existingAgent } = await supabaseAdmin
@@ -583,7 +583,7 @@ export default async function handler(req, res) {
     // REMOVE: Remove a member from the club entirely
     // ═══════════════════════════════════════════════════════════════
     if (action === 'remove') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
       const { data: targetMember } = await supabaseAdmin
         .from('club_members')
@@ -592,14 +592,14 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId)
         .single();
 
-      if (!targetMember) return res.status(404).json({ error: 'Member not found' });
+      if (!targetMember) return res.status(404).json({ success: false, error: 'Member not found' });
       if (targetMember.role === 'owner') {
-        return res.status(403).json({ error: 'Cannot remove the club owner' });
+        return res.status(403).json({ success: false, error: 'Cannot remove the club owner' });
       }
 
       // Only owner can remove admins
       if (targetMember.role === 'admin' && club.owner_id !== user.id) {
-        return res.status(403).json({ error: 'Only the club owner can remove admins' });
+        return res.status(403).json({ success: false, error: 'Only the club owner can remove admins' });
       }
 
       // Prevent removing members with chip balance — return chips to treasury first
@@ -607,7 +607,7 @@ export default async function handler(req, res) {
       if (balance > 0) {
         if (!params.forceReturn) {
           return res.status(400).json({
-            error: `Member has ${balance.toLocaleString()} chips remaining. Set forceReturn:true to return chips to treasury and remove.`,
+            success: false, error: `Member has ${balance.toLocaleString()} chips remaining. Set forceReturn:true to return chips to treasury and remove.`,
             chip_balance: balance,
           });
         }
@@ -678,7 +678,7 @@ export default async function handler(req, res) {
     // SET PARENT AGENT (create sub-agent relationship)
     // ═══════════════════════════════════════════════════════════════
     if (action === 'set_parent_agent') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required (the sub-agent)' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required (the sub-agent)' });
       const { parentAgentId } = req.body;
 
       // Get target agent record
@@ -689,7 +689,7 @@ export default async function handler(req, res) {
         .eq('club_id', clubId)
         .single();
 
-      if (!targetAgent) return res.status(404).json({ error: 'Target agent not found' });
+      if (!targetAgent) return res.status(404).json({ success: false, error: 'Target agent not found' });
 
       // Resolve parentAgentId (user_id) to agent RECORD id for storage consistency
       let parentRecordId = null;
@@ -701,7 +701,7 @@ export default async function handler(req, res) {
           .eq('club_id', clubId)
           .eq('status', 'active')
           .single();
-        if (!parentAgent) return res.status(404).json({ error: 'Parent agent not found' });
+        if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
         parentRecordId = parentAgent.id;
       }
 
@@ -720,7 +720,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (action === 'list_sub_agents') {
       const { parentAgentUserId } = req.body;
-      if (!parentAgentUserId) return res.status(400).json({ error: 'parentAgentUserId required' });
+      if (!parentAgentUserId) return res.status(400).json({ success: false, error: 'parentAgentUserId required' });
 
       // Get parent agent record
       const { data: parentAgent } = await supabaseAdmin
@@ -730,7 +730,7 @@ export default async function handler(req, res) {
         .eq('club_id', clubId)
         .single();
 
-      if (!parentAgent) return res.status(404).json({ error: 'Parent agent not found' });
+      if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
 
       // Get sub-agents
       const { data: subAgents } = await supabaseAdmin
@@ -766,15 +766,15 @@ export default async function handler(req, res) {
     // Default is 0 (no rakeback to players)
     // ═══════════════════════════════════════════════════════════════
     if (action === 'set_player_rakeback') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId (player) required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId (player) required' });
       const { rakebackPercentage } = params;
 
       if (rakebackPercentage === undefined || rakebackPercentage === null) {
-        return res.status(400).json({ error: 'rakebackPercentage required (0 to disable, or a decimal like 0.05 for 5%)' });
+        return res.status(400).json({ success: false, error: 'rakebackPercentage required (0 to disable, or a decimal like 0.05 for 5%)' });
       }
 
       if (typeof rakebackPercentage !== 'number' || rakebackPercentage < 0 || rakebackPercentage > 1) {
-        return res.status(400).json({ error: 'rakebackPercentage must be between 0 and 1' });
+        return res.status(400).json({ success: false, error: 'rakebackPercentage must be between 0 and 1' });
       }
 
       // Get the calling agent's record
@@ -786,7 +786,7 @@ export default async function handler(req, res) {
         .eq('status', 'active')
         .single();
 
-      if (!callerAgent) return res.status(403).json({ error: 'You are not an active agent in this club' });
+      if (!callerAgent) return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
 
       // Verify the target player belongs to this agent
       const { data: playerMember } = await supabaseAdmin
@@ -796,9 +796,9 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId)
         .single();
 
-      if (!playerMember) return res.status(404).json({ error: 'Player not found in club' });
+      if (!playerMember) return res.status(404).json({ success: false, error: 'Player not found in club' });
       if (playerMember.agent_id !== user.id) {
-        return res.status(403).json({ error: 'This player is not assigned to you' });
+        return res.status(403).json({ success: false, error: 'This player is not assigned to you' });
       }
 
       // Enforce max rakeback = agent_commission - 10%
@@ -806,7 +806,7 @@ export default async function handler(req, res) {
 
       if (rakebackPercentage > maxRakeback) {
         return res.status(400).json({
-          error: `Rakeback too high. Your commission is ${(callerAgent.commission_rate * 100).toFixed(1)}%, so max player rakeback is ${(maxRakeback * 100).toFixed(1)}%`,
+          success: false, error: `Rakeback too high. Your commission is ${(callerAgent.commission_rate * 100).toFixed(1)}%, so max player rakeback is ${(maxRakeback * 100).toFixed(1)}%`,
           your_commission: callerAgent.commission_rate,
           max_rakeback: maxRakeback,
           requested: rakebackPercentage,
@@ -815,7 +815,7 @@ export default async function handler(req, res) {
 
       if (rakebackPercentage >= callerAgent.commission_rate) {
         return res.status(400).json({
-          error: 'Rakeback must be LESS than your commission rate',
+          success: false, error: 'Rakeback must be LESS than your commission rate',
           your_commission: callerAgent.commission_rate,
           requested: rakebackPercentage,
         });
@@ -855,14 +855,14 @@ export default async function handler(req, res) {
     // Must re-validate all business rules
     // ═══════════════════════════════════════════════════════════════
     if (action === 'update_commission') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
       const { commissionRate } = params;
 
       if (commissionRate === undefined || commissionRate === null) {
-        return res.status(400).json({ error: 'commissionRate is REQUIRED' });
+        return res.status(400).json({ success: false, error: 'commissionRate is REQUIRED' });
       }
       if (typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
-        return res.status(400).json({ error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
+        return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 0.90 (90%)' });
       }
 
       const { data: targetAgent } = await supabaseAdmin
@@ -872,7 +872,7 @@ export default async function handler(req, res) {
         .eq('club_id', clubId)
         .single();
 
-      if (!targetAgent) return res.status(404).json({ error: 'Agent not found' });
+      if (!targetAgent) return res.status(404).json({ success: false, error: 'Agent not found' });
 
       // If caller is agent (not owner/union admin), they can only update their own sub-agents
       if (club.owner_id !== user.id) {
@@ -885,7 +885,7 @@ export default async function handler(req, res) {
           .single();
 
         if (callerAgent && targetAgent.parent_agent_id !== callerAgent.id) {
-          return res.status(403).json({ error: 'You can only update commission for your own sub-agents' });
+          return res.status(403).json({ success: false, error: 'You can only update commission for your own sub-agents' });
         }
       }
 
@@ -899,7 +899,7 @@ export default async function handler(req, res) {
 
         if (parentAgent && commissionRate >= parentAgent.commission_rate) {
           return res.status(400).json({
-            error: 'Sub-agent rate must be less than parent agent rate',
+            success: false, error: 'Sub-agent rate must be less than parent agent rate',
             parent_rate: parentAgent.commission_rate,
             provided: commissionRate,
           });
@@ -917,7 +917,7 @@ export default async function handler(req, res) {
       for (const sub of (subAgents || [])) {
         if (sub.commission_rate >= commissionRate) {
           return res.status(400).json({
-            error: `Cannot lower rate below sub-agent ${sub.user_id} who is at ${(sub.commission_rate * 100).toFixed(1)}%`,
+            success: false, error: `Cannot lower rate below sub-agent ${sub.user_id} who is at ${(sub.commission_rate * 100).toFixed(1)}%`,
             sub_agent_rate: sub.commission_rate,
             provided: commissionRate,
           });
@@ -929,7 +929,7 @@ export default async function handler(req, res) {
         const maxRakeback = commissionRate - 0.10;
         if (targetAgent.rakeback_percentage > maxRakeback) {
           return res.status(400).json({
-            error: `Current rakeback (${(targetAgent.rakeback_percentage * 100).toFixed(1)}%) exceeds new max (${(maxRakeback * 100).toFixed(1)}%). Lower rakeback first.`,
+            success: false, error: `Current rakeback (${(targetAgent.rakeback_percentage * 100).toFixed(1)}%) exceeds new max (${(maxRakeback * 100).toFixed(1)}%). Lower rakeback first.`,
           });
         }
       }
@@ -954,11 +954,11 @@ export default async function handler(req, res) {
     // No owner approval needed — fully automated.
     // ═══════════════════════════════════════════════════════════════
     if (action === 'promote_to_sub_agent') {
-      if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
       const { commissionRate } = params;
 
       if (!commissionRate || typeof commissionRate !== 'number' || commissionRate < 0.01 || commissionRate > 0.90) {
-        return res.status(400).json({ error: 'commissionRate required (0.01 to 0.90)' });
+        return res.status(400).json({ success: false, error: 'commissionRate required (0.01 to 0.90)' });
       }
 
       // Verify caller is an active agent
@@ -971,13 +971,13 @@ export default async function handler(req, res) {
         .single();
 
       if (!parentAgent) {
-        return res.status(403).json({ error: 'You are not an active agent in this club' });
+        return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
       }
 
       // Sub-agent commission must be lower than parent's
       if (commissionRate >= parentAgent.commission_rate) {
         return res.status(400).json({
-          error: `Sub-agent commission (${(commissionRate * 100).toFixed(1)}%) must be lower than yours (${(parentAgent.commission_rate * 100).toFixed(1)}%)`,
+          success: false, error: `Sub-agent commission (${(commissionRate * 100).toFixed(1)}%) must be lower than yours (${(parentAgent.commission_rate * 100).toFixed(1)}%)`,
           your_rate: parentAgent.commission_rate,
         });
       }
@@ -990,12 +990,12 @@ export default async function handler(req, res) {
         .eq('user_id', targetUserId)
         .single();
 
-      if (!targetMember) return res.status(404).json({ error: 'Player not found in club' });
+      if (!targetMember) return res.status(404).json({ success: false, error: 'Player not found in club' });
       if (targetMember.agent_id !== user.id) {
-        return res.status(403).json({ error: 'This player is not in your downline' });
+        return res.status(403).json({ success: false, error: 'This player is not in your downline' });
       }
       if (['agent', 'super_agent', 'sub_agent'].includes(targetMember.role)) {
-        return res.status(400).json({ error: 'Player is already an agent' });
+        return res.status(400).json({ success: false, error: 'Player is already an agent' });
       }
 
       // Promote: update club_members role + create agents record
@@ -1034,9 +1034,9 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.status(400).json({ error: `Unknown action: ${action}` });
+    return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-agent]', err);
-    return res.status(500).json({ error: 'Agent management failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Agent management failed', details: err.message });
   }
 }

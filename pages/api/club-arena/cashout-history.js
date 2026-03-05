@@ -13,16 +13,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'GET only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const clubId = req.query.clubId;
-  if (!clubId) return res.status(400).json({ error: 'clubId query param required' });
+  if (!clubId) return res.status(400).json({ success: false, error: 'clubId query param required' });
 
   try {
     // Verify membership
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .single();
 
-    if (!member) return res.status(403).json({ error: 'Not a club member' });
+    if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
     // Owners/admins see all cashouts, agents see their downline, players see own
     let query = supabaseAdmin
@@ -73,6 +73,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, cashouts: enriched });
   } catch (err) {
     console.error('[cashout-history]', err);
-    return res.status(500).json({ error: 'Cashout history failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Cashout history failed', details: err.message });
   }
 }

@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
     if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -25,20 +25,20 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         // Require JWT auth for follow/unfollow
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { page_id, action, follower_id } = req.body;
         const user_id = authUser.id;
 
         if (!page_id) {
-            return res.status(400).json({ error: 'page_id required' });
+            return res.status(400).json({ success: false, error: 'page_id required' });
         }
 
         // === Approve/Reject (Commander actions) ===
         if (action === 'approve' || action === 'reject') {
-            if (!follower_id) return res.status(400).json({ error: 'follower_id required' });
+            if (!follower_id) return res.status(400).json({ success: false, error: 'follower_id required' });
             if (action === 'approve') {
                 const { data, error } = await supabase
                     .from('social_page_followers')
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
                     .eq('page_id', page_id)
                     .eq('user_id', follower_id)
                     .select().single();
-                if (error) return res.status(500).json({ error: error.message });
+                if (error) return res.status(500).json({ success: false, error: error.message });
                 return res.status(200).json({ success: true, data });
             } else {
                 const { error } = await supabase
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
                     .delete()
                     .eq('page_id', page_id)
                     .eq('user_id', follower_id);
-                if (error) return res.status(500).json({ error: error.message });
+                if (error) return res.status(500).json({ success: false, error: error.message });
                 return res.status(200).json({ success: true });
             }
         }
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
                 .eq('page_id', page_id)
                 .eq('user_id', user_id);
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
             return res.status(200).json({ success: true, following: false });
         }
 
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
             .select()
             .single();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Send push notification to page owner about new follower
         try {
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
 
             const { data, error } = await query.order('created_at', { ascending: false })
                 .limit(100);
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
 
             // Determine if requester is page owner
             const { data: pageInfo } = await supabase
@@ -191,7 +191,7 @@ export default async function handler(req, res) {
                 .eq('user_id', user_id)
                     .limit(100);
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
 
             // Get page details
             const pageIds = (data || []).map(f => f.page_id);
@@ -213,9 +213,9 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, data: enriched });
         }
 
-        return res.status(400).json({ error: 'page_id or user_id required' });
+        return res.status(400).json({ success: false, error: 'page_id or user_id required' });
 
     } else {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 }

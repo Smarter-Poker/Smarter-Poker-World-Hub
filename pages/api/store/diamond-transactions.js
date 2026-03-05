@@ -14,21 +14,21 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         // Authenticate user from Authorization header
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Authorization required' });
+            return res.status(401).json({ success: false, error: 'Authorization required' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid session' });
+            return res.status(401).json({ success: false, error: 'Invalid session' });
         }
 
         // Parse query params
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('Transaction fetch error:', error);
-            return res.status(500).json({ error: 'Failed to fetch transactions' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch transactions' });
         }
 
         // Also get current balance
@@ -77,6 +77,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Diamond transactions error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

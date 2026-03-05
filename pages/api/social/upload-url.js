@@ -29,34 +29,34 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'POST only' });
+        return res.status(405).json({ success: false, error: 'POST only' });
     }
 
     const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
     const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
     if (!supabaseUrl || !serviceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
         const { fileName, fileSize, mimeType, folder, prefix } = req.body || {};
 
         if (!fileName || !fileSize || !mimeType) {
-            return res.status(400).json({ error: 'Missing required fields: fileName, fileSize, mimeType' });
+            return res.status(400).json({ success: false, error: 'Missing required fields: fileName, fileSize, mimeType' });
         }
 
         // Validate file type
         if (!ALLOWED_TYPES.includes(mimeType)) {
-            return res.status(400).json({ error: `File type not allowed: ${mimeType}` });
+            return res.status(400).json({ success: false, error: `File type not allowed: ${mimeType}` });
         }
 
         // Validate file size based on type
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         if (fileSize > maxSize) {
             const maxMB = Math.round(maxSize / 1024 / 1024);
             return res.status(400).json({
-                error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'})`
+                success: false, error: `File too large (max ${maxMB}MB for ${isVideo ? 'video' : 'image'})`
             });
         }
 
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
 
         if (signError) {
             console.error('[Upload-URL API] Signed URL error:', signError.message);
-            return res.status(500).json({ error: 'Failed to create upload URL: ' + signError.message });
+            return res.status(500).json({ success: false, error: 'Failed to create upload URL: ' + signError.message });
         }
 
         // Get the public URL for after upload completes
@@ -103,6 +103,6 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('[Upload-URL API] Error:', err.message);
-        return res.status(500).json({ error: 'Upload URL generation failed: ' + err.message });
+        return res.status(500).json({ success: false, error: 'Upload URL generation failed: ' + err.message });
     }
 }

@@ -31,7 +31,7 @@ const VALID_ACTIONS = new Set(['fold', 'check', 'call', 'bet', 'raise', 'all_in'
 export default async function handler(req, res) {
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // Rate limit
   if (!applyRateLimit(req, res, 'poker/engine/action')) return;
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     const { tableId, action, type, ...extra } = req.body;
     const playerId = auth.playerId; // Guaranteed to match JWT
 
-    if (!tableId) return res.status(400).json({ error: 'tableId required' });
+    if (!tableId) return res.status(400).json({ success: false, error: 'tableId required' });
 
     const controller = await getController();
 
@@ -56,10 +56,10 @@ export default async function handler(req, res) {
     if (type === 'throw_emoji' || action?.type === 'throw_emoji') {
       const emoji = extra.emoji || action?.emoji;
       const targetId = extra.targetId || action?.targetId;
-      if (!emoji) return res.status(400).json({ error: 'emoji required' });
+      if (!emoji) return res.status(400).json({ success: false, error: 'emoji required' });
 
       const table = controller.lobby?.tables?.get(tableId);
-      if (!table) return res.status(404).json({ error: 'Table not found' });
+      if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
       // Broadcast emoji event via existing table sync channel
       const sync = table.sync;
@@ -82,21 +82,21 @@ export default async function handler(req, res) {
     if (type === 'buy_insurance' || action?.type === 'buy_insurance') {
       const amount = extra.amount || action?.amount || 0;
       const table = controller.lobby?.tables?.get(tableId);
-      if (!table?.table?.game) return res.status(404).json({ error: 'No active game' });
+      if (!table?.table?.game) return res.status(404).json({ success: false, error: 'No active game' });
       table.table.game.processInsurance(playerId, amount);
       return res.json({ success: true });
     }
     if (type === 'decline_insurance' || action?.type === 'decline_insurance') {
       const table = controller.lobby?.tables?.get(tableId);
-      if (!table?.table?.game) return res.status(404).json({ error: 'No active game' });
+      if (!table?.table?.game) return res.status(404).json({ success: false, error: 'No active game' });
       table.table.game.processInsurance(playerId, 0); // amount=0 means decline
       return res.json({ success: true });
     }
 
     // ── STANDARD GAME ACTIONS ──────────────────────────────────
-    if (!action || !action.type) return res.status(400).json({ error: 'action.type required' });
+    if (!action || !action.type) return res.status(400).json({ success: false, error: 'action.type required' });
     if (!VALID_ACTIONS.has(action.type)) {
-      return res.status(400).json({ error: `Invalid action: ${action.type}` });
+      return res.status(400).json({ success: false, error: `Invalid action: ${action.type}` });
     }
 
     // Rate limit check
@@ -134,6 +134,6 @@ export default async function handler(req, res) {
     return res.json({ success: true });
   } catch (err) {
     console.error('[engine/action]', err);
-    return res.status(500).json({ error: 'Internal error' });
+    return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

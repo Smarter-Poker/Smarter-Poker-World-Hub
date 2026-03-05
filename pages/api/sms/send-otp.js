@@ -39,17 +39,17 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Guard: environment variables ──────────────────────────────────────
     if (!accountSid || !authToken || !twilioPhone) {
         console.error('[send-otp] Twilio credentials not configured');
-        return res.status(500).json({ error: 'SMS service not configured' });
+        return res.status(500).json({ success: false, error: 'SMS service not configured' });
     }
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error('[send-otp] Supabase credentials not configured');
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -59,14 +59,14 @@ export default async function handler(req, res) {
 
         // ── Guard: phone required ────────────────────────────────────────
         if (!phone) {
-            return res.status(400).json({ error: 'Phone number is required' });
+            return res.status(400).json({ success: false, error: 'Phone number is required' });
         }
 
         const cleanPhone = normalizePhone(phone);
 
         // ── Guard: must look like a valid US phone (+1 + 10 digits) ──────
         if (!/^\+1\d{10}$/.test(cleanPhone)) {
-            return res.status(400).json({ error: 'Please enter a valid 10-digit US phone number' });
+            return res.status(400).json({ success: false, error: 'Please enter a valid 10-digit US phone number' });
         }
 
         // ── Guard: Phone Uniqueness ──────────────────────────────────────
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
             // Note: If this is the current user re-verifying, that's fine, but send-otp doesn't know userId yet. 
             // In the VIP Modal we only show it if the user IS NOT verified. 
             // So if ANY user has this phone verified, we reject it to stop abuse.
-            return res.status(409).json({ error: 'This phone number is already registered to a verified account.' });
+            return res.status(409).json({ success: false, error: 'This phone number is already registered to a verified account.' });
         }
 
         // ── Housekeeping: purge ALL expired OTP rows (any phone) ─────────
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
             // Non-blocking: continue even if count fails
         } else if (count >= MAX_CODES_PER_HOUR) {
             return res.status(429).json({
-                error: 'Too many verification requests. Please try again later.',
+                success: false, error: 'Too many verification requests. Please try again later.',
                 retryAfter: 3600
             });
         }
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
 
         if (insertError) {
             console.error('[send-otp] DB insert error:', insertError);
-            return res.status(500).json({ error: 'Failed to store verification code' });
+            return res.status(500).json({ success: false, error: 'Failed to store verification code' });
         }
 
         // ── Send SMS via Twilio ──────────────────────────────────────────
@@ -152,12 +152,12 @@ export default async function handler(req, res) {
         console.error('[send-otp] Error:', error);
 
         // ── Twilio-specific error codes ──────────────────────────────────
-        if (error.code === 21211) return res.status(400).json({ error: 'Invalid phone number format' });
-        if (error.code === 21614) return res.status(400).json({ error: 'Phone number is not a valid mobile number' });
-        if (error.code === 21608) return res.status(400).json({ error: 'Cannot send SMS to this phone number' });
+        if (error.code === 21211) return res.status(400).json({ success: false, error: 'Invalid phone number format' });
+        if (error.code === 21614) return res.status(400).json({ success: false, error: 'Phone number is not a valid mobile number' });
+        if (error.code === 21608) return res.status(400).json({ success: false, error: 'Cannot send SMS to this phone number' });
 
         return res.status(500).json({
-            error: 'Failed to send verification code',
+            success: false, error: 'Failed to send verification code',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

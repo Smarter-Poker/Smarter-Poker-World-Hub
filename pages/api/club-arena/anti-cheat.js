@@ -33,19 +33,19 @@ export default async function handler(req, res) {
 
   Object.entries(CORS).forEach(([k, v]) => res.setHeader(k, v));
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   try {
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { action, clubId, ...params } = req.body;
     const userId = user.id; // From JWT, not body
 
-    if (!clubId) return res.status(400).json({ error: 'clubId required' });
+    if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
     // Verify caller is club owner/admin/manager
     const { data: membership } = await supabase
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       .single();
 
     if (!membership || !['owner', 'admin', 'manager'].includes(membership.role)) {
-      return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
+      return res.status(403).json({ success: false, error: 'Not authorized. Club admin access required.' });
     }
 
     switch (action) {
@@ -151,9 +151,9 @@ export default async function handler(req, res) {
       case 'review_flag': {
         const { flagId, newStatus, notes } = params;
 
-        if (!flagId) return res.status(400).json({ error: 'flagId required' });
+        if (!flagId) return res.status(400).json({ success: false, error: 'flagId required' });
         if (!['reviewed', 'dismissed', 'actioned'].includes(newStatus)) {
-          return res.status(400).json({ error: 'newStatus must be reviewed, dismissed, or actioned' });
+          return res.status(400).json({ success: false, error: 'newStatus must be reviewed, dismissed, or actioned' });
         }
 
         const { data, error } = await supabase
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
           .single();
 
         if (error) throw error;
-        if (!data) return res.status(404).json({ error: 'Flag not found' });
+        if (!data) return res.status(404).json({ success: false, error: 'Flag not found' });
 
         // Log the review event
         await supabase.from('anti_cheat_events').insert({
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
         const { tableId, playerId: targetPlayerId, reason } = params;
 
         if (!tableId || !targetPlayerId) {
-          return res.status(400).json({ error: 'tableId and playerId required' });
+          return res.status(400).json({ success: false, error: 'tableId and playerId required' });
         }
 
         // Import game controller to issue stand_up
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
         const { controller } = getController();
 
         if (!controller) {
-          return res.status(500).json({ error: 'Game controller not available' });
+          return res.status(500).json({ success: false, error: 'Game controller not available' });
         }
 
         // Force stand up
@@ -245,7 +245,7 @@ export default async function handler(req, res) {
       // ─────────────────────────────────────────────────────
       case 'get_player_history': {
         const { playerId: targetPlayerId } = params;
-        if (!targetPlayerId) return res.status(400).json({ error: 'playerId required' });
+        if (!targetPlayerId) return res.status(400).json({ success: false, error: 'playerId required' });
 
         const [flagsResult, eventsResult, sessionsResult] = await Promise.all([
           supabase
@@ -329,10 +329,10 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res.status(400).json({ error: `Unknown action: ${action}` });
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
   } catch (err) {
     console.error('[AntiCheat API]', err);
-    return res.status(500).json({ error: err.message || 'Internal error' });
+    return res.status(500).json({ success: false, error: err.message || 'Internal error' });
   }
 }

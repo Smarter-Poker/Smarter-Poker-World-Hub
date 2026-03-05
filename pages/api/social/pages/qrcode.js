@@ -25,11 +25,11 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -44,14 +44,14 @@ export default async function handler(req, res) {
             .single();
 
         if (error || !page) {
-            return res.status(404).json({ error: 'Invalid referral code' });
+            return res.status(404).json({ success: false, error: 'Invalid referral code' });
         }
         return res.status(200).json({ success: true, data: page });
     }
 
     // === Generate QR code for a page ===
     if (!page_id) {
-        return res.status(400).json({ error: 'page_id or ref required' });
+        return res.status(400).json({ success: false, error: 'page_id or ref required' });
     }
 
     // Get page with referral code
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         .single();
 
     if (error || !page) {
-        return res.status(404).json({ error: 'Page not found' });
+        return res.status(404).json({ success: false, error: 'Page not found' });
     }
 
     // Generate referral code if it doesn't exist

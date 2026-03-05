@@ -84,14 +84,14 @@ export default async function handler(req, res) {
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
         const _token = req.headers.authorization?.replace('Bearer ', '');
-        if (!_token) return res.status(401).json({ error: 'Authentication required' });
+        if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-        if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
         if (req.body) req.body.userId = _authUser.id;
     }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
 
         // Validation
         if (!userId || !gameId || !level) {
-            return res.status(400).json({ error: 'Missing required fields' });
+            return res.status(400).json({ success: false, error: 'Missing required fields' });
         }
 
         // 1. Save level completion to history
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
 
             if (updateError) {
                 console.error('Error updating progress:', updateError);
-                return res.status(500).json({ error: 'Failed to update progress' });
+                return res.status(500).json({ success: false, error: 'Failed to update progress' });
             }
 
             // 3. Upsert leaderboard entry
@@ -200,7 +200,7 @@ export default async function handler(req, res) {
                 console.error('Error creating progress:', JSON.stringify(insertError, null, 2));
                 console.error('Insert payload:', { userId, gameId, level, questionsAnswered, questionsCorrect });
                 return res.status(500).json({
-                    error: 'Failed to create progress',
+                    success: false, error: 'Failed to create progress',
                     details: insertError.message,
                     code: insertError.code,
                     hint: insertError.hint
@@ -223,6 +223,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Error in save-progress:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

@@ -12,16 +12,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { name } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ error: 'Club name required' });
+    if (!name || !name.trim()) return res.status(400).json({ success: false, error: 'Club name required' });
 
     // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/create-club')) return;
@@ -66,6 +66,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, club });
     } catch (err) {
         console.error('[create-club]', err);
-        return res.status(500).json({ error: err.message || 'Failed to create club' });
+        return res.status(500).json({ success: false, error: err.message || 'Failed to create club' });
     }
 }

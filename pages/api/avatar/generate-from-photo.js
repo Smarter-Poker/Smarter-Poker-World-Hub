@@ -111,22 +111,22 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // BUG #266 FIX: Require JWT auth — this endpoint calls paid Grok API.
     // Without auth, anyone can spam it and rack up API charges.
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
         const { photoBase64, prompt, userId: _clientUserId } = req.body;
         const userId = authUser.id; // Always use JWT user ID
 
         if (!photoBase64) {
-            return res.status(400).json({ error: 'Photo is required' });
+            return res.status(400).json({ success: false, error: 'Photo is required' });
         }
 
 

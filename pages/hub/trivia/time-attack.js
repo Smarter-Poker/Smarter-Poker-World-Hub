@@ -44,10 +44,11 @@ export default function TimeAttackPage() {
     const [result, setResult] = useState(null);
     const [isVip, setIsVip] = useState(false);
     const [showOutOfDiamonds, setShowOutOfDiamonds] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        loadUserData();
-        loadLeaderboard();
+        Promise.all([loadUserData(), loadLeaderboard()])
+          .finally(() => setPageLoading(false));
     }, []);
 
     async function loadUserData() {
@@ -244,6 +245,13 @@ export default function TimeAttackPage() {
 
         loadLeaderboard();
     }
+
+
+    if (pageLoading) return (
+        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+        </div>
+    );
 
     return (
         <PageTransition>

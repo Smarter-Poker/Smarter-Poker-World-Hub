@@ -34,13 +34,13 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Guard: environment variables ──────────────────────────────────────
     if (!supabaseUrl || !supabaseServiceKey) {
         console.error('[verify-otp] Supabase credentials not configured');
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -50,20 +50,20 @@ export default async function handler(req, res) {
 
         // ── Guard: inputs required ───────────────────────────────────────
         if (!phone || !code) {
-            return res.status(400).json({ error: 'Phone number and code are required' });
+            return res.status(400).json({ success: false, error: 'Phone number and code are required' });
         }
 
         // ── Guard: code must be exactly 4 digits ─────────────────────
         const trimmedCode = String(code).trim();
         if (!/^\d{4}$/.test(trimmedCode)) {
-            return res.status(400).json({ error: 'Verification Code Must Be 4 Digits' });
+            return res.status(400).json({ success: false, error: 'Verification Code Must Be 4 Digits' });
         }
 
         const cleanPhone = normalizePhone(phone);
 
         // ── Guard: must look like a valid US phone ───────────────────────
         if (!/^\+1\d{10}$/.test(cleanPhone)) {
-            return res.status(400).json({ error: 'Invalid phone number format' });
+            return res.status(400).json({ success: false, error: 'Invalid phone number format' });
         }
 
         // ── Housekeeping: purge expired OTP rows (any phone) ─────────────
@@ -83,12 +83,12 @@ export default async function handler(req, res) {
 
         if (fetchError) {
             console.error('[verify-otp] DB fetch error:', fetchError);
-            return res.status(500).json({ error: 'Failed to verify code' });
+            return res.status(500).json({ success: false, error: 'Failed to verify code' });
         }
 
         if (!storedOtp) {
             return res.status(400).json({
-                error: 'No verification code found. Please request a new code.',
+                success: false, error: 'No verification code found. Please request a new code.',
                 expired: true
             });
         }
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
         if (new Date() > new Date(storedOtp.expires_at)) {
             await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
             return res.status(400).json({
-                error: 'Verification code has expired. Please request a new code.',
+                success: false, error: 'Verification code has expired. Please request a new code.',
                 expired: true
             });
         }
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         if (storedOtp.attempts >= MAX_ATTEMPTS) {
             await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
             return res.status(429).json({
-                error: 'Too many attempts. Please request a new code.',
+                success: false, error: 'Too many attempts. Please request a new code.',
                 tooManyAttempts: true
             });
         }
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         if (storedOtp.code !== trimmedCode) {
             const remaining = MAX_ATTEMPTS - newAttempts;
             return res.status(400).json({
-                error: `Invalid verification code. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`,
+                success: false, error: `Invalid verification code. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`,
                 invalid: true,
                 remainingAttempts: remaining
             });
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
 
                 if (duplicateProfiles && duplicateProfiles.length > 0) {
                     console.error(`[verify-otp] Security block: User ${userId} tried to verify phone ${cleanPhone} already in use by another account.`);
-                    return res.status(409).json({ error: 'This phone number is already registered to another verified account.' });
+                    return res.status(409).json({ success: false, error: 'This phone number is already registered to another verified account.' });
                 }
 
                 // If user already has VIP that expires AFTER this grant, skip VIP update
@@ -223,7 +223,7 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('[verify-otp] Error:', error);
         return res.status(500).json({
-            error: 'Failed to verify code',
+            success: false, error: 'Failed to verify code',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

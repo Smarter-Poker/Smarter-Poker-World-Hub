@@ -21,18 +21,18 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Not authenticated' });
+    if (!token) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { tableId, clubId, action } = req.body;
     if (!tableId || !clubId || !action) {
-      return res.status(400).json({ error: 'tableId, clubId, and action required' });
+      return res.status(400).json({ success: false, error: 'tableId, clubId, and action required' });
     }
 
     // Verify caller is owner or admin
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         unionAuth = !!ua;
       }
       if (!unionAuth) {
-        return res.status(403).json({ error: 'Only owners, admins, or union admins can manage tables' });
+        return res.status(403).json({ success: false, error: 'Only owners, admins, or union admins can manage tables' });
       }
     }
 
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       .eq('club_id', clubId)
       .single();
 
-    if (!table) return res.status(404).json({ error: 'Table not found' });
+    if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
     switch (action) {
       case 'close': {
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
       case 'resume': {
         // Resume a paused table
         if (table.status !== 'paused') {
-          return res.status(400).json({ error: 'Table is not paused' });
+          return res.status(400).json({ success: false, error: 'Table is not paused' });
         }
 
         await supabaseAdmin
@@ -158,10 +158,10 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res.status(400).json({ error: `Unknown action: ${action}. Use: close, delete, pause, resume` });
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}. Use: close, delete, pause, resume` });
     }
   } catch (err) {
     console.error('[manage-table]', err);
-    return res.status(500).json({ error: err.message || 'Failed to manage table' });
+    return res.status(500).json({ success: false, error: err.message || 'Failed to manage table' });
   }
 }

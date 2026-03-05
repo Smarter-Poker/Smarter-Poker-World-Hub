@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ error: 'Event ID required' });
+    return res.status(400).json({ success: false, error: 'Event ID required' });
   }
 
   if (req.method === 'GET') {
@@ -40,21 +40,21 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function getEvent(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { data: event, error } = await supabase
@@ -72,7 +72,7 @@ async function getEvent(req, res, id) {
       .single();
 
     if (error || !event) {
-      return res.status(404).json({ error: 'Event not found' });
+      return res.status(404).json({ success: false, error: 'Event not found' });
     }
 
     // Check if user is a member
@@ -84,7 +84,7 @@ async function getEvent(req, res, id) {
       .single();
 
     if (!membership || membership.status !== 'approved') {
-      return res.status(403).json({ error: 'You are not a member of this group' });
+      return res.status(403).json({ success: false, error: 'You are not a member of this group' });
     }
 
     // Find user's RSVP
@@ -130,7 +130,7 @@ async function getEvent(req, res, id) {
     });
   } catch (error) {
     console.error('Get event error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -138,14 +138,14 @@ async function updateEvent(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get event
@@ -156,7 +156,7 @@ async function updateEvent(req, res, id) {
       .single();
 
     if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+      return res.status(404).json({ success: false, error: 'Event not found' });
     }
 
     // Check permissions
@@ -173,7 +173,7 @@ async function updateEvent(req, res, id) {
     const isAdmin = membership?.role === 'owner' || membership?.role === 'admin';
 
     if (!isHost && !isAdmin) {
-      return res.status(403).json({ error: 'Only the host or admins can update this event' });
+      return res.status(403).json({ success: false, error: 'Only the host or admins can update this event' });
     }
 
     const { action } = req.body;
@@ -254,7 +254,7 @@ async function updateEvent(req, res, id) {
     return res.status(200).json({ event: updated });
   } catch (error) {
     console.error('Update event error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -262,14 +262,14 @@ async function cancelEvent(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get event
@@ -280,7 +280,7 @@ async function cancelEvent(req, res, id) {
       .single();
 
     if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+      return res.status(404).json({ success: false, error: 'Event not found' });
     }
 
     // Check permissions
@@ -297,7 +297,7 @@ async function cancelEvent(req, res, id) {
     const isAdmin = membership?.role === 'owner' || membership?.role === 'admin';
 
     if (!isHost && !isAdmin) {
-      return res.status(403).json({ error: 'Only the host or admins can cancel this event' });
+      return res.status(403).json({ success: false, error: 'Only the host or admins can cancel this event' });
     }
 
     const { error } = await supabase
@@ -310,6 +310,6 @@ async function cancelEvent(req, res, id) {
     return res.status(200).json({ success: true, message: 'Event cancelled' });
   } catch (error) {
     console.error('Cancel event error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

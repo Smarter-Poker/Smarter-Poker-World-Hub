@@ -22,20 +22,20 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, action, periodId, commissionId } = req.body;
-  if (!clubId || !action) return res.status(400).json({ error: 'clubId and action required' });
+  if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
   const validActions = ['open', 'close', 'pay', 'pay_all', 'status'];
   if (!validActions.includes(action)) {
-    return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
+    return res.status(400).json({ success: false, error: `action must be one of: ${validActions.join(', ')}` });
   }
 
   // Rate limit
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .select('id, owner_id, union_id, chip_treasury')
       .eq('id', clubId)
       .single();
-    if (!club) return res.status(404).json({ error: 'Club not found' });
+    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     let authorized = club.owner_id === user.id;
     if (!authorized && club.union_id) {
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         .single();
       authorized = !!ua;
     }
-    if (!authorized) return res.status(403).json({ error: 'Not authorized' });
+    if (!authorized) return res.status(403).json({ success: false, error: 'Not authorized' });
 
     // ═══════════════════════════════════════════════════════════════
     // STATUS: Return current period info
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
         .limit(1);
 
       if (existing?.length > 0) {
-        return res.status(409).json({ error: 'A period is already open. Close it first.' });
+        return res.status(409).json({ success: false, error: 'A period is already open. Close it first.' });
       }
 
       // Get last period number
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
         .eq('status', 'open')
         .single();
 
-      if (!period) return res.status(404).json({ error: 'No open period to close' });
+      if (!period) return res.status(404).json({ success: false, error: 'No open period to close' });
 
       const pid = period.id;
 
@@ -384,7 +384,7 @@ export default async function handler(req, res) {
     // PAY: Mark a single commission as paid
     // ═══════════════════════════════════════════════════════════════
     if (action === 'pay') {
-      if (!commissionId) return res.status(400).json({ error: 'commissionId required for pay action' });
+      if (!commissionId) return res.status(400).json({ success: false, error: 'commissionId required for pay action' });
 
       // Verify commission belongs to this club (via its settlement period)
       const { data: cr } = await supabaseAdmin
@@ -393,12 +393,12 @@ export default async function handler(req, res) {
         .eq('id', commissionId)
         .single();
 
-      if (!cr) return res.status(404).json({ error: 'Commission record not found' });
+      if (!cr) return res.status(404).json({ success: false, error: 'Commission record not found' });
       if (cr.period?.club_id !== clubId) {
-        return res.status(403).json({ error: 'Commission does not belong to this club' });
+        return res.status(403).json({ success: false, error: 'Commission does not belong to this club' });
       }
       if (cr.status === 'paid') {
-        return res.status(400).json({ error: 'Commission already paid' });
+        return res.status(400).json({ success: false, error: 'Commission already paid' });
       }
 
       const now = new Date().toISOString();
@@ -480,7 +480,7 @@ export default async function handler(req, res) {
     // PAY_ALL: Mark all pending commissions for a period as paid
     // ═══════════════════════════════════════════════════════════════
     if (action === 'pay_all') {
-      if (!periodId) return res.status(400).json({ error: 'periodId required for pay_all action' });
+      if (!periodId) return res.status(400).json({ success: false, error: 'periodId required for pay_all action' });
 
       // Verify this period belongs to this club
       const { data: verifyPeriod } = await supabaseAdmin
@@ -489,9 +489,9 @@ export default async function handler(req, res) {
         .eq('id', periodId)
         .single();
 
-      if (!verifyPeriod) return res.status(404).json({ error: 'Period not found' });
+      if (!verifyPeriod) return res.status(404).json({ success: false, error: 'Period not found' });
       if (verifyPeriod.club_id !== clubId) {
-        return res.status(403).json({ error: 'Period does not belong to this club' });
+        return res.status(403).json({ success: false, error: 'Period does not belong to this club' });
       }
 
       const now = new Date().toISOString();
@@ -594,6 +594,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[settle-period]', err);
-    return res.status(500).json({ error: 'Settlement action failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Settlement action failed', details: err.message });
   }
 }

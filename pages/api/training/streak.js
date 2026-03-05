@@ -31,9 +31,9 @@ export default async function handler(req, res) {
 
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = user.id; // From JWT, not request
 
     // GET: Fetch user streak
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Streak] Error:', error.message);
-            return res.status(500).json({ error: 'Failed to fetch streak' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch streak' });
         }
     }
 
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Streak] Update error:', error.message);
-            return res.status(500).json({ error: 'Failed to update streak' });
+            return res.status(500).json({ success: false, error: 'Failed to update streak' });
         }
     }
 
@@ -193,13 +193,13 @@ export default async function handler(req, res) {
         // userId from JWT (set at top of handler)
 
         if (!milestoneDays) {
-            return res.status(400).json({ error: 'milestoneDays required' });
+            return res.status(400).json({ success: false, error: 'milestoneDays required' });
         }
 
         try {
             const milestone = STREAK_MILESTONES.find(m => m.days === milestoneDays);
             if (!milestone) {
-                return res.status(400).json({ error: 'Invalid milestone' });
+                return res.status(400).json({ success: false, error: 'Invalid milestone' });
             }
 
             const { data: streak } = await supabase
@@ -209,11 +209,11 @@ export default async function handler(req, res) {
                 .single();
 
             if (!streak || streak.current_streak < milestoneDays) {
-                return res.status(400).json({ error: 'Milestone not achieved' });
+                return res.status(400).json({ success: false, error: 'Milestone not achieved' });
             }
 
             if ((streak.milestones_claimed || []).includes(milestoneDays)) {
-                return res.status(400).json({ error: 'Already claimed' });
+                return res.status(400).json({ success: false, error: 'Already claimed' });
             }
 
             // BUG #257 FIX: Atomic claim via optimistic lock.
@@ -232,7 +232,7 @@ export default async function handler(req, res) {
                 .select('id');
 
             if (updErr || !updatedRows?.length) {
-                return res.status(409).json({ error: 'Claim failed' });
+                return res.status(409).json({ success: false, error: 'Claim failed' });
             }
             
             // Double-check: re-read to verify our milestone was added exactly once
@@ -249,7 +249,7 @@ export default async function handler(req, res) {
                 await supabase.from('training_streaks')
                     .update({ milestones_claimed: deduped })
                     .eq('user_id', userId);
-                return res.status(409).json({ error: 'Already claimed (concurrent request)' });
+                return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
             }
 
             // Award diamonds via logging RPC
@@ -269,9 +269,9 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Streak] Claim error:', error.message);
-            return res.status(500).json({ error: 'Failed to claim milestone' });
+            return res.status(500).json({ success: false, error: 'Failed to claim milestone' });
         }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

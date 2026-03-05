@@ -28,16 +28,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId } = req.body;
-  if (!clubId) return res.status(400).json({ error: 'clubId required' });
+  if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
   if (!applyRateLimit(req, res, 'club-arena/leave-club')) return;
 
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       .single();
 
     if (memErr || !member) {
-      return res.status(404).json({ error: 'You are not a member of this club' });
+      return res.status(404).json({ success: false, error: 'You are not a member of this club' });
     }
 
     const { data: club } = await supabaseAdmin
@@ -62,14 +62,14 @@ export default async function handler(req, res) {
       .eq('id', clubId)
       .single();
 
-    if (!club) return res.status(404).json({ error: 'Club not found' });
+    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     // ═══════════════════════════════════════════════════════════════
     // 2. BLOCK OWNER — Must transfer ownership first
     // ═══════════════════════════════════════════════════════════════
     if (member.role === 'owner' || club.owner_id === user.id) {
       return res.status(403).json({
-        error: 'Club owners cannot leave. Transfer ownership first or delete the club.',
+        success: false, error: 'Club owners cannot leave. Transfer ownership first or delete the club.',
       });
     }
 
@@ -307,6 +307,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('[leave-club]', err);
-    return res.status(500).json({ error: err.message || 'Failed to leave club' });
+    return res.status(500).json({ success: false, error: err.message || 'Failed to leave club' });
   }
 }

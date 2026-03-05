@@ -19,16 +19,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+  if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'GET only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const unionId = req.query.unionId;
-  if (!unionId) return res.status(400).json({ error: 'unionId query param required' });
+  if (!unionId) return res.status(400).json({ success: false, error: 'unionId query param required' });
 
   try {
     // 1. Verify union admin
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .single();
 
-    if (!unionAdmin) return res.status(403).json({ error: 'Not a union admin' });
+    if (!unionAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
     // 2. Get union info
     const { data: union } = await supabaseAdmin
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .eq('id', unionId)
       .single();
 
-    if (!union) return res.status(404).json({ error: 'Union not found' });
+    if (!union) return res.status(404).json({ success: false, error: 'Union not found' });
 
     // 3. Get all clubs in union
     const { data: unionClubs } = await supabaseAdmin
@@ -165,6 +165,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[union-dashboard]', err);
-    return res.status(500).json({ error: 'Union dashboard failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Union dashboard failed', details: err.message });
   }
 }

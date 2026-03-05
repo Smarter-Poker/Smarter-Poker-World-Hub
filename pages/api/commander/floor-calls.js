@@ -151,7 +151,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, data });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   } catch (err) {
     console.error('Floor calls error:', err);
     return res.status(500).json({ success: false, error: err.message });

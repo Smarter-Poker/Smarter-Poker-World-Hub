@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ error: 'Group ID required' });
+    return res.status(400).json({ success: false, error: 'Group ID required' });
   }
 
   if (req.method === 'GET') {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'PUT', 'PATCH', 'DELETE']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function getGroup(req, res, id) {
@@ -80,7 +80,7 @@ async function getGroup(req, res, id) {
     const { data: group, error } = await query.single();
 
     if (error || !group) {
-      return res.status(404).json({ error: 'Group not found' });
+      return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
     // Check access for private groups
@@ -90,7 +90,7 @@ async function getGroup(req, res, id) {
       );
 
       if (!isMember && !isInviteCode) {
-        return res.status(403).json({ error: 'This is a private group' });
+        return res.status(403).json({ success: false, error: 'This is a private group' });
       }
 
       // For invite code access, only show limited info
@@ -148,7 +148,7 @@ async function getGroup(req, res, id) {
     });
   } catch (error) {
     console.error('Get group error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -156,14 +156,14 @@ async function updateGroup(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Check if user is owner or admin
@@ -174,7 +174,7 @@ async function updateGroup(req, res, id) {
       .single();
 
     if (!group) {
-      return res.status(404).json({ error: 'Group not found' });
+      return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
     const { data: membership } = await supabase
@@ -190,7 +190,7 @@ async function updateGroup(req, res, id) {
       membership?.role === 'admin';
 
     if (!canEdit) {
-      return res.status(403).json({ error: 'Only owners and admins can update the group' });
+      return res.status(403).json({ success: false, error: 'Only owners and admins can update the group' });
     }
 
     const updates = { ...req.body, updated_at: new Date().toISOString() };
@@ -215,7 +215,7 @@ async function updateGroup(req, res, id) {
     return res.status(200).json({ success: true, group: updated });
   } catch (error) {
     console.error('Update group error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -223,14 +223,14 @@ async function deleteGroup(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Only owner can delete
@@ -241,11 +241,11 @@ async function deleteGroup(req, res, id) {
       .single();
 
     if (!group) {
-      return res.status(404).json({ error: 'Group not found' });
+      return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
     if (group.owner_id !== user.id) {
-      return res.status(403).json({ error: 'Only the owner can delete this group' });
+      return res.status(403).json({ success: false, error: 'Only the owner can delete this group' });
     }
 
     const { error } = await supabase
@@ -258,6 +258,6 @@ async function deleteGroup(req, res, id) {
     return res.status(200).json({ success: true, message: 'Group deleted' });
   } catch (error) {
     console.error('Delete group error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

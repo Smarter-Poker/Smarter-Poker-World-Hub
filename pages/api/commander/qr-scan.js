@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         const { venue_id, user_id, scan_type } = req.body;
 
         if (!venue_id) {
-            return res.status(400).json({ error: 'venue_id is required' });
+            return res.status(400).json({ success: false, error: 'venue_id is required' });
         }
 
         const { data, error } = await supabase
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             .single();
 
         if (error) {
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         return res.status(200).json({ success: true, scan: data });
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         const { venue_id, days } = req.query;
 
         if (!venue_id) {
-            return res.status(400).json({ error: 'venue_id is required' });
+            return res.status(400).json({ success: false, error: 'venue_id is required' });
         }
 
         const since = new Date();
@@ -60,12 +60,12 @@ export default async function handler(req, res) {
             .limit(100);
 
         if (error) {
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         return res.status(200).json({ success: true, scans: data, total: count });
     }
 
     res.setHeader('Allow', 'GET, POST');
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

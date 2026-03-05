@@ -18,13 +18,13 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     // BUG #251 FIX: Require JWT auth and verify caller matches userId
     const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
 
     // BUG #273 FIX: Always use authenticated user's ID, ignore client-supplied userId.
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         const playerName = profile?.full_name;
 
         if (!playerName && !hendonUrl) {
-            return res.status(400).json({ error: 'Please set your full name in your profile to match your Hendon Mob name' });
+            return res.status(400).json({ success: false, error: 'Please set your full name in your profile to match your Hendon Mob name' });
         }
 
 
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
 
         if (!stats || (!stats.totalEarnings && !stats.totalCashes)) {
             return res.status(400).json({
-                error: 'Could not find stats. Make sure your Full Name matches your Hendon Mob profile exactly.',
+                success: false, error: 'Could not find stats. Make sure your Full Name matches your Hendon Mob profile exactly.',
                 suggestion: `Searched for: "${playerName}". Try updating your name to match exactly.`
             });
         }
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
 
         if (updateError) {
             console.error('Update error:', updateError);
-            return res.status(500).json({ error: 'Failed to save stats' });
+            return res.status(500).json({ success: false, error: 'Failed to save stats' });
         }
 
         return res.status(200).json({
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Sync error:', error);
-        return res.status(500).json({ error: 'Sync failed: ' + error.message });
+        return res.status(500).json({ success: false, error: 'Sync failed: ' + error.message });
     }
 }
 

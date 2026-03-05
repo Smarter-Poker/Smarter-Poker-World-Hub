@@ -12,16 +12,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'No auth token' });
+    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { clubCode } = req.body;
-    if (!clubCode) return res.status(400).json({ error: 'Club code required' });
+    if (!clubCode) return res.status(400).json({ success: false, error: 'Club code required' });
 
     // BUG #281: No rate limit — attacker could brute-force all numeric club codes
     if (!applyRateLimit(req, res, 'club-arena/join-club')) return;
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     // Validate club code is a reasonable integer
     const codeNum = parseInt(clubCode);
     if (!Number.isFinite(codeNum) || codeNum <= 0) {
-      return res.status(400).json({ error: 'Invalid club code' });
+      return res.status(400).json({ success: false, error: 'Invalid club code' });
     }
 
     try {
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
             .single();
 
         if (findErr || !club) {
-            return res.status(404).json({ error: 'Club not found. Check the code.' });
+            return res.status(404).json({ success: false, error: 'Club not found. Check the code.' });
         }
 
         // Check existing membership
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (existing) {
-            return res.status(409).json({ error: 'You are already a member of this club' });
+            return res.status(409).json({ success: false, error: 'You are already a member of this club' });
         }
 
         // If club requires approval, could add pending status here
@@ -80,6 +80,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, club });
     } catch (err) {
         console.error('[join-club]', err);
-        return res.status(500).json({ error: err.message || 'Failed to join club' });
+        return res.status(500).json({ success: false, error: err.message || 'Failed to join club' });
     }
 }

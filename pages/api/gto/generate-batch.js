@@ -74,23 +74,23 @@ export default async function handler(req, res) {
   const { createClient: _createAuthClient } = await import('@supabase/supabase-js');
   const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ error: 'Auth required' });
+  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
   const { data: { user: _authUser }, error: _authErr } = await _authSupa.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         const { level = 1, count = 5 } = req.body;
 
         if (level < 1 || level > 10) {
-            return res.status(400).json({ error: 'Level must be between 1 and 10' });
+            return res.status(400).json({ success: false, error: 'Level must be between 1 and 10' });
         }
 
         if (count < 1 || count > 10) {
-            return res.status(400).json({ error: 'Count must be between 1 and 10' });
+            return res.status(400).json({ success: false, error: 'Count must be between 1 and 10' });
         }
 
         const grok = getGrokClient();

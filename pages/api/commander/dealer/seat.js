@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   if (!_staff) return;
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   const { member_id, table_number, seat_number, time_minutes } = req.body;

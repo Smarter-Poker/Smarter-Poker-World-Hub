@@ -25,10 +25,10 @@ export default async function handler(req, res) {
   }
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   try {
     // ═══════════════════════════════════════════════════════════════
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (req.method === 'GET') {
       const { clubId, action: getAction } = req.query;
-      if (!clubId) return res.status(400).json({ error: 'clubId required' });
+      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
       // Verify membership
       const { data: member } = await supabaseAdmin
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .single();
 
-      if (!member) return res.status(403).json({ error: 'Not a club member' });
+      if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
       if (getAction === 'history') {
         // Player's rakeback history
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (req.method === 'POST') {
       const { action, clubId } = req.body;
-      if (!clubId || !action) return res.status(400).json({ error: 'clubId and action required' });
+      if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
       // Settlement lock check
       const lockCheck = await checkSettlementLock(supabaseAdmin, clubId);
@@ -121,12 +121,12 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .single();
 
-      if (!member) return res.status(403).json({ error: 'Not a club member' });
+      if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
       // ─── OPEN NEW PERIOD ───
       if (action === 'open') {
         if (!['owner', 'admin'].includes(member.role)) {
-          return res.status(403).json({ error: 'Only owners/admins can open rakeback periods' });
+          return res.status(403).json({ success: false, error: 'Only owners/admins can open rakeback periods' });
         }
 
         // Check no existing open period
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
           .limit(1)
           .maybeSingle();
 
-        if (existing) return res.status(400).json({ error: 'A rakeback period is already open' });
+        if (existing) return res.status(400).json({ success: false, error: 'A rakeback period is already open' });
 
         // Create a marker period (player_id = null means it's the master period)
         const { data: period, error } = await supabaseAdmin
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
       // ─── CLOSE PERIOD (calculate rakeback for all players) ───
       if (action === 'close') {
         if (!['owner', 'admin'].includes(member.role)) {
-          return res.status(403).json({ error: 'Only owners/admins can close rakeback periods' });
+          return res.status(403).json({ success: false, error: 'Only owners/admins can close rakeback periods' });
         }
 
         // Find open period
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
           .limit(1)
           .maybeSingle();
 
-        if (!openPeriod) return res.status(400).json({ error: 'No open rakeback period found' });
+        if (!openPeriod) return res.status(400).json({ success: false, error: 'No open rakeback period found' });
 
         // Get club's rakeback rate
         const { data: club } = await supabaseAdmin
@@ -253,7 +253,7 @@ export default async function handler(req, res) {
           .select('id, rakeback_amount');
 
         if (!pending || pending.length === 0) {
-          return res.status(400).json({ error: 'No pending rakeback to claim' });
+          return res.status(400).json({ success: false, error: 'No pending rakeback to claim' });
         }
 
         const totalClaim = pending.reduce((s, p) => s + (p.rakeback_amount || 0), 0);
@@ -336,12 +336,12 @@ export default async function handler(req, res) {
         });
       }
 
-      return res.status(400).json({ error: `Unknown action: ${action}` });
+      return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
 
-    return res.status(405).json({ error: 'GET or POST only' });
+    return res.status(405).json({ success: false, error: 'GET or POST only' });
   } catch (err) {
     console.error('[rakeback]', err);
-    return res.status(500).json({ error: 'Rakeback operation failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Rakeback operation failed', details: err.message });
   }
 }

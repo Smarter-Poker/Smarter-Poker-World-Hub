@@ -16,17 +16,17 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, confirmName } = req.body;
   if (!clubId || !confirmName) {
-    return res.status(400).json({ error: 'clubId and confirmName required' });
+    return res.status(400).json({ success: false, error: 'clubId and confirmName required' });
   }
 
   // Rate limit
@@ -40,14 +40,14 @@ export default async function handler(req, res) {
       .eq('id', clubId)
       .single();
 
-    if (!club) return res.status(404).json({ error: 'Club not found' });
+    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
     if (club.owner_id !== user.id) {
-      return res.status(403).json({ error: 'Only the club owner can delete the club' });
+      return res.status(403).json({ success: false, error: 'Only the club owner can delete the club' });
     }
 
     // 2. Confirm name matches
     if (confirmName !== club.name) {
-      return res.status(400).json({ error: 'Club name does not match' });
+      return res.status(400).json({ success: false, error: 'Club name does not match' });
     }
 
     // 3. Cascade delete in FK-safe order
@@ -98,6 +98,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[delete-club]', err);
-    return res.status(500).json({ error: 'Club deletion failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Club deletion failed', details: err.message });
   }
 }

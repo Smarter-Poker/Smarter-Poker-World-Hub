@@ -38,14 +38,14 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // BUG #267 FIX: Require JWT auth — calls paid Grok AI image generation API
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
         const {

@@ -18,7 +18,7 @@ const DEFAULT_CATEGORY_IMAGES = {
 
 export default async function handler(req, res) {
     if (!SUPABASE_URL || !SUPABASE_KEY) {
-        return res.status(500).json({ error: 'Missing Supabase credentials' });
+        return res.status(500).json({ success: false, error: 'Missing Supabase credentials' });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -61,6 +61,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Error fixing images:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ success: false, error: error.message });
     }
 }

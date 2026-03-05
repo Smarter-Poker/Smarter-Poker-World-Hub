@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
     if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         const { post_id, type } = req.query;
 
         if (!post_id) {
-            return res.status(400).json({ error: 'post_id required' });
+            return res.status(400).json({ success: false, error: 'post_id required' });
         }
 
         let query = supabase
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
             .limit(100);
 
         if (error) {
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         // Get comments - social_comments table may not exist, fall back to interactions
@@ -99,15 +99,15 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
         // Require JWT auth for social interactions
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { post_id, interaction_type, content } = req.body;
         const user_id = authUser.id;
 
         if (!post_id || !interaction_type) {
-            return res.status(400).json({ error: 'post_id and interaction_type required' });
+            return res.status(400).json({ success: false, error: 'post_id and interaction_type required' });
         }
 
         if (interaction_type === 'comment') {
@@ -131,10 +131,10 @@ export default async function handler(req, res) {
                         .upsert({ post_id, user_id, interaction_type: 'comment' }, { onConflict: 'post_id,user_id' })
                         .select()
                         .single();
-                    if (fbError) return res.status(500).json({ error: fbError.message });
+                    if (fbError) return res.status(500).json({ success: false, error: fbError.message });
                     return res.status(201).json({ interaction: fallback });
                 }
-                return res.status(500).json({ error: error.message });
+                return res.status(500).json({ success: false, error: error.message });
             }
 
             // Update comment count on post
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
                     .from('social_interactions')
                     .insert({ post_id, user_id, interaction_type: 'like' });
 
-                if (error) return res.status(500).json({ error: error.message });
+                if (error) return res.status(500).json({ success: false, error: error.message });
 
                 // Atomic increment like count
                 await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'like_count' }).catch(() => {
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
                 .upsert({ post_id, user_id, interaction_type: 'share' }, { onConflict: 'post_id,user_id' });
 
             if (error && error.code !== '23505') {
-                return res.status(500).json({ error: error.message });
+                return res.status(500).json({ success: false, error: error.message });
             }
 
             // Atomic increment share count
@@ -201,20 +201,20 @@ export default async function handler(req, res) {
             return res.status(201).json({ action: 'shared' });
         }
 
-        return res.status(400).json({ error: 'Invalid interaction_type' });
+        return res.status(400).json({ success: false, error: 'Invalid interaction_type' });
 
     } else if (req.method === 'DELETE') {
         // Require JWT auth for deleting interactions
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { post_id, interaction_type } = req.query;
         const user_id = authUser.id;
 
         if (!post_id) {
-            return res.status(400).json({ error: 'post_id required' });
+            return res.status(400).json({ success: false, error: 'post_id required' });
         }
 
         let query = supabase
@@ -228,11 +228,11 @@ export default async function handler(req, res) {
         }
 
         const { error } = await query;
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         return res.status(200).json({ success: true });
 
     } else {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 }

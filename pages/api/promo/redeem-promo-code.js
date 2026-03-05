@@ -12,18 +12,18 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
     // Require JWT auth — promo codes credit real currency
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
     const { data: { user: authUser }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { code } = req.body;
     const userId = authUser.id; // Always use verified user ID
     if (!code) {
-        return res.status(400).json({ error: 'Code is required' });
+        return res.status(400).json({ success: false, error: 'Code is required' });
     }
 
     try {
@@ -35,13 +35,13 @@ export default async function handler(req, res) {
             .single();
 
         if (promoError || !promo) {
-            return res.status(404).json({ error: 'Invalid promo code' });
+            return res.status(404).json({ success: false, error: 'Invalid promo code' });
         }
 
         // Validate again
-        if (!promo.is_active) return res.status(400).json({ error: 'Code is no longer active' });
-        if (promo.expires_at && new Date(promo.expires_at) < new Date()) return res.status(400).json({ error: 'Code has expired' });
-        if (promo.max_uses !== null && promo.times_used >= promo.max_uses) return res.status(400).json({ error: 'Code usage limit reached' });
+        if (!promo.is_active) return res.status(400).json({ success: false, error: 'Code is no longer active' });
+        if (promo.expires_at && new Date(promo.expires_at) < new Date()) return res.status(400).json({ success: false, error: 'Code has expired' });
+        if (promo.max_uses !== null && promo.times_used >= promo.max_uses) return res.status(400).json({ success: false, error: 'Code usage limit reached' });
 
         // 2. Check if user already redeemed this code
         const { data: existing } = await supabaseAdmin
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
             .single();
 
         if (existing) {
-            return res.status(400).json({ error: 'You have already used this promo code' });
+            return res.status(400).json({ success: false, error: 'You have already used this promo code' });
         }
 
         // BUG #261 FIX: Atomic redemption insert to prevent TOCTOU double-redeem.
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
         if (redemptionErr) {
             // Unique constraint violation = already redeemed (concurrent request)
             if (redemptionErr.code === '23505') {
-                return res.status(409).json({ error: 'You have already used this promo code' });
+                return res.status(409).json({ success: false, error: 'You have already used this promo code' });
             }
             throw redemptionErr;
         }
@@ -189,6 +189,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Redeem promo code error:', err);
-        return res.status(500).json({ error: 'Server error' });
+        return res.status(500).json({ success: false, error: 'Server error' });
     }
 }

@@ -30,21 +30,21 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     // ── Auth: JWT required (awards diamonds) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { followingId } = req.body;
     const userId = authUser.id; // Use JWT identity
 
     if (!userId || !followingId) {
-        return res.status(400).json({ error: 'userId and followingId required' });
+        return res.status(400).json({ success: false, error: 'userId and followingId required' });
     }
 
     if (userId === followingId) {
@@ -161,6 +161,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[FollowReward] Error:', error.message || error);
-        return res.status(500).json({ error: 'Failed to claim follow reward' });
+        return res.status(500).json({ success: false, error: 'Failed to claim follow reward' });
     }
 }

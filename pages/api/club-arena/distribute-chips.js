@@ -15,21 +15,21 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, toUserId, amount: rawAmount, notes } = req.body;
   if (!clubId || !toUserId || !rawAmount || rawAmount <= 0) {
-    return res.status(400).json({ error: 'clubId, toUserId, and positive amount required' });
+    return res.status(400).json({ success: false, error: 'clubId, toUserId, and positive amount required' });
   }
   const amount = Math.floor(Number(rawAmount));
   if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-    return res.status(400).json({ error: 'amount must be a positive integer (max 100M)' });
+    return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         unionAuthorized = !!ua;
       }
       if (!unionAuthorized) {
-        return res.status(403).json({ error: 'Only owners, admins, agents, or union admins can distribute chips' });
+        return res.status(403).json({ success: false, error: 'Only owners, admins, agents, or union admins can distribute chips' });
       }
     }
 
@@ -84,10 +84,10 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr) {
-          return res.status(500).json({ error: 'Promo transfer failed', details: rpcErr.message });
+          return res.status(500).json({ success: false, error: 'Promo transfer failed', details: rpcErr.message });
         }
         if (!result?.success) {
-          return res.status(400).json({ error: result?.error || 'Promo transfer failed', details: result });
+          return res.status(400).json({ success: false, error: result?.error || 'Promo transfer failed', details: result });
         }
 
         return res.status(200).json({ success: true, type: 'promo', ...result });
@@ -102,10 +102,10 @@ export default async function handler(req, res) {
       });
 
       if (rpcErr) {
-        return res.status(500).json({ error: 'Transfer failed', details: rpcErr.message });
+        return res.status(500).json({ success: false, error: 'Transfer failed', details: rpcErr.message });
       }
       if (!result?.success) {
-        return res.status(400).json({ error: result?.error || 'Transfer failed', details: result });
+        return res.status(400).json({ success: false, error: result?.error || 'Transfer failed', details: result });
       }
 
       return res.status(200).json({ success: true, ...result });
@@ -121,11 +121,11 @@ export default async function handler(req, res) {
 
     if (rpcErr) {
       console.error('[distribute-chips] RPC error:', rpcErr);
-      return res.status(500).json({ error: 'Distribution failed', details: rpcErr.message });
+      return res.status(500).json({ success: false, error: 'Distribution failed', details: rpcErr.message });
     }
 
     if (!result?.success) {
-      return res.status(400).json({ error: result?.error || 'Distribution failed', details: result });
+      return res.status(400).json({ success: false, error: result?.error || 'Distribution failed', details: result });
     }
 
     return res.status(200).json({
@@ -140,6 +140,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[distribute-chips]', err);
-    return res.status(500).json({ error: 'Distribution failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Distribution failed', details: err.message });
   }
 }

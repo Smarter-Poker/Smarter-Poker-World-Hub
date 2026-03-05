@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   }
 
     if (!supabaseUrl || !supabaseServiceKey) {
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -25,15 +25,15 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
         // Require JWT auth
         const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) return res.status(401).json({ error: 'Authentication required' });
+        if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
         const { action, post_id, content, parent_id } = req.body;
         const user_id = authUser.id;
 
         if (!post_id || !action) {
-            return res.status(400).json({ error: 'action and post_id required' });
+            return res.status(400).json({ success: false, error: 'action and post_id required' });
         }
 
         if (action === 'like') {
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
 
         if (action === 'comment') {
             if (!content) {
-                return res.status(400).json({ error: 'content required for comments' });
+                return res.status(400).json({ success: false, error: 'content required for comments' });
             }
 
             const { data, error } = await supabase
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
                 .select()
                 .single();
 
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
 
             // Enrich with profile
             const { data: profile } = await supabase
@@ -85,13 +85,13 @@ export default async function handler(req, res) {
             });
         }
 
-        return res.status(400).json({ error: 'Invalid action. Use "like" or "comment"' });
+        return res.status(400).json({ success: false, error: 'Invalid action. Use "like" or "comment"' });
 
     } else if (req.method === 'GET') {
         const { post_id, limit = '50' } = req.query;
 
         if (!post_id) {
-            return res.status(400).json({ error: 'post_id required' });
+            return res.status(400).json({ success: false, error: 'post_id required' });
         }
 
         const { data, error } = await supabase
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
             .order('created_at', { ascending: true })
             .limit(parseInt(limit));
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Enrich with profiles
         const userIds = [...new Set((data || []).map(c => c.user_id))];
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
         const { id, user_id, type } = req.query;
 
         if (!id || !user_id) {
-            return res.status(400).json({ error: 'id and user_id required' });
+            return res.status(400).json({ success: false, error: 'id and user_id required' });
         }
 
         if (type === 'comment') {
@@ -134,19 +134,19 @@ export default async function handler(req, res) {
                 .delete()
                 .eq('id', id)
                 .eq('user_id', user_id);
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
         } else {
             const { error } = await supabase
                 .from('social_page_post_likes')
                 .delete()
                 .eq('id', id)
                 .eq('user_id', user_id);
-            if (error) return res.status(500).json({ error: error.message });
+            if (error) return res.status(500).json({ success: false, error: error.message });
         }
 
         return res.status(200).json({ success: true });
 
     } else {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 }

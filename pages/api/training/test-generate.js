@@ -25,14 +25,14 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: Admin-only test operation (calls Grok API) ──
     const adminSecret = req.headers['x-admin-secret'];
     const envSecret = process.env.ADMIN_ROUTE_SECRET;
     if (!envSecret || !adminSecret || adminSecret !== envSecret) {
-        return res.status(403).json({ error: 'Admin access required' });
+        return res.status(403).json({ success: false, error: 'Admin access required' });
     }
 
     try {
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('❌ Test generation error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ success: false, error: error.message });
     }
 }
 

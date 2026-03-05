@@ -19,21 +19,21 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // Simple auth check - require a secret header for admin endpoints
     const authHeader = req.headers.authorization;
     if (authHeader !== `Bearer ${ONESIGNAL_REST_API_KEY?.slice(0, 20)}`) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-        return res.status(500).json({ error: 'OneSignal not configured' });
+        return res.status(500).json({ success: false, error: 'OneSignal not configured' });
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-        return res.status(500).json({ error: 'Supabase not configured' });
+        return res.status(500).json({ success: false, error: 'Supabase not configured' });
     }
 
     try {
@@ -125,6 +125,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Import users error:', error);
-        return res.status(500).json({ error: error.message });
+        return res.status(500).json({ success: false, error: error.message });
     }
 }

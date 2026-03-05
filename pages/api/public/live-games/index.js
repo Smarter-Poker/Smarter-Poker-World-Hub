@@ -31,7 +31,7 @@ export default async function handler(req, res) {
         return handlePost(req, res);
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res) {
@@ -59,7 +59,7 @@ async function handleGet(req, res) {
 
             if (error) {
                 console.error('Error fetching nearby live games:', error);
-                return res.status(500).json({ error: 'Failed to fetch live games' });
+                return res.status(500).json({ success: false, error: 'Failed to fetch live games' });
             }
 
             return res.status(200).json({
@@ -101,7 +101,7 @@ async function handleGet(req, res) {
 
         if (error) {
             console.error('Error fetching live games:', error);
-            return res.status(500).json({ error: 'Failed to fetch live games' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch live games' });
         }
 
         return res.status(200).json({
@@ -111,7 +111,7 @@ async function handleGet(req, res) {
 
     } catch (error) {
         console.error('Live games GET error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 
@@ -120,14 +120,14 @@ async function handlePost(req, res) {
         // Get user from auth header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Authentication required' });
+            return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
         const {
@@ -144,7 +144,7 @@ async function handlePost(req, res) {
         // Validate required fields
         if (!venue_id || !game_type || !stakes) {
             return res.status(400).json({
-                error: 'Missing required fields',
+                success: false, error: 'Missing required fields',
                 required: ['venue_id', 'game_type', 'stakes']
             });
         }
@@ -153,7 +153,7 @@ async function handlePost(req, res) {
         const validGameTypes = ['nlh', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha', 'other'];
         if (!validGameTypes.includes(game_type)) {
             return res.status(400).json({
-                error: 'Invalid game type',
+                success: false, error: 'Invalid game type',
                 valid: validGameTypes
             });
         }
@@ -166,7 +166,7 @@ async function handlePost(req, res) {
             .single();
 
         if (venueError || !venue) {
-            return res.status(404).json({ error: 'Venue not found' });
+            return res.status(404).json({ success: false, error: 'Venue not found' });
         }
 
         // Use the report_live_game function
@@ -184,7 +184,7 @@ async function handlePost(req, res) {
 
         if (reportError) {
             console.error('Error reporting live game:', reportError);
-            return res.status(500).json({ error: 'Failed to report game' });
+            return res.status(500).json({ success: false, error: 'Failed to report game' });
         }
 
         // Fetch the created/updated game
@@ -209,6 +209,6 @@ async function handlePost(req, res) {
 
     } catch (error) {
         console.error('Live games POST error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

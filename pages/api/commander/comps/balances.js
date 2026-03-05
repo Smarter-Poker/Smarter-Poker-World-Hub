@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'POST', 'PATCH']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function awardComp(req, res, staffAuth) {
@@ -341,10 +341,10 @@ async function getBalances(req, res) {
 
     if (!userId) {
       const authHeader = req.headers.authorization;
-      if (!authHeader) return res.status(401).json({ error: 'Authorization required' });
+      if (!authHeader) return res.status(401).json({ success: false, error: 'Authorization required' });
       const token = authHeader.replace('Bearer ', '');
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !user) return res.status(401).json({ error: 'Session expired — please refresh the page' });
+      if (authError || !user) return res.status(401).json({ success: false, error: 'Session expired — please refresh the page' });
       userId = user.id;
     }
 
@@ -466,7 +466,7 @@ async function getBalances(req, res) {
     });
   } catch (error) {
     console.error('Get comp balances error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 

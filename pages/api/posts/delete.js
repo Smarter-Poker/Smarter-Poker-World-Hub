@@ -17,12 +17,12 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const { postId } = req.body;
     if (!postId) {
-        return res.status(400).json({ error: 'postId required' });
+        return res.status(400).json({ success: false, error: 'postId required' });
     }
 
     try {
@@ -35,14 +35,14 @@ export default async function handler(req, res) {
         // First, verify the requesting user from the auth header
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized - no token' });
+            return res.status(401).json({ success: false, error: 'Unauthorized - no token' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Unauthorized - invalid token' });
+            return res.status(401).json({ success: false, error: 'Unauthorized - invalid token' });
         }
 
         // Check if user is god mode
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             .single();
 
         if (!profile) {
-            return res.status(401).json({ error: 'Profile not found' });
+            return res.status(401).json({ success: false, error: 'Profile not found' });
         }
 
         // Get the post to check ownership
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
             .single();
 
         if (!post) {
-            return res.status(404).json({ error: 'Post not found' });
+            return res.status(404).json({ success: false, error: 'Post not found' });
         }
 
         // Check permissions: either own post OR god mode
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         const isGodMode = profile.role === 'god';
 
         if (!isOwnPost && !isGodMode) {
-            return res.status(403).json({ error: 'Forbidden - not authorized to delete this post' });
+            return res.status(403).json({ success: false, error: 'Forbidden - not authorized to delete this post' });
         }
 
         // Delete the post using admin client (bypasses RLS)
@@ -83,13 +83,13 @@ export default async function handler(req, res) {
 
         if (deleteError) {
             console.error('[Delete Post] Error:', deleteError);
-            return res.status(500).json({ error: 'Failed to delete post', details: deleteError.message });
+            return res.status(500).json({ success: false, error: 'Failed to delete post', details: deleteError.message });
         }
 
         return res.status(200).json({ success: true, deletedBy: isGodMode ? 'god' : 'owner' });
 
     } catch (e) {
         console.error('[Delete Post] Unexpected error:', e);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

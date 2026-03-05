@@ -56,19 +56,19 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── Auth: verify JWT (prevent unauthenticated AI API abuse) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { gameId, level = '5', gameType = 'cash', category = 'CASH' } = req.query;
 
     if (!gameId) {
-        return res.status(400).json({ error: 'gameId is required' });
+        return res.status(400).json({ success: false, error: 'gameId is required' });
     }
 
     try {
@@ -153,7 +153,7 @@ CRITICAL: Make this a genuinely challenging and realistic scenario. Include spec
         console.error('[InfiniteScenario] Error:', error.message);
 
         return res.status(500).json({
-            error: 'Failed to generate scenario',
+            success: false, error: 'Failed to generate scenario',
             details: error.message
         });
     }

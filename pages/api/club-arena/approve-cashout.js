@@ -23,17 +23,17 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { cashoutId, action, note } = req.body;
   if (!cashoutId || !['approve', 'cancel'].includes(action)) {
-    return res.status(400).json({ error: 'cashoutId and action (approve/cancel) required' });
+    return res.status(400).json({ success: false, error: 'cashoutId and action (approve/cancel) required' });
   }
 
   // Rate limit
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       .eq('id', cashoutId)
       .single();
 
-    if (coErr || !cashout) return res.status(404).json({ error: 'Cashout request not found' });
+    if (coErr || !cashout) return res.status(404).json({ success: false, error: 'Cashout request not found' });
 
     // Settlement lock check — block during Monday 4:00-4:10 AM CST
     // Must happen BEFORE claiming status, otherwise a lock leaves it orphaned
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       .single();
 
     if (claimErr || !claimed) {
-      return res.status(409).json({ error: 'Cashout already processed or claimed by another request' });
+      return res.status(409).json({ success: false, error: 'Cashout already processed or claimed by another request' });
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
         unionAuth = !!ua;
       }
       if (!unionAuth) {
-        return res.status(403).json({ error: 'Not authorized to act on this cashout' });
+        return res.status(403).json({ success: false, error: 'Not authorized to act on this cashout' });
       }
     }
 
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('[approve-cashout]', err);
-    return res.status(500).json({ error: 'Cashout action failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Cashout action failed', details: err.message });
   }
 }
 

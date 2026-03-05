@@ -38,19 +38,19 @@ export default async function handler(req, res) {
 
   // BUG #246 FIX: Require JWT auth
   const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ error: 'Auth required' });
+  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
   const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { userId } = req.query;
 
     if (!userId) {
-        return res.status(400).json({ error: 'userId required' });
+        return res.status(400).json({ success: false, error: 'userId required' });
     }
 
     try {
@@ -195,6 +195,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[Recommendations] Error:', error.message);
-        return res.status(500).json({ error: 'Failed to generate recommendations' });
+        return res.status(500).json({ success: false, error: 'Failed to generate recommendations' });
     }
 }

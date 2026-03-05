@@ -99,26 +99,26 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   // Rate limit: 3 subscription attempts per minute per IP
   const fwd = req.headers['x-forwarded-for'];
   const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
   const rl = checkMemoryRateLimit(`sub:${ip}`, 3, 60000);
-  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests. Please try again shortly.' }); }
+  if (!rl.allowed) { return res.status(429).json({ success: false, error: 'Too many requests. Please try again shortly.' }); }
 
   const { paymentMethodId, selectedTier, clubInfo, ownerInfo, existingAccount, skipPayment } = req.body;
   const tier = selectedTier || req.body.tier;
 
   if (!tier || !TIER_PRICES[tier]) {
-    return res.status(400).json({ error: 'Invalid subscription tier' });
+    return res.status(400).json({ success: false, error: 'Invalid subscription tier' });
   }
 
   try {
     const email = ownerInfo.email?.toLowerCase().trim();
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
     // ─── Duplicate prevention: check if this email already has an active Commander subscription ──
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     if (existingEmailSub && existingEmailSub.length > 0) {
       const venueName = existingEmailSub[0].venue?.name || 'a venue';
       return res.status(400).json({
-        error: `An active Club Commander account already exists for ${email} (${venueName}). Please sign in instead.`
+        success: false, error: `An active Club Commander account already exists for ${email} (${venueName}). Please sign in instead.`
       });
     }
 
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
 
       if (existingAddrVenue && existingAddrVenue.length > 0) {
         return res.status(400).json({
-          error: `A Club Commander venue already exists at this address (${existingAddrVenue[0].name}). If this is your venue, please sign in instead.`
+          success: false, error: `A Club Commander venue already exists at this address (${existingAddrVenue[0].name}). If this is your venue, please sign in instead.`
         });
       }
     }
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
         } catch (e) { console.log('Metadata update non-critical error:', e.message); }
       } else {
         return res.status(400).json({
-          error: 'No Smarter.Poker account found with this email. Please uncheck "I already have a Smarter.Poker account" and create a new account instead.'
+          success: false, error: 'No Smarter.Poker account found with this email. Please uncheck "I already have a Smarter.Poker account" and create a new account instead.'
         });
       }
     } else {
@@ -210,14 +210,14 @@ export default async function handler(req, res) {
           } catch (e) { /* non-critical */ }
         } else {
           return res.status(400).json({
-            error: 'An account with this email already exists. Please check "I already have a Smarter.Poker account" and try again.'
+            success: false, error: 'An account with this email already exists. Please check "I already have a Smarter.Poker account" and try again.'
           });
         }
       } else {
         // Unexpected error
         console.error('createUser error:', authError?.message);
         return res.status(400).json({
-          error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker.`
+          success: false, error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker.`
         });
       }
     }
@@ -298,7 +298,7 @@ export default async function handler(req, res) {
 
       if (venueError) {
         console.error('Venue creation error:', venueError);
-        return res.status(400).json({ error: 'Failed to create venue: ' + venueError.message });
+        return res.status(400).json({ success: false, error: 'Failed to create venue: ' + venueError.message });
       }
 
       venueId = newVenue.id;
@@ -316,7 +316,7 @@ export default async function handler(req, res) {
 
     if (hasRealStripeConfig) {
       if (!paymentMethodId) {
-        return res.status(400).json({ error: 'Payment method is required' });
+        return res.status(400).json({ success: false, error: 'Payment method is required' });
       }
       const customer = await stripe.customers.create({
         email,
@@ -492,6 +492,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Registration error:', error);
-    return res.status(500).json({ error: error.message || 'Registration failed' });
+    return res.status(500).json({ success: false, error: error.message || 'Registration failed' });
   }
 }

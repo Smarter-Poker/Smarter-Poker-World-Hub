@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (!id) {
-    return res.status(400).json({ error: 'High hand ID required' });
+    return res.status(400).json({ success: false, error: 'High hand ID required' });
   }
 
   if (req.method === 'GET') {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function getHighHand(req, res, id) {
@@ -60,13 +60,13 @@ async function getHighHand(req, res, id) {
     if (error) throw error;
 
     if (!highHand) {
-      return res.status(404).json({ error: 'High hand not found' });
+      return res.status(404).json({ success: false, error: 'High hand not found' });
     }
 
     return res.status(200).json({ high_hand: highHand });
   } catch (error) {
     console.error('Get high hand error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -74,14 +74,14 @@ async function updateHighHand(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get existing high hand
@@ -92,7 +92,7 @@ async function updateHighHand(req, res, id) {
       .single();
 
     if (getError || !existing) {
-      return res.status(404).json({ error: 'High hand not found' });
+      return res.status(404).json({ success: false, error: 'High hand not found' });
     }
 
     // Check if user is staff at this venue
@@ -105,7 +105,7 @@ async function updateHighHand(req, res, id) {
       .single();
 
     if (!staff) {
-      return res.status(403).json({ error: 'You are not authorized to update high hands' });
+      return res.status(403).json({ success: false, error: 'You are not authorized to update high hands' });
     }
 
     const {
@@ -123,7 +123,7 @@ async function updateHighHand(req, res, id) {
 
     if (action === 'verify') {
       if (existing.verified_at) {
-        return res.status(400).json({ error: 'High hand already verified' });
+        return res.status(400).json({ success: false, error: 'High hand already verified' });
       }
       updates = {
         verified_by: staff.id,
@@ -165,7 +165,7 @@ async function updateHighHand(req, res, id) {
     return res.status(200).json({ high_hand: highHand });
   } catch (error) {
     console.error('Update high hand error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -173,14 +173,14 @@ async function deleteHighHand(req, res, id) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // Get existing high hand
@@ -191,7 +191,7 @@ async function deleteHighHand(req, res, id) {
       .single();
 
     if (getError || !existing) {
-      return res.status(404).json({ error: 'High hand not found' });
+      return res.status(404).json({ success: false, error: 'High hand not found' });
     }
 
     // Check if user is manager/owner at this venue
@@ -205,12 +205,12 @@ async function deleteHighHand(req, res, id) {
       .single();
 
     if (!staff) {
-      return res.status(403).json({ error: 'Only managers can delete high hands' });
+      return res.status(403).json({ success: false, error: 'Only managers can delete high hands' });
     }
 
     // Prevent deleting verified high hands
     if (existing.verified_at) {
-      return res.status(400).json({ error: 'Cannot delete verified high hands' });
+      return res.status(400).json({ success: false, error: 'Cannot delete verified high hands' });
     }
 
     const { error } = await supabase
@@ -223,6 +223,6 @@ async function deleteHighHand(req, res, id) {
     return res.status(200).json({ success: true, message: 'High hand deleted' });
   } catch (error) {
     console.error('Delete high hand error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

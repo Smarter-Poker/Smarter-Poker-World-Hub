@@ -19,10 +19,10 @@ export default async function handler(req, res) {
   }
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   try {
     // ═══════════════════════════════════════════════════════════════
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (req.method === 'GET') {
       const clubId = req.query.clubId;
-      if (!clubId) return res.status(400).json({ error: 'clubId required' });
+      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
       const { data: member } = await supabaseAdmin
         .from('club_members')
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         .single();
 
       if (!member || !['owner', 'admin'].includes(member.role)) {
-        return res.status(403).json({ error: 'Admin access required' });
+        return res.status(403).json({ success: false, error: 'Admin access required' });
       }
 
       const { data: items, error } = await supabaseAdmin
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     // ═══════════════════════════════════════════════════════════════
     if (req.method === 'POST') {
       const { action, clubId, itemId, name, description, price, category, imageUrl, isActive } = req.body;
-      if (!clubId || !action) return res.status(400).json({ error: 'clubId and action required' });
+      if (!clubId || !action) return res.status(400).json({ success: false, error: 'clubId and action required' });
 
       const { data: member } = await supabaseAdmin
         .from('club_members')
@@ -86,12 +86,12 @@ export default async function handler(req, res) {
         .single();
 
       if (!member || !['owner', 'admin'].includes(member.role)) {
-        return res.status(403).json({ error: 'Admin access required' });
+        return res.status(403).json({ success: false, error: 'Admin access required' });
       }
 
       if (action === 'create') {
         if (!name?.trim() || !price || price <= 0) {
-          return res.status(400).json({ error: 'Name and positive price required' });
+          return res.status(400).json({ success: false, error: 'Name and positive price required' });
         }
 
         const { data: item, error } = await supabaseAdmin
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       }
 
       if (action === 'update') {
-        if (!itemId) return res.status(400).json({ error: 'itemId required' });
+        if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
         const updates = {};
         if (name !== undefined) updates.name = name.trim();
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
       }
 
       if (action === 'toggle') {
-        if (!itemId) return res.status(400).json({ error: 'itemId required' });
+        if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
         const { data: item } = await supabaseAdmin
           .from('club_shop_items')
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
           .eq('club_id', clubId)
           .single();
 
-        if (!item) return res.status(404).json({ error: 'Item not found' });
+        if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
 
         const { error } = await supabaseAdmin
           .from('club_shop_items')
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
       }
 
       if (action === 'delete') {
-        if (!itemId) return res.status(400).json({ error: 'itemId required' });
+        if (!itemId) return res.status(400).json({ success: false, error: 'itemId required' });
 
         const { error } = await supabaseAdmin
           .from('club_shop_items')
@@ -168,12 +168,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      return res.status(400).json({ error: `Unknown action: ${action}` });
+      return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
 
-    return res.status(405).json({ error: 'GET or POST only' });
+    return res.status(405).json({ success: false, error: 'GET or POST only' });
   } catch (err) {
     console.error('[manage-shop]', err);
-    return res.status(500).json({ error: 'Shop management failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Shop management failed', details: err.message });
   }
 }

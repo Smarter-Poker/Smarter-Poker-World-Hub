@@ -23,18 +23,18 @@ export default async function handler(req, res) {
 
     // BUG #245 FIX: Require JWT auth
     const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const { gameId, level = '1', count = '25' } = req.query;
 
     if (!gameId) {
-        return res.status(400).json({ error: 'gameId is required' });
+        return res.status(400).json({ success: false, error: 'gameId is required' });
     }
 
     try {
@@ -52,11 +52,11 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[BatchPreload] Supabase error:', error);
-            return res.status(500).json({ error: 'Failed to fetch questions' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch questions' });
         }
 
         if (!questions || questions.length === 0) {
-            return res.status(404).json({ error: 'No questions available for this game/level' });
+            return res.status(404).json({ success: false, error: 'No questions available for this game/level' });
         }
 
         // Shuffle questions for variety
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('[BatchPreload] Unexpected error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 

@@ -15,17 +15,17 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, amount, notes } = req.body;
   if (!clubId || !amount || amount <= 0) {
-    return res.status(400).json({ error: 'clubId and positive amount required' });
+    return res.status(400).json({ success: false, error: 'clubId and positive amount required' });
   }
 
   // BUG #153 FIX: Verify caller is club owner or union admin
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       .eq('id', clubId)
       .single();
 
-    if (!club) return res.status(404).json({ error: 'Club not found' });
+    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     let authorized = club.owner_id === user.id;
     if (!authorized && club.union_id) {
@@ -51,10 +51,10 @@ export default async function handler(req, res) {
     }
 
     if (!authorized) {
-      return res.status(403).json({ error: 'Only club owner or union admin can mint chips' });
+      return res.status(403).json({ success: false, error: 'Only club owner or union admin can mint chips' });
     }
   } catch (authCheckErr) {
-    return res.status(500).json({ error: 'Authorization check failed' });
+    return res.status(500).json({ success: false, error: 'Authorization check failed' });
   }
 
   // Rate limit
@@ -74,11 +74,11 @@ export default async function handler(req, res) {
 
     if (rpcErr) {
       console.error('[mint-chips] RPC error:', rpcErr);
-      return res.status(500).json({ error: 'Mint failed', details: rpcErr.message });
+      return res.status(500).json({ success: false, error: 'Mint failed', details: rpcErr.message });
     }
 
     if (!result?.success) {
-      return res.status(400).json({ error: result?.error || 'Mint failed' });
+      return res.status(400).json({ success: false, error: result?.error || 'Mint failed' });
     }
 
     return res.status(200).json({
@@ -90,6 +90,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[mint-chips]', err);
-    return res.status(500).json({ error: 'Mint failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Mint failed', details: err.message });
   }
 }

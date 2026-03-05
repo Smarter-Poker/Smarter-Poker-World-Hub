@@ -28,20 +28,20 @@ export default async function handler(req, res) {
     const { id } = req.query;
 
     if (!id) {
-        return res.status(400).json({ error: 'Venue ID required' });
+        return res.status(400).json({ success: false, error: 'Venue ID required' });
     }
 
     // Get auth user
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authentication required' });
+        return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-        return res.status(401).json({ error: 'Invalid or expired token' });
+        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
 
     // Check if user is a manager of this venue
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     if (managerError || !manager) {
         return res.status(403).json({
-            error: 'Not authorized',
+            success: false, error: 'Not authorized',
             message: 'You do not have permission to manage this venue.'
         });
     }
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
         return handlePatch(req, res, id, user, manager);
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res, venueId, user, manager) {
@@ -79,7 +79,7 @@ async function handleGet(req, res, venueId, user, manager) {
             .single();
 
         if (venueError || !venue) {
-            return res.status(404).json({ error: 'Venue not found' });
+            return res.status(404).json({ success: false, error: 'Venue not found' });
         }
 
         // Get other managers
@@ -130,7 +130,7 @@ async function handleGet(req, res, venueId, user, manager) {
 
     } catch (error) {
         console.error('Venue manage GET error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 
@@ -146,13 +146,13 @@ async function handlePatch(req, res, venueId, user, manager) {
 
         // Check permissions
         if (updateFields.some(f => infoFields.includes(f)) && !manager.can_edit_info) {
-            return res.status(403).json({ error: 'No permission to edit venue info' });
+            return res.status(403).json({ success: false, error: 'No permission to edit venue info' });
         }
         if (updateFields.some(f => hoursFields.includes(f)) && !manager.can_edit_hours) {
-            return res.status(403).json({ error: 'No permission to edit hours' });
+            return res.status(403).json({ success: false, error: 'No permission to edit hours' });
         }
         if (updateFields.some(f => gamesFields.includes(f)) && !manager.can_edit_games) {
-            return res.status(403).json({ error: 'No permission to edit games' });
+            return res.status(403).json({ success: false, error: 'No permission to edit games' });
         }
 
         // Whitelist allowed fields
@@ -172,7 +172,7 @@ async function handlePatch(req, res, venueId, user, manager) {
         }
 
         if (Object.keys(filteredUpdates).length === 0) {
-            return res.status(400).json({ error: 'No valid fields to update' });
+            return res.status(400).json({ success: false, error: 'No valid fields to update' });
         }
 
         // Add updated_at
@@ -188,7 +188,7 @@ async function handlePatch(req, res, venueId, user, manager) {
 
         if (updateError) {
             console.error('Error updating venue:', updateError);
-            return res.status(500).json({ error: 'Failed to update venue' });
+            return res.status(500).json({ success: false, error: 'Failed to update venue' });
         }
 
         // Log the update
@@ -211,6 +211,6 @@ async function handlePatch(req, res, venueId, user, manager) {
 
     } catch (error) {
         console.error('Venue manage PATCH error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

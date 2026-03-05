@@ -136,9 +136,9 @@ export default async function handler(req, res) {
 
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = user.id; // From JWT, not request
 
     // GET: Fetch active challenges with user progress
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Challenges] Error:', error.message);
-            return res.status(500).json({ error: 'Failed to fetch challenges' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch challenges' });
         }
     }
 
@@ -360,7 +360,7 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Challenges] Update error:', error.message);
-            return res.status(500).json({ error: 'Failed to update challenges' });
+            return res.status(500).json({ success: false, error: 'Failed to update challenges' });
         }
     }
 
@@ -370,7 +370,7 @@ export default async function handler(req, res) {
         // userId from JWT (set at top of handler)
 
         if (!challengeId || !periodKey) {
-            return res.status(400).json({ error: 'challengeId and periodKey required' });
+            return res.status(400).json({ success: false, error: 'challengeId and periodKey required' });
         }
 
         try {
@@ -384,15 +384,15 @@ export default async function handler(req, res) {
                 .single();
 
             if (!progress) {
-                return res.status(404).json({ error: 'Challenge progress not found' });
+                return res.status(404).json({ success: false, error: 'Challenge progress not found' });
             }
 
             if (!progress.completed) {
-                return res.status(400).json({ error: 'Challenge not completed yet' });
+                return res.status(400).json({ success: false, error: 'Challenge not completed yet' });
             }
 
             if (progress.claimed) {
-                return res.status(400).json({ error: 'Already claimed' });
+                return res.status(400).json({ success: false, error: 'Already claimed' });
             }
 
             // BUG #256 FIX: Atomic claim — prevents TOCTOU double-diamond exploit.
@@ -410,7 +410,7 @@ export default async function handler(req, res) {
                 .single();
 
             if (claimErr || !claimedRow) {
-                return res.status(409).json({ error: 'Already claimed (concurrent request)' });
+                return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });
             }
 
             // Award diamonds via logging RPC
@@ -436,9 +436,9 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Challenges] Claim error:', error.message);
-            return res.status(500).json({ error: 'Failed to claim challenge' });
+            return res.status(500).json({ success: false, error: 'Failed to claim challenge' });
         }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const { id: groupId } = req.query;
 
   if (!groupId) {
-    return res.status(400).json({ error: 'Group ID required' });
+    return res.status(400).json({ success: false, error: 'Group ID required' });
   }
 
   if (req.method === 'GET') {
@@ -45,21 +45,21 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function listMembers(req, res, groupId) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { status } = req.query;
@@ -73,7 +73,7 @@ async function listMembers(req, res, groupId) {
       .single();
 
     if (!myMembership || myMembership.status !== 'approved') {
-      return res.status(403).json({ error: 'You are not a member of this group' });
+      return res.status(403).json({ success: false, error: 'You are not a member of this group' });
     }
 
     let query = supabase
@@ -105,7 +105,7 @@ async function listMembers(req, res, groupId) {
     });
   } catch (error) {
     console.error('List members error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -113,14 +113,14 @@ async function joinOrInvite(req, res, groupId) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { user_id, invite_code } = req.body;
@@ -133,7 +133,7 @@ async function joinOrInvite(req, res, groupId) {
       .single();
 
     if (groupError || !group) {
-      return res.status(404).json({ error: 'Group not found' });
+      return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
     // If inviting another user, check if requester is admin
@@ -147,7 +147,7 @@ async function joinOrInvite(req, res, groupId) {
         .single();
 
       if (!myMembership || (myMembership.role !== 'owner' && myMembership.role !== 'admin')) {
-        return res.status(403).json({ error: 'Only admins can invite members' });
+        return res.status(403).json({ success: false, error: 'Only admins can invite members' });
       }
 
       // Check if target user exists
@@ -158,7 +158,7 @@ async function joinOrInvite(req, res, groupId) {
         .single();
 
       if (!targetUser) {
-        return res.status(404).json({ error: 'User not found' });
+        return res.status(404).json({ success: false, error: 'User not found' });
       }
 
       // Add invited user
@@ -180,7 +180,7 @@ async function joinOrInvite(req, res, groupId) {
 
       if (error) {
         if (error.code === '23505') {
-          return res.status(400).json({ error: 'User is already a member' });
+          return res.status(400).json({ success: false, error: 'User is already a member' });
         }
         throw error;
       }
@@ -199,13 +199,13 @@ async function joinOrInvite(req, res, groupId) {
 
     if (existing) {
       if (existing.status === 'approved') {
-        return res.status(400).json({ error: 'You are already a member' });
+        return res.status(400).json({ success: false, error: 'You are already a member' });
       }
       if (existing.status === 'pending') {
-        return res.status(400).json({ error: 'Your membership request is pending' });
+        return res.status(400).json({ success: false, error: 'Your membership request is pending' });
       }
       if (existing.status === 'banned') {
-        return res.status(403).json({ error: 'You have been banned from this group' });
+        return res.status(403).json({ success: false, error: 'You have been banned from this group' });
       }
     }
 
@@ -215,9 +215,9 @@ async function joinOrInvite(req, res, groupId) {
       if (invite_code && invite_code.toUpperCase() === group.invite_code) {
         autoApprove = true;
       } else if (!invite_code) {
-        return res.status(403).json({ error: 'This is a private group. An invite code is required.' });
+        return res.status(403).json({ success: false, error: 'This is a private group. An invite code is required.' });
       } else {
-        return res.status(403).json({ error: 'Invalid invite code' });
+        return res.status(403).json({ success: false, error: 'Invalid invite code' });
       }
     }
 
@@ -249,7 +249,7 @@ async function joinOrInvite(req, res, groupId) {
     });
   } catch (error) {
     console.error('Join/invite error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -257,20 +257,20 @@ async function updateMembership(req, res, groupId) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { member_id, action, role } = req.body;
 
     if (!member_id || !action) {
-      return res.status(400).json({ error: 'member_id and action required' });
+      return res.status(400).json({ success: false, error: 'member_id and action required' });
     }
 
     // Check requester's role
@@ -283,7 +283,7 @@ async function updateMembership(req, res, groupId) {
       .single();
 
     if (!myMembership || (myMembership.role !== 'owner' && myMembership.role !== 'admin')) {
-      return res.status(403).json({ error: 'Only owners and admins can manage members' });
+      return res.status(403).json({ success: false, error: 'Only owners and admins can manage members' });
     }
 
     // Get target membership
@@ -295,12 +295,12 @@ async function updateMembership(req, res, groupId) {
       .single();
 
     if (!targetMember) {
-      return res.status(404).json({ error: 'Member not found' });
+      return res.status(404).json({ success: false, error: 'Member not found' });
     }
 
     // Owners can't be modified by admins
     if (targetMember.role === 'owner' && myMembership.role !== 'owner') {
-      return res.status(403).json({ error: 'Cannot modify the owner' });
+      return res.status(403).json({ success: false, error: 'Cannot modify the owner' });
     }
 
     let updates = {};
@@ -324,10 +324,10 @@ async function updateMembership(req, res, groupId) {
 
       case 'set_role':
         if (!role || !['admin', 'member'].includes(role)) {
-          return res.status(400).json({ error: 'Valid role required (admin, member)' });
+          return res.status(400).json({ success: false, error: 'Valid role required (admin, member)' });
         }
         if (role === 'owner') {
-          return res.status(400).json({ error: 'Cannot assign owner role this way' });
+          return res.status(400).json({ success: false, error: 'Cannot assign owner role this way' });
         }
         updates = { role };
         break;
@@ -337,7 +337,7 @@ async function updateMembership(req, res, groupId) {
         break;
 
       default:
-        return res.status(400).json({ error: 'Invalid action' });
+        return res.status(400).json({ success: false, error: 'Invalid action' });
     }
 
     const { data: updated, error } = await supabase
@@ -355,7 +355,7 @@ async function updateMembership(req, res, groupId) {
     return res.status(200).json({ member: updated });
   } catch (error) {
     console.error('Update membership error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
 
@@ -363,14 +363,14 @@ async function leaveOrRemove(req, res, groupId) {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'Authorization required' });
+      return res.status(401).json({ success: false, error: 'Authorization required' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     const { member_id } = req.body;
@@ -385,11 +385,11 @@ async function leaveOrRemove(req, res, groupId) {
         .single();
 
       if (!myMembership) {
-        return res.status(404).json({ error: 'You are not a member of this group' });
+        return res.status(404).json({ success: false, error: 'You are not a member of this group' });
       }
 
       if (myMembership.role === 'owner') {
-        return res.status(400).json({ error: 'Owner cannot leave. Transfer ownership or delete the group.' });
+        return res.status(400).json({ success: false, error: 'Owner cannot leave. Transfer ownership or delete the group.' });
       }
 
       const { error } = await supabase
@@ -412,7 +412,7 @@ async function leaveOrRemove(req, res, groupId) {
       .single();
 
     if (!myMembership || (myMembership.role !== 'owner' && myMembership.role !== 'admin')) {
-      return res.status(403).json({ error: 'Only owners and admins can remove members' });
+      return res.status(403).json({ success: false, error: 'Only owners and admins can remove members' });
     }
 
     const { data: targetMember } = await supabase
@@ -423,11 +423,11 @@ async function leaveOrRemove(req, res, groupId) {
       .single();
 
     if (!targetMember) {
-      return res.status(404).json({ error: 'Member not found' });
+      return res.status(404).json({ success: false, error: 'Member not found' });
     }
 
     if (targetMember.role === 'owner') {
-      return res.status(403).json({ error: 'Cannot remove the owner' });
+      return res.status(403).json({ success: false, error: 'Cannot remove the owner' });
     }
 
     const { error } = await supabase
@@ -440,6 +440,6 @@ async function leaveOrRemove(req, res, groupId) {
     return res.status(200).json({ success: true, message: 'Member removed' });
   } catch (error) {
     console.error('Leave/remove error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

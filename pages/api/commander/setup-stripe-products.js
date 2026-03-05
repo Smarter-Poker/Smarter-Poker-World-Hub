@@ -41,11 +41,11 @@ export default async function handler(req, res) {
   // Simple secret check (in production, use proper auth)
   const { secret } = req.query;
   if (secret !== process.env.ADMIN_SETUP_SECRET && secret !== 'commander-setup-2026') {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
   }
 
   if (req.method !== 'POST' && req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Stripe setup error:', error);
     res.status(500).json({
-      error: error.message,
+      success: false, error: error.message,
       type: error.type,
     });
   }

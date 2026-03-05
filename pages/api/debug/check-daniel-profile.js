@@ -7,10 +7,10 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 export default async function handler(req, res) {
     // Block debug endpoints in production
     if (process.env.NODE_ENV === 'production') {
-        return res.status(404).json({ error: 'Not found' });
+        return res.status(404).json({ success: false, error: 'Not found' });
     }
     if (!SUPABASE_SERVICE_KEY) {
-        return res.status(500).json({ error: 'Service key not configured' });
+        return res.status(500).json({ success: false, error: 'Service key not configured' });
     }
 
     const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
@@ -38,6 +38,6 @@ export default async function handler(req, res) {
             } : 'NO PROFILE FOUND'
         });
     } catch (e) {
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ success: false, error: e.message });
     }
 }

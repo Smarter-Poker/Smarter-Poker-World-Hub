@@ -18,26 +18,26 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, agentUserId, action, amount: rawAmount, notes } = req.body;
   if (!clubId || !agentUserId || !action || !rawAmount || rawAmount <= 0) {
-    return res.status(400).json({ error: 'clubId, agentUserId, action, and positive amount required' });
+    return res.status(400).json({ success: false, error: 'clubId, agentUserId, action, and positive amount required' });
   }
   const amount = Math.floor(Number(rawAmount));
   if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-    return res.status(400).json({ error: 'amount must be a positive integer (max 100M)' });
+    return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
   }
 
   const validActions = ['issue_credit', 'add_prepaid', 'revoke_credit'];
   if (!validActions.includes(action)) {
-    return res.status(400).json({ error: `action must be one of: ${validActions.join(', ')}` });
+    return res.status(400).json({ success: false, error: `action must be one of: ${validActions.join(', ')}` });
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       .eq('id', clubId)
       .single();
 
-    if (!club) return res.status(404).json({ error: 'Club not found' });
+    if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     let authorized = club.owner_id === user.id;
     if (!authorized && club.union_id) {
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         .single();
       authorized = !!ua;
     }
-    if (!authorized) return res.status(403).json({ error: 'Not authorized' });
+    if (!authorized) return res.status(403).json({ success: false, error: 'Not authorized' });
 
     // 2. Get agent's club_members and agents records
     const { data: agentMember } = await supabaseAdmin
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       .single();
 
     if (!agentMember || !['agent', 'sub_agent', 'super_agent'].includes(agentMember.role)) {
-      return res.status(404).json({ error: 'Agent not found in this club' });
+      return res.status(404).json({ success: false, error: 'Agent not found in this club' });
     }
 
     const { data: agentRecord } = await supabaseAdmin
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
       .eq('club_id', clubId)
       .single();
 
-    if (!agentRecord) return res.status(404).json({ error: 'Agent record not found' });
+    if (!agentRecord) return res.status(404).json({ success: false, error: 'Agent record not found' });
 
     let result = {};
 
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
       // Transfer chips from club treasury to agent's balance
       const treasury = club.chip_treasury || 0;
       if (amount > treasury) {
-        return res.status(400).json({ error: 'Insufficient club treasury', available: treasury, requested: amount });
+        return res.status(400).json({ success: false, error: 'Insufficient club treasury', available: treasury, requested: amount });
       }
 
       // Deduct from treasury atomically
@@ -199,6 +199,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, ...result });
   } catch (err) {
     console.error('[agent-credit]', err);
-    return res.status(500).json({ error: 'Agent credit action failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Agent credit action failed', details: err.message });
   }
 }

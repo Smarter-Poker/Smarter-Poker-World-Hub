@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   // Staff auth: kiosk devices must have a valid staff session
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
   const fwd = req.headers['x-forwarded-for'];
   const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
   const rl = checkMemoryRateLimit(`kiosk:${ip}`, 10, 60000);
-  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests' }); }
+  if (!rl.allowed) { return res.status(429).json({ success: false, error: 'Too many requests' }); }
 
   const { member_id, minutes, amount, payment_method } = req.body;
 

@@ -16,13 +16,13 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // Auth
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Auth required' });
+  if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
   const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   // Lazy import to avoid circular deps
   const { getController } = require('../../../../src/lib/poker-engine/GameController');
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
     controller = await getController();
   } catch (err) {
-    return res.status(500).json({ error: 'Engine unavailable', details: err.message });
+    return res.status(500).json({ success: false, error: 'Engine unavailable', details: err.message });
   }
 
   const { action, ...params } = req.body;
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'create': {
         const { clubId } = params;
-        if (!clubId) return res.status(400).json({ error: 'clubId required' });
+        if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
         // Verify user is admin/owner of this club
         const { data: member } = await supabase
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
           .single();
 
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
-          return res.status(403).json({ error: 'Not authorized to create tournaments in this club' });
+          return res.status(403).json({ success: false, error: 'Not authorized to create tournaments in this club' });
         }
 
         const result = await controller.createTournament({
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'register': {
         const { tournamentId, playerName } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         const displayName = playerName || user.user_metadata?.display_name || user.email?.split('@')[0] || 'Player';
         const result = await controller.registerForTournament(tournamentId, user.id, displayName);
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'unregister': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
         const result = await controller.unregisterFromTournament(tournamentId, user.id);
         return res.status(result.success ? 200 : 400).json(result);
       }
@@ -95,16 +95,16 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'start': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         // Verify caller is staff of the tournament's club
         const startState = controller.getTournamentState(tournamentId);
-        if (!startState) return res.status(404).json({ error: 'Tournament not found' });
+        if (!startState) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (startState.clubId) {
           const { data: mem } = await supabase.from('club_members').select('role')
             .eq('club_id', startState.clubId).eq('user_id', user.id).single();
           if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
-            return res.status(403).json({ error: 'Only staff can start tournaments' });
+            return res.status(403).json({ success: false, error: 'Only staff can start tournaments' });
           }
         }
 
@@ -117,9 +117,9 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'state': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
         const state = controller.getTournamentState(tournamentId);
-        if (!state) return res.status(404).json({ error: 'Tournament not found' });
+        if (!state) return res.status(404).json({ success: false, error: 'Tournament not found' });
         return res.status(200).json({ success: true, ...state });
       }
 
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'rebuy': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
         const result = await controller.tournamentRebuy(tournamentId, user.id);
         return res.status(result.success ? 200 : 400).json(result);
       }
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'addon': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
         const result = await controller.tournamentAddon(tournamentId, user.id);
         return res.status(result.success ? 200 : 400).json(result);
       }
@@ -148,16 +148,16 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════
       case 'cancel': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         // Verify caller is staff of the tournament's club
         const cancelState = controller.getTournamentState(tournamentId);
-        if (!cancelState) return res.status(404).json({ error: 'Tournament not found' });
+        if (!cancelState) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (cancelState.clubId) {
           const { data: mem } = await supabase.from('club_members').select('role')
             .eq('club_id', cancelState.clubId).eq('user_id', user.id).single();
           if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
-            return res.status(403).json({ error: 'Only staff can cancel tournaments' });
+            return res.status(403).json({ success: false, error: 'Only staff can cancel tournaments' });
           }
         }
 
@@ -174,10 +174,10 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res.status(400).json({ error: `Unknown action: ${action}` });
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
   } catch (err) {
     console.error('[Tournament API] Error:', err);
-    return res.status(500).json({ error: 'Internal error', details: err.message });
+    return res.status(500).json({ success: false, error: 'Internal error', details: err.message });
   }
 }

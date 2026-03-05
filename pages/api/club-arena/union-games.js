@@ -55,14 +55,14 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { action, unionId, ...params } = req.body;
-  if (!unionId) return res.status(400).json({ error: 'unionId required' });
-  if (!action) return res.status(400).json({ error: 'action required' });
+  if (!unionId) return res.status(400).json({ success: false, error: 'unionId required' });
+  if (!action) return res.status(400).json({ success: false, error: 'action required' });
 
   try {
     // Verify union admin
@@ -130,9 +130,9 @@ export default async function handler(req, res) {
 
       const resolvedClubId = hostClubId || clubId;
       if (!resolvedClubId || !clubIds.includes(resolvedClubId)) {
-        return res.status(400).json({ error: 'Invalid club for this union' });
+        return res.status(400).json({ success: false, error: 'Invalid club for this union' });
       }
-      if (!name?.trim()) return res.status(400).json({ error: 'Tournament name required' });
+      if (!name?.trim()) return res.status(400).json({ success: false, error: 'Tournament name required' });
 
       const { data: tournament, error } = await supabaseAdmin
         .from('club_tournaments')
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
               actionTime, rakePercent, rakeCap } = params;
 
       if (!clubId || !clubIds.includes(clubId)) {
-        return res.status(400).json({ error: 'Invalid club for this union' });
+        return res.status(400).json({ success: false, error: 'Invalid club for this union' });
       }
 
       const sb = parseInt(smallBlind) || 1;
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
     // ════════════════════════════════════════════════════════════
     if (action === 'start_tournament') {
       const { tournamentId } = params;
-      if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+      if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
       // Verify tournament belongs to a union club
       const { data: tourn } = await supabaseAdmin
@@ -224,10 +224,10 @@ export default async function handler(req, res) {
         .single();
 
       if (!tourn || !clubIds.includes(tourn.club_id)) {
-        return res.status(404).json({ error: 'Tournament not found in union' });
+        return res.status(404).json({ success: false, error: 'Tournament not found in union' });
       }
       if (!['scheduled', 'registering', 'late_reg'].includes(tourn.status)) {
-        return res.status(400).json({ error: `Cannot start tournament in ${tourn.status} status` });
+        return res.status(400).json({ success: false, error: `Cannot start tournament in ${tourn.status} status` });
       }
 
       const { error } = await supabaseAdmin
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
     // ════════════════════════════════════════════════════════════
     if (action === 'cancel_tournament') {
       const { tournamentId } = params;
-      if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+      if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
       const { data: tourn } = await supabaseAdmin
         .from('club_tournaments')
@@ -253,10 +253,10 @@ export default async function handler(req, res) {
         .single();
 
       if (!tourn || !clubIds.includes(tourn.club_id)) {
-        return res.status(404).json({ error: 'Tournament not found in union' });
+        return res.status(404).json({ success: false, error: 'Tournament not found in union' });
       }
       if (['complete', 'cancelled'].includes(tourn.status)) {
-        return res.status(400).json({ error: 'Tournament already finished' });
+        return res.status(400).json({ success: false, error: 'Tournament already finished' });
       }
 
       const { error } = await supabaseAdmin
@@ -273,7 +273,7 @@ export default async function handler(req, res) {
     // ════════════════════════════════════════════════════════════
     if (action === 'open_registration') {
       const { tournamentId } = params;
-      if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+      if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
       const { data: tourn } = await supabaseAdmin
         .from('club_tournaments')
@@ -282,10 +282,10 @@ export default async function handler(req, res) {
         .single();
 
       if (!tourn || !clubIds.includes(tourn.club_id)) {
-        return res.status(404).json({ error: 'Tournament not found in union' });
+        return res.status(404).json({ success: false, error: 'Tournament not found in union' });
       }
       if (tourn.status !== 'scheduled') {
-        return res.status(400).json({ error: 'Can only open registration for scheduled tournaments' });
+        return res.status(400).json({ success: false, error: 'Can only open registration for scheduled tournaments' });
       }
 
       const { error } = await supabaseAdmin
@@ -302,7 +302,7 @@ export default async function handler(req, res) {
     // ════════════════════════════════════════════════════════════
     if (action === 'close_table') {
       const { tableId } = params;
-      if (!tableId) return res.status(400).json({ error: 'tableId required' });
+      if (!tableId) return res.status(400).json({ success: false, error: 'tableId required' });
 
       const { data: table } = await supabaseAdmin
         .from('tables')
@@ -311,7 +311,7 @@ export default async function handler(req, res) {
         .single();
 
       if (!table || !clubIds.includes(table.club_id)) {
-        return res.status(404).json({ error: 'Table not found in union' });
+        return res.status(404).json({ success: false, error: 'Table not found in union' });
       }
 
       const { error } = await supabaseAdmin
@@ -323,10 +323,10 @@ export default async function handler(req, res) {
       return res.json({ success: true });
     }
 
-    return res.status(400).json({ error: `Unknown action: ${action}` });
+    return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
 
   } catch (err) {
     console.error('[union-games]', err);
-    return res.status(500).json({ error: 'Union games request failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Union games request failed', details: err.message });
   }
 }

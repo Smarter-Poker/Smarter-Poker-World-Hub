@@ -24,23 +24,23 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { action, unionId, name, description, settings, clubId, adminUserId, adminRole } = req.body;
-  if (!action) return res.status(400).json({ error: 'action required' });
+  if (!action) return res.status(400).json({ success: false, error: 'action required' });
 
   try {
     // ═══════════════════════════════════════════════════════════════
     // CREATE UNION
     // ═══════════════════════════════════════════════════════════════
     if (action === 'create') {
-      if (!name?.trim()) return res.status(400).json({ error: 'Union name required' });
+      if (!name?.trim()) return res.status(400).json({ success: false, error: 'Union name required' });
 
       const unionCode = generateCode(8);
       const { data: union, error: createErr } = await supabaseAdmin
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     }
 
     // All other actions require unionId
-    if (!unionId) return res.status(400).json({ error: 'unionId required' });
+    if (!unionId) return res.status(400).json({ success: false, error: 'unionId required' });
 
     // Verify caller is union admin
     const { data: callerAdmin } = await supabaseAdmin
@@ -79,13 +79,13 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .single();
 
-    if (!callerAdmin) return res.status(403).json({ error: 'Not a union admin' });
+    if (!callerAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
     // ═══════════════════════════════════════════════════════════════
     // UPDATE SETTINGS
     // ═══════════════════════════════════════════════════════════════
     if (action === 'update_settings') {
-      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can update settings' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can update settings' });
 
       const updates = {};
       if (name?.trim()) updates.name = name.trim();
@@ -96,21 +96,21 @@ export default async function handler(req, res) {
         if (safeSettings.union_rake_hold !== undefined) {
           const hold = parseFloat(safeSettings.union_rake_hold);
           if (isNaN(hold) || hold < 0 || hold > 0.50) {
-            return res.status(400).json({ error: 'union_rake_hold must be between 0 and 0.50 (50%)' });
+            return res.status(400).json({ success: false, error: 'union_rake_hold must be between 0 and 0.50 (50%)' });
           }
           safeSettings.union_rake_hold = hold;
         }
         if (safeSettings.default_agent_commission !== undefined) {
           const comm = parseFloat(safeSettings.default_agent_commission);
           if (isNaN(comm) || comm < 0 || comm > 1.0) {
-            return res.status(400).json({ error: 'default_agent_commission must be between 0 and 1.0' });
+            return res.status(400).json({ success: false, error: 'default_agent_commission must be between 0 and 1.0' });
           }
           safeSettings.default_agent_commission = comm;
         }
         if (safeSettings.default_club_commission_rate !== undefined) {
           const rate = parseFloat(safeSettings.default_club_commission_rate);
           if (isNaN(rate) || rate < 0.01 || rate > 1.0) {
-            return res.status(400).json({ error: 'default_club_commission_rate must be between 0.01 and 1.0' });
+            return res.status(400).json({ success: false, error: 'default_club_commission_rate must be between 0.01 and 1.0' });
           }
           safeSettings.default_club_commission_rate = rate;
         }
@@ -120,10 +120,10 @@ export default async function handler(req, res) {
           const backup = parseInt(safeSettings.bbj_backup_pct);
           const promo = parseInt(safeSettings.bbj_promo_pct);
           if ([main, backup, promo].some(v => isNaN(v) || v < 0 || v > 100)) {
-            return res.status(400).json({ error: 'BBJ split percentages must be between 0 and 100' });
+            return res.status(400).json({ success: false, error: 'BBJ split percentages must be between 0 and 100' });
           }
           if (main + backup + promo !== 100) {
-            return res.status(400).json({ error: 'BBJ split must total exactly 100%' });
+            return res.status(400).json({ success: false, error: 'BBJ split must total exactly 100%' });
           }
           safeSettings.bbj_main_pct = main;
           safeSettings.bbj_backup_pct = backup;
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
         updates.settings = safeSettings;
       }
 
-      if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'Nothing to update' });
+      if (Object.keys(updates).length === 0) return res.status(400).json({ success: false, error: 'Nothing to update' });
 
       const { error } = await supabaseAdmin
         .from('unions')
@@ -147,11 +147,11 @@ export default async function handler(req, res) {
     // ADD CLUB TO UNION
     // ═══════════════════════════════════════════════════════════════
     if (action === 'add_club') {
-      if (!clubId) return res.status(400).json({ error: 'clubId required' });
+      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
       // BUG #255 FIX: Only union lead can add clubs (consistent with remove_club)
       if (callerAdmin.role !== 'union_lead') {
-        return res.status(403).json({ error: 'Only union owner can add clubs' });
+        return res.status(403).json({ success: false, error: 'Only union owner can add clubs' });
       }
 
       // Verify club exists — support both UUID and numeric club_id
@@ -162,9 +162,9 @@ export default async function handler(req, res) {
         .eq(isUUID ? 'id' : 'club_id', isUUID ? clubId : parseInt(clubId))
         .single();
 
-      if (!club) return res.status(404).json({ error: 'Club not found' });
+      if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
       if (club.union_id && club.union_id !== unionId) {
-        return res.status(400).json({ error: 'Club already belongs to another union' });
+        return res.status(400).json({ success: false, error: 'Club already belongs to another union' });
       }
 
       // Add to union_clubs with commission rate
@@ -193,8 +193,8 @@ export default async function handler(req, res) {
     // REMOVE CLUB FROM UNION
     // ═══════════════════════════════════════════════════════════════
     if (action === 'remove_club') {
-      if (!clubId) return res.status(400).json({ error: 'clubId required' });
-      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can remove clubs' });
+      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove clubs' });
 
       await supabaseAdmin
         .from('union_clubs')
@@ -214,8 +214,8 @@ export default async function handler(req, res) {
     // ADD UNION ADMIN
     // ═══════════════════════════════════════════════════════════════
     if (action === 'add_admin') {
-      if (!adminUserId) return res.status(400).json({ error: 'adminUserId required' });
-      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can add admins' });
+      if (!adminUserId) return res.status(400).json({ success: false, error: 'adminUserId required' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can add admins' });
 
       // Verify user exists
       const { data: profile } = await supabaseAdmin
@@ -224,7 +224,7 @@ export default async function handler(req, res) {
         .eq('id', adminUserId)
         .single();
 
-      if (!profile) return res.status(404).json({ error: 'User not found' });
+      if (!profile) return res.status(404).json({ success: false, error: 'User not found' });
 
       // BUG #261 FIX: Prevent adding someone as 'owner' — only 'admin' role allowed
       const safeRole = 'union_admin';
@@ -245,9 +245,9 @@ export default async function handler(req, res) {
     // REMOVE UNION ADMIN
     // ═══════════════════════════════════════════════════════════════
     if (action === 'remove_admin') {
-      if (!adminUserId) return res.status(400).json({ error: 'adminUserId required' });
-      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ error: 'Only union owner can remove admins' });
-      if (adminUserId === user.id) return res.status(400).json({ error: 'Cannot remove yourself' });
+      if (!adminUserId) return res.status(400).json({ success: false, error: 'adminUserId required' });
+      if (callerAdmin.role !== 'union_lead') return res.status(403).json({ success: false, error: 'Only union owner can remove admins' });
+      if (adminUserId === user.id) return res.status(400).json({ success: false, error: 'Cannot remove yourself' });
 
       const { error } = await supabaseAdmin
         .from('union_admins')
@@ -259,9 +259,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    return res.status(400).json({ error: `Unknown action: ${action}` });
+    return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-union]', err);
-    return res.status(500).json({ error: 'Union management failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Union management failed', details: err.message });
   }
 }

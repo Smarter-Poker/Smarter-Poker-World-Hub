@@ -15,12 +15,12 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Not authenticated' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Not authenticated' });
 
     const { action, ...params } = req.body;
 
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         const resolvedStartingChips = parseInt(starting_chips || startChips || 10000);
         const resolvedMaxPlayers = parseInt(max_players || maxP || 100);
 
-        if (!clubId) return res.status(400).json({ error: 'clubId required' });
+        if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
         // Verify user is admin/owner of this club
         const { data: member } = await supabaseAdmin
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           .single();
 
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
-          return res.status(403).json({ error: 'Only club admins can create tournaments' });
+          return res.status(403).json({ success: false, error: 'Only club admins can create tournaments' });
         }
 
         // ── Blind structure generation based on speed ──
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
 
         if (createErr) {
           console.error('[tournament/create]', createErr);
-          return res.status(500).json({ error: createErr.message });
+          return res.status(500).json({ success: false, error: createErr.message });
         }
 
         return res.json({ success: true, tournament });
@@ -192,7 +192,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'list': {
         const { clubId, status } = params;
-        if (!clubId) return res.status(400).json({ error: 'clubId required' });
+        if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
         let query = supabaseAdmin
           .from('club_tournaments')
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
         }
 
         const { data: tournaments, error: listErr } = await query;
-        if (listErr) return res.status(500).json({ error: listErr.message });
+        if (listErr) return res.status(500).json({ success: false, error: listErr.message });
 
         return res.json({ success: true, tournaments: tournaments || [] });
       }
@@ -220,7 +220,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'register': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         // Get tournament
         const { data: tourn } = await supabaseAdmin
@@ -229,12 +229,12 @@ export default async function handler(req, res) {
           .eq('id', tournamentId)
           .single();
 
-        if (!tourn) return res.status(404).json({ error: 'Tournament not found' });
+        if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (!['scheduled', 'registering'].includes(tourn.status)) {
-          return res.status(400).json({ error: 'Registration not open' });
+          return res.status(400).json({ success: false, error: 'Registration not open' });
         }
         if (tourn.registered_count >= tourn.max_players) {
-          return res.status(400).json({ error: 'Tournament full' });
+          return res.status(400).json({ success: false, error: 'Tournament full' });
         }
 
         // Check player has enough chips
@@ -245,9 +245,9 @@ export default async function handler(req, res) {
           .eq('user_id', user.id)
           .single();
 
-        if (!member) return res.status(400).json({ error: 'Not a member of this club' });
+        if (!member) return res.status(400).json({ success: false, error: 'Not a member of this club' });
         if ((member.chip_balance || 0) < tourn.buy_in) {
-          return res.status(400).json({ error: 'Insufficient chips', balance: member.chip_balance, required: tourn.buy_in });
+          return res.status(400).json({ success: false, error: 'Insufficient chips', balance: member.chip_balance, required: tourn.buy_in });
         }
 
         // Check not already registered
@@ -259,7 +259,7 @@ export default async function handler(req, res) {
           .eq('status', 'registered')
           .single();
 
-        if (existing) return res.status(400).json({ error: 'Already registered' });
+        if (existing) return res.status(400).json({ success: false, error: 'Already registered' });
 
         // Deduct buy-in (atomic — uses FOR UPDATE row lock to prevent race conditions)
         const { data: lockResult, error: lockErr } = await supabaseAdmin.rpc('lock_chips_for_table', {
@@ -270,7 +270,7 @@ export default async function handler(req, res) {
         });
 
         if (lockErr || !lockResult?.success) {
-          return res.status(400).json({ error: lockResult?.error || lockErr?.message || 'Failed to deduct buy-in' });
+          return res.status(400).json({ success: false, error: lockResult?.error || lockErr?.message || 'Failed to deduct buy-in' });
         }
 
         // Register
@@ -292,7 +292,7 @@ export default async function handler(req, res) {
             p_table_id: tournamentId,
             p_amount: tourn.buy_in,
           });
-          return res.status(500).json({ error: regErr.message });
+          return res.status(500).json({ success: false, error: regErr.message });
         }
 
         // Update count + prize pool (optimistic lock prevents concurrent over-admission)
@@ -382,7 +382,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'unregister': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         const { data: reg } = await supabaseAdmin
           .from('tournament_registrations')
@@ -392,11 +392,11 @@ export default async function handler(req, res) {
           .eq('status', 'registered')
           .single();
 
-        if (!reg) return res.status(400).json({ error: 'Not registered' });
+        if (!reg) return res.status(400).json({ success: false, error: 'Not registered' });
 
         const tourn = reg.club_tournaments;
         if (tourn.status === 'running') {
-          return res.status(400).json({ error: 'Cannot unregister from running tournament' });
+          return res.status(400).json({ success: false, error: 'Cannot unregister from running tournament' });
         }
 
         // Refund by unlocking chips (registration used lock_chips_for_table)
@@ -430,7 +430,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'start': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         const { data: tourn } = await supabaseAdmin
           .from('club_tournaments')
@@ -438,7 +438,7 @@ export default async function handler(req, res) {
           .eq('id', tournamentId)
           .single();
 
-        if (!tourn) return res.status(404).json({ error: 'Tournament not found' });
+        if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
         // Verify admin
         const { data: member } = await supabaseAdmin
@@ -449,11 +449,11 @@ export default async function handler(req, res) {
           .single();
 
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
-          return res.status(403).json({ error: 'Admin only' });
+          return res.status(403).json({ success: false, error: 'Admin only' });
         }
 
         if (tourn.registered_count < 2) {
-          return res.status(400).json({ error: 'Need at least 2 players' });
+          return res.status(400).json({ success: false, error: 'Need at least 2 players' });
         }
 
         // Initialize engine tournament via GameController FIRST, then mark running
@@ -487,7 +487,7 @@ export default async function handler(req, res) {
 
           if (!createResult.success) {
             console.error('[Tournament] Engine create failed:', createResult.error);
-            return res.status(500).json({ error: 'Engine failed to create tournament: ' + (createResult.error || 'unknown') });
+            return res.status(500).json({ success: false, error: 'Engine failed to create tournament: ' + (createResult.error || 'unknown') });
           }
 
           // Register all players in engine (chips already locked at registration time)
@@ -511,7 +511,7 @@ export default async function handler(req, res) {
             .from('club_tournaments')
             .update({ status: 'registering' })
             .eq('id', tournamentId);
-          return res.status(500).json({ error: 'Engine failed to start tournament. Please try again.' });
+          return res.status(500).json({ success: false, error: 'Engine failed to start tournament. Please try again.' });
         }
 
         return res.json({ success: true });
@@ -522,7 +522,7 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'cancel': {
         const { tournamentId } = params;
-        if (!tournamentId) return res.status(400).json({ error: 'tournamentId required' });
+        if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
 
         const { data: tourn } = await supabaseAdmin
           .from('club_tournaments')
@@ -530,9 +530,9 @@ export default async function handler(req, res) {
           .eq('id', tournamentId)
           .single();
 
-        if (!tourn) return res.status(404).json({ error: 'Tournament not found' });
+        if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (tourn.status === 'running') {
-          return res.status(400).json({ error: 'Cannot cancel running tournament' });
+          return res.status(400).json({ success: false, error: 'Cannot cancel running tournament' });
         }
 
         // Verify admin
@@ -544,7 +544,7 @@ export default async function handler(req, res) {
           .single();
 
         if (!cancelMember || !['owner', 'admin', 'manager'].includes(cancelMember.role)) {
-          return res.status(403).json({ error: 'Only club admins can cancel tournaments' });
+          return res.status(403).json({ success: false, error: 'Only club admins can cancel tournaments' });
         }
 
         // Refund all registered players
@@ -577,10 +577,10 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res.status(400).json({ error: `Unknown action: ${action}` });
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
   } catch (err) {
     console.error('[club-arena/tournaments]', err);
-    return res.status(500).json({ error: 'Internal error' });
+    return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

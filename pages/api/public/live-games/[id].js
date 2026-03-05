@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     const { id } = req.query;
 
     if (!id) {
-        return res.status(400).json({ error: 'Game ID required' });
+        return res.status(400).json({ success: false, error: 'Game ID required' });
     }
 
     if (req.method === 'GET') {
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         return handleDelete(req, res, id);
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res, id) {
@@ -58,14 +58,14 @@ async function handleGet(req, res, id) {
             .single();
 
         if (error || !game) {
-            return res.status(404).json({ error: 'Game not found' });
+            return res.status(404).json({ success: false, error: 'Game not found' });
         }
 
         return res.status(200).json(game);
 
     } catch (error) {
         console.error('Live game GET error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 
@@ -74,14 +74,14 @@ async function handlePost(req, res, id) {
         // Get user from auth header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Authentication required' });
+            return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
         const { action, seats_open, waitlist_size, notes } = req.body;
@@ -90,7 +90,7 @@ async function handlePost(req, res, id) {
         const validActions = ['confirm', 'update', 'expired', 'incorrect'];
         if (!action || !validActions.includes(action)) {
             return res.status(400).json({
-                error: 'Invalid action',
+                success: false, error: 'Invalid action',
                 valid: validActions
             });
         }
@@ -103,7 +103,7 @@ async function handlePost(req, res, id) {
             .single();
 
         if (gameError || !game) {
-            return res.status(404).json({ error: 'Game not found' });
+            return res.status(404).json({ success: false, error: 'Game not found' });
         }
 
         // Log the confirmation
@@ -120,7 +120,7 @@ async function handlePost(req, res, id) {
 
         if (confirmError) {
             console.error('Error logging confirmation:', confirmError);
-            return res.status(500).json({ error: 'Failed to log confirmation' });
+            return res.status(500).json({ success: false, error: 'Failed to log confirmation' });
         }
 
         // Update game based on action
@@ -168,7 +168,7 @@ async function handlePost(req, res, id) {
 
     } catch (error) {
         console.error('Live game POST error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 
@@ -177,14 +177,14 @@ async function handleDelete(req, res, id) {
         // Get user from auth header
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Authentication required' });
+            return res.status(401).json({ success: false, error: 'Authentication required' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' });
         }
 
         // Check if user is the reporter
@@ -195,11 +195,11 @@ async function handleDelete(req, res, id) {
             .single();
 
         if (gameError || !game) {
-            return res.status(404).json({ error: 'Game not found' });
+            return res.status(404).json({ success: false, error: 'Game not found' });
         }
 
         if (game.reported_by !== user.id) {
-            return res.status(403).json({ error: 'Only the reporter can delete this game' });
+            return res.status(403).json({ success: false, error: 'Only the reporter can delete this game' });
         }
 
         // Mark as inactive instead of deleting
@@ -210,7 +210,7 @@ async function handleDelete(req, res, id) {
 
         if (updateError) {
             console.error('Error deleting game:', updateError);
-            return res.status(500).json({ error: 'Failed to delete game' });
+            return res.status(500).json({ success: false, error: 'Failed to delete game' });
         }
 
         return res.status(200).json({
@@ -220,6 +220,6 @@ async function handleDelete(req, res, id) {
 
     } catch (error) {
         console.error('Live game DELETE error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

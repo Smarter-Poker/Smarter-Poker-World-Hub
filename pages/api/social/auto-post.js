@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const supabase = getSupabase();
@@ -50,21 +50,21 @@ export default async function handler(req, res) {
         verified_user_id = req.body.user_id;
     } else if (token) {
         const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-        if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+        if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
         verified_user_id = authUser.id;
     } else {
-        return res.status(401).json({ error: 'Authentication required' });
+        return res.status(401).json({ success: false, error: 'Authentication required' });
     }
 
     const { post_type, media_url, entity_name, entity_type, page_id, location } = req.body;
     const user_id = verified_user_id;
 
     if (!user_id || !post_type || !entity_name) {
-        return res.status(400).json({ error: 'user_id, post_type, and entity_name are required' });
+        return res.status(400).json({ success: false, error: 'user_id, post_type, and entity_name are required' });
     }
 
     if (!POST_TEMPLATES[post_type]) {
-        return res.status(400).json({ error: `Invalid post_type: ${post_type}. Valid: ${Object.keys(POST_TEMPLATES).join(', ')}` });
+        return res.status(400).json({ success: false, error: `Invalid post_type: ${post_type}. Valid: ${Object.keys(POST_TEMPLATES).join(', ')}` });
     }
 
     try {
@@ -98,13 +98,13 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[AutoPost] Failed to create auto-post:', error.message);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         return res.status(201).json({ success: true, data });
 
     } catch (e) {
         console.error('[AutoPost] Error:', e.message);
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ success: false, error: e.message });
     }
 }

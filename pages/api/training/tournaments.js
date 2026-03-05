@@ -20,9 +20,9 @@ export default async function handler(req, res) {
 
     // ── Auth: verify JWT identity (tournament registration and diamond rewards require identity) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = user.id; // From JWT, not request
 
     // GET: Fetch tournaments (upcoming, live, or completed)
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
                     .single();
 
                 if (!tournament) {
-                    return res.status(404).json({ error: 'Tournament not found' });
+                    return res.status(404).json({ success: false, error: 'Tournament not found' });
                 }
 
                 // Get entries with user info
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Tournaments] Error:', error.message);
-            return res.status(500).json({ error: 'Failed to fetch tournaments' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch tournaments' });
         }
     }
 
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         // userId from JWT (set at top of handler)
 
         if (!tournamentId) {
-            return res.status(400).json({ error: 'tournamentId required' });
+            return res.status(400).json({ success: false, error: 'tournamentId required' });
         }
 
         try {
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
                 .single();
 
             if (!tournament) {
-                return res.status(404).json({ error: 'Tournament not found' });
+                return res.status(404).json({ success: false, error: 'Tournament not found' });
             }
 
             // Check if can still enter
@@ -139,11 +139,11 @@ export default async function handler(req, res) {
 
             if (action === 'register') {
                 if (now > entryDeadline) {
-                    return res.status(400).json({ error: 'Entry window has closed' });
+                    return res.status(400).json({ success: false, error: 'Entry window has closed' });
                 }
 
                 if (tournament.max_entries && tournament.entry_count >= tournament.max_entries) {
-                    return res.status(400).json({ error: 'Tournament is full' });
+                    return res.status(400).json({ success: false, error: 'Tournament is full' });
                 }
 
                 // Check if already registered
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
                     .single();
 
                 if (existing) {
-                    return res.status(400).json({ error: 'Already registered' });
+                    return res.status(400).json({ success: false, error: 'Already registered' });
                 }
 
                 // Charge entry fee
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
                     const { data: balance } = await supabase.rpc('get_diamond_balance', { p_user_id: userId });
 
                     if ((balance || 0) < tournament.entry_fee_diamonds) {
-                        return res.status(400).json({ error: 'Insufficient diamonds' });
+                        return res.status(400).json({ success: false, error: 'Insufficient diamonds' });
                     }
 
                     // BUG #258 FIX: Include userId in reference_id for per-user uniqueness
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
                 if (regErr) {
                     // Registration failed — if we charged diamonds, they'll be rolled back
                     // by the reference_id uniqueness (same ref won't be inserted twice)
-                    return res.status(500).json({ error: regErr.message });
+                    return res.status(500).json({ success: false, error: regErr.message });
                 }
 
                 // Increment entry count
@@ -215,11 +215,11 @@ export default async function handler(req, res) {
                     .single();
 
                 if (!entry) {
-                    return res.status(400).json({ error: 'Not registered for this tournament' });
+                    return res.status(400).json({ success: false, error: 'Not registered for this tournament' });
                 }
 
                 if (entry.status !== 'registered') {
-                    return res.status(400).json({ error: 'Already started or completed' });
+                    return res.status(400).json({ success: false, error: 'Already started or completed' });
                 }
 
                 // Update to playing
@@ -240,11 +240,11 @@ export default async function handler(req, res) {
                 });
             }
 
-            return res.status(400).json({ error: 'Invalid action' });
+            return res.status(400).json({ success: false, error: 'Invalid action' });
 
         } catch (error) {
             console.error('[Tournaments] Register error:', error.message);
-            return res.status(500).json({ error: 'Failed to process tournament action' });
+            return res.status(500).json({ success: false, error: 'Failed to process tournament action' });
         }
     }
 
@@ -254,7 +254,7 @@ export default async function handler(req, res) {
         // userId from JWT (set at top of handler)
 
         if (!tournamentId) {
-            return res.status(400).json({ error: 'tournamentId required' });
+            return res.status(400).json({ success: false, error: 'tournamentId required' });
         }
 
         try {
@@ -267,11 +267,11 @@ export default async function handler(req, res) {
                 .single();
 
             if (!entry) {
-                return res.status(404).json({ error: 'Entry not found' });
+                return res.status(404).json({ success: false, error: 'Entry not found' });
             }
 
             if (entry.status === 'completed') {
-                return res.status(400).json({ error: 'Already submitted results' });
+                return res.status(400).json({ success: false, error: 'Already submitted results' });
             }
 
             // Calculate score (accuracy * 100 + time bonus)
@@ -311,9 +311,9 @@ export default async function handler(req, res) {
 
         } catch (error) {
             console.error('[Tournaments] Submit error:', error.message);
-            return res.status(500).json({ error: 'Failed to submit results' });
+            return res.status(500).json({ success: false, error: 'Failed to submit results' });
         }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

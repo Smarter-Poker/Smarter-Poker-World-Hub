@@ -22,12 +22,12 @@ export default async function handler(req, res) {
 
   // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
   const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ error: 'Auth required' });
+  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
   const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const {
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[Projection] Error:', error);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         if (!entries || entries.length < 5) {
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[Projection] Server error:', error);
-        return res.status(500).json({ error: 'Projection failed' });
+        return res.status(500).json({ success: false, error: 'Projection failed' });
     }
 }
 

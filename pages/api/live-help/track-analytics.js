@@ -20,27 +20,27 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         // Get auth token
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized' });
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
         }
 
         const token = authHeader.substring(7);
         const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
         if (authError || !user) {
-            return res.status(401).json({ error: 'Invalid token' });
+            return res.status(401).json({ success: false, error: 'Invalid token' });
         }
 
         const { event_type, conversation_id, metadata } = req.body;
 
         if (!event_type) {
-            return res.status(400).json({ error: 'Event type required' });
+            return res.status(400).json({ success: false, error: 'Event type required' });
         }
 
         // Insert analytics event
@@ -61,6 +61,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[Track Analytics] Error:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

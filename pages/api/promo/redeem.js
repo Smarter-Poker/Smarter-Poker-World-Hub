@@ -18,26 +18,26 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     // ── AUTH CHECK ──
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Not authenticated' });
+        return res.status(401).json({ success: false, error: 'Not authenticated' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
-        return res.status(401).json({ error: 'Invalid token' });
+        return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     // ── VALIDATE INPUT ──
     const { code } = req.body;
     if (!code || typeof code !== 'string') {
-        return res.status(400).json({ error: 'Promo code is required' });
+        return res.status(400).json({ success: false, error: 'Promo code is required' });
     }
 
     const normalizedCode = code.trim().toUpperCase();
@@ -51,20 +51,20 @@ export default async function handler(req, res) {
             .single();
 
         if (lookupError || !promo) {
-            return res.status(404).json({ error: 'Invalid promo code' });
+            return res.status(404).json({ success: false, error: 'Invalid promo code' });
         }
 
         // ── VALIDATE CODE STATUS ──
         if (!promo.is_active) {
-            return res.status(400).json({ error: 'This promo code is no longer active' });
+            return res.status(400).json({ success: false, error: 'This promo code is no longer active' });
         }
 
         if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
-            return res.status(400).json({ error: 'This promo code has expired' });
+            return res.status(400).json({ success: false, error: 'This promo code has expired' });
         }
 
         if (promo.max_uses !== null && promo.times_used >= promo.max_uses) {
-            return res.status(400).json({ error: 'This promo code has reached its maximum redemptions' });
+            return res.status(400).json({ success: false, error: 'This promo code has reached its maximum redemptions' });
         }
 
         // ── CHECK DUPLICATE REDEMPTION ──
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
             .single();
 
         if (existing) {
-            return res.status(400).json({ error: 'You have already redeemed this code' });
+            return res.status(400).json({ success: false, error: 'You have already redeemed this code' });
         }
 
         // BUG #264 FIX: Atomic redemption insert to prevent TOCTOU double-redeem.
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
 
         if (redeemInsertErr) {
             if (redeemInsertErr.code === '23505') {
-                return res.status(409).json({ error: 'You have already redeemed this code' });
+                return res.status(409).json({ success: false, error: 'You have already redeemed this code' });
             }
             throw redeemInsertErr;
         }
@@ -192,6 +192,6 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('[Promo] Redemption error:', err);
-        return res.status(500).json({ error: 'Failed to redeem promo code' });
+        return res.status(500).json({ success: false, error: 'Failed to redeem promo code' });
     }
 }

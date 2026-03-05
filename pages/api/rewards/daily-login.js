@@ -33,21 +33,21 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     if (!supabaseUrl || !supabaseKey) {
         console.error('[DailyLogin] Missing env vars:', { url: !!supabaseUrl, key: !!supabaseKey });
-        return res.status(500).json({ error: 'Server configuration error' });
+        return res.status(500).json({ success: false, error: 'Server configuration error' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ── Auth: JWT required (awards diamonds) ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const userId = user.id; // From JWT, not body
 
@@ -184,6 +184,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[DailyLogin] Error:', error.message || error);
-        return res.status(500).json({ error: 'Failed to claim daily login reward' });
+        return res.status(500).json({ success: false, error: 'Failed to claim daily login reward' });
     }
 }

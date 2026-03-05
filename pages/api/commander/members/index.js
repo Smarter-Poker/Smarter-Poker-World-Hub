@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     } else if (req.method === 'POST') {
         return handleCreate(req, res);
     }
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleList(req, res) {

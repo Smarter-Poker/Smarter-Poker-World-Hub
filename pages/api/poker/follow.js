@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         } else if (req.method === 'POST') {
             return handlePost(req, res);
         } else {
-            return res.status(405).json({ error: 'Method not allowed' });
+            return res.status(405).json({ success: false, error: 'Method not allowed' });
         }
     } catch (error) {
         console.error('Follow API error:', error);
@@ -125,7 +125,7 @@ async function handleGet(req, res) {
         });
     }
 
-    return res.status(400).json({ error: 'Provide user_id or page_type+page_id' });
+    return res.status(400).json({ success: false, error: 'Provide user_id or page_type+page_id' });
 }
 
 /**
@@ -175,20 +175,20 @@ async function handlePost(req, res) {
 
     // Require JWT for follow/unfollow writes
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required for follow/unfollow' });
+    if (!token) return res.status(401).json({ success: false, error: 'Authentication required for follow/unfollow' });
     const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = authUser.id;
 
     // Validate inputs
     if (!page_type || !page_id) {
-        return res.status(400).json({ error: 'page_type and page_id are required' });
+        return res.status(400).json({ success: false, error: 'page_type and page_id are required' });
     }
     if (!['venue', 'tour', 'series'].includes(page_type)) {
-        return res.status(400).json({ error: 'page_type must be venue, tour, or series' });
+        return res.status(400).json({ success: false, error: 'page_type must be venue, tour, or series' });
     }
     if (!['follow', 'unfollow'].includes(action)) {
-        return res.status(400).json({ error: 'action must be follow or unfollow' });
+        return res.status(400).json({ success: false, error: 'action must be follow or unfollow' });
     }
 
     // Normalize tour page_id to uppercase (tour registry uses uppercase codes like WPT, WSOP)

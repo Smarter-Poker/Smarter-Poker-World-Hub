@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // Rate limit
   if (!applyRateLimit(req, res, 'poker/create-live-table')) return;
@@ -51,6 +51,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[create-live-table]', err);
-    return res.status(500).json({ error: 'Internal error' });
+    return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

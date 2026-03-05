@@ -20,24 +20,24 @@ export default async function handler(req, res) {
   const fwd = req.headers['x-forwarded-for'];
   const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
   const rl = checkMemoryRateLimit(`leads:${ip}`, 5, 60000);
-  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests' }); }
+  if (!rl.allowed) { return res.status(429).json({ success: false, error: 'Too many requests' }); }
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
   try {
     const { email, source, referrer, plan } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
+      return res.status(400).json({ success: false, error: 'Email is required' });
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+      return res.status(400).json({ success: false, error: 'Invalid email format' });
     }
 
     // Check if lead already exists

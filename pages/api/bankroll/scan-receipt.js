@@ -39,25 +39,25 @@ export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-        return res.status(401).json({ error: 'Invalid token' });
+        return res.status(401).json({ success: false, error: 'Invalid token' });
     }
 
     try {
         const { image } = req.body;
 
         if (!image) {
-            return res.status(400).json({ error: 'No image provided' });
+            return res.status(400).json({ success: false, error: 'No image provided' });
         }
 
         // Call Grok Vision API for OCR
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         });
     } catch (error) {
         console.error('Receipt scan error:', error);
-        return res.status(500).json({ error: 'Failed to scan receipt' });
+        return res.status(500).json({ success: false, error: 'Failed to scan receipt' });
     }
 }
 

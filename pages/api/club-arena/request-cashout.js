@@ -29,21 +29,21 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { clubId, amount: rawAmount, note } = req.body;
   if (!clubId || !rawAmount || rawAmount <= 0) {
-    return res.status(400).json({ error: 'clubId and positive amount required' });
+    return res.status(400).json({ success: false, error: 'clubId and positive amount required' });
   }
   const amount = Math.floor(Number(rawAmount));
   if (!Number.isFinite(amount) || amount <= 0 || amount > 100000000) {
-    return res.status(400).json({ error: 'amount must be a positive integer (max 100M)' });
+    return res.status(400).json({ success: false, error: 'amount must be a positive integer (max 100M)' });
   }
 
   // Settlement lock check — block during Monday 4:00-4:10 AM CST
@@ -64,18 +64,18 @@ export default async function handler(req, res) {
       .eq('user_id', user.id)
       .single();
 
-    if (memErr || !member) return res.status(404).json({ error: 'Not a member of this club' });
+    if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member of this club' });
 
     if (amount > member.chip_balance) {
       return res.status(400).json({
-        error: 'Insufficient chips',
+        success: false, error: 'Insufficient chips',
         available: member.chip_balance,
         requested: amount,
       });
     }
 
     if (!member.agent_id) {
-      return res.status(400).json({ error: 'No agent assigned. Contact club owner.' });
+      return res.status(400).json({ success: false, error: 'No agent assigned. Contact club owner.' });
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       .limit(1);
 
     if (existing?.length > 0) {
-      return res.status(409).json({ error: 'You already have a pending cashout request' });
+      return res.status(409).json({ success: false, error: 'You already have a pending cashout request' });
     }
 
     // ═════════════════════════════════════════════════════════════
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
 
     if (holdErr) {
       if (holdErr.message?.includes('Insufficient')) {
-        return res.status(400).json({ error: 'Insufficient chips', details: holdErr.message });
+        return res.status(400).json({ success: false, error: 'Insufficient chips', details: holdErr.message });
       }
       throw holdErr;
     }
@@ -223,6 +223,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[request-cashout]', err);
-    return res.status(500).json({ error: 'Cashout request failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Cashout request failed', details: err.message });
   }
 }

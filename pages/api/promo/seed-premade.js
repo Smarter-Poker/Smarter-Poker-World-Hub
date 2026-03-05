@@ -55,14 +55,14 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
     // Auth check
     const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
     // Verify user is owner or manager
     const { data: staff } = await supabaseAdmin
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
         .single();
 
     if (!staff) {
-        return res.status(403).json({ error: 'Only owners and managers can seed promo codes' });
+        return res.status(403).json({ success: false, error: 'Only owners and managers can seed promo codes' });
     }
 
     try {
@@ -112,6 +112,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Seed promos error:', err);
-        return res.status(500).json({ error: 'Failed to seed promotions' });
+        return res.status(500).json({ success: false, error: 'Failed to seed promotions' });
     }
 }

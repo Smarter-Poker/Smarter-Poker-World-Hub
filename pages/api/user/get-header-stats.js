@@ -13,20 +13,20 @@ export default async function handler(req, res) {
   }
 
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     if (!SUPABASE_SERVICE_KEY) {
-        return res.status(500).json({ error: 'Service key not configured' });
+        return res.status(500).json({ success: false, error: 'Service key not configured' });
     }
 
     const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
 
     // BUG #243 FIX: Require JWT and derive userId from token (not body)
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
     const userId = user.id;
 
     try {
@@ -39,11 +39,11 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[get-header-stats] Profile error:', error);
-            return res.status(500).json({ error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
 
         if (!profile) {
-            return res.status(404).json({ error: 'Profile not found' });
+            return res.status(404).json({ success: false, error: 'Profile not found' });
         }
 
         // Level system removed - no longer using XP
@@ -104,6 +104,6 @@ export default async function handler(req, res) {
         });
     } catch (e) {
         console.error('[get-header-stats] Exception:', e);
-        return res.status(500).json({ error: e.message });
+        return res.status(500).json({ success: false, error: e.message });
     }
 }

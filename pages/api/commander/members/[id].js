@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         return handleDelete(req, res, id);
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }
 
 async function handleGet(req, res, id) {

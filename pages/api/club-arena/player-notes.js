@@ -24,13 +24,13 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // ── Auth: verify JWT identity ──
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'Auth required' });
+  if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   try {
     const { action, targetUserId, targetUserIds, note } = req.body;
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     switch (action) {
       // ── GET single note ──────────────────────────────────────
       case 'get': {
-        if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
         const { data, error } = await supabaseAdmin
           .from('player_notes')
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
           .eq('target_user_id', targetUserId)
           .maybeSingle();
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.json({ success: true, note: data });
       }
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           .in('target_user_id', targetUserIds)
               .limit(100);
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Return as map: { targetUserId: note }
         const noteMap = {};
@@ -73,8 +73,8 @@ export default async function handler(req, res) {
 
       // ── UPSERT — create or update a note ─────────────────────
       case 'upsert': {
-        if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
-        if (!note) return res.status(400).json({ error: 'note object required' });
+        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
+        if (!note) return res.status(400).json({ success: false, error: 'note object required' });
 
         // Validate player_type
         const validTypes = ['unknown', 'fish', 'reg', 'shark', 'whale', 'nit', 'lag', 'tag'];
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
               .eq('id', existing.id)
               .select()
               .single();
-            if (updErr) return res.status(500).json({ error: updErr.message });
+            if (updErr) return res.status(500).json({ success: false, error: updErr.message });
             return res.json({ success: true, note: updated });
           } else {
             const { data: inserted, error: insErr } = await supabaseAdmin
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
               .insert(upsertData)
               .select()
               .single();
-            if (insErr) return res.status(500).json({ error: insErr.message });
+            if (insErr) return res.status(500).json({ success: false, error: insErr.message });
             return res.json({ success: true, note: inserted });
           }
         }
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
 
       // ── DELETE ────────────────────────────────────────────────
       case 'delete': {
-        if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
 
         const { error } = await supabaseAdmin
           .from('player_notes')
@@ -143,15 +143,15 @@ export default async function handler(req, res) {
           .eq('user_id', userId)
           .eq('target_user_id', targetUserId);
 
-        if (error) return res.status(500).json({ error: error.message });
+        if (error) return res.status(500).json({ success: false, error: error.message });
         return res.json({ success: true });
       }
 
       default:
-        return res.status(400).json({ error: `Unknown action: ${action}` });
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
   } catch (err) {
     console.error('[player-notes]', err);
-    return res.status(500).json({ error: 'Internal error' });
+    return res.status(500).json({ success: false, error: 'Internal error' });
   }
 }

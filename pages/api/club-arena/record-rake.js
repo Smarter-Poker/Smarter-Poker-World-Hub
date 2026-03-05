@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   const engineKey = req.headers['x-engine-key'];
   const token = req.headers.authorization?.replace('Bearer ', '');
@@ -31,12 +31,12 @@ export default async function handler(req, res) {
   const validEngineKey = engineKey && process.env.ENGINE_INTERNAL_SECRET && engineKey === process.env.ENGINE_INTERNAL_SECRET;
 
   if (!validEngineKey && !token) {
-    return res.status(401).json({ error: 'Authentication required' });
+    return res.status(401).json({ success: false, error: 'Authentication required' });
   }
 
   if (token && !validEngineKey) {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+    if (error || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     const { data: member } = await supabaseAdmin
       .from('club_members')
@@ -46,14 +46,14 @@ export default async function handler(req, res) {
       .single();
 
     if (!['owner', 'admin'].includes(member?.role)) {
-      return res.status(403).json({ error: 'Only owners/admins or the engine can record rake' });
+      return res.status(403).json({ success: false, error: 'Only owners/admins or the engine can record rake' });
     }
   }
 
   const { clubId, tableId, handId, potSize, rakeAmount, numPlayers, bbjContribution, dealtPlayerIds } = req.body;
 
   if (!clubId || rakeAmount == null || rakeAmount < 0) {
-    return res.status(400).json({ error: 'clubId and non-negative rakeAmount required' });
+    return res.status(400).json({ success: false, error: 'clubId and non-negative rakeAmount required' });
   }
 
   try {
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
 
     if (rakeErr) {
       console.error('[record-rake] RPC error:', rakeErr);
-      return res.status(500).json({ error: 'Rake recording failed', details: rakeErr.message });
+      return res.status(500).json({ success: false, error: 'Rake recording failed', details: rakeErr.message });
     }
 
     // STEP 2: Calculate cascading commissions per dealt player
@@ -113,6 +113,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('[record-rake]', err);
-    return res.status(500).json({ error: 'Rake recording failed', details: err.message });
+    return res.status(500).json({ success: false, error: 'Rake recording failed', details: err.message });
   }
 }

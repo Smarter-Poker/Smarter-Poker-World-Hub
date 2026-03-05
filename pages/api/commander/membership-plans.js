@@ -180,5 +180,5 @@ export default async function handler(req, res) {
     return res.json({ success: true, data: { plan: data } });
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

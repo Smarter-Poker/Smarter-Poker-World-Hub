@@ -18,11 +18,11 @@ function generateCode(length = 8) {
 export default async function handler(req, res) {
     // Verify user is authenticated
     const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'Unauthorized' });
+    if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ error: 'Unauthorized' });
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
     // Verify user is owner or manager at a venue
     const { data: staff } = await supabaseAdmin
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         .single();
 
     if (!staff) {
-        return res.status(403).json({ error: 'Only owners and managers can manage promo codes' });
+        return res.status(403).json({ success: false, error: 'Only owners and managers can manage promo codes' });
     }
 
     // GET — List all promo codes
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ codes: data || [] });
         } catch (err) {
             console.error('List promo codes error:', err);
-            return res.status(500).json({ error: 'Failed to fetch promo codes' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch promo codes' });
         }
     }
 
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
 
             if (error) {
                 if (error.code === '23505') {
-                    return res.status(400).json({ error: 'A promo code with this name already exists' });
+                    return res.status(400).json({ success: false, error: 'A promo code with this name already exists' });
                 }
                 throw error;
             }
@@ -89,14 +89,14 @@ export default async function handler(req, res) {
             return res.status(201).json({ code: data });
         } catch (err) {
             console.error('Create promo code error:', err);
-            return res.status(500).json({ error: 'Failed to create promo code' });
+            return res.status(500).json({ success: false, error: 'Failed to create promo code' });
         }
     }
 
     // DELETE — Deactivate a promo code
     if (req.method === 'DELETE') {
         const { id } = req.query;
-        if (!id) return res.status(400).json({ error: 'Code ID required' });
+        if (!id) return res.status(400).json({ success: false, error: 'Code ID required' });
 
         try {
             const { error } = await supabaseAdmin
@@ -109,14 +109,14 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true });
         } catch (err) {
             console.error('Deactivate promo code error:', err);
-            return res.status(500).json({ error: 'Failed to deactivate promo code' });
+            return res.status(500).json({ success: false, error: 'Failed to deactivate promo code' });
         }
     }
 
     // PATCH — Update promo code (toggle, rename, set max uses, etc.)
     if (req.method === 'PATCH') {
         const { id, is_active, code, description, max_uses, reward_type, reward_value, expires_at } = req.body;
-        if (!id) return res.status(400).json({ error: 'Code ID required' });
+        if (!id) return res.status(400).json({ success: false, error: 'Code ID required' });
 
         try {
             const updates = {};
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
             if (expires_at !== undefined) updates.expires_at = expires_at || null;
 
             if (Object.keys(updates).length === 0) {
-                return res.status(400).json({ error: 'No updates provided' });
+                return res.status(400).json({ success: false, error: 'No updates provided' });
             }
 
             const { data, error } = await supabaseAdmin
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
             if (error) {
                 if (error.code === '23505') {
-                    return res.status(400).json({ error: 'A promo code with this name already exists' });
+                    return res.status(400).json({ success: false, error: 'A promo code with this name already exists' });
                 }
                 throw error;
             }
@@ -149,9 +149,9 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true, code: data });
         } catch (err) {
             console.error('Update promo code error:', err);
-            return res.status(500).json({ error: 'Failed to update promo code' });
+            return res.status(500).json({ success: false, error: 'Failed to update promo code' });
         }
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 }

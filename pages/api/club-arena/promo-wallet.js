@@ -31,19 +31,19 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/promo-wallet')) return;
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ error: 'No auth token' });
+  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
 
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
   const { action, clubId, ...params } = req.body;
-  if (!clubId) return res.status(400).json({ error: 'clubId required' });
+  if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
 
   // Verify caller is owner/admin
   const { data: member } = await supabaseAdmin
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     .single();
 
   if (!member || !['owner', 'admin'].includes(member.role)) {
-    return res.status(403).json({ error: 'Only owners and admins can manage promo wallet' });
+    return res.status(403).json({ success: false, error: 'Only owners and admins can manage promo wallet' });
   }
 
   try {
@@ -111,12 +111,12 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'mint_promo': {
         if (member.role !== 'owner') {
-          return res.status(403).json({ error: 'Only the club owner can mint promo chips' });
+          return res.status(403).json({ success: false, error: 'Only the club owner can mint promo chips' });
         }
 
         const amount = parseFloat(params.amount);
         if (!amount || amount <= 0 || amount > 10000000) {
-          return res.status(400).json({ error: 'Amount must be between 1 and 10,000,000' });
+          return res.status(400).json({ success: false, error: 'Amount must be between 1 and 10,000,000' });
         }
 
         // Atomically increment promo balance via RPC
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr) {
-          return res.status(500).json({ error: 'Mint failed', details: rpcErr.message });
+          return res.status(500).json({ success: false, error: 'Mint failed', details: rpcErr.message });
         }
 
         return res.status(200).json({
@@ -143,8 +143,8 @@ export default async function handler(req, res) {
         const { agentUserId, amount: grantAmount, note } = params;
         const amt = parseFloat(grantAmount);
 
-        if (!agentUserId) return res.status(400).json({ error: 'agentUserId required' });
-        if (!amt || amt <= 0) return res.status(400).json({ error: 'Positive amount required' });
+        if (!agentUserId) return res.status(400).json({ success: false, error: 'agentUserId required' });
+        if (!amt || amt <= 0) return res.status(400).json({ success: false, error: 'Positive amount required' });
 
         const { data: result, error: rpcErr } = await supabaseAdmin.rpc('transfer_promo_club_to_agent', {
           p_club_id: clubId,
@@ -154,11 +154,11 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr) {
-          return res.status(500).json({ error: 'Grant failed', details: rpcErr.message });
+          return res.status(500).json({ success: false, error: 'Grant failed', details: rpcErr.message });
         }
 
         if (!result?.success) {
-          return res.status(400).json({ error: result?.error || 'Grant failed' });
+          return res.status(400).json({ success: false, error: result?.error || 'Grant failed' });
         }
 
         return res.status(200).json({
@@ -171,10 +171,10 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res.status(400).json({ error: `Unknown action: ${action}` });
+        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
     }
   } catch (err) {
     console.error('[promo-wallet]', err);
-    return res.status(500).json({ error: 'Internal error', details: err.message });
+    return res.status(500).json({ success: false, error: 'Internal error', details: err.message });
   }
 }

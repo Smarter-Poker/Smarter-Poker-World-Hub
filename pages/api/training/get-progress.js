@@ -18,19 +18,19 @@ export default async function handler(req, res) {
 
   // BUG #246 FIX: Require JWT auth
   const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ error: 'Auth required' });
+  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
   const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     try {
         const { userId, gameId } = req.query;
 
         if (!userId) {
-            return res.status(400).json({ error: 'userId is required' });
+            return res.status(400).json({ success: false, error: 'userId is required' });
         }
 
         // If gameId is provided, fetch progress for that game only
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
             if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
                 console.error('Error fetching game progress:', error);
-                return res.status(500).json({ error: 'Failed to fetch progress' });
+                return res.status(500).json({ success: false, error: 'Failed to fetch progress' });
             }
 
             return res.status(200).json({
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('Error fetching all progress:', error);
-            return res.status(500).json({ error: 'Failed to fetch progress' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch progress' });
         }
 
         // Calculate overall stats
@@ -91,6 +91,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Error in get-progress:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
