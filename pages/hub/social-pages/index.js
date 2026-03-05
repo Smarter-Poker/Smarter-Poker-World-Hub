@@ -4,7 +4,7 @@
  */
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';

@@ -11,7 +11,6 @@ import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
-import { useFriendsStore } from '../../src/stores/friendsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -611,36 +610,42 @@ export default function FriendsPage() {
     const handleFollow = async (userId) => {
         if (!user) return;
 
+        // Optimistic update — apply immediately, rollback on error
+        const targetUser = suggestions.find(u => u.id === userId) ||
+            followers.find(u => u.id === userId);
+        if (targetUser) setFollowing(prev => [...prev, targetUser]);
+        setFollowingIds(prev => new Set([...prev, userId]));
+
         const { error } = await supabase
             .from('follows')
             .insert({ follower_id: user.id, following_id: userId, source: 'direct' });
 
-        if (!error) {
-            // Find the user profile and add to following
-            const targetUser = suggestions.find(u => u.id === userId) ||
-                followers.find(u => u.id === userId);
-            if (targetUser) {
-                setFollowing(prev => [...prev, targetUser]);
-            }
-            setFollowingIds(prev => new Set([...prev, userId]));
+        if (error) {
+            // Rollback on failure
+            setFollowing(prev => prev.filter(f => f.id !== userId));
+            setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
         }
     };
 
     const handleUnfollow = async (userId) => {
         if (!user) return;
 
-        await supabase
+        // Optimistic update — remove immediately, restore on error
+        const removed = following.find(f => f.id === userId);
+        setFollowing(prev => prev.filter(f => f.id !== userId));
+        setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+
+        const { error } = await supabase
             .from('follows')
             .delete()
             .eq('follower_id', user.id)
             .eq('following_id', userId);
 
-        setFollowing(prev => prev.filter(f => f.id !== userId));
-        setFollowingIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(userId);
-            return newSet;
-        });
+        if (error) {
+            // Rollback on failure
+            if (removed) setFollowing(prev => [...prev, removed]);
+            setFollowingIds(prev => new Set([...prev, userId]));
+        }
     };
 
     const handleAddFriend = async (friendId) => {

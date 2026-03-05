@@ -90,8 +90,6 @@ async function getRandomSportsClip(excludeIds = []) {
             .limit(50);
 
         if (error || !clips || clips.length === 0) {
-            console.log('   ⚠️ No sports clips found in database');
-            console.log('   Error:', error?.message || 'No clips returned');
             return null;
         }
 
@@ -135,9 +133,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        console.log('\n' + '═'.repeat(60));
-        console.log('🏈 SPORTS CLIPS CRON STARTED');
-        console.log('═'.repeat(60));
 
         // Get current time for per-horse scheduling
         const now = new Date();
@@ -165,15 +160,12 @@ export default async function handler(req, res) {
         const selectedHorses = awakeHorses.filter(horse => {
             const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
             if (isMyTime) {
-                console.log(`   ✅ ${horse.alias || horse.name}'s scheduled time slot!`);
             }
             return isMyTime;
         });
 
         const results = [];
         const timeEnergy = getTimeOfDayEnergy();
-        console.log(`   ⏰ Minute ${currentMinute}, Hour ${currentHour}, Mode: ${timeEnergy.mode}`);
-        console.log(`   🐴 Total: ${allHorses.length}, Awake: ${awakeHorses.length}, Scheduled now: ${selectedHorses.length}`);
 
         if (selectedHorses.length === 0) {
             return res.status(200).json({
@@ -185,13 +177,11 @@ export default async function handler(req, res) {
         }
 
         for (const horse of selectedHorses) {
-            console.log(`\n🏈 ${horse.alias || horse.name}: Posting sports clip...`);
 
             // Get a random sports clip from database
             const clip = await getRandomSportsClip(Array.from(usedClipsThisSession));
 
             if (!clip) {
-                console.log(`   No sports clips available for ${horse.alias}`);
                 continue;
             }
 
@@ -204,13 +194,10 @@ export default async function handler(req, res) {
             });
 
             if (!reserved) {
-                console.log(`   ⚠️ Clip ${clip.video_id} already claimed by another horse, trying next...`);
                 continue;
             }
 
             usedClipsThisSession.add(clip.id);
-            console.log(`   📺 Selected: ${clip.title} from ${clip.source}`);
-            console.log(`   🔒 RESERVED: ${clip.video_id} for ${horse.alias}`);
 
             // Generate caption using Grok
             let caption = '';
@@ -246,7 +233,7 @@ Your reaction:`;
                 // Apply horse's unique writing style
                 caption = applyWritingStyle(caption, horse.profile_id);
             } catch (e) {
-                console.log(`   Using template caption (Grok error: ${e.message})`);
+                console.error(`   Using template caption (Grok error: ${e.message})`);
                 const templateCaption = getRandomSportsCaption(clip.category);
                 caption = applyWritingStyle(templateCaption, horse.profile_id);
             }
@@ -278,7 +265,6 @@ Your reaction:`;
                 continue;
             }
 
-            console.log(`   ✅ Posted: "${caption}"`);
             results.push({
                 horse: horse.alias,
                 clip: clip.title,
@@ -291,8 +277,6 @@ Your reaction:`;
             await new Promise(r => setTimeout(r, delay));
         }
 
-        console.log('\n' + '═'.repeat(60));
-        console.log(`📊 Posted ${results.length} sports clips`);
 
         return res.status(200).json({
             success: true,

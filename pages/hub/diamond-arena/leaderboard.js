@@ -3,7 +3,7 @@
  * Global rankings for Diamond Arena players
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';

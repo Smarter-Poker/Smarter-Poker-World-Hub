@@ -29,6 +29,11 @@ const TRAINING_GAMES = [
 ];
 
 export default async function handler(req, res) {
+  // CDN cache: fresh for 300s, serve stale up to 3600s
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+  }
+
   if (!applyRateLimit(req, res, LIMITS.read)) return;
 
   // BUG #246 FIX: Require JWT auth

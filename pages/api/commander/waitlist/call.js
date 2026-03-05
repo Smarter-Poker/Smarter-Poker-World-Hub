@@ -76,7 +76,6 @@ export default async function handler(req, res) {
           { timeout: 5 }
         );
       } else {
-        console.log(`[SMS WOULD SEND] To: ${entry.player_phone} | ${venueName} | ${gameLabel}${tableInfo}`);
         smsResult = { success: false, reason: 'Twilio not configured' };
       }
     }

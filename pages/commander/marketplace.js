@@ -6,23 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Users,
-  Package,
-  Star,
-  MapPin,
-  Clock,
-  DollarSign,
-  Calendar,
-  Phone,
-  Mail,
-  CheckCircle,
-  Search,
-  Filter,
-  Loader2,
-  X,
-  ChevronRight
-} from 'lucide-react';
+import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];

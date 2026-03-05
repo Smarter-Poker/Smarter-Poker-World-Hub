@@ -98,7 +98,6 @@ export default async function handler(req, res) {
                 priority: priority,
                 conversationId: conversationId
             });
-            console.log('[LiveHelp] Ticket notification email sent successfully');
         } catch (emailError) {
             console.error('[LiveHelp] Failed to send ticket email:', emailError);
             // Don't fail the request if email fails

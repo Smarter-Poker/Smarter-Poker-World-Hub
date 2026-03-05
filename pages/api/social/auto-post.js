@@ -101,7 +101,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: error.message });
         }
 
-        console.log(`[AutoPost] Created ${post_type} auto-post for "${entity_name}" (post ${data.id})`);
         return res.status(201).json({ success: true, data });
 
     } catch (e) {

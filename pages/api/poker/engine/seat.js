@@ -103,7 +103,6 @@ export default async function handler(req, res) {
         }
         // Log warnings to console for admin visibility
         if (acCheck.warnings?.length) {
-          console.warn(`[AntiCheat] Warnings for ${playerId} at ${tableId}:`, acCheck.warnings);
           // Persist flags from this check
           antiCheat.persistFlags(playerId, clubId, tableId);
         }
@@ -156,7 +155,7 @@ export default async function handler(req, res) {
             }
           } catch (e) {
             // If stats query fails, allow entry (don't block on stats errors)
-            console.warn('[seat.js] Career percent check failed:', e.message);
+            console.error('[seat.js] Career percent check failed:', e.message);
           }
         }
 

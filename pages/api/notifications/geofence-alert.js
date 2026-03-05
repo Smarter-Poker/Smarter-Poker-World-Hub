@@ -41,7 +41,6 @@ export default async function handler(req, res) {
     }
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-        console.warn('[GeofenceAlert] OneSignal not configured');
         return res.status(503).json({ success: false, error: 'Push notifications not configured' });
     }
 
@@ -118,7 +117,6 @@ export default async function handler(req, res) {
                 }
             }
 
-            console.log(`[GeofenceAlert] ✅ Push sent: ${result.id} → ${venueName} for user ${userId.slice(0, 8)}`);
             return res.status(200).json({ success: true, messageId: result.id });
         }
 

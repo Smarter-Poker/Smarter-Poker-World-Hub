@@ -19,7 +19,6 @@ export default async function handler(req, res) {
         }
     }
 
-    console.log('Starting horses-social-all consolidated cron...');
 
     const results = { liked: 0, commented: 0, replied: 0 };
 
@@ -27,19 +26,15 @@ export default async function handler(req, res) {
         // Step 1: Likes (smaller batch to fit in 60s total)
         const likeResult = await likePosts(15, true);
         results.liked = likeResult.liked || 0;
-        console.log(`Likes: ${results.liked}`);
 
         // Step 2: Comments
         const commentResult = await commentOnPosts(10, true);
         results.commented = commentResult.commented || 0;
-        console.log(`Comments: ${results.commented}`);
 
         // Step 3: Replies
         const replyResult = await replyToComments(10);
         results.replied = replyResult.replied || 0;
-        console.log(`Replies: ${results.replied}`);
 
-        console.log(`Consolidated social cron complete: ${JSON.stringify(results)}`);
 
         return res.status(200).json({
             success: true,

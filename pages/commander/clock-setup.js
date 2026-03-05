@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Star, Eye, EyeOff, Volume2, VolumeX, Image, MonitorPlay } from 'lucide-react';
+import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, Image, MonitorPlay } from 'lucide-react';
 
 const DEFAULT_THEME = {
     background: '#0D192E',

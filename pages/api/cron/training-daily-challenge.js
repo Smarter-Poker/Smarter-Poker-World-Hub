@@ -32,7 +32,6 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
-        console.log('[TrainingDailyChallenge] 🏆 Starting community challenge generation...');
 
         // Get today's date
         const today = new Date();
@@ -46,7 +45,6 @@ export default async function handler(req, res) {
             .maybeSingle();
 
         if (existing) {
-            console.log('[TrainingDailyChallenge] Challenge already exists for today');
             return res.status(200).json({
                 success: true,
                 message: 'Challenge already exists for today',
@@ -79,7 +77,6 @@ export default async function handler(req, res) {
         let communityScenario = null;
         try {
             communityScenario = await generateCommunityScenario(selectedCategory, level, challengeDate);
-            console.log('[TrainingDailyChallenge] ✅ Grok generated community scenario');
         } catch (grokError) {
             console.error('[TrainingDailyChallenge] Grok generation failed:', grokError.message);
         }
@@ -104,7 +101,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Failed to create challenge', details: error.message });
         }
 
-        console.log(`[TrainingDailyChallenge] 🏆 Created community challenge: ${selectedGameId} Level ${level}`);
 
         return res.status(200).json({
             success: true,

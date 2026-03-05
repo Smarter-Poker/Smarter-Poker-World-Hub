@@ -21,15 +21,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import {
-    Search, Clock, Eye, TrendingUp, Trophy, Calendar,
-    Zap, Play, Mail, Check, Flame, MapPin, ExternalLink, Loader,
-    Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon,
-    Moon, Sun, Lock, Target, CheckCircle, ChevronDown, Video,
-    Newspaper, Globe, RefreshCw, ChevronRight, Film
-} from 'lucide-react';
+import { Search, Eye, TrendingUp, Trophy, Play, Check, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronDown, Video, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -38,7 +31,6 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getNewsPreferences, updateNewsPreferences } from '../../src/services/newsPreferences';
 import { getNewsBookmarks, addNewsBookmark, removeNewsBookmark } from '../../src/services/newsBookmarks';
-import { PokerStoriesRow } from '../../src/components/social/PokerStoriesRow';
 import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 
 // Fallback data

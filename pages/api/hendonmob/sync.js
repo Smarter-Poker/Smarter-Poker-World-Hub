@@ -46,7 +46,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Please set your full name in your profile to match your Hendon Mob name' });
         }
 
-        console.log(`Searching for HendonMob stats for: ${playerName}`);
 
         // Try multiple search methods
         let stats = null;
@@ -149,7 +148,7 @@ async function searchDuckDuckGo(playerName) {
             }
         }
     } catch (e) {
-        console.log('DuckDuckGo search failed:', e.message);
+        console.error('DuckDuckGo search failed:', e.message);
     }
     return null;
 }
@@ -177,7 +176,7 @@ async function searchBing(playerName) {
             }
         }
     } catch (e) {
-        console.log('Bing search failed:', e.message);
+        console.error('Bing search failed:', e.message);
     }
     return null;
 }
@@ -210,7 +209,7 @@ async function searchPokerDB(playerName) {
             }
         }
     } catch (e) {
-        console.log('PokerDB search failed:', e.message);
+        console.error('PokerDB search failed:', e.message);
     }
     return null;
 }
@@ -243,7 +242,7 @@ async function searchByPlayerId(playerId, playerName) {
             }
         }
     } catch (e) {
-        console.log('Player ID search failed:', e.message);
+        console.error('Player ID search failed:', e.message);
     }
     return null;
 }

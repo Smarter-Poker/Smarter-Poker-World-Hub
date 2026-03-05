@@ -115,7 +115,6 @@ export default async function handler(req, res) {
         const scenarioType = SCENARIO_TYPES[level][Math.floor(Math.random() * SCENARIO_TYPES[level].length)];
 
         // Generate scenario with Grok
-        console.log(`[DailyChallenge] Generating Level ${level} scenario for ${challengeDate}...`);
 
         const scenario = await generateGrokScenario(level, position, stackDepth, scenarioType);
 
@@ -123,7 +122,6 @@ export default async function handler(req, res) {
             throw new Error('Failed to generate scenario from Grok');
         }
 
-        console.log(`[DailyChallenge] Generated: "${scenario.title}"`);
 
         // Insert the daily challenge
         const { data: challenge, error } = await supabase
@@ -146,7 +144,6 @@ export default async function handler(req, res) {
             throw error;
         }
 
-        console.log(`✅ Created Memory Matrix daily challenge for ${challengeDate}:`, {
             id: challenge.id,
             level,
             title: scenario.title,

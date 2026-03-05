@@ -15,12 +15,7 @@ import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import {
-  RefreshCw, Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, Clock,
-  PhoneCall, Armchair, SkipForward, Trash2,
-  MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical,
-  Globe, CheckCircle, AlertTriangle
-} from 'lucide-react';
+import { Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, PhoneCall, Armchair, SkipForward, Trash2, MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 // Format phone to 555-555-5555 (internal display only)

@@ -7,11 +7,7 @@ import React, { useState } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import {
-  Users, Clock, Trophy, DollarSign, Smartphone, Monitor,
-  Check, ChevronRight, Play, Star, ArrowRight, Zap,
-  Shield, BarChart3, Bell, Gift, Home, QrCode
-} from 'lucide-react';
+import { Users, Clock, Trophy, Monitor, Check, Play, Star, ArrowRight, Zap, Shield, BarChart3, Bell, Gift, Home } from 'lucide-react';
 
 const FEATURES = [
   {

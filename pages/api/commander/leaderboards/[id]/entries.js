@@ -14,6 +14,11 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // CDN cache: fresh for 30s, serve stale up to 120s
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+  }
+
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -252,7 +257,6 @@ async function updateRankings(leaderboardId) {
   if (!rpcErr) return; // RPC succeeded
 
   // Fallback: manual ranking via JS (RPC may not exist or may have failed)
-  console.warn('[updateRankings] RPC fallback:', rpcErr?.message);
   const { data: entries } = await supabase
     .from('commander_leaderboard_entries')
     .select('id, score')

@@ -43,14 +43,10 @@ import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import gsap from 'gsap';
-import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
-import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
-import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
+import { useUnreadCount } from '../../src/hooks/useUnreadCount';
+import { StoriesBar } from '../../src/components/social/Stories';
 import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
 import { GoLiveModal } from '../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
@@ -58,7 +54,6 @@ import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
@@ -957,7 +952,6 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             mentions.push(match[1]);
         }
         // DEBUG: log linkPreview before passing to parent
-        console.log('[PostCreator]  About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
@@ -2150,7 +2144,6 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         }).catch(() => { });
                     }
                 } catch (geoErr) {
-                    console.warn('[ClubPage] Background geocoding failed:', geoErr);
                 }
             }
         } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
@@ -2177,13 +2170,11 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         try {
             const mediaUrls = postMedia.map(m => m.url);
             const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
-            console.log('[ClubPage] Posting:', { page_id: page.id, author_id: userId, content: postContent.trim().substring(0, 50), contentType, mediaUrls });
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
             });
             const json = await res.json();
-            console.log('[ClubPage] Post response:', json);
             if (json.success && json.data) {
                 setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
                 setPostContent('');
@@ -4033,7 +4024,6 @@ export default function SocialMediaPage() {
                         const tokenData = JSON.parse(explicitAuth);
                         if (tokenData?.user) {
                             authUser = tokenData.user;
-                            console.log('[Social] ✅ Got user from smarter-poker-auth:', authUser.email);
                         }
                     } catch (parseError) {
                         console.error('[Social] Failed to parse smarter-poker-auth:', parseError);
@@ -4043,14 +4033,12 @@ export default function SocialMediaPage() {
                 // FALLBACK: Legacy sb-*-auth-token keys (backwards compatibility)
                 if (!authUser) {
                     const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    console.log('[Social] Looking for legacy auth token, found keys:', sbKeys);
 
                     if (sbKeys.length > 0) {
                         try {
                             const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
                             if (tokenData?.user) {
                                 authUser = tokenData.user;
-                                console.log('[Social] ✅ Got user from legacy localStorage:', authUser.email);
                             }
                         } catch (parseError) {
                             console.error('[Social] Failed to parse legacy token:', parseError);
@@ -4060,21 +4048,17 @@ export default function SocialMediaPage() {
 
                 // Final fallback: try getSession if localStorage approach failed
                 if (!authUser) {
-                    console.log('[Social] No user from localStorage, trying getSession...');
                     try {
                         const { data: sessionData } = await supabase.auth.getSession();
                         if (sessionData?.session?.user) {
                             authUser = sessionData.session.user;
-                            console.log('[Social] ✅ Got user from getSession:', authUser.email);
                         }
                     } catch (e) {
-                        console.warn('[Social] getSession failed:', e.message);
                     }
                 }
 
                 if (authUser) {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
-                    console.log('[Social] Fetching profile for user:', authUser.id);
 
                     let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                         headers: {
@@ -4085,7 +4069,6 @@ export default function SocialMediaPage() {
 
                     let profiles = await profileRes.json();
                     let p = profiles?.[0] || null;
-                    console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
 
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
@@ -4200,7 +4183,6 @@ export default function SocialMediaPage() {
                         setNotifications(enrichedNotifs);
                     }
                 } else {
-                    console.log('[Social] No authenticated user found');
                 }
                 await loadFeed();
                 // Load live streams
@@ -4222,7 +4204,6 @@ export default function SocialMediaPage() {
                 if (data && data.venue_id) {
                     setIsCommander(true);
                     setCommanderData(data);
-                    console.log('[Social] Commander account detected:', data.venue_name);
 
                     // Fetch if this Commander already has a club page
                     setMyPageLoading(true);
@@ -4231,7 +4212,6 @@ export default function SocialMediaPage() {
                         .then(json => {
                             if (json.success && json.data && json.data.length > 0) {
                                 setMyClubPage(json.data[0]);
-                                console.log('[Social] Found existing Club Page:', json.data[0].name);
                             } else if (json.success && json.data) {
                                 // Also check by owner_id if no linked_venue_id match
                                 if (user?.id) {
@@ -4414,7 +4394,6 @@ export default function SocialMediaPage() {
             const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
 
             // ♾️ INFINITE SCROLL: Fetch posts using native fetch to bypass Supabase client AbortError
-            console.log('[Social] Loading feed via native fetch, offset:', offset);
 
             let allPostsData = null;
             let error = null;
@@ -4448,7 +4427,6 @@ export default function SocialMediaPage() {
                 }
 
                 allPostsData = await response.json();
-                console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
             } catch (e) {
                 console.error('[Social] Feed fetch error:', e);
                 error = { message: e.message };
@@ -4462,17 +4440,14 @@ export default function SocialMediaPage() {
                 // No posts returned - truly at the end
                 if (feedCycle < MAX_FEED_CYCLES) {
                     // Loop back from the beginning for endless scroll experience
-                    console.log('[Social] Looping feed - cycle', feedCycle + 1);
                     setFeedCycle(prev => prev + 1);
                     setFeedOffset(0);
                     // Don't set hasMorePosts false - let next scroll trigger the loop
                 } else {
-                    console.log('[Social] Max cycles reached - ending feed');
                     setHasMorePosts(false);
                 }
             } else {
                 // Got posts - continue infinite scroll
-                console.log(`[Social] Got ${allPostsData.length} posts - continuing scroll`);
                 setHasMorePosts(true);
             }
 
@@ -4524,11 +4499,9 @@ export default function SocialMediaPage() {
             // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
-                console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
                 if (authorIds.length) {
                     try {
-                        console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
                         const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
                             headers: {
                                 'apikey': supabaseKey,
@@ -4536,18 +4509,14 @@ export default function SocialMediaPage() {
                             }
                         });
 
-                        console.log('[Social] Profile fetch response status:', profilesRes.status);
                         if (!profilesRes.ok) {
                             const errorText = await profilesRes.text();
                             console.error('[Social] ❌ Profile fetch failed:', profilesRes.status, errorText);
                         } else {
                             const profiles = await profilesRes.json();
-                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
                             if (profiles && profiles.length > 0) {
                                 authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
-                                console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
                             } else {
-                                console.warn('[Social]  No profiles returned from query');
                             }
                         }
                     } catch (profileError) {
@@ -4627,10 +4596,8 @@ export default function SocialMediaPage() {
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
-        console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
         if (loadingMoreRef.current || !hasMorePostsRef.current) return;
         const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
-        console.log('[Social] Loading more from offset:', newOffset);
         setFeedOffset(newOffset);
         await loadFeed(newOffset, true);
     };
@@ -4648,17 +4615,14 @@ export default function SocialMediaPage() {
 
         // If node is null (unmounting), we're done
         if (!node) {
-            console.log('[Social] Sentinel unmounted, observer disconnected');
             return;
         }
 
-        console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
 
         // Create and attach new observer
         observerRef.current = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
-                    console.log('[Social] Sentinel visible! Calling loadMorePosts...');
                     loadMorePosts();
                 }
             },
@@ -4669,9 +4633,6 @@ export default function SocialMediaPage() {
     }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
-        console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
-        console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
-        console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
             console.error('[Social] ❌ Cannot post: user.id is missing!', user);
@@ -4690,7 +4651,6 @@ export default function SocialMediaPage() {
             if (isClubPost) {
                 // ═══ CLUB PAGE POST — route through page posts API ═══
                 const clubPageId = identityStored.clubPage.id;
-                console.log('[Social] 🏢 Posting as Club Page:', identityStored.clubPage.name, clubPageId);
 
                 const res = await fetch('/api/social/pages/posts', {
                     method: 'POST',
@@ -4714,7 +4674,6 @@ export default function SocialMediaPage() {
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error || 'Failed to post as club');
 
-                console.log('[Social] ✅ Club page post created:', json.data?.id);
 
                 // Add to feed with club identity
                 setPosts(prev => [{
@@ -4752,7 +4711,6 @@ export default function SocialMediaPage() {
 
             // EXPLICIT: Add link metadata if available (from link preview)
             if (linkPreview) {
-                console.log('[Social]  Adding link metadata from preview:', linkPreview);
                 insertPayload.link_url = linkPreview.url || urls[0];
                 insertPayload.link_title = linkPreview.title || null;
                 insertPayload.link_description = linkPreview.description || null;
@@ -4760,7 +4718,6 @@ export default function SocialMediaPage() {
                 insertPayload.link_site_name = linkPreview.domain || null;
             }
 
-            console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
 
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
 
@@ -4769,7 +4726,6 @@ export default function SocialMediaPage() {
                 throw error;
             }
 
-            console.log('[Social] ✅ Post created successfully:', data?.id);
 
             // Insert mentions if any
             if (mentions.length > 0 && data?.id) {
@@ -4807,7 +4763,6 @@ export default function SocialMediaPage() {
                         view_count: 0,
                         like_count: 0
                     });
-                    console.log(' Video auto-saved to Reels!');
                 } catch (reelError) {
                     console.error('Failed to auto-save to Reels:', reelError);
                     // Don't fail the post if Reel creation fails
@@ -4879,7 +4834,6 @@ export default function SocialMediaPage() {
 
             // Remove from local state
             setPosts(prev => prev.filter(p => p.id !== id));
-            console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
         } catch (e) {
             console.error('[Delete] Error:', e);
             alert('Error deleting post');

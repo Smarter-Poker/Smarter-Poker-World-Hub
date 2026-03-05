@@ -13,11 +13,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 
-import {
-  Monitor, Tv, ExternalLink, Copy, CheckCircle2,
-  Clock, Users, Trophy, Megaphone, Settings, Plus,
-  Loader2, RefreshCw, Wifi, Timer
-} from 'lucide-react';
+import { Monitor, Tv, ExternalLink, Copy, CheckCircle2, Clock, Users, Trophy, Megaphone, Loader2, Wifi, Timer } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 

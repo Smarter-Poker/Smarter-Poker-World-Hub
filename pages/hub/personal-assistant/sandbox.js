@@ -14,7 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { useSandboxAnalysis, useArchetypes } from '../../../src/hooks/useAssistant';
+import { useSandboxAnalysis } from '../../../src/hooks/useAssistant';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 import { getAuthUser } from '../../../src/lib/authUtils';
 

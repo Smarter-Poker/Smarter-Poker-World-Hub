@@ -11,10 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Check, ChevronRight, Loader2, Users,
-  Clock, DollarSign, Play, AlertTriangle
-} from 'lucide-react';
+import { Check, ChevronRight, Loader2, Play, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

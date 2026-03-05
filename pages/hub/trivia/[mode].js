@@ -22,8 +22,7 @@ import { TRIVIA_MODES, calculateDiamonds } from '../../../src/lib/trivia/triviaE
 import PrizeWheel from '../../../src/components/trivia/PrizeWheel';
 import StreakBadge from '../../../src/components/trivia/StreakBadge';
 import { useCelebrations } from '../../../src/components/trivia/CelebrationEffects';
-import { getStreakTier, calculateRewardWithMultiplier, isStreakMilestone } from '../../../src/config/triviaStreakSystem';
-import { TRIVIA_ACHIEVEMENTS, checkNewUnlocks } from '../../../src/config/triviaAchievements';
+import { getStreakTier, calculateRewardWithMultiplier } from '../../../src/config/triviaStreakSystem';
 
 // Phase 2 Enhancement Imports
 import DoubleOrNothing from '../../../src/components/trivia/DoubleOrNothing';
@@ -234,7 +233,6 @@ export default function TriviaModePage() {
         // STEP 2: Fallback — seeded shuffle from full pool
         // Used when daily questions haven't been rotated yet
         // ═══════════════════════════════════════════════════════════════
-        console.log(`[Trivia] No daily questions for ${mode} on ${today}, falling back to seeded shuffle`);
 
         let poolQuery = supabase.from('trivia_questions').select('*');
         if (categories && categories.length > 0) {

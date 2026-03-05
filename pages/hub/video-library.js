@@ -8,9 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -473,7 +471,6 @@ export default function VideoLibraryPage() {
 
             // Load watched videos (30+ second threshold - lowered for better feedback)
             getWatchedVideos(userId, 30).then(watchedSet => {
-                console.log('[VideoLibrary] Loaded watched videos:', watchedSet.size, 'videos');
                 setWatchedVideos(watchedSet);
             }).catch(err => console.error('Error loading watched videos:', err));
 
@@ -591,7 +588,6 @@ export default function VideoLibraryPage() {
             if (data.success && data.analysis) {
                 setAiAnalysis(data.analysis);
                 setAiAnalysisSource(data.source || 'generated');
-                console.log('[Jarvis] Analysis loaded -', data.source === 'cache' ? 'FROM CACHE (saved for all users)' : 'GENERATED & SAVED for future users');
             }
         } catch (err) {
             console.error('Failed to fetch AI analysis:', err);
@@ -645,7 +641,6 @@ export default function VideoLibraryPage() {
                     // If user watched 30+ seconds, add to watched set for immediate UI update
                     const totalWatched = (watchProgress.get(video.id)?.watchedSeconds || 0) + watchedSeconds;
                     if (totalWatched >= 30) {
-                        console.log('[VideoLibrary] Marking as watched:', video.id, 'total:', totalWatched, 's');
                         setWatchedVideos(prev => new Set(prev).add(video.id));
                     }
                 } catch (err) {
@@ -2099,7 +2094,6 @@ export default function VideoLibraryPage() {
                                                                     }), '*');
                                                                 }
                                                             } catch (e) {
-                                                                console.log('Could not seek:', e);
                                                             }
                                                         }}
                                                         style={{

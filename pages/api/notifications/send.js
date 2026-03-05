@@ -170,7 +170,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log('Notification sent:', result);
 
         return res.status(200).json({
             success: true,

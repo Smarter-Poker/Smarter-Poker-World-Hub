@@ -7,15 +7,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
-import {
-  BookOpen,
-  Users,
-  Settings,
-  HelpCircle,
-  AlertTriangle,
-  ExternalLink,
-  FileText,
-} from 'lucide-react';
+import { Users, Settings, HelpCircle, AlertTriangle, ExternalLink, FileText } from 'lucide-react';
 
 const DOCUMENTATION = [
   {

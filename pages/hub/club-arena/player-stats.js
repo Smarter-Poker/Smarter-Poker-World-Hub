@@ -125,7 +125,6 @@ export default function PlayerStats() {
                         const { data: handData } = await handQuery.order('completed_at', { ascending: false }).limit(200);
                         hands = handData || [];
                     } catch (handErr) {
-                        console.warn('[PlayerStats] hand_history query failed (schema may be minimal):', handErr);
                     }
 
                     // Calculate stats from hands

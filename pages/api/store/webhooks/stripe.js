@@ -71,7 +71,6 @@ export default async function handler(req, res) {
 
     // Handle the event
     try {
-        console.log(`📨 Received Stripe event: ${event.type}`);
 
         switch (event.type) {
             case 'checkout.session.completed':
@@ -100,7 +99,6 @@ export default async function handler(req, res) {
                 break;
 
             default:
-                console.log(`Unhandled event type: ${event.type}`);
         }
 
         return res.status(200).json({ received: true });
@@ -113,7 +111,6 @@ export default async function handler(req, res) {
 async function handleCheckoutCompleted(session) {
     const { id, customer, metadata, mode, amount_total } = session;
 
-    console.log(`✅ Checkout completed: ${id} (${mode})`);
 
     if (mode === 'payment') {
         // One-time payment (diamonds or merchandise)
@@ -143,7 +140,6 @@ async function handleCheckoutCompleted(session) {
                     p_reference_id: metadata.purchase_id
                 });
 
-                console.log(`💎 Added ${totalDiamonds} diamonds to user ${metadata.user_id}`);
             }
         } else if (metadata.type === 'merchandise' && metadata.order_id) {
             // Update merchandise order
@@ -156,11 +152,9 @@ async function handleCheckoutCompleted(session) {
                 })
                 .eq('id', metadata.order_id);
 
-            console.log(`📦 Merchandise order ${metadata.order_id} is processing`);
         }
     } else if (mode === 'subscription') {
         // VIP subscription checkout completed
-        console.log(`👑 VIP subscription checkout: ${id}`);
 
         try {
             const subscription = await stripe.subscriptions.retrieve(session.subscription);
@@ -177,7 +171,6 @@ async function handleCheckoutCompleted(session) {
                     })
                     .eq('id', metadata.user_id);
 
-                console.log(`💎 Set VIP status for user ${metadata.user_id}`);
             }
 
             // Create/update vip_subscriptions record
@@ -191,7 +184,6 @@ async function handleCheckoutCompleted(session) {
 async function handleSubscriptionUpdate(subscription) {
     const { id, customer, status, metadata, current_period_start, current_period_end, cancel_at_period_end } = subscription;
 
-    console.log(`🔄 Subscription updated: ${id} -> ${status}`);
 
     // Get user ID from customer
     const { data: profile } = await supabase
@@ -223,13 +215,11 @@ async function handleSubscriptionUpdate(subscription) {
             onConflict: 'stripe_subscription_id'
         });
 
-    console.log(`👑 VIP subscription updated for user ${profile.id}`);
 }
 
 async function handleSubscriptionCanceled(subscription) {
     const { id, customer, canceled_at } = subscription;
 
-    console.log(`❌ Subscription canceled: ${id}`);
 
     await supabase
         .from('vip_subscriptions')
@@ -252,7 +242,6 @@ async function handleSubscriptionCanceled(subscription) {
             })
             .eq('stripe_customer_id', customer);
 
-        console.log(`👤 Cleared VIP status for customer ${customer}`);
     }
 }
 
@@ -260,7 +249,6 @@ async function handleInvoicePaymentSucceeded(invoice) {
     const { subscription, customer } = invoice;
 
     if (subscription) {
-        console.log(`💰 Invoice paid for subscription ${subscription}`);
         // Subscription renewal - already handled by subscription.updated event
     }
 }
@@ -268,7 +256,6 @@ async function handleInvoicePaymentSucceeded(invoice) {
 async function handleInvoicePaymentFailed(invoice) {
     const { subscription, customer, attempt_count } = invoice;
 
-    console.log(`⚠️  Invoice payment failed for subscription ${subscription} (attempt ${attempt_count})`);
 
     if (subscription) {
         await supabase
@@ -284,7 +271,6 @@ async function handleInvoicePaymentFailed(invoice) {
 async function handleRefund(charge) {
     const { id, payment_intent, amount_refunded, metadata } = charge;
 
-    console.log(`💸 Refund processed: ${id} for $${amount_refunded / 100}`);
 
     // Find and update the purchase/order
     const { data: purchase } = await supabase
@@ -312,7 +298,6 @@ async function handleRefund(charge) {
             p_reference_id: `refund_${purchase.id}`
         });
 
-        console.log(`💎 Removed ${totalDiamonds} diamonds from user ${purchase.user_id}`);
     }
 }
 

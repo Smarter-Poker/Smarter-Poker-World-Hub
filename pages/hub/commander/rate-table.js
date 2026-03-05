@@ -3,7 +3,7 @@
  * /hub/commander/rate-table
  * Players rate table atmosphere after a session
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';

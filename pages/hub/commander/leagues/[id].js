@@ -4,24 +4,12 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  * Per API_REFERENCE.md: GET /leagues/:id, GET /leagues/:id/standings
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-import {
-  Trophy,
-  Users,
-  Calendar,
-  ChevronLeft,
-  Loader2,
-  Award,
-  DollarSign,
-  TrendingUp,
-  Medal,
-  Clock,
-  MapPin
-} from 'lucide-react';
+import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
   return (

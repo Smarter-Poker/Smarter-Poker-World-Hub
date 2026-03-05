@@ -124,11 +124,9 @@ async function scrapeChannelShorts(channel) {
     const clips = [];
     const shortsUrl = `https://www.youtube.com/${channel.handle}/shorts`;
 
-    console.log(`   🏈 Scraping ${channel.name} (${channel.sport})...`);
 
     const html = await fetchPage(shortsUrl);
     if (!html) {
-        console.log(`   ⚠️ Could not fetch ${channel.name} shorts page`);
         return clips;
     }
 
@@ -137,7 +135,6 @@ async function scrapeChannelShorts(channel) {
     const matches = [...html.matchAll(shortIdPattern)];
     const uniqueIds = [...new Set(matches.map(m => m[1]))];
 
-    console.log(`   Found ${uniqueIds.length} shorts for ${channel.name}`);
 
     // Extract titles
     const titlePattern = /"title":\s*\{"runs":\s*\[\{"text":\s*"([^"]+)"\}\]/g;
@@ -210,18 +207,12 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n');
-    console.log('═'.repeat(70));
-    console.log('🏈 SPORTS CLIPS SCRAPER - NBA/NFL/MLB/NHL/Soccer');
-    console.log('═'.repeat(70));
-    console.log(`⏰ Started at: ${new Date().toISOString()}`);
 
     try {
         const allClips = [];
 
         for (const channel of SPORTS_CHANNELS) {
             if (allClips.length >= CONFIG.MAX_TOTAL_CLIPS) {
-                console.log(`   Reached max clips limit (${CONFIG.MAX_TOTAL_CLIPS})`);
                 break;
             }
 
@@ -232,16 +223,9 @@ export default async function handler(req, res) {
             await delay(CONFIG.REQUEST_DELAY);
         }
 
-        console.log(`\n🏈 Total clips found: ${allClips.length}`);
 
         const { saved, skipped } = await saveClips(allClips);
 
-        console.log('\n═'.repeat(70));
-        console.log(`📊 SUMMARY`);
-        console.log(`   Found: ${allClips.length}`);
-        console.log(`   Saved: ${saved}`);
-        console.log(`   Skipped (duplicates): ${skipped}`);
-        console.log('═'.repeat(70));
 
         return res.status(200).json({
             success: true,

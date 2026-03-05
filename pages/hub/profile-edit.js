@@ -11,7 +11,6 @@ import { useRouter } from 'next/router';
 import confetti from 'canvas-confetti';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -21,7 +20,6 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
-import { staggerContainer, staggerItem } from '../../src/utils/animations';
 import toast from '../../src/stores/toastStore';
 
 // Light Theme Colors
@@ -617,7 +615,6 @@ export default function ProfilePage() {
                 }
             }
         } catch (deleteErr) {
-            console.warn('Storage delete error (may not exist):', deleteErr);
             // Continue anyway - file might already be deleted
         }
 

@@ -7,10 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import {
-  Home, MapPin, Calendar, Users, Clock, Lock, Globe,
-  UserPlus, Search, Filter, QrCode, ChevronRight, Star, Zap
-} from 'lucide-react';
+import { Home, Calendar, Globe, UserPlus, Search, Filter, QrCode } from 'lucide-react';
 import EventCard from '../../../../src/components/commander/home-games/EventCard';
 import GroupCard from '../../../../src/components/commander/home-games/GroupCard';
 import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';

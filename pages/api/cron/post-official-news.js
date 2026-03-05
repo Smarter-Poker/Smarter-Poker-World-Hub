@@ -42,7 +42,6 @@ async function isArticleAlreadyPosted(articleSlug) {
 // POST NEWS ARTICLE TO SOCIAL FEED
 // ═══════════════════════════════════════════════════════════════════════════
 async function postNewsArticle(article) {
-    console.log(`\n📰 Posting: ${article.title}`);
 
     // Create engaging post content
     const emoji = article.category === 'tournament' ? '🏆' :
@@ -73,7 +72,6 @@ async function postNewsArticle(article) {
         return null;
     }
 
-    console.log(`✅ Posted: ${post.id}`);
     return post;
 }
 
@@ -91,8 +89,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('\n📰 OFFICIAL NEWS POSTER - SmarterPokerOfficial');
-    console.log('═'.repeat(60));
 
     if (!SUPABASE_URL) {
         return res.status(500).json({ error: 'Missing env vars' });
@@ -114,7 +110,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`✅ Posting as: ${officialAccount.username}`);
 
         // Get recent news articles that haven't been posted yet
         const { data: articles, error: articlesError } = await supabase
@@ -125,7 +120,6 @@ export default async function handler(req, res) {
             .limit(20);
 
         if (articlesError || !articles?.length) {
-            console.log('No news articles available');
             return res.status(200).json({
                 success: true,
                 message: 'No news available',
@@ -133,7 +127,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`\n📚 Found ${articles.length} recent articles`);
 
         const results = [];
         let posted = 0;
@@ -144,7 +137,6 @@ export default async function handler(req, res) {
             // Check if already posted
             const alreadyPosted = await isArticleAlreadyPosted(article.slug);
             if (alreadyPosted) {
-                console.log(`   ⏭️  Skipping (already posted): ${article.title.substring(0, 50)}...`);
                 continue;
             }
 
@@ -163,8 +155,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log('\n' + '═'.repeat(60));
-        console.log(`📊 Posted ${posted} news articles as ${officialAccount.username}`);
 
         return res.status(200).json({
             success: true,

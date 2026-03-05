@@ -22,7 +22,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('[Geofence Reminder] Starting cron job...');
 
     try {
         // Find visits that:
@@ -46,7 +45,6 @@ export default async function handler(req, res) {
         }
 
         if (!pendingVisits || pendingVisits.length === 0) {
-            console.log('[Geofence Reminder] No pending visits to process');
             return res.status(200).json({
                 success: true,
                 message: 'No pending visits',
@@ -54,7 +52,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`[Geofence Reminder] Found ${pendingVisits.length} pending visits`);
 
         const notifications = [];
         const updateIds = [];
@@ -126,7 +123,6 @@ export default async function handler(req, res) {
 
                 if (response.ok) {
                     sentCount++;
-                    console.log(`[Geofence Reminder] Sent notification for visit ${notif.visitId}`);
                 } else {
                     const errorData = await response.json();
                     console.error(`[Geofence Reminder] OneSignal error:`, errorData);
@@ -144,7 +140,6 @@ export default async function handler(req, res) {
                 .in('id', updateIds);
         }
 
-        console.log(`[Geofence Reminder] Complete. Sent ${sentCount} notifications, processed ${updateIds.length} visits`);
 
         return res.status(200).json({
             success: true,

@@ -77,7 +77,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: error.message });
         }
 
-        console.log(`[Geofence] Recorded visit for user ${userId} at ${venueName || venueId}`);
 
         return res.status(200).json({
             success: true,

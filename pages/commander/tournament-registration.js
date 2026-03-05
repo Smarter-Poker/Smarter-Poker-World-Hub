@@ -7,10 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-    Trophy, Search, Users, Loader2, CheckCircle2,
-    AlertTriangle, Clock, DollarSign, ChevronDown
-} from 'lucide-react';
+import { Trophy, Search, Users, Loader2, CheckCircle2, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

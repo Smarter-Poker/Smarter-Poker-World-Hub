@@ -8,10 +8,9 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { POKER_IQ_ORBS, getOrbById } from '../../src/orbs/manifest/registry';
+import { getOrbById } from '../../src/orbs/manifest/registry';
 
 // God-Mode Stack
-import { useOrbPageStore } from '../../src/stores/orbPageStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 

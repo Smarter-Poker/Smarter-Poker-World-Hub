@@ -80,7 +80,6 @@ export default async function handler(req, res) {
         }
 
         // Step 2: Profile doesn't exist - CREATE IT NOW
-        console.log(`[ANTIGRAVITY] Creating profile for orphaned user: ${user_id}`);
 
         // Get next player number
         const { data: maxPlayer } = await supabase
@@ -151,7 +150,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`[ANTIGRAVITY] ✓ Profile created for ${user_id}: ${finalUsername}`);
 
         return res.json({
             status: 'CREATED',

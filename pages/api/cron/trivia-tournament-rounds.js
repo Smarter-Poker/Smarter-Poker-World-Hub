@@ -251,7 +251,6 @@ async function createNextRound(tournament, winners, roundNumber) {
             .insert(notifications);
     }
 
-    console.log(`[Tournament] Round ${roundNumber} created: ${matchups.length} matchups`);
 }
 
 /**
@@ -356,5 +355,4 @@ async function completeTournament(tournament, winnerId, finalRound) {
         })
         .eq('id', tournament.id);
 
-    console.log(`[Tournament] Completed: ${tournament.name}, Winners:`, winners);
 }

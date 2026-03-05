@@ -6,11 +6,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { LogOut, ArrowLeft, Settings, Download, Users, QrCode, Lock, Crown, StopCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Crown, StopCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { supabase } from '../../src/lib/supabase';
 // Dashboard uses real-time sync primarily to instantly reflect hard stop or setting changes
-import { canAccessRoute, getUpgradeTier, getTierConfig, hasFeature } from '../../src/lib/commander/tierConfig';
+import { canAccessRoute, getUpgradeTier, getTierConfig } from '../../src/lib/commander/tierConfig';
 import { canRoleAccessRoute } from '../../src/lib/commander/auth';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
@@ -200,7 +200,6 @@ export default function CommanderDashboard() {
           }
         }
       } catch (err) {
-        console.warn('[Dashboard] Session validation error:', err);
       }
 
       try {

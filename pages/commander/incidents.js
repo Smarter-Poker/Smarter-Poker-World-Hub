@@ -6,23 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  AlertTriangle,
-  Plus,
-  Clock,
-  User,
-  Check,
-  X,
-  Search,
-  Loader2,
-  MapPin,
-  FileText,
-  Shield,
-  Flame,
-  Zap,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+import { AlertTriangle, Plus, Clock, User, Check, X, Search, Loader2, MapPin, Shield, Flame, Zap } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

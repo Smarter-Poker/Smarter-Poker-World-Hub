@@ -27,7 +27,6 @@ const usedMemesThisSession = new Set();
  * Post a meme for a horse
  */
 async function postMeme(horse) {
-    console.log(`🃏 ${horse.name}: Posting meme...`);
 
     try {
         // Get a random meme that hasn't been used
@@ -44,7 +43,6 @@ async function postMeme(horse) {
         }
 
         if (!meme) {
-            console.log(`   No unique memes available`);
             return null;
         }
 
@@ -80,7 +78,6 @@ async function postMeme(horse) {
             return null;
         }
 
-        console.log(`✅ ${horse.name}: Meme posted!`);
         return {
             type: 'meme',
             post_id: post.id,
@@ -108,7 +105,6 @@ async function postMemeToStory(horse) {
                 media_type: 'text',
                 expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
             });
-        console.log(`   Story posted`);
     } catch (e) {
         // Stories might not support text_content, that's ok
     }
@@ -122,8 +118,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🃏 HORSES MEMES CRON');
-    console.log('═'.repeat(60));
 
     if (!SUPABASE_URL) {
         return res.status(500).json({ error: 'Missing SUPABASE_URL' });
@@ -161,8 +155,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log('\n' + '═'.repeat(60));
-        console.log(`📊 Posted ${results.length} memes`);
 
         return res.status(200).json({
             success: true,

@@ -6,11 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-import {
-  BarChart3, Users, Trophy, Clock, DollarSign,
-  FileText, Activity, ChevronRight, Calendar, TrendingUp,
-  Download, Filter, Loader2
-} from 'lucide-react';
+import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, ChevronRight, TrendingUp, Filter } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const REPORTS = [

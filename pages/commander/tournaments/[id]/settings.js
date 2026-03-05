@@ -8,14 +8,10 @@
  * - Save/load structure templates
  * - Print-ready blind structure sheet
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  Save, Plus, Trash2, GripVertical, Clock, DollarSign,
-  Users, Trophy, Coffee, ChevronUp, ChevronDown, Copy, Download,
-  Loader2, Settings, Calculator, FileText, RotateCcw, Check, ArrowLeft
-} from 'lucide-react';
+import { Save, Plus, Trash2, Clock, DollarSign, Coffee, ChevronUp, ChevronDown, Loader2, Settings, Check, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 

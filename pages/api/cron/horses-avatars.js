@@ -81,12 +81,10 @@ function generatePrompt(horse) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function generateAndUploadAvatar(horse) {
-    console.log(`🎨 Generating avatar for ${horse.name}...`);
 
     try {
         // Generate prompt
         const prompt = generatePrompt(horse);
-        console.log(`   Prompt: ${prompt.substring(0, 80)}...`);
 
         // Generate image with DALL-E
         const response = await grok.images.generate({
@@ -98,7 +96,6 @@ async function generateAndUploadAvatar(horse) {
         });
 
         const tempUrl = response.data[0].url;
-        console.log(`   Generated image, uploading to storage...`);
 
         // Download and upload to Supabase
         const imageResponse = await fetch(tempUrl);
@@ -149,7 +146,6 @@ async function generateAndUploadAvatar(horse) {
             }
         }
 
-        console.log(`   ✅ Avatar saved: ${publicUrl}`);
 
         return {
             success: true,
@@ -173,8 +169,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🐴 HORSE AVATAR GENERATOR');
-    console.log('═'.repeat(50));
 
     if (!SUPABASE_URL || !SUPABASE_KEY || !process.env.XAI_API_KEY) {
         return res.status(500).json({
@@ -215,7 +209,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`Found ${horses.length} horses needing avatars\n`);
 
         const results = [];
 
@@ -232,9 +225,6 @@ export default async function handler(req, res) {
         const successful = results.filter(r => r.success).length;
         const failed = results.filter(r => !r.success).length;
 
-        console.log('\n📊 RESULTS:');
-        console.log(`   Generated: ${successful}`);
-        console.log(`   Failed: ${failed}`);
 
         return res.status(200).json({
             success: true,

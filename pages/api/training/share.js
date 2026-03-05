@@ -118,7 +118,6 @@ export default async function handler(req, res) {
 
             // If social_posts doesn't exist, just log success
             if (error.code === '42P01') {
-                console.log('[TrainingShare] social_posts table not found, skipping');
                 return res.status(200).json({
                     success: true,
                     message: 'Share logged (social feed table not available)',

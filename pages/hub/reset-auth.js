@@ -32,7 +32,6 @@ export default function ResetAuthPage() {
                     );
                     await Promise.race([signOutPromise, timeoutPromise]);
                 } catch (signOutErr) {
-                    console.log('[Reset Auth] SignOut timed out or failed, proceeding anyway:', signOutErr.message);
                     // Continue anyway - clearing localStorage will fix it
                 }
 
@@ -52,7 +51,6 @@ export default function ResetAuthPage() {
                     }
                 }
 
-                console.log('[Reset Auth] Removing keys:', keysToRemove);
                 keysToRemove.forEach(key => localStorage.removeItem(key));
 
                 // Step 3: Clear sessionStorage

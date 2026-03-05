@@ -112,7 +112,6 @@ export default async function handler(req, res) {
         // Check cache first
         const cached = await getCachedResponse('gto-analysis', cacheParams);
         if (cached) {
-            console.log('[GTO-Analysis] Cache hit for', hand);
             return res.status(200).json({
                 ...cached,
                 fromCache: true,
@@ -127,10 +126,9 @@ export default async function handler(req, res) {
             pioData = await queryPioSolverData(cacheParams);
             if (pioData) {
                 source = 'PIO_SOLVER';
-                console.log('[GTO-Analysis] Found PioSolver data for', hand);
             }
         } catch (pioError) {
-            console.warn('[GTO-Analysis] PioSolver query failed:', pioError.message);
+            console.error('[GTO-Analysis] PioSolver query failed:', pioError.message);
         }
 
         // Build analysis response
@@ -141,7 +139,6 @@ export default async function handler(req, res) {
             analysis = buildAnalysisFromPio(pioData, cacheParams);
         } else {
             // Fallback to Grok AI
-            console.log('[GTO-Analysis] Using Grok AI fallback for', hand);
             analysis = await generateAnalysisWithGrok(cacheParams);
         }
 

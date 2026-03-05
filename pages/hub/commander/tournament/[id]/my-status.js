@@ -12,11 +12,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../../../src/lib/supabase';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
-import {
-    Trophy, DollarSign, Users, Clock, Loader2,
-    CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash,
-    Bell, Share2, Camera
-} from 'lucide-react';
+import { Trophy, Users, Clock, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
 
 export default function MyTournamentStatus() {

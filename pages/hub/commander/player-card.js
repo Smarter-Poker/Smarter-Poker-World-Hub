@@ -7,10 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, LogOut,
-  Star, ChevronRight, Loader2, RefreshCw, Trophy, Crown
-} from 'lucide-react';
+import { ArrowLeft, QrCode, CreditCard, Users, Clock, Gift, Star, Loader2, RefreshCw, Trophy, Crown } from 'lucide-react';
 
 const TIER_COLORS = {
   bronze: { bg: 'linear-gradient(135deg, #92400E, #D97706)', text: '#FFFBEB' },

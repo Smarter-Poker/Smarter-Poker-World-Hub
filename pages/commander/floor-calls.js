@@ -17,13 +17,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
-import {
-  AlertTriangle, Check, Clock, Loader2, RefreshCw,
-  Bell, Plus, X, ChevronDown, Volume2, VolumeX,
-  Users, Shield, Wrench, DollarSign, Gavel,
-  MessageSquare, Coffee, HelpCircle, ArrowRight,
-  Filter, CheckCircle2, Timer, Hash
-} from 'lucide-react';
+import { Check, Clock, Loader2, RefreshCw, Bell, Plus, X, Volume2, VolumeX, Users, Shield, Wrench, DollarSign, Gavel, Coffee, HelpCircle, ArrowRight, CheckCircle2, Timer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 /* ─── Constants ──────────────────────────────────────────────── */

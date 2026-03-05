@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { QrCode, Download, Maximize2, Minimize2 } from 'lucide-react';
+import { QrCode, Download, Maximize2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 export default function VenueQRCodePage() {

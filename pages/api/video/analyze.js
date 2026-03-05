@@ -26,7 +26,6 @@ async function fetchYouTubeTranscript(videoId) {
         // Extract captions data from YouTube page
         const captionsMatch = html.match(/"captions":\s*({[^}]+})/);
         if (!captionsMatch) {
-            console.log('No captions found in HTML');
             return null;
         }
 
@@ -158,7 +157,6 @@ export default async function handler(req, res) {
         }
 
         // Fetch transcript
-        console.log(`Fetching transcript for video: ${videoId}`);
         const transcript = await fetchYouTubeTranscript(videoId);
 
         // Check if transcript is valid (long enough and not an error message)
@@ -170,10 +168,8 @@ export default async function handler(req, res) {
 
         let analysis;
         if (isValidTranscript) {
-            console.log(`Got valid transcript (${transcript.length} chars), generating analysis...`);
             analysis = await generateVideoAnalysis(title || 'Poker Video', transcript);
         } else {
-            console.log('No transcript available, generating rich analysis from title...');
             // Generate detailed analysis based on video title using poker expertise
             const grok = getGrokClient();
 

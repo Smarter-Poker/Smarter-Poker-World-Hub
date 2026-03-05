@@ -11,12 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
-import {
-  Trophy, LayoutGrid, Users, Monitor,
-  Search, X, Loader2, RefreshCw, ChevronDown,
-  ArrowRightLeft, UserX, RotateCcw, Star, Coins, Hash,
-  DollarSign, FileText
-} from 'lucide-react';
+import { Trophy, LayoutGrid, Users, Monitor, Search, X, Loader2, ChevronDown, ArrowRightLeft, UserX, RotateCcw, Star, Coins, DollarSign, FileText } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },

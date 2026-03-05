@@ -185,7 +185,6 @@ export default async function handler(req, res) {
                 // ═══ QA VALIDATION GATE ═══
                 const { valid: validQuestions, rejected } = validateBatch(questions);
                 if (rejected.length > 0) {
-                    console.log(`[Bootstrap-Strategy] 🛡️ QA GATE: ${rejected.length}/${questions.length} REJECTED`);
                     rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
                 }
 

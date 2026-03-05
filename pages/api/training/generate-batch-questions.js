@@ -60,12 +60,8 @@ export default async function handler(req, res) {
             games: {}
         };
 
-        console.log('🎰 Starting batch question generation for 10 test games...');
 
         for (const game of TEST_GAMES) {
-            console.log(`\n${'='.repeat(70)}`);
-            console.log(`🎮 Game: ${game.name} (${game.id})`);
-            console.log(`${'='.repeat(70)}`);
 
             const gameConfig = getGameConfig(game.id);
             const engineType = gameConfig.engine; // 'PIO' or 'SCENARIO'
@@ -78,7 +74,6 @@ export default async function handler(req, res) {
 
             // Generate for Level 1 and Level 2
             for (const level of [1, 2]) {
-                console.log(`\n📚 Generating 25 questions for Level ${level}...`);
 
                 const levelResults = {
                     generated: 0,
@@ -88,7 +83,6 @@ export default async function handler(req, res) {
                 // Generate 25 questions for this level
                 for (let i = 1; i <= 25; i++) {
                     try {
-                        console.log(`  [${i}/25] Generating question...`);
 
                         const question = await generateQuestionWithGrok(
                             game.id,
@@ -115,7 +109,6 @@ export default async function handler(req, res) {
 
                             if (error) {
                                 if (error.message?.includes('duplicate')) {
-                                    console.log(`  ⚠️  Already cached`);
                                     results.cached++;
                                 } else {
                                     console.error(`  ❌ Save failed:`, error.message);
@@ -123,7 +116,6 @@ export default async function handler(req, res) {
                                     results.failed++;
                                 }
                             } else {
-                                console.log(`  ✅ Generated and cached`);
                                 levelResults.generated++;
                                 results.generated++;
                             }
@@ -146,18 +138,9 @@ export default async function handler(req, res) {
                 }
 
                 results.games[game.id].levels[level] = levelResults;
-                console.log(`\n📊 Level ${level} Summary: ${levelResults.generated} generated, ${levelResults.failed} failed`);
             }
         }
 
-        console.log(`\n${'='.repeat(70)}`);
-        console.log(`🎉 BATCH GENERATION COMPLETE`);
-        console.log(`${'='.repeat(70)}`);
-        console.log(`Total: ${results.total}`);
-        console.log(`Generated: ${results.generated}`);
-        console.log(`Cached: ${results.cached}`);
-        console.log(`Failed: ${results.failed}`);
-        console.log(`${'='.repeat(70)}\n`);
 
         return res.status(200).json({
             success: true,
@@ -300,7 +283,6 @@ IMPORTANT: Make the scenario realistic for ${gameTypeDisplay} with ${playerCount
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            console.log(`    Generated: "${parsed.question.substring(0, 60)}..."`);
             return parsed;
         } else {
             console.error('    ❌ No JSON found in Grok response');

@@ -6,11 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2,
-  Trophy, Users, Clock, DollarSign, AlertTriangle, MessageSquare, Star,
-  Plus, Edit3, X, Megaphone, Send, ChevronDown
-} from 'lucide-react';
+import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, DollarSign, AlertTriangle, MessageSquare, Star, Plus, Edit3, X, Megaphone, Send, ChevronDown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const TYPE_CONFIG = {

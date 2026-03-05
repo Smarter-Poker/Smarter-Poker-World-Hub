@@ -156,7 +156,6 @@ export default async function handler(req, res) {
         .eq('venue_id', tournament.venue_id)
         .eq('table_number', table_number);
     } else {
-      console.warn(`[break-table] Table ${table_number} not released because ${errors.length} player moves failed.`);
     }
 
     // Build receipt data — full venue-level identity

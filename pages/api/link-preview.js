@@ -85,7 +85,7 @@ export default async function handler(req, res) {
                 });
             }
         } catch (e) {
-            console.log('[link-preview] Microlink failed for social URL, using fallback:', e.message);
+            console.error('[link-preview] Microlink failed for social URL, using fallback:', e.message);
         }
 
         // Fallback to generic preview if Microlink fails
@@ -126,7 +126,6 @@ export default async function handler(req, res) {
 
         // Check if we got a Cloudflare challenge page
         if (html.includes('Just a moment...') || html.includes('cf_chl_opt')) {
-            console.log('Cloudflare detected, using fallback');
             throw new Error('Cloudflare challenge detected');
         }
 

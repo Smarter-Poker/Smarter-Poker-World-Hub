@@ -82,7 +82,6 @@ export default async function handler(req, res) {
     }
 
     // Log the status update
-    console.log(`Twilio status: ${MessageSid} -> ${MessageStatus}`);
 
     // Always return 200 to acknowledge receipt
     return res.status(200).json({ received: true });

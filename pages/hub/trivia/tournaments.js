@@ -14,7 +14,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Trophy, Calendar, Clock, Gem, Users, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
+import { Trophy, Calendar, Clock, Gem, CheckCircle, XCircle, Medal, Award, Bell, Swords, AlertTriangle } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 /** Shuffle options for each question so correct answer isn't always A */

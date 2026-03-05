@@ -240,7 +240,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Invalid category' });
     }
 
-    console.log(`[Bootstrap] Starting bootstrap for ${categoriesToProcess.length} categories...`);
 
     const results = {
         started: new Date().toISOString(),
@@ -250,7 +249,6 @@ export default async function handler(req, res) {
 
     // Process each category
     for (const category of categoriesToProcess) {
-        console.log(`[Bootstrap] Processing ${category.name}...`);
 
         // Get current count
         const { count: existingCount } = await supabase
@@ -270,7 +268,6 @@ export default async function handler(req, res) {
             continue;
         }
 
-        console.log(`[Bootstrap] ${category.name}: Need ${needed} more questions`);
 
         let generated = 0;
         const difficulties = ['easy', 'medium', 'medium', 'medium', 'hard']; // 20/60/20 distribution
@@ -282,7 +279,6 @@ export default async function handler(req, res) {
             const difficulty = difficulties[batchCount % difficulties.length];
             const batchNeeded = Math.min(BATCH_SIZE, needed - generated);
 
-            console.log(`[Bootstrap] Generating ${batchNeeded} ${difficulty} questions for ${topic}`);
 
             const questions = await generateBatch(category, topic, difficulty, batchNeeded);
 
@@ -290,7 +286,6 @@ export default async function handler(req, res) {
                 // ═══ QA VALIDATION GATE ═══
                 const { valid: validQuestions, rejected } = validateBatch(questions);
                 if (rejected.length > 0) {
-                    console.log(`[Bootstrap] 🛡️ QA GATE: ${rejected.length}/${questions.length} REJECTED`);
                     rejected.forEach(r => r.errors.forEach(e => console.log(`  → ${e}`)));
                 }
 
@@ -302,7 +297,6 @@ export default async function handler(req, res) {
 
                     if (!error && data) {
                         generated += data.length;
-                        console.log(`[Bootstrap] Inserted ${data.length} questions (total: ${generated})`);
                     } else if (error) {
                         console.error(`[Bootstrap] Insert error:`, error.message);
                     }
@@ -339,7 +333,6 @@ export default async function handler(req, res) {
     results.targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
     results.progress = `${Math.round((totalQuestions / results.targetTotal) * 100)}%`;
 
-    console.log(`[Bootstrap] Complete! Total: ${totalQuestions} questions`);
 
     return res.status(200).json(results);
 }

@@ -12,6 +12,11 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  // CDN cache: fresh for 120s, serve stale up to 600s
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+  }
+
   // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
   const _token = req.headers.authorization?.replace('Bearer ', '');
   if (!_token) return res.status(401).json({ error: 'Auth required' });

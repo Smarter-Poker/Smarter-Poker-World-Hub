@@ -99,7 +99,6 @@ Be encouraging but honest. Reference specific mistakes they made. Keep it conver
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const coaching = JSON.parse(jsonMatch[0]);
-            console.log(`[GrokCoaching] ✅ Generated coaching for ${gameId} Level ${level}`);
 
             return res.status(200).json({
                 success: true,

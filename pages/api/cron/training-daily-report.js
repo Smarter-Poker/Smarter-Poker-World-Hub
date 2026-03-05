@@ -29,7 +29,6 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     try {
-        console.log('[DailyLeakReport] 📊 Starting daily analysis...');
 
         // Calculate today's identifier
         const now = new Date();
@@ -94,7 +93,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log(`[WeeklyLeakReport] ✅ Generated ${reportsGenerated} reports`);
 
         return res.status(200).json({
             success: true,

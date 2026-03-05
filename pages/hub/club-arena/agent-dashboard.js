@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import useDebounce from '../../../src/hooks/useDebounce';
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -604,6 +605,7 @@ function StatLine({ label, value }) {
 
 function PlayersTab({ players, onDistribute, onPromote }) {
     const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
     const filtered = (players || []).filter(p => {
         const name = (p.profile?.display_name || p.nickname || '').toLowerCase();
         return name.includes(search.toLowerCase());

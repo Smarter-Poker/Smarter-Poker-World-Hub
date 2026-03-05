@@ -6,18 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  BarChart3,
-  Users,
-  DollarSign,
-  Clock,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Trophy,
-  Target,
-  Loader2
-} from 'lucide-react';
+import { BarChart3, Users, DollarSign, Clock, TrendingUp, TrendingDown, Trophy, Target, Loader2 } from 'lucide-react';
 import AnalyticsDashboard from '../../src/components/commander/analytics/AnalyticsDashboard';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';

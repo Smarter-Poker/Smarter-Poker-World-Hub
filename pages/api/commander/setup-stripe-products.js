@@ -60,7 +60,6 @@ export default async function handler(req, res) {
       let product;
       if (existingProducts.data.length > 0) {
         product = existingProducts.data[0];
-        console.log(`Product ${productData.tier} already exists:`, product.id);
       } else {
         // Create product
         product = await stripe.products.create({
@@ -70,7 +69,6 @@ export default async function handler(req, res) {
             tier: productData.tier,
           },
         });
-        console.log(`Created product ${productData.tier}:`, product.id);
       }
 
       // Check for existing price
@@ -86,7 +84,6 @@ export default async function handler(req, res) {
 
       if (matchingPrice) {
         price = matchingPrice;
-        console.log(`Price for ${productData.tier} already exists:`, price.id);
       } else {
         // Create price
         price = await stripe.prices.create({
@@ -100,7 +97,6 @@ export default async function handler(req, res) {
             tier: productData.tier,
           },
         });
-        console.log(`Created price for ${productData.tier}:`, price.id);
       }
 
       results.push({

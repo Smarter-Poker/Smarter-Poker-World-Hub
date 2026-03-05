@@ -16,12 +16,12 @@
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
 import confetti from 'canvas-confetti';
 import GameCard from '../../src/components/training/GameCard';
-import { TRAINING_LIBRARY, TRAINING_LANES, getGamesByCategory, getGamesByTag } from '../../src/data/TRAINING_LIBRARY';
+import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../src/hooks/useTrainingProgress';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { getGameImage } from '../../src/data/GAME_IMAGES';
@@ -42,7 +42,7 @@ import TrainingSettingsMenu from '../../src/components/training/TrainingSettings
 // God-Mode Stack
 import { useTrainingStore } from '../../src/stores/trainingStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
-import { masteryCelebration, achievementCelebration } from '../../src/utils/confetti';
+import { achievementCelebration } from '../../src/utils/confetti';
 import toast from '../../src/stores/toastStore';
 import { trainingSounds } from '../../src/utils/trainingSounds';
 import GamificationService from '../../services/GamificationService';
@@ -762,7 +762,6 @@ export default function TrainingPage() {
 
     // Handle game click - Show intro video first, then navigate
     const handleGameClick = async (game) => {
-        console.log('🎮 Launching game:', game.name);
 
         // 💎 Check diamond access - VIP plays free, others pay 10 diamonds
         if (!isVIP) {
@@ -821,7 +820,6 @@ export default function TrainingPage() {
 
     // Handle arena completion - record to gamification APIs
     const handleArenaComplete = async (results) => {
-        console.log('🏆 Arena complete:', results);
         setShowArena(false);
         setActiveGame(null);
 

@@ -7,18 +7,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  Bell,
-  MapPin,
-  Clock,
-  Users,
-  Gift,
-  Trophy,
-  AlertCircle,
-  Check,
-  Trash2,
-  Loader2
-} from 'lucide-react';
+import { Bell, MapPin, Clock, Users, Gift, Trophy, AlertCircle, Check, Trash2 } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 const NOTIFICATION_ICONS = {

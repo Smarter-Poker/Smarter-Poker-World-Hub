@@ -12,10 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  RefreshCw, Users, Loader2, Lock, Unlock,
-  Save, AlertTriangle, Activity, X, Clock, Maximize2, ZoomIn, ZoomOut, RotateCw
-} from 'lucide-react';
+import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity, X, Clock, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

@@ -6,10 +6,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import {
-  Plus, Edit3, Trash2, X, Send, Loader2, ChevronDown, Settings,
-  Megaphone, Eye, RefreshCw, Clock
-} from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Send, Loader2, ChevronDown, Settings, Megaphone, RefreshCw } from 'lucide-react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';

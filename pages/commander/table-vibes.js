@@ -6,10 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Flame, Smile, Zap, Loader2, MessageSquare,
-  Star, BarChart3
-} from 'lucide-react';
+import { Loader2, MessageSquare } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 

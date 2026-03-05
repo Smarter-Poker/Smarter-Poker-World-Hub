@@ -121,7 +121,6 @@ export default async function handler(req, res) {
 
             if (realMatch) {
               memberByStaffId[s.id] = realMatch;
-              console.log(`[Search] Broader match found for staff ${s.display_name} → existing member ${realMatch.id}`);
             } else {
               // No match at all — safe to auto-create
               const memberNum = `STAFF-${Date.now().toString(36).toUpperCase()}`;
@@ -142,9 +141,7 @@ export default async function handler(req, res) {
                 .single();
               if (!createErr && newMember) {
                 memberByStaffId[s.id] = newMember;
-                console.log(`Auto-created commander_members record for staff: ${s.display_name} → ${newMember.id}`);
               } else {
-                console.warn(`Failed to auto-create member record for ${s.display_name}:`, createErr?.message);
               }
             }
           }
@@ -175,7 +172,7 @@ export default async function handler(req, res) {
         }
       }
     } catch (staffErr) {
-      console.warn('Staff search warning:', staffErr);
+      console.error('Staff search warning:', staffErr);
     }
 
     // ═══ 2. Search commander_members ═══
@@ -274,7 +271,7 @@ export default async function handler(req, res) {
           }
         }
       } catch (wlErr) {
-        console.warn('Waitlist fallback search warning:', wlErr);
+        console.error('Waitlist fallback search warning:', wlErr);
       }
     }
 

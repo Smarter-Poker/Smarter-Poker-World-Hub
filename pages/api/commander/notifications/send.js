@@ -227,7 +227,6 @@ async function processNotification(notification, channel, phone) {
 
 async function sendSmsNotification(notification, phone) {
   if (!isSmsConfigured() && !isTwilioConfigured()) {
-    console.log('Twilio not configured, marking SMS as pending');
     await supabase
       .from('commander_notifications')
       .update({ status: 'pending' })
@@ -322,7 +321,6 @@ async function sendEmailNotification(notification) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@smarter.poker';
 
   if (!resendApiKey) {
-    console.log('Resend not configured, marking email as pending');
     await supabase
       .from('commander_notifications')
       .update({
@@ -418,7 +416,6 @@ async function sendEmailNotification(notification) {
 async function sendPushNotification(notification) {
   // Use shared push notification utility for configuration check
   if (!isOneSignalConfigured()) {
-    console.log('OneSignal not configured, marking push as pending');
     await supabase
       .from('commander_notifications')
       .update({ status: 'pending' })

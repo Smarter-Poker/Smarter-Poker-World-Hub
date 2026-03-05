@@ -131,7 +131,6 @@ export default async function handler(req, res) {
         // ── ✅ Success — delete the OTP row ──────────────────────────────
         await supabase.from('sms_otp_codes').delete().eq('id', storedOtp.id);
 
-        console.log('[verify-otp] Phone verified:', cleanPhone);
 
         // ── Persist verification to profile + grant VIP ──────────────────
         const { userId } = req.body;
@@ -190,7 +189,6 @@ export default async function handler(req, res) {
                     console.error('[verify-otp] Profile update error:', updateError);
                 } else {
                     vipGranted = shouldGrantVip;
-                    console.log(`[verify-otp] 🎉 Phone verified for ${userId}. VIP ${shouldGrantVip ? 'granted (90 days)' : 'already active (no downgrade)'}`);
 
                     // Log the VIP grant as a diamond transaction (only if VIP was actually granted)
                     if (shouldGrantVip) {

@@ -159,7 +159,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🐴 HORSES SPORTS STORIES CRON TRIGGERED\n');
 
     try {
         // Fetch active horses
@@ -185,7 +184,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`Fetched ${horses.length} horses`);
 
         const results = [];
         let videoStories = 0;
@@ -197,13 +195,11 @@ export default async function handler(req, res) {
 
             // Check if horse should post today
             if (!shouldHorseBeActive(horse.profile_id)) {
-                console.log(`${horse.name} has a quiet day today, skipping`);
                 continue;
             }
 
             // Check if it's an active hour for this horse
             if (!isHorseActiveHour(horse.profile_id)) {
-                console.log(`${horse.name} not active this hour, skipping`);
                 continue;
             }
 
@@ -217,7 +213,6 @@ export default async function handler(req, res) {
                 const clip = await getRandomSportsClip();
 
                 if (!clip) {
-                    console.log(`No sports clips available for ${horse.name}, skipping`);
                     continue;
                 }
 
@@ -232,7 +227,6 @@ export default async function handler(req, res) {
                         story_id: result.story_id,
                         success: true,
                     });
-                    console.log(`✅ ${horse.name} posted video story (${clip.sport_type})`);
                 } else {
                     results.push({
                         horse: horse.name,
@@ -255,7 +249,6 @@ export default async function handler(req, res) {
                         story_id: result.story_id,
                         success: true,
                     });
-                    console.log(`✅ ${horse.name} posted text story`);
                 } else {
                     results.push({
                         horse: horse.name,
@@ -269,7 +262,6 @@ export default async function handler(req, res) {
 
         const posted = videoStories + textStories;
 
-        console.log(`\n✅ Posted ${posted} sports stories (${videoStories} video, ${textStories} text)\n`);
 
         return res.status(200).json({
             success: true,

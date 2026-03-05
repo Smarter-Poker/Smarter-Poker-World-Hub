@@ -124,7 +124,6 @@ export default async function handler(req, res) {
                 console.error('[notify.js] Push notification error:', pushErr.message);
             }
         } else {
-            console.warn('[notify.js] OneSignal not configured, skipping push');
         }
 
         // Also insert in-app notifications for each player
@@ -148,7 +147,6 @@ export default async function handler(req, res) {
             .insert(notificationRows);
 
         if (insertErr) {
-            console.warn('[notify.js] Failed to insert in-app notifications:', insertErr.message);
         }
 
         return res.status(200).json({

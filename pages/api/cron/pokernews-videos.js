@@ -33,7 +33,6 @@ const RSS_URL = `https://www.youtube.com/feeds/videos.xml?channel_id=${POKERNEWS
 // WORKER FUNCTION
 // ═══════════════════════════════════════════════════════════════════════════
 async function ingestLatestVideos() {
-    console.log(`📡 Fetching RSS: ${RSS_URL}`);
     const results = { found: 0, imported: 0, skipped: 0, errors: [] };
 
     try {
@@ -97,7 +96,6 @@ async function ingestLatestVideos() {
                 console.error('Insert Error:', error);
             } else {
                 results.imported++;
-                console.log(`✅ Imported: ${title}`);
             }
         }
 
@@ -122,12 +120,10 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('\n🎬 POKERNEWS VIDEO INGESTION START');
 
     try {
         const results = await ingestLatestVideos();
 
-        console.log(`📊 RESULTS: Found ${results.found}, Imported ${results.imported}, Skipped ${results.skipped}`);
 
         return res.status(200).json({
             success: true,

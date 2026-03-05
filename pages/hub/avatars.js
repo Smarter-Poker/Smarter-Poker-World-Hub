@@ -16,7 +16,6 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import AvatarGallery from '../../src/components/avatars/AvatarGallery';
 
 // God-Mode Stack
-import { useAvatarsStore } from '../../src/stores/avatarsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 
 export default function AvatarsPage() {

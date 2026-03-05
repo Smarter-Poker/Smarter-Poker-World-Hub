@@ -158,7 +158,6 @@ export default async function handler(req, res) {
       html: emailHtml,
     });
 
-    console.log('Welcome email sent:', data);
     return res.status(200).json({ success: true, id: data.id });
   } catch (error) {
     console.error('Email error:', error);

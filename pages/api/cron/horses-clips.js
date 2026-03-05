@@ -48,7 +48,6 @@ async function loadClipLibrary() {
         getHorsePreferredSources = lib.getHorsePreferredSources;
         CLIP_LIBRARY = lib.CLIP_LIBRARY;
         clipLibraryLoaded = true;
-        console.log('✅ ClipLibrary loaded successfully');
         return true;
     } catch (e) {
         console.error('❌ Failed to load ClipLibrary:', e.message);
@@ -82,7 +81,6 @@ async function loadDeduplicationService() {
         ClipDeduplicationService = await import('../../../src/services/ClipDeduplicationService.js');
         deduplicationLoaded = true;
         dedupLoaded = true;  // Set module-scope variable
-        console.log('✅ ClipDeduplicationService loaded successfully');
         return true;
     } catch (e) {
         console.error('❌ Failed to load ClipDeduplicationService:', e.message);
@@ -137,7 +135,6 @@ async function validateYouTubeVideoId(videoId) {
 
     // Quick pattern check - fake IDs often end in 3 repeating uppercase letters
     if (/[A-Z]{3}$/.test(videoId)) {
-        console.log(`   ⚠️ Suspicious ID pattern (ends in XXX): ${videoId}`);
         return false;
     }
 
@@ -149,11 +146,10 @@ async function validateYouTubeVideoId(videoId) {
         if (response.ok) {
             return true;
         } else {
-            console.log(`   ❌ Invalid video ID (no thumbnail): ${videoId}`);
             return false;
         }
     } catch (e) {
-        console.log(`   ❌ Video ID validation failed: ${videoId} - ${e.message}`);
+        console.error(`   ❌ Video ID validation failed: ${videoId} - ${e.message}`);
         return false;
     }
 }
@@ -193,7 +189,6 @@ async function getRecentlyPostedClipIds() {
         }
     });
 
-    console.log(`   Found ${usedClipIds.size} recently used clip IDs`);
     return usedClipIds;
 }
 
@@ -205,7 +200,6 @@ async function getRecentlyPostedClipIds() {
  * Now with proper deduplication to avoid posting same clips
  */
 async function postVideoClip(horse, recentlyUsedClips = new Set()) {
-    console.log(`🎬 ${horse.name}: Posting video clip...`);
 
     try {
         // Check if ClipLibrary loaded correctly
@@ -224,9 +218,7 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             if (!assignError && assignments && assignments.length > 0) {
                 assignedSources = assignments.map(a => a.source_name);
-                console.log(`   ${horse.name} assigned sources: ${assignedSources.join(', ')}`);
             } else {
-                console.log(`   ${horse.name} has no assigned sources, using hash-based fallback`);
                 assignedSources = getHorsePreferredSources ? getHorsePreferredSources(horse.profile_id) : null;
             }
         } catch (err) {
@@ -266,7 +258,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                         if (verifiedClip) {
                             // CRITICAL: Only use if it's from one of this horse's assigned sources
                             if (!assignedSources || assignedSources.includes(verifiedClip.source)) {
-                                console.log(`   ⚡ FAILSAFE: Using pre-verified clip from ${verifiedClip.source}: ${verifiedId}`);
                                 clip = verifiedClip;
                                 usedClipsThisSession.add(verifiedClip.id);
                                 break;
@@ -284,7 +275,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             // Check if this clip was recently used (database check) or used this session
             if (recentlyUsedClips.has(candidate.id) || usedClipsThisSession.has(candidate.id)) {
-                console.log(`   Skipping ${candidate.id} (already used)`);
                 continue;
             }
 
@@ -292,7 +282,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             // CRITICAL: Also check if video ID is in session (prevents race condition)
             if (usedClipsThisSession.has(videoId)) {
-                console.log(`   Skipping ${videoId} (video ID already used this session)`);
                 continue;
             }
 
@@ -302,7 +291,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
 
             // If it's a verified clip, validate and try to reserve atomically
             if (VERIFIED_CLIP_IDS.includes(videoId)) {
-                console.log(`   ✅ Pre-verified clip: ${videoId}`);
 
                 // ATOMIC RESERVATION: Try to claim this clip in the database FIRST
                 // If another horse already claimed it, this will fail and we skip to next clip
@@ -317,12 +305,10 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                         });
 
                         if (!reserved) {
-                            console.log(`   ⚠️ Failed to reserve ${videoId} - already claimed`);
                             continue;
                         }
-                        console.log(`   🔒 RESERVED: ${videoId} for ${horse.name}`);
                     } catch (error) {
-                        console.log(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
+                        console.error(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
                         continue;
                     }
                 }
@@ -337,7 +323,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             const isValid = await validateYouTubeVideoId(videoId);
 
             if (!isValid) {
-                console.log(`   ⚠️ Rejecting ${candidate.id} - invalid video ID: ${videoId}`);
                 continue;
             }
 
@@ -353,12 +338,10 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                     });
 
                     if (!reserved) {
-                        console.log(`   ⚠️ Failed to reserve ${videoId} - already claimed`);
                         continue;
                     }
-                    console.log(`   🔒 RESERVED and validated: ${videoId} for ${horse.name}`);
                 } catch (error) {
-                    console.log(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
+                    console.error(`   ⚠️ Reservation failed for ${videoId}: ${error.message}`);
                     continue;
                 }
             }
@@ -366,7 +349,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             clip = candidate;
             usedClipsThisSession.add(candidate.id);
             usedClipsThisSession.add(videoId);
-            console.log(`   ✅ Validated and reserved: ${videoId}`);
         }
 
         if (!clip) {
@@ -374,7 +356,6 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
             return null;
         }
 
-        console.log(`   Selected clip: ${clip.id} (attempt ${attempts})`);
 
         // Generate caption using template
         const templateCaption = getRandomCaption ? getRandomCaption(clip.category || 'funny') : 'Check out this hand! 🔥';
@@ -441,7 +422,7 @@ BAD EXAMPLES:
             // Apply horse's unique writing style
             caption = applyWritingStyle(caption, horse.profile_id);
         } catch (e) {
-            console.log(`   Using template caption (Grok error: ${e.message})`);
+            console.error(`   Using template caption (Grok error: ${e.message})`);
             caption = applyWritingStyle(templateCaption, horse.profile_id);
         }
 
@@ -470,7 +451,6 @@ BAD EXAMPLES:
             return null;
         }
 
-        console.log(`✅ ${horse.name}: Video clip posted! Post ID: ${post.id}`);
 
         // CRITICAL: Mark this clip as posted to prevent duplicates
         if (dedupLoaded && ClipDeduplicationService) {
@@ -485,7 +465,6 @@ BAD EXAMPLES:
                 clipType: 'poker',
                 category: clip.category
             });
-            console.log(`   📝 Clip ${videoId} marked as posted`);
         }
 
         return {
@@ -538,7 +517,6 @@ async function generateClipCaption(horse, clipData) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function postOriginalContent(horse) {
-    console.log(`📝 ${horse.name}: Posting original content...`);
 
     // Use existing image generation logic from horses-post.js
     // This is the 10% fallback when not posting clips
@@ -575,7 +553,6 @@ async function postOriginalContent(horse) {
 
     await postToStory(horse.profile_id, imageUrl, 'image');
 
-    console.log(`✅ ${horse.name}: Original content posted!`);
 
     return {
         type: 'original',
@@ -683,8 +660,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🐴 HORSES CLIP CRON - 90% VIDEO CLIPS');
-    console.log('═'.repeat(50));
 
     if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
         return res.status(500).json({ error: 'Missing env vars' });
@@ -699,13 +674,11 @@ export default async function handler(req, res) {
     // Load ClipDeduplicationService - CRITICAL for preventing duplicates
     await loadDeduplicationService();
     if (!dedupLoaded) {
-        console.warn('⚠️  ClipDeduplicationService not loaded - duplicates may occur');
     }
 
     try {
         // Get recently posted clips to avoid duplicates (horse coordination)
         const recentlyUsedClips = await getRecentlyPostedClipIds();
-        console.log(`📋 Found ${recentlyUsedClips.size} recently posted clips to avoid`);
 
         // Get current time for per-horse scheduling
         const now = new Date();
@@ -734,21 +707,16 @@ export default async function handler(req, res) {
             return isHorseActiveHour(horse.profile_id, currentHour);
         });
 
-        console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
-        console.log(`🐴 Awake horses this hour: ${awakeHorses.length}/${allHorses.length}`);
 
         // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute (0-59)
         // shouldHorseBeActive checks if current minute is within ±7 of their slot
         const selectedHorses = awakeHorses.filter(horse => {
             const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
             if (isMyTime) {
-                console.log(`   ✅ ${horse.name}'s scheduled time slot!`);
             }
             return isMyTime;
         });
 
-        console.log(`🎯 Horses in their time slot: ${selectedHorses.length}`);
-        console.log(`   Names: ${selectedHorses.map(h => h.name).join(', ') || 'none'}`);
 
         if (selectedHorses.length === 0) {
             return res.status(200).json({
@@ -785,10 +753,6 @@ export default async function handler(req, res) {
         const videoClips = results.filter(r => r.type === 'video_clip').length;
         const originalPosts = results.filter(r => r.type === 'original').length;
 
-        console.log('\n📊 RESULTS:');
-        console.log(`   Video Clips: ${videoClips}`);
-        console.log(`   Original: ${originalPosts}`);
-        console.log(`   Failed: ${results.filter(r => !r.success).length}`);
 
         return res.status(200).json({
             success: true,

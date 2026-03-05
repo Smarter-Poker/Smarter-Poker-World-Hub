@@ -7,23 +7,7 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import {
-  ChevronLeft,
-  Users,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  Search,
-  Filter,
-  ChevronDown,
-  Clock,
-  CheckCircle,
-  XCircle,
-  ArrowRight,
-  Building2,
-  MoreVertical,
-} from 'lucide-react';
+import { ChevronLeft, Phone, Mail, MapPin, Search, Filter, ChevronDown, XCircle, Building2, MoreVertical } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const STATUS_CONFIG = {

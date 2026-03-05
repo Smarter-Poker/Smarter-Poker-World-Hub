@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { Clock, Users, MapPin, Loader2, Zap, ChevronDown, ChevronUp, X, AlertTriangle, Globe, CheckCircle } from 'lucide-react';
+import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 
 // Capitalize first letter of every word

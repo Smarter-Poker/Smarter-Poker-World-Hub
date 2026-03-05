@@ -12,10 +12,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  CheckCircle2, XCircle, AlertTriangle, Loader2,
-  Users, DollarSign, Clock, Lock, FileText, ChevronRight, ArrowLeft
-} from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Lock, FileText, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

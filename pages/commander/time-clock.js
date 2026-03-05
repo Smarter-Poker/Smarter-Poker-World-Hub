@@ -7,10 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
-import {
-    Clock, ScanLine, UserCheck, LogIn, LogOut, Camera, X,
-    AlertCircle, CheckCircle, Timer, Users, ChevronDown
-} from 'lucide-react';
+import { Clock, ScanLine, UserCheck, LogIn, LogOut, Camera, X, AlertCircle, CheckCircle, Timer, Users } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 export default function TimeClock() {

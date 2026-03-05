@@ -59,7 +59,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log('[Daily Content] Starting daily content generation...');
 
         // Initialize Supabase with anon key (RLS will handle permissions)
         const supabase = createClient(
@@ -69,7 +68,6 @@ export default async function handler(req, res) {
 
         // Get today's content
         const todayContent = getTodayContent();
-        console.log('[Daily Content] Selected content type:', todayContent.content_type);
 
         // Create post using RPC function (bypasses RLS issues)
         const { data: post, error: postError } = await supabase
@@ -84,7 +82,6 @@ export default async function handler(req, res) {
 
         if (postError) {
             // Fallback: direct insert (may fail due to RLS)
-            console.warn('[Daily Content] RPC failed, trying direct insert:', postError.message);
 
             const { data: directPost, error: directError } = await supabase
                 .from('social_posts')
@@ -102,7 +99,6 @@ export default async function handler(req, res) {
                 throw new Error(`Failed to create post: ${directError.message}`);
             }
 
-            console.log('[Daily Content] Post created via direct insert:', directPost.id);
             return res.status(200).json({
                 success: true,
                 message: 'Daily content published (direct insert)',
@@ -111,7 +107,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log('[Daily Content] Post created successfully:', post.id || 'via RPC');
 
         return res.status(200).json({
             success: true,

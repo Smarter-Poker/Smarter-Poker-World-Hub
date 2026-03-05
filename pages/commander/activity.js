@@ -16,11 +16,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  RefreshCw, Loader2, Filter,
-  UserCheck, LogIn, LogOut, Clock, AlertTriangle,
-  Users, DollarSign, Bell, Play, Pause, Timer, XCircle
-} from 'lucide-react';
+import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Users, DollarSign, Bell, Play, Pause, Timer, XCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 

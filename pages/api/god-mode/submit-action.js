@@ -119,7 +119,7 @@ export default async function handler(req, res) {
                 roundNumber = (sessionData.hands_played || 0) + 1;
             }
         } catch (sessionError) {
-            console.warn('Could not fetch session data:', sessionError.message);
+            console.error('Could not fetch session data:', sessionError.message);
         }
 
         // 3. Record in hand history
@@ -157,10 +157,9 @@ export default async function handler(req, res) {
                     chip_penalty: damageResult.chipPenalty || 0,
                 });
             } else {
-                console.warn('Could not find game UUID for slug:', gameId);
             }
         } catch (dbError) {
-            console.warn('Failed to record hand history:', dbError.message);
+            console.error('Failed to record hand history:', dbError.message);
             // Continue even if recording fails
         }
 

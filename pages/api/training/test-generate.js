@@ -42,13 +42,11 @@ export default async function handler(req, res) {
         const engineType = gameConfig.engine;
         const level = 1;
 
-        console.log(`🎮 Testing question generation for ${game.name}...`);
 
         const results = [];
 
         // Generate 5 test questions
         for (let i = 1; i <= 5; i++) {
-            console.log(`\n[${i}/5] Generating question...`);
 
             const question = await generateQuestionWithGrok(
                 gameId,
@@ -76,7 +74,6 @@ export default async function handler(req, res) {
                 if (error && !error.message?.includes('duplicate')) {
                     console.error(`❌ Save failed:`, error.message);
                 } else {
-                    console.log(`✅ Generated and cached`);
                     results.push(question);
                 }
             }
@@ -156,7 +153,6 @@ Generate a question in this EXACT JSON format (no markdown, no code blocks):
 
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            console.log(`  Generated: "${parsed.question.substring(0, 60)}..."`);
             return parsed;
         }
 

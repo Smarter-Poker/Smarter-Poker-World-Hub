@@ -32,7 +32,6 @@ export default async function handler(req, res) {
 
         if (fetchError) throw fetchError;
 
-        console.log(`Found ${articles?.length || 0} articles with missing images`);
 
         let updated = 0;
         const errors = [];

@@ -93,7 +93,6 @@ async function selectDailyForCategory(category, targetDate, sixtyDaysAgo) {
 
     // Step 2: If not enough fresh questions, recycle from oldest-used
     if (pool.length < QUESTIONS_PER_CATEGORY) {
-        console.log(`[Rotation] ${category}: Only ${pool.length} fresh questions, recycling from oldest`);
 
         const { data: allQuestions, error: allError } = await supabase
             .from('trivia_questions')
@@ -145,8 +144,6 @@ export default async function handler(req, res) {
     const targetDate = getTomorrowCST();
     const sixtyDaysAgo = getSixtyDaysAgoCST();
 
-    console.log(`[Rotation] Daily question rotation for ${targetDate}`);
-    console.log(`[Rotation] 60-day exclusion window: questions used after ${sixtyDaysAgo} are excluded`);
 
     const results = {
         date: targetDate,
@@ -163,7 +160,6 @@ export default async function handler(req, res) {
             .eq('daily_date', targetDate);
 
         if (existingCount >= QUESTIONS_PER_CATEGORY * CATEGORIES.length) {
-            console.log(`[Rotation] ${targetDate} already has ${existingCount} daily questions. Skipping.`);
             return res.status(200).json({
                 success: true,
                 message: `Already rotated for ${targetDate}`,
@@ -180,10 +176,8 @@ export default async function handler(req, res) {
             results.totalSelected += selected;
             if (recycled) results.totalRecycled++;
 
-            console.log(`[Rotation] ${category}: ${selected}/${QUESTIONS_PER_CATEGORY} selected${recycled ? ' (recycled)' : ''}`);
         }
 
-        console.log(`[Rotation] Complete: ${results.totalSelected} questions tagged for ${targetDate}`);
 
         return res.status(200).json({
             success: true,

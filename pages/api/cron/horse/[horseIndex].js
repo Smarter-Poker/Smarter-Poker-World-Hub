@@ -24,7 +24,6 @@ async function loadClipLibrary() {
         getRandomClip = lib.getRandomClip;
         CLIP_LIBRARY = lib.CLIP_LIBRARY;
         clipLibraryLoaded = true;
-        console.log('✅ ClipLibrary loaded for poker clips');
         return true;
     } catch (e) {
         console.error('❌ Failed to load ClipLibrary:', e.message);
@@ -279,7 +278,6 @@ function convertToEmbedUrl(url) {
 
 // POST VIDEO CLIP (with unique voice + GLOBAL DEDUPLICATION + POKER/SPORTS SUPPORT)
 async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'sports') {
-    console.log(`   Posting ${clipType.toUpperCase()} VIDEO CLIP for horse #${horseIndex}`);
 
     let clips = [];
     let clip = null;
@@ -322,13 +320,11 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
                     clip = candidate;
                     break;
                 } else {
-                    console.log(`   ⚠️ Skipping invalid video: ${videoId}`);
                 }
             }
         }
 
         if (!clip) {
-            console.log(`   No fresh poker clips available after ${maxAttempts} attempts`);
             return { success: false, error: 'All poker clips already posted' };
         }
 
@@ -357,17 +353,14 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
         (recentVideos || []).forEach(p => {
             if (p.media_urls) p.media_urls.forEach(url => usedUrls.add(url));
         });
-        console.log(`   Found ${usedUrls.size} recently used video URLs, filtering...`);
 
         // Filter out already-posted clips
         const freshClips = clips.filter(c => {
             const embedUrl = convertToEmbedUrl(c.source_url);
             return !usedUrls.has(embedUrl) && !usedUrls.has(c.source_url);
         });
-        console.log(`   ${freshClips.length}/${clips.length} sports clips are fresh`);
 
         if (!freshClips.length) {
-            console.log(`   No fresh sports clips available`);
             return { success: false, error: 'All sports clips already posted' };
         }
 
@@ -381,13 +374,11 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
                 clip = candidate;
                 break;
             } else {
-                console.log(`   ⚠️ Skipping invalid sports video: ${candidate.source_url?.slice(0, 50)}`);
                 freshClips.splice(idx, 1); // Remove invalid clip from candidates
             }
         }
 
         if (!clip) {
-            console.log(`   No valid sports clips after validation`);
             return { success: false, error: 'No valid sports clips found' };
         }
     }
@@ -430,7 +421,6 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
 
 // POST NEWS LINK (with unique voice + GLOBAL DEDUPLICATION)
 async function postNewsLink(horse, horseIndex, newsType) {
-    console.log(`   Posting ${newsType} NEWS for horse #${horseIndex}`);
 
     const sources = newsType === 'poker' ? POKER_NEWS_SOURCES : SPORTS_NEWS_SOURCES;
     const sourceIndex = horseIndex % sources.length;
@@ -450,14 +440,11 @@ async function postNewsLink(horse, horseIndex, newsType) {
             .gte('created_at', since48h);
 
         const usedLinks = new Set((recentPosts || []).map(p => p.link_url));
-        console.log(`   Found ${usedLinks.size} recently used links, filtering...`);
 
         // Filter out already-posted articles
         const freshArticles = allArticles.filter(a => !usedLinks.has(a.link));
-        console.log(`   ${freshArticles.length}/${allArticles.length} articles are fresh`);
 
         if (!freshArticles.length) {
-            console.log(`   No fresh articles available for ${source.name}`);
             return { success: false, error: 'All articles already posted' };
         }
 
@@ -514,7 +501,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log(`\nHORSE CRON #${index}`);
 
         // Load ClipLibrary for poker video clips
         await loadClipLibrary();
@@ -531,7 +517,6 @@ export default async function handler(req, res) {
         }
 
         const horse = horses[index];
-        console.log(`   Horse: ${horse.name}`);
 
         // CONTENT: 75% POKER / 25% SPORTS SPLIT (for BOTH videos AND news)
         // Hours 0,1,2,4,5,6,8,9,10,12,13,14,16,17,18,20,21,22 = POKER (75%)
@@ -540,7 +525,6 @@ export default async function handler(req, res) {
         const isPokerHour = (hour % 4 !== 3);
         const contentCategory = isPokerHour ? 'poker' : 'sports';
 
-        console.log(`   Hour ${hour}: ${contentCategory.toUpperCase()} content (${isPokerHour ? '75%' : '25%'})`);
 
         const assignedSources = await getHorseSources(horse.profile_id);
 
@@ -550,19 +534,16 @@ export default async function handler(req, res) {
             // POKER HOUR: Try poker news, fallback to poker video
             result = await postNewsLink(horse, index, 'poker');
             if (!result.success) {
-                console.log(`   Poker news failed, trying poker video...`);
                 result = await postVideoClip(horse, assignedSources, index, 'poker');
             }
         } else {
             // SPORTS HOUR: Try sports news, fallback to sports video
             result = await postNewsLink(horse, index, 'sports');
             if (!result.success) {
-                console.log(`   Sports news failed, trying sports video...`);
                 result = await postVideoClip(horse, assignedSources, index, 'sports');
             }
         }
 
-        console.log(`   Result: ${result.success ? 'SUCCESS' : 'FAILED'}`);
 
         return res.status(200).json({
             success: result.success,

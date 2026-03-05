@@ -7,20 +7,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  Gift,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  History,
-  Star,
-  ChevronRight,
-  Loader2,
-  Coffee,
-  Utensils,
-  CreditCard,
-  Zap
-} from 'lucide-react';
+import { Gift, Clock, TrendingUp, History, Star, ChevronRight, Utensils, CreditCard } from 'lucide-react';
 import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 

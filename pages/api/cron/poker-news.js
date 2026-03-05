@@ -68,7 +68,6 @@ async function fetchLatestNews() {
 
     for (const source of NEWS_SOURCES) {
         try {
-            console.log(`📰 Fetching from ${source.name}...`);
             const feed = await rssParser.parseURL(source.rss);
 
             const articles = (feed.items || []).slice(0, 5).map(item => {
@@ -112,7 +111,6 @@ async function fetchLatestNews() {
             });
 
             allArticles.push(...articles);
-            console.log(`   Found ${articles.length} recent articles`);
         } catch (error) {
             console.error(`   Error fetching ${source.name}: ${error.message}`);
         }
@@ -144,7 +142,6 @@ function categorizeArticle(title) {
 // SAVE TO NEWS ARCHIVE
 // ═══════════════════════════════════════════════════════════════════════════
 async function saveToNewsArchive(article) {
-    console.log(`💾 Archiving: ${article.title}`);
 
     // Check if article already exists in archive
     const { data: existing } = await supabase
@@ -154,7 +151,6 @@ async function saveToNewsArchive(article) {
         .maybeSingle();
 
     if (existing) {
-        console.log(`   Already archived (ID: ${existing.id})`);
         return existing.id;
     }
 
@@ -181,7 +177,6 @@ async function saveToNewsArchive(article) {
         return null;
     }
 
-    console.log(`✅ Archived to database (ID: ${newsRecord.id})`);
     return newsRecord.id;
 }
 
@@ -217,7 +212,6 @@ async function isArticleRecentlyShared(link) {
 // POST NEWS ARTICLE (with dual posting to archive)
 // ═══════════════════════════════════════════════════════════════════════════
 async function postNewsArticle(article, newsId = null) {
-    console.log(`\n📰 Posting: ${article.title}`);
 
     // Format post content with in-app viewer link
     const emoji = getCategoryEmoji(article.category);
@@ -274,15 +268,9 @@ ${article.summary}
                 throw directError;
             }
 
-            console.log(`✅ Posted (direct): ${directPost.id}`);
-            console.log(`   Image: ${article.imageUrl ? 'Yes' : 'No'}`);
-            console.log(`   Viewer: ${viewerUrl}`);
             return { post_id: directPost.id, method: 'direct', has_image: !!article.imageUrl };
         }
 
-        console.log(`✅ Posted (RPC): ${post?.id || 'success'}`);
-        console.log(`   Image: ${article.imageUrl ? 'Yes' : 'No'}`);
-        console.log(`   Viewer: ${viewerUrl}`);
 
         // Link social post back to news archive
         if (newsId && post?.id) {
@@ -290,7 +278,6 @@ ${article.summary}
                 .from('poker_news')
                 .update({ social_post_id: post.id })
                 .eq('id', newsId);
-            console.log(`🔗 Linked to archive record ${newsId}`);
         }
 
         return { post_id: post?.id || 'created', method: 'rpc', has_image: !!article.imageUrl, news_id: newsId };
@@ -319,8 +306,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n📰 POKER NEWS AGGREGATOR - Hourly News Update');
-    console.log('═'.repeat(60));
 
     if (!SUPABASE_URL) {
         return res.status(500).json({ error: 'Missing Supabase URL' });
@@ -329,7 +314,6 @@ export default async function handler(req, res) {
     try {
         // Fetch latest news from all sources
         const articles = await fetchLatestNews();
-        console.log(`\n📚 Total articles found: ${articles.length}`);
 
         if (articles.length === 0) {
             return res.status(200).json({
@@ -361,7 +345,6 @@ export default async function handler(req, res) {
         }
 
         if (!posted) {
-            console.log('⚠️  All articles recently shared, skipping this hour');
             return res.status(200).json({
                 success: true,
                 message: 'All articles recently shared',
@@ -369,8 +352,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log('\n' + '═'.repeat(60));
-        console.log(`📊 Successfully posted 1 news article`);
 
         return res.status(200).json({
             success: true,

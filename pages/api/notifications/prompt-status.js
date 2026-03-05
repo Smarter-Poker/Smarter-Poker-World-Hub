@@ -183,7 +183,6 @@ async function ensureTable() {
         }
 
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-            console.warn('[prompt-status] Table "notification_prompt_log" does not exist.');
             tableExists = false;
             return false;
         }

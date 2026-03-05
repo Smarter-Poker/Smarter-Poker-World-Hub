@@ -183,7 +183,6 @@ export default async function handler(req, res) {
         // If player has more than 3 sessions today and has limits set, warn them
         if (todaySessions >= 3 && limits.daily_limit) {
           // Log responsible gaming check
-          console.log(`Responsible gaming: Player ${player_id} has ${todaySessions} sessions today`);
         }
       }
     }

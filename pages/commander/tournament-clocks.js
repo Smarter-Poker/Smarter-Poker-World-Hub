@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
-import { Clock, Monitor, Play, Pause, ExternalLink, Loader2, Plus, Tv } from 'lucide-react';
+import { Clock, Monitor, Play, Loader2, Tv } from 'lucide-react';
 
 export default function TournamentClocks() {
     const router = useRouter();

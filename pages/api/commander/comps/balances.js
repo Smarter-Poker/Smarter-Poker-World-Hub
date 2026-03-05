@@ -106,7 +106,6 @@ async function awardComp(req, res, staffAuth) {
 
             if (realMatch) {
               member = realMatch;
-              console.log(`[Comps] Broader match found for staff ${staffMember.display_name} → member ${realMatch.id}`);
             }
           }
         }

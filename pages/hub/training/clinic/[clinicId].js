@@ -15,7 +15,6 @@ import { motion } from 'framer-motion';
 import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/TRAINING_CLINICS';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
-import { WorldNavHeader } from '../../../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 
 // Constants
@@ -51,9 +50,7 @@ export default function ClinicPlayPage() {
         if (foundClinic) {
             setClinic(foundClinic);
             setLoading(false);
-            console.log(`[CLINIC] Loaded: ${foundClinic.name} (${xpMultiplier}x XP)`);
         } else {
-            console.warn('[CLINIC] Not found:', clinicId);
             setLoading(false);
         }
     }, [clinicId, xpMultiplier]);
@@ -153,7 +150,6 @@ export default function ClinicPlayPage() {
 
             switch (type) {
                 case 'TEMPLATE_READY':
-                    console.log('[CLINIC] Template ready');
                     sendClinicDataToIframe();
                     break;
                 case 'ANSWER_SELECTED':
@@ -315,7 +311,6 @@ export default function ClinicPlayPage() {
                 title={clinic.name}
                 style={{ border: 'none', width: '100%', height: 'calc(100vh - 60px)', display: 'block' }}
                 onLoad={() => {
-                    console.log('[CLINIC] Template loaded');
                     setTimeout(sendClinicDataToIframe, 100);
                 }}
             />

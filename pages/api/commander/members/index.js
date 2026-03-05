@@ -120,7 +120,6 @@ async function handleCreate(req, res) {
         const { data: nameMatches } = await existingQuery;
 
         if (nameMatches && nameMatches.length > 0) {
-            console.log(`[Members] Duplicate detected by name: ${first_name} ${last_name} → returning existing ID ${nameMatches[0].id}`);
             return res.status(200).json({
                 success: true,
                 data: { member: nameMatches[0] },
@@ -138,7 +137,6 @@ async function handleCreate(req, res) {
                 .ilike('email', email.trim());
 
             if (emailMatches && emailMatches.length > 0) {
-                console.log(`[Members] Duplicate detected by email: ${email} → returning existing ID ${emailMatches[0].id}`);
                 return res.status(200).json({
                     success: true,
                     data: { member: emailMatches[0] },

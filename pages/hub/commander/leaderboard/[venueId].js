@@ -3,21 +3,11 @@
  * Public view of venue leaderboards and promotions
  * Dark industrial sci-fi gaming theme
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  Trophy,
-  Clock,
-  DollarSign,
-  Users,
-  Medal,
-  Star,
-  TrendingUp,
-  Calendar,
-  Loader2
-} from 'lucide-react';
+import { Trophy, Clock, DollarSign, Medal, Star, Calendar } from 'lucide-react';
 import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
 
 /* Inline LeaderboardRow replaced by shared LeaderboardDisplay component */

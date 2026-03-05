@@ -129,8 +129,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Photo is required' });
         }
 
-        console.log('🎨 Generating avatar from photo with Grok Vision + grok-2-image');
-        console.log('📏 Photo base64 length:', photoBase64?.length || 0);
 
         // Step 1: Use Grok Vision to analyze the photo
         const analysisResponse = await grok.chat.completions.create({
@@ -167,7 +165,6 @@ Be specific - this creates a Pixar-style avatar that should be RECOGNIZABLE as t
         });
 
         const faceDescription = analysisResponse.choices[0].message.content;
-        console.log('📝 Face analysis:', faceDescription);
 
         // Step 2: Generate avatar with grok-2-image
         const additionalStyle = prompt ? `ADDITIONAL STYLE REQUESTS: ${prompt}. ` : '';
@@ -195,17 +192,14 @@ The goal is that if someone knows this person, they would IMMEDIATELY recognize 
         });
 
         const imageUrl = imageResponse.data[0].url;
-        console.log('✅ Grok generated likeness, now downloading...');
 
         const imgResponse = await fetch(imageUrl);
         const arrayBuffer = await imgResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log('🔧 Removing background with Sharp (zero-background sticker)...');
 
         const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
-        console.log('✅ Background removed (100% transparency), uploading to Supabase...');
 
         const timestamp = Date.now();
         const safeUserId = userId || 'anonymous';
@@ -229,7 +223,6 @@ The goal is that if someone knows this person, they would IMMEDIATELY recognize 
             .from('custom-avatars')
             .getPublicUrl(storagePath);
 
-        console.log('✅ Sticker avatar uploaded to Supabase:', publicUrl);
 
         return res.status(200).json({
             success: true,

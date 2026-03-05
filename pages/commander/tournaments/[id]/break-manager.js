@@ -18,10 +18,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  AlertTriangle, Loader2, RefreshCw, Printer,
-  Users, ArrowRight, Check, X, ChevronRight, Table2, Zap
-} from 'lucide-react';
+import { Loader2, RefreshCw, Printer, ArrowRight, Check, Zap } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 

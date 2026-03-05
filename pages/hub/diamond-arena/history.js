@@ -3,7 +3,6 @@
  * View past hands and sessions
  */
 
-import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';

@@ -436,14 +436,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log('[Question Pool] Starting question pool management...');
 
         // Get current stats
         const stats = await getPoolStats();
         const totalQuestions = Object.values(stats).reduce((sum, s) => sum + s.total, 0);
         const targetTotal = CATEGORIES.length * TARGET_PER_CATEGORY;
 
-        console.log(`[Question Pool] Current: ${totalQuestions} / ${targetTotal} total questions`);
 
         // Check if pool is complete
         if (totalQuestions >= targetTotal) {
@@ -481,7 +479,6 @@ export default async function handler(req, res) {
             ];
 
             const batchCount = Math.min(BATCH_SIZE, need.needed);
-            console.log(`[Question Pool] Generating ${batchCount} ${need.difficulty} questions for ${need.category.name}/${subcategory}`);
 
             const questions = await generateBatch(need.category, subcategory, need.difficulty, batchCount);
 
@@ -493,7 +490,6 @@ export default async function handler(req, res) {
                     if (!isDupe) {
                         uniqueQuestions.push(q);
                     } else {
-                        console.log(`[Question Pool] Skipping duplicate: ${q.question.slice(0, 50)}...`);
                     }
                 }
 
@@ -501,7 +497,6 @@ export default async function handler(req, res) {
                     // ═══ QA VALIDATION GATE — NO QUESTION ENTERS DB WITHOUT PASSING ═══
                     const { valid: validQuestions, rejected } = validateBatch(uniqueQuestions);
                     if (rejected.length > 0) {
-                        console.log(`[Question Pool] 🛡️ QA GATE: ${rejected.length}/${uniqueQuestions.length} REJECTED:`);
                         rejected.forEach(r => {
                             r.errors.forEach(e => console.log(`  → ${e}`));
                         });

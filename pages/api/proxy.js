@@ -427,7 +427,6 @@ function rewriteHtml(html, pageUrl, originUrl) {
             }
         }, true);
         
-        console.log('[Smarter.Poker Proxy] Page loaded successfully:', document.title);
     })();
     </script>
     `;

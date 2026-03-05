@@ -6,9 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  Trophy, Users, DollarSign, ChevronDown, Loader2, Calendar
-} from 'lucide-react';
+import { Trophy, ChevronDown, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function TournamentResultsReport() {

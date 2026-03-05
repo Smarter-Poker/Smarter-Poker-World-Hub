@@ -38,11 +38,10 @@ async function findUserByEmail(email) {
       .ilike('email', normalizedEmail)
       .single();
     if (profile?.id) {
-      console.log('Found user via Method 0 (profiles table):', profile.id);
       return { id: profile.id, email: profile.email || normalizedEmail };
     }
   } catch (e) {
-    console.log('Method 0 (profiles) failed:', e.message);
+    console.error('Method 0 (profiles) failed:', e.message);
   }
 
   // Method 1: Supabase admin getUserByEmail (if available in this SDK version)
@@ -56,11 +55,10 @@ async function findUserByEmail(email) {
       })()
       : { data: null, error: null };
     if (data?.user) {
-      console.log('Found user via Method 1 (admin listUsers)');
       return data.user;
     }
   } catch (e) {
-    console.log('Method 1 failed:', e.message);
+    console.error('Method 1 failed:', e.message);
   }
 
   // Method 2: GoTrue REST API - paginated search (up to 5000 users)
@@ -83,14 +81,13 @@ async function findUserByEmail(email) {
       if (!Array.isArray(users) || users.length === 0) break;
       const found = users.find(u => u.email?.toLowerCase() === normalizedEmail);
       if (found) {
-        console.log(`Found user via Method 2 (REST page ${page})`);
         return found;
       }
       if (users.length < 100) break;
       page++;
     }
   } catch (e) {
-    console.log('Method 2 failed:', e.message);
+    console.error('Method 2 failed:', e.message);
   }
 
   return null;
@@ -160,11 +157,9 @@ export default async function handler(req, res) {
 
     if (existingAccount) {
       // ─── Path A: Existing account — look up user, skip createUser ──
-      console.log('Existing account flow for:', email);
       const existingUser = await findUserByEmail(email);
       if (existingUser) {
         userId = existingUser.id;
-        console.log('Found existing user:', userId);
         // Update their metadata to include venue_owner role
         try {
           await supabase.auth.admin.updateUserById(userId, {
@@ -197,16 +192,13 @@ export default async function handler(req, res) {
 
       if (!authError && authData?.user) {
         userId = authData.user.id;
-        console.log('Created new user:', userId);
       } else if (authError?.message?.toLowerCase().includes('already') ||
         authError?.message?.toLowerCase().includes('exists') ||
         authError?.message?.toLowerCase().includes('registered')) {
         // User already exists — look them up
-        console.log('User already exists, looking up:', authError.message);
         const existingUser = await findUserByEmail(email);
         if (existingUser) {
           userId = existingUser.id;
-          console.log('Found existing user:', userId);
           try {
             await supabase.auth.admin.updateUserById(userId, {
               user_metadata: {
@@ -448,7 +440,6 @@ export default async function handler(req, res) {
         }
         if (tablesToInsert.length > 0) {
           await supabase.from('commander_tables').insert(tablesToInsert);
-          console.log(`Auto-provisioned ${tablesToInsert.length} tables for venue ${venueId}`);
         }
       } catch (e) {
         console.error('Table auto-provision error (non-critical):', e.message);

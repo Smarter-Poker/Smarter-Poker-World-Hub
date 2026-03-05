@@ -73,6 +73,7 @@ export default async function handler(req, res) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, full_name')
+        .limit(100)
         .in('id', playerIds.slice(0, 200));
       (profiles || []).forEach(p => { nameMap[p.id] = p.display_name || p.full_name || 'Unknown'; });
     }

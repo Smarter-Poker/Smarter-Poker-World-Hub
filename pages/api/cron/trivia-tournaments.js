@@ -105,7 +105,6 @@ export default async function handler(req, res) {
 
             if (!error && newTournament) {
                 results.created = newTournament.id;
-                console.log(`[Tournament] Created: ${newTournament.name}`);
             }
         }
 
@@ -205,7 +204,6 @@ async function generateBracket(tournament, entries) {
             .insert(notifications);
     }
 
-    console.log(`[Tournament] Bracket generated: ${numPlayers} players, ${totalRounds} rounds, ${matchups.length} matchups`);
     return { totalRounds, matchups };
 }
 
@@ -238,7 +236,6 @@ async function cancelAndRefund(tournament, entries) {
         .update({ status: 'cancelled' })
         .eq('id', tournament.id);
 
-    console.log(`[Tournament] Cancelled: ${tournament.name} (${entries.length} entries refunded)`);
 }
 
 /**

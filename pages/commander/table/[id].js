@@ -10,14 +10,11 @@
  * - Dealer position indicator
  * - Quick actions: seat from waitlist, remove player, add time
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import {
-  Clock, Users, Plus, Minus, Loader2,
-  RefreshCw, Timer, UserPlus, ChevronDown, ArrowLeft
-} from 'lucide-react';
+import { Plus, Loader2, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function formatCountdown(minutes) {

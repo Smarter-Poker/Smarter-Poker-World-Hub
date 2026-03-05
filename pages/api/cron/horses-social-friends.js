@@ -13,13 +13,11 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('🐴 Starting horses-social-friends cron...');
 
     try {
         const sendResult = await sendFriendRequests(10);
         const acceptResult = await acceptFriendRequests(15);
 
-        console.log(`✅ Sent ${sendResult.sent} friend requests, accepted ${acceptResult.accepted}`);
 
         return res.status(200).json({
             success: true,

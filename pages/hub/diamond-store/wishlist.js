@@ -7,7 +7,6 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../src/lib/supabase';
 import { wishlistService } from '../../../src/services/preferences-service';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';

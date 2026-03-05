@@ -25,7 +25,6 @@ async function loadClipLibrary() {
         getRandomClip = lib.getRandomClip;
         CLIP_LIBRARY = lib.CLIP_LIBRARY;
         clipLibraryLoaded = true;
-        console.log('✅ ClipLibrary loaded for poker clips');
         return true;
     } catch (e) {
         console.error('❌ Failed to load ClipLibrary:', e.message);
@@ -272,7 +271,6 @@ function convertToEmbedUrl(url) {
 
 // POST VIDEO CLIP (with unique voice + GLOBAL DEDUPLICATION + POKER/SPORTS SUPPORT)
 async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'sports') {
-    console.log(`   Posting ${clipType.toUpperCase()} VIDEO CLIP for horse #${horseIndex}`);
 
     let clips = [];
     let clip = null;
@@ -310,13 +308,11 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
                     clip = candidate;
                     break;
                 } else {
-                    console.log(`   ⚠️ Skipping invalid video: ${videoId}`);
                 }
             }
         }
 
         if (!clip) {
-            console.log(`   No fresh poker clips available after ${maxAttempts} attempts`);
             return { success: false, error: 'All poker clips already posted' };
         }
 
@@ -350,7 +346,6 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
         });
 
         if (!freshClips.length) {
-            console.log(`   No fresh sports clips available`);
             return { success: false, error: 'All sports clips already posted' };
         }
 
@@ -368,7 +363,6 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
         }
 
         if (!clip) {
-            console.log(`   No valid sports clips after validation`);
             return { success: false, error: 'No valid sports clips found' };
         }
     }
@@ -411,7 +405,6 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
 
 // POST NEWS LINK (with unique voice + GLOBAL DEDUPLICATION)
 async function postNewsLink(horse, horseIndex, newsType) {
-    console.log(`   Posting ${newsType} NEWS for horse #${horseIndex}`);
 
     const sources = newsType === 'poker' ? POKER_NEWS_SOURCES : SPORTS_NEWS_SOURCES;
     const sourceIndex = horseIndex % sources.length;
@@ -434,7 +427,6 @@ async function postNewsLink(horse, horseIndex, newsType) {
         const freshArticles = allArticles.filter(a => !usedLinks.has(a.link));
 
         if (!freshArticles.length) {
-            console.log(`   No fresh articles available for ${source.name}`);
             return { success: false, error: 'All articles already posted' };
         }
 
@@ -478,14 +470,12 @@ async function postNewsLink(horse, horseIndex, newsType) {
 
 // Process a single horse
 async function processHorse(horse, horseIndex, horses) {
-    console.log(`\n  HORSE #${horseIndex}: ${horse.name}`);
 
     // CONTENT: 75% POKER / 25% SPORTS SPLIT
     const hour = new Date().getUTCHours();
     const isPokerHour = (hour % 4 !== 3);
     const contentCategory = isPokerHour ? 'poker' : 'sports';
 
-    console.log(`   Hour ${hour}: ${contentCategory.toUpperCase()} content`);
 
     const assignedSources = await getHorseSources(horse.profile_id);
 
@@ -493,18 +483,15 @@ async function processHorse(horse, horseIndex, horses) {
     if (isPokerHour) {
         result = await postNewsLink(horse, horseIndex, 'poker');
         if (!result.success) {
-            console.log(`   Poker news failed, trying poker video...`);
             result = await postVideoClip(horse, assignedSources, horseIndex, 'poker');
         }
     } else {
         result = await postNewsLink(horse, horseIndex, 'sports');
         if (!result.success) {
-            console.log(`   Sports news failed, trying sports video...`);
             result = await postVideoClip(horse, assignedSources, horseIndex, 'sports');
         }
     }
 
-    console.log(`   Result: ${result.success ? 'SUCCESS' : 'FAILED'} - ${result.type || result.error}`);
     return { horse: horse.name, index: horseIndex, ...result };
 }
 
@@ -525,9 +512,6 @@ export default async function handler(req, res) {
     const endIndex = startIndex + 9;
 
     try {
-        console.log(`\n========================================`);
-        console.log(`BATCH HORSE CRON #${batch} (Horses ${startIndex}-${endIndex})`);
-        console.log(`========================================`);
 
         // Load ClipLibrary for poker video clips
         await loadClipLibrary();
@@ -544,7 +528,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: false, error: 'No horses found' });
         }
 
-        console.log(`Found ${horses.length} total horses`);
 
         // Process horses in this batch
         const results = [];
@@ -567,9 +550,6 @@ export default async function handler(req, res) {
         const successCount = results.filter(r => r.success).length;
         const failCount = results.filter(r => !r.success).length;
 
-        console.log(`\n========================================`);
-        console.log(`BATCH #${batch} COMPLETE: ${successCount} success, ${failCount} failed`);
-        console.log(`========================================\n`);
 
         return res.status(200).json({
             success: true,

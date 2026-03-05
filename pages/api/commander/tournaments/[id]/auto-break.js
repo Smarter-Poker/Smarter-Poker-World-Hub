@@ -278,7 +278,6 @@ async function handleExecute(req, res, tournament) {
       .eq('venue_id', tournament.venue_id)
       .eq('table_number', break_table);
   } else {
-    console.warn(`[auto-break] Table ${break_table} not released because ${errors.length} player moves failed.`);
   }
 
   // Build receipt data for printing (full venue-level identity)

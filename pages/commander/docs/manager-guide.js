@@ -7,23 +7,7 @@
 import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Settings,
-  Users,
-  BarChart3,
-  Shield,
-  Bell,
-  Trophy,
-  FileText,
-  Key,
-  Search,
-  AlertTriangle,
-  DollarSign,
-  UserCog,
-  Building2,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, BarChart3, Shield, Trophy, Key, Search, AlertTriangle, DollarSign, UserCog, Building2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const GUIDE_SECTIONS = [

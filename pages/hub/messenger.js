@@ -11,10 +11,8 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -37,7 +35,7 @@ import { useMessengerStore } from '../../src/stores/messengerStore';
 import { useOneSignal } from '../../src/contexts/OneSignalContext';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { createRingTone } from '../../src/utils/ringTone';
-import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline, persistSession, getPersistedSession } from '../../src/utils/authGuard';
+import { createMultiDeviceAuthListener, withRetry, safeAsync, getCircuit, isOnline } from '../../src/utils/authGuard';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1151,7 +1149,6 @@ export default function MessengerPage() {
                             }
                         }
                     } catch (e) {
-                        console.warn('[Messenger] Error reading localStorage:', e);
                     }
                 }
 
@@ -1161,7 +1158,6 @@ export default function MessengerPage() {
                         const { data } = await supabase.auth.getUser();
                         authUser = data?.user || null;
                     } catch (e) {
-                        console.warn('[Messenger] getUser failed, using localStorage only:', e);
                     }
                 }
 
@@ -1199,7 +1195,6 @@ export default function MessengerPage() {
     // This handles: token refresh, login from another device, session recovery
     useEffect(() => {
         const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
-            console.log('[MESSENGER] Multi-device auth event:', event, 'User:', authUser?.id?.slice(0, 8) || 'none');
 
             if (!authUser) {
                 // User signed out - clear state
@@ -1244,7 +1239,6 @@ export default function MessengerPage() {
 
                 if (result.success && result.pendingCall) {
                     const call = result.pendingCall;
-                    console.log('📞 Found pending call:', call);
 
                     // Show incoming call UI
                     setIncomingCall({
@@ -1263,7 +1257,6 @@ export default function MessengerPage() {
                     }
                 }
             } catch (e) {
-                console.warn('Failed to check pending calls:', e);
             }
         }
 
@@ -1356,7 +1349,6 @@ export default function MessengerPage() {
         const callChannel = supabase
             .channel(`call-signal:${user.id}`)
             .on('broadcast', { event: 'incoming_call' }, (payload) => {
-                console.log('📞 Incoming call signal received:', payload);
                 const { callerId, callerName, callerAvatar, callType, roomName } = payload.payload;
 
                 // Don't show incoming call if we're already in a call
@@ -1370,7 +1362,6 @@ export default function MessengerPage() {
 
                 // If another tab claimed this call within the last 30 seconds, ignore
                 if (existingClaim && (now - parseInt(existingClaim)) < 30000) {
-                    console.log('📞 Call already claimed by another tab, ignoring');
                     return;
                 }
 
@@ -1394,7 +1385,6 @@ export default function MessengerPage() {
                 }, 30000);
             })
             .on('broadcast', { event: 'call_declined' }, (payload) => {
-                console.log('📞 Call declined:', payload);
                 if (callingUser) {
                     const reason = payload.payload.reason === 'timeout' ? 'No answer' : 'Call declined';
                     setToast({ type: 'info', message: reason });
@@ -1404,7 +1394,6 @@ export default function MessengerPage() {
                 }
             })
             .on('broadcast', { event: 'call_accepted' }, (payload) => {
-                console.log('📞 Call accepted:', payload);
                 // The caller's call is already showing, just clear the "calling" state
                 setCallingUser(null);
                 // Track call start time for call receipt
@@ -1413,7 +1402,6 @@ export default function MessengerPage() {
                 if (outgoingRingToneRef.current) outgoingRingToneRef.current.stop();
             })
             .on('broadcast', { event: 'call_ended' }, (payload) => {
-                console.log('📞 Call ended by other party:', payload);
                 setShowCall(false);
                 setCallRoomName('');
                 setToast({ type: 'info', message: 'Call Ended' });
@@ -1456,7 +1444,6 @@ export default function MessengerPage() {
             // Cleanup after a short delay
             setTimeout(() => supabase.removeChannel(channel), 1000);
         } catch (e) {
-            console.warn('Failed to send accept signal:', e);
         }
 
         // Join the call
@@ -1510,7 +1497,6 @@ export default function MessengerPage() {
             // Cleanup after a short delay
             setTimeout(() => supabase.removeChannel(channel), 1000);
         } catch (e) {
-            console.warn('Failed to send decline signal:', e);
         }
 
         // Cancel pending call in database
@@ -1544,11 +1530,9 @@ export default function MessengerPage() {
         //  HARDENED: Circuit breaker + offline detection + retry + guaranteed fallback
         const circuit = getCircuit('messenger-conversations', { failureThreshold: 3, resetTimeout: 30000 });
 
-        console.log('[MESSENGER] Loading conversations for userId:', userId, 'Online:', isOnline());
 
         // Check offline - return cached data if available
         if (!isOnline()) {
-            console.warn('[MESSENGER] Offline - using cached conversations');
             // Keep existing conversations if we have them
             return;
         }
@@ -1573,13 +1557,11 @@ export default function MessengerPage() {
                 async () => ({ success: true, conversations: conversations || [] })
             );
 
-            console.log('[MESSENGER] API result:', result);
             if (result.success && Array.isArray(result.conversations)) {
                 setConversations(result.conversations);
                 return;
             }
         } catch (apiErr) {
-            console.warn('[MESSENGER] API with circuit breaker failed:', apiErr);
         }
 
         // FALLBACK 1: Try direct Supabase query with retry
@@ -1608,7 +1590,6 @@ export default function MessengerPage() {
             );
 
             if (!data || data.length === 0) {
-                console.log('[MESSENGER] No participations found for user');
                 setConversations([]);
                 return;
             }
@@ -1701,7 +1682,6 @@ export default function MessengerPage() {
     const loadMessages = async (conversationId) => {
         setLoadingMessages(true);
         try {
-            console.log('[ANTIGRAVITY] Loading messages for conversation:', conversationId);
 
             // Use API route to bypass RLS issues
             const { data: { session: msgSession } } = await supabase.auth.getSession();
@@ -1715,12 +1695,10 @@ export default function MessengerPage() {
             });
 
             const result = await response.json();
-            console.log('[ANTIGRAVITY] API result:', result);
 
             if (result.success && result.messages) {
                 setMessages(result.messages);
             } else {
-                console.warn('[ANTIGRAVITY] API failed, result:', result);
                 setMessages([]);
             }
 
@@ -2024,11 +2002,9 @@ export default function MessengerPage() {
     // Handle media (photo/video) upload
     const handleMediaUpload = async (file) => {
         if (!user || !activeConversation || !file) {
-            console.log('handleMediaUpload: missing user, conversation, or file');
             return;
         }
 
-        console.log('handleMediaUpload: starting upload', { fileName: file.name, fileType: file.type, fileSize: file.size });
 
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
@@ -2066,7 +2042,6 @@ export default function MessengerPage() {
             const fileExt = file.name.split('.').pop();
             const fileName = `${user.id}/messages/${Date.now()}.${fileExt}`;
 
-            console.log('Uploading to user-media bucket:', fileName);
 
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('user-media')
@@ -2080,14 +2055,12 @@ export default function MessengerPage() {
                 throw uploadError;
             }
 
-            console.log('Upload successful:', uploadData);
 
             // Get public URL
             const { data: urlData } = supabase.storage
                 .from('user-media')
                 .getPublicUrl(fileName);
 
-            console.log('Public URL:', urlData.publicUrl);
 
             // Send message with media URL
             const content = isImage
@@ -2105,7 +2078,6 @@ export default function MessengerPage() {
                 throw error;
             }
 
-            console.log('Message sent with ID:', data);
 
             // Update message with real data
             setMessages(prev => prev.map(m =>
@@ -2280,7 +2252,6 @@ export default function MessengerPage() {
             return;
         }
 
-        console.log('📞 INITIATING CALL:', {
             callingUser: otherUser.id,
             callingUsername: otherUser.username,
             currentUser: user.id,
@@ -2324,7 +2295,6 @@ export default function MessengerPage() {
                     roomName: roomName,
                 }
             });
-            console.log('📞 Call signal sent to:', otherUser.id);
 
             // Cleanup channel after a delay (receiver has their own listener)
             setTimeout(() => supabase.removeChannel(channel), 2000);
@@ -2347,9 +2317,7 @@ export default function MessengerPage() {
                         roomName: roomName,
                     }),
                 });
-                console.log('📱 Pending call created in database');
             } catch (e) {
-                console.warn('Failed to create pending call:', e);
             }
 
 
@@ -2372,12 +2340,9 @@ export default function MessengerPage() {
                     }),
                 });
                 const pushResult = await pushRes.json();
-                console.log('📞 Push notification result:', pushResult);
                 if (!pushRes.ok || pushResult.error) {
-                    console.warn('Push notification issue:', pushResult);
                 }
             } catch (pushError) {
-                console.warn('Push notification failed:', pushError);
             }
         } catch (e) {
             console.error('Failed to send call signal:', e);
@@ -2424,7 +2389,6 @@ export default function MessengerPage() {
                 });
                 setTimeout(() => supabase.removeChannel(channel), 1000);
             } catch (e) {
-                console.warn('Failed to send end call signal:', e);
             }
         }
 
@@ -2444,7 +2408,6 @@ export default function MessengerPage() {
                     p_content: `[CALL_RECEIPT]${callMessage}`,
                 });
             } catch (e) {
-                console.warn('Failed to save call receipt:', e);
             }
         }
         callStartTimeRef.current = null;

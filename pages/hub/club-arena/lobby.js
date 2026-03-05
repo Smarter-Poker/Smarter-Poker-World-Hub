@@ -13,6 +13,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
+import useDebounce from '../../../src/hooks/useDebounce';
 
 const getAuthToken = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -59,6 +60,7 @@ export default function ClubLobby() {
     const [newDescription, setNewDescription] = useState('');
     const [announcements, setAnnouncements] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [sortBy, setSortBy] = useState('players'); // players | stakes | name
     const [showBBJ, setShowBBJ] = useState(false);
 

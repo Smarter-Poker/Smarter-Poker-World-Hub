@@ -39,6 +39,11 @@ function parseTime(timeStr) {
 }
 
 export default async function handler(req, res) {
+  // CDN cache: fresh for 120s, serve stale up to 600s
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=600');
+  }
+
   if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     if (req.method !== 'GET') {

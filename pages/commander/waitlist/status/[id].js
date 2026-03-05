@@ -16,7 +16,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
-import { Clock, Users, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'lucide-react';
+import { Clock, CheckCircle2, AlertTriangle, Loader2, Bell, XCircle } from 'lucide-react';
 
 export default function WaitlistStatus() {
   const router = useRouter();

@@ -57,7 +57,6 @@ export default async function handler(req, res) {
 
 
     try {
-        console.log(`[JarvisTraining] 📊 Recording session for user ${userId}: ${gameId} Level ${level}`);
 
         // 1. Store training session data for Jarvis analysis
         const sessionData = {
@@ -112,7 +111,6 @@ export default async function handler(req, res) {
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'user_id' });
 
-        console.log(`[JarvisTraining] ✅ Data pushed to Jarvis for user ${userId}`);
 
         return res.status(200).json({
             success: true,

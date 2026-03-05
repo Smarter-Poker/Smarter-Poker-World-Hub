@@ -16,12 +16,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  AlertTriangle, Coffee, Hash, Loader2, RefreshCw,
-  UserX, UserPlus, Clock, Bell, RotateCcw, ScanLine,
-  Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign,
-  ChevronUp, AlertCircle, User, Power, Lock, Unlock
-} from 'lucide-react';
+import { AlertTriangle, Coffee, Hash, Loader2, RefreshCw, UserX, Bell, RotateCcw, ScanLine, Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign, AlertCircle, User, Power, Lock, Unlock } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };

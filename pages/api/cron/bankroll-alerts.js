@@ -16,7 +16,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('[Bankroll Alerts] Starting check...');
 
     try {
         // Get all active goals
@@ -68,7 +67,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log('[Bankroll Alerts] Complete.', { alertsSent: alertsSent.length });
         res.json({ success: true, alertsSent });
 
     } catch (err) {
@@ -87,7 +85,6 @@ async function sendPushNotification(userId, title, message) {
             .single();
 
         if (!profile?.onesignal_player_id) {
-            console.log(`[Bankroll Alerts] No OneSignal ID for user ${userId}`);
             return;
         }
 
@@ -107,7 +104,6 @@ async function sendPushNotification(userId, title, message) {
             })
         });
 
-        console.log(`[Bankroll Alerts] Push sent to ${userId}`);
     } catch (err) {
         console.error('[Bankroll Alerts] Push error:', err);
     }

@@ -50,7 +50,6 @@ export default async function handler(req, res) {
             throw new Error(`Failed to fetch users: ${fetchError.message}`);
         }
 
-        console.log(`Found ${users.length} users to import`);
 
         // Import users to OneSignal in batches
         const batchSize = 100;
@@ -114,7 +113,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log(`Import complete: ${imported.length} success, ${errors.length} errors`);
 
         return res.status(200).json({
             success: true,

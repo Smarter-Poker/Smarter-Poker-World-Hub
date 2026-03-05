@@ -8,13 +8,12 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
-import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb, clearSearchHistory as clearSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
+import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FeatureGate from '../../src/components/gates/FeatureGate';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
@@ -905,7 +904,6 @@ export default function PokerNearMePage() {
 
             geofenceRef.current = gfService;
         }).catch(function (err) {
-            console.warn('[PokerNearMe] Could not load GeofenceService:', err);
             setGeofenceStatus('error');
         });
 

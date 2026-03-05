@@ -18,7 +18,6 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { calculateDiamonds } from '../../../src/lib/trivia/triviaEngine';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
@@ -337,7 +336,6 @@ export default function SurvivalGamePage() {
 
                 // If not enough unseen questions, fall back to all questions
                 if (available.length < QUESTIONS_PER_LEVEL) {
-                    console.log(`[Survival] Not enough unseen questions (${available.length}), using all available`);
                     available = data;
                 }
 

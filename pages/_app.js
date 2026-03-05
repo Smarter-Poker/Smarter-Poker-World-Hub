@@ -23,6 +23,25 @@ import '../src/styles/worlds/bankroll.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
+import { Orbitron, Inter } from 'next/font/google';
+
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-orbitron',
+  display: 'swap',
+  preload: true,
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+  preload: true,
+});
+
+
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -351,6 +370,12 @@ function PhoneVerifyGate() {
 }
 
 export default function App({ Component, pageProps }) {
+  // Inject next/font CSS variables onto <body> for global font access
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add(orbitron.variable, inter.variable);
+    }
+  }, []);
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
   const isCommander = router.asPath.startsWith('/commander');

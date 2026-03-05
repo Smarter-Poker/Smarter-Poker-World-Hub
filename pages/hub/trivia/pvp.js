@@ -24,7 +24,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Swords, Trophy, Gem, Users, Clock, CheckCircle, XCircle, Zap, Loader } from 'lucide-react';
+import { Trophy, Gem, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 
 const STAKE_OPTIONS = [10, 25, 50, 100];
@@ -254,7 +254,6 @@ export default function PvPPage() {
                 }
             }
         } catch (err) {
-            console.warn('[PvP] Queue join failed, horse fallback will handle it:', err);
         }
     }
 

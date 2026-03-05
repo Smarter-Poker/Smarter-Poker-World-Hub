@@ -15,7 +15,6 @@ export default async function handler(req, res) {
     const results = [];
 
     for (const video of WOLFGANG_VIDEOS) {
-        console.log(`Analyzing: ${video.title}`);
 
         try {
             const response = await fetch(

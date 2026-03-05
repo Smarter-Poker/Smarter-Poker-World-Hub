@@ -19,7 +19,6 @@ async function sendTwilioSMS(to, message) {
   const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
   if (!accountSid || !authToken || !fromNumber) {
-    console.log('Twilio not configured - skipping SMS');
     return { success: false, error: 'Twilio not configured' };
   }
 
@@ -59,7 +58,6 @@ async function sendOneSignalPush(userId, title, message, data = {}) {
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
 
   if (!appId || !apiKey) {
-    console.log('OneSignal not configured - skipping push');
     return { success: false, error: 'OneSignal not configured' };
   }
 

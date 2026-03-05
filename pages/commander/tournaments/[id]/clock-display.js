@@ -21,7 +21,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { calculateICM, calculateChipChop, formatPrize } from '../../../../src/lib/commander/icm-utils';
+import { calculateICM, calculateChipChop } from '../../../../src/lib/commander/icm-utils';
 import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 function formatClock(seconds) {
@@ -138,7 +138,6 @@ export default function ClockDisplay() {
         // NotAllowedError is expected when page is not visible or permissions denied
         // Don't let it propagate to Sentry
         if (e?.name !== 'NotAllowedError') {
-          console.warn('[ClockDisplay] Wake lock request failed:', e?.message);
         }
       }
     };

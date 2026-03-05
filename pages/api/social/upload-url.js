@@ -91,7 +91,6 @@ export default async function handler(req, res) {
         const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
         const publicUrl = urlData?.publicUrl;
 
-        console.log(`[Upload-URL API] ✅ Signed URL created for: ${storagePath} (${(fileSize / 1024 / 1024).toFixed(1)}MB, ${mimeType})`);
 
         return res.status(200).json({
             success: true,

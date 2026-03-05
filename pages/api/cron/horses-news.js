@@ -145,7 +145,6 @@ async function fetchLatestNews() {
 
     for (const source of NEWS_SOURCES) {
         try {
-            console.log(`📰 Fetching from ${source.name}...`);
             const feed = await rssParser.parseURL(source.rss);
 
             const articles = (feed.items || []).slice(0, 10).map(item => ({
@@ -160,7 +159,6 @@ async function fetchLatestNews() {
             }));
 
             allArticles.push(...articles);
-            console.log(`   Found ${articles.length} articles`);
         } catch (error) {
             console.error(`   Error fetching ${source.name}: ${error.message}`);
         }
@@ -374,7 +372,6 @@ async function generateCommentary(horse, article, timeEnergy = null) {
 
     // Get this horse's unique voice (100 unique combinations)
     const voice = getVoiceForHorse(horse.profile_id);
-    console.log(`   🎭 ${horse.name} voice: ${voice.type}`);
 
     try {
         // Use GPT to generate meaningful, personality-driven commentary
@@ -431,7 +428,6 @@ Fallback template if needed: "${template}"`
         const lowerCommentary = commentary.toLowerCase();
         for (const banned of BANNED_PHRASES) {
             if (lowerCommentary.includes(banned)) {
-                console.log(`   ⚠️ Banned phrase detected: "${banned}" - using template fallback`);
                 commentary = template.replace('{source}', article.source);
                 break;
             }
@@ -458,7 +454,6 @@ Fallback template if needed: "${template}"`
 // POST NEWS ARTICLE
 // ═══════════════════════════════════════════════════════════════════════════
 async function postNewsArticle(horse, article, timeEnergy = null) {
-    console.log(`\n📰 ${horse.alias} sharing: ${article.title}`);
     if (timeEnergy) console.log(`   🌙 Posting in ${timeEnergy.mode} mode`);
 
     // Generate commentary (will use time energy for typo injection)
@@ -490,7 +485,6 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
         return null;
     }
 
-    console.log(`✅ Posted: ${post.id}`);
     return {
         post_id: post.id,
         article: article.title,
@@ -506,8 +500,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🐴 HORSES NEWS CRON - Reposting Real Poker News');
-    console.log('═'.repeat(60));
 
     if (!SUPABASE_URL || !process.env.XAI_API_KEY) {
         return res.status(500).json({ error: 'Missing env vars' });
@@ -516,7 +508,6 @@ export default async function handler(req, res) {
     try {
         // Fetch latest news from all sources
         const articles = await fetchLatestNews();
-        console.log(`\n📚 Total articles found: ${articles.length}`);
 
         if (articles.length === 0) {
             return res.status(200).json({ success: true, message: 'No news available', posted: 0 });
@@ -539,12 +530,10 @@ export default async function handler(req, res) {
 
         // Get current time-of-day energy
         const timeEnergy = getTimeOfDayEnergy();
-        console.log(`   ⏰ Time-of-day mode: ${timeEnergy.mode}`);
 
         for (const horse of shuffledHorses) {
             // Check if this horse should post today (activity variance)
             if (!shouldHorsePostToday(horse.profile_id)) {
-                console.log(`   💤 ${horse.alias} is having a quiet day`);
                 continue;
             }
 
@@ -561,7 +550,6 @@ export default async function handler(req, res) {
             }
 
             if (!article) {
-                console.log(`   No fresh articles for ${horse.alias}`);
                 continue;
             }
 
@@ -575,8 +563,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log('\n' + '═'.repeat(60));
-        console.log(`📊 Posted ${results.length} news articles`);
 
         return res.status(200).json({
             success: true,

@@ -20,11 +20,9 @@ export default function ScenarioDemoPage() {
     const scenario = validation.valid ? validation.sanitized : null;
 
     const handleAnswer = (value, isCorrect) => {
-        console.log('[Demo] Answer submitted:', value, 'Correct:', isCorrect);
     };
 
     const handleComplete = () => {
-        console.log('[Demo] Scenario complete, restarting...');
         setKey(k => k + 1);
     };
 

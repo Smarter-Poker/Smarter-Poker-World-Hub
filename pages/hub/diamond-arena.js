@@ -10,11 +10,9 @@ import Link from 'next/link';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import confetti from 'canvas-confetti';
-import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 
 // God-Mode Stack
-import { useDiamondArenaStore } from '../../src/stores/diamondArenaStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';

@@ -11,6 +11,11 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  // CDN cache: fresh for 30s, serve stale up to 120s
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+  }
+
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
         const _token = req.headers.authorization?.replace('Bearer ', '');

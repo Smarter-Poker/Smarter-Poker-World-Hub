@@ -31,9 +31,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log('\n' + '═'.repeat(60));
-        console.log('🎯 INITIALIZING HORSE SOURCE ASSIGNMENTS');
-        console.log('═'.repeat(60));
 
         // Get all active horses
         const { data: horses, error: horsesError } = await supabase
@@ -48,15 +45,12 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'Failed to fetch horses' });
         }
 
-        console.log(`\n📊 Found ${horses.length} active horses`);
 
         // Poker sources
         const pokerSourceKeys = Object.keys(CLIP_SOURCES);
-        console.log(`\n🎬 ${pokerSourceKeys.length} poker sources available`);
 
         // Sports sources
         const sportsSourceKeys = Object.keys(SPORTS_CLIP_SOURCES);
-        console.log(`🏈 ${sportsSourceKeys.length} sports sources available`);
 
         const SOURCES_PER_HORSE = 3; // Each horse gets 3 sources
         const assignments = [];
@@ -95,10 +89,8 @@ export default async function handler(req, res) {
                 });
             });
 
-            console.log(`   ✅ ${horse.alias}: ${pokerSources.join(', ')} + ${sportsSources.join(', ')}`);
         }
 
-        console.log(`\n💾 Inserting ${assignments.length} source assignments...`);
 
         // Batch insert all assignments
         const { data, error } = await supabase
@@ -111,8 +103,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: error.message });
         }
 
-        console.log(`\n✅ Successfully assigned sources to ${horses.length} horses!`);
-        console.log('═'.repeat(60));
 
         // Verify assignments
         const { data: verification, error: verifyError } = await supabase
@@ -121,9 +111,7 @@ export default async function handler(req, res) {
             .limit(10);
 
         if (!verifyError && verification) {
-            console.log('\n📋 Sample assignments:');
             verification.forEach(v => {
-                console.log(`   ${v.horse_profile_id.substring(0, 8)}... → ${v.source_key} (${v.source_type})`);
             });
         }
 

@@ -10,12 +10,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Power, PowerOff, Users, DollarSign,
-  Settings, ChevronRight, Loader2, RefreshCw,
-  LayoutGrid, Wifi, WifiOff, Clock,
-  ArrowRightLeft, AlertTriangle, Zap, Trophy
-} from 'lucide-react';
+import { Power, PowerOff, Users, Settings, Loader2, RefreshCw, LayoutGrid, Wifi, WifiOff, ArrowRightLeft, AlertTriangle, Zap, Trophy } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

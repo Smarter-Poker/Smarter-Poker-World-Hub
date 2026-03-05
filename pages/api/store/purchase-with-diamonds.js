@@ -121,10 +121,9 @@ export default async function handler(req, res) {
             status: 'completed'
         }).catch(() => {
             // Non-critical — table may not have these columns yet
-            console.warn('[DiamondPurchase] merchandise_orders insert skipped');
+            console.error('[DiamondPurchase] merchandise_orders insert skipped');
         });
 
-        console.log(`[DiamondPurchase] User ${profile.username} spent ${diamondCost}💎 on ${itemNames}`);
 
         return res.status(200).json({
             success: true,

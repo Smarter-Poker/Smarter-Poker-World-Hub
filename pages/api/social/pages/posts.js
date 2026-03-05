@@ -173,7 +173,6 @@ export default async function handler(req, res) {
                             page_type: page.page_type
                         }
                     });
-                console.log(`[PagePosts] Mirrored post ${data.id} to global feed for page "${page.name}"`);
             } catch (mirrorErr) {
                 console.error('[PagePosts] Failed to mirror post to global feed:', mirrorErr.message);
                 // Non-fatal — page post was still created successfully

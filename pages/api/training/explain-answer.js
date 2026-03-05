@@ -70,7 +70,6 @@ export default async function handler(req, res) {
             .single();
 
         if (cached?.explanation) {
-            console.log(`[GrokExplain] ⚡ Cache HIT for ${cacheKey.slice(0, 8)}...`);
             return res.status(200).json({
                 success: true,
                 explanation: cached.explanation,
@@ -80,7 +79,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`[GrokExplain] 🔄 Cache MISS - querying Grok for ${cacheKey.slice(0, 8)}...`);
 
         // 🧠 QUERY GROK
         const grok = getGrokClient();

@@ -5,16 +5,12 @@
  * but fully read-only — no action buttons, no modals, no editing.
  * Auto-refreshes every 5 seconds. Designed for TV / player-facing display.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
 import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
-import {
-  Loader2, Users, ArrowLeft,
-  MessageSquare, Phone,
-  CheckCircle
-} from 'lucide-react';
+import { Loader2, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 // Capitalize first letter of every word

@@ -6,13 +6,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { ArrowLeft, Clock, Eye, Calendar, Share2, Bookmark, User } from 'lucide-react';
+import { Clock, Eye, Calendar, Share2, Bookmark, User } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 import toast from '../../src/stores/toastStore';
 
 // God-Mode Stack
-import { useArticleStore } from '../../src/stores/articleStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';

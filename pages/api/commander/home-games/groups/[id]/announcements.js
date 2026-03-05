@@ -263,12 +263,10 @@ async function sendPushNotifications(groupId, announcement, targetAll, targetMem
           })
         });
 
-        console.log(`Sent push to ${userIds.length} users via OneSignal`);
       } catch (pushError) {
         console.error('OneSignal push failed:', pushError);
       }
     } else {
-      console.log(`Push notifications not configured. Would send to ${subscriptions.length} devices`);
     }
   } catch (error) {
     console.error('Send push notifications error:', error);

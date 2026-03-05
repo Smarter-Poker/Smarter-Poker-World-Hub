@@ -7,13 +7,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  History,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  Loader2
-} from 'lucide-react';
+import { History, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 function SessionCard({ session }) {

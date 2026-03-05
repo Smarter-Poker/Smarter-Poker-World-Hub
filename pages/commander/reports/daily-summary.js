@@ -6,11 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  BarChart3, Users, DollarSign, Clock, TrendingUp,
-  Calendar, Loader2, Printer, CreditCard, Banknote,
-  ArrowDown, ArrowUp, AlertTriangle, ChevronDown
-} from 'lucide-react';
+import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, Printer, CreditCard, Banknote, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function DailySummaryReport() {

@@ -325,7 +325,6 @@ export default function ClubArenaPage() {
                         }
                     }
                 } catch (e) {
-                    console.warn('[ClubArena] Error reading localStorage:', e);
                 }
             }
 

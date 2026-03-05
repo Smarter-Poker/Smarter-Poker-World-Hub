@@ -11,13 +11,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-    Monitor, Users, Loader2, ChevronRight, Power, DollarSign, Trophy,
-    Clock, Timer, UserPlus, Armchair, ScanLine, Camera, X, CheckCircle,
-    Maximize2, Minimize2, Copy, ExternalLink, Wifi, WifiOff, ChevronDown, ChevronUp, Link2,
-    Lock, Unlock, ShieldCheck, Phone, AlertTriangle, Bell,
-    UserMinus, ArrowRightLeft, Coins, Skull, XCircle
-} from 'lucide-react';
+import { Monitor, Users, Loader2, Trophy, Clock, Timer, Armchair, ScanLine, Camera, X, CheckCircle, Maximize2, Copy, ExternalLink, ChevronDown, ChevronUp, Link2, Lock, Unlock, ShieldCheck, AlertTriangle, ArrowRightLeft, Coins, Skull, XCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
@@ -247,7 +241,6 @@ export default function TableTabletsPage() {
             setChipCountInput(null);
         } else {
             if (lockedTournamentId && fullscreenTable.tournament_id !== lockedTournamentId) {
-                console.warn('[SAFEGUARD] Tournament mismatch detected — closing clock overlay.',
                     'Locked:', lockedTournamentId, 'Table:', fullscreenTable.tournament_id);
                 setShowTournamentClock(false);
                 setLockedTournamentId(null);

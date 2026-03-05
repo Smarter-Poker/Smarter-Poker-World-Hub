@@ -123,7 +123,6 @@ export default async function handler(req, res) {
     if (timings && timings.length > 0 && timings.length % 20 === 0) {
       const botCheck = antiCheat.analyzeBotPattern(playerId);
       if (botCheck.suspicious) {
-        console.warn(`[AntiCheat] Bot suspect: ${playerId} score=${botCheck.score} reason=${botCheck.reason}`);
         // Persist bot flags
         const entry = controller.lobby?.tables?.get(tableId);
         const clubId = entry?.config?.clubId;

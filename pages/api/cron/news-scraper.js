@@ -262,12 +262,11 @@ async function fetchOgImageViaProxy(url) {
         const data = await response.json();
         const imageUrl = data?.data?.image?.url;
         if (imageUrl) {
-            console.log(`   ✓ Got og:image via proxy: ${imageUrl.substring(0, 60)}...`);
             return imageUrl;
         }
         return null;
     } catch (error) {
-        console.log(`   Proxy image fetch failed: ${error.message}`);
+        console.error(`   Proxy image fetch failed: ${error.message}`);
         return null;
     }
 }
@@ -290,12 +289,11 @@ async function fetchOgImageViaNoEmbed(url) {
         const data = await response.json();
         const imageUrl = data?.thumbnail_url;
         if (imageUrl && (imageUrl.endsWith('.jpg') || imageUrl.endsWith('.jpeg') || imageUrl.endsWith('.png') || imageUrl.endsWith('.webp') || imageUrl.includes('images'))) {
-            console.log(`   ✓ Got image via noembed: ${imageUrl.substring(0, 60)}...`);
             return imageUrl;
         }
         return null;
     } catch (error) {
-        console.log(`   Noembed image fetch failed: ${error.message}`);
+        console.error(`   Noembed image fetch failed: ${error.message}`);
         return null;
     }
 }
@@ -321,7 +319,6 @@ async function fetchOgImageViaGoogleCache(url) {
         const html = await response.text();
         const image = extractArticleImage(html, url);
         if (image) {
-            console.log(`   ✓ Got image via Google cache: ${image.substring(0, 60)}...`);
         }
         return image;
     } catch (error) {
@@ -371,10 +368,8 @@ async function extractCardPlayerImage(articleUrl) {
     // CardPlayer blocks ALL direct access (403), so proxies are the primary extraction method.
     // Using Promise.any() via fastFailImageProxy for speed — avoids sequential 3×8s delays
     // that would blow past Vercel's 60s maxDuration when processing 5 articles.
-    console.log(`   Trying parallel proxy chain for CardPlayer: ${articleUrl.substring(0, 50)}...`);
     const proxyImage = await fastFailImageProxy(articleUrl);
     if (proxyImage) {
-        console.log(`   ✓ CardPlayer image via proxy: ${proxyImage.substring(0, 60)}...`);
         return proxyImage;
     }
 
@@ -403,7 +398,6 @@ async function extractCardPlayerImage(articleUrl) {
                 if (response.ok) {
                     const contentType = response.headers.get('content-type') || '';
                     if (contentType.startsWith('image/')) {
-                        console.log(`   ✓ CardPlayer CDN image found: ${candidateUrl.substring(0, 60)}...`);
                         return candidateUrl;
                     }
                 }
@@ -411,7 +405,6 @@ async function extractCardPlayerImage(articleUrl) {
         }
     }
 
-    console.log(`   ✗ All CardPlayer image methods failed for: ${articleUrl.substring(0, 50)}...`);
     return null;
 }
 
@@ -675,7 +668,6 @@ async function scrapeRSS(source) {
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for: ${title.substring(0, 30)}...`);
             }
 
             // Save articles with images (including fallbacks)
@@ -689,7 +681,7 @@ async function scrapeRSS(source) {
             }
         }
     } catch (error) {
-        console.log(`   RSS Error: ${error.message}`);
+        console.error(`   RSS Error: ${error.message}`);
     }
 
     return articles;
@@ -747,12 +739,10 @@ async function scrapeMSPT(html, source) {
 
         if (seen.has(url)) continue;
         seen.add(url);
-        console.log(`   ✓ MSPT card: ${title.substring(0, 40)}... [img: ${image ? 'YES' : 'NO'}]`);
 
         // Use contextual fallback only if no thumbnail found in listing
         if (!image) {
             image = getContextualFallbackImage(title);
-            console.log(`   Using fallback image for MSPT: ${title.substring(0, 30)}...`);
         }
 
         if (image) {
@@ -762,7 +752,6 @@ async function scrapeMSPT(html, source) {
 
     // Fallback: If card pattern didn't match (page structure changed), try the old link-based approach
     if (articles.length === 0) {
-        console.log('   ⚠ MSPT card pattern failed, falling back to link-based extraction...');
         const linkPatterns = [
             /href=["']((?:\.\.\/)?Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi,
             /href=["'](https?:\/\/(?:www\.)?msptpoker\.com\/Magazine\/[^"']+\.aspx)["'][^>]*>([^<]+)/gi
@@ -840,7 +829,6 @@ async function scrapeWSOP(html, source) {
             }
 
             seen.add(url);
-            console.log(`   Checking WSOP: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
             let image = extractArticleImage(articleHtml, url);
@@ -848,7 +836,6 @@ async function scrapeWSOP(html, source) {
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for WSOP: ${title.substring(0, 30)}...`);
             }
 
             // Save articles with images (including fallbacks)
@@ -896,7 +883,6 @@ async function scrapePokerfuse(html, source) {
             }
 
             seen.add(url);
-            console.log(`   Checking Pokerfuse: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
             let image = extractArticleImage(articleHtml, url);
@@ -904,7 +890,6 @@ async function scrapePokerfuse(html, source) {
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for Pokerfuse: ${title.substring(0, 30)}...`);
             }
 
             // Save articles with images (including fallbacks)
@@ -953,7 +938,6 @@ async function scrapeCardPlayer(html, source) {
             }
 
             seen.add(url);
-            console.log(`   Checking CardPlayer: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
             let image = extractArticleImage(articleHtml, url);
@@ -961,7 +945,6 @@ async function scrapeCardPlayer(html, source) {
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for CardPlayer: ${title.substring(0, 30)}...`);
             }
 
             // Save articles with images (including fallbacks)
@@ -993,7 +976,6 @@ async function scrapePokerOrg(html, source) {
     for (const sitemapUrl of sitemapUrls) {
         if (articles.length >= CONFIG.MAX_ARTICLES_PER_SOURCE) break;
 
-        console.log(`   Fetching Poker.org sitemap: ${sitemapUrl}`);
         const sitemapXml = await fetchPage(sitemapUrl);
         if (!sitemapXml) continue;
 
@@ -1024,7 +1006,6 @@ async function scrapePokerOrg(html, source) {
 
             if (!title || title.length < 15) continue;
 
-            console.log(`   Checking Poker.org: ${title.substring(0, 40)}...`);
 
             // Fetch article page for image
             const articleHtml = await fetchPage(url);
@@ -1033,7 +1014,6 @@ async function scrapePokerOrg(html, source) {
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for Poker.org: ${title.substring(0, 30)}...`);
             }
 
             if (image) {
@@ -1068,7 +1048,6 @@ async function scrapePokerNewsVideos(html, source) {
         url = source.baseUrl + url;
         seen.add(url);
 
-        console.log(`   Checking PokerNews Video: ${title.substring(0, 40)}...`);
 
         const videoHtml = await fetchPage(url);
         let image = extractArticleImage(videoHtml, url);
@@ -1128,7 +1107,6 @@ async function scrapePokerNews(html, source) {
             }
 
             seen.add(url);
-            console.log(`   Checking PokerNews: ${title.substring(0, 40)}...`);
 
             const articleHtml = await fetchPage(url);
             let image = extractArticleImage(articleHtml, url);
@@ -1136,7 +1114,6 @@ async function scrapePokerNews(html, source) {
             // Use source fallback if no image found
             if (!image) {
                 image = getContextualFallbackImage(title);
-                console.log(`   Using fallback image for PokerNews: ${title.substring(0, 30)}...`);
             }
 
             // Save articles with images (including fallbacks)
@@ -1150,7 +1127,6 @@ async function scrapePokerNews(html, source) {
 }
 
 async function scrapeSource(source) {
-    console.log(`📰 Scraping: ${source.name} (${source.type})...`);
 
     let articles = [];
 
@@ -1161,7 +1137,6 @@ async function scrapeSource(source) {
         articles = await scrapeRSS(source);
         // If RSS fails or returns no articles, try scraping
         if (articles.length === 0 && source.scrapeUrl) {
-            console.log(`   RSS returned 0, trying scrape fallback...`);
             const html = await fetchPage(source.scrapeUrl);
             if (html) {
                 switch (source.name) {
@@ -1174,16 +1149,13 @@ async function scrapeSource(source) {
         // MSPT (ASP.NET) responds better to mobile Safari UA — try it first
         let html;
         if (source.name === 'MSPT') {
-            console.log(`   Trying mobile Safari UA first for MSPT (ASP.NET)...`);
             html = await fetchWithMobileUA(source.url);
             if (!html) {
-                console.log(`   ⚠ Mobile UA failed for MSPT, trying standard UA...`);
                 html = await fetchPage(source.url);
             }
         } else {
             html = await fetchPage(source.url);
             if (!html) {
-                console.log(`   ⚠ Initial fetch failed for ${source.name}, trying Googlebot UA...`);
                 html = await fetchArticlePage(source.url);
             }
         }
@@ -1191,15 +1163,12 @@ async function scrapeSource(source) {
             // For MSPT, mobile UA was already tried first — use Googlebot as final fallback
             // For other sources, mobile Safari is the final fallback
             if (source.name === 'MSPT') {
-                console.log(`   ⚠ All UAs failed for MSPT, trying Googlebot as last resort...`);
                 html = await fetchArticlePage(source.url);
             } else {
-                console.log(`   ⚠ Previous methods failed for ${source.name}, trying mobile Safari UA...`);
                 html = await fetchWithMobileUA(source.url);
             }
         }
         if (!html) {
-            console.log(`   ✗ All fetch methods failed for ${source.name}`);
             return [];
         }
 
@@ -1212,7 +1181,6 @@ async function scrapeSource(source) {
         }
     }
 
-    console.log(`   ✓ Found ${articles.length} articles with images`);
     return articles;
 }
 
@@ -1233,13 +1201,10 @@ async function getNewsPosterId() {
         .single();
 
     if (account) {
-        console.log(`   📢 Using news poster: ${account.username}`);
         return account.id;
     }
 
     // Account doesn't exist - log warning but continue scraping
-    console.warn('⚠️ News poster account not found!');
-    console.warn('   Social feed posts will be skipped.');
     return null;
 }
 
@@ -1278,7 +1243,6 @@ async function postToSocialFeed(article, newsPosterId) {
     if (error) {
         console.error(`   ✗ Social post error: ${error.message}`);
     } else {
-        console.log(`   📢 Posted to social feed`);
     }
 }
 
@@ -1361,11 +1325,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('\n');
-    console.log('═'.repeat(70));
-    console.log('📰 SMARTER.POKER NEWS SCRAPER - 6 Box System');
-    console.log('═'.repeat(70));
-    console.log(`⏰ Started at: ${new Date().toISOString()}`);
 
     const results = {
         sources: {},
@@ -1377,7 +1336,6 @@ export default async function handler(req, res) {
     try {
         // Get news poster account for social feed
         const newsPosterId = await getNewsPosterId();
-        console.log(`📢 News poster ID: ${newsPosterId || 'NOT FOUND'}`);
 
         // ═══════════════════════════════════════════════════════════════
         // PARALLEL EXECUTION: All 6 sources scraped concurrently
@@ -1393,13 +1351,11 @@ export default async function handler(req, res) {
                         const saved = await saveArticle(article, newsPosterId);
                         if (saved) {
                             sourceStats.saved++;
-                            console.log(`   ✓ Saved: ${article.title.substring(0, 50)}...`);
                         }
                     }
 
                     // PokerNews fallback: try videos if all articles were duplicates
                     if (source.name === 'PokerNews' && source.videoUrl && sourceStats.saved === 0) {
-                        console.log(`   📹 No new articles, trying PokerNews videos...`);
                         const videoHtml = await fetchPage(source.videoUrl);
                         if (videoHtml) {
                             const videoArticles = await scrapePokerNewsVideos(videoHtml, source);
@@ -1409,7 +1365,6 @@ export default async function handler(req, res) {
                                 const saved = await saveArticle(video, newsPosterId);
                                 if (saved) {
                                     sourceStats.saved++;
-                                    console.log(`   ✓ Saved video: ${video.title.substring(0, 50)}...`);
                                 }
                             }
                         }
@@ -1437,15 +1392,9 @@ export default async function handler(req, res) {
         }
 
         results.archived = await archiveOldArticles();
-        console.log(`\n📦 Archived ${results.archived} old articles`);
 
-        console.log('\n═'.repeat(70));
-        console.log('📊 SUMMARY');
         for (const [name, stats] of Object.entries(results.sources)) {
-            console.log(`   ${name}: ${stats.saved}/${stats.found}`);
         }
-        console.log(`   Total: ${results.totalSaved} new articles`);
-        console.log('═'.repeat(70));
 
         return res.status(200).json({
             success: true,

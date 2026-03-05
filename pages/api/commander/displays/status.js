@@ -32,7 +32,6 @@ export default async function handler(req, res) {
 
         if (error) {
             // Table might not exist yet — return empty
-            console.warn('Display status query warning:', error.message);
             return res.status(200).json({ success: true, data: [] });
         }
 

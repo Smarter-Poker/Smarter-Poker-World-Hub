@@ -71,7 +71,6 @@ export default async function handler(req, res) {
 
     // Validate key format
     const keyPrefix = stripeSecretKey.substring(0, 7);
-    console.log('[Checkout] Stripe key prefix:', keyPrefix, 'length:', stripeSecretKey.length);
 
     try {
         const authHeader = req.headers.authorization;
@@ -113,9 +112,7 @@ export default async function handler(req, res) {
 
         if (profile?.stripe_customer_id) {
             customerId = profile.stripe_customer_id;
-            console.log('[Checkout] Using existing Stripe customer:', customerId);
         } else {
-            console.log('[Checkout] Creating new Stripe customer for:', user.email);
             try {
                 const customer = await stripe.customers.create({
                     email: profile?.email || user.email,
@@ -125,7 +122,6 @@ export default async function handler(req, res) {
                     }
                 });
                 customerId = customer.id;
-                console.log('[Checkout] Created Stripe customer:', customerId);
 
                 // Save customer ID to profile
                 await supabase
@@ -144,7 +140,6 @@ export default async function handler(req, res) {
         }
 
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://smarter.poker';
-        console.log('[Checkout] Using base URL:', baseUrl);
 
         let sessionConfig = {
             customer: customerId,
@@ -298,9 +293,7 @@ export default async function handler(req, res) {
         }
 
         // Create checkout session
-        console.log('[Checkout] Creating Stripe session for type:', type);
         const session = await stripe.checkout.sessions.create(sessionConfig);
-        console.log('[Checkout] Session created:', session.id);
 
         return res.status(200).json({
             success: true,

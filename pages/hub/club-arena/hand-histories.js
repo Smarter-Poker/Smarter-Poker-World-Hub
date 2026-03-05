@@ -131,7 +131,6 @@ export default function HandHistories() {
                     const { data: handData, error } = await query;
 
                     if (error) {
-                        console.warn('[HandHistories] Query error:', error);
                         setHands([]);
                         setHasMore(false);
                     } else {
@@ -187,7 +186,6 @@ export default function HandHistories() {
                         setHasMore((handData || []).length === PAGE_SIZE);
                     }
                 } catch (queryErr) {
-                    console.warn('[HandHistories] hand_history query failed:', queryErr);
                     setHands([]);
                     setHasMore(false);
                 }

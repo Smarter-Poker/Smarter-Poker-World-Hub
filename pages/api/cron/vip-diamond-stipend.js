@@ -94,7 +94,6 @@ export default async function handler(req, res) {
                 }
 
                 credited++;
-                console.log(`[VIP Stipend] ✅ Credited ${VIP_MONTHLY_STIPEND} 💎 to ${user.username || user.id}`);
 
             } catch (userErr) {
                 console.error(`[VIP Stipend] Error for user ${user.id}:`, userErr);
@@ -102,7 +101,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log(`[VIP Stipend] Complete: ${credited} credited, ${skipped} skipped, ${errors.length} errors`);
 
         return res.status(200).json({
             success: true,

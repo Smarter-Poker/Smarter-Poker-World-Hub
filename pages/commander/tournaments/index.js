@@ -6,11 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  Plus, Trophy, Clock, Users, DollarSign,
-  Calendar, Play, ChevronRight, Filter, Loader2, RefreshCw,
-  Sliders, CheckCircle2
-} from 'lucide-react';
+import { Plus, Trophy, Clock, Users, DollarSign, Calendar, Play, ChevronRight, Filter, Loader2, RefreshCw, Sliders } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';

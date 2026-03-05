@@ -93,7 +93,6 @@ async function fetchOgImage(url) {
             const realUrl = await extractRealUrlFromGoogleNews(url);
             if (realUrl) {
                 actualUrl = realUrl;
-                console.log(`   → Resolved to: ${actualUrl.substring(0, 50)}...`);
             } else {
                 return null;
             }
@@ -181,14 +180,12 @@ export default async function handler(req, res) {
             return DEFAULT_IMAGE_PATTERNS.some(pattern => a.image_url.includes(pattern));
         });
 
-        console.log(`Found ${articlesToUpdate.length} articles with default images`);
 
         let updated = 0;
         let failed = 0;
         const results = [];
 
         for (const article of articlesToUpdate) {
-            console.log(`📷 Fetching image for: ${article.title.substring(0, 40)}...`);
 
             const newImageUrl = await fetchOgImage(article.source_url);
 
@@ -201,13 +198,11 @@ export default async function handler(req, res) {
                 if (!updateError) {
                     updated++;
                     results.push({ id: article.id, title: article.title.substring(0, 40), newImage: newImageUrl.substring(0, 60) });
-                    console.log(`   ✓ Updated with: ${newImageUrl.substring(0, 60)}...`);
                 } else {
                     failed++;
                 }
             } else {
                 failed++;
-                console.log(`   ✗ No image found`);
             }
 
             // Small delay to be nice to servers

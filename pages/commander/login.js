@@ -65,7 +65,6 @@ export default function CommanderLogin() {
         localStorage.removeItem('commander_venue');
         localStorage.removeItem('commander_subscription');
       } catch (err) {
-        console.warn('Session restore failed:', err);
       }
       setCheckingSession(false);
     }

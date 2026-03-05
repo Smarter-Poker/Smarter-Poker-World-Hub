@@ -3,19 +3,11 @@
  * Create and manage group waitlist entries
  * Dark industrial sci-fi gaming theme
  */
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  Users,
-  Plus,
-  Clock,
-  Loader2,
-  UserPlus,
-  Check,
-  X
-} from 'lucide-react';
+import { Users, Plus, Clock, UserPlus, Check, X } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 function SquadCard({ squad, onView }) {

@@ -30,7 +30,6 @@ export default async function handler(req, res) {
 
     const userId = user.id; // From JWT, NOT body
 
-    console.log('[GET-CONVERSATIONS] Fetching for userId:', userId);
 
     try {
         // Step 1: Get all conversation IDs where user is a participant
@@ -44,7 +43,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: partError.message });
         }
 
-        console.log('[GET-CONVERSATIONS] Found participations:', participations?.length || 0);
 
         if (!participations || participations.length === 0) {
             return res.json({ success: true, conversations: [] });
@@ -114,7 +112,6 @@ export default async function handler(req, res) {
                 return timeB - timeA;
             });
 
-        console.log('[GET-CONVERSATIONS] Returning conversations:', validConversations.length);
 
         return res.json({ success: true, conversations: validConversations });
 

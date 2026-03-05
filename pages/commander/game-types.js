@@ -6,10 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Plus, Edit2, Trash2, Check, X, Loader2, Save,
-  DollarSign, Users, Percent, Clock, GripVertical, ToggleLeft, ToggleRight
-} from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Loader2, Save, DollarSign, Users, Percent, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

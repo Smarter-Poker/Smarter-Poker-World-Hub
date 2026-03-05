@@ -26,7 +26,6 @@ export default async function handler(req, res) {
 
     const { level = 3, position = 'BTN', stackDepth = 100 } = req.body;
 
-    console.log(`[TestGrok] Testing scenario generation: Level ${level}, ${position}, ${stackDepth}bb`);
 
     try {
         const grok = getGrokClient();
@@ -96,7 +95,6 @@ Return ONLY valid JSON.`;
         // Validate it has required fields
         const hasRequiredFields = scenario.title && scenario.solution && Object.keys(scenario.solution).length > 0;
 
-        console.log(`[TestGrok] ✅ Grok generated: "${scenario.title}" (${Object.keys(scenario.solution).length} hands) in ${responseTime}ms`);
 
         return res.status(200).json({
             success: true,

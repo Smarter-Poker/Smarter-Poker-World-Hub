@@ -8,7 +8,6 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { useTheme } from '../../src/providers/ThemeProvider';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
@@ -16,7 +15,6 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
 // God-Mode Stack
-import { useSettingsStore } from '../../src/stores/settingsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -136,7 +134,6 @@ export default function SettingsPage() {
                     const tokenData = JSON.parse(explicitAuth);
                     if (tokenData?.user) {
                         setLocalUser(tokenData.user);
-                        console.log('[Settings] User loaded from localStorage:', tokenData.user.email);
                     }
                 }
                 // Fallback to legacy sb-* keys
@@ -148,12 +145,10 @@ export default function SettingsPage() {
                         const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
                         if (tokenData?.user) {
                             setLocalUser(tokenData.user);
-                            console.log('[Settings] User loaded from legacy auth key:', tokenData.user.email);
                         }
                     }
                 }
             } catch (e) {
-                console.warn('[Settings] Error reading localStorage:', e);
             }
         }
     }, [contextUser]);

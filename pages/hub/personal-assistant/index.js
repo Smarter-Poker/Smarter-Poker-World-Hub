@@ -11,7 +11,6 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { supabase } from '../../../src/lib/supabase';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';

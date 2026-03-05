@@ -85,7 +85,6 @@ export default async function handler(req, res) {
                 continue;
             }
 
-            console.log(`[HARD STOP] Triggering for venue ${venue.venue_id} at ${stopTime} CST`);
 
             // 1. Close all open CASH tables for this venue (NEVER close tournament tables)
             const { data: openTables } = await supabase
@@ -103,7 +102,6 @@ export default async function handler(req, res) {
                     .in('status', ['active', 'open'])
                     .neq('mode', 'tournament');
 
-                console.log(`[HARD STOP] Closed ${openTables.length} cash tables for venue ${venue.venue_id} (tournament tables untouched)`);
             }
 
             // 2. End all active CASH table sessions (dealer-scanned) + auto-comp awards
@@ -208,7 +206,6 @@ export default async function handler(req, res) {
                 }
                 await seatQuery;
 
-                console.log(`[HARD STOP] Ended ${tableSessions.length} cash table sessions, awarded $${compsAwarded.toFixed(2)} in auto-comps (tournament sessions untouched)`);
             }
 
             // 3. End all active time billing sessions for this venue
@@ -230,7 +227,6 @@ export default async function handler(req, res) {
                     .eq('venue_id', venue.venue_id)
                     .eq('status', 'active');
 
-                console.log(`[HARD STOP] Ended ${activeSessions.length} time sessions for venue ${venue.venue_id}`);
             }
 
             // 4. Set room to closed + record trigger date for double-trigger prevention

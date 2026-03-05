@@ -7,23 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Video,
-  Play,
-  Square,
-  Settings,
-  Loader2,
-  Users,
-  Clock,
-  Wifi,
-  WifiOff,
-  Youtube,
-  Twitch,
-  Facebook,
-  Eye,
-  Check,
-  X
-} from 'lucide-react';
+import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, Facebook, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const PLATFORMS = [

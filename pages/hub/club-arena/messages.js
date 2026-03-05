@@ -3,7 +3,7 @@
  * Full-featured messaging: video/voice calls, media uploads, GIFs, reactions
  * Uses Social messaging infrastructure with club member filtering
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
@@ -12,8 +12,9 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
-import { createMultiDeviceAuthListener, persistSession, getPersistedSession } from '../../../src/utils/authGuard';
+import { createMultiDeviceAuthListener, persistSession } from '../../../src/utils/authGuard';
 import { createRingTone } from '../../../src/utils/ringTone';
+import useDebounce from '../../../src/hooks/useDebounce';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -330,6 +331,7 @@ export default function ClubMessages() {
     const [isLoading, setIsLoading] = useState(true);
     const [view, setView] = useState('list');
     const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [searchResults, setSearchResults] = useState([]);
     const [toast, setToast] = useState(null);
 
@@ -366,7 +368,6 @@ export default function ClubMessages() {
                             }
                         }
                     } catch (e) {
-                        console.warn('[ClubMessages] Error reading localStorage:', e);
                     }
                 }
 
@@ -375,7 +376,6 @@ export default function ClubMessages() {
                         const { data } = await supabase.auth.getUser();
                         authUser = data?.user || null;
                     } catch (e) {
-                        console.warn('[ClubMessages] getUser failed:', e);
                     }
                 }
 
@@ -384,9 +384,7 @@ export default function ClubMessages() {
                     const fullUser = { ...authUser, ...profile };
                     setUser(fullUser);
                     persistSession(fullUser);
-                    console.log('[ClubMessages] User authenticated:', fullUser.username);
                 } else {
-                    console.log('[ClubMessages] No user found');
                 }
             } catch (e) {
                 console.error('[ClubMessages] Init error:', e);
@@ -398,7 +396,6 @@ export default function ClubMessages() {
     // Multi-device auth listener
     useEffect(() => {
         const cleanup = createMultiDeviceAuthListener(supabase, async (authUser, event) => {
-            console.log('[ClubMessages] Auth event:', event, 'User:', authUser?.id?.slice(0, 8) || 'none');
 
             if (!authUser) {
                 setUser(null);
@@ -640,7 +637,6 @@ export default function ClubMessages() {
                     }),
                 });
             } catch (pushError) {
-                console.warn('Push notification failed:', pushError);
             }
         } catch (e) {
             console.error('Failed to send call signal:', e);
@@ -677,7 +673,6 @@ export default function ClubMessages() {
                 await channel.send({ type: 'broadcast', event: 'call_ended', payload: {} });
                 setTimeout(() => supabase.removeChannel(channel), 500);
             } catch (e) {
-                console.warn('Failed to send end call signal:', e);
             }
         }
 

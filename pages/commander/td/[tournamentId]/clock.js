@@ -11,13 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
-import {
-  Trophy, LayoutGrid, Users, Monitor,
-  Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw,
-  Maximize, Minimize, Coffee, Hand, Star, Volume2,
-  Plus, Minus, Clock as ClockIcon, AlertTriangle,
-  DollarSign, FileText
-} from 'lucide-react';
+import { Trophy, LayoutGrid, Users, Monitor, Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw, Maximize, Minimize, Coffee, Hand, Star, Volume2, Plus, Minus, DollarSign, FileText } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },

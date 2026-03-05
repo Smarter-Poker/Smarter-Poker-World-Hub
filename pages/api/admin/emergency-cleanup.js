@@ -23,7 +23,6 @@ export default async function handler(req, res) {
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    console.log('🚨 EMERGENCY CLEANUP: Deleting AI image posts from horses');
 
     try {
         // Get all horse profile IDs
@@ -33,7 +32,6 @@ export default async function handler(req, res) {
             .not('profile_id', 'is', null);
 
         const horseIds = (horses || []).map(h => h.profile_id);
-        console.log(`Found ${horseIds.length} horses`);
 
         // Delete photo posts
         const { data: deletedPosts, error: postError } = await supabase
@@ -66,7 +64,6 @@ export default async function handler(req, res) {
             timestamp: new Date().toISOString()
         };
 
-        console.log('✅ Cleanup complete:', result);
         return res.status(200).json(result);
 
     } catch (error) {

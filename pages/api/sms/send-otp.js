@@ -142,7 +142,6 @@ export default async function handler(req, res) {
             to: cleanPhone
         });
 
-        console.log('[send-otp] SMS sent:', message.sid, 'to:', cleanPhone);
 
         return res.status(200).json({
             success: true,

@@ -138,7 +138,6 @@ CRITICAL: Make this a genuinely challenging and realistic scenario. Include spec
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             const question = JSON.parse(jsonMatch[0]);
-            console.log(`[InfiniteScenario] ✅ Generated unique scenario: ${question.id}`);
 
             return res.status(200).json({
                 success: true,

@@ -674,7 +674,6 @@ export default function VenueDetailPage() {
             },
             function () {
               // GPS denied — review saved, no diamonds. Silent fail.
-              console.log('[VenueReview] GPS denied — review saved, no reward diamonds');
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
           );

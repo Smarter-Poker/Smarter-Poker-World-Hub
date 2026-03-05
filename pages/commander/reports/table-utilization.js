@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, Zap, ArrowLeft } from 'lucide-react';
+import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const RANGES = [

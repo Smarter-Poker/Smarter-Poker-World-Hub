@@ -48,7 +48,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ message: 'No profiles to scrape', count: 0 });
         }
 
-        console.log(`Found ${profiles.length} profiles to scrape`);
 
         const results = [];
 

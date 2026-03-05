@@ -127,12 +127,9 @@ export default async function handler(req, res) {
         // Get the original prompt to preserve the character
         const { originalPrompt } = req.body;
 
-        console.log('✏️ Editing avatar:', { originalPrompt, editPrompt });
 
         // Download the original image and convert to base64
-        console.log('📥 Downloading original image...');
         // IMPROVED APPROACH: Combine original prompt with edit to preserve character
-        console.log('🎨 Generating edited avatar (preserving original character)...');
 
         const editedPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT.
 
@@ -160,16 +157,13 @@ STRICT RULES:
         }
 
         const newImageUrl = imageResponse.data[0].url;
-        console.log('✅ Edited image generated, downloading...');
 
         // Download the edited image
         const editedImageResponse = await fetch(newImageUrl);
         const editedBuffer = Buffer.from(await editedImageResponse.arrayBuffer());
 
-        console.log('🔧 Removing background...');
         const transparentBuffer = await removeBackgroundWithSharp(editedBuffer);
 
-        console.log('☁️ Uploading to Supabase...');
         const timestamp = Date.now();
         const safeUserId = userId || 'anonymous';
         const filename = `edited_${safeUserId}_${timestamp}.png`;
@@ -192,12 +186,10 @@ STRICT RULES:
             .from('custom-avatars')
             .getPublicUrl(storagePath);
 
-        console.log('✅ Edited avatar uploaded:', publicUrl);
 
         // Update the avatar in the database gallery
         // Find the most recent avatar for this user and update it with the edited version
         if (userId) {
-            console.log('💾 Updating avatar in database gallery...');
             const { data: existingAvatars, error: fetchError } = await supabase
                 .from('custom_avatar_gallery')
                 .select('id')
@@ -220,7 +212,6 @@ STRICT RULES:
                 if (updateError) {
                     console.error('⚠️ Failed to update gallery:', updateError);
                 } else {
-                    console.log('✅ Gallery updated with edited avatar');
                 }
             }
         }

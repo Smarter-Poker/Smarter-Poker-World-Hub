@@ -66,7 +66,6 @@ export default async function handler(req, res) {
                 }
             });
 
-            console.log(`❌ VIP subscription ${sub.stripe_subscription_id} set to cancel at period end`);
         }
 
         // 3. Update local record — core fields (always exist)
@@ -89,11 +88,10 @@ export default async function handler(req, res) {
                 .eq('stripe_subscription_id', sub.stripe_subscription_id);
         } catch (reasonErr) {
             // Non-critical — reason is also stored in Stripe metadata
-            console.warn('Could not store cancel reason locally:', reasonErr.message);
+            console.error('Could not store cancel reason locally:', reasonErr.message);
         }
 
         // 5. Log the cancellation event
-        console.log(`📊 VIP cancellation — user: ${userId}, reason: ${reason}`);
 
         return res.status(200).json({
             success: true,

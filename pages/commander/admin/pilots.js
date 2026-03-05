@@ -8,24 +8,7 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import {
-  ChevronLeft,
-  Building2,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Clock,
-  Users,
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-  Plus,
-  MapPin,
-  Calendar,
-  Target,
-  Award,
-} from 'lucide-react';
+import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, MapPin, Calendar, Target, Award } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6

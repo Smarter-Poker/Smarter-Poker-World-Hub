@@ -143,7 +143,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Prompt is required' });
         }
 
-        console.log('🎨 Generating avatar with Grok grok-2-image:', prompt);
 
         // STRICT AVATAR PROMPT - Character only, pure white background
         const strictAvatarPrompt = `Create a 3D Pixar-style CHARACTER PORTRAIT ONLY. 
@@ -161,7 +160,6 @@ STRICT RULES:
 IMPORTANT: This is for a poker player avatar - just the character portrait with a PURE WHITE background for easy removal.`;
 
         // Use Grok image generation (mapped from dall-e-3 to grok-2-image-1212)
-        console.log('📡 Calling Grok image generation API...');
         let response;
         try {
             response = await grok.images.generate({
@@ -170,7 +168,6 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
                 n: 1,
                 // Note: xAI API doesn't support size/quality params
             });
-            console.log('📡 Grok response received:', JSON.stringify(response?.data?.[0] ? 'has data' : 'no data'));
         } catch (apiError) {
             console.error('❌ Grok API call failed:', apiError.message);
             console.error('❌ Full error:', JSON.stringify(apiError, null, 2));
@@ -183,19 +180,16 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
         }
 
         const imageUrl = response.data[0].url;
-        console.log('✅ Grok generated image, now downloading...');
 
         // Download the image (server-side, no CORS issue)
         const imageResponse = await fetch(imageUrl);
         const arrayBuffer = await imageResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-        console.log('🔧 Removing background with Sharp (zero-background sticker)...');
 
         // Remove background using Sharp for serverless-compatible transparency
         const transparentBuffer = await removeBackgroundWithSharp(buffer);
 
-        console.log('✅ Background removed (100% transparency), uploading to Supabase...');
 
         // Generate unique filename
         const timestamp = Date.now();
@@ -222,7 +216,6 @@ IMPORTANT: This is for a poker player avatar - just the character portrait with 
             .from('custom-avatars')
             .getPublicUrl(storagePath);
 
-        console.log('✅ Sticker avatar uploaded to Supabase:', publicUrl);
 
         return res.status(200).json({
             success: true,

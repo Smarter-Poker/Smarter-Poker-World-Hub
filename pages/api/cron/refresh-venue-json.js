@@ -69,7 +69,6 @@ export default async function handler(req, res) {
 
     if (cacheError) {
       // If the cache table doesn't exist, just log and continue
-      console.warn('Cache table not available:', cacheError.message);
     }
 
     return res.status(200).json({

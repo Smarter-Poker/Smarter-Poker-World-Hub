@@ -7,10 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-    Users, UserPlus, ScanLine, Search, Filter,
-    ChevronDown, User, Clock, Star, Loader2, DollarSign, CreditCard
-} from 'lucide-react';
+import { Users, UserPlus, ScanLine, Search, Filter, ChevronDown, User, Clock, Loader2, DollarSign, CreditCard } from 'lucide-react';
 import AddMemberModal from '../../src/components/commander/members/AddMemberModal';
 import ScanMemberModal from '../../src/components/commander/members/ScanMemberModal';
 import MemberDetailPanel from '../../src/components/commander/members/MemberDetailPanel';

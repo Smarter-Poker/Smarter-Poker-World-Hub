@@ -11,12 +11,8 @@ import { useState, useEffect, useCallback } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import { getAuthUser } from '../../src/lib/authUtils';
 import { supabase } from '../../src/lib/supabase';
-import {
-    Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight,
-    Briefcase, Shield, Link2, Copy, CheckCircle, AlertCircle
-} from 'lucide-react';
+import { Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight, Shield, Link2, AlertCircle } from 'lucide-react';
 
 // ── Design tokens ──
 const C = {
@@ -549,7 +545,6 @@ export default function MyVenuesPage() {
                 const { type, venue_id } = event.data || {};
                 // Refresh data when staff-related changes happen
                 if (['staff_schedule_update', 'dealer_rotation', 'time_clock_update', 'staff_update'].includes(type)) {
-                    console.log('[MyVenues] Bus event received:', type);
                     reloadVenues(); // Re-fetch all data
                 }
             };

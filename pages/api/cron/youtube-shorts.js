@@ -78,17 +78,14 @@ async function fetchChannelVideos(channel) {
     const videos = [];
     const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.channelId}`;
 
-    console.log(`   📺 Fetching ${channel.name} RSS feed...`);
 
     try {
         const feed = await parser.parseURL(rssUrl);
 
         if (!feed.items || feed.items.length === 0) {
-            console.log(`   ⚠️ No items in ${channel.name} feed`);
             return videos;
         }
 
-        console.log(`   Found ${feed.items.length} videos for ${channel.name}`);
 
         // Take the most recent videos up to the per-channel limit
         for (const item of feed.items.slice(0, CONFIG.MAX_VIDEOS_PER_CHANNEL)) {
@@ -163,7 +160,6 @@ async function saveVideos(videos) {
             saved++;
             existingUrls.add(video.video_url);
             existingUrls.add(video.shorts_url);
-            console.log(`   ✅ Saved: ${video.title.substring(0, 50)}...`);
         } else if (error) {
             // Silently skip unique constraint violations
             if (!error.message.includes('duplicate') && !error.message.includes('unique')) {
@@ -187,12 +183,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log('\n');
-    console.log('═'.repeat(70));
-    console.log('🎬 YOUTUBE POKER VIDEO SCRAPER (RSS)');
-    console.log('═'.repeat(70));
-    console.log(`⏰ Started at: ${new Date().toISOString()}`);
-    console.log(`📡 Channels: ${POKER_CHANNELS.length}`);
 
     try {
         // Verify system account exists
@@ -210,14 +200,12 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log(`✅ Posting as: ${systemAccount.username}`);
 
         const allVideos = [];
         const channelResults = {};
 
         for (const channel of POKER_CHANNELS) {
             if (allVideos.length >= CONFIG.MAX_TOTAL_VIDEOS) {
-                console.log(`   Reached max videos limit (${CONFIG.MAX_TOTAL_VIDEOS})`);
                 break;
             }
 
@@ -229,20 +217,11 @@ export default async function handler(req, res) {
             await delay(CONFIG.REQUEST_DELAY);
         }
 
-        console.log(`\n📹 Total videos found: ${allVideos.length}`);
 
         const { saved, skipped } = await saveVideos(allVideos);
 
-        console.log('\n' + '═'.repeat(70));
-        console.log(`📊 SUMMARY`);
-        console.log(`   Channels scraped: ${POKER_CHANNELS.length}`);
         for (const [name, count] of Object.entries(channelResults)) {
-            console.log(`   ${name}: ${count} videos`);
         }
-        console.log(`   Total found: ${allVideos.length}`);
-        console.log(`   Saved: ${saved}`);
-        console.log(`   Skipped (duplicates): ${skipped}`);
-        console.log('═'.repeat(70));
 
         return res.status(200).json({
             success: true,

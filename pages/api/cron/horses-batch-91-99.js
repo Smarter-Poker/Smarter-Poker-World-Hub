@@ -40,7 +40,6 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-        console.log(`\n🐴 BATCH HORSE CRON: Horses 91-99`);
 
         // Get all active horses ordered by profile_id
         const { data: horses } = await supabase
@@ -59,7 +58,6 @@ export default async function handler(req, res) {
         const results = [];
 
         for (const horse of batchHorses) {
-            console.log(`   🎯 Processing: ${horse.name}`);
 
             // Get a clip
             const { data: clips } = await supabase

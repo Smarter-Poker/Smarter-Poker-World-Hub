@@ -10,8 +10,7 @@
 
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
 import confetti from 'canvas-confetti';
 import GameCard from '../../../../src/components/training/GameCard';
 import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
@@ -20,7 +19,6 @@ import { getGameImage } from '../../../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../../../src/components/training/GameIntroSplash';
 
 // God-Mode Stack
-import { useTrainingCategoryStore } from '../../../../src/stores/trainingCategoryStore';
 import PageTransition from '../../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 

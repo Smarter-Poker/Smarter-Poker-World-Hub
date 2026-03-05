@@ -6,7 +6,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
@@ -15,7 +15,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SurvivalGame from '../../../src/components/trivia/SurvivalGame';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
 import HexButton from '../../../src/components/ui/HexButton';
-import { Flame, Trophy, Gem, Target, Play } from 'lucide-react';
+import { Gem, Target, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 

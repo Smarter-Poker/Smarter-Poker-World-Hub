@@ -244,8 +244,6 @@ export default async function handler(req, res) {
         const questionHash = hashQuestion(question);
         const questionType = detectQuestionType(question);
 
-        console.log('[Geeves] Processing:', question.substring(0, 80));
-        console.log('[Geeves] Hash:', questionHash);
 
         // ═══════════════════════════════════════════════════════════════════
         // STEP 1: Check exact cache match
@@ -253,7 +251,6 @@ export default async function handler(req, res) {
         let cachedAnswer = await checkExactCache(questionHash);
 
         if (cachedAnswer) {
-            console.log('[Geeves] ✅ EXACT CACHE HIT! Times served:', cachedAnswer.times_served + 1);
 
             await incrementCacheServed(cachedAnswer.id);
 
@@ -281,7 +278,6 @@ export default async function handler(req, res) {
         const similarAnswer = await checkSimilarCache(question);
 
         if (similarAnswer) {
-            console.log('[Geeves] ✅ SIMILAR CACHE HIT! Similarity:', similarAnswer.similarity);
 
             await incrementCacheServed(similarAnswer.id);
 
@@ -305,7 +301,6 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════════════════
         // STEP 3: No cache hit — call Grok
         // ═══════════════════════════════════════════════════════════════════
-        console.log('[Geeves] ❌ Cache miss — calling Grok API...');
 
         const grok = getGrokClient();
 
@@ -337,13 +332,11 @@ export default async function handler(req, res) {
         });
 
         const answer = response.choices[0].message.content;
-        console.log('[Geeves] Grok response received:', answer.substring(0, 100));
 
         // ═══════════════════════════════════════════════════════════════════
         // STEP 4: Save to cache for future use
         // ═══════════════════════════════════════════════════════════════════
         const cacheEntry = await saveToCache(question, answer, questionType, user.id);
-        console.log('[Geeves] 💾 Saved to cache:', cacheEntry?.id);
 
         // Save to conversation
         if (conversationId) {

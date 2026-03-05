@@ -7,22 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import {
-  ArrowLeft,
-  MapPin,
-  Clock,
-  Users,
-  DollarSign,
-  Phone,
-  Globe,
-  Star,
-  ChevronRight,
-  Gift,
-  Trophy,
-  Loader2,
-  MessageSquare,
-  Zap
-} from 'lucide-react';
+import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap } from 'lucide-react';
 
 function GameRow({ game, onJoinWaitlist }) {
   const isFull = (game.player_count || 0) >= (game.max_players || 9);

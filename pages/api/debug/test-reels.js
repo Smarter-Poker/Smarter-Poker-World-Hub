@@ -7,7 +7,6 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Not found' });
     }
     try {
-        console.log('🔍 Testing Reels access...\n');
 
         // Test 1: Query social_reels
         const { data: reelsData, error: reelsError } = await supabase

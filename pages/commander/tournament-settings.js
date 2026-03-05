@@ -6,21 +6,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-    Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
-    ChevronRight, Settings, Clock, Loader2, Eye, Copy,
-    DollarSign, Layers, Users, Coffee, Timer
-} from 'lucide-react';
+import { Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair, ChevronRight, Settings, Clock, Loader2, Eye, Copy, Users, Timer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import BlindStructureEditor from '../../src/components/commander/tournaments/BlindStructureEditor';
-import {
-    TOURNAMENT_TEMPLATES,
-    TOURNAMENT_TYPES,
-    formatBuyin,
-    formatChips,
-    estimateDuration
-} from '../../src/components/commander/tournaments/tournamentTemplates';
+import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
 
 const ICON_MAP = {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
@@ -138,7 +128,6 @@ export default function TournamentSettingsPage() {
                         }),
                     });
                 } catch (syncErr) {
-                    console.warn('Club Page sync skipped:', syncErr);
                 }
 
                 setTimeout(() => setCreateSuccess(null), 4000);

@@ -12,7 +12,6 @@ import { supabase } from '../../src/lib/supabase';
 import { getAuthUser } from '../../src/lib/authUtils';
 
 // God-Mode Stack
-import { useNotificationsStore } from '../../src/stores/notificationsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -176,7 +175,6 @@ export default function NotificationsPage() {
         const requesterId = notification.data?.sender_id || notification.data?.actor_id || notification.actor_id;
         const friendshipId = notification.data?.friendship_id;
 
-        console.log('Accept clicked:', { requesterId, friendshipId, notificationData: notification.data });
 
         if (!requesterId || !user) {
             console.error('Missing requesterId or user');
@@ -222,7 +220,6 @@ export default function NotificationsPage() {
                         : n
                 ));
 
-                console.log('Friend request accepted successfully!');
             } else {
                 console.error('Could not find friendship to accept');
             }
@@ -238,7 +235,6 @@ export default function NotificationsPage() {
         const requesterId = notification.data?.sender_id || notification.data?.actor_id || notification.actor_id;
         const friendshipId = notification.data?.friendship_id;
 
-        console.log('Decline clicked:', { requesterId, friendshipId, notificationData: notification.data });
 
         if (!requesterId || !user) {
             console.error('Missing requesterId or user');
@@ -279,7 +275,6 @@ export default function NotificationsPage() {
                     : n
             ));
 
-            console.log('Friend request declined, auto-followed!');
         } catch (err) {
             console.error('Error declining friend request:', err);
         }

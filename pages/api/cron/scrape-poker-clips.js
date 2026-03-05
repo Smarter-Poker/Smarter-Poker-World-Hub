@@ -77,7 +77,6 @@ async function fetchChannelVideos(channel) {
         const response = await fetch(feedUrl);
 
         if (!response.ok) {
-            console.log(`   ⚠️ Failed to fetch ${channel.name}: ${response.status}`);
             return [];
         }
 
@@ -102,7 +101,6 @@ async function fetchChannelVideos(channel) {
             thumbnail_url: `https://img.youtube.com/vi/${id}/hqdefault.jpg`
         }));
 
-        console.log(`   ✅ ${channel.name}: ${videos.length} videos`);
         return videos;
 
     } catch (error) {
@@ -182,9 +180,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🎬 DAILY POKER CLIPS SCRAPER');
-    console.log('═'.repeat(50));
-    console.log(`📅 ${new Date().toISOString()}`);
 
     if (!SUPABASE_URL) {
         return res.status(500).json({ error: 'Missing SUPABASE_URL' });
@@ -192,7 +187,6 @@ export default async function handler(req, res) {
 
     try {
         const existingIds = await getExistingClipIds();
-        console.log(`📋 Found ${existingIds.size} existing clips to avoid\n`);
 
         let totalNew = 0;
         const allNewClips = [];
@@ -213,19 +207,13 @@ export default async function handler(req, res) {
             await new Promise(r => setTimeout(r, 500));
         }
 
-        console.log(`\n📊 SUMMARY:`);
-        console.log(`   Total new clips found: ${totalNew}`);
 
         // Store new clips in database
         let insertResult = { inserted: 0 };
         if (allNewClips.length > 0) {
-            console.log('\n💾 Storing new clips in database...');
             insertResult = await storeNewClips(allNewClips);
-            console.log(`   Inserted: ${insertResult.inserted} clips`);
 
-            console.log('\n📝 Sample new clips:');
             allNewClips.slice(0, 5).forEach(c => {
-                console.log(`   - [${c.source}] ${c.title.substring(0, 50)}...`);
             });
         }
 

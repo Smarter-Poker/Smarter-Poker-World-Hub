@@ -4,7 +4,6 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { motion } from 'framer-motion';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 

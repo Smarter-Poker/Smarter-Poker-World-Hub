@@ -167,7 +167,6 @@ async function generateDailyQuestions() {
         .limit(1);
 
     if (existing && existing.length > 0) {
-        console.log(`[Trivia] Questions already exist for ${today}`);
         return { skipped: true, date: today };
     }
 
@@ -180,7 +179,6 @@ async function generateDailyQuestions() {
 
     const recentQuestionTexts = recentQuestions?.map(q => q.question) || [];
 
-    console.log(`[Trivia] Generating 10 questions for ${today}...`);
 
     const questions = [];
     const questionsPerCategory = {};
@@ -209,7 +207,6 @@ async function generateDailyQuestions() {
                 created_at: new Date().toISOString()
             });
             recentQuestionTexts.push(question.question);
-            console.log(`[Trivia] Generated Q${i + 1}: ${category.name} (${difficulty})`);
         }
 
         // Small delay to avoid rate limits
@@ -221,7 +218,6 @@ async function generateDailyQuestions() {
     if (questions.length > 0) {
         const { valid: validQuestions, rejected } = validateBatch(questions);
         if (rejected.length > 0) {
-            console.log(`[Trivia] 🛡️ QA GATE: ${rejected.length}/${questions.length} REJECTED:`);
             rejected.forEach(r => {
                 r.errors.forEach(e => console.log(`  → ${e}`));
             });
@@ -240,7 +236,6 @@ async function generateDailyQuestions() {
         }
     }
 
-    console.log(`[Trivia] Successfully generated ${insertedCount} questions for ${today}`);
 
     return {
         success: true,
@@ -265,7 +260,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log('[Trivia Generator] Starting daily generation...');
 
         const result = await generateDailyQuestions();
 

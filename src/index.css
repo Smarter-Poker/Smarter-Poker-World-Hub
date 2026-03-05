@@ -9,7 +9,7 @@
 @tailwind utilities;
 
 /* Google Fonts - AFTER Tailwind */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+/* Fonts loaded via next/font in pages/_app.js for self-hosted, zero-blocking delivery */
 
 /* Reset and base */
 *,
@@ -24,7 +24,7 @@ html {
   width: 100%;
   min-height: 100%;
   background: #050510;
-  font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: var(--font-orbitron), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: white;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

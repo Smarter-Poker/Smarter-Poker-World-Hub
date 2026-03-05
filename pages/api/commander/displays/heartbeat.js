@@ -51,7 +51,6 @@ export default async function handler(req, res) {
 
         if (error) {
             // If upsert fails (e.g. table doesn't exist), try plain insert
-            console.warn('Heartbeat upsert warning:', error.message);
         }
 
         return res.status(200).json({ success: true, timestamp: now });

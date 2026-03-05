@@ -214,7 +214,7 @@ async function handleClockAction(req, res, tournamentId) {
 
         // --- Push Notification: Tournament Starting ---
         fireTournamentStartNotification(tournamentId, tournament.name).catch(err =>
-          console.warn('[clock.js] Start notification failed:', err.message)
+          console.error('[clock.js] Start notification failed:', err.message)
         );
 
         break;
@@ -264,7 +264,6 @@ async function handleClockAction(req, res, tournamentId) {
         if (nextLevel >= blindStructure.length) {
           // At end of structure — extend the final level rather than hard-stopping.
           // Reset the level timer on the same (last) level so clock keeps running.
-          console.warn(`[clock.js] Tournament ${tournamentId} hit last level (${tournament.current_level}). Extending final level clock.`);
           updates = {}; // stay on current level
           clockState = {
             isRunning: tournament.status === 'running',
@@ -456,7 +455,6 @@ async function handleClockAction(req, res, tournamentId) {
           .eq('tournament_id', tournamentId)
           .neq('status', 'closed');
 
-        console.log(`[clock.js] Automatically pushed new blinds (${stakesStr}) to tables for tournament ${tournamentId}`);
       }
     }
 

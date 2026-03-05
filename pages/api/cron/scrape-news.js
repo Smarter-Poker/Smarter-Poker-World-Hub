@@ -153,7 +153,6 @@ async function parseRSS(url, category, sourceName) {
         });
 
         if (!response.ok) {
-            console.log(`[RSS] ${sourceName} returned ${response.status}`);
             return [];
         }
 
@@ -202,7 +201,6 @@ async function parseRSS(url, category, sourceName) {
             }
         }
 
-        console.log(`[RSS] ${sourceName}: found ${articles.length} articles`);
         return articles.slice(0, 5); // Limit per source
     } catch (error) {
         console.error(`Failed to parse RSS from ${url}:`, error.message);
@@ -223,7 +221,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        console.log('[News Scraper] Starting hourly scrape...');
 
         let allArticles = [];
 
@@ -235,7 +232,6 @@ export default async function handler(req, res) {
 
         // If no articles found from RSS, just log and return - no fake data
         if (allArticles.length === 0) {
-            console.log('[News Scraper] No articles found from RSS feeds');
             return res.status(200).json({
                 success: true,
                 message: 'No new articles found',
@@ -269,7 +265,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log(`[News Scraper] Complete. Inserted ${insertedCount} new articles.`);
 
         return res.status(200).json({
             success: true,

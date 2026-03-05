@@ -7,37 +7,9 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import gsap from 'gsap';
 import confetti from 'canvas-confetti';
-import {
-    SoundEngine,
-    EffectsEngine,
-    TimerEngine,
-    ComboEngine,
-    ProgressionEngine,
-    LEVELS,
-    MASTERY_THRESHOLD,
-    GAME_COST,
-} from '../../src/games/GameEngine';
-import {
-    ALL_SCENARIOS,
-    getScenariosByLevel,
-    getRandomScenario,
-    getLevelConfig,
-    RANKS,
-    getHandName,
-    MIXED_SCENARIOS,
-    LEVEL_1_SCENARIOS,
-    LEVEL_2_SCENARIOS,
-    LEVEL_3_SCENARIOS,
-    LEVEL_4_SCENARIOS,
-    LEVEL_5_SCENARIOS,
-    LEVEL_6_SCENARIOS,
-    LEVEL_7_SCENARIOS,
-    LEVEL_8_SCENARIOS,
-    LEVEL_9_SCENARIOS,
-    LEVEL_10_SCENARIOS,
-} from '../../src/games/ScenarioDatabase';
+import { SoundEngine, EffectsEngine, LEVELS, MASTERY_THRESHOLD, GAME_COST } from '../../src/games/GameEngine';
+import { getScenariosByLevel, getRandomScenario, getLevelConfig, RANKS, getHandName, MIXED_SCENARIOS, LEVEL_1_SCENARIOS, LEVEL_2_SCENARIOS, LEVEL_3_SCENARIOS, LEVEL_4_SCENARIOS, LEVEL_5_SCENARIOS, LEVEL_6_SCENARIOS, LEVEL_7_SCENARIOS, LEVEL_8_SCENARIOS, LEVEL_9_SCENARIOS, LEVEL_10_SCENARIOS } from '../../src/games/ScenarioDatabase';
 import { supabase } from '../../src/lib/supabase';
 
 // God-Mode Stack
@@ -59,7 +31,7 @@ import DiamondEngine from '../../src/services/DiamondEngine';
 import leaderboardService from '../../src/services/LeaderboardService';
 import GameCostPopup from '../../src/components/gates/GameCostPopup';
 import dailyChallengeService from '../../src/services/DailyChallengeService';
-import { processGameResult, getRankTitle } from '../../src/games/ELOService';
+import { processGameResult } from '../../src/games/ELOService';
 import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
@@ -1919,7 +1891,6 @@ export default function MemoryGamesPage() {
 
                 if (result.success && result.scenario) {
                     scenario = result.scenario;
-                    console.log('[MemoryGames] AI-generated scenario:', scenario.title);
                 } else {
                     console.error('[MemoryGames] AI generation failed:', result.error);
                     // Fallback to static scenarios
@@ -2067,21 +2038,17 @@ export default function MemoryGamesPage() {
                     timeTaken,
                     null // sessionId
                 ).then(res => {
-                    console.log('[Memory] Leaderboard updated:', res);
                 }).catch(err => {
-                    console.warn('[Memory] Leaderboard update failed:', err);
                 });
             }
 
             // 2. Update ELO rating
             processGameResult(user.id, currentLevel, result.score, gamesPlayed || 0)
                 .then(eloResult => {
-                    console.log('[Memory] ELO updated:', eloResult);
                     if (eloResult?.rank) {
                         setEloRank && setEloRank(eloResult.rank);
                     }
                 }).catch(err => {
-                    console.warn('[Memory] ELO update failed:', err);
                 });
 
             // 3. Check and complete daily challenge
@@ -2098,7 +2065,6 @@ export default function MemoryGamesPage() {
                             timeTaken
                         ).then(completionResult => {
                             if (completionResult?.success) {
-                                console.log('[Memory] Daily challenge completed! Streak:', completionResult.streak);
                                 // Award bonus diamonds for daily challenge
                                 const bonus = challenge.diamond_reward || 25;
                                 DiamondEngine.award(bonus);
@@ -2108,7 +2074,6 @@ export default function MemoryGamesPage() {
                                 claimReward('/api/rewards/daily-trivia', { userId: user.id }, 'Daily Trivia Challenge');
                             }
                         }).catch(err => {
-                            console.warn('[Memory] Daily challenge completion failed:', err);
                         });
                     }
                 }
@@ -2130,9 +2095,7 @@ export default function MemoryGamesPage() {
                 diamondsEarned: passed ? totalReward : 0,
                 completed: true
             }).then(sessionResult => {
-                console.log('[Memory] Session recorded:', sessionResult);
             }).catch(err => {
-                console.warn('[Memory] Session recording failed:', err);
             });
 
             // 6. Check and unlock achievements
@@ -2148,10 +2111,8 @@ export default function MemoryGamesPage() {
                 modesPlayed: [gameMode] // TODO: track all modes played
             }).then(unlocked => {
                 if (unlocked.length > 0) {
-                    console.log('[Memory] Achievements unlocked:', unlocked);
                 }
             }).catch(err => {
-                console.warn('[Memory] Achievement check failed:', err);
             });
 
             // 7. Push to Jarvis Personal Assistant for leak detection
@@ -2213,9 +2174,7 @@ export default function MemoryGamesPage() {
                     leaksDetected: []
                 })
             }).then(res => res.json()).then(jarvisResult => {
-                console.log('[Memory] Jarvis leak detection updated:', jarvisResult);
             }).catch(err => {
-                console.warn('[Memory] Jarvis push failed:', err);
             });
         }
 
@@ -2519,7 +2478,6 @@ export default function MemoryGamesPage() {
                             scenario: scenario // Keep full scenario for gameplay
                         };
                     } catch (e) {
-                        console.warn('[MemoryGames] Could not parse scenario_id:', e);
                     }
                 }
                 setDailyChallenge(challenge);

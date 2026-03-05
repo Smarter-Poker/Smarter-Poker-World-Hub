@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { ArrowLeft, Award, Star, Lock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 
 export default function AchievementsPage() {

@@ -87,7 +87,6 @@ export default async function handler(req, res) {
     if (error) {
       // If table doesn't exist, just log and return success
       if (error.code === '42P01') {
-        console.log('Onboarding leads table not created yet. Lead data:', {
           venueName, contactName, email, city, state
         });
         return res.status(200).json({

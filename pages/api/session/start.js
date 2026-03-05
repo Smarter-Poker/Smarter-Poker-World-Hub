@@ -103,7 +103,6 @@ export default async function handler(req, res) {
                 });
 
             if (upsertError) {
-                console.warn('Failed to upsert session:', upsertError.message);
             }
         }
 

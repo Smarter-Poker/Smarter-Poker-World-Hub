@@ -21,18 +21,9 @@ import { getBankrollPreferences, updateBankrollPreferences } from '../../src/ser
 import { getBankrollStats } from '../../src/lib/bankroll/calculations';
 import { runLeakAnalysis } from '../../src/lib/bankroll/leakDetection';
 import { getUserLocations } from '../../src/lib/bankroll/locationMemory';
-import {
-  fetchLedgerEntries,
-  fetchTrips,
-  fetchBankrollRules,
-  getDateRangeFilter,
-  initializeUserBankroll,
-  updateLedgerEntry,
-  deleteLedgerEntry,
-  getActiveSeries,
-} from '../../src/lib/bankroll/bankrollSelectors';
+import { fetchLedgerEntries, fetchTrips, fetchBankrollRules, getDateRangeFilter, initializeUserBankroll, deleteLedgerEntry, getActiveSeries } from '../../src/lib/bankroll/bankrollSelectors';
 import toast from '../../src/stores/toastStore';
-import { formatCurrency, formatCurrencyWithSign } from '../../src/lib/bankroll/currencyUtils';
+import { formatCurrency } from '../../src/lib/bankroll/currencyUtils';
 
 // Bankroll components
 import LedgerTimeline from '../../src/components/bankroll/LedgerTimeline';
@@ -68,7 +59,7 @@ import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
 import StartingBankrollModal from '../../src/components/bankroll/StartingBankrollModal';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
-import { getActiveTrip, hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
+import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
@@ -359,7 +350,6 @@ export default function BankrollManagerPage() {
         seriesData = await getActiveSeries(userId);
         setActiveSeries(seriesData);
       } catch (e) {
-        console.warn('Could not load active series:', e);
       }
 
       // ── Filter out active trip/series entries ──
@@ -466,7 +456,6 @@ export default function BankrollManagerPage() {
           });
         }
       } catch (err) {
-        console.warn('[Geofence] Failed to load venues:', err);
       }
     })();
 

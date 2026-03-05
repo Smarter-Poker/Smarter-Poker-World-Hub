@@ -41,7 +41,6 @@ export default async function handler(req, res) {
         const questionCount = parseInt(count, 10);
         const gameLevel = parseInt(level, 10);
 
-        console.log(`[BatchPreload] Fetching ${questionCount} questions for ${gameId} level ${gameLevel}`);
 
         // Fetch questions from cache
         const { data: questions, error } = await supabase
@@ -57,7 +56,6 @@ export default async function handler(req, res) {
         }
 
         if (!questions || questions.length === 0) {
-            console.warn(`[BatchPreload] No questions found for ${gameId} level ${gameLevel}`);
             return res.status(404).json({ error: 'No questions available for this game/level' });
         }
 
@@ -87,7 +85,6 @@ export default async function handler(req, res) {
             return qData;
         }).filter(Boolean); // Remove null entries from corrupted cache rows
 
-        console.log(`[BatchPreload] Returning ${enrichedBatch.length} questions for ${gameId}`);
 
         return res.status(200).json({
             success: true,

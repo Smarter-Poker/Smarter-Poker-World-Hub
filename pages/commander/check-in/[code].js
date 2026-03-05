@@ -15,10 +15,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  Clock, Shield, Timer, Users, ChevronRight, Loader2,
-  CheckCircle2, AlertTriangle, XCircle, CreditCard
-} from 'lucide-react';
+import { Shield, Timer, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 
 function formatCountdown(seconds) {

@@ -19,6 +19,11 @@ const twilioClient = twilio(
 const TWILIO_FROM = process.env.TWILIO_PHONE_NUMBER;
 
 export default async function handler(req, res) {
+  // CDN cache: fresh for 60s, serve stale up to 300s
+  if (req.method === 'GET') {
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  }
+
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -143,7 +148,6 @@ export default async function handler(req, res) {
             if ((channel === 'email' || channel === 'both') && member.email) {
                 const resendKey = process.env.RESEND_API_KEY;
                 if (!resendKey) {
-                    console.warn('[Broadcast] RESEND_API_KEY not configured — skipping email');
                     if (channel === 'email') results.skipped++;
                 } else {
                     try {

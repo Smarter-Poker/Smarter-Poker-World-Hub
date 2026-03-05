@@ -39,7 +39,6 @@ export default async function handler(req, res) {
             return res.status(403).json({ error: 'Cannot link notifications for another user' });
         }
 
-        console.log('[OneSignal] Linking player', playerId, 'to user', userId);
 
         // Update the player's external_user_id via REST API
         const response = await fetch(`https://onesignal.com/api/v1/players/${playerId}`, {
@@ -64,7 +63,6 @@ export default async function handler(req, res) {
             });
         }
 
-        console.log('[OneSignal] Link successful:', result);
 
         return res.status(200).json({
             success: true,

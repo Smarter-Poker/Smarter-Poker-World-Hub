@@ -59,7 +59,6 @@ export default async function handler(req, res) {
         const stackDepth = getStackDepthNumber(gameConfig.stackDepth); // Numeric BB
         const preferredEngine = gameConfig.engine; // 'PIO', 'CHART', or 'SCENARIO'
 
-        console.log(`[Training] 🎮 ${game.name} | ${gameFormat} (${playerCount}p) | ${stackDepth}bb | Engine: ${preferredEngine}`);
 
         // ═══════════════════════════════════════════════════════════════════
         // STEP 2: GET SEEN QUESTIONS (No-Repeat Logic)
@@ -83,34 +82,28 @@ export default async function handler(req, res) {
         // Route based on preferredEngine from game config
         if (preferredEngine === 'SCENARIO') {
             // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
-            console.log('[Training] 🧠 Using SCENARIO engine (Grok AI) for psychology/mental game');
             question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
 
         } else if (preferredEngine === 'CHART') {
             // CHART ENGINE: Push/Fold Charts - Uses memory_charts_gold
-            console.log('[Training] 📊 Using CHART engine for push/fold training');
             question = await generateQuestionFromChart(gameId, level, game, stackDepth);
 
             // Fallback to Grok for ICM/push-fold questions if no chart data
             if (!question) {
-                console.log('[Training] ⚠️ No chart data, generating push/fold question with Grok');
                 question = await generateChartQuestionWithGrok(gameId, level, game, gameConfig);
             }
 
         } else {
             // PIO ENGINE: GTO Solver Data (Default)
-            console.log('[Training] 📊 Using PIO engine - querying solver data...');
             try {
                 const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
 
                 if (pioScenarios && pioScenarios.length > 0) {
-                    console.log(`[Training] ✅ Found ${pioScenarios.length} PIO scenarios`);
                     question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
                 } else {
-                    console.log('[Training] ⚠️ No PIO data available, falling back to Grok');
                 }
             } catch (pioError) {
-                console.warn('[Training] ⚠️ PIO query failed:', pioError.message);
+                console.error('[Training] ⚠️ PIO query failed:', pioError.message);
             }
         }
 
@@ -118,7 +111,6 @@ export default async function handler(req, res) {
         // STEP 4: TRY CACHED QUESTIONS (Fallback)
         // ═══════════════════════════════════════════════════════════════════
         if (!question) {
-            console.log('[Training] 💾 Checking question cache...');
 
             const { data: cachedQuestions } = await supabase
                 .from('training_question_cache')
@@ -137,9 +129,7 @@ export default async function handler(req, res) {
                     .update({ times_used: supabase.raw('times_used + 1') })
                     .eq('question_id', cachedQuestions[randomIndex].question_id);
 
-                console.log('[Training] ✅ Loaded from cache:', question.scenario || question.question);
             } else {
-                console.log('[Training] ⚠️ No cached questions found, will try Grok');
             }
         }
 
@@ -148,7 +138,6 @@ export default async function handler(req, res) {
         // STEP 4: GENERATE WITH GROK AI (Last Resort)
         // ═══════════════════════════════════════════════════════════════════
         if (!question) {
-            console.log('[Training] 💡 No cached question found, generating with Grok AI...');
             question = await generateQuestionWithGrok(gameId, engineType, level, gameType, game, gameConfig);
 
             // Save to cache for future use
@@ -165,7 +154,6 @@ export default async function handler(req, res) {
                             question_data: question,
                             times_used: 1,
                         });
-                    console.log('[Training] 💾 Saved to cache:', question.id);
                 } catch (cacheError) {
                     // Ignore duplicate errors (question already cached)
                     if (!cacheError.message?.includes('duplicate')) {
@@ -216,7 +204,6 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         // Pick a random scenario from the available ones
         const scenario = pioScenarios[Math.floor(Math.random() * pioScenarios.length)];
 
-        console.log('[Training] 📊 Generating question from PIO scenario:', scenario.scenarioHash);
 
         // Extract strategy matrix
         const strategyMatrix = scenario.strategies || {};
@@ -224,7 +211,6 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         const frequencies = strategyMatrix.frequencies || {};
 
         if (actions.length === 0) {
-            console.log('[Training] ⚠️ No actions in scenario, falling back');
             return null;
         }
 
@@ -234,7 +220,6 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
         const allHands = Object.keys(handFreqs);
 
         if (allHands.length === 0) {
-            console.log('[Training] ⚠️ No hand frequencies in scenario, falling back');
             return null;
         }
 
@@ -260,13 +245,11 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
                 }
             } else {
                 // Skip invalid frequency values (likely data import errors)
-                console.log(`[Training] Skipping action ${action} with invalid freq: ${freq}`);
             }
         });
 
         // Fallback if no valid actions found
         if (!optimalAction || validActions.length === 0) {
-            console.log('[Training] ⚠️ No valid actions found, using first available');
             optimalAction = actions[0];
             maxFreq = 0.5;
             handActions[optimalAction] = maxFreq;
@@ -399,7 +382,6 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
             heroHand: heroHand
         };
 
-        console.log('[Training] ✅ Generated PIO question for', heroHand, '- Optimal:', optimalAction);
         return question;
 
     } catch (error) {
@@ -455,7 +437,6 @@ async function getPIOQuestion(gameId, level, seenIds) {
  */
 async function generateQuestionFromChart(gameId, level, game, stackDepth) {
     try {
-        console.log(`[Training] 📊 Querying chart data for ${stackDepth}bb...`);
 
         // Query chart data matching the stack depth
         const { data: charts, error } = await supabase
@@ -466,7 +447,6 @@ async function generateQuestionFromChart(gameId, level, game, stackDepth) {
             .limit(10);
 
         if (error || !charts || charts.length === 0) {
-            console.log('[Training] ⚠️ No chart data found for this stack depth');
             return null;
         }
 
@@ -476,7 +456,6 @@ async function generateQuestionFromChart(gameId, level, game, stackDepth) {
         const hands = Object.keys(handMatrix);
 
         if (hands.length === 0) {
-            console.log('[Training] ⚠️ Chart has no hands');
             return null;
         }
 
@@ -529,7 +508,6 @@ async function generateQuestionFromChart(gameId, level, game, stackDepth) {
             heroHand: heroHand
         };
 
-        console.log('[Training] ✅ Generated CHART question for', heroHand, '-', correctAction);
         return question;
 
     } catch (error) {
@@ -551,7 +529,6 @@ async function generateChartQuestionWithGrok(gameId, level, game, gameConfig) {
         const playerCount = gameConfig?.players || 9;
         const format = gameConfig?.format || '9-Max Tournament';
 
-        console.log(`[Training] 🎯 Generating CHART/Push-Fold question with Grok for ${gameName}`);
 
         const pushFoldPrompt = `You are an ICM poker expert specializing in push/fold and short-stack strategy. Generate a PUSH/FOLD training question for "${gameName}".
 
@@ -608,7 +585,6 @@ IMPORTANT:
 
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            console.log(`[Training] ✅ Grok generated CHART question:`, parsed.question);
             return parsed;
         }
     } catch (error) {
@@ -764,7 +740,6 @@ async function generateQuestionWithGrok(gameId, engineType, level, gameType, gam
         // SCENARIO ENGINE: Psychology/Mental Game Questions
         // ═══════════════════════════════════════════════════════════════════
         if (engineType === 'SCENARIO' || gameCategory === 'PSYCHOLOGY') {
-            console.log('[Training] 🧠 Generating PSYCHOLOGY/MENTAL GAME question with Grok');
 
             const psychologyPrompt = `You are an elite poker mental game coach. Generate a PSYCHOLOGY / MENTAL GAME training question for "${gameName}" focusing on: ${gameFocus}.
 
@@ -828,7 +803,6 @@ Make the scenario realistic and the options psychologically distinct.`;
                 if (parsed.scenario) {
                     parsed.scenario.isPsychology = true;
                 }
-                console.log(`[Training] ✅ Grok generated PSYCHOLOGY question:`, parsed.question);
                 return parsed;
             }
 
@@ -852,7 +826,6 @@ Make the scenario realistic and the options psychologically distinct.`;
                 ? `${playerCount === 2 ? 'Heads-Up' : '3-Max'} Spin & Go`
                 : `${playerCount === 2 ? 'Heads-Up' : '6-Max'} Cash Game`;
 
-        console.log(`[Training] 📊 Generating GTO question for ${gameTypeDisplay} (${playerCount}p)`);
 
         const gtoPrompt = `You are a GTO poker solver expert. Generate a realistic poker training question for "${gameName}" at difficulty level ${level}/10.
 
@@ -917,7 +890,6 @@ IMPORTANT: Make the scenario realistic for ${gameFormat}. ${playerCount === 2 ? 
 
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            console.log(`[Training] ✅ Grok generated ${gameTypeDisplay} GTO question:`, parsed.question);
             return parsed;
         }
     } catch (error) {

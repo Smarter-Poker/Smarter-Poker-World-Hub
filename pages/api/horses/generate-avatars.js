@@ -104,7 +104,6 @@ export default async function handler(req, res) {
 
     const limit = parseInt(req.query.limit) || 5; // Process 5 at a time to avoid timeout
 
-    console.log(`🎨 Generating avatars for up to ${limit} horses...`);
 
     try {
         // Get horses without avatars
@@ -123,7 +122,6 @@ export default async function handler(req, res) {
         const results = [];
 
         for (const horse of horses) {
-            console.log(`🎨 Generating avatar for ${horse.name}...`);
 
             // Generate avatar
             const tempUrl = await generateAvatar(horse);
@@ -151,7 +149,6 @@ export default async function handler(req, res) {
                 .update({ avatar_url: permanentUrl })
                 .eq('id', horse.profile_id);
 
-            console.log(`✅ ${horse.name} got their avatar!`);
             results.push({ horse: horse.name, success: true, url: permanentUrl });
 
             // Small delay between generations

@@ -80,7 +80,6 @@ export default async function handler(req, res) {
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
     }
 
     return res.status(200).json({ received: true });
@@ -110,7 +109,6 @@ async function handlePaymentSuccess(paymentIntent) {
   }
 
   // Log the payment
-  console.log(`Payment succeeded: ${id} for $${amount / 100}`);
 }
 
 async function handlePaymentFailed(paymentIntent) {
@@ -130,7 +128,6 @@ async function handlePaymentFailed(paymentIntent) {
     }
   }
 
-  console.log(`Payment failed: ${id}`);
 }
 
 async function handleRefund(charge) {
@@ -150,7 +147,6 @@ async function handleRefund(charge) {
     }
   }
 
-  console.log(`Refund processed: ${id} for $${amount_refunded / 100}`);
 }
 
 async function handleSubscriptionUpdate(subscription) {
@@ -196,7 +192,6 @@ async function handleSubscriptionUpdate(subscription) {
     }
   }
 
-  console.log(`Subscription updated: ${id} -> ${status}`);
 }
 
 async function handleSubscriptionCancelled(subscription) {
@@ -230,7 +225,6 @@ async function handleSubscriptionCancelled(subscription) {
     }
   }
 
-  console.log(`Subscription cancelled: ${id}`);
 }
 
 // Disable default body parser - we need raw body for signature verification

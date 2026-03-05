@@ -73,7 +73,6 @@ export default async function handler(req, res) {
     }
 
     if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
-        console.warn('[LicenseReminders] OneSignal not configured');
         return res.status(200).json({ skipped: true, reason: 'OneSignal not configured' });
     }
 
@@ -98,7 +97,6 @@ export default async function handler(req, res) {
         if (error) throw error;
 
         if (!docs || docs.length === 0) {
-            console.log('[LicenseReminders] No licenses to remind about');
             return res.status(200).json({ sent: 0, skipped: 0 });
         }
 
@@ -145,7 +143,6 @@ export default async function handler(req, res) {
                         .update({ last_reminder_sent_at: new Date().toISOString() })
                         .eq('id', doc.id);
                     sent++;
-                    console.log(`[LicenseReminders] ✅ Sent to user ${doc.user_id.slice(0, 8)} — ${licenseName} ${text}`);
                 } else {
                     console.error(`[LicenseReminders] ❌ OneSignal error for doc ${doc.id}:`, result.errors);
                     skipped++;
@@ -156,7 +153,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log(`[LicenseReminders] Done — sent: ${sent}, skipped: ${skipped}`);
         return res.status(200).json({ sent, skipped, total: docs.length });
 
     } catch (err) {

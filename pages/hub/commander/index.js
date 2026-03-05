@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, DollarSign, Users, Clock, CreditCard, Globe } from 'lucide-react';
+import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally

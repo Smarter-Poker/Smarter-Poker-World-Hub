@@ -86,7 +86,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Failed to delete post', details: deleteError.message });
         }
 
-        console.log(`[Delete Post] ✅ Post ${postId} deleted by ${profile.role === 'god' ? 'GOD MODE' : 'owner'} user ${user.id}`);
         return res.status(200).json({ success: true, deletedBy: isGodMode ? 'god' : 'owner' });
 
     } catch (e) {

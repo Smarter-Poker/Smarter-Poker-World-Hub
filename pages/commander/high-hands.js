@@ -6,10 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Plus, Trophy, CheckCircle2, Loader2, RefreshCw,
-  Trash2, Star, X, Crown, Clock
-} from 'lucide-react';
+import { Plus, Trophy, CheckCircle2, Loader2, RefreshCw, Trash2, Star, X, Crown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

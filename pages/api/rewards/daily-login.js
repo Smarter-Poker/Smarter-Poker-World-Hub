@@ -136,7 +136,6 @@ export default async function handler(req, res) {
 
         if (result1.error && result1.error.message?.includes('metadata')) {
             // metadata column doesn't exist — retry without it
-            console.warn('[DailyLogin] metadata column missing, inserting without it');
             const result2 = await supabase
                 .from('diamond_reward_claims')
                 .insert(claimRow);

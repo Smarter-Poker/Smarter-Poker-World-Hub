@@ -492,7 +492,6 @@ export default function MyClubsPage() {
                         });
                     }
                 } catch (e) {
-                    console.warn('[MyClubs] Failed to fetch follows from API:', e);
                 }
             }
 
@@ -577,7 +576,6 @@ export default function MyClubsPage() {
                         setArenaClubs(clubs);
                     }
                 } catch (e) {
-                    console.warn('[MyClubs] Failed to fetch Club Arena memberships:', e);
                 }
             }
 

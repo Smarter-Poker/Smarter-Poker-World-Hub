@@ -133,7 +133,6 @@ export default function Leaderboard() {
                                 allHands = handData;
                             }
                         } catch (handQueryErr) {
-                            console.warn('[Leaderboard] hand_histories query failed:', handQueryErr);
                         }
                     }
 

@@ -6,10 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import {
-  FileText, DollarSign, AlertTriangle, CheckCircle2,
-  Loader2, Printer, Download, ChevronDown, ChevronUp, Search, ArrowLeft
-} from 'lucide-react';
+import { FileText, DollarSign, AlertTriangle, CheckCircle2, Loader2, Printer, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 export default function TaxCompliance() {

@@ -7,10 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Download, FileText, Loader2, RefreshCw, CheckCircle2,
-  AlertTriangle, Clock, Users, Trophy, BarChart3, Gift, Shield, X
-} from 'lucide-react';
+import { Download, FileText, Loader2, RefreshCw, Clock, Users, Trophy, BarChart3, Gift, Shield, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const EXPORT_TYPES = [

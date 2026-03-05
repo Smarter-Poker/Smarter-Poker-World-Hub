@@ -123,7 +123,6 @@ export default async function handler(req, res) {
         }
 
         const isVideo = mimeType.startsWith('video/');
-        console.log(`[Upload API] ✅ Uploaded: ${storagePath} (${(file.size / 1024).toFixed(1)}KB, ${mimeType})`);
 
         return res.status(200).json({
             success: true,

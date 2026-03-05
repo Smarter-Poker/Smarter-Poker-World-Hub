@@ -13,12 +13,10 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('🐴 Starting horses-social-comments cron...');
 
     try {
         const result = await commentOnPosts(15, true); // 15 comments per run (Pro plan: 60s timeout)
 
-        console.log(`✅ Horses posted ${result.commented} comments`);
 
         return res.status(200).json({
             success: true,

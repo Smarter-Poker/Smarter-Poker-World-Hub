@@ -93,11 +93,9 @@ async function checkSource(url) {
 async function tryFallbacks(source, configPath) {
     // Try each fallback URL
     for (const fallback of source.fallbacks) {
-        console.log(`   🔄 Trying fallback: ${fallback}`);
         const result = await checkSource(fallback);
 
         if (result.ok) {
-            console.log(`   ✅ Fallback works! Updating config...`);
 
             // Log the fix for later manual review
             await supabase.from('system_logs').insert({
@@ -127,9 +125,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🏥 CONTENT HEALTH CHECK - Self-Healing Monitor');
-    console.log('═'.repeat(60));
-    console.log(`⏰ ${new Date().toISOString()}`);
 
     const results = {
         timestamp: new Date().toISOString(),
@@ -141,15 +136,12 @@ export default async function handler(req, res) {
     };
 
     for (const source of SOURCES) {
-        console.log(`\n📡 Checking: ${source.name}`);
         const check = await checkSource(source.primary);
 
         if (check.ok) {
-            console.log(`   ✅ Healthy (HTTP ${check.status})`);
             results.sources.push({ name: source.name, status: 'healthy' });
             results.healthy++;
         } else {
-            console.log(`   ❌ Failed (HTTP ${check.status || check.error})`);
 
             // Attempt self-healing
             if (source.fallbacks.length > 0) {
@@ -162,7 +154,6 @@ export default async function handler(req, res) {
                         new_url: fix.new_url
                     });
                     results.auto_fixed++;
-                    console.log(`   🔧 AUTO-FIXED: Now using ${fix.new_url}`);
                 } else {
                     results.sources.push({ name: source.name, status: 'failed' });
                     results.failed++;
@@ -187,20 +178,13 @@ export default async function handler(req, res) {
                 full_results: results
             }
         });
-        console.log(`\n⚠️  SENTRY ALERT: ${results.needs_attention.length} sources need manual fix`);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
     // SUMMARY
     // ═══════════════════════════════════════════════════════════════════════
-    console.log('\n' + '═'.repeat(60));
-    console.log(`📊 SUMMARY:`);
-    console.log(`   ✅ Healthy: ${results.healthy}`);
-    console.log(`   🔧 Auto-Fixed: ${results.auto_fixed}`);
-    console.log(`   ❌ Failed: ${results.failed}`);
 
     if (results.needs_attention.length > 0) {
-        console.log(`   ⚠️  Needs Attention: ${results.needs_attention.join(', ')}`);
     }
 
     return res.status(200).json({

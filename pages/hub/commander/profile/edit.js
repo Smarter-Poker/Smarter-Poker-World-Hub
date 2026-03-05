@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
-import { ArrowLeft, Save, User, Camera, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, User, Camera } from 'lucide-react';
 
 export default function ProfileEditPage() {
   const router = useRouter();

@@ -6,10 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Shield, Star, Users, Loader2, ChevronDown, ChevronUp,
-  Heart, Award, MessageSquare, Plus, X, Send
-} from 'lucide-react';
+import { Star, Loader2, ChevronDown, ChevronUp, Plus, X, Send } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 
 const RATING_LABELS = {

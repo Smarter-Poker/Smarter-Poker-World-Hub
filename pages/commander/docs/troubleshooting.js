@@ -7,21 +7,7 @@
 import { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
-import {
-  ChevronLeft,
-  ChevronDown,
-  AlertTriangle,
-  Wifi,
-  Smartphone,
-  Server,
-  Bell,
-  RefreshCw,
-  Shield,
-  Clock,
-  Search,
-  CheckCircle,
-  XCircle,
-} from 'lucide-react';
+import { ChevronLeft, ChevronDown, AlertTriangle, Wifi, Smartphone, Server, Bell, Shield, Clock, Search, CheckCircle, XCircle } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 const TROUBLESHOOTING_SECTIONS = [

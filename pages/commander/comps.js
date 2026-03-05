@@ -13,12 +13,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Gift, DollarSign, Users, Clock, Search, TrendingUp,
-  Plus, Loader2, RefreshCw, Check, Star, Shield, X,
-  UtensilsCrossed, Ticket, Coins, Timer, CreditCard,
-  ShoppingBag, FileText, Award, ChevronDown, Filter, BarChart3
-} from 'lucide-react';
+import { Gift, DollarSign, Users, Clock, Search, TrendingUp, Loader2, RefreshCw, Check, Shield, X, UtensilsCrossed, Ticket, Coins, Timer, CreditCard, ShoppingBag, FileText, Award, BarChart3 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

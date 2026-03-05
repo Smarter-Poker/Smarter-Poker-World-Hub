@@ -13,11 +13,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  QrCode, Clock, CreditCard, Loader2, Search,
-  CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
-  Receipt, Lock, Delete, DollarSign, Banknote, Users, Trophy, Printer
-} from 'lucide-react';
+import { QrCode, CreditCard, Loader2, Search, CheckCircle2, AlertTriangle, ChevronDown, Receipt, Lock, Delete, DollarSign, Banknote, Users, Printer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
@@ -707,7 +703,6 @@ export default function Cashier() {
           fetchData();
           return;
         }
-        console.warn('Original transaction void failed:', patchJson.error);
       }
 
       // 3. Resolve the member to update — use selectedPlayer if name matches, otherwise lookup by name

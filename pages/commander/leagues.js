@@ -8,11 +8,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import {
-  Trophy, Plus, Users, Calendar, DollarSign,
-  Loader2, ChevronDown, ChevronUp, Star, BarChart3,
-  Clock, Gift, Target, UserPlus, Trash2, Check, X, Edit2, RefreshCw
-} from 'lucide-react';
+import { Trophy, Plus, Users, Calendar, DollarSign, Loader2, ChevronDown, ChevronUp, Gift, Target, UserPlus, Trash2, Check, RefreshCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

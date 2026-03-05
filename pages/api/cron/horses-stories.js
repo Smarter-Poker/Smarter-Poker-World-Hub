@@ -91,7 +91,6 @@ async function validateYouTubeThumbnail(videoId) {
 }
 
 async function postVideoStory(horse) {
-    console.log(`🎬 ${horse.name}: Posting video story...`);
 
     try {
         // Try up to 5 different clips to find one with a valid thumbnail
@@ -101,7 +100,6 @@ async function postVideoStory(horse) {
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             const clip = getRandomClip?.();
             if (!clip) {
-                console.log(`   No clip available (attempt ${attempt}/${maxAttempts})`);
                 continue;
             }
 
@@ -109,15 +107,12 @@ async function postVideoStory(horse) {
             const isValid = await validateYouTubeThumbnail(clip.video_id);
             if (isValid) {
                 validClip = clip;
-                console.log(`   ✓ Found valid clip on attempt ${attempt}/${maxAttempts}`);
                 break;
             } else {
-                console.log(`   ⚠️ Invalid thumbnail for ${clip.video_id} (attempt ${attempt}/${maxAttempts})`);
             }
         }
 
         if (!validClip) {
-            console.log(`   ❌ ${horse.name}: No valid clips found after ${maxAttempts} attempts`);
             return null;
         }
 
@@ -140,7 +135,6 @@ async function postVideoStory(horse) {
             return null;
         }
 
-        console.log(`✅ ${horse.name}: Video story posted! ID: ${storyId}`);
         return { type: 'video_story', story_id: storyId };
     } catch (e) {
         console.error(`❌ ${horse.name}: Video story failed - ${e.message}`);
@@ -149,7 +143,6 @@ async function postVideoStory(horse) {
 }
 
 async function postTextStory(horse) {
-    console.log(`📝 ${horse.name}: Posting text story...`);
 
     try {
         // Pick random topic
@@ -176,7 +169,7 @@ async function postTextStory(horse) {
                 .replace(/\s+/g, ' ')
                 .trim();
         } catch (e) {
-            console.log(`   Using default topic (Grok error)`);
+            console.error(`   Using default topic (Grok error)`);
         }
 
         const { data: storyId, error } = await supabase.rpc('fn_create_story', {
@@ -193,7 +186,6 @@ async function postTextStory(horse) {
             return null;
         }
 
-        console.log(`✅ ${horse.name}: Text story posted! ID: ${storyId}`);
         return { type: 'text_story', story_id: storyId };
     } catch (e) {
         console.error(`❌ ${horse.name}: Text story failed - ${e.message}`);
@@ -206,8 +198,6 @@ export default async function handler(req, res) {
     if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-    console.log('\n🐴 HORSES STORIES CRON');
-    console.log('═'.repeat(50));
 
     if (!SUPABASE_URL) {
         return res.status(500).json({ error: 'Missing env vars' });
@@ -244,8 +234,6 @@ export default async function handler(req, res) {
             return isInSlot && isAwake;
         });
 
-        console.log(`⏰ Minute ${currentMinute}, Hour ${currentHour}`);
-        console.log(`🐴 Active horses this slot: ${activeHorses.length}/${allHorses.length}`);
 
         if (activeHorses.length === 0) {
             return res.status(200).json({
@@ -283,10 +271,6 @@ export default async function handler(req, res) {
         const videoStories = results.filter(r => r.type === 'video_story').length;
         const textStories = results.filter(r => r.type === 'text_story').length;
 
-        console.log('\n📊 RESULTS:');
-        console.log(`   Video Stories: ${videoStories}`);
-        console.log(`   Text Stories: ${textStories}`);
-        console.log(`   Failed: ${results.filter(r => !r.success).length}`);
 
         return res.status(200).json({
             success: true,

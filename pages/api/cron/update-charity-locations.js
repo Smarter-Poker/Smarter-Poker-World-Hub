@@ -152,7 +152,7 @@ export default async function handler(req, res) {
                         await new Promise(r => setTimeout(r, 1100));
                     }
                 } catch (geoErr) {
-                    console.warn(`[update-charity-locations] Geocoding non-fatal error for ${page.id}:`, geoErr.message);
+                    console.error(`[update-charity-locations] Geocoding non-fatal error for ${page.id}:`, geoErr.message);
                 }
 
                 results.push({
@@ -165,7 +165,6 @@ export default async function handler(req, res) {
             }
         }
 
-        console.log(`[update-charity-locations] Updated ${updatedCount}/${charityPages.length} charity pages`);
 
         return res.status(200).json({
             success: true,
