@@ -3,6 +3,7 @@
  Facebook Dark Theme | Member List with Search, Roles & Actions
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -346,7 +347,7 @@ export default function Players() {
                                     <div style={S.avatarWrapper}>
                                         <div style={{ ...S.avatar, background: ROLE_COLORS[member.role] || FB.primary }}>
                                             {member.profiles?.avatar_url ? (
-                                                <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Image src={member.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                             ) : ROLE_BADGES[member.role] || ''}
                                         </div>
                                         <div style={{ ...S.onlineIndicator, background: online ? FB.success : FB.textSecondary }} />
@@ -400,7 +401,7 @@ export default function Players() {
                         <div style={S.modalBody}>
                             <div style={{ ...S.modalAvatar, background: ROLE_COLORS[selectedPlayer.role] || FB.primary }}>
                                 {selectedPlayer.profiles?.avatar_url ? (
-                                    <img src={selectedPlayer.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <Image src={selectedPlayer.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                 ) : ROLE_BADGES[selectedPlayer.role] || ''}
                             </div>
                             <div style={S.modalName}>

@@ -12,6 +12,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -741,11 +742,7 @@ export default function SurvivalGamePage() {
                                     overflow: 'hidden',
                                     marginBottom: '24px'
                                 }}>
-                                    <img
-                                        src="/images/trivia/lobby-survival.jpg"
-                                        alt="Survival Mode - 10 Levels Progressive Challenge"
-                                        style={{ width: '100%', height: 'auto', display: 'block' }}
-                                    />
+                                    <Image src="/images/trivia/lobby-survival.jpg" alt="Survival Mode - 10 Levels Progressive Challenge" width={686} height={1024} style={{ width: '100%', height: 'auto', display: 'block' }} />
                                 </div>
 
                                 {/* Accuracy Requirements */}

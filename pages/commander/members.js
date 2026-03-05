@@ -4,6 +4,7 @@
  * NO EMOJIS (per /no-emoji-commander)
  */
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
@@ -239,7 +240,7 @@ export default function MembersPage() {
                                                             <td className="px-4 py-3 cursor-pointer" onClick={() => setSelectedMember(m)}>
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="w-9 h-9 bg-[#3A3B3C] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                                                        {m.photo_url ? <img src={m.photo_url} alt="" className="w-9 h-9 rounded-full object-cover" /> : <User className="w-4 h-4 text-[#B0B3B8]" />}
+                                                                        {m.photo_url ? <Image src={m.photo_url} alt="" width={36} height={36} className="w-9 h-9 rounded-full object-cover" /> : <User className="w-4 h-4 text-[#B0B3B8]" />}
                                                                     </div>
                                                                     <div>
                                                                         <div className="text-sm font-medium text-[#E4E6EB]">{m.first_name} {m.last_name}</div>
@@ -325,7 +326,7 @@ export default function MembersPage() {
                                                     <button onClick={() => setSelectedMember(m)} className="w-full text-left">
                                                         <div className="flex items-center gap-3 mb-3">
                                                             <div className="w-10 h-10 bg-[#3A3B3C] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                                                                {m.photo_url ? <img src={m.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" /> : <User className="w-5 h-5 text-[#B0B3B8]" />}
+                                                                {m.photo_url ? <Image src={m.photo_url} alt="" width={40} height={40} className="w-10 h-10 rounded-full object-cover" /> : <User className="w-5 h-5 text-[#B0B3B8]" />}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="text-sm font-semibold text-[#E4E6EB]">{m.first_name} {m.last_name}</div>

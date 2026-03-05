@@ -134,7 +134,7 @@ function PostCard({ post, onLike, onComment, isLiked, onShare }) {
                   className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`}
                 />
               ) : (
-                <img src={url} alt="" className={`${post.image_urls.length > 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
+                <img src={url} alt="" className={`${post.image_urls.length loading="lazy" decoding="async"> 1 ? 'w-full h-full object-cover' : 'max-w-full block mx-auto'}`} />
               )}
               {idx === 3 && post.image_urls.length > 4 && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -212,7 +212,7 @@ function ReviewCard({ review }) {
     <div className="bg-white rounded-xl border border-[#E5E7EB] p-4">
       <div className="flex items-start gap-3 mb-3">
         {reviewerAvatar ? (
-          <img src={reviewerAvatar} alt={reviewerName} className="w-10 h-10 rounded-full object-cover" />
+          <img src={reviewerAvatar} alt={reviewerName} className="w-10 h-10 rounded-full object-cover" loading="lazy" decoding="async">
         ) : (
           <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
             <span className="text-sm font-semibold text-[#1877F2]">{reviewerName.charAt(0).toUpperCase()}</span>
@@ -786,8 +786,7 @@ export default function ClubPage() {
             <img
               src={venue.cover_photo_url}
               alt={venue.name}
-              className="w-full h-full object-cover"
-            />
+              className="w-full h-full object-cover" loading="lazy" decoding="async">
           )}
           {/* Back Button */}
           <button
@@ -815,7 +814,7 @@ export default function ClubPage() {
                 {/* Profile Photo */}
                 <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-xl border-4 border-white shadow-lg flex items-center justify-center -mt-16 md:-mt-20">
                   {venue.profile_photo_url ? (
-                    <img src={venue.profile_photo_url} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <img src={venue.profile_photo_url} alt="" className="w-full h-full object-cover rounded-lg" loading="lazy" decoding="async">
                   ) : (
                     <div className="w-full h-full bg-[#1877F2]/10 rounded-lg flex items-center justify-center">
                       <Users className="w-12 h-12 text-[#1877F2]" />
@@ -1087,7 +1086,7 @@ export default function ClubPage() {
                     <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
                       <div className="flex items-start gap-3">
                         {user.avatar_url ? (
-                          <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" decoding="async">
                         ) : (
                           <div className="w-10 h-10 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
                             <span className="text-sm font-semibold text-[#1877F2]">{(user.display_name || 'P').charAt(0).toUpperCase()}</span>
@@ -1111,7 +1110,7 @@ export default function ClubPage() {
                                       <Play className="w-6 h-6 text-white" />
                                     </div>
                                   ) : (
-                                    <img src={m.url} alt="" className="w-full h-full object-cover" />
+                                    <img src={m.url} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async">
                                   )}
                                   <button
                                     onClick={() => setPostMedia(prev => prev.filter((_, i) => i !== idx))}
@@ -1237,7 +1236,7 @@ export default function ClubPage() {
                     <div className="grid grid-cols-3 gap-2">
                       {photos.map((photo) => (
                         <div key={photo.id} className="aspect-square bg-[#F3F4F6] rounded-lg overflow-hidden">
-                          <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover" />
+                          <img src={photo.url} alt={photo.caption || ''} className="w-full h-full object-cover" loading="lazy" decoding="async">
                         </div>
                       ))}
                     </div>

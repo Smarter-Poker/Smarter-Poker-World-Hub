@@ -333,7 +333,7 @@ export default function LeaderboardDisplay() {
                     <div className="flex-1 flex items-center gap-3 min-w-0 pl-1">
                       <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden"
                         style={{ background: mc ? `${mc}20` : 'rgba(255,255,255,0.06)', border: mc ? `2px solid ${mc}50` : '2px solid rgba(255,255,255,0.05)' }}>
-                        {entry.avatar ? <img src={entry.avatar} alt="" className="w-full h-full object-cover" /> : <span className="text-sm font-bold" style={{ color: mc || 'rgba(255,255,255,0.25)' }}>{entry.name?.charAt(0)?.toUpperCase()}</span>}
+                        {entry.avatar ? <img src={entry.avatar} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async"> : <span className="text-sm font-bold" style={{ color: mc || 'rgba(255,255,255,0.25)' }}>{entry.name?.charAt(0)?.toUpperCase()}</span>}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">

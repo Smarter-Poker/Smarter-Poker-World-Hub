@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Trash2, Table2, Users, Loader2, Play, Square, X, Clock } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -455,14 +456,10 @@ export default function CommanderTablesPage() {
                               <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden' }}>
                                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                   {/* Table image */}
-                                  <img
-                                    src="/images/poker-table-black-gold.png"
-                                    alt="Poker Table"
-                                    style={{
+                                  <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
                                       position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                       objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                    }}
-                                  />
+                                    }} />
 
                                   {/* Game info in center */}
                                   <div style={{

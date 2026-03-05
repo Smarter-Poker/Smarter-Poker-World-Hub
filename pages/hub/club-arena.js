@@ -219,7 +219,7 @@ function FindPlayerModal({ onClose }) {
                                     overflow: 'hidden',
                                 }}>
                                     {p.avatar_url ? (
-                                        <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                     ) : (
                                         (p.display_name || p.username)?.[0]?.toUpperCase() || '?'
                                     )}
@@ -444,8 +444,7 @@ export default function ClubArenaPage() {
                         <img
                             src={IMAGES.actionBar}
                             alt="Action Bar"
-                            style={S.actionBarImage}
-                        />
+                            style={S.actionBarImage} loading="lazy" decoding="async">
                         {/* Clickable zones over the image */}
                         <button
                             onClick={() => user ? setShowCreateClub(true) : alert('Please sign in first')}
@@ -477,8 +476,7 @@ export default function ClubArenaPage() {
                         <img
                             src={IMAGES.sharkClub}
                             alt="SHARK CLUB"
-                            style={S.sharkClubImage}
-                        />
+                            style={S.sharkClubImage} loading="lazy" decoding="async">
                         {/* Dynamic stats overlay — matches ClubStatsPanel exactly */}
                         <div style={S.statsOverlay}>
                             <div style={{ ...S.statItem, left: '20%', transform: 'translateX(-50%)' }}>
@@ -554,8 +552,7 @@ export default function ClubArenaPage() {
                                     <img
                                         src={tile.image}
                                         alt=""
-                                        style={S.tileImage}
-                                    />
+                                        style={S.tileImage} loading="lazy" decoding="async">
                                 </div>
                             </Link>
                         ))}

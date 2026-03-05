@@ -16,6 +16,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1315,19 +1316,19 @@ export default function NewsHub() {
                                     className={`section-tab-img ${activeSection === 'news' ? 'active' : ''}`}
                                     onClick={() => setActiveSection('news')}
                                 >
-                                    <img src="/images/btn-news.png" alt="News" />
+                                    <Image src="/images/btn-news.png" alt="News" width={1024} height={604} />
                                 </button>
                                 <button
                                     className={`section-tab-img ${activeSection === 'videos' ? 'active' : ''}`}
                                     onClick={() => setActiveSection('videos')}
                                 >
-                                    <img src="/images/btn-latest-videos.png" alt="Latest Videos" />
+                                    <Image src="/images/btn-latest-videos.png" alt="Latest Videos" width={1024} height={604} />
                                 </button>
                                 <button
                                     className={`section-tab-img ${activeSection === 'reels' ? 'active' : ''}`}
                                     onClick={() => setActiveSection('reels')}
                                 >
-                                    <img src="/images/btn-reels.png" alt="Reels" />
+                                    <Image src="/images/btn-reels.png" alt="Reels" width={1024} height={604} />
                                 </button>
 
                                 {/* Refresh Button */}
@@ -1471,7 +1472,7 @@ export default function NewsHub() {
                                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                                 alt=""
                                                                 className="list-thumb"
-                                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                                onError={(e) = loading="lazy" decoding="async"> { e.target.src = FALLBACK_IMAGES.news; }}
                                                             />
                                                             <div className="list-content">
                                                                 <h4>{article.title}</h4>

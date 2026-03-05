@@ -5,6 +5,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -230,11 +231,7 @@ export default function SurvivalModePage() {
                         <div className="lobby">
                             {/* Full-bleed image lobby */}
                             <div className="lobby-image-wrapper" onClick={handleStart}>
-                                <img
-                                    src="/images/trivia/lobby-survival.jpg"
-                                    alt="Survival Mode - Start Challenge"
-                                    className="lobby-image"
-                                />
+                                <Image src="/images/trivia/lobby-survival.jpg" alt="Survival Mode - Start Challenge" width={686} height={1024} className="lobby-image" />
                             </div>
 
                             {leaderboard.length > 0 && (

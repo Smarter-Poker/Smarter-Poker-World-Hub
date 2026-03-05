@@ -186,7 +186,7 @@ function MemberRow({ member, isHost, onApprove, onRemove }) {
     <div className="flex items-center gap-3 p-4 border-b border-[#4A5E78] last:border-b-0">
       <div className="w-10 h-10 rounded-full bg-[#22D3EE]/10 flex items-center justify-center overflow-hidden">
         {member.avatar_url ? (
-          <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+          <img src={member.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" loading="lazy" decoding="async">
         ) : (
           <Users className="w-5 h-5 text-[#22D3EE]" />
         )}

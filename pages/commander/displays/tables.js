@@ -11,6 +11,7 @@
  * Lock state persists in localStorage across refreshes.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
@@ -601,8 +602,7 @@ export default function TablesDisplay() {
               <div style={{ width: '100%', maxWidth: 1100, position: 'relative' }}>
                 <div style={{ position: 'relative', width: '100%', paddingBottom: '52%', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-24%' }}>
-                    <img src="/images/poker-table-black-gold.png" alt="Poker Table"
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
+                    <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
 
                     {/* ── Center Info: Club Name + Game + Table ── */}
                     <div style={{ position: 'absolute', top: '48%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>

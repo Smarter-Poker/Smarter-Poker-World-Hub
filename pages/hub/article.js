@@ -208,7 +208,7 @@ export default function ArticlePage() {
                 {/* Hero Image */}
                 {article.image_url && (
                     <div className="hero-image">
-                        <img src={article.image_url} alt={article.title} />
+                        <img src={article.image_url} alt={article.title} loading="lazy" decoding="async">
                     </div>
                 )}
 
@@ -239,7 +239,7 @@ export default function ArticlePage() {
                             {related.map(item => (
                                 <Link key={item.id} href={`/hub/article?id=${item.id}`}>
                                     <div className="related-card">
-                                        <img src={item.image_url} alt="" />
+                                        <img src={item.image_url} alt="" loading="lazy" decoding="async">
                                         <span>{item.title}</span>
                                     </div>
                                 </Link>

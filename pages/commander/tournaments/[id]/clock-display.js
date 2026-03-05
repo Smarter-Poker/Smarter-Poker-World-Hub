@@ -542,7 +542,7 @@ export default function ClockDisplay() {
         {/* ===== HEADER ===== */}
         <div style={{ ...S.header, background: theme.headerBg, borderBottomColor: theme.accent + '26' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-            {displayOpts.logo_url && <img src={displayOpts.logo_url} alt="" style={{ height: 32 }} />}
+            {displayOpts.logo_url && <img src={displayOpts.logo_url} alt="" style={{ height: 32 }} loading="lazy" decoding="async">}
             <div style={{ ...S.headerTitle, fontSize: 44, textTransform: 'uppercase' }}>{t.name || 'Tournament'}</div>
           </div>
         </div>

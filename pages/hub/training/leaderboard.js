@@ -164,7 +164,7 @@ function LeaderboardEntry({ rank, username, avatarUrl, totalQuestions, correctAn
 
             <div style={styles.userSection}>
                 {avatarUrl && (
-                    <img src={avatarUrl} alt={username} style={styles.avatar} />
+                    <img src={avatarUrl} alt={username} style={styles.avatar} loading="lazy" decoding="async">
                 )}
                 <div>
                     <div style={styles.username}>

@@ -8,6 +8,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -638,11 +639,7 @@ export default function EndlessModePage() {
                                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(35, 116, 225, 0.4)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
-                                <img
-                                    src="/images/trivia/lobby-endless.jpg"
-                                    alt="Endless Mode - Start Challenge"
-                                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                                />
+                                <Image src="/images/trivia/lobby-endless.jpg" alt="Endless Mode - Start Challenge" width={686} height={1024} style={{ width: '100%', height: 'auto', display: 'block' }} />
                             </div>
                         )}
 

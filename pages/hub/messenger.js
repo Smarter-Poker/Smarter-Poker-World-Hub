@@ -10,6 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
@@ -2980,10 +2981,7 @@ export default function MessengerPage() {
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         {/* Jarvis Avatar */}
-                                        <img
-                                            src="/images/jarvis-avatar.png"
-                                            alt="Jarvis AI"
-                                            style={{
+                                        <Image src="/images/jarvis-avatar.png" alt="Jarvis AI" width={1024} height={682} style={{
                                                 width: 48,
                                                 height: 48,
                                                 borderRadius: '50%',
@@ -2991,8 +2989,7 @@ export default function MessengerPage() {
                                                 boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
                                                 border: '2px solid #00D4FF',
                                                 position: 'relative'
-                                            }}
-                                        />
+                                            }} />
                                         {/* Always Online Indicator */}
                                         <div style={{
                                             position: 'absolute',

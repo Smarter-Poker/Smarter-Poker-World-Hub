@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
@@ -91,7 +92,7 @@ export default function DownloadsPage() {
           {/* Header */}
           <div className="text-center mb-12">
             <div className="flex justify-center mb-4">
-              <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md rounded-lg" />
+              <Image src="/images/club-commander-logo.jpg" alt="Club Commander" width={1584} height={656} className="w-full max-w-md rounded-lg" />
             </div>
             <h1 className="text-4xl font-bold text-[#E4E6EB] mb-3">Club Commander Desktop</h1>
             <p className="text-[#B0B3B8] text-lg">The Fastest Way To Manage Your Poker Room</p>

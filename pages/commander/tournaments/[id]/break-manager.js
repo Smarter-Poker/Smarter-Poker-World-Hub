@@ -123,7 +123,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000;
 .customer-copy { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-top: 4mm; }
 </style></head><body>
 ${receipts.map(r => `<div class="card">
-  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" /></div>` : ''}
+  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" loading="lazy" decoding="async"></div>` : ''}
   <div class="venue-name">${r.venue_name || 'Club'}</div>
   ${(r.venue_city || r.venue_state) ? `<div class="venue-location">${[r.venue_city, r.venue_state].filter(Boolean).join(', ')}</div>` : ''}
   <div class="receipt-type">Tournament Seat Change Card</div>

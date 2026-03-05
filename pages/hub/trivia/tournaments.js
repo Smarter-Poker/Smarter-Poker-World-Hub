@@ -6,6 +6,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -494,11 +495,7 @@ export default function TournamentsPage() {
                         <div className="lobby">
                             {/* Lobby Image */}
                             <div className="lobby-image-wrapper">
-                                <img
-                                    src="/images/trivia/lobby-tournaments.jpg"
-                                    alt="Tournaments - Daily Bracket Competitions"
-                                    className="lobby-image"
-                                />
+                                <Image src="/images/trivia/lobby-tournaments.jpg" alt="Tournaments - Daily Bracket Competitions" width={686} height={1024} className="lobby-image" />
                             </div>
 
                             {/* Active Tournament with Bracket */}

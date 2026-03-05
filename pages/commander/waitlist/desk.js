@@ -11,6 +11,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
@@ -561,7 +562,7 @@ export default function WaitlistDesk() {
             <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
               <ArrowLeft size={16} color={c.accentColor} />
             </button>
-            {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} />}
+            {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} loading="lazy" decoding="async">}
             <span style={{ fontSize: '22px', fontWeight: 700, color: c.accentColor, letterSpacing: '0.5px', textTransform: 'uppercase', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {venueName || 'Poker Room'}
             </span>
@@ -1040,11 +1041,7 @@ export default function WaitlistDesk() {
 
                         {/* Oval Poker Table */}
                         <div style={{ position: 'relative', width: '100%', aspectRatio: '5 / 3' }}>
-                          <img
-                            src="/images/poker-table-black-gold.png"
-                            alt="Poker Table"
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }}
-                          />
+                          <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', zIndex: 0 }} />
 
                           {/* Center Info */}
                           <div style={{ position: 'absolute', top: '48%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center' }}>
@@ -1473,7 +1470,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
                 </div>
                 {draft.logoUrl && (
                   <div style={{ marginTop: '12px', padding: '16px', background: '#0a0a0a', borderRadius: '8px', border: '1px solid #333', textAlign: 'center' }}>
-                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e = loading="lazy" decoding="async"> { e.target.style.display = 'none'; }} />
                   </div>
                 )}
               </div>

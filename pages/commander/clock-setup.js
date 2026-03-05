@@ -235,7 +235,7 @@ export default function ClockSetup() {
                                 background: formDisplay.background_image_url ? `url(${formDisplay.background_image_url}) center/cover` : formTheme.background,
                                 borderRadius: 12, padding: 24, textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)',
                             }}>
-                                {formDisplay.logo_url && <img src={formDisplay.logo_url} alt="" style={{ height: 32, marginBottom: 8, opacity: 0.8 }} />}
+                                {formDisplay.logo_url && <img src={formDisplay.logo_url} alt="" style={{ height: 32, marginBottom: 8, opacity: 0.8 }} loading="lazy" decoding="async">}
                                 <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 3, marginBottom: 2, color: formTheme.accent }}>
                                     Level 8
                                 </p>
@@ -446,7 +446,7 @@ export default function ClockSetup() {
                                         src={formDisplay.logo_url}
                                         alt="Logo preview"
                                         style={{ height: 36, maxWidth: 200, objectFit: 'contain', borderRadius: 4 }}
-                                        onError={e => { e.target.style.display = 'none'; }}
+                                        onError={e = loading="lazy" decoding="async"> { e.target.style.display = 'none'; }}
                                     />
                                     <span style={{ fontSize: 11, color: '#64748B' }}>Logo preview</span>
                                 </div>

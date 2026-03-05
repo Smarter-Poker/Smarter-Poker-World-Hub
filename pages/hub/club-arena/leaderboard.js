@@ -3,6 +3,7 @@
    Facebook Dark Theme | Time Filters, Multiple Board Types, Member Rankings
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -352,7 +353,7 @@ export default function Leaderboard() {
                                     <div style={{ ...S.podiumPlace, width: '90px', minHeight: '140px' }}>
                                         <div style={{ ...S.podiumAvatar, background: FB.silver }}>
                                             {top3[1]?.profiles?.avatar_url ? (
-                                                <img src={top3[1].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Image src={top3[1].profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                             ) : ''}
                                         </div>
                                         <div style={S.podiumName}>{top3[1]?.profiles?.display_name || top3[1]?.profiles?.username || 'Player'}</div>
@@ -364,7 +365,7 @@ export default function Leaderboard() {
                                     <div style={{ ...S.podiumPlace, width: '100px', minHeight: '160px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '60px', height: '60px', background: FB.gold }}>
                                             {top3[0]?.profiles?.avatar_url ? (
-                                                <img src={top3[0].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Image src={top3[0].profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                             ) : ''}
                                         </div>
                                         <div style={S.podiumName}>{top3[0]?.profiles?.display_name || top3[0]?.profiles?.username || 'Player'}</div>
@@ -376,7 +377,7 @@ export default function Leaderboard() {
                                     <div style={{ ...S.podiumPlace, width: '85px', minHeight: '130px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '45px', height: '45px', background: FB.bronze }}>
                                             {top3[2]?.profiles?.avatar_url ? (
-                                                <img src={top3[2].profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <Image src={top3[2].profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                             ) : ''}
                                         </div>
                                         <div style={S.podiumName}>{top3[2]?.profiles?.display_name || top3[2]?.profiles?.username || 'Player'}</div>
@@ -406,7 +407,7 @@ export default function Leaderboard() {
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
                                                     {member.profiles?.avatar_url ? (
-                                                        <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <Image src={member.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                                     ) : ''}
                                                 </div>
                                                 <div style={S.playerInfo}>
@@ -445,7 +446,7 @@ export default function Leaderboard() {
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
                                                     {member.profiles?.avatar_url ? (
-                                                        <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <Image src={member.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
                                                     ) : ''}
                                                 </div>
                                                 <div style={S.playerInfo}>

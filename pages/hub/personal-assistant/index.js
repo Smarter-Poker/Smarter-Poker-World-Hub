@@ -8,6 +8,7 @@
  */
 
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
@@ -105,12 +106,7 @@ export default function PersonalAssistantPage() {
            ═══════════════════════════════════════════════════════════ */}
         <div style={S.frameContainer}>
           {/* The metal frame image — strictly controls container height/width */}
-          <img
-            src="/images/personal-assistant-frame.png"
-            alt="Strategy Hub"
-            style={S.frameImage}
-            draggable={false}
-          />
+          <Image src="/images/personal-assistant-frame.png" alt="Strategy Hub" width={961} height={1024} />
 
           {/* ── HOTSPOT: Virtual Sandbox Card (entire left panel) ──── */}
           <div
@@ -253,12 +249,7 @@ export default function PersonalAssistantPage() {
               top: '81.2%', left: '80.8%', width: '8.2%', height: '8.2%',
             }}
           >
-            <img
-              src="/images/jarvis-avatar-circle.png"
-              alt="Jarvis AI"
-              style={S.jarvisImg}
-              draggable={false}
-            />
+            <Image src="/images/jarvis-avatar-circle.png" alt="Jarvis AI" width={200} height={200} />
           </div>
         </div>
 

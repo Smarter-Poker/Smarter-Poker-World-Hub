@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
@@ -1048,7 +1049,7 @@ export default function VideoLibraryPage() {
                                         justifyContent: 'center',
                                         padding: 4,
                                     }}>
-                                        <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" decoding="async">
                                     </div>
                                 )}
                                 {source.name}
@@ -1102,8 +1103,7 @@ export default function VideoLibraryPage() {
                                             <img
                                                 src={getThumbnail(video.videoId)}
                                                 alt={video.title}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                            />
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                             {/* Resume play button */}
                                             <div style={{
                                                 position: 'absolute',
@@ -1193,7 +1193,7 @@ export default function VideoLibraryPage() {
                                         height: '100%',
                                         objectFit: 'cover',
                                     }}
-                                    onLoad={(e) => {
+                                    onLoad={(e) = loading="lazy" decoding="async"> {
                                         // YouTube returns 120x90 placeholder when maxres not available
                                         if (e.target.naturalWidth <= 120 && !e.target.src.includes('hqdefault')) {
                                             e.target.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
@@ -1330,7 +1330,7 @@ export default function VideoLibraryPage() {
                                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                                             }}>
                                                 <img
-                                                    src={SOURCES.find(s => s.id === video.source)?.logo}
+                                                    src={SOURCES.find(s = loading="lazy" decoding="async"> s.id === video.source)?.logo}
                                                     alt=""
                                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                                 />
@@ -1455,7 +1455,7 @@ export default function VideoLibraryPage() {
                             justifyContent: 'center',
                             border: '1px solid rgba(255,255,255,0.2)',
                         }}>
-                            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
+                            <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
                         </div>
                         {aiAnalysisLoading ? (
                             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1592,17 +1592,13 @@ export default function VideoLibraryPage() {
 
                                 {/* Jarvis icon + insight content */}
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                                    <img
-                                        src="/images/jarvis-avatar.png"
-                                        alt="Jarvis"
-                                        style={{
+                                    <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
                                             width: 32,
                                             height: 32,
                                             borderRadius: '50%',
                                             border: '2px solid rgba(0,212,255,0.5)',
                                             flexShrink: 0,
-                                        }}
-                                    />
+                                        }} />
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         {/* Timestamp + Type */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -1666,16 +1662,12 @@ export default function VideoLibraryPage() {
                                 gap: 12,
                                 boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                             }}>
-                                <img
-                                    src="/images/jarvis-avatar.png"
-                                    alt="Jarvis"
-                                    style={{
+                                <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
                                         width: 32,
                                         height: 32,
                                         borderRadius: '50%',
                                         animation: 'pulse 1s infinite',
-                                    }}
-                                />
+                                    }} />
                                 <span style={{ fontSize: 13 }}>Jarvis Analyzing Video...</span>
                             </div>
                         )}
@@ -1719,11 +1711,7 @@ export default function VideoLibraryPage() {
                                         justifyContent: 'center',
                                     }}
                                 >×</button>
-                                <img
-                                    src="/images/jarvis-avatar.png"
-                                    alt="Jarvis"
-                                    style={{ width: 28, height: 28, borderRadius: '50%' }}
-                                />
+                                <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 28, height: 28, borderRadius: '50%' }} />
                                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }}>
                                     Insights will appear at key moments...
                                 </span>
@@ -1786,7 +1774,7 @@ export default function VideoLibraryPage() {
                                 width: '100%',
                                 padding: '0 16px',
                             }}>
-                                <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 28, height: 28, borderRadius: '50%' }} />
+                                <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 28, height: 28, borderRadius: '50%' }} />
                                 <div style={{ flex: 1 }}>
                                     <span style={{ color: '#00D4FF', fontSize: 13, fontWeight: 600 }}>Jarvis Insights</span>
                                     {activeInsight && (
@@ -1846,7 +1834,7 @@ export default function VideoLibraryPage() {
                                         justifyContent: 'center',
                                         boxShadow: '0 0 10px rgba(0, 212, 255, 0.4), inset 0 2px 4px rgba(0,0,0,0.5)',
                                     }}>
-                                        <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+                                        <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
                                     </div>
                                     <div>
                                         <h3 style={{
@@ -1917,16 +1905,12 @@ export default function VideoLibraryPage() {
                                         justifyContent: 'center',
                                         animation: 'pulse 2s ease-in-out infinite',
                                     }}>
-                                        <img
-                                            src="/images/jarvis-avatar.png"
-                                            alt="Jarvis"
-                                            style={{
+                                        <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
                                                 width: 48,
                                                 height: 48,
                                                 borderRadius: '50%',
                                                 objectFit: 'cover'
-                                            }}
-                                        />
+                                            }} />
                                     </div>
                                     <p style={{
                                         color: '#00D4FF',
@@ -2286,7 +2270,7 @@ export default function VideoLibraryPage() {
                                         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
                                     }}>
                                         <img
-                                            src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
+                                            src={SOURCES.find(s = loading="lazy" decoding="async"> s.id === selectedVideo.source)?.logo}
                                             alt=""
                                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                         />

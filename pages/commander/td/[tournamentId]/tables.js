@@ -6,6 +6,7 @@
  * Tap table -> detail modal with player list, chip counts, break button
  */
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
@@ -127,7 +128,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000;
 .customer-copy { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-top: 4mm; }
 </style></head><body>
 ${receipts.map(r => `<div class="card">
-  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" /></div>` : ''}
+  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" loading="lazy" decoding="async"></div>` : ''}
   <div class="venue-name">${r.venue_name || 'Club'}</div>
   ${(r.venue_city || r.venue_state) ? `<div class="venue-location">${[r.venue_city, r.venue_state].filter(Boolean).join(', ')}</div>` : ''}
   <div class="receipt-type">Tournament Seat Change Card</div>
@@ -357,7 +358,7 @@ ${receipts.map(r => `<div class="card">
                       <div key={pos.seat} className="absolute flex flex-col items-center"
                         style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%, -50%)' }}>
                         {player?.avatar_url ? (
-                          <img src={player.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-white/30" />
+                          <Image src={player.avatar_url} alt="" width={28} height={28} className="w-7 h-7 rounded-full object-cover border-2 border-white/30" />
                         ) : (
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${player ? 'bg-[#1877F2] text-white' : 'bg-[#3A3B3C] text-[#B0B3B8]'
                             }`}>
@@ -384,7 +385,7 @@ ${receipts.map(r => `<div class="card">
                       <div key={player.entry_id}
                         className="flex items-center gap-3 px-3 py-3 bg-[#3A3B3C]/50 rounded-xl">
                         {player.avatar_url ? (
-                          <img src={player.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover border-2 border-[#1877F2]/40 flex-shrink-0" />
+                          <Image src={player.avatar_url} alt="" width={28} height={28} className="w-7 h-7 rounded-full object-cover border-2 border-[#1877F2]/40 flex-shrink-0" />
                         ) : (
                           <span className="w-7 h-7 rounded-full bg-[#1877F2]/20 text-[#1877F2] flex items-center justify-center text-xs font-bold flex-shrink-0">
                             {player.seat_number}

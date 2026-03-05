@@ -105,8 +105,7 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
             <img
                 src={src || '/default-avatar.png'}
                 alt={name || 'User'}
-                style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
-            />
+                style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" decoding="async">
             {online !== undefined && <div style={{ position: 'absolute', bottom: 0, right: 0, width: size * 0.28, height: size * 0.28, borderRadius: '50%', background: online ? C.green : '#ccc', border: '2px solid white' }} />}
         </div>
     );
@@ -272,8 +271,7 @@ function VideoThumbnail({ url, style = {}, onValidated }) {
                     ...style
                 }}
                 onLoad={handleLoad}
-                onError={handleError}
-            />
+                onError={handleError} loading="lazy" decoding="async">
         </>
     );
 }
@@ -479,8 +477,7 @@ function LinkPreviewCard({ url }) {
                                 height: '100%',
                                 objectFit: 'cover',
                                 objectPosition: 'center center'
-                            }}
-                        />
+                            }} loading="lazy" decoding="async">
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'white', fontSize: 48 }}>🔗</div>
                     )}
@@ -612,8 +609,7 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     <img
                         src={author?.avatar || '/default-avatar.png'}
                         alt={author?.name}
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }}
-                    />
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }} loading="lazy" decoding="async">
                     <div>
                         <div style={{ fontWeight: 600, fontSize: 16 }}>{author?.name || 'Player'}</div>
                         <div style={{ fontSize: 12, opacity: 0.8 }}>Smarter.Poker</div>
@@ -1125,7 +1121,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                 {m.type === 'video' ? (
                                     <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                 )}
                                 <button
                                     onClick={() => setMedia(prev => prev.filter((_, idx) => idx !== i))}
@@ -1190,8 +1186,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                                 position: 'absolute',
                                                 top: 0,
                                                 left: 0
-                                            }}
-                                        />
+                                            }} loading="lazy" decoding="async">
                                     ) : (
                                         <span style={{ fontSize: 48, opacity: 0.5 }}>
                                             {linkPreview.type === 'video' ? '' : '🔗'}
@@ -1519,7 +1514,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                 onClick={onOpenArticle}
                             />
                         ) : (
-                            <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} />
+                            <img src={post.mediaUrls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} loading="lazy" decoding="async">
                         )
                     ) : post.mediaUrls.length === 2 ? (
                         // 2 media - side by side
@@ -1529,7 +1524,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                                     {post.contentType === 'video' && i === 0 ? (
                                         <video controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={url} />
                                     ) : (
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                     )}
                                 </div>
                             ))}
@@ -1538,12 +1533,12 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         // 3 media - 1 large + 2 small
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 2 }}>
                             <div style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={post.mediaUrls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 {post.mediaUrls.slice(1).map((url, i) => (
                                     <div key={i} style={{ flex: 1, overflow: 'hidden' }}>
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                     </div>
                                 ))}
                             </div>
@@ -1553,7 +1548,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                             {post.mediaUrls.map((url, i) => (
                                 <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                 </div>
                             ))}
                         </div>
@@ -1563,14 +1558,14 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, marginBottom: 2 }}>
                                 {post.mediaUrls.slice(0, 2).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                     </div>
                                 ))}
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
                                 {post.mediaUrls.slice(2, 5).map((url, i) => (
                                     <div key={i} style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
-                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                         {i === 2 && post.mediaUrls.length > 5 && (
                                             <div style={{
                                                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
@@ -2283,7 +2278,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             }}
                         >
                             {logoUrl ? (
-                                <img src={logoUrl} alt={page.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                <img src={logoUrl} alt={page.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} loading="lazy" decoding="async">
                             ) : (
                                 (page.name || 'C')[0].toUpperCase()
                             )}
@@ -2424,7 +2419,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         {m.type === 'video' ? (
                                             <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
-                                            <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                         )}
                                         <button onClick={() => setPostMedia(prev => prev.filter((_, j) => j !== i))} style={{
                                             position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%',
@@ -2530,7 +2525,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                             {photos.map((photo, i) => (
                                 <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#1a1a2e' }}>
-                                    <img src={photo.url} alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
+                                    <img src={photo.url} alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e = loading="lazy" decoding="async"> { e.target.style.display = 'none'; }} />
                                     {photo.caption && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '16px 8px 6px', fontSize: 11, color: '#fff' }}>{photo.caption}</div>}
                                     <button onClick={() => {
                                         const updated = photos.filter((_, j) => j !== i);
@@ -2836,14 +2831,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
                                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                                 {/* Table image fills entire container */}
-                                                <img
-                                                    src="/images/poker-table-black-gold.png"
-                                                    alt="Poker Table"
-                                                    style={{
+                                                <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
                                                         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                                         objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                                    }}
-                                                />
+                                                    } />
 
                                                 {/* Game info in center of table */}
                                                 <div style={{
@@ -2948,7 +2939,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                                             }}>
                                                                 {isOccupied ? (
                                                                     avatarUrl ? (
-                                                                        <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                                                        <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} loading="lazy" decoding="async">
                                                                     ) : (
                                                                         <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                                     )
@@ -3347,14 +3338,10 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
                                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                         {/* Table image fills entire container */}
-                                        <img
-                                            src="/images/poker-table-black-gold.png"
-                                            alt="Poker Table"
-                                            style={{
+                                        <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
                                                 position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                                 objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                            }}
-                                        />
+                                            } />
 
                                         {/* Game info in center of table */}
                                         <div style={{
@@ -3492,7 +3479,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                             isMe ? (
                                                                 <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>YOU</span>
                                                             ) : avatarUrl ? (
-                                                                <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                                                <img src={avatarUrl} alt={firstName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} loading="lazy" decoding="async">
                                                             ) : (
                                                                 <span style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{firstName.charAt(0).toUpperCase()}</span>
                                                             )
@@ -3806,7 +3793,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                                 <div style={{ padding: '10px 12px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                                         {page.avatar_url ? (
-                                            <img src={page.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} />
+                                            <img src={page.avatar_url} alt="" style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover' }} loading="lazy" decoding="async">
                                         ) : (
                                             <div style={{
                                                 width: 36, height: 36, borderRadius: 8,
@@ -5224,7 +5211,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <img src="/icons/friends.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <Image src="/icons/friends.png" alt="" width={128} height={82} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
                     {/* Club Arena - Purple columns SVG (fallback) */}
@@ -5245,7 +5232,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <img src="/icons/diamond.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <Image src="/icons/diamond.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
                     </Link>
                     {/* Tournaments - Custom AI icon */}
@@ -5253,7 +5240,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <img src="/icons/tournaments.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <Image src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
                     {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
@@ -5275,7 +5262,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <img src="/icons/gto.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <Image src="/icons/gto.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
                     </Link>
                     {/* Reels - Custom AI icon */}
@@ -5283,7 +5270,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <img src="/icons/reels.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <Image src="/icons/reels.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
                     </Link>
                 </div>
@@ -5571,8 +5558,7 @@ export default function SocialMediaPage() {
                                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                                     <img
                                                         src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
-                                                        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }}
-                                                    />
+                                                        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }} loading="lazy" decoding="async">
                                                     <div style={{
                                                         position: 'absolute', bottom: -2, right: -2,
                                                         width: 24, height: 24, borderRadius: '50%',
@@ -5663,7 +5649,7 @@ export default function SocialMediaPage() {
                                                     boxShadow: '0 1px 4px rgba(0,0,0,0.1)', overflow: 'hidden'
                                                 }}>
                                                     {(myClubPage.metadata || {}).logo_url ? (
-                                                        <img src={myClubPage.metadata.logo_url} alt={myClubPage.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <img src={myClubPage.metadata.logo_url} alt={myClubPage.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" decoding="async">
                                                     ) : (
                                                         (myClubPage.name || 'C')[0].toUpperCase()
                                                     )}

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
@@ -2244,7 +2245,7 @@ export default function PokerNearMePage() {
 
                     {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
                     <div className="pnm-hud-panel">
-                        <img src="/images/poker-near-me-hud-frame-clean.png" alt="" className="hud-bg-frame" aria-hidden="true" />
+                        <Image src="/images/poker-near-me-hud-frame-clean.png" alt="" width={1024} height={367} className="hud-bg-frame" />
 
                         <div className="hud-content-overlay">
                             {/* SEARCH BAR & BUTTON */}

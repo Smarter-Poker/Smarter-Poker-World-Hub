@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -236,7 +237,7 @@ export default function RegisterPage() {
       <div className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Logo */}
         <div className="text-center mb-6">
-          <img src="/images/club-commander-logo.jpg" alt="Club Commander" className="w-full max-w-md mx-auto rounded-lg" />
+          <Image src="/images/club-commander-logo.jpg" alt="Club Commander" width={1584} height={656} className="w-full max-w-md mx-auto rounded-lg" />
           <p className="text-[#B0B3B8] mt-4">Set Up Your Poker Room In Minutes - 14-Day Free Trial</p>
         </div>
 

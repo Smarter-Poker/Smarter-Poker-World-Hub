@@ -8,6 +8,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -65,7 +66,7 @@ export default function JarvisDashboard() {
 
                     {loading ? (
                         <div style={styles.loading}>
-                            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 48, height: 48, borderRadius: '50%' }} />
+                            <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{ width: 48, height: 48, borderRadius: '50%' }} />
                             <p>Analyzing Your Training Data...</p>
                         </div>
                     ) : !user ? (

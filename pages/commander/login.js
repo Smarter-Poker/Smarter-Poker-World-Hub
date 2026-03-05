@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
@@ -192,11 +193,7 @@ export default function CommanderLogin() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img
-            src="/images/club-commander-logo.jpg"
-            alt="Club Commander"
-            className="w-full max-w-sm mx-auto rounded-lg"
-          />
+          <Image src="/images/club-commander-logo.jpg" alt="Club Commander" width={1584} height={656} className="w-full max-w-sm mx-auto rounded-lg" />
         </div>
 
         {/* Login Form */}

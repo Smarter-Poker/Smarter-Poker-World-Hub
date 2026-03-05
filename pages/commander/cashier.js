@@ -11,6 +11,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   QrCode, Clock, CreditCard, Loader2, Search,
@@ -1115,12 +1116,7 @@ export default function Cashier() {
             {/* ═══ METAL PANEL IMAGE WITH CLICKABLE HOTSPOTS ═══ */}
             <div style={{ position: 'relative', width: '100%', margin: '0 auto' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/commander/cashier-panel.jpg"
-                alt="Cashier Panel"
-                style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }}
-                draggable={false}
-              />
+              <Image src="/images/commander/cashier-panel.jpg" alt="Cashier Panel" width={1040} height={992} style={{ width: '100%', height: 'auto', display: 'block', userSelect: 'none', pointerEvents: 'none' }} />
 
               {/* Hotspot 1: Scan Player Card / Search */}
               <button
@@ -1537,12 +1533,7 @@ export default function Cashier() {
                     aria-label="Print New Card"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="/images/commander/print-new-card.png"
-                      alt="Print New Card"
-                      style={{ width: '480px', height: 'auto', display: 'block', userSelect: 'none' }}
-                      draggable={false}
-                    />
+                    <Image src="/images/commander/print-new-card.png" alt="Print New Card" width={640} height={640} style={{ width: '480px', height: 'auto', display: 'block', userSelect: 'none' }} />
                   </button>
                 </div>
               </div>
@@ -1619,12 +1610,7 @@ export default function Cashier() {
             aria-label="Print New Card"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/images/commander/print-new-card.png"
-              alt="Print New Card"
-              style={{ width: '680px', height: 'auto', display: 'block', userSelect: 'none' }}
-              draggable={false}
-            />
+            <Image src="/images/commander/print-new-card.png" alt="Print New Card" width={640} height={640} style={{ width: '680px', height: 'auto', display: 'block', userSelect: 'none' }} />
           </button>
         </div>
 
@@ -1767,7 +1753,7 @@ export default function Cashier() {
     <div class="tier">${tier} Member</div>
     <div class="id">ID: ${memberId}</div>
   </div>
-  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR" /></div>
+  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR" loading="lazy" decoding="async"></div>
 </div>
 </body></html>`);
                       w.document.close();

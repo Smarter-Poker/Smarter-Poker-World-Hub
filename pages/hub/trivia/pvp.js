@@ -6,6 +6,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -714,11 +715,7 @@ export default function PvPPage() {
                                 onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(0, 212, 255, 0.4)'; }}
                                 onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
-                                <img
-                                    src="/images/trivia/lobby-pvp.jpg"
-                                    alt="1v1 Battle - Start Challenge"
-                                    style={{ width: '100%', height: 'auto', display: 'block' }}
-                                />
+                                <Image src="/images/trivia/lobby-pvp.jpg" alt="1v1 Battle - Start Challenge" width={686} height={1024} style={{ width: '100%', height: 'auto', display: 'block' }} />
                             </div>
                         </div>
                     )}

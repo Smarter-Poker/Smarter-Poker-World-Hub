@@ -5,6 +5,7 @@
  * Tap player -> action sheet: Move, Eliminate, Rebuy, Add-on, Update Chips, Seat Change
  */
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
@@ -191,7 +192,7 @@ body { font-family: Arial, Helvetica, sans-serif; background: #fff; color: #000;
 .customer-copy { text-align: center; font-size: 13px; font-weight: bold; letter-spacing: 1px; margin-top: 4mm; }
 </style></head><body>
 ${receipts.map(r => `<div class="card">
-  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" /></div>` : ''}
+  ${r.venue_logo_url ? `<div class="logo-wrap"><img src="${r.venue_logo_url}" alt="${r.venue_name}" loading="lazy" decoding="async"></div>` : ''}
   <div class="venue-name">${r.venue_name || 'Club'}</div>
   ${(r.venue_city || r.venue_state) ? `<div class="venue-location">${[r.venue_city, r.venue_state].filter(Boolean).join(', ')}</div>` : ''}
   <div class="receipt-type">Tournament Seat Change Card</div>
@@ -370,8 +371,7 @@ ${receipts.map(r => `<div class="card">
               className="w-full flex items-center gap-3 px-4 py-3 bg-[#242526] rounded-xl border border-[#3A3B3C] active:bg-[#3A3B3C] text-left"
             >
               {player.avatar_url ? (
-                <img src={player.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2"
-                  style={{ borderColor: player.status === 'active' ? '#1877F2' : player.status === 'eliminated' ? '#EF4444' : '#B0B3B8' }} />
+                <Image src={player.avatar_url} alt="" width={36} height={36} className="w-9 h-9 rounded-full object-cover flex-shrink-0 border-2" />
               ) : (
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${player.status === 'active' ? 'bg-[#1877F2]/20 text-[#1877F2]' :
                   player.status === 'eliminated' ? 'bg-[#EF4444]/20 text-[#EF4444]' :

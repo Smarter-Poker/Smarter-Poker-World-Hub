@@ -110,7 +110,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
     return (
         <div style={{ position: 'relative', flexShrink: 0 }}>
             {src ? (
-                <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+                <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" decoding="async">
             ) : (
                 <div style={{ width: size, height: size, borderRadius: '50%', background: bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: size * 0.4 }}>
                     {initials}
@@ -270,7 +270,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
             {!isOwn && (showAvatar ? <Avatar src={sender?.avatar_url} name={sender?.username || sender?.display_name} size={28} showOnline={false} /> : <div style={{ width: 28 }} />)}
 
             {imageMatch ? (
-                <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '70%', borderRadius: 12, cursor: 'pointer' }} onClick={() => window.open(imageMatch[1], '_blank')} />
+                <img src={imageMatch[1]} alt="Shared Image" style={{ maxWidth: '70%', borderRadius: 12, cursor: 'pointer' }} onClick={() = loading="lazy" decoding="async"> window.open(imageMatch[1], '_blank')} />
             ) : videoMatch ? (
                 <video src={videoMatch[1]} controls style={{ maxWidth: '70%', borderRadius: 12 }} />
             ) : (
