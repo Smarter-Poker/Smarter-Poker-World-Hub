@@ -4,6 +4,7 @@
    Last Updated: 2026-01-29 - Avatar race condition fix deployed
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';

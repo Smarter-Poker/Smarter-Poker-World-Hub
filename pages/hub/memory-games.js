@@ -3,6 +3,7 @@
    Full Video Game Experience with Pressure, Combos, and Diamond Economy
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';

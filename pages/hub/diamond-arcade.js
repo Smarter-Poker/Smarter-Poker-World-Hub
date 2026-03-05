@@ -961,12 +961,12 @@ const styles = {
     balanceText: {
         color: '#e5e5e5',
         fontSize: '14px',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
     streakText: {
         color: '#fbbf24',
         fontSize: '14px',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontWeight: 600,
     },
 
@@ -1029,7 +1029,7 @@ const styles = {
         animation: 'shard-float 2s ease-in-out infinite',
     },
     jackpotAmount: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '56px',
         fontWeight: 900,
         background: 'linear-gradient(180deg, #93c5fd 0%, #60a5fa 30%, #3b82f6 60%, #2563eb 100%)',
@@ -1042,7 +1042,7 @@ const styles = {
     jackpotTimer: {
         color: '#9ca3af',
         fontSize: '14px',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
 
     // Section Headers
@@ -1073,7 +1073,7 @@ const styles = {
         textShadow: '0 0 10px rgba(218, 165, 32, 0.5)',
     },
     resetTimer: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '11px',
         color: '#B8860B',
         marginLeft: '10px',
@@ -1145,7 +1145,7 @@ const styles = {
         width: '100%',
     },
     gamePrice: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
@@ -1160,7 +1160,7 @@ const styles = {
         fontSize: '9px',
         fontWeight: 800,
         color: '#fff',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         textTransform: 'uppercase',
         boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
         letterSpacing: '0.5px',
@@ -1215,7 +1215,7 @@ const styles = {
         flexWrap: 'wrap',
     },
     challengePrize: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
@@ -1234,7 +1234,7 @@ const styles = {
         borderRadius: '6px',
         padding: '10px 20px',
         color: '#fff',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '12px',
         fontWeight: 700,
         cursor: 'pointer',
@@ -1297,7 +1297,7 @@ const styles = {
         marginBottom: '10px',
     },
     duelPrice: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '16px',
         fontWeight: 700,
         color: '#fbbf24',
@@ -1309,7 +1309,7 @@ const styles = {
         borderRadius: '6px',
         padding: '10px 20px',
         color: '#fff',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '11px',
         fontWeight: 600,
         cursor: 'pointer',
@@ -1340,19 +1340,19 @@ const styles = {
     statLabel: {
         color: '#9ca3af',
         fontSize: '11px',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
     statValue: {
         color: '#22c55e',
         fontSize: '14px',
         fontWeight: 700,
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
     statBonus: {
         color: '#ef4444',
         fontSize: '11px',
         fontWeight: 600,
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
     statDivider: {
         color: '#4b5563',
@@ -1406,13 +1406,13 @@ const styles = {
         gap: '20px',
     },
     timerDisplay: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '18px',
         color: '#ef4444',
         fontWeight: 700,
     },
     scoreDisplay: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '18px',
         color: '#22c55e',
         fontWeight: 700,
@@ -1443,7 +1443,7 @@ const styles = {
         color: '#9ca3af',
         fontSize: '12px',
         marginBottom: '10px',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
     handCards: {
         display: 'flex',
@@ -1481,7 +1481,7 @@ const styles = {
         color: '#e5e5e5',
         fontSize: '16px',
         cursor: 'pointer',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
     },
 
     // Result Styles
@@ -1503,7 +1503,7 @@ const styles = {
         marginBottom: '30px',
     },
     prizeDisplay: {
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '32px',
         fontWeight: 700,
         color: '#22c55e',
@@ -1515,7 +1515,7 @@ const styles = {
         borderRadius: '10px',
         padding: '15px 40px',
         color: '#fff',
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         fontSize: '16px',
         fontWeight: 700,
         cursor: 'pointer',

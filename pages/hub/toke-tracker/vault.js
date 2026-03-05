@@ -102,7 +102,7 @@ const s = {
         transition: 'background 0.2s',
     },
     title: {
-        fontFamily: "'Orbitron', 'Inter', sans-serif",
+        fontFamily: "var(--font-orbitron), 'Inter', sans-serif" ,
         fontSize: 24,
         fontWeight: 700,
         letterSpacing: '0.08em',

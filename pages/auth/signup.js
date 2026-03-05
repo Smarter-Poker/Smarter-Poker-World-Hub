@@ -5,6 +5,7 @@
    Last Deploy: 2026-01-12 01:18:00 - OTP Code Input Active
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';

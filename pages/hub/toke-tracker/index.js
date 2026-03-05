@@ -3,6 +3,7 @@
  * 4 clickable icon cards routing to dedicated sub-pages
  */
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -134,7 +135,7 @@ const s = {
         padding: '20px 16px 40px',
     },
     pageTitle: {
-        fontFamily: "'Orbitron', 'Inter', sans-serif",
+        fontFamily: "var(--font-orbitron), 'Inter', sans-serif" ,
         fontSize: 28,
         fontWeight: 800,
         letterSpacing: '0.08em',
@@ -201,7 +202,7 @@ const s = {
         textTransform: 'uppercase',
     },
     cardSubtitle: {
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "var(--font-inter), sans-serif" ,
         fontSize: 12,
         color: '#b0b3b8',
         margin: 0,

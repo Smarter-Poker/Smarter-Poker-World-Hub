@@ -2439,7 +2439,7 @@ const styles = {
     boxShadow: '0 0 10px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)',
   },
   proToolsTitle: {
-    fontFamily: "'Orbitron', sans-serif",
+    fontFamily: "var(--font-orbitron), sans-serif" ,
     fontSize: 20,
     fontWeight: 700,
     letterSpacing: '0.15em',

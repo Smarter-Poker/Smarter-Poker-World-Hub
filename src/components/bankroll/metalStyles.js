@@ -178,7 +178,7 @@ export const metalStyles = {
         alignItems: 'center',
         gap: 10,
         marginBottom: 16,
-        fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
+        fontFamily: "var(--font-orbitron), 'Rajdhani', sans-serif" ,
         fontSize: 14,
         fontWeight: 700,
         letterSpacing: '0.1em',
@@ -253,7 +253,7 @@ export const metalStyles = {
     statValue: {
         fontSize: 28,
         fontWeight: 800,
-        fontFamily: "'Orbitron', sans-serif",
+        fontFamily: "var(--font-orbitron), sans-serif" ,
         color: '#fff',
         textShadow: `0 0 10px ${METAL.cyanGlow}`,
     },

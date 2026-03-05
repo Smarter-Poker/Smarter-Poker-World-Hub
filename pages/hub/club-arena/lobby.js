@@ -77,8 +77,8 @@ export default function ClubLobby() {
             if (activeFilter === 'sng' && table.table_type !== 'sng') return false;
         }
         // Search filter
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
+        if (debouncedSearchQuery.trim()) {
+            const q = debouncedSearchQuery.toLowerCase();
             const name = (table.name || '').toLowerCase();
             const stakes = (table.stakes || '').toLowerCase();
             const variant = (table.game_variant || '').toLowerCase();

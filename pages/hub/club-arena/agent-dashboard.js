@@ -608,7 +608,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
   const debouncedSearch = useDebounce(search, 300);
     const filtered = (players || []).filter(p => {
         const name = (p.profile?.display_name || p.nickname || '').toLowerCase();
-        return name.includes(search.toLowerCase());
+        return name.includes(debouncedSearch.toLowerCase());
     });
 
     return (
@@ -619,7 +619,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
             />
             {filtered.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
-                    {search ? 'No players match search' : 'No players in your downline yet'}
+                    {debouncedSearch ? 'No players match search' : 'No players in your downline yet'}
                 </div>
             ) : filtered.map((p, i) => (
                 <div key={i} style={{ ...cardStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>

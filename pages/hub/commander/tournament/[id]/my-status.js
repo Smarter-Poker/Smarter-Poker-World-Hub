@@ -7,6 +7,7 @@
  * - Self-report their chip count (WSOP+ feature)
  * - See tournament info (current level, blinds, players remaining)
  */
+import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../../../src/lib/supabase';

@@ -322,7 +322,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
     return (
         <CommanderLayout title="Tournament Registration" backHref="/commander/cashier">
             <SEOHead title="Commander — Tournament Registration" description="Register players for tournaments." noindex={true} />
-            <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', -apple-system, sans-serif", padding: '16px' }}>
+            <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), -apple-system, sans-serif" , padding: '16px' }}>
 
                 {/* Message Toast */}
                 {message && (

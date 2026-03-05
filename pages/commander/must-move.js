@@ -131,7 +131,7 @@ export default function MustMoveManager() {
         description="Club Commander Must-Move Games Management."
         noindex={true}
       />
-      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), sans-serif" }}>
         {/* Header */}
         <div style={{
           background: '#242526', borderBottom: '1px solid #3A3B3C',

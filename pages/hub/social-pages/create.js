@@ -108,7 +108,7 @@ export default function CreateSocialPage() {
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingTop: 60,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 <div style={{ maxWidth: 600, margin: '0 auto', padding: 16 }}>
                     {/* Back */}

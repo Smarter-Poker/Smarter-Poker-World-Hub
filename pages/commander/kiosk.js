@@ -8,6 +8,7 @@
  * - New Member: popup directing to staff for membership registration
  * Designed for tablet at room entrance, large touch targets
  */
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -596,8 +597,7 @@ export default function MembershipKiosk() {
                 fontWeight: '700',
                 color: '#fff',
                 marginBottom: '16px',
-                fontFamily: "'Inter', sans-serif"
-              }}>
+                fontFamily: "var(--font-inter), sans-serif" }}>
                 Welcome!
               </h2>
 
@@ -606,8 +606,7 @@ export default function MembershipKiosk() {
                 color: '#E4E6EB',
                 lineHeight: '1.5',
                 marginBottom: '32px',
-                fontFamily: "'Inter', sans-serif"
-              }}>
+                fontFamily: "var(--font-inter), sans-serif" }}>
                 Please See{' '}
                 <span style={{
                   color: '#1877F2',
@@ -629,8 +628,7 @@ export default function MembershipKiosk() {
                   fontSize: '18px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  fontFamily: "'Inter', sans-serif"
-                }}
+                  fontFamily: "var(--font-inter), sans-serif" }}
               >
                 Got It
               </button>
@@ -660,8 +658,7 @@ export default function MembershipKiosk() {
                 alignItems: 'center',
                 gap: '8px',
                 zIndex: 50,
-                fontFamily: "'Inter', sans-serif"
-              }}>
+                fontFamily: "var(--font-inter), sans-serif" }}>
               ← Back
             </button>
 

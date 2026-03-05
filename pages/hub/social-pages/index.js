@@ -233,7 +233,7 @@ export default function SocialPagesHub() {
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingBottom: 72,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 {/* Header */}
                 <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, paddingTop: 60 }}>

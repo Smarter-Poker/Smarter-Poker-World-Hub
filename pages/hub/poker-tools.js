@@ -191,7 +191,7 @@ export default function PokerToolsPage() {
 
             <div style={{
                 minHeight: '100vh', background: '#080810', color: '#E4E6EB',
-                fontFamily: "'Inter', -apple-system, sans-serif", textTransform: 'capitalize',
+                fontFamily: "var(--font-inter), -apple-system, sans-serif" , textTransform: 'capitalize',
                 display: 'flex', flexDirection: 'column',
             }}>
                 {/* ─── HEADER ─── */}

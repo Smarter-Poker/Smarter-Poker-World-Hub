@@ -23,7 +23,7 @@ import '../src/styles/worlds/bankroll.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
-import { Orbitron, Inter } from 'next/font/google';
+import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk } from 'next/font/google';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -39,6 +39,22 @@ const inter = Inter({
   variable: '--font-inter',
   display: 'swap',
   preload: true,
+});
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
+  display: 'swap',
+  preload: false,
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+  preload: false,
 });
 
 
@@ -370,18 +386,13 @@ function PhoneVerifyGate() {
 }
 
 export default function App({ Component, pageProps }) {
-  // Inject next/font CSS variables onto <body> for global font access
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.body.classList.add(orbitron.variable, inter.variable);
-    }
-  }, []);
   const router = useRouter();
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
   const isCommander = router.asPath.startsWith('/commander');
 
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
+    <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable}`} style={{ minHeight: '100vh' }}>
     <>
       {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
       <Head>
@@ -466,6 +477,7 @@ export default function App({ Component, pageProps }) {
         </ThemeProvider>
       </AntiGravityProvider>
     </>
+    </div>
     </SWRConfig>
   );
 }

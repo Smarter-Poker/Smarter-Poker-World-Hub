@@ -9,6 +9,8 @@
       Preserve the clickable zone coordinates.
    ═══════════════════════════════════════════════════════════════════════════ */
 
+import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';

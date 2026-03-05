@@ -535,11 +535,11 @@ export default function ClubMessages() {
 
     // Search club members - FILTERED BY MESSAGING HIERARCHY
     useEffect(() => {
-        if (!searchQuery.trim()) {
+        if (!debouncedSearchQuery.trim()) {
             setSearchResults([]);
             return;
         }
-        const query = searchQuery.toLowerCase();
+        const query = debouncedSearchQuery.toLowerCase();
         const results = clubMembers
             .filter(m => m.user_id !== user?.id)
             .filter(m => canMessageUser(m)) //  HIERARCHY: Only show allowed recipients

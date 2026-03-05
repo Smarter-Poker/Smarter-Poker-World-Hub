@@ -5,6 +5,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
 import React, { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import {

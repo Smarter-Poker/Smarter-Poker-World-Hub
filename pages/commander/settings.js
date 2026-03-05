@@ -371,7 +371,7 @@ export default function CommanderSettingsPage() {
                     ) : (
                       <span style={{
                         fontSize: 36, fontWeight: 900, color: '#4A5E78',
-                        fontFamily: "'Orbitron', sans-serif", textTransform: 'uppercase',
+                        fontFamily: "var(--font-orbitron), sans-serif" , textTransform: 'uppercase',
                       }}>
                         {(venue?.name || 'P').charAt(0)}
                       </span>

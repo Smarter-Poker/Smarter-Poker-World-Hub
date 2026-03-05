@@ -246,7 +246,7 @@ function parseOpenGraph(html, originalUrl) {
         try {
             const urlObj = new URL(originalUrl);
             metadata.siteName = urlObj.hostname.replace(/^www\./, '');
-        } catch (e) { }
+        } catch (e) { /* intentionally silent */ }
     }
 
     return metadata;

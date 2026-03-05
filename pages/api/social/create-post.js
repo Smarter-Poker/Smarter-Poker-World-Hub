@@ -6,7 +6,7 @@
  * Used by tournament public page "Post to My Page" button.
  */
 import { createClient } from '@supabase/supabase-js';
-import { applyRateLimit, LIMITS } from '../../src/lib/apiRateLimit';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

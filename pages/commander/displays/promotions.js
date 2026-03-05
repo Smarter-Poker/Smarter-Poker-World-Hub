@@ -6,6 +6,7 @@
  * Auto-rotates between promotions every 8 seconds
  * Real-time sync via Supabase + Commander Data Bus
  */
+import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
@@ -188,7 +189,7 @@ export default function PromotionsDisplay() {
               ) : (
                 <span style={{
                   fontSize: 28, fontWeight: 900, color: '#fff',
-                  fontFamily: "'Orbitron', sans-serif", textTransform: 'uppercase',
+                  fontFamily: "var(--font-orbitron), sans-serif" , textTransform: 'uppercase',
                 }}>
                   {clubName.charAt(0)}
                 </span>
@@ -197,7 +198,7 @@ export default function PromotionsDisplay() {
             <div>
               <h1 style={{
                 fontSize: 28, fontWeight: 900, color: '#fff', margin: 0,
-                fontFamily: "'Orbitron', sans-serif",
+                fontFamily: "var(--font-orbitron), sans-serif" ,
                 letterSpacing: '2px', textTransform: 'uppercase',
                 textShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}>
@@ -214,7 +215,7 @@ export default function PromotionsDisplay() {
           <div style={{ textAlign: 'right' }}>
             <p style={{
               fontSize: 42, fontWeight: 700, color: '#fff', margin: 0,
-              fontFamily: "'Orbitron', monospace",
+              fontFamily: "var(--font-orbitron), monospace" ,
               letterSpacing: '2px',
               textShadow: '0 2px 8px rgba(0,0,0,0.3)',
             }}>

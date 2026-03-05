@@ -2,6 +2,7 @@
  * Social Page Management - Owner/admin dashboard for managing page settings,
  * members, content moderation, and analytics
  */
+import Link from 'next/link';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
@@ -161,8 +162,7 @@ export default function ManageSocialPage() {
             <><UniversalHeader />
                 <div style={{
                     minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
-                    fontFamily: "'Inter', -apple-system, sans-serif"
-                }}>
+                    fontFamily: "var(--font-inter), -apple-system, sans-serif" }}>
                     <p style={{ color: C.textSec }}>Loading...</p>
                 </div></>
         );
@@ -173,8 +173,7 @@ export default function ManageSocialPage() {
             <><UniversalHeader />
                 <div style={{
                     minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
-                    fontFamily: "'Inter', -apple-system, sans-serif"
-                }}>
+                    fontFamily: "var(--font-inter), -apple-system, sans-serif" }}>
                     <p style={{ color: C.textSec }}>Page Not Found Or Access Denied.</p>
                 </div></>
         );
@@ -191,7 +190,7 @@ export default function ManageSocialPage() {
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingTop: 60,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 <div style={{ maxWidth: 800, margin: '0 auto', padding: 16 }}>
                     {/* Header */}

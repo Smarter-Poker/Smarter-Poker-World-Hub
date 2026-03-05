@@ -1,6 +1,7 @@
 /**
  * Single Article Page
  */
+import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';

@@ -484,7 +484,7 @@ export default function ClockDisplay() {
           <div style={S.handTimerOverlay} onClick={(e) => { e.stopPropagation(); setHandTimerActive(false); }}>
             <div style={S.handTimerBox}>
               <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 2, opacity: 0.7, marginBottom: 4 }}>PLAYER ON THE CLOCK</div>
-              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "'Inter', 'Segoe UI', sans-serif", fontFeatureSettings: "'zero' 0", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
+              <div style={{ fontSize: 96, fontWeight: 800, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , fontFeatureSettings: "'zero' 0", color: handTimerSeconds <= 10 ? '#EF4444' : '#fff' }}>
                 {handTimerSeconds}
               </div>
               <div style={{ fontSize: 12, opacity: 0.5, marginTop: 4 }}>Click to dismiss</div>
@@ -805,7 +805,7 @@ export default function ClockDisplay() {
                           style={{
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
                             borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 14,
-                            fontWeight: 600, fontFamily: "'Inter', sans-serif", width: '100%',
+                            fontWeight: 600, fontFamily: "var(--font-inter), sans-serif" , width: '100%',
                           }}
                         />
                         <input
@@ -819,7 +819,7 @@ export default function ClockDisplay() {
                           style={{
                             background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
                             borderRadius: 4, padding: '5px 8px', color: '#fff', fontSize: 14,
-                            fontWeight: 700, fontFamily: "'Inter', sans-serif", width: '100%',
+                            fontWeight: 700, fontFamily: "var(--font-inter), sans-serif" , width: '100%',
                             textAlign: 'right',
                           }}
                         />
@@ -888,7 +888,7 @@ function StatCell({ label, value }) {
 const S = {
   loading: { minHeight: '100vh', background: '#0D192E', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   container: {
-    height: '100vh', maxHeight: '100vh', fontFamily: "'Inter', 'Segoe UI', sans-serif", color: '#fff',
+    height: '100vh', maxHeight: '100vh', fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , color: '#fff',
     display: 'flex', flexDirection: 'column', userSelect: 'none', position: 'relative',
     overflow: 'hidden', transition: 'transform 0.5s ease', fontFeatureSettings: "'zero' 0",
     overscrollBehavior: 'none',
@@ -920,7 +920,7 @@ const S = {
   timer: {
     fontSize: 'min(15vw, 160px)', fontWeight: 800, fontVariantNumeric: 'tabular-nums',
     lineHeight: 1, textShadow: '0 4px 20px rgba(0,0,0,0.5)', letterSpacing: -2,
-    fontFamily: "'Inter', 'Segoe UI', sans-serif", padding: '8px 0', textAlign: 'center', width: '100%',
+    fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , padding: '8px 0', textAlign: 'center', width: '100%',
     fontFeatureSettings: "'zero' 0",
   },
   blindsBlock: {
@@ -1070,7 +1070,7 @@ const S = {
   },
   controlBtn: {
     padding: '8px 18px', borderRadius: 8, border: '2px solid', color: '#fff',
-    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+    fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif" ,
     transition: 'all 0.2s', opacity: 0.9
   },
   controlBtnPrimary: { padding: '10px 28px', fontSize: 16 },

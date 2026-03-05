@@ -820,6 +820,11 @@ export default function VideoLibraryPage() {
             if (timeTrackingInterval.current) {
                 clearInterval(timeTrackingInterval.current);
             }
+            // Clean up message listener added in iframe onLoad
+            if (ytPlayerRef.current?.messageHandler) {
+                window.removeEventListener('message', ytPlayerRef.current.messageHandler);
+                ytPlayerRef.current.messageHandler = null;
+            }
         };
     }, [showAiPanel, aiAnalysis, findCurrentInsight, activeInsight]);
 
@@ -1512,6 +1517,7 @@ export default function VideoLibraryPage() {
                                         }
                                     };
                                     window.addEventListener('message', handleMessage);
+                                    ytPlayerRef.current.messageHandler = handleMessage; // store for cleanup
 
                                     // Request current time every second when panel is open
                                     const requestTime = () => {

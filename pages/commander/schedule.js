@@ -429,7 +429,7 @@ export default function StaffSchedule() {
       <SEOHead title="Commander — Staff Schedule" description="Weekly Staff Scheduling For Club Commander." noindex={true} />
 
       {/* ══ EXTERIOR FRAME — 2px border matching other Commander pages ══ */}
-      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', -apple-system, sans-serif", border: '2px solid #3A3B3C' }}>
+      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), -apple-system, sans-serif" , border: '2px solid #3A3B3C' }}>
 
         {/* Demo Banner */}
         {usingMockData && (

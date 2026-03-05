@@ -370,7 +370,7 @@ export default function SocialPageDetail() {
                 <div style={{
                     minHeight: '100vh', background: C.bg, display: 'flex',
                     alignItems: 'center', justifyContent: 'center', paddingTop: 60,
-                    fontFamily: "'Inter', -apple-system, sans-serif",
+                    fontFamily: "var(--font-inter), -apple-system, sans-serif" ,
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <div style={{
@@ -393,7 +393,7 @@ export default function SocialPageDetail() {
                 <div style={{
                     minHeight: '100vh', background: C.bg, display: 'flex',
                     alignItems: 'center', justifyContent: 'center', paddingTop: 60,
-                    fontFamily: "'Inter', -apple-system, sans-serif",
+                    fontFamily: "var(--font-inter), -apple-system, sans-serif" ,
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Page Not Found</h2>
@@ -424,7 +424,7 @@ export default function SocialPageDetail() {
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingBottom: 72,
-                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
             }}>
                 {/* Cover */}
                 <div style={{

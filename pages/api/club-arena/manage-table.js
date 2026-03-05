@@ -98,7 +98,7 @@ export default async function handler(req, res) {
           const { getController } = require('../../../src/lib/poker-engine/GameController');
           const controller = await getController();
           await controller.closeTable(tableId);
-        } catch (_) {}
+        } catch (_) { /* intentionally silent */ }
 
         // Decrement club table count
         await supabaseAdmin.rpc('decrement_club_table_count', { p_club_id: clubId }).catch(() => {
@@ -128,7 +128,7 @@ export default async function handler(req, res) {
             entry.table.status = 'PAUSED';
             entry.table.emit('table_paused', { by: user.id });
           }
-        } catch (_) {}
+        } catch (_) { /* intentionally silent */ }
 
         return res.status(200).json({ success: true, action: 'pause', tableId });
       }
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
             entry.table.status = 'RUNNING';
             entry.table.emit('table_resumed', { by: user.id });
           }
-        } catch (_) {}
+        } catch (_) { /* intentionally silent */ }
 
         return res.status(200).json({ success: true, action: 'resume', tableId });
       }

@@ -10,13 +10,11 @@ export default function Document() {
         <Html lang="en">
             <Head>
                 {/* ═══ RESOURCE HINTS — reduce connection latency ═══ */}
-                {/* Supabase: DB + storage requests start connecting immediately */}
+                {/* Supabase: DB + storage requests start pre-connecting immediately */}
                 <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
                 <link rel="dns-prefetch" href="https://kuklfnapbkmacvwxktbh.supabase.co" />
-                {/* Vercel CDN edge */}
-                <link rel="preconnect" href="https://vercel.live" crossOrigin="anonymous" />
-                {/* Google Fonts — next/font self-hosts but fallback CDN still used during build */}
-                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                {/* Supabase storage CDN (avatars, uploads, media) */}
+                <link rel="preconnect" href="https://storage.googleapis.com" crossOrigin="anonymous" />
 
                 {/* GLOBAL VIEWPORT — Facebook-style, applies to ALL pages */}
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />

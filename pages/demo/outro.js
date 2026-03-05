@@ -27,7 +27,7 @@ export default function OutroDemo() {
             alignItems: 'center',
             justifyContent: 'center',
             gap: 30,
-            fontFamily: "'Orbitron', -apple-system, sans-serif",
+            fontFamily: "var(--font-orbitron), -apple-system, sans-serif" ,
             color: 'white',
         }}>
             <PageOutro

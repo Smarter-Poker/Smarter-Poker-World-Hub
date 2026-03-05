@@ -42,7 +42,7 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--horses-bg-gradient);
     color: var(--horses-text);
     min-height: 100vh;

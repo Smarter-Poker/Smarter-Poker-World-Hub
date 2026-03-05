@@ -12,6 +12,7 @@
  * 
  * No login required - URL serves as auth token.
  */
+import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';

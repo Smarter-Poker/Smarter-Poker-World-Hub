@@ -223,7 +223,7 @@ export default function WaitlistDisplay() {
   return (
     <>
       <SEOHead title="Player View — Poker Waiting List" noindex={true} />
-      <div style={{ minHeight: '100vh', background: c.bgColor, color: c.textColor, fontFamily: "'Inter', 'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: c.bgColor, color: c.textColor, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , display: 'flex', flexDirection: 'column' }}>
 
         {/* ═══ TOP BAR ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: `2px solid ${c.borderColor}44`, background: c.cardBgColor }}>

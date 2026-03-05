@@ -49,7 +49,7 @@ function isToday(dateStr) {
 
 /* ─── Inline styles ─────────────────────────────────────────── */
 const S = {
-  page: { minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter', sans-serif" },
+  page: { minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), sans-serif" },
   panel: {
     background: '#242526', border: '1px solid #3A3B3C', borderRadius: 14,
     transition: 'border-color 0.18s',

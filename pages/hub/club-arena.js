@@ -706,7 +706,7 @@ const S = {
         textAlign: 'center',
     },
     statValue: {
-        fontFamily: "'Inter', 'Roboto', sans-serif",
+        fontFamily: "var(--font-inter), 'Roboto', sans-serif" ,
         fontSize: '24px',
         fontWeight: 700,
         letterSpacing: '1px',
@@ -714,7 +714,7 @@ const S = {
         textShadow: '0 0 4px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 212, 255, 0.9), 0 0 20px rgba(0, 150, 255, 0.7)',
     },
     statValueLarge: {
-        fontFamily: "'Inter', 'Roboto', sans-serif",
+        fontFamily: "var(--font-inter), 'Roboto', sans-serif" ,
         fontSize: '56px',
         fontWeight: 700,
         lineHeight: 1,
@@ -724,7 +724,7 @@ const S = {
         textShadow: '0 0 4px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 212, 255, 0.9), 0 0 20px rgba(0, 150, 255, 0.7)',
     },
     statLabel: {
-        fontFamily: "'Inter', 'Roboto', sans-serif",
+        fontFamily: "var(--font-inter), 'Roboto', sans-serif" ,
         fontWeight: 600,
         fontSize: '14px',
         letterSpacing: '0.5px',

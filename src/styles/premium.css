@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Premium Typography - Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+/* Fonts self-hosted via next/font - CSS vars injected by _app.js */
 
 /* ─────────────────────────────────────────────────────────────────────────────
    🎨 PREMIUM DESIGN TOKENS
@@ -24,8 +24,8 @@
     --premium-emerald: hsl(160, 70%, 45%);
 
     /* Premium Typography */
-    --font-premium-display: 'Space Grotesk', 'Orbitron', sans-serif;
-    --font-premium-body: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+    --font-premium-display: var(--font-space-grotesk), var(--font-orbitron), sans-serif;
+    --font-premium-body: var(--font-jakarta), var(--font-inter), -apple-system, sans-serif;
 
     /* Premium Spacing */
     --premium-radius-sm: 8px;

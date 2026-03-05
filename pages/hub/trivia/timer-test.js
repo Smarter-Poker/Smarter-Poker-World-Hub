@@ -3,6 +3,7 @@
  * Testing positioning of the timer ring only
  */
 
+import Image from 'next/image';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 

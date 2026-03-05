@@ -3,6 +3,7 @@
  * Employee visits this URL to link their Smarter.Poker account to a venue
  * Uses Pages Router standards — same patterns as hub pages
  */
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';

@@ -4,6 +4,7 @@
  * Features: Posts, Photos, Events, Reviews, Live Games
  * UI: Facebook color scheme, no emojis, Inter font
  */
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';

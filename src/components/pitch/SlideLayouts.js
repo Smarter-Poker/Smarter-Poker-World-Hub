@@ -135,8 +135,7 @@ export const SlideContainer = ({ children, bgImage }) => (
         padding: '60px 80px',
         position: 'relative',
         overflow: 'hidden',
-        fontFamily: "'Inter', sans-serif"
-    }}>
+        fontFamily: "var(--font-inter), sans-serif" }}>
         {bgImage && (
             <img src={bgImage} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.25, zIndex: 0 }} alt="Background" />
         )}
