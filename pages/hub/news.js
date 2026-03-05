@@ -916,7 +916,7 @@ export default function NewsHub() {
     const [activeTab, setActiveTab] = useState('all');
 
     // SWR-backed static data — cached 60s, survive navigation
-    const jsonFetch = (url) => fetch(url, { signal }).then(r => r.json());
+    const jsonFetch = (url) => fetch(url).then(r => r.json());
     const { data: sourceBoxesData } = useSWR('/api/news/source-boxes', jsonFetch);
     const sourceBoxes = (sourceBoxesData?.success && sourceBoxesData.data?.length) ? sourceBoxesData.data : [];
 
@@ -943,6 +943,8 @@ export default function NewsHub() {
     if (searchQuery) newsParams.set('search', searchQuery);
     const { data: newsData, isLoading: loading } = useSWR(`/api/news/articles?${newsParams}`, jsonFetch);
     const news = (newsData?.success && newsData.data?.length) ? newsData.data : (typeof FALLBACK_NEWS !== 'undefined' ? FALLBACK_NEWS : []);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeTab, setActiveTab] = useState('all');
 
     // Article reader state - uses server-side proxy to display articles in-app
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
@@ -1144,9 +1146,10 @@ export default function NewsHub() {
 
         try {
             const res = await fetch('/api/news/subscribe', {
+                signal,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
+                body: JSON.stringify({ email }),
             });
 
             const { success, error } = await res.json();
@@ -1170,9 +1173,10 @@ export default function NewsHub() {
     const openArticle = async (article) => {
         try {
             await fetch('/api/news/articles', {
+                signal,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: article.id })
+                body: JSON.stringify({ id: article.id }),
             });
         } catch (e) { }
 

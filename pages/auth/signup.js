@@ -639,6 +639,14 @@ export default function SignUpPage() {
             // Check if email confirmation is required
             if (authData.user && !authData.session) {
                 // Email confirmation required - show pending screen
+                // BUG #5 FIX: Save promo code for deferred redemption in callback
+                // There's no session yet, so redeem-promo-code would fail with 401.
+                // Callback.js will pick this up after email verification.
+                if (formData.promoCode && promoValid && !isReferralCode) {
+                    try {
+                        localStorage.setItem('sp-pending-promo-code', formData.promoCode);
+                    } catch (e) { /* localStorage unavailable — promo will be lost */ }
+                }
                 setStep('email_pending');
             } else {
                 // Email already confirmed or auto-confirmed - show success

@@ -176,7 +176,7 @@ export default function AuthCallback() {
                             username: username,
                             avatar_url: avatarUrl,
                             xp_total: 50,
-                            diamonds: 300,
+                            diamonds: 500, // Welcome Package — 500 diamonds
                             diamond_multiplier: 1.0,
                             streak_days: 0,
                             skill_tier: 'Newcomer',
@@ -192,7 +192,7 @@ export default function AuthCallback() {
                 }
 
                 // ═══════════════════════════════════════════════════════════════
-                // 🎁 NEW USER WELCOME: 30-day VIP trial + 300 diamonds
+                // 🎁 NEW USER WELCOME: 30-day VIP trial + 500 diamonds
                 // Runs after profile creation (both RPC and fallback paths)
                 // ═══════════════════════════════════════════════════════════════
                 try {
@@ -205,7 +205,7 @@ export default function AuthCallback() {
                         .update({
                             is_vip: true,
                             vip_expires_at: vipExpires.toISOString(),
-                            diamonds: 300,
+                            diamonds: 500, // Welcome Package — 500 diamonds
                         })
                         .eq('id', user.id);
 
@@ -214,7 +214,7 @@ export default function AuthCallback() {
                         .from('user_diamond_balance')
                         .upsert({
                             user_id: user.id,
-                            balance: 300,
+                            balance: 500, // Welcome Package — 500 diamonds
                             updated_at: now.toISOString(),
                         }, { onConflict: 'user_id' });
 
@@ -223,11 +223,11 @@ export default function AuthCallback() {
                         .from('diamond_transactions')
                         .insert({
                             user_id: user.id,
-                            amount: 300,
+                            amount: 500,
                             transaction_type: 'bonus',
-                            description: 'Welcome Bonus — 300 Diamonds for Joining Smarter.Poker!',
+                            description: 'Welcome Bonus — 500 Diamonds for Joining Smarter.Poker!',
                             metadata: { source: 'welcome_bonus', type: 'new_user' },
-                            balance_after: 300,
+                            balance_after: 500,
                         });
 
                     // Log VIP trial activation
@@ -243,13 +243,41 @@ export default function AuthCallback() {
                                 type: 'new_user',
                                 vip_expires_at: vipExpires.toISOString(),
                             },
-                            balance_after: 300,
+                            balance_after: 500,
                         });
 
-                    console.log(`[Auth Callback] 🎁 Welcome package granted: 300💎 + 30-day VIP for ${user.email}`);
+                    console.log(`[Auth Callback] 🎁 Welcome package granted: 500💎 + 30-day VIP for ${user.email}`);
                 } catch (welcomeErr) {
                     // Don't block account creation if welcome package fails
                     console.error('[Auth Callback] Welcome package error (non-blocking):', welcomeErr);
+                }
+
+                // ═══════════════════════════════════════════════════════════════
+                // 🎟️ DEFERRED PROMO CODE REDEMPTION
+                // If user entered a promo code during signup but had no session
+                // (email confirmation required), redeem it now that we have auth.
+                // ═══════════════════════════════════════════════════════════════
+                try {
+                    const pendingPromo = localStorage.getItem('sp-pending-promo-code');
+                    if (pendingPromo && session?.access_token) {
+                        localStorage.removeItem('sp-pending-promo-code');
+                        const redeemRes = await fetch('/api/promo/redeem-promo-code', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${session.access_token}`,
+                            },
+                            body: JSON.stringify({ code: pendingPromo }),
+                        });
+                        const redeemData = await redeemRes.json();
+                        if (redeemRes.ok && redeemData.success) {
+                            console.log(`[Auth Callback] 🎟️ Deferred promo redeemed: ${pendingPromo} — ${redeemData.message}`);
+                        } else {
+                            console.warn(`[Auth Callback] Promo redemption failed: ${redeemData.error}`);
+                        }
+                    }
+                } catch (promoErr) {
+                    console.error('[Auth Callback] Deferred promo error (non-blocking):', promoErr);
                 }
 
                 // Check origin for redirect
