@@ -717,16 +717,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
         }
     };
 
-    const JARVIS_CHIPS = [
-        'TDA Rules Summary',
-        'How to deal 2-7 Triple Draw',
-        'Omaha Hi-Lo rules',
-        'Razz dealing rules',
-        'Button rules for a new game',
-        'Running it twice rules',
-        'Stud 8 dealing order',
-        'Badugi hand rankings',
-    ];
+    // Jarvis chips removed — clean input only
 
     // ── Report View ──
     const handleViewReport = async (gigId) => {
@@ -1024,49 +1015,6 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                 </button>
             )}
 
-            {/* ── MONTHLY INCOME GOAL ── */}
-            {(monthlyGoal > 0 || showGoalEdit) && (
-                <div style={styles.goalCard}>
-                    <div style={styles.goalHeader}>
-                        <span style={styles.goalTitle}>Monthly Goal</span>
-                        <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
-                    </div>
-                    {showGoalEdit ? (
-                        <div style={styles.goalEditRow}>
-                            <input
-                                type="number"
-                                style={styles.goalInput}
-                                placeholder="Monthly $ goal"
-                                value={goalInput}
-                                onChange={e => setGoalInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && saveGoal()}
-                                autoFocus
-                            />
-                            <button style={styles.goalSaveBtn} onClick={saveGoal}>Save</button>
-                            <button style={styles.goalCancelBtn} onClick={() => setShowGoalEdit(false)}>×</button>
-                        </div>
-                    ) : (() => {
-                        const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
-                        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                        const daysLeft = daysInMonth - new Date().getDate();
-                        const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#f59e0b' : '#f02849';
-                        return (
-                            <>
-                                <div style={styles.goalText}>
-                                    You're at <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) — {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
-                                </div>
-                                <div style={styles.goalBarBg}>
-                                    <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
-                                </div>
-                            </>
-                        );
-                    })()}
-                </div>
-            )}
-            {!monthlyGoal && !showGoalEdit && (
-                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>Set Monthly Income Goal</button>
-            )}
-
             {/* ── ACTIVE GIG VIEW ── */}
             {activeGig && (
                 <motion.div
@@ -1332,7 +1280,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                                     type="text"
                                     value={closeDayNotes}
                                     onChange={e => setCloseDayNotes(e.target.value)}
-                                    placeholder="e.g. Short-handed all night, big tipped table..."
+                                    placeholder="E.g. Short-Handed All Night, Big Tipped Table..."
                                     style={{ ...styles.formInput, width: '100%', padding: '8px 12px', fontSize: 13 }}
                                     autoFocus
                                     onKeyDown={e => { if (e.key === 'Enter') handleCloseDay(); }}
@@ -1359,7 +1307,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                                         type="number"
                                         value={mileageInput}
                                         onChange={e => setMileageInput(e.target.value)}
-                                        placeholder="0 miles"
+                                        placeholder="0 Miles"
                                         style={{ ...styles.formInput, width: 100, padding: '8px 12px' }}
                                     />
                                     {mileageInput && parseFloat(mileageInput) > 0 && (() => {
@@ -1452,14 +1400,14 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                         <input
                             type="number" value={newGig.hourly_rate}
                             onChange={e => setNewGig({ ...newGig, hourly_rate: e.target.value })}
-                            placeholder="e.g. 15.00" step="0.01" style={styles.formInput}
+                            placeholder="E.g. 15.00" step="0.01" style={styles.formInput}
                         />
 
                         <label style={styles.formLabel}>Notes</label>
                         <textarea
                             value={newGig.notes}
                             onChange={e => setNewGig({ ...newGig, notes: e.target.value })}
-                            placeholder="Any notes..." style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
+                            placeholder="Any Notes..." style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
                         />
 
                         <div style={styles.formActions}>
@@ -1662,7 +1610,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                                         type="number"
                                         value={downForm.tournament_buyin || ''}
                                         onChange={e => setDownForm({ ...downForm, tournament_buyin: e.target.value })}
-                                        placeholder="e.g. 200"
+                                        placeholder="E.g. 200"
                                         style={{ ...styles.formInput, flex: 1, padding: '8px 12px', fontSize: 14 }}
                                     />
                                     {downForm.tournament_buyin && parseFloat(downForm.tournament_buyin) > 0 && (
@@ -1878,7 +1826,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                                     value={jarvisQuery}
                                     onChange={e => setJarvisQuery(e.target.value)}
                                     onKeyDown={e => { if (e.key === 'Enter') handleAskJarvis(); }}
-                                    placeholder="Ask Jarvis anything about dealing..."
+                                    placeholder="Ask Jarvis Anything About Dealing..."
                                     style={styles.jarvisInput}
                                     disabled={jarvisLoading}
                                 />
