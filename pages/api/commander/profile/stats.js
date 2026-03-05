@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       .from('commander_player_sessions')
       .select('*')
       .eq('player_id', user.id)
-          .limit(100);
+          .limit(100)
 
     if (sessionsError) throw sessionsError;
 
@@ -67,8 +67,10 @@ export default async function handler(req, res) {
           .limit(100);
 
     const tournamentsPlayed = tournamentEntries?.length || 0;
-    const tournamentWins = tournamentEntries?.filter(e => e.finish_position === 1).length || 0;
-    const tournamentCashes = tournamentEntries?.filter(e => e.payout_amount > 0).length || 0;
+    const tournamentWins = tournamentEntries?.filter(e => e.finish_position === 1).length || 0
+        .limit(100);
+    const tournamentCashes = tournamentEntries?.filter(e => e.payout_amount > 0).length || 0
+        .limit(100);
     const totalWinnings = tournamentEntries?.reduce((sum, e) => sum + (e.payout_amount || 0), 0) || 0;
 
     // Get home game stats

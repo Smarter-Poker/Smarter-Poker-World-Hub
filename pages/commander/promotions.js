@@ -325,8 +325,8 @@ export default function PromotionsPage() {
   }, [router]);
 
   const fetchPromotions = useCallback(async () => {
-          const controller = new AbortController();
-          const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     if (!venueId) return;
     try {
       const res = await fetch(`/api/commander/promotions?venue_id=${venueId}`, { signal });
@@ -342,8 +342,8 @@ export default function PromotionsPage() {
   }, [venueId]);
 
   const fetchHighHands = useCallback(async () => {
-          const controller = new AbortController();
-          const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     if (!venueId) return;
     try {
       const res = await fetch(`/api/commander/high-hands?venue_id=${venueId}&limit=20`, { signal });
@@ -361,12 +361,13 @@ export default function PromotionsPage() {
   }, [venueId, promotions]);
 
   const fetchPromoCodes = useCallback(async () => {
-          const controller = new AbortController();
-          const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     setPromoCodesLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
-      const res = await fetch('/api/promo/admin-promo-codes', { signal, 
+      const res = await fetch('/api/promo/admin-promo-codes', {
+        signal,
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
@@ -379,7 +380,8 @@ export default function PromotionsPage() {
     setSeedingPromos(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
-      const res = await fetch('/api/promo/seed-premade', { signal, 
+      const res = await fetch('/api/promo/seed-premade', {
+        signal,
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -397,10 +399,11 @@ export default function PromotionsPage() {
   const togglePromoCode = async (code) => {
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
-      await fetch('/api/promo/admin-promo-codes', { signal, 
+      await fetch('/api/promo/admin-promo-codes', {
+        signal,
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ id: code.id, is_active: !code.is_active }
+        body: JSON.stringify({ id: code.id, is_active: !code.is_active })
       });
       fetchPromoCodes();
     } catch (err) { console.error('Toggle promo code error:', err); }
@@ -410,7 +413,8 @@ export default function PromotionsPage() {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
-      await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, { signal, 
+      await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
+        signal,
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -494,10 +498,11 @@ export default function PromotionsPage() {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
-        fetch(`/api/commander/promotions/${id}`, { signal, 
+        fetch(`/api/commander/promotions/${id}`, {
+          signal,
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-          body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate }
+          body: JSON.stringify({ status: activate ? 'active' : 'draft', is_active: activate })
         })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
@@ -516,7 +521,7 @@ export default function PromotionsPage() {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
-        fetch(`/api/commander/promotions/${id}`, { signal,  method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } }
+        fetch(`/api/commander/promotions/${id}`, { signal, method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
       ));
       const failed = results.filter(r => r.status === 'rejected').length;
       if (failed > 0) alert(`${failed} of ${selectedIds.size} deletions failed`);
@@ -576,14 +581,15 @@ export default function PromotionsPage() {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/high-hands/${highHand.id}`, { signal, 
+      await fetch(`/api/commander/high-hands/${highHand.id}`, {
+        signal,
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
           'x-staff-session': staffSession
         },
-        body: JSON.stringify({ action: 'verify' }
+        body: JSON.stringify({ action: 'verify' })
       });
       fetchHighHands();
     } catch (error) {
@@ -595,10 +601,11 @@ export default function PromotionsPage() {
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/promotions/${promo.id}`, { signal, 
+      await fetch(`/api/commander/promotions/${promo.id}`, {
+        signal,
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify({ is_active: !promo.is_active }
+        body: JSON.stringify({ is_active: !promo.is_active })
       });
       broadcastChange('settings');
       fetchPromotions();
@@ -657,7 +664,7 @@ export default function PromotionsPage() {
       const res = await fetch('/api/commander/promotions', { signal, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-        body: JSON.stringify(cloneData
+        body: JSON.stringify(cloneData)
       });
       const result = await res.json();
       if (result.promotion || result.success) {
@@ -704,10 +711,11 @@ export default function PromotionsPage() {
     const staffSession = localStorage.getItem('commander_staff') || '';
     try {
       await Promise.allSettled(items.map((p, idx) =>
-        fetch(`/api/commander/promotions/${p.id}`, { signal, 
+        fetch(`/api/commander/promotions/${p.id}`, {
+          signal,
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
-          body: JSON.stringify({ settings: { ...(p.settings || {}, display_order: idx } })
+          body: JSON.stringify({ settings: { ...(p.settings || {}), display_order: idx } })
         })
       ));
       broadcastChange('settings');
@@ -1422,7 +1430,8 @@ export default function PromotionsPage() {
                     try {
                       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                       const staffSession = localStorage.getItem('commander_staff') || '';
-                      const res = await fetch('/api/commander/promotions', { signal, 
+                      const res = await fetch('/api/commander/promotions', {
+                        signal,
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                         body: JSON.stringify(data
@@ -1452,7 +1461,8 @@ export default function PromotionsPage() {
                 try {
                   const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                   const staffSession = localStorage.getItem('commander_staff') || '';
-                  const res = await fetch('/api/commander/promotions', { signal, 
+                  const res = await fetch('/api/commander/promotions', {
+                    signal,
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                     body: JSON.stringify(data
@@ -1483,7 +1493,8 @@ export default function PromotionsPage() {
               try {
                 const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                 const staffSession = localStorage.getItem('commander_staff') || '';
-                const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, { signal, 
+                const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
+                  signal,
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
                   body: JSON.stringify(data

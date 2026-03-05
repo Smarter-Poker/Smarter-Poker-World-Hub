@@ -33,7 +33,7 @@ export default async function handler(req, res) {
             .select('player_id, total_time_minutes, check_in_time, status')
             .eq('venue_id', venue_id)
             .eq('status', 'completed')
-                .limit(100);
+                .limit(100)
 
         // Apply period filter
         if (period !== 'all') {

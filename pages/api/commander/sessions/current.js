@@ -41,7 +41,6 @@ export default async function handler(req, res) {
     const { data: seats, error } = await supabase
       .from('commander_seats')
       .select(`
-      .limit(200)
         id,
         seat_number,
         seated_at,

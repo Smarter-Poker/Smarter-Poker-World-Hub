@@ -78,7 +78,7 @@ export default function DailyPresetsPage() {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
       const staffSession = localStorage.getItem('commander_staff') || '';
-      fetch('/api/commander/settings', { signal,  headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
+      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
         .then(r => r.json())
         .then(data => {
           if (data?.data) {
@@ -97,7 +97,7 @@ export default function DailyPresetsPage() {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch('/api/commander/settings', { signal, 
+      const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ hard_stop_enabled: hardStopEnabled, hard_stop_time: hardStopTime })
@@ -118,7 +118,7 @@ export default function DailyPresetsPage() {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       if (!token) return;
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch('/api/commander/settings', { signal, 
+      const res = await fetch('/api/commander/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ auto_comp_rate: autoCompRate })
@@ -142,9 +142,9 @@ export default function DailyPresetsPage() {
       const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const venueId = stored.venue_id;
       const [presetsRes, typesRes, promosRes] = await Promise.all([
-        fetch(`/api/commander/room-presets?venue_id=${ signal, venueId}`, { headers }),
-        fetch(`/api/commander/game-types?venue_id=${ signal, venueId}`, { headers }),
-        fetch(`/api/commander/promotions?venue_id=${ signal, venueId}&status=all`, { headers })
+        fetch(`/api/commander/room-presets?venue_id=${venueId}`, { headers }),
+        fetch(`/api/commander/game-types?venue_id=${venueId}`, { headers }),
+        fetch(`/api/commander/promotions?venue_id=${venueId}&status=all`, { headers })
       ]);
       const [presetsJson, typesJson, promosJson] = await Promise.all([
         presetsRes.json(), typesRes.json(), promosRes.json()
@@ -177,7 +177,7 @@ export default function DailyPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/room-presets?id=${ signal, preset.id}&action=apply`, {
+      const res = await fetch(`/api/commander/room-presets?id=${preset.id}&action=apply`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -290,7 +290,7 @@ export default function DailyPresetsPage() {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const url = editingId ? `/api/commander/room-presets?id=${editingId}` : '/api/commander/room-presets';
-      const res = await fetch(url, { signal, 
+      const res = await fetch(url, {
         method: editingId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify(form)
@@ -314,7 +314,7 @@ export default function DailyPresetsPage() {
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/room-presets?id=${ signal, preset.id}`, {
+      await fetch(`/api/commander/room-presets?id=${preset.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });

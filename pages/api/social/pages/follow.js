@@ -133,8 +133,7 @@ export default async function handler(req, res) {
                 .eq('page_id', page_id)
                     .limit(100);
 
-            if (role) query = query.eq('role', role)
-                .limit(100);
+            if (role) query = query.eq('role', role);
 
             const { data, error } = await query.order('created_at', { ascending: false })
                 .limit(100);

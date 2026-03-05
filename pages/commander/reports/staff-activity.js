@@ -19,7 +19,7 @@ export default function StaffActivity() {
         const { signal } = controller;
       try {
         const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
-        const res = await fetch('/api/commander/incidents?status=all&limit=50', { signal, 
+        const res = await fetch('/api/commander/incidents?status=all&limit=50', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const json = await res.json();

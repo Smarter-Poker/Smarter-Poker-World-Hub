@@ -42,7 +42,6 @@ export default async function handler(req, res) {
     const { data: sessions, error } = await supabase
       .from('commander_games')
       .select(`
-      .limit(100)
         id,
         table_id,
         game_type,

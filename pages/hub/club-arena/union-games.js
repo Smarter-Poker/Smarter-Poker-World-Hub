@@ -27,7 +27,7 @@ const getToken = async () => {
 
 const api = async (action, params) => {
   const token = await getToken();
-  const res = await fetch('/api/club-arena/union-games', { signal, 
+  const res = await fetch('/api/club-arena/union-games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ action, ...params }),
@@ -70,7 +70,7 @@ export default function UnionGames() {
     if (!unionId || !user) return;
     (async () => {
       const token = await getToken();
-      const res = await fetch(`/api/club-arena/union-dashboard?unionId=${ signal, unionId}`, {
+      const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const d = await res.json();
@@ -717,7 +717,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         const { signal } = controller;
       try {
         const token = await getToken();
-        const res = await fetch('/api/poker/engine/tournament', { signal, 
+        const res = await fetch('/api/poker/engine/tournament', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: 'state', tournamentId: t.id }),

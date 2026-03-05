@@ -8,19 +8,18 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import SkeletonLoader from '../../../../../src/components/ui/SkeletonLoader';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
   return (
     <div className={`flex items-center justify-between p-3 ${isCurrentUser ? 'bg-[#22D3EE]/10 rounded-lg' : ''}`}>
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-          rank === 1 ? 'bg-[#F59E0B] text-white' :
-          rank === 2 ? 'bg-[#9CA3AF] text-white' :
-          rank === 3 ? 'bg-[#CD7F32] text-white' :
-          'bg-[#0D192E] text-[#64748B]'
-        }`}>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rank === 1 ? 'bg-[#F59E0B] text-white' :
+            rank === 2 ? 'bg-[#9CA3AF] text-white' :
+              rank === 3 ? 'bg-[#CD7F32] text-white' :
+                'bg-[#0D192E] text-[#64748B]'
+          }`}>
           {rank}
         </div>
         <div>
@@ -51,9 +50,8 @@ function EventCard({ event }) {
           <p className={`font-medium ${isPast ? 'text-[#64748B]' : 'text-white'}`}>{event.name}</p>
           <p className="text-sm text-[#64748B]">{event.venue_name}</p>
         </div>
-        <span className={`px-2 py-1 rounded text-xs font-medium ${
-          isPast ? 'bg-[#4A5E78]/10 text-[#4A5E78]' : 'bg-[#22D3EE]/10 text-[#22D3EE]'
-        }`}>
+        <span className={`px-2 py-1 rounded text-xs font-medium ${isPast ? 'bg-[#4A5E78]/10 text-[#4A5E78]' : 'bg-[#22D3EE]/10 text-[#22D3EE]'
+          }`}>
           {isPast ? 'Completed' : 'Upcoming'}
         </span>
       </div>
@@ -154,10 +152,10 @@ export default function LeagueDetailPage() {
   return (
     <>
       <SEOHead
-                title="League Details"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="League Details"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}
@@ -249,11 +247,10 @@ export default function LeagueDetailPage() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.key
+                className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
                     ? 'border-[#22D3EE] text-[#22D3EE]'
                     : 'border-transparent text-[#64748B]'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>

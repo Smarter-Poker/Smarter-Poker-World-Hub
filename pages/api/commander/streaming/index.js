@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .select('id, table_number, status, max_seats')
       .eq('venue_id', venue_id)
       .order('table_number')
-          .limit(100);
+          .limit(100)
 
     if (tablesError) throw tablesError;
 
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       .select('id, table_id, game_type, stakes, current_players')
       .in('table_id', tableIds)
       .in('status', ['waiting', 'running'])
-          .limit(100);
+          .limit(100)
 
     const gamesByTable = {};
     (games || []).forEach(g => {

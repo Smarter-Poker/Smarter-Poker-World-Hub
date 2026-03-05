@@ -659,7 +659,7 @@ export default async function handler(req, res) {
       const { count } = await supabaseAdmin
         .from('club_members')
         .select('*', { count: 'exact', head: true })
-        .eq('club_id', clubId);
+        .eq('club_id', clubId)
 
       await supabaseAdmin
         .from('clubs')
@@ -737,7 +737,7 @@ export default async function handler(req, res) {
         .from('agents')
         .select('id, user_id, commission_rate, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
         .eq('club_id', clubId)
-        .eq('parent_agent_id', parentAgent.id);
+        .eq('parent_agent_id', parentAgent.id)
 
       // Enrich with profiles
       const subIds = (subAgents || []).map(a => a.user_id);

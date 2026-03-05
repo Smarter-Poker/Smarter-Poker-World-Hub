@@ -51,7 +51,6 @@ async function handleGet(req, res) {
       const result = await supabase
         .from('commander_tables')
         .select(`
-        .limit(100)
           *,
           commander_games!commander_games_table_id_fkey (
             id,
@@ -109,7 +108,7 @@ async function handleGet(req, res) {
         .select('*')
         .eq('venue_id', venue_id)
         .order('table_number', { ascending: true })
-            .limit(100);
+            .limit(100)
       data = result.data;
       error = result.error;
     }

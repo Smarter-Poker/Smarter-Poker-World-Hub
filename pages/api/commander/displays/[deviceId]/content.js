@@ -111,7 +111,7 @@ async function getWaitlistContent(venueId) {
     .eq('venue_id', venueId)
     .in('status', ['waiting', 'running'])
     .order('game_type')
-        .limit(100);
+        .limit(100)
 
   // Get waitlist entries grouped by game
   const { data: waitlist } = await supabase
@@ -119,7 +119,7 @@ async function getWaitlistContent(venueId) {
     .select('id, game_type, stakes, player_name, position, status, estimated_wait_minutes, created_at')
     .eq('venue_id', venueId)
     .eq('status', 'waiting')
-    .order('position');
+    .order('position')
 
   // Group waitlist by game type + stakes
   const waitlistByGame = {};

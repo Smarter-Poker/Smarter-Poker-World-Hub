@@ -144,14 +144,10 @@ export default async function handler(req, res) {
         // Only filter by is_public when NOT fetching own pages
         if (!owner_id) query = query.eq('is_public', true);
 
-        if (page_type) query = query.eq('page_type', page_type)
-            .limit(100);
-        if (owner_id) query = query.eq('owner_id', owner_id)
-            .limit(100);
-        if (category && category !== 'all') query = query.eq('category', category)
-            .limit(100);
-        if (search) query = query.ilike('name', `%${search}%`)
-            .limit(100);
+        if (page_type) query = query.eq('page_type', page_type);
+        if (owner_id) query = query.eq('owner_id', owner_id);
+        if (category && category !== 'all') query = query.eq('category', category);
+        if (search) query = query.ilike('name', `%${search}%`);
 
         // If followed_only, join with followers
         if (followed_only === 'true' && user_id) {

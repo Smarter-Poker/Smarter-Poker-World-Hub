@@ -182,7 +182,7 @@ export default async function handler(req, res) {
                 .update({ table_count: oldCount + 1 })
                 .eq('id', clubId)
                 .eq('table_count', oldCount)
-                .select('id');
+                .select('id')
 
             if (!upd?.length) {
                 const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).single();

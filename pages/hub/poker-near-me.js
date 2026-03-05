@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
+import { supabase } from '../../src/lib/supabase';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
@@ -40,7 +41,7 @@ function cachedFetch(url, ttl = API_CACHE_TTL) {
     if (apiCache[url] && (now - apiCache[url].time) < ttl) {
         return Promise.resolve(apiCache[url].data);
     }
-    return fetch(url).then(r => r.json(, { signal })).then(data => {
+    return fetch(url).then(r => r.json()).then(data => {
         apiCache[url] = { data, time: now };
         return data;
     });
@@ -956,7 +957,7 @@ export default function PokerNearMePage() {
     // --- NEW: Fetch promotion venue IDs on mount ---
     useEffect(() => {
         fetch('/api/poker/promotions?limit=200')
-            .then(r => r.json(, { signal }))
+            .then(r => r.json())
             .then(json => {
                 const ids = new Set();
                 (json.promotions || json.data || []).forEach(p => { if (p.page_id) ids.add(String(p.page_id)); });

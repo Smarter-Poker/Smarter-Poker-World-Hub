@@ -547,7 +547,7 @@ export default function ProfilePage() {
             formData.append('prefix', user.id);
 
             const { data: { session: _coverSess } } = await supabase.auth.getSession();
-            const uploadRes = await fetch('/api/social/upload', { signal, 
+            const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
                 body: formData,
@@ -1116,10 +1116,10 @@ export default function ProfilePage() {
                                 setIsRefreshing(true);
                                 setMessage('🔄 Syncing stats from Hendon Mob... This may take 15-30 seconds.');
                                 try {
-                                    const res = await fetch('/api/hendonmob/sync', { signal, 
+                                    const res = await fetch('/api/hendonmob/sync', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ userId: user.id, hendonUrl: profile.hendon_url }
+                                        body: JSON.stringify({ userId: user.id, hendonUrl: profile.hendon_url })
                                     });
                                     const data = await res.json();
                                     if (res.ok && data.success) {

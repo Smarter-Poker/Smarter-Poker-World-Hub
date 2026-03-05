@@ -493,7 +493,7 @@ export default function SignUpPage() {
                         .from('user_diamond_balance')
                         .upsert({
                             user_id: authData.user.id,
-                            balance: 300, // Starting diamonds bonus
+                            balance: 500, // Welcome Package — 500 diamonds
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                         }, {
@@ -527,7 +527,7 @@ export default function SignUpPage() {
                             username: formData.pokerAlias,
                             player_number: nextPlayerNumber,
                             xp_total: 100, // Starting XP bonus
-                            diamonds: 300, // Starting diamonds bonus
+                            diamonds: 500, // Welcome Package — 500 diamonds
                             diamond_multiplier: 1.0,
                             streak_count: 0,
                             skill_tier: 'Newcomer',
@@ -551,7 +551,7 @@ export default function SignUpPage() {
                                 username: formData.pokerAlias,
                                 player_number: nextPlayerNumber,
                                 xp_total: 100,
-                                diamonds: 300,
+                                diamonds: 500, // Welcome Package — 500 diamonds
                                 diamond_multiplier: 1.0,
                                 streak_count: 0,
                                 skill_tier: 'Newcomer',
@@ -589,15 +589,31 @@ export default function SignUpPage() {
             // Redeem promo code if provided and valid
             if (formData.promoCode && promoValid && authData.user && !isReferralCode) {
                 try {
-                    await fetch('/api/promo/redeem-promo-code', {
+                    // BUG #2 FIX: Get session token — redeem-promo-code API requires Bearer auth
+                    const promoSession = authData.session || (await supabase.auth.getSession()).data?.session;
+                    const redeemRes = await fetch('/api/promo/redeem-promo-code', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(promoSession?.access_token ? { Authorization: `Bearer ${promoSession.access_token}` } : {}),
+                        },
                         body: JSON.stringify({
                             code: formData.promoCode,
-                            userId: authData.user.id,
                         }),
                     });
-                    console.log('Promo code redeemed:', formData.promoCode);
+                    const redeemData = await redeemRes.json();
+                    if (redeemRes.ok && redeemData.success) {
+                        console.log('Promo code redeemed:', formData.promoCode, redeemData.message);
+                        // Dispatch bus events for real-time UI updates
+                        if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                            if (['vip_trial', 'vip_days', 'lifetime_commander_club_vip'].includes(redeemData.type)) {
+                                window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
+                            }
+                        }
+                    } else {
+                        console.warn('Promo redemption failed:', redeemData.error || 'Unknown error');
+                    }
                 } catch (promoErr) {
                     console.error('Promo redemption error (non-blocking):', promoErr);
                 }
@@ -623,6 +639,14 @@ export default function SignUpPage() {
             // Check if email confirmation is required
             if (authData.user && !authData.session) {
                 // Email confirmation required - show pending screen
+                // BUG #5 FIX: Save promo code for deferred redemption in callback
+                // There's no session yet, so redeem-promo-code would fail with 401.
+                // Callback.js will pick this up after email verification.
+                if (formData.promoCode && promoValid && !isReferralCode) {
+                    try {
+                        localStorage.setItem('sp-pending-promo-code', formData.promoCode);
+                    } catch (e) { /* localStorage unavailable — promo will be lost */ }
+                }
                 setStep('email_pending');
             } else {
                 // Email already confirmed or auto-confirmed - show success

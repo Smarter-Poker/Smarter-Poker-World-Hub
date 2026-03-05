@@ -215,10 +215,8 @@ export default async function handler(req, res) {
             .order('name')
                 .limit(100);
 
-        if (state) query = query.eq('state', state.toUpperCase())
-            .limit(100);
-        if (source) query = query.eq('scrape_source', source)
-            .limit(100);
+        if (state) query = query.eq('state', state.toUpperCase());
+        if (source) query = query.eq('scrape_source', source);
         if (limit) query = query.limit(parseInt(limit));
 
         if (force !== 'true') {

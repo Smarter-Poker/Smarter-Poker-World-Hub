@@ -150,7 +150,7 @@ export default async function handler(req, res) {
       const { data: agents } = await supabaseAdmin
         .from('agents')
         .select('id')
-        .eq('club_id', clubId);
+        .eq('club_id', clubId)
 
       for (const agent of (agents || [])) {
         await supabaseAdmin
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
         .from('agents')
         .select('id, user_id, commission_rate, weekly_rake_generated, is_prepaid, parent_agent_id')
         .eq('club_id', clubId)
-        .eq('status', 'active');
+        .eq('status', 'active')
 
       // ═══════════════════════════════════════════════════════════
       // PROMO CHIPS ARE EXCLUDED FROM SETTLEMENT

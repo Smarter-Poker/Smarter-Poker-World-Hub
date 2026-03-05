@@ -85,7 +85,7 @@ async function awardComp(req, res, staffAuth) {
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
             .eq('venue_id', staffRecord.venue_id)
             .ilike('first_name', sfFirst)
-                .limit(100);
+                .limit(100)
           if (sfLast) matchQuery = matchQuery.ilike('last_name', sfLast);
           const { data: existingMember } = await matchQuery.maybeSingle();
           if (existingMember) {
@@ -304,7 +304,7 @@ async function getBalances(req, res) {
       const { data: members } = await supabase
         .from('commander_members')
         .select('id, first_name, last_name')
-        .in('id', memberIds.length > 0 ? memberIds : ['none']);
+        .in('id', memberIds.length > 0 ? memberIds : ['none'])
 
       const memberMap = {};
       (members || []).forEach(m => { memberMap[m.id] = `${m.first_name} ${m.last_name}`; });
@@ -373,7 +373,7 @@ async function getBalances(req, res) {
         .from('commander_player_sessions')
         .select('total_time_minutes')
         .eq('player_id', userId)
-            .limit(100);
+            .limit(100)
 
       const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 

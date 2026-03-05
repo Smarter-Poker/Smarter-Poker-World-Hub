@@ -48,7 +48,6 @@ async function handleGet(req, res, sessionId) {
     const { data: session, error } = await supabase
       .from('commander_player_sessions')
       .select(`
-      .limit(500)
         *,
         profiles (
           id,

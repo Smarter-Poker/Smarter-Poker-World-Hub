@@ -42,7 +42,6 @@ async function handleGet(req, res) {
     let query = supabase
       .from('commander_player_sessions')
       .select(`
-      .limit(500)
         *,
         profiles (
           id,

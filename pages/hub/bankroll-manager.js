@@ -1384,7 +1384,7 @@ export default function BankrollManagerPage() {
                       onClick={async () => {
                         if (!userId) return;
                         try {
-                          const res = await fetch('/api/bankroll/export', { signal, 
+                          const res = await fetch('/api/bankroll/export', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ userId, format: 'csv' })
@@ -1426,7 +1426,7 @@ export default function BankrollManagerPage() {
                       onClick={async () => {
                         if (!userId) return;
                         try {
-                          const res = await fetch('/api/bankroll/export', { signal, 
+                          const res = await fetch('/api/bankroll/export', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ userId, format: 'json' })
@@ -1470,7 +1470,7 @@ export default function BankrollManagerPage() {
                         try {
                           const { data: { session } } = await supabase.auth.getSession();
                           const token = session?.access_token;
-                          const res = await fetch('/api/bankroll/export-pdf', { signal, 
+                          const res = await fetch('/api/bankroll/export-pdf', {
                             headers: { Authorization: `Bearer ${token}` }
                           });
                           if (res.ok) {

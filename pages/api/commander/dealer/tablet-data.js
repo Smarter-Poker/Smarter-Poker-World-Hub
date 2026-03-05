@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             .from('commander_tables')
             .select('id, venue_id, table_number, table_name, max_seats, status, mode, game_type, stakes')
             .eq('table_number', tableNum)
-                .limit(100);
+                .limit(100)
 
         if (venue_id) {
             tableQuery = tableQuery.eq('venue_id', venue_id);

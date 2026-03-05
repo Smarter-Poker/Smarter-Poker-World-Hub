@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         .from('commander_members')
         .select('*')
         .eq('qr_code', qr_code)
-            .limit(100);
+            .limit(100)
 
     if (venue_id) {
         query = query.eq('venue_id', venue_id);

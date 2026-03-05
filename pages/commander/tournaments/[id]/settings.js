@@ -268,7 +268,7 @@ export default function TournamentSettings() {
         const { signal } = controller;
       try {
         const staffSession = getStaffSession();
-        const res = await fetch(`/api/commander/tournaments/${ signal, id}`, {
+        const res = await fetch(`/api/commander/tournaments/${id}`, {
           headers: { 'x-staff-session': staffSession }
         });
         const json = await res.json();

@@ -24,7 +24,7 @@ export default function TournamentResultsReport() {
         const { signal } = controller;
       try {
         const staffSession = getStaffSession();
-        const res = await fetch('/api/commander/tournaments?status=completed&limit=50', { signal, 
+        const res = await fetch('/api/commander/tournaments?status=completed&limit=50', {
           headers: { 'x-staff-session': staffSession }
         });
         const json = await res.json();
@@ -43,7 +43,7 @@ export default function TournamentResultsReport() {
     setExpanded(tournamentId);
     try {
       const staffSession = getStaffSession();
-      const res = await fetch(`/api/commander/tournaments/${ signal, tournamentId}/entries?status=all`, {
+      const res = await fetch(`/api/commander/tournaments/${tournamentId}/entries?status=all`, {
         headers: { 'x-staff-session': staffSession }
       });
       const json = await res.json();

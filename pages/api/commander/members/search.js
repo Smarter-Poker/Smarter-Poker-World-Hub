@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         .eq('venue_id', venueFilter)
         .eq('is_active', true)
         .in('role', ['owner', 'manager', 'floor'])
-            .limit(100);
+            .limit(100)
 
       if (searchQuery.length >= 2) {
         staffQ = staffQ.ilike('display_name', `%${searchQuery}%`);
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
             .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
             .eq('venue_id', venueFilter)
             .ilike('first_name', sfFirst)
-                .limit(100);
+                .limit(100)
           if (sfLast) mq = mq.ilike('last_name', sfLast);
           const { data: memberMatch } = await mq.maybeSingle();
 

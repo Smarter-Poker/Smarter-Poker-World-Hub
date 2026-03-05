@@ -86,7 +86,7 @@ export default function TimeBilling() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       // Fetch tables to know which are active
-      const tabRes = await fetch(`/api/commander/tables?venue_id=${ signal, venueId}`, { headers });
+      const tabRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       const tabJson = await tabRes.json();
       const tablesArr = tabJson.success
         ? (Array.isArray(tabJson.data) ? tabJson.data : tabJson.data?.tables || [])
@@ -100,7 +100,7 @@ export default function TimeBilling() {
       await Promise.all(activeTables.map(async (t) => {
         const tNum = t.table_number || t.number;
         try {
-          const sRes = await fetch(`/api/commander/dealer/sessions?table=${ signal, tNum}`, { headers });
+          const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           const sJson = await sRes.json();
           if (sJson.success && sJson.data) {
             sJson.data.forEach(s => allSessions.push({
@@ -117,7 +117,7 @@ export default function TimeBilling() {
       // Also fetch completed/ended sessions for history view
       if (filter === 'completed') {
         try {
-          const histRes = await fetch(`/api/commander/time-billing/sessions?venue_id=${ signal, venueId}`, { headers });
+          const histRes = await fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}`, { headers });
           const histJson = await histRes.json();
           if (histJson.success) {
             const completed = (histJson.data || []).filter(s => s.status === 'completed');
@@ -149,7 +149,7 @@ export default function TimeBilling() {
       try {
         const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
-        const res = await fetch('/api/commander/settings', { signal, 
+        const res = await fetch('/api/commander/settings', {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         const json = await res.json();
@@ -169,7 +169,7 @@ export default function TimeBilling() {
         const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
         const venueId = getVenueId();
-        const res = await fetch(`/api/commander/membership-plans?venue_id=${ signal, venueId}&include_inactive=true`, {
+        const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&include_inactive=true`, {
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
         });
         const json = await res.json();
@@ -229,7 +229,7 @@ export default function TimeBilling() {
     setPinError('');
     try {
       const venueId = getVenueId();
-      const pinRes = await fetch('/api/commander/staff/verify-pin', { signal, 
+      const pinRes = await fetch('/api/commander/staff/verify-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ venue_id: venueId, pin_code: digits })
@@ -273,7 +273,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/dealer/sessions/${ signal, sessionId}/end`, {
+      const res = await fetch(`/api/commander/dealer/sessions/${sessionId}/end`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
       });
@@ -339,7 +339,7 @@ export default function TimeBilling() {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/time-billing/sessions/${ signal, payModal.id}/payment`, {
+      await fetch(`/api/commander/time-billing/sessions/${payModal.id}/payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ amount: parseFloat(payAmount), staff_name: staff?.display_name })
@@ -378,7 +378,7 @@ export default function TimeBilling() {
       const token = getToken();
       const venueId = getVenueId();
       const staffSession = localStorage.getItem('commander_staff') || '';
-      const res = await fetch(`/api/commander/membership-plans?venue_id=${ signal, venueId}&id=${plan.id}`, {
+      const res = await fetch(`/api/commander/membership-plans?venue_id=${venueId}&id=${plan.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
         body: JSON.stringify({ [field]: parseFloat(value) || 0 })

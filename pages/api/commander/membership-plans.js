@@ -35,8 +35,7 @@ export default async function handler(req, res) {
       .order('sort_order', { ascending: true })
           .limit(100);
 
-    if (!include_inactive) query = query.eq('is_active', true)
-        .limit(100);
+    if (!include_inactive) query = query.eq('is_active', true);
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ success: false, error: error.message });

@@ -48,7 +48,6 @@ async function handleGet(req, res, gameId) {
     const { data: game, error } = await supabase
       .from('commander_games')
       .select(`
-      .limit(100)
         *,
         poker_venues (
           id,

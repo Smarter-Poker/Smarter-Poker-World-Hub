@@ -37,12 +37,9 @@ export default async function handler(req, res) {
             .eq('is_approved', true)
                 .limit(100);
 
-        if (page_id) query = query.eq('page_id', page_id)
-            .limit(100);
-        if (author_id) query = query.eq('author_id', author_id)
-            .limit(100);
-        if (pinned_only === 'true') query = query.eq('is_pinned', true)
-            .limit(100);
+        if (page_id) query = query.eq('page_id', page_id);
+        if (author_id) query = query.eq('author_id', author_id);
+        if (pinned_only === 'true') query = query.eq('is_pinned', true);
 
         // Pinned first, then by date
         query = query

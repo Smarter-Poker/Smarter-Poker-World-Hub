@@ -175,7 +175,7 @@ export default function TabletDisplay() {
     useEffect(() => {
         if (!tableNumber || !venueId) return;
         const sendHeartbeat = () => {
-            fetch('/api/commander/displays/heartbeat', { signal, 
+            fetch('/api/commander/displays/heartbeat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }),

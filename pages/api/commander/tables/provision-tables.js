@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         const { data: existingTables } = await supabase
             .from('commander_tables')
             .select('table_number')
-            .eq('venue_id', venue_id);
+            .eq('venue_id', venue_id)
 
         const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
 
