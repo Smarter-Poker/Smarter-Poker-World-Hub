@@ -55,6 +55,7 @@ export default async function handler(req, res) {
       .from('union_clubs')
       .select('club_id')
       .eq('union_id', unionId);
+      .limit(200)
 
     const clubIds = (unionClubs || []).map(uc => uc.club_id);
 

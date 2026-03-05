@@ -204,6 +204,7 @@ export default async function handler(req, res) {
       .from('club_members')
       .select('*', { count: 'exact', head: true })
       .eq('club_id', clubId);
+      .limit(500)
 
     await supabaseAdmin
       .from('clubs')

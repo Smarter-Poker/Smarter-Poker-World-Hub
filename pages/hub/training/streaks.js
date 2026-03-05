@@ -5,6 +5,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';

@@ -17,8 +17,13 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/dist/ScrollTrigger';
+// gsap loaded dynamically — not needed for initial render
+let gsap = null;
+let ScrollTrigger = null;
+if (typeof window !== 'undefined') {
+    import('gsap').then(m => { gsap = m.default; });
+    import('gsap/dist/ScrollTrigger').then(m => { ScrollTrigger = m.ScrollTrigger; });
+}
 import confetti from 'canvas-confetti';
 import GameCard from '../../src/components/training/GameCard';
 import { TRAINING_LIBRARY, getGamesByCategory } from '../../src/data/TRAINING_LIBRARY';
@@ -55,7 +60,7 @@ import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 
 // Register GSAP plugins
 if (typeof window !== 'undefined') {
-    gsap.registerPlugin(ScrollTrigger);
+    if (gsap && ScrollTrigger) gsap.registerPlugin(ScrollTrigger);
 }
 
 
@@ -727,14 +732,14 @@ export default function TrainingPage() {
     useEffect(() => {
         if (isLoaded) {
             // Stagger reveal lanes on mount
-            gsap.from('.game-lane', {
+            if (gsap) gsap.from('.game-lane', {
                 y: 50,
                 opacity: 0,
                 duration: 0.6,
                 stagger: 0.15,
                 ease: 'power3.out',
                 delay: 0.2,
-            });
+            }) /* gsap animation */
         }
     }, [isLoaded]);
 

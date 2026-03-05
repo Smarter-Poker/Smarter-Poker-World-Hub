@@ -152,6 +152,7 @@ export default async function handler(req, res) {
         .eq('id', agentRecord.id)
         .eq('business_balance', oldBal) // optimistic lock
         .select('id');
+        .limit(200)
 
       // Retry once on conflict
       if (!balUpd?.length) {

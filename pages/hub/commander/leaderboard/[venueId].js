@@ -3,6 +3,7 @@
  * Public view of venue leaderboards and promotions
  * Dark industrial sci-fi gaming theme
  */
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';

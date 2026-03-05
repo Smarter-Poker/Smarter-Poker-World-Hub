@@ -36,6 +36,7 @@ async function getUnionClubIds(unionId) {
     .from('union_clubs')
     .select('club_id')
     .eq('union_id', unionId);
+    .limit(200)
 
   return (unionClubs || []).map(uc => uc.club_id);
 }

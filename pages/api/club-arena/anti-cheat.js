@@ -69,6 +69,7 @@ export default async function handler(req, res) {
         let query = supabase
           .from('anti_cheat_flags')
           .select(`
+          .limit(200)
             *,
             player:player_id (id, display_name, avatar_url),
             reviewer:reviewed_by (id, display_name)
@@ -99,6 +100,7 @@ export default async function handler(req, res) {
         let query = supabase
           .from('anti_cheat_events')
           .select(`
+          .limit(200)
             *,
             player:player_id (id, display_name, avatar_url)
           `)
@@ -289,6 +291,7 @@ export default async function handler(req, res) {
             .select('severity, flag_type', { count: 'exact' })
             .eq('club_id', clubId)
             .eq('status', 'open'),
+            .limit(200)
 
           supabase
             .from('anti_cheat_events')
@@ -296,6 +299,7 @@ export default async function handler(req, res) {
             .eq('club_id', clubId)
             .eq('event_type', 'seat_blocked')
             .gte('created_at', new Date(Date.now() - 86400000).toISOString()),
+            .limit(200)
 
           supabase
             .from('table_sessions')

@@ -183,6 +183,7 @@ export default async function handler(req, res) {
                 .eq('id', clubId)
                 .eq('table_count', oldCount)
                 .select('id');
+                .limit(200)
 
             if (!upd?.length) {
                 const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).single();

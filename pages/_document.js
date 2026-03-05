@@ -13,6 +13,13 @@ export default function Document() {
                 {/* Supabase: DB + storage requests start pre-connecting immediately */}
                 <link rel="preconnect" href="https://kuklfnapbkmacvwxktbh.supabase.co" crossOrigin="anonymous" />
                 <link rel="dns-prefetch" href="https://kuklfnapbkmacvwxktbh.supabase.co" />
+                {/* iOS PWA support */}
+                <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+                <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+                <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
+                <meta name="mobile-web-app-capable" content="yes" />
                 {/* Supabase storage CDN (avatars, uploads, media) */}
                 <link rel="preconnect" href="https://storage.googleapis.com" crossOrigin="anonymous" />
 

@@ -3,6 +3,7 @@
  * View comp balance, earn rates, and redeem rewards
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
