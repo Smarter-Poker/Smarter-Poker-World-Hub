@@ -1,48 +1,40 @@
 /** @type {import('next').NextConfig} */
 const { withSentryConfig } = require('@sentry/nextjs');
-const withPWA = require('next-pwa')({
+const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development', // Only active in production
   fallbacks: {
-    document: '/offline.html',  // Shown when user is offline and requests a page
+    document: '/offline.html', // Shown when offline
   },
-  runtimeCaching: [
-    // Cache static assets (images, fonts) - cache first
-    {
-      urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'static-assets',
-        expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+  workboxOptions: {
+    runtimeCaching: [
+      // Cache static assets (images, fonts) - cache first
+      {
+        urlPattern: /^https:.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'static-assets',
+          expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+        },
       },
-    },
-    // Cache public venue and game data - stale while revalidate
-    {
-      urlPattern: /^https:\/\/smarter\.poker\/api\/public\//,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'public-api',
-        expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
+      // Cache public API data - stale while revalidate
+      {
+        urlPattern: /\/api\/(public|poker\/venues|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'public-api',
+          expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
+        },
       },
-    },
-    // Cache training + trivia content - stale while revalidate
-    {
-      urlPattern: /^https:\/\/smarter\.poker\/api\/(training|trivia|arcade\/leaderboard)/,
-      handler: 'StaleWhileRevalidate',
-      options: {
-        cacheName: 'training-content',
-        expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 }, // 1 hour
+      // Never cache auth, financial, or realtime routes (NetworkOnly)
+      {
+        urlPattern: /\/api\/(auth|club-arena\/(cashout|mint|distribute|clawback)|poker\/engine)/,
+        handler: 'NetworkOnly',
       },
-    },
-    // Never cache auth, financial, or realtime routes
-    {
-      urlPattern: /\/api\/(auth|club-arena\/(?:cashout|mint|distribute|clawback)|poker\/engine)\//,
-      handler: 'NetworkOnly',
-    },
-  ],
-  buildExcludes: [/middleware-manifest\.json$/],
+    ],
+  },
 });
 
 const nextConfig = {
