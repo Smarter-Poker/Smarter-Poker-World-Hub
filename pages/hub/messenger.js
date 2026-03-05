@@ -2252,7 +2252,7 @@ export default function MessengerPage() {
             console.error('❌ CALL ERROR: Attempted to call self!', { otherUser, currentUser: user.id });
             return;
         }
-
+        console.log('[Messenger] startCall →', {
             callingUser: otherUser.id,
             callingUsername: otherUser.username,
             currentUser: user.id,
@@ -2946,14 +2946,14 @@ export default function MessengerPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         {/* Jarvis Avatar */}
                                         <Image src="/images/jarvis-avatar.png" alt="Jarvis AI" width={1024} height={682} style={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: '50%',
-                                                objectFit: 'cover',
-                                                boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
-                                                border: '2px solid #00D4FF',
-                                                position: 'relative'
-                                            }} />
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: '50%',
+                                            objectFit: 'cover',
+                                            boxShadow: '0 2px 8px rgba(0, 212, 255, 0.3)',
+                                            border: '2px solid #00D4FF',
+                                            position: 'relative'
+                                        }} />
                                         {/* Always Online Indicator */}
                                         <div style={{
                                             position: 'absolute',

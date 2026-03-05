@@ -58,8 +58,37 @@ export async function checkBankrollProAccess(userId) {
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds };
     }
 
-    // Check for active day pass
     const now = new Date().toISOString();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DAILY UNLOCK ALL: Check for active universal day pass (150 💎)
+    // This grants access to ALL gated features including Bankroll Pro
+    // ═══════════════════════════════════════════════════════════════════
+    const { data: universalPass, error: universalError } = await supabase
+        .from('premium_feature_access')
+        .select('expires_at')
+        .eq('user_id', userId)
+        .eq('feature_key', 'daily_unlock_all')
+        .gt('expires_at', now)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    if (universalError && universalError.code !== 'PGRST116') {
+        console.warn('[BankrollProGate] Universal pass check error:', universalError.message);
+    }
+
+    if (universalPass) {
+        return {
+            hasAccess: true,
+            isVip: false,
+            isDailyUnlock: true,
+            expiresAt: new Date(universalPass.expires_at),
+            diamonds: profile?.diamonds || 0
+        };
+    }
+
+    // Check for active individual day pass
     const { data: access } = await supabase
         .from('premium_feature_access')
         .select('expires_at')

@@ -566,8 +566,8 @@ export default function VideoLibraryPage() {
 
     // Handle Jarvis button click - fetch analysis ON DEMAND only
     const handleJarvisClick = useCallback(async () => {
-            const controller = new AbortController();
-            const { signal } = controller;
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!selectedVideo) return;
 
         // Toggle panel
@@ -598,8 +598,8 @@ export default function VideoLibraryPage() {
 
     // Handle closing a video - save watch duration
     const handleCloseVideo = useCallback(async () => {
-            const controller = new AbortController();
-            const { signal } = controller;
+        const controller = new AbortController();
+        const { signal } = controller;
         if (watchStartTimeRef.current && currentWatchingVideoRef.current && userId) {
             const watchedSeconds = Math.floor((Date.now() - watchStartTimeRef.current) / 1000);
             const video = currentWatchingVideoRef.current;
@@ -1332,7 +1332,7 @@ export default function VideoLibraryPage() {
                                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                                             }}>
                                                 <img
-                                                    src={SOURCES.find(s = /> s.id === video.source)?.logo}
+                                                    src={SOURCES.find(s => s.id === video.source)?.logo}
                                                     alt=""
                                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                                 />
@@ -1596,12 +1596,12 @@ export default function VideoLibraryPage() {
                                 {/* Jarvis icon + insight content */}
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                                     <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
-                                            width: 32,
-                                            height: 32,
-                                            borderRadius: '50%',
-                                            border: '2px solid rgba(0,212,255,0.5)',
-                                            flexShrink: 0,
-                                        }} />
+                                        width: 32,
+                                        height: 32,
+                                        borderRadius: '50%',
+                                        border: '2px solid rgba(0,212,255,0.5)',
+                                        flexShrink: 0,
+                                    }} />
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         {/* Timestamp + Type */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -1666,11 +1666,11 @@ export default function VideoLibraryPage() {
                                 boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
                             }}>
                                 <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: '50%',
-                                        animation: 'pulse 1s infinite',
-                                    }} />
+                                    width: 32,
+                                    height: 32,
+                                    borderRadius: '50%',
+                                    animation: 'pulse 1s infinite',
+                                }} />
                                 <span style={{ fontSize: 13 }}>Jarvis Analyzing Video...</span>
                             </div>
                         )}
@@ -1909,11 +1909,11 @@ export default function VideoLibraryPage() {
                                         animation: 'pulse 2s ease-in-out infinite',
                                     }}>
                                         <Image src="/images/jarvis-avatar.png" alt="Jarvis" width={1024} height={682} style={{
-                                                width: 48,
-                                                height: 48,
-                                                borderRadius: '50%',
-                                                objectFit: 'cover'
-                                            }} />
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: '50%',
+                                            objectFit: 'cover'
+                                        }} />
                                     </div>
                                     <p style={{
                                         color: '#00D4FF',
@@ -2272,7 +2272,7 @@ export default function VideoLibraryPage() {
                                         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
                                     }}>
                                         <img
-                                            src={SOURCES.find(s = /> s.id === selectedVideo.source)?.logo}
+                                            src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
                                             alt=""
                                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                         />

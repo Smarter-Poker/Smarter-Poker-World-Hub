@@ -549,7 +549,7 @@ export default function WaitlistDesk() {
   return (
     <>
       <SEOHead title="The Board — Poker Waiting List" noindex={true} />
-      <div style={{ minHeight: '100vh', background: c.bgColor, color: c.textColor, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: c.bgColor, color: c.textColor, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
         {/* ═══ TOP BAR ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: `2px solid ${c.borderColor}44`, background: c.cardBgColor }}>
@@ -1465,7 +1465,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
                 </div>
                 {draft.logoUrl && (
                   <div style={{ marginTop: '12px', padding: '16px', background: '#0a0a0a', borderRadius: '8px', border: '1px solid #333', textAlign: 'center' }}>
-                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e = /> { e.target.style.display = 'none'; }} />
+                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                   </div>
                 )}
               </div>

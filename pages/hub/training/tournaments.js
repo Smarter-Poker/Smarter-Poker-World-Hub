@@ -22,7 +22,7 @@ export default function TournamentsPage() {
 
     // Load auth user once
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => {});
+        getAuthUser().then(u => setUser(u)).catch(() => { });
     }, []);
 
     // SWR key includes tab + user so switching tabs is instant on revisit
@@ -143,12 +143,9 @@ export default function TournamentsPage() {
                                 const game = getGameById(tournament.game_id);
 
                                 return (
-                                    <motion.div
+                                    <div
                                         key={tournament.id}
                                         style={styles.tournamentCard}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: i * 0.1 }}
                                     >
                                         <div style={styles.cardHeader}>
                                             <div style={styles.cardTitle}>

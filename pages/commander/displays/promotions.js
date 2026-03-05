@@ -185,7 +185,7 @@ export default function PromotionsDisplay() {
             }}>
               {clubLogoUrl ? (
                 <img src={clubLogoUrl} alt={clubName} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  onError={e = /> { e.target.style.display = 'none'; }} />
+                  onError={e => { e.target.style.display = 'none'; }} />
               ) : (
                 <span style={{
                   fontSize: 28, fontWeight: 900, color: '#fff',
@@ -246,7 +246,7 @@ export default function PromotionsDisplay() {
               {/* Image Banner */}
               {current.image_url && (
                 <div className="mb-8 rounded-2xl overflow-hidden mx-auto" style={{ maxHeight: 240, maxWidth: 800 }}>
-                  <img src={current.image_url} alt={current.name} className="w-full h-full object-cover" onError={e = /> { e.target.style.display = 'none'; }} />
+                  <img src={current.image_url} alt={current.name} className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
                 </div>
               )}
 

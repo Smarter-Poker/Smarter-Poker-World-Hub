@@ -15,7 +15,7 @@
 
 import { useState, useEffect } from 'react';
 import { Lock, Diamond, Crown, Timer, Loader2, Zap, CheckCircle } from 'lucide-react';
-import { checkFeatureAccess, purchaseFeatureAccess, FEATURE_CONFIG } from '../../lib/gates/premiumFeatureGate';
+import { checkFeatureAccess, purchaseFeatureAccess, purchaseDailyUnlockAll, FEATURE_CONFIG, DAILY_UNLOCK_ALL_COST } from '../../lib/gates/premiumFeatureGate';
 import { useAvatar } from '../../contexts/AvatarContext';
 
 // Inline design tokens (Futuristic Metal)
@@ -63,6 +63,7 @@ export default function FeatureGate({ userId: userIdProp, featureKey, title, sub
     const [isUnlocking, setIsUnlocking] = useState(false);
     const [unlockSuccess, setUnlockSuccess] = useState(false);
     const [error, setError] = useState(null);
+    const [isUnlockingAll, setIsUnlockingAll] = useState(false);
 
     useEffect(() => {
         // ═══════════════════════════════════════════════════════════════
@@ -134,6 +135,31 @@ export default function FeatureGate({ userId: userIdProp, featureKey, title, sub
         setIsUnlocking(false);
     };
 
+    // ═══════════════════════════════════════════════════════════════════
+    // DAILY UNLOCK ALL: Purchase 150💎 universal day pass
+    // ═══════════════════════════════════════════════════════════════════
+    const handleUnlockAll = async () => {
+        setIsUnlockingAll(true);
+        setError(null);
+
+        const result = await purchaseDailyUnlockAll(userId);
+
+        if (result.success) {
+            setUnlockSuccess(true);
+            if (result.newBalance !== undefined) setDiamonds(result.newBalance);
+
+            setTimeout(() => {
+                setAccess({ hasAccess: true, isVip: false, isDailyUnlock: true, expiresAt: result.expiresAt, loading: false });
+                setShowModal(false);
+                setUnlockSuccess(false);
+            }, 1500);
+        } else {
+            setError(result.error);
+        }
+
+        setIsUnlockingAll(false);
+    };
+
     // Loading (auth initializing or access check in progress)
     if (access.loading) {
         return (
@@ -154,7 +180,12 @@ export default function FeatureGate({ userId: userIdProp, featureKey, title, sub
                         <Crown size={12} /> VIP ACCESS
                     </div>
                 )}
-                {!hideBadge && !access.isVip && access.expiresAt && (
+                {!hideBadge && access.isDailyUnlock && access.expiresAt && (
+                    <div style={{ ...s.badge, ...s.badgeCyan }}>
+                        <Zap size={12} /> ALL ACCESS — {formatTimeRemaining(access.expiresAt)}
+                    </div>
+                )}
+                {!hideBadge && !access.isVip && !access.isDailyUnlock && access.expiresAt && (
                     <div style={{ ...s.badge, ...s.badgeCyan }}>
                         <Timer size={12} /> {formatTimeRemaining(access.expiresAt)}
                     </div>
@@ -191,6 +222,29 @@ export default function FeatureGate({ userId: userIdProp, featureKey, title, sub
                         ))}
                     </div>
                 )}
+
+                {/* ═══ UNLOCK ALL FEATURES BANNER ═══ */}
+                <div style={s.unlockAllBanner}>
+                    <div style={s.unlockAllLed} />
+                    <div style={s.unlockAllHeader}>
+                        <Zap size={18} style={{ color: '#f7b928' }} />
+                        <span style={s.unlockAllTitle}>UNLOCK ALL FEATURES</span>
+                    </div>
+                    <div style={s.unlockAllPriceRow}>
+                        <Diamond size={22} style={{ color: '#f7b928' }} />
+                        <span style={s.unlockAllPrice}>150</span>
+                        <span style={s.unlockAllUnit}>DIAMONDS / 24 HRS</span>
+                    </div>
+                    <p style={s.unlockAllDesc}>One pass. Every premium feature. All day.</p>
+                    <button
+                        style={s.unlockAllBtn}
+                        onClick={handleUnlockAll}
+                        disabled={isUnlockingAll || diamonds < DAILY_UNLOCK_ALL_COST}
+                    >
+                        {isUnlockingAll ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={16} />}
+                        {isUnlockingAll ? 'UNLOCKING...' : 'GET ALL-ACCESS PASS'}
+                    </button>
+                </div>
 
                 <div style={s.pricingPanel}>
                     <div style={s.pricingLed} />
@@ -334,4 +388,14 @@ const s = {
     cancelBtn: { flex: 1, padding: 14, background: `linear-gradient(180deg, #3a3b3c 0%, #2d2e2f 100%)`, border: `1px solid ${M.mid}`, borderRadius: 10, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em', cursor: 'pointer' },
     confirmBtn: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 14, background: `linear-gradient(135deg, ${M.cyan} 0%, #1a5fc9 100%)`, border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#000', letterSpacing: '0.1em', cursor: 'pointer' },
     modalVipNote: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em' },
+    // UNLOCK ALL FEATURES banner styles
+    unlockAllBanner: { position: 'relative', padding: '20px 24px', background: 'linear-gradient(180deg, rgba(247,185,40,0.12) 0%, rgba(247,185,40,0.04) 100%)', border: `2px solid rgba(247,185,40,0.5)`, borderRadius: 14, marginBottom: 16, textAlign: 'center', overflow: 'hidden' },
+    unlockAllLed: { position: 'absolute', top: 0, left: '15%', right: '15%', height: 2, background: '#f7b928', borderRadius: '0 0 2px 2px', boxShadow: '0 0 8px rgba(247,185,40,0.5)' },
+    unlockAllHeader: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
+    unlockAllTitle: { fontFamily: "'Orbitron',sans-serif", fontSize: 15, fontWeight: 700, letterSpacing: '0.12em', background: 'linear-gradient(135deg, #f7b928, #ffd700)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+    unlockAllPriceRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
+    unlockAllPrice: { fontFamily: "'Orbitron',sans-serif", fontSize: 32, fontWeight: 900, background: 'linear-gradient(180deg, #ffffff 0%, #f7b928 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+    unlockAllUnit: { fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' },
+    unlockAllDesc: { fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '0 0 14px', letterSpacing: '0.05em' },
+    unlockAllBtn: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: 'linear-gradient(135deg, #f7b928 0%, #d4981a 100%)', border: 'none', borderRadius: 10, color: '#000', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', boxShadow: '0 4px 16px rgba(247,185,40,0.35)', transition: 'transform 0.2s' },
 };

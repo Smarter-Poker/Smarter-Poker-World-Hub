@@ -21,7 +21,7 @@ export default function TrainingLeaderboard() {
 
     // Load auth user once
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => {});
+        getAuthUser().then(u => setUser(u)).catch(() => { });
     }, []);
 
     // Map timeframe to API period format
@@ -144,14 +144,11 @@ function LeaderboardEntry({ rank, username, avatarUrl, totalQuestions, correctAn
     };
 
     return (
-        <motion.div
+        <div
             style={{
                 ...styles.leaderboardEntry,
                 ...(isCurrentUser ? styles.currentUserEntry : {})
             }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: rank * 0.02 }}
         >
             <div style={styles.rankSection}>
                 {getRankIcon() ? (

@@ -161,7 +161,8 @@ export default function CommanderLogin() {
         localStorage.removeItem('commander_remember');
       }
 
-      router.replace('/commander/dashboard').catch(() => { });
+      // Use window.location for guaranteed redirect (router.replace can silently fail)
+      window.location.href = '/commander/dashboard';
 
     } catch (err) {
       console.error('Login error:', err);

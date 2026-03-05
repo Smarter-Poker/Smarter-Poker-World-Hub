@@ -8,7 +8,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import {
   Coffee,
   Coins,

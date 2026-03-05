@@ -2537,7 +2537,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                             {photos.map((photo, i) => (
                                 <div key={i} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '1', background: '#1a1a2e' }}>
-                                    <img src={photo.url} alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e = /> { e.target.style.display = 'none'; }} />
+                                    <img src={photo.url} alt={photo.caption || 'Club photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = 'none'; }} />
                                     {photo.caption && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '16px 8px 6px', fontSize: 11, color: '#fff' }}>{photo.caption}</div>}
                                     <button onClick={() => {
                                         const updated = photos.filter((_, j) => j !== i);
@@ -2844,9 +2844,9 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                                 {/* Table image fills entire container */}
                                                 <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
-                                                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                                        objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                                    } />
+                                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                                }} />
 
                                                 {/* Game info in center of table */}
                                                 <div style={{
@@ -3357,12 +3357,12 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                         {/* Table image fills entire container */}
                                         <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
-                                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                                objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                            } />
+                                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                            objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                        }} />
 
                                         {/* Game info in center of table */}
-                                        <div style={{
+                                        < div style={{
                                             position: 'absolute', top: '48%', left: '50%',
                                             transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                         }}>
@@ -3579,7 +3579,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             )
             }
             <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        </div >
     );
 }
 
@@ -3703,7 +3703,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                         {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
                             <button onClick={() => window.location.href = '/commander/dashboard'} style={{
                                 background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)', border: '1px solid #22D3EE', borderRadius: 20, padding: '8px 14px',
-                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "var(--font-orbitron), sans-serif" ,
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "var(--font-orbitron), sans-serif",
                                 letterSpacing: 1, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6,
                                 boxShadow: '0 0 8px rgba(34,211,238,0.2)'
                             }}>Commander</button>
@@ -5200,7 +5200,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/friends.png" alt="" width={128} height={82} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
+                        <Image src="/icons/friends.png" alt="" width={128} height={82} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
                     {/* Club Arena - Purple columns SVG (fallback) */}
@@ -5221,7 +5221,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/diamond.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
+                        <Image src="/icons/diamond.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
                     </Link>
                     {/* Tournaments - Custom AI icon */}
@@ -5229,7 +5229,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
+                        <Image src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
                     {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
@@ -5251,7 +5251,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/gto.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
+                        <Image src="/icons/gto.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
                     </Link>
                     {/* Reels - Custom AI icon */}
@@ -5259,7 +5259,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/reels.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' } />
+                        <Image src="/icons/reels.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
                     </Link>
                 </div>

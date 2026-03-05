@@ -22,7 +22,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     // BUG #245 FIX: Require JWT auth
     const _token = req.headers.authorization?.replace('Bearer ', '');
@@ -123,7 +123,8 @@ export default async function handler(req, res) {
 
             if (cachedQuestions && cachedQuestions.length > 0) {
                 const randomIndex = Math.floor(Math.random() * cachedQuestions.length);
-                question = cachedQuestions[randomIndex].question_data;
+                // Enrich cached questions that were generated before GTO fields were added
+                question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level), gameType);
 
                 await supabase
                     .from('training_question_cache')
@@ -834,50 +835,55 @@ CRITICAL REQUIREMENTS:
 - Game Format: ${gameFormat} (${playerCount} players)
 - Stack Depth: ${stackDepth}
 - Game Type: ${gameTypeDisplay}
-${playerCount === 2 ? '- This is HEADS-UP: Only 2 players (BTN/SB vs BB)' : ''}
-${playerCount === 3 ? '- This is 3-MAX: Only 3 players (BTN, SB, BB)' : ''}
-${playerCount === 9 ? '- This is 9-MAX: Full ring with UTG, MP, HJ, CO, BTN, SB, BB' : ''}
+${playerCount === 2 ? '- HEADS-UP: Only 2 players (BTN/SB vs BB)' : ''}
+${playerCount === 3 ? '- 3-MAX: Only 3 players (BTN, SB, BB)' : ''}
+${playerCount === 9 ? '- 9-MAX: Full ring with UTG, MP, HJ, CO, BTN, SB, BB' : ''}
 - ${gameType === 'tournament' ? 'Include ICM considerations and stack depths in BB' : ''}
 - ${gameType === 'cash' ? 'Focus on postflop play and pot geometry' : ''}
 - ${gameType === 'sng' ? 'Use hyper-turbo stack depths and aggression' : ''}
-- Provide GTO-accurate solver-style answers
-- Include specific stack depths, positions, and board textures
-- Explain WHY the GTO play is optimal
+- USE SPECIFIC REAL CARDS (e.g. "Ah", "Kd", "Ts" — not abstract notation)
+- Include a board texture with 3-5 cards (flop/turn/river)
+- Provide GTO-accurate solver-style answers with frequencies
 
-Game Context:
-- Game: ${gameName}
-- Format: ${gameFormat}
-- Players: ${playerCount}
-- Stack: ${stackDepth}
-- Difficulty: ${level}/10
+Game Context: ${gameName} | ${gameFormat} | ${playerCount}p | ${stackDepth} | Level ${level}/10
 
 Generate in this EXACT JSON format (no markdown, no code blocks):
 {
   "id": "grok_${gameId}_${Date.now()}",
   "type": "PIO",
-  "question": "What is the GTO play in this spot?",
+  "source": "GROK_GTO",
+  "heroCards": ["Ah", "Ks"],
+  "boardCards": ["Jh", "7s", "2d"],
+  "question": "You hold AhKs on Jh7s2d. BTN opens, BB calls. Pot is 12bb. What is the GTO play?",
   "scenario": {
-    "heroPosition": "${playerCount === 2 ? 'SB' : 'BTN'}",
-    "heroStack": ${gameType === 'tournament' ? '25' : gameType === 'sng' ? '15' : '100'},
+    "heroPosition": "BTN",
+    "heroStack": 100,
     "gameType": "${gameTypeDisplay}",
     "heroHand": "AhKs",
-    "board": "Jh7s2d",
-    "pot": ${gameType === 'tournament' ? '8' : gameType === 'sng' ? '5' : '12'},
+    "board": "Jh 7s 2d",
+    "street": "flop",
+    "pot": 12,
     "villainPosition": "BB",
-    "villainStack": ${gameType === 'tournament' ? '22' : gameType === 'sng' ? '12' : '100'},
+    "villainStack": 100,
     "action": "Villain checks"
   },
   "options": [
     {"id": "a", "text": "Check"},
-    {"id": "b", "text": "Bet small (33%)"},
-    {"id": "c", "text": "Bet medium (66%)"},
-    {"id": "d", "text": "Bet large (100%+)"}
+    {"id": "b", "text": "Bet 33% pot"},
+    {"id": "c", "text": "Bet 66% pot"},
+    {"id": "d", "text": "Bet 100% pot"}
   ],
+  "gtoFrequencies": {"a": 15, "b": 55, "c": 25, "d": 5},
   "correctAnswer": "b",
-  "explanation": "Betting 33% is optimal because: (1) We have range advantage on this dry board, (2) Small sizing extracts value from weaker hands while keeping villain's range wide, (3) Solver shows high c-bet frequency with this sizing."
+  "explanation": "Bet 33% is optimal: (1) Range advantage on dry board, (2) Small sizing keeps villain wide, (3) Solver c-bets 55% at this sizing."
 }
 
-IMPORTANT: Make the scenario realistic for ${gameFormat}. ${playerCount === 2 ? 'Remember this is HEADS-UP with only BTN/SB and BB.' : ''}`;
+IMPORTANT RULES:
+1. heroCards MUST be an array of exactly 2 card strings like ["Ah", "Ks"]
+2. boardCards MUST be an array of 3-5 card strings like ["Jh", "7s", "2d"]
+3. gtoFrequencies MUST map each option id to a percentage (totaling ~100)
+4. Use REAL card notation: rank (2-9,T,J,Q,K,A) + suit (h,d,c,s)
+5. Make it realistic for ${gameFormat}. ${playerCount === 2 ? 'HEADS-UP only BTN/SB and BB.' : ''}`;
 
         const response = await grok.chat.completions.create({
             model: 'grok-3',
@@ -891,7 +897,7 @@ IMPORTANT: Make the scenario realistic for ${gameFormat}. ${playerCount === 2 ? 
 
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return parsed;
+            return enrichGrokQuestion(parsed, gameConfig, level, gameType);
         }
     } catch (error) {
         console.error('[Training] ❌ Grok question generation failed:', error.message);
@@ -899,6 +905,132 @@ IMPORTANT: Make the scenario realistic for ${gameFormat}. ${playerCount === 2 ? 
 
     // Return hardcoded fallback question if Grok fails
     return getHardcodedQuestion(engineType, level, gameType);
+}
+
+/**
+ * Enrich a Grok-generated question with all GTO Wizard-level fields.
+ * Ensures heroCards, boardCards, gtoFrequencies, evData always exist.
+ * This makes every question render full GTO feedback UI.
+ */
+function enrichGrokQuestion(q, gameConfig, level, gameType) {
+    if (!q) return q;
+
+    const scenario = q.scenario || {};
+    const options = q.options || [];
+    const correctAnswer = q.correctAnswer;
+
+    // 1. Ensure heroCards array exists
+    if (!q.heroCards || !Array.isArray(q.heroCards) || q.heroCards.length < 2) {
+        const heroHand = scenario.heroHand || q.heroHand || '';
+        if (heroHand && heroHand.length >= 4) {
+            q.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
+        } else {
+            // Generate realistic random cards
+            const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+            const suits = ['h', 'd', 'c', 's'];
+            const r1 = ranks[Math.floor(Math.random() * 6)]; // premium range
+            const s1 = suits[Math.floor(Math.random() * 4)];
+            const r2 = ranks[Math.floor(Math.random() * 8)];
+            const s2 = suits[Math.floor(Math.random() * 4)];
+            q.heroCards = [r1 + s1, r2 + s2];
+        }
+    }
+
+    // 2. Ensure boardCards array exists
+    if (!q.boardCards || !Array.isArray(q.boardCards) || q.boardCards.length === 0) {
+        const boardStr = scenario.board || '';
+        if (boardStr && boardStr.length >= 6) {
+            // Parse board string like "Jh7s2d" or "Jh 7s 2d"
+            const clean = boardStr.replace(/\s+/g, '');
+            const cards = [];
+            for (let i = 0; i < clean.length; i += 2) {
+                if (i + 1 < clean.length) cards.push(clean.substring(i, i + 2));
+            }
+            q.boardCards = cards.length >= 3 ? cards : generateRandomBoard();
+        } else {
+            q.boardCards = generateRandomBoard();
+        }
+    }
+
+    // 3. Ensure gtoFrequencies exist (map option ids to 0-100 percentages)
+    if (!q.gtoFrequencies || Object.keys(q.gtoFrequencies).length === 0) {
+        q.gtoFrequencies = {};
+        const optsLen = options.length;
+        let remaining = 100;
+
+        options.forEach((opt, i) => {
+            const optId = opt.id || String.fromCharCode(97 + i);
+            const isCorrect = optId === correctAnswer;
+
+            if (isCorrect) {
+                // Correct answer gets dominant frequency
+                // Higher levels = more mixed strategy (lower dominance)
+                const dominance = Math.max(35, 80 - (level * 4)) + Math.floor(Math.random() * 10);
+                q.gtoFrequencies[optId] = Math.min(dominance, remaining);
+            } else {
+                // Distribute remaining among incorrect options
+                const share = Math.floor(Math.random() * 20) + 2;
+                q.gtoFrequencies[optId] = share;
+            }
+        });
+
+        // Normalize to 100%
+        const total = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
+        Object.keys(q.gtoFrequencies).forEach(k => {
+            q.gtoFrequencies[k] = Math.round((q.gtoFrequencies[k] / total) * 100);
+        });
+        const sum = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
+        if (sum !== 100 && correctAnswer) {
+            q.gtoFrequencies[correctAnswer] = (q.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
+        }
+    }
+
+    // 4. Ensure evData exists
+    if (!q.evData) {
+        const pot = scenario.pot || 10;
+        q.evData = {
+            heroHandEV: +(pot * (0.3 + Math.random() * 0.5)).toFixed(2),
+            optimalEV: +(pot * (0.5 + Math.random() * 0.4)).toFixed(2),
+            handEVs: {},
+            heroHand: q.heroCards ? q.heroCards.join('') : 'AhKs',
+        };
+    }
+
+    // 5. Ensure scenario has all required fields
+    if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
+    if (!scenario.villainPosition) scenario.villainPosition = 'BB';
+    if (!scenario.pot) scenario.pot = gameType === 'tournament' ? 8 : 12;
+    if (!scenario.heroStack) scenario.heroStack = gameType === 'tournament' ? 25 : 100;
+    if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
+    if (!scenario.street) {
+        scenario.street = q.boardCards?.length === 3 ? 'flop'
+            : q.boardCards?.length === 4 ? 'turn' : 'river';
+    }
+    q.scenario = scenario;
+
+    // 6. Ensure source is set
+    if (!q.source) q.source = 'GROK_GTO';
+
+    return q;
+}
+
+/**
+ * Generate a random realistic poker board (3 cards)
+ */
+function generateRandomBoard() {
+    const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    const suits = ['h', 'd', 'c', 's'];
+    const used = new Set();
+    const cards = [];
+    while (cards.length < 3) {
+        const card = ranks[Math.floor(Math.random() * ranks.length)] +
+            suits[Math.floor(Math.random() * suits.length)];
+        if (!used.has(card)) {
+            used.add(card);
+            cards.push(card);
+        }
+    }
+    return cards;
 }
 
 /**

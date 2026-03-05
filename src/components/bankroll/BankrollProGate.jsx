@@ -21,6 +21,7 @@ import {
     purchaseBankrollProAccess,
     BANKROLL_PRO_DAY_COST
 } from '../../lib/bankroll/premiumFeatureGate';
+import { purchaseDailyUnlockAll, DAILY_UNLOCK_ALL_COST } from '../../lib/gates/premiumFeatureGate';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 import { useAvatar } from '../../contexts/AvatarContext';
 
@@ -38,6 +39,7 @@ export default function BankrollProGate({ userId: userIdProp, children }) {
     const [isUnlocking, setIsUnlocking] = useState(false);
     const [unlockSuccess, setUnlockSuccess] = useState(false);
     const [error, setError] = useState(null);
+    const [isUnlockingAll, setIsUnlockingAll] = useState(false);
 
     useEffect(() => {
         // ═══════════════════════════════════════════════════════════════
@@ -109,6 +111,31 @@ export default function BankrollProGate({ userId: userIdProp, children }) {
         setIsUnlocking(false);
     };
 
+    // ═══════════════════════════════════════════════════════════════════
+    // DAILY UNLOCK ALL: Purchase 150💎 universal day pass
+    // ═══════════════════════════════════════════════════════════════════
+    const handleUnlockAll = async () => {
+        setIsUnlockingAll(true);
+        setError(null);
+
+        const result = await purchaseDailyUnlockAll(userId);
+
+        if (result.success) {
+            setUnlockSuccess(true);
+            if (result.newBalance !== undefined) setDiamonds(result.newBalance);
+
+            setTimeout(() => {
+                setAccess({ hasAccess: true, isVip: false, isDailyUnlock: true, expiresAt: result.expiresAt, loading: false });
+                setShowUnlockModal(false);
+                setUnlockSuccess(false);
+            }, 1500);
+        } else {
+            setError(result.error);
+        }
+
+        setIsUnlockingAll(false);
+    };
+
     // Loading state
     if (access.loading) {
         return (
@@ -176,6 +203,29 @@ export default function BankrollProGate({ userId: userIdProp, children }) {
                             <span style={styles.featureLabel}>{feature.label}</span>
                         </div>
                     ))}
+                </div>
+
+                {/* ═══ UNLOCK ALL FEATURES BANNER ═══ */}
+                <div style={styles.unlockAllBanner}>
+                    <div style={styles.unlockAllLed} />
+                    <div style={styles.unlockAllHeader}>
+                        <Zap size={18} style={{ color: METAL.primary }} />
+                        <span style={styles.unlockAllTitle}>UNLOCK ALL FEATURES</span>
+                    </div>
+                    <div style={styles.unlockAllPriceRow}>
+                        <Diamond size={22} style={{ color: METAL.primary }} />
+                        <span style={styles.unlockAllPrice}>150</span>
+                        <span style={styles.unlockAllUnit}>DIAMONDS / 24 HRS</span>
+                    </div>
+                    <p style={styles.unlockAllDesc}>One pass. Every premium feature. All day.</p>
+                    <button
+                        style={styles.unlockAllBtn}
+                        onClick={handleUnlockAll}
+                        disabled={isUnlockingAll || diamonds < DAILY_UNLOCK_ALL_COST}
+                    >
+                        {isUnlockingAll ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={16} />}
+                        {isUnlockingAll ? 'UNLOCKING...' : 'GET ALL-ACCESS PASS'}
+                    </button>
                 </div>
 
                 {/* Pricing Panel */}
@@ -785,4 +835,14 @@ const styles = {
         letterSpacing: '0.1em',
         margin: 0,
     },
+    // UNLOCK ALL FEATURES banner styles
+    unlockAllBanner: { position: 'relative', padding: '20px 24px', background: `linear-gradient(180deg, ${METAL.primaryDim} 0%, rgba(247,185,40,0.04) 100%)`, border: `2px solid rgba(247,185,40,0.5)`, borderRadius: 14, marginBottom: 20, textAlign: 'center', overflow: 'hidden' },
+    unlockAllLed: { position: 'absolute', top: 0, left: '15%', right: '15%', height: 2, background: METAL.primary, borderRadius: '0 0 2px 2px', boxShadow: `0 0 8px ${METAL.primaryGlow}` },
+    unlockAllHeader: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
+    unlockAllTitle: { fontFamily: "'Orbitron', sans-serif", fontSize: 15, fontWeight: 700, letterSpacing: '0.12em', background: `linear-gradient(135deg, ${METAL.primary}, #ffd700)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+    unlockAllPriceRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 6 },
+    unlockAllPrice: { fontFamily: "'Orbitron', sans-serif", fontSize: 32, fontWeight: 900, background: `linear-gradient(180deg, #ffffff 0%, ${METAL.primary} 100%)`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+    unlockAllUnit: { fontFamily: "'Rajdhani', sans-serif", fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' },
+    unlockAllDesc: { fontFamily: "'Rajdhani', sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: '0 0 14px', letterSpacing: '0.05em' },
+    unlockAllBtn: { display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: `linear-gradient(135deg, ${METAL.primary} 0%, #d4981a 100%)`, border: 'none', borderRadius: 10, fontFamily: "'Rajdhani', sans-serif", color: '#000', fontSize: 14, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', boxShadow: `0 4px 16px ${METAL.primaryGlow}`, transition: 'transform 0.2s' },
 };

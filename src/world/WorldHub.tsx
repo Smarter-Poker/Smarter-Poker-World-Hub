@@ -52,6 +52,8 @@ import { SearchOrb, SearchOverlay } from './components/GlobalSearch';
 import { GeevesOrb } from './components/GeevesOrb';
 import { useLiveHelp, LiveHelpPanel } from './components/Geeves';
 import { SettingsOrb } from './components/SettingsOrb';
+import NewUserWelcomeModal from '../components/gates/NewUserWelcomeModal';
+import { useAvatar } from '../contexts/AvatarContext';
 
 
 
@@ -367,6 +369,9 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
     // Get store actions for navigation
     const selectOrb = useWorldStore((state) => state.selectOrb);
     const exitOrb = useWorldStore((state) => state.exitOrb);
+
+    // NEW USER WELCOME: Get modal state from AvatarContext
+    const { showWelcomeModal, dismissWelcomeModal, user: avatarUser } = useAvatar();
 
     // Next.js router for actual page navigation
     const router = useRouter();
@@ -701,6 +706,13 @@ export default function WorldHub({ onOpenCardCustomizer }: { onOpenCardCustomize
 
     return (
         <>
+            {/* NEW USER WELCOME MODAL — Shows once on first signup */}
+            <NewUserWelcomeModal
+                isOpen={showWelcomeModal}
+                onClose={dismissWelcomeModal}
+                userName={avatarUser?.user_metadata?.poker_alias || avatarUser?.user_metadata?.full_name || ''}
+            />
+
             {/* EPIC CINEMATIC INTRO - Shows ONLY on login (Authentication Handshake Exception) */}
             <HubErrorBoundary name="Cinematic Intro" fallback={<></>}>
                 {CinematicIntroComponent}

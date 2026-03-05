@@ -34,7 +34,7 @@ export default function TrainingAchievements() {
 
     // Load auth user once
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => {});
+        getAuthUser().then(u => setUser(u)).catch(() => { });
     }, []);
 
     // SWR-backed achievements fetch — only fires when user is known
@@ -98,16 +98,13 @@ export default function TrainingAchievements() {
                     ) : (
                         <div style={styles.grid}>
                             {filteredAchievements.map((ach, i) => (
-                                <motion.div
+                                <div
                                     key={ach.id}
                                     style={{
                                         ...styles.achCard,
                                         opacity: ach.unlocked ? 1 : 0.5,
                                         borderColor: ach.unlocked ? RARITY_COLORS[ach.rarity] : '#333'
                                     }}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: ach.unlocked ? 1 : 0.5, y: 0 }}
-                                    transition={{ delay: i * 0.05 }}
                                 >
                                     <div style={styles.achIcon}>{ach.icon || '🏆'}</div>
                                     <div style={styles.achInfo}>

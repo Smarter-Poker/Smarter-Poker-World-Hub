@@ -5,36 +5,37 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development', // Only active in production
-  fallbacks: {
-    document: '/offline.html', // Shown when offline
-  },
-  workboxOptions: {
-    runtimeCaching: [
-      // Cache static assets (images, fonts) - cache first
-      {
-        urlPattern: /^https:.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'static-assets',
-          expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
-        },
+  // NOTE: fallbacks removed — next-pwa@5.6.0 crashes with 'precacheFallback' TypeError
+  // when injecting fallback handlers into runtimeCaching entries. All PWA caching remains intact.
+  runtimeCaching: [
+    // Cache static assets (images, fonts) - cache first
+    {
+      urlPattern: /^https:\/\/.*\.(?:png|jpg|jpeg|svg|gif|webp|avif|ico|woff|woff2|ttf|eot)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-assets',
+        expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
       },
-      // Cache public API data - stale while revalidate
-      {
-        urlPattern: /\/api\/(public|poker\/venues|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
-        handler: 'StaleWhileRevalidate',
-        options: {
-          cacheName: 'public-api',
-          expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
-        },
+    },
+    // Cache public API data - stale while revalidate
+    {
+      urlPattern: /\/api\/(public|poker\/venues|poker\/daily-tournaments|training\/leaderboard|arcade\/leaderboard)/,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'public-api',
+        expiration: { maxEntries: 100, maxAgeSeconds: 60 * 5 }, // 5 min
       },
-      // Never cache auth, financial, or realtime routes (NetworkOnly)
-      {
-        urlPattern: /\/api\/(auth|club-arena\/(cashout|mint|distribute|clawback)|poker\/engine)/,
-        handler: 'NetworkOnly',
+    },
+    // Never cache auth, financial, or realtime routes
+    {
+      urlPattern: /\/api\/(auth|club-arena\/(?:cashout|mint|distribute|clawback)|poker\/engine)\//,
+      handler: 'NetworkOnly',
+      options: {
+        cacheName: 'no-cache-auth',
       },
-    ],
-  },
+    },
+  ],
+  buildExcludes: [/middleware-manifest\.json$/],
 });
 
 const nextConfig = {

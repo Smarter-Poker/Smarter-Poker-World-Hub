@@ -27,6 +27,8 @@ export function AvatarProvider({ children }) {
     // CRITICAL: Track auth initialization to prevent race condition
     // This stays true until INITIAL_SESSION event fires from Supabase
     const [initializing, setInitializing] = useState(true);
+    // NEW USER WELCOME: Track whether to show welcome modal
+    const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
     // Fetch VIP status from server-side API bridge (with fallbacks)
     async function fetchVipStatus(userId) {
@@ -116,6 +118,17 @@ export function AvatarProvider({ children }) {
                 const data = await res.json();
                 if (data.created) {
                     console.log('[ANTIGRAVITY] Profile was missing - created:', data.profile?.username);
+
+                    // ═════════════════════════════════════════════════════════════
+                    // NEW USER WELCOME PACKAGE: Trigger welcome modal
+                    // Only show once per user via localStorage flag
+                    // ═════════════════════════════════════════════════════════════
+                    const welcomeKey = `sp-welcome-shown-${user.id}`;
+                    if (!localStorage.getItem(welcomeKey)) {
+                        setShowWelcomeModal(true);
+                        // Dispatch VIP bus event so header updates immediately
+                        window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
+                    }
                 }
             } catch (err) {
                 if (err.name === 'AbortError') {
@@ -298,12 +311,22 @@ export function AvatarProvider({ children }) {
         }
     }
 
+    const dismissWelcomeModal = () => {
+        setShowWelcomeModal(false);
+        // Persist so it never shows again for this user
+        if (user?.id) {
+            try { localStorage.setItem(`sp-welcome-shown-${user.id}`, 'true'); } catch (_) { }
+        }
+    };
+
     const value = {
         avatar,
         loading,
         user,
         isVip,
         initializing, // CRITICAL: Consumers must check this before showing "not logged in" UI
+        showWelcomeModal,
+        dismissWelcomeModal,
         selectPresetAvatar,
         createCustomAvatar,
         setActiveAvatar,

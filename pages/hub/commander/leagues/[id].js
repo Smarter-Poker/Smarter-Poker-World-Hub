@@ -8,7 +8,7 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import SkeletonLoader from '../../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
 
 function StandingRow({ entry, rank, isCurrentUser }) {

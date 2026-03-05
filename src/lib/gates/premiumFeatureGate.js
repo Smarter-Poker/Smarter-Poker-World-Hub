@@ -103,8 +103,37 @@ export async function checkFeatureAccess(userId, featureKey) {
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds || 0 };
     }
 
-    // Check for active day pass
     const now = new Date().toISOString();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DAILY UNLOCK ALL: Check for active universal day pass (150 💎)
+    // This grants access to ALL gated features for 24 hours
+    // ═══════════════════════════════════════════════════════════════════
+    const { data: universalPass, error: universalError } = await supabase
+        .from('premium_feature_access')
+        .select('expires_at')
+        .eq('user_id', userId)
+        .eq('feature_key', 'daily_unlock_all')
+        .gt('expires_at', now)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    if (universalError && universalError.code !== 'PGRST116') {
+        console.warn('[FeatureGate] Universal pass check error:', universalError.message);
+    }
+
+    if (universalPass) {
+        return {
+            hasAccess: true,
+            isVip: false,
+            isDailyUnlock: true,
+            expiresAt: new Date(universalPass.expires_at),
+            diamonds: profile.diamonds || 0
+        };
+    }
+
+    // Check for active individual feature day pass
     const { data: access, error: accessError } = await supabase
         .from('premium_feature_access')
         .select('expires_at')
@@ -255,6 +284,7 @@ export const FEATURE_CONFIG = {
     poker_near_me: { cost: 25, label: 'Poker Near Me Pro', durationHours: 24 },
     personal_assistant: { cost: 100, label: 'Personal Assistant', durationHours: 24 },
     lives: { cost: 25, label: 'Lives', durationHours: 24 },
+    daily_unlock_all: { cost: 150, label: 'Daily All-Access Pass', durationHours: 24 },
 };
 
 /** Diamond cost for a 30-day VIP membership */
@@ -377,4 +407,55 @@ export async function purchaseVipWithDiamonds(userId) {
         expiresAt,
         newBalance
     };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DAILY UNLOCK ALL — 150 💎 for 24-hour access to ALL pay-as-you-go features
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const DAILY_UNLOCK_ALL_COST = 150;
+
+/**
+ * Check if user has an active universal daily unlock pass
+ * @param {string} userId - User UUID
+ * @returns {Promise<{hasUnlock: boolean, expiresAt: Date|null}>}
+ */
+export async function checkDailyUnlockAll(userId) {
+    if (!userId) return { hasUnlock: false, expiresAt: null };
+
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+        .from('premium_feature_access')
+        .select('expires_at')
+        .eq('user_id', userId)
+        .eq('feature_key', 'daily_unlock_all')
+        .gt('expires_at', now)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .single();
+
+    if (error && error.code !== 'PGRST116') {
+        console.warn('[DailyUnlockAll] Check error:', error.message);
+    }
+
+    if (data) {
+        return { hasUnlock: true, expiresAt: new Date(data.expires_at) };
+    }
+
+    return { hasUnlock: false, expiresAt: null };
+}
+
+/**
+ * Purchase 24-hour universal unlock for ALL features (150 💎)
+ * @param {string} userId - User UUID
+ * @returns {Promise<{success: boolean, expiresAt?: Date, newBalance?: number, error?: string}>}
+ */
+export async function purchaseDailyUnlockAll(userId) {
+    return purchaseFeatureAccess(
+        userId,
+        'daily_unlock_all',
+        DAILY_UNLOCK_ALL_COST,
+        24,
+        'Daily All-Access Pass — 24 Hour Unlock'
+    );
 }

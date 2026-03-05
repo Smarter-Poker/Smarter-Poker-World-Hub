@@ -18,9 +18,9 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -96,7 +96,11 @@ export default async function handler(req, res) {
             email?.split('@')[0] ||
             `Player${nextPlayerNumber}`;
 
-        // Create the profile with all the defaults
+        // Calculate 30-day VIP expiry for welcome package
+        const vipExpiresAt = new Date();
+        vipExpiresAt.setDate(vipExpiresAt.getDate() + 30);
+
+        // Create the profile with all the defaults + Welcome Package
         const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -107,10 +111,13 @@ export default async function handler(req, res) {
                 avatar_url: avatar_url || metadata?.avatar_url || null,
                 player_number: nextPlayerNumber,
                 streak_count: 0,
-                diamonds: 300,        // Welcome bonus
+                diamonds: 500,        // Welcome Package — 500 diamonds
                 diamond_multiplier: 1.0,
                 skill_tier: 'Newcomer',
                 access_tier: 'Full_Access',
+                is_vip: true,         // Welcome Package — 30-day VIP
+                vip_tier: 'welcome',
+                vip_expires_at: vipExpiresAt.toISOString(),
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString(),
                 last_active: new Date().toISOString(),
@@ -150,12 +157,34 @@ export default async function handler(req, res) {
             });
         }
 
+        // Log the welcome diamond transaction (non-critical)
+        await supabase.from('diamond_transactions').insert({
+            user_id: user_id,
+            amount: 500,
+            transaction_type: 'signup_bonus',
+            description: 'Welcome to Smarter.Poker — 500 Diamond Signup Bonus',
+            metadata: { type: 'welcome_package' },
+            balance_after: 500
+        }).catch(() => { });
+
+        // Log the welcome VIP subscription (non-critical)
+        await supabase.from('vip_subscriptions').upsert({
+            user_id: user_id,
+            tier: 'welcome',
+            status: 'active',
+            price_usd: 0,
+            current_period_start: new Date().toISOString(),
+            current_period_end: vipExpiresAt.toISOString(),
+            stripe_subscription_id: `welcome_${user_id}_${Date.now()}`,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' }).catch(() => { });
 
         return res.json({
             status: 'CREATED',
             profile: newProfile,
             created: true,
-            message: 'Profile created successfully - user was orphaned but is now fixed!'
+            isNewUser: true,
+            message: 'Welcome Package activated! 500 diamonds + 30-day VIP membership.'
         });
 
     } catch (error) {
