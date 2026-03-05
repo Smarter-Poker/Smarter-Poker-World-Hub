@@ -140,7 +140,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                     <span style={s.headerIcon}></span>
                     <div>
                         <div style={s.headerTitle}>Career Intelligence</div>
-                        <div style={s.headerSub}>{totalEvents} events · ${totalTokesAllTime.toFixed(0)} total tokes</div>
+                        <div style={s.headerSub}>{totalEvents} Events · ${totalTokesAllTime.toFixed(0)} Total Tokes</div>
                     </div>
                 </div>
                 <span style={{ ...s.chevron, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
@@ -260,7 +260,7 @@ export default function VenueIntelligence({ gigs = [] }) {
                                         </tbody>
                                     </table>
                                     <div style={s.tourneyNote}>
-                                        Log buy-in amounts when starting tournament downs to populate this table
+                                        Log Buy-In Amounts When Starting Tournament Downs To Populate This Table
                                     </div>
                                 </div>
                             )}

@@ -427,13 +427,6 @@ function VenueMap({ venues, userLocation }) {
 
         mapInstanceRef.current = map;
 
-        // Cleanup on unmount: destroy the Leaflet map to prevent memory leaks
-        return () => {
-            if (mapInstanceRef.current) {
-                mapInstanceRef.current.remove();
-                mapInstanceRef.current = null;
-            }
-        };
 
         // Add venue markers
         const goldIcon = L.divIcon({
@@ -1273,7 +1266,15 @@ export default function PokerNearMePage() {
             }
             const res = await fetch('/api/poker/live-games?' + params);
             const json = await res.json();
-            setLiveGames(json.games || json.data || []);
+            // API returns { venues: { venueId: [games] } } for active=true
+            // Flatten grouped object into a flat array
+            let games = [];
+            if (json.venues && typeof json.venues === 'object' && !Array.isArray(json.venues)) {
+                games = Object.values(json.venues).flat();
+            } else {
+                games = json.games || json.data || [];
+            }
+            setLiveGames(games);
         } catch (e) {
             console.error('Fetch live games error:', e);
             setLiveGames([]);

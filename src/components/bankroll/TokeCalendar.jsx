@@ -169,7 +169,7 @@ export default function TokeCalendar({ userId }) {
             )}
 
             {isLoading ? (
-                <div style={calStyles.loading}>Loading calendar...</div>
+                <div style={calStyles.loading}>Loading Calendar...</div>
             ) : (
                 /* 12-Month Year Grid */
                 <div style={calStyles.yearGrid}>

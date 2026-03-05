@@ -123,7 +123,7 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
 
     // ── Chart renderers ──────────────────────────────────────
     const renderTrend = () => {
-        if (!trendData.length) return <EmptyChart msg="Complete your first event to see the trend" />;
+        if (!trendData.length) return <EmptyChart msg="Complete Your First Event To See The Trend" />;
         const maxVal = Math.max(...trendData.map(d => d.cumulative));
         return (
             <ResponsiveContainer width="100%" height={200}>
@@ -170,7 +170,7 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
     };
 
     const renderEvents = () => {
-        if (!trendData.length) return <EmptyChart msg="No completed events yet" />;
+        if (!trendData.length) return <EmptyChart msg="No Completed Events Yet" />;
         return (
             <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={trendData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
@@ -206,7 +206,7 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
 
     const renderMonthly = () => {
         const hasMonthlyData = monthlyData.some(m => m.tokes > 0);
-        if (!hasMonthlyData) return <EmptyChart msg="No monthly data yet" />;
+        if (!hasMonthlyData) return <EmptyChart msg="No Monthly Data Yet" />;
         return (
             <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={monthlyData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }}>
@@ -244,7 +244,7 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
     };
 
     const renderDonut = () => {
-        if (!donutData.length) return <EmptyChart msg="Log some downs to see distribution" />;
+        if (!donutData.length) return <EmptyChart msg="Log Some Downs To See Distribution" />;
         return (
             <div style={{ position: 'relative' }}>
                 <ResponsiveContainer width="100%" height={200}>
@@ -325,8 +325,8 @@ export default function TokeDashboard({ userId, refreshTrigger }) {
                         <div style={S.headerTitle}>Analytics Dashboard</div>
                         <div style={S.headerSub}>
                             {loading ? 'Loading…' : hasData
-                                ? `${analytics.totalEvents} events · ${fmt(analytics.careerTokes)} career tokes`
-                                : 'Complete your first event to see analytics'}
+                                ? `${analytics.totalEvents} Events · ${fmt(analytics.careerTokes)} Career Tokes`
+                                : 'Complete Your First Event To See Analytics'}
                         </div>
                     </div>
                 </div>

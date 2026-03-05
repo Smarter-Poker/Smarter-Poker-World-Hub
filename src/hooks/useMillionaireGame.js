@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { getAuthUser } from '../lib/authUtils';
+import { getAuthUser, getSessionToken } from '../lib/authUtils';
 import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
 
@@ -72,7 +72,10 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
 
             console.log(`[MillionaireGame] Pre-loading ${QUESTIONS_PER_LEVEL} questions for ${gameId} level ${level}`);
 
-            const response = await fetch(`/api/training/batch-preload?${params}`);
+            const token = getSessionToken();
+            const response = await fetch(`/api/training/batch-preload?${params}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            });
             const data = await response.json();
 
             if (!response.ok || !data.questions || data.questions.length === 0) {
@@ -124,7 +127,10 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 ...(userId && { userId }),
             });
 
-            const response = await fetch(`/api/training/get-question?${params}`);
+            const token = getSessionToken();
+            const response = await fetch(`/api/training/get-question?${params}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            });
             const data = await response.json();
 
             if (!response.ok) {
@@ -148,9 +154,13 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         if (!userId || !gameId) return;
 
         try {
+            const token = getSessionToken();
             await fetch('/api/training/record-question', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({
                     userId,
                     gameId,
@@ -248,9 +258,13 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         if (!userId || !gameId) return;
 
         try {
+            const token = getSessionToken();
             await fetch('/api/training/save-progress', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({
                     userId,
                     gameId,

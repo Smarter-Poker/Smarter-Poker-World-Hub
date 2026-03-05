@@ -436,7 +436,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                                 <div style={{ color: METAL.textSecondary, fontSize: 13, marginTop: 4 }}>Auto-Detects And Extracts Data</div>
                             </div>
 
-                            <div style={{ textAlign: 'center', color: METAL.textSecondary, margin: '8px 0', fontSize: 14 }}>Or choose a file from device</div>
+                            <div style={{ textAlign: 'center', color: METAL.textSecondary, margin: '8px 0', fontSize: 14 }}>Or Choose A File From Device</div>
 
                             <div
                                 style={{ ...s.dropZone, ...(isDragging ? s.dropZoneActive : {}) }}
@@ -446,7 +446,7 @@ export default function DealerVault({ userId, completedGigs = [] }) {
                                 onClick={() => fileInputRef.current?.click()}
                             >
                                 <div style={s.dropIcon}></div>
-                                <div style={s.dropText}>Drop a document here or tap to upload</div>
+                                <div style={s.dropText}>Drop A Document Here Or Tap To Upload</div>
                                 <div style={s.dropSub}>JPG · PNG · PDF · HEIC</div>
                                 <input
                                     ref={fileInputRef}
@@ -610,9 +610,9 @@ export default function DealerVault({ userId, completedGigs = [] }) {
 
                     {/* Document List */}
                     {isLoading ? (
-                        <div style={s.emptyState}>Loading documents...</div>
+                        <div style={s.emptyState}>Loading Documents...</div>
                     ) : sortedDocs.length === 0 ? (
-                        <div style={s.emptyState}>No {TABS.find(t => t.id === activeTab)?.label.toLowerCase()} uploaded yet</div>
+                        <div style={s.emptyState}>No {TABS.find(t => t.id === activeTab)?.label} Uploaded Yet</div>
                     ) : (
                         <div style={s.docList}>
                             {sortedDocs.map(doc => {

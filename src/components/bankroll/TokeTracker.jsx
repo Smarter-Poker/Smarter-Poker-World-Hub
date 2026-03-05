@@ -1484,7 +1484,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                             onClick={e => e.stopPropagation()}
                         >
                             <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
-                                How much did you toke?
+                                How Much Did You Toke?
                             </h3>
                             <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 16px' }}>
                                 {endingDown.game_type || endingDown.down_type}
@@ -1667,7 +1667,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                                     />
                                     {downForm.tournament_buyin && parseFloat(downForm.tournament_buyin) > 0 && (
                                         <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                            Tracked for analysis
+                                            Tracked For Analysis
                                         </span>
                                     )}
                                 </div>
@@ -1843,7 +1843,7 @@ export default function TokeTracker({ userId, refreshTrigger, standalone = false
                         <span style={styles.jarvisIcon}>🤖</span>
                         <div>
                             <div style={styles.jarvisTitle}>Jarvis — Dealer Reference</div>
-                            <div style={styles.jarvisSub}>Ask for rules, TDA lookups & game refreshers</div>
+                            <div style={styles.jarvisSub}>Ask For Rules, TDA Lookups & Game Refreshers</div>
                         </div>
                     </span>
                     <span style={{ ...styles.jarvisChevron, transform: jarvisExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
