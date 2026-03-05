@@ -690,7 +690,7 @@ export default function VideoLibraryPage() {
     useEffect(() => {
         const handleKey = (e) => {
             if (e.key === 'Escape') handleCloseVideo();
-        };
+        });
         window.addEventListener('keydown', handleKey);
         return () => window.removeEventListener('keydown', handleKey);
     }, []);

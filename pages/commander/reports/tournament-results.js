@@ -34,7 +34,7 @@ export default function TournamentResultsReport() {
         }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
-    };
+    });
     fetchTournaments();
   }, []);
 

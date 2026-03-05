@@ -525,7 +525,7 @@ export default function BankrollManagerPage() {
         console.error('[RuleCheck] Error:', err);
       }
     }
-  };
+  });
 
   // Gate Log+ behind bankroll check
   const handleLogClick = useCallback(async () => {

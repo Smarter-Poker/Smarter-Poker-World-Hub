@@ -223,7 +223,7 @@ export default function DailyPresetsPage() {
             min_buyin: gt.min_buyin,
             max_buyin: gt.max_buyin,
             max_players: gt.max_players
-          };
+          });
         }
       }
       return { ...prev, tables };

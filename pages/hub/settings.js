@@ -257,7 +257,7 @@ export default function SettingsPage() {
         } catch (error) {
             console.error('Error tracking session:', error);
         }
-    };
+    });
 
     // Call setup API when 2FA modal opens
     useEffect(() => {
@@ -279,7 +279,7 @@ export default function SettingsPage() {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
-            };
+            });
 
             if (response.ok) {
                 const data = await response.json();
@@ -334,7 +334,7 @@ export default function SettingsPage() {
         } finally {
             setLoadingMFA(false);
         }
-    };
+    });
 
     const disable2FA = async () => {
         const controller = new AbortController();
@@ -353,7 +353,7 @@ export default function SettingsPage() {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
-            };
+            });
 
             if (response.ok) {
                 setTwoFactorEnabled(false);
@@ -449,7 +449,7 @@ export default function SettingsPage() {
             const response = await fetch('/api/auth/delete-account', { signal, 
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${session.access_token}` }
-            };
+            });
 
             if (response.ok) {
                 await supabase.auth.signOut();
@@ -507,7 +507,7 @@ export default function SettingsPage() {
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-                session ? fetch(`/api/store/diamond-transactions?limit=10`, { signal,  headers }.then(r => r.json()) : Promise.resolve({ transactions: [] }),
+                session ? fetch(`/api/store/diamond-transactions?limit=10`, { signal,  headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
                 supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
                 supabase.from('profiles').select('diamonds').eq('id', user.id).single(),
             ]);
@@ -572,7 +572,7 @@ export default function SettingsPage() {
         } finally {
             setPromoLoading(false);
         }
-    };
+    });
 
     const sections = [
         { id: 'account', label: 'Account', icon: '' },
@@ -1998,7 +1998,7 @@ export default function SettingsPage() {
                                                 const response = await fetch('/api/auth/delete-account', { signal, 
                                                     method: 'DELETE',
                                                     headers: { 'Authorization': 'Bearer ' + session.access_token }
-                                                };
+                                                });
                                                 if (response.ok) {
                                                     await supabase.auth.signOut();
                                                     alert('Your account has been scheduled for deletion.');

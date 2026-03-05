@@ -161,7 +161,7 @@ export default function TimeBilling() {
           }));
         }
       } catch { /* non-fatal */ }
-    };
+    });
     loadPricing();
     // Load membership plans
     const loadMemberPlans = async () => {
@@ -259,7 +259,7 @@ export default function TimeBilling() {
     } finally {
       setPinVerifying(false);
     }
-  };
+  });
 
   const handlePinDigit = (d) => {
     const next = pinDigits + d;

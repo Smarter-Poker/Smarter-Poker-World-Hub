@@ -157,7 +157,7 @@ export default function TabletDisplay() {
                     wakeLock = await navigator.wakeLock.request('screen');
                 }
             } catch { /* Not supported or permission denied */ }
-        };
+        });
         requestWakeLock();
         // Re-acquire on visibility change
         const handleVisibility = () => {

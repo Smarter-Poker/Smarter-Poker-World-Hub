@@ -129,7 +129,7 @@ export default function Cashier() {
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
       const today = new Date().toISOString().split('T')[0];
-      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { signal,  headers };
+      const txRes = await fetch(`/api/commander/cashier?venue_id=${venueId}&date=${today}&limit=50`, { signal,  headers });
       const txJson = await txRes.json();
       setTransactions(txJson.data || []);
 
@@ -142,7 +142,7 @@ export default function Cashier() {
         // Fire async refresh for the selected player
         fetch(`/api/commander/members/${prev.id}`, { signal, 
           headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-        }.then(r => r.json()).then(json => {
+        }).then(r => r.json()).then(json => {
           if (json.success && json.data?.member) {
             const m = json.data.member;
             setSelectedPlayer(p => p?.id === m.id ? {
@@ -182,7 +182,7 @@ export default function Cashier() {
         const token = getToken();
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-        const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { signal,  headers };
+        const res = await fetch(`/api/commander/members/${member_id}?venue_id=${venueId}`, { signal,  headers });
         const json = await res.json();
         if (json.success && (json.data?.member || json.data)) {
           const m = json.data?.member || json.data;
@@ -210,7 +210,7 @@ export default function Cashier() {
       } catch (err) { console.error('Auto-load member error:', err); }
       // Clear URL params after handling so refresh doesn't re-trigger
       router.replace('/commander/cashier', undefined, { shallow: true });
-    };
+    });
 
     // Small delay to let pricing data load first
     setTimeout(loadAndOpen, 300);
@@ -228,7 +228,7 @@ export default function Cashier() {
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
         // Time billing settings
-        const settingsRes = await fetch('/api/commander/settings', { signal,  headers };
+        const settingsRes = await fetch('/api/commander/settings', { signal,  headers });
         const settingsJson = await settingsRes.json();
         if (settingsJson.success && settingsJson.data) {
           setTimeBillingRate(settingsJson.data.time_billing_rate || 0);
@@ -236,13 +236,13 @@ export default function Cashier() {
         }
 
         // Membership plans
-        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { signal,  headers };
+        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { signal,  headers });
         const plansJson = await plansRes.json();
         if (plansJson.success && plansJson.data?.plans) {
           setMembershipPlans(plansJson.data.plans.filter(p => p.is_active !== false));
         }
       } catch (err) { console.error('Pricing load error:', err); }
-    };
+    });
     loadPricing();
   }, [venueId]);
 
@@ -330,7 +330,7 @@ export default function Cashier() {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-      const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { signal,  headers };
+      const res = await fetch(`/api/commander/members?search=${encodeURIComponent(qrData)}&venue_id=${venueId}`, { signal,  headers });
       const json = await res.json();
       const members = json.data?.members || json.data || [];
       if (json.success && members.length > 0) {
@@ -343,7 +343,7 @@ export default function Cashier() {
     } catch {
       setMessage({ type: 'error', text: 'Error Looking Up Player' });
     }
-  };
+  });
 
   // Select a member from search results or scan
   const selectMember = (member) => {
@@ -384,13 +384,13 @@ export default function Cashier() {
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
         const params = query ? `q=${encodeURIComponent(query)}&` : '';
-        const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { signal,  headers };
+        const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { signal,  headers });
         const json = await res.json();
         setSearchResults(json.data || []);
       } catch { setSearchResults([]); }
       finally { setSearchLoading(false); }
     }, query ? 300 : 50);
-  };
+  });
 
   // Auto-load staff + recent members when search modal opens
   useEffect(() => {
@@ -457,7 +457,7 @@ export default function Cashier() {
       setPinDigits('');
     }
     setPinVerifying(false);
-  };
+  });
 
   // === Execute Actions ===
   const executeAction = async (action, staff) => {
@@ -585,7 +585,7 @@ export default function Cashier() {
       });
     } catch (err) { console.error('Add time error:', err); setMessage({ type: 'error', text: 'Add Time Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
-  };
+  });
 
   // Update Membership
   const doUpdateMembership = async (staff) => {
@@ -646,7 +646,7 @@ export default function Cashier() {
       });
     } catch (err) { console.error('Membership update error:', err); setMessage({ type: 'error', text: 'Membership Update Failed — Please Try Again' }); }
     finally { setActionLoading(false); }
-  };
+  });
 
   // Void or Refund a transaction
   const voidTransaction = async (txId, type, details) => {
@@ -720,7 +720,7 @@ export default function Cashier() {
       } else if (details.player_name && details.player_name !== 'Unknown') {
         // Lookup member by name for balance correction
         try {
-          const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { signal,  headers };
+          const searchRes = await fetch(`/api/commander/members/search?q=${encodeURIComponent(details.player_name)}&venue_id=${venueId}&limit=1`, { signal,  headers });
           const searchJson = await searchRes.json();
           const match = (searchJson.data || []).find(m => {
             const mName = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
@@ -763,7 +763,7 @@ export default function Cashier() {
       broadcastChange('members');
     } catch (err) { console.error('Void error:', err); setMessage({ type: 'error', text: `${actionLabel} Failed — Please Try Again` }); }
     finally { setActionLoading(false); }
-  };
+  });
 
   // Ka-ching cash register sound — loud and unmistakable
   const playSuccessSound = () => {
@@ -814,12 +814,12 @@ export default function Cashier() {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
       // Use server-side player_name filter for efficiency
-      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { signal,  headers };
+      const res = await fetch(`/api/commander/cashier?venue_id=${venueId}&player_name=${encodeURIComponent(selectedPlayer.player_name)}&limit=100`, { signal,  headers });
       const json = await res.json();
       setPlayerHistory(json.data || []);
     } catch { setPlayerHistory([]); }
     finally { setPlayerHistoryLoading(false); }
-  };
+  });
 
   useEffect(() => {
     if (message) { const t = setTimeout(() => setMessage(null), 5000); return () => clearTimeout(t); }
@@ -1645,7 +1645,7 @@ export default function Cashier() {
                             const token = getToken();
                             const staffSession = localStorage.getItem('commander_staff') || '';
                             const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-                            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(val)}&venue_id=${venueId}&limit=8`, { signal,  headers };
+                            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(val)}&venue_id=${venueId}&limit=8`, { signal,  headers });
                             const json = await res.json();
                             setPrintCardSearchResults(json.data || []);
                           } catch { setPrintCardSearchResults([]); }

@@ -86,7 +86,7 @@ export default function UnionGames() {
       upcoming: ['scheduled', 'registering', 'late_reg'],
       running: ['running', 'late_reg', 'break', 'paused', 'final_table'],
       past: ['complete', 'cancelled'],
-    };
+    });
     const res = await api('list_tournaments', { unionId, status: statusMap[subTab] });
     if (res.success) {
       setTournaments(res.tournaments || []);
@@ -725,7 +725,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         const data = await res.json();
         if (active && data.success !== false) setTourneyState(data);
       } catch (e) { /* ignore */ }
-    };
+    });
     poll();
     const interval = setInterval(poll, 5000);
     return () => { active = false; clearInterval(interval); };

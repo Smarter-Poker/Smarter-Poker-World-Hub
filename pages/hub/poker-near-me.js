@@ -1280,7 +1280,7 @@ export default function PokerNearMePage() {
             setLiveGames([]);
         }
         setLiveLoading(false);
-    };
+    });
 
     const handleSearch = (e) => {
         e.preventDefault();

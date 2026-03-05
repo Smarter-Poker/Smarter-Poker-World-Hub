@@ -222,7 +222,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             setLiked(wasLiked);
             setLikeCount(prev => wasLiked ? prev + 1 : Math.max(0, prev - 1));
         }
-    };
+    });
 
     const handleComment = async () => {
         setShowComments(!showComments);
@@ -233,7 +233,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                 setComments(json.comments || []);
             } catch (e) { console.error('Load comments error:', e); }
         }
-    };
+    });
 
     const submitComment = async () => {
         if (!commentText.trim() || !currentUserId) return;
@@ -253,7 +253,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
             setCommentText('');
         } catch (e) { console.error('Submit comment error:', e); }
         setSubmittingComment(false);
-    };
+    });
 
     const handleShare = async () => {
         const url = window.location.origin + '/hub/user/' + (author?.username || '') + '?post=' + post.id;

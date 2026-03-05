@@ -368,7 +368,7 @@ export default function PromotionsPage() {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
       const res = await fetch('/api/promo/admin-promo-codes', { signal, 
         headers: { Authorization: `Bearer ${token}` }
-      };
+      });
       const data = await res.json();
       setPromoCodes(data.codes || []);
     } catch (err) { console.error('Fetch promo codes error:', err); }
@@ -382,7 +382,7 @@ export default function PromotionsPage() {
       const res = await fetch('/api/promo/seed-premade', { signal, 
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
-      };
+      });
       const data = await res.json();
       if (data.success) {
         alert(`${data.message}`);
@@ -404,7 +404,7 @@ export default function PromotionsPage() {
       });
       fetchPromoCodes();
     } catch (err) { console.error('Toggle promo code error:', err); }
-  };
+  });
 
   const deletePromoCode = async (code) => {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
@@ -413,7 +413,7 @@ export default function PromotionsPage() {
       await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, { signal, 
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
-      };
+      });
       fetchPromoCodes();
     } catch (err) { console.error('Delete promo code error:', err); }
   };
@@ -612,7 +612,7 @@ export default function PromotionsPage() {
     try {
       const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
       const staffSession = localStorage.getItem('commander_staff') || '';
-      await fetch(`/api/commander/promotions/${promo.id}`, { signal,  method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } };
+      await fetch(`/api/commander/promotions/${promo.id}`, { signal,  method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       broadcastChange('settings');
       fetchPromotions();
     } catch (error) {
@@ -653,7 +653,7 @@ export default function PromotionsPage() {
         terms_conditions: promo.terms_conditions,
         settings: promo.settings,
         status: 'draft'
-      };
+      });
       const res = await fetch('/api/commander/promotions', { signal, 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
@@ -1506,7 +1506,7 @@ export default function PromotionsPage() {
               try {
                 const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
                 const staffSession = localStorage.getItem('commander_staff') || '';
-                await fetch(`/api/commander/promotions/${id}`, { signal,  method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } };
+                await fetch(`/api/commander/promotions/${id}`, { signal,  method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
                 fetchPromotions();
                 setShowEditModal(false);
                 setEditingPromo(null);
