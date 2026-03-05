@@ -62,6 +62,11 @@ class DiamondEngineSupabase {
 
     /**
      * Check if user is VIP
+     * ═══════════════════════════════════════════════════════════════════
+     * HARDENED: Falls back to /api/vip/check-status (service role key)
+     * when client-side profile query fails. Also syncs to localStorage
+     * for optimistic rendering via the centralized useVIP hook.
+     * ═══════════════════════════════════════════════════════════════════
      */
     async isVIP() {
         if (!this.userId) {
@@ -76,16 +81,52 @@ class DiamondEngineSupabase {
                 .single();
 
             if (error) {
-                console.error('Error checking VIP:', error);
+                console.error('[DiamondEngine] VIP check error:', error);
+                // ═══════════════════════════════════════════════════════════
+                // HARDENED: Server-side fallback via /api/vip/check-status
+                // ═══════════════════════════════════════════════════════════
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000);
+                    // Try to include session token for authenticated call
+                    const headers = {};
+                    try {
+                        const { data: { session } } = await this.supabase.auth.getSession();
+                        if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                    } catch (_) { }
+                    const resp = await fetch(`/api/vip/check-status?userId=${this.userId}`, { signal: controller.signal, headers });
+                    clearTimeout(timeoutId);
+                    if (resp.ok) {
+                        const vipData = await resp.json();
+                        const vip = vipData.isVip === true;
+                        this._cachedVIP = vip;
+                        this._syncVIPCache(vip);
+                        return vip;
+                    }
+                } catch (fallbackErr) {
+                    console.warn('[DiamondEngine] Server VIP fallback failed:', fallbackErr.message);
+                }
                 return this._getLocalVIP();
             }
 
             const isVip = data?.is_vip === true;
             this._cachedVIP = isVip;
+            this._syncVIPCache(isVip);
             return isVip;
         } catch (err) {
-            console.error('VIP check failed:', err);
+            console.error('[DiamondEngine] VIP check failed:', err);
             return this._getLocalVIP();
+        }
+    }
+
+    /**
+     * Sync VIP status to localStorage for optimistic rendering
+     */
+    _syncVIPCache(isVip) {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('sp-vip-status', String(isVip));
+            } catch (_) { }
         }
     }
 
@@ -310,6 +351,13 @@ class DiamondEngineSupabase {
 
     _getLocalVIP() {
         if (typeof window === 'undefined') return false;
+        // Check centralized VIP cache first, then legacy key
+        const centralCache = localStorage.getItem('sp-vip-status');
+        if (centralCache !== null) {
+            const vip = centralCache === 'true';
+            this._cachedVIP = vip;
+            return vip;
+        }
         const vip = localStorage.getItem('vip_status') === 'true';
         this._cachedVIP = vip;
         return vip;

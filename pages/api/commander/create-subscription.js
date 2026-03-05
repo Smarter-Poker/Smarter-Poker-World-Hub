@@ -118,6 +118,39 @@ export default async function handler(req, res) {
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
     }
+
+    // ─── Duplicate prevention: check if this email already has an active Commander subscription ──
+    const { data: existingEmailSub } = await supabase
+      .from('commander_subscriptions')
+      .select('id, status, venue:poker_venues(name)')
+      .eq('billing_email', email)
+      .in('status', ['active', 'trialing'])
+      .limit(1);
+
+    if (existingEmailSub && existingEmailSub.length > 0) {
+      const venueName = existingEmailSub[0].venue?.name || 'a venue';
+      return res.status(400).json({
+        error: `An active Club Commander account already exists for ${email} (${venueName}). Please sign in instead.`
+      });
+    }
+
+    // ─── Duplicate prevention: check if a Commander venue already exists at this address ──
+    const hasAddress = clubInfo.address && clubInfo.address.trim();
+    if (hasAddress) {
+      const { data: existingAddrVenue } = await supabase
+        .from('poker_venues')
+        .select('id, name')
+        .eq('address', clubInfo.address.trim())
+        .eq('commander_enabled', true)
+        .limit(1);
+
+      if (existingAddrVenue && existingAddrVenue.length > 0) {
+        return res.status(400).json({
+          error: `A Club Commander venue already exists at this address (${existingAddrVenue[0].name}). If this is your venue, please sign in instead.`
+        });
+      }
+    }
+
     let userId = null;
 
     if (existingAccount) {
@@ -192,15 +225,24 @@ export default async function handler(req, res) {
       }
     }
 
-    // ─── 2. Create or find the venue ─────────────────────────────────
+    // ─── 2. Create or find the venue (handle optional address) ─────
     let venueId;
+    const venueAddress = clubInfo.address?.trim() || null;
+    const venueCity = clubInfo.city?.trim() || null;
+    const venueState = clubInfo.state?.trim() || null;
+    const venueZip = clubInfo.zip?.trim() || null;
 
-    const { data: existingVenue } = await supabase
-      .from('poker_venues')
-      .select('id')
-      .eq('name', clubInfo.name)
-      .eq('address', clubInfo.address)
-      .single();
+    // Try to find existing venue by name + address (only if address provided)
+    let existingVenue = null;
+    if (venueAddress) {
+      const { data: foundVenue } = await supabase
+        .from('poker_venues')
+        .select('id')
+        .eq('name', clubInfo.name)
+        .eq('address', venueAddress)
+        .single();
+      existingVenue = foundVenue;
+    }
 
     if (existingVenue) {
       venueId = existingVenue.id;
@@ -215,7 +257,7 @@ export default async function handler(req, res) {
           commander_tier: tier,
           commander_activated_at: new Date().toISOString(),
           phone: clubInfo.phone,
-          email: clubInfo.email,
+          email: clubInfo.email || email,
           website: clubInfo.website || null,
           poker_tables: parseInt(clubInfo.tables) || null,
           games_offered: clubInfo.gamesOffered,
@@ -224,31 +266,37 @@ export default async function handler(req, res) {
         })
         .eq('id', venueId);
     } else {
+      const venueInsert = {
+        name: clubInfo.name,
+        phone: clubInfo.phone || ownerInfo.phone,
+        email: clubInfo.email || email,
+        website: clubInfo.website || null,
+        poker_tables: parseInt(clubInfo.tables) || null,
+        games_offered: clubInfo.gamesOffered,
+        venue_type: 'poker_room',
+        is_active: true,
+        is_claimed: true,
+        claimed_by: userId,
+        claimed_at: new Date().toISOString(),
+        commander_enabled: true,
+        commander_tier: tier,
+        commander_activated_at: new Date().toISOString(),
+        registration_completed_at: new Date().toISOString(),
+        onboarding_step: 5,
+        source: 'self_registration'
+      };
+      // Only include address fields if provided (optional for home_game/charity)
+      if (venueAddress) venueInsert.address = venueAddress;
+      if (venueCity) venueInsert.city = venueCity;
+      if (venueZip) venueInsert.zip = venueZip;
+      if (venueState) {
+        venueInsert.state = venueState;
+        venueInsert.country = 'US';
+      }
+
       const { data: newVenue, error: venueError } = await supabase
         .from('poker_venues')
-        .insert({
-          name: clubInfo.name,
-          address: clubInfo.address,
-          city: clubInfo.city,
-          state: clubInfo.state,
-          country: 'US',
-          phone: clubInfo.phone,
-          email: clubInfo.email,
-          website: clubInfo.website || null,
-          poker_tables: parseInt(clubInfo.tables) || null,
-          games_offered: clubInfo.gamesOffered,
-          venue_type: 'poker_room',
-          is_active: true,
-          is_claimed: true,
-          claimed_by: userId,
-          claimed_at: new Date().toISOString(),
-          commander_enabled: true,
-          commander_tier: tier,
-          commander_activated_at: new Date().toISOString(),
-          registration_completed_at: new Date().toISOString(),
-          onboarding_step: 5,
-          source: 'self_registration'
-        })
+        .insert(venueInsert)
         .select()
         .single();
 
@@ -266,8 +314,8 @@ export default async function handler(req, res) {
 
     // SECURITY: Payment is required when Stripe is configured with real price IDs.
     // skipPayment from client is NEVER honored — only server config determines this.
-    const hasRealStripeConfig = process.env.STRIPE_SECRET_KEY && 
-      TIER_PRICES[tier].priceId && 
+    const hasRealStripeConfig = process.env.STRIPE_SECRET_KEY &&
+      TIER_PRICES[tier].priceId &&
       !['price_home_game', 'price_charity', 'price_club'].includes(TIER_PRICES[tier].priceId);
 
     if (hasRealStripeConfig) {
@@ -339,7 +387,7 @@ export default async function handler(req, res) {
           monthly_price: TIER_PRICES[tier].price,
           billing_email: email,
           billing_name: ownerInfo.name,
-          billing_address: { city: clubInfo.city, state: clubInfo.state, country: 'US' },
+          billing_address: { city: venueCity || '', state: venueState || '', country: 'US' },
           trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .select()
@@ -413,9 +461,9 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           venue_id: venueId, name: clubInfo.name,
-          description: `${clubInfo.name} - Poker Room in ${clubInfo.city}, ${clubInfo.state}`,
-          address: clubInfo.address, city: clubInfo.city, state: clubInfo.state,
-          website: clubInfo.website, owner_id: userId
+          description: `${clubInfo.name}${venueCity && venueState ? ` - Poker Room in ${venueCity}, ${venueState}` : ''}`,
+          address: venueAddress || null, city: venueCity || null, state: venueState || null,
+          website: clubInfo.website || null, owner_id: userId
         })
       });
     } catch (e) { /* non-critical */ }

@@ -66,9 +66,14 @@ export default function AuthCallback() {
 
                         try {
                             // Fetch subscription to populate commander_staff session
+                            // CRITICAL FIX: Send JWT Bearer token — check-subscription requires auth (BUG #260)
+                            const accessToken = session?.access_token;
                             const subRes = await fetch('/api/commander/check-subscription', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                                },
                                 body: JSON.stringify({ userId: user.id }),
                             });
                             const subData = await subRes.json();

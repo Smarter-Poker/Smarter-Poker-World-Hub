@@ -25,6 +25,33 @@ export async function checkBankrollProAccess(userId) {
 
     if (profileError) {
         console.warn('[BankrollProGate] Profile fetch error:', profileError.message);
+        // ═══════════════════════════════════════════════════════════════
+        // HARDENED: Server-side fallback via /api/vip/check-status
+        // Uses Supabase service role key (bypasses RLS)
+        // ═══════════════════════════════════════════════════════════════
+        if (!profile) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                // Try to include session token for authenticated call
+                const headers = {};
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                } catch (_) { }
+                const resp = await fetch(`/api/vip/check-status?userId=${userId}`, { signal: controller.signal, headers });
+                clearTimeout(timeoutId);
+                if (resp.ok) {
+                    const vipData = await resp.json();
+                    if (vipData.isVip) {
+                        console.log('[BankrollProGate] Server-side fallback confirmed VIP for userId:', userId);
+                        return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 };
+                    }
+                }
+            } catch (fallbackErr) {
+                console.warn('[BankrollProGate] Server-side VIP fallback also failed:', fallbackErr.message);
+            }
+        }
     }
 
     if (profile?.is_vip) {

@@ -64,10 +64,35 @@ export async function checkFeatureAccess(userId, featureKey) {
         }
     }
 
-    // If profile fetch totally failed, log it clearly
+    // If profile fetch totally failed, try server-side VIP bridge as last resort
     if (!profile) {
         console.error('[FeatureGate] CRITICAL: Could not fetch profile for userId:', userId, '| Error:', fetchError?.message);
-        // Return no access but don't block — diamonds shows 0 but user sees the issue
+        // ═══════════════════════════════════════════════════════════════════
+        // HARDENED: Server-side fallback via /api/vip/check-status
+        // Uses Supabase service role key (bypasses RLS) — will succeed even
+        // when client-side auth/session is not ready
+        // ═══════════════════════════════════════════════════════════════════
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            // Try to include session token for authenticated call
+            const headers = {};
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+            } catch (_) { }
+            const resp = await fetch(`/api/vip/check-status?userId=${userId}`, { signal: controller.signal, headers });
+            clearTimeout(timeoutId);
+            if (resp.ok) {
+                const vipData = await resp.json();
+                if (vipData.isVip) {
+                    console.log('[FeatureGate] Server-side fallback confirmed VIP for userId:', userId);
+                    return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 };
+                }
+            }
+        } catch (fallbackErr) {
+            console.warn('[FeatureGate] Server-side VIP fallback also failed:', fallbackErr.message);
+        }
         return { hasAccess: false, isVip: false, expiresAt: null, diamonds: 0, error: 'Profile fetch failed' };
     }
 

@@ -113,10 +113,12 @@ export class PIOQueryService {
 
     /**
      * Transform raw PIO data into usable format
+     * Now includes hand_evs for real EV loss computation
      */
     transformPIOData(rawData) {
         return rawData.map(scenario => {
             const board = this.parseBoardCards(scenario.scenario_hash);
+            const strategies = scenario.strategy_matrix || {};
 
             return {
                 id: scenario.id,
@@ -125,11 +127,44 @@ export class PIOQueryService {
                 street: scenario.street,
                 stackDepth: scenario.stack_depth,
                 gameType: scenario.game_type,
-                strategies: scenario.strategy_matrix,
+                strategies: strategies,
+                handEVs: strategies.hand_evs || {},
                 macroMetrics: scenario.macro_metrics,
                 createdAt: scenario.created_at
             };
         });
+    }
+
+    /**
+     * Get GTO frequencies for a specific hand across all actions
+     * @param {Object} strategyMatrix - The strategy_matrix from solved_spots_gold
+     * @param {string} hand - Hand notation (e.g., 'AKs', 'AA')
+     * @returns {Object} { actionId: frequencyPercent } (0-100 scale)
+     */
+    getFrequenciesForHand(strategyMatrix, hand) {
+        const actions = strategyMatrix?.actions || [];
+        const frequencies = strategyMatrix?.frequencies || {};
+        const result = {};
+
+        actions.forEach(action => {
+            const freq = frequencies[action]?.[hand];
+            if (freq !== undefined && freq >= 0 && freq <= 1) {
+                result[action] = Math.round(freq * 100);
+            }
+        });
+
+        return result;
+    }
+
+    /**
+     * Get EV for a specific hand
+     * @param {Object} strategyMatrix - The strategy_matrix from solved_spots_gold
+     * @param {string} hand - Hand notation (e.g., 'AKs', 'AA')
+     * @returns {number} EV in normalized units (0.0-1.0 scale from solver)
+     */
+    getEVForHand(strategyMatrix, hand) {
+        const handEVs = strategyMatrix?.hand_evs || {};
+        return handEVs[hand] || 0;
     }
 
     /**

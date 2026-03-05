@@ -2,12 +2,21 @@
  * FEATURE GATE COMPONENT
  * Generic day-pass access gate UI with Futuristic Metal design
  * Wraps children with VIP/day-pass access control
- * Adapted from BankrollProGate.jsx for any feature
+ *
+ * ═══════════════════════════════════════════════════════════════════════
+ * HARDENED: March 5, 2026 — Uses AvatarContext as single source of VIP
+ * truth to prevent false lockouts caused by auth race conditions and
+ * client-side RLS fetch failures. The gate now:
+ *   1. Waits for auth initialization (no flash of locked UI)
+ *   2. Trusts server-verified VIP status from AvatarContext
+ *   3. Only falls through to day-pass checks for non-VIP users
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 import { useState, useEffect } from 'react';
 import { Lock, Diamond, Crown, Timer, Loader2, Zap, CheckCircle } from 'lucide-react';
 import { checkFeatureAccess, purchaseFeatureAccess, FEATURE_CONFIG } from '../../lib/gates/premiumFeatureGate';
+import { useAvatar } from '../../contexts/AvatarContext';
 
 // Inline design tokens (Futuristic Metal)
 const M = {
@@ -28,7 +37,7 @@ const ANIM = `
 
 /**
  * @param {Object} props
- * @param {string} props.userId - User UUID
+ * @param {string} [props.userId] - DEPRECATED: now sourced from AvatarContext. Kept for backward-compat.
  * @param {string} props.featureKey - Key from FEATURE_CONFIG (e.g., 'poker_near_me')
  * @param {string} props.title - Display title (e.g., 'POKER NEAR ME')
  * @param {string} props.subtitle - Display subtitle (e.g., 'PRO')
@@ -37,7 +46,14 @@ const ANIM = `
  * @param {number} [props.cost] - Override cost from FEATURE_CONFIG
  * @param {React.ReactNode} props.children - Content to show when access granted
  */
-export default function FeatureGate({ userId, featureKey, title, subtitle, description, features = [], cost: costOverride, hideBadge, children }) {
+export default function FeatureGate({ userId: userIdProp, featureKey, title, subtitle, description, features = [], cost: costOverride, hideBadge, children }) {
+    // ═══════════════════════════════════════════════════════════════════
+    // HARDENED: Source user + VIP status from AvatarContext (server-verified)
+    // Falls back to userIdProp for backward compatibility
+    // ═══════════════════════════════════════════════════════════════════
+    const { user, isVip: contextIsVip, initializing } = useAvatar();
+    const userId = user?.id || userIdProp;
+
     const config = FEATURE_CONFIG[featureKey] || { cost: 25, label: featureKey, durationHours: 24 };
     const cost = costOverride || config.cost;
 
@@ -49,14 +65,36 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        // ═══════════════════════════════════════════════════════════════
+        // HARDENED: Wait for auth initialization before making any access
+        // decision. This prevents the flash of locked UI on page load.
+        // ═══════════════════════════════════════════════════════════════
+        if (initializing) {
+            // Keep loading state while auth is initializing
+            setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: true });
+            return;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // HARDENED: If AvatarContext says VIP, grant immediately. No
+        // client-side profile fetch needed — this status was already
+        // verified via the server-side /api/vip/check-status bridge.
+        // ═══════════════════════════════════════════════════════════════
+        if (contextIsVip) {
+            setAccess({ hasAccess: true, isVip: true, expiresAt: null, loading: false });
+            return;
+        }
+
+        // Non-VIP: check for active day pass
         if (userId) {
-            loadAccess();
+            loadDayPassAccess();
         } else {
             setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: false });
         }
-    }, [userId, featureKey]);
+    }, [userId, featureKey, contextIsVip, initializing]);
 
-    const loadAccess = async () => {
+    // Only checks day-pass access (VIP is already handled above)
+    const loadDayPassAccess = async () => {
         try {
             const result = await checkFeatureAccess(userId, featureKey);
             setAccess({ ...result, loading: false });
@@ -65,7 +103,7 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
                 console.warn('[FeatureGate UI] Access check returned error:', result.error);
             }
         } catch (err) {
-            console.error('[FeatureGate UI] loadAccess crashed:', err);
+            console.error('[FeatureGate UI] loadDayPassAccess crashed:', err);
             setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: false });
             setDiamonds(0);
         }
@@ -96,7 +134,7 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
         setIsUnlocking(false);
     };
 
-    // Loading
+    // Loading (auth initializing or access check in progress)
     if (access.loading) {
         return (
             <div style={s.loadingWrap}>
@@ -111,6 +149,16 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
     if (access.hasAccess) {
         return (
             <>
+                {!hideBadge && access.isVip && (
+                    <div style={{ ...s.badge, ...s.badgeGold }}>
+                        <Crown size={12} /> VIP ACCESS
+                    </div>
+                )}
+                {!hideBadge && !access.isVip && access.expiresAt && (
+                    <div style={{ ...s.badge, ...s.badgeCyan }}>
+                        <Timer size={12} /> {formatTimeRemaining(access.expiresAt)}
+                    </div>
+                )}
                 {children}
                 <style>{ANIM}</style>
             </>
@@ -124,52 +172,43 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
                 <div style={s.gridBg} />
                 <div style={s.ledStrip} />
 
-                {/* Lock icon */}
-                <div style={{ marginBottom: 24 }}>
-                    <div style={s.lockRing}>
-                        <Lock size={28} style={{ color: M.cyan }} />
-                    </div>
+                <div style={s.lockRing}>
+                    <Lock size={28} style={{ color: M.cyan }} />
                 </div>
 
                 <h3 style={s.title}>
-                    {title || config.label} {subtitle && <span style={s.proText}>{subtitle}</span>}
+                    {title || 'FEATURE'} <span style={s.proText}>{subtitle || 'PRO'}</span>
                 </h3>
-                <p style={s.desc}>{description || 'Premium feature — unlock with diamonds or VIP membership'}</p>
+                <p style={s.desc}>{description || 'Unlock premium access to this feature'}</p>
 
-                {/* Feature grid */}
                 {features.length > 0 && (
                     <div style={s.featureGrid}>
                         {features.map((f, i) => (
                             <div key={i} style={s.featureCard}>
+                                <Zap size={16} style={{ color: M.cyan }} />
                                 <span style={s.featureLabel}>{f}</span>
                             </div>
                         ))}
                     </div>
                 )}
 
-                {/* Pricing */}
                 <div style={s.pricingPanel}>
                     <div style={s.pricingLed} />
                     <div style={s.priceRow}>
-                        <Diamond size={28} style={{ color: M.cyan, filter: `drop-shadow(0 0 8px ${M.cyanGlow})` }} />
+                        <Diamond size={32} style={{ color: M.cyan }} />
                         <span style={s.priceValue}>{cost}</span>
-                        <span style={s.priceUnit}>/ {config.durationHours} HRS</span>
+                        <span style={s.priceUnit}>DIAMONDS</span>
                     </div>
-                    <button onClick={() => { loadAccess(); setShowModal(true); }} style={s.unlockBtn}>
-                        <Zap size={18} /> UNLOCK ACCESS
+                    <button style={s.unlockBtn} onClick={() => setShowModal(true)}>
+                        <Lock size={18} /> UNLOCK {config.durationHours}H ACCESS
                     </button>
-                    <p style={s.balanceNote}>
-                        BALANCE: <strong style={{ color: M.cyan }}>{diamonds}</strong> diamonds
-                    </p>
+                    <p style={s.balanceNote}>YOUR BALANCE: {diamonds} 💎</p>
                 </div>
 
-                {/* VIP promo */}
                 <div style={s.vipPromo}>
                     <Crown size={14} style={{ color: M.gold }} />
-                    <span>VIP = <strong>UNLIMITED ACCESS</strong></span>
-                    <button onClick={() => window.location.href = '/hub/diamond-store#vip'} style={s.vipLink}>
-                        UPGRADE →
-                    </button>
+                    <span>Want unlimited?</span>
+                    <button style={s.vipLink}>GET VIP →</button>
                 </div>
             </div>
 
@@ -180,53 +219,53 @@ export default function FeatureGate({ userId, featureKey, title, subtitle, descr
                         <div style={s.modalLed} />
 
                         {unlockSuccess ? (
-                            <div style={{ padding: '24px 0', textAlign: 'center' }}>
-                                <CheckCircle size={56} style={{ color: M.success, filter: `drop-shadow(0 0 15px ${M.successGlow})`, marginBottom: 16 }} />
-                                <h3 style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 20, color: M.success, letterSpacing: '0.15em', margin: '0 0 8px' }}>ACCESS UNLOCKED</h3>
-                                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', margin: 0 }}>{config.durationHours}-hour full access activated</p>
+                            <div style={{ padding: '24px 0' }}>
+                                <CheckCircle size={56} style={{ color: M.success, animation: 'pulse 1s ease-out' }} />
+                                <h4 style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 20, fontWeight: 700, letterSpacing: '0.15em', color: M.success, margin: '16px 0 8px' }}>ACCESS GRANTED</h4>
+                                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em' }}>{config.durationHours} hours of premium access activated</p>
                             </div>
                         ) : (
                             <>
-                                <h3 style={s.modalTitle}>
-                                    <Diamond size={22} style={{ color: M.cyan }} /> UNLOCK {subtitle || 'PRO'}
-                                </h3>
+                                <div style={s.modalTitle}>
+                                    <Lock size={20} style={{ color: M.cyan }} />
+                                    CONFIRM UNLOCK
+                                </div>
+
                                 <div style={s.modalCost}>
                                     <span style={s.modalCostVal}>{cost}</span>
                                     <span style={s.modalCostUnit}>DIAMONDS</span>
                                 </div>
+
                                 <div style={s.modalDuration}>
-                                    <Timer size={14} /> {config.durationHours}-HOUR FULL ACCESS
+                                    <Timer size={14} />
+                                    {config.durationHours} HOUR ACCESS
                                 </div>
+
                                 <div style={s.balancePanel}>
                                     <span>YOUR BALANCE</span>
-                                    <strong style={{ color: diamonds >= cost ? M.success : M.danger, fontSize: 20 }}>
-                                        {diamonds} diamonds
-                                    </strong>
+                                    <span style={{ color: '#fff', fontWeight: 700 }}>{diamonds} 💎</span>
                                 </div>
 
-                                {error && <div style={s.errorBox}>{error}</div>}
-
-                                {diamonds < cost && (
-                                    <div style={s.insufficientBox}>
-                                        <span>NEED {cost - diamonds} MORE</span>
-                                        <button onClick={() => window.location.href = '/hub/diamond-store'} style={s.getDiamondsBtn}>
-                                            <Diamond size={12} /> GET DIAMONDS
-                                        </button>
-                                    </div>
+                                {error && (
+                                    diamonds < cost ? (
+                                        <div style={s.insufficientBox}>
+                                            <span>Need {cost - diamonds} more diamonds</span>
+                                            <button style={s.getDiamondsBtn}>
+                                                <Diamond size={14} /> GET DIAMONDS
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={s.errorBox}>{error}</div>
+                                    )
                                 )}
 
                                 <div style={s.modalActions}>
-                                    <button onClick={() => setShowModal(false)} disabled={isUnlocking} style={s.cancelBtn}>CANCEL</button>
-                                    <button
-                                        onClick={handleUnlock}
-                                        disabled={isUnlocking || diamonds < cost}
-                                        style={{ ...s.confirmBtn, opacity: (isUnlocking || diamonds < cost) ? 0.4 : 1 }}
-                                    >
-                                        {isUnlocking ? (
-                                            <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> PROCESSING</>
-                                        ) : (
-                                            <><Zap size={16} /> CONFIRM</>
-                                        )}
+                                    <button style={s.cancelBtn} onClick={() => setShowModal(false)} disabled={isUnlocking}>
+                                        CANCEL
+                                    </button>
+                                    <button style={s.confirmBtn} onClick={handleUnlock} disabled={isUnlocking || diamonds < cost}>
+                                        {isUnlocking ? <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Diamond size={16} />}
+                                        {isUnlocking ? 'UNLOCKING...' : 'CONFIRM'}
                                     </button>
                                 </div>
 

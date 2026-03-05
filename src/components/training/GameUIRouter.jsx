@@ -1,9 +1,8 @@
 /**
  * 🎯 GAME UI ROUTER — Routes to Game-Specific UIs
  * ═══════════════════════════════════════════════════════════════════════════
- * UPDATED: All poker games now use UniversalDynamicTable with avatars
- * The table dynamically updates per question (hero position, cards, board, etc.)
- * 
+ * UPDATED: GTO Wizard-style training with GTOW scoring
+ * All poker games use UniversalDynamicTable with action buttons + frequency bars
  * Psychology/Scenario games still use specialized UIs
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -75,7 +74,14 @@ export default function GameUIRouter({
     onAnswer,
     showFeedback,
     feedbackResult,
-    explanation
+    explanation,
+    // GTOW scoring props (new)
+    moveClassification = null,
+    evLoss = 0,
+    gtoFrequencies = null,
+    gtowScore = 100,
+    totalSessionEVLoss = 0,
+    sessionMistakes = 0,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -97,7 +103,7 @@ export default function GameUIRouter({
         );
     }
 
-    // ALL poker games (cash, mtt, spins, adv) use dynamic table with avatars
+    // ALL poker games use GTO Wizard-style dynamic table
     return (
         <UniversalDynamicTable
             question={question}
@@ -111,6 +117,13 @@ export default function GameUIRouter({
             gameType={gameType}
             gameTitle={gameName}
             streak={streak || 0}
+            // GTOW scoring props
+            moveClassification={moveClassification}
+            evLoss={evLoss}
+            gtoFrequencies={gtoFrequencies}
+            gtowScore={gtowScore}
+            totalSessionEVLoss={totalSessionEVLoss}
+            sessionMistakes={sessionMistakes}
         />
     );
 }

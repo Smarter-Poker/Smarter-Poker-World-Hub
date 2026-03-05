@@ -1,16 +1,18 @@
 /**
- * 🎰 USE MILLIONAIRE GAME — Training Game Flow Controller
+ * 🎰 USE MILLIONAIRE GAME — GTO Wizard-Style Training Flow Controller
  * ═══════════════════════════════════════════════════════════════════════════
- * Manages the "Who Wants to Be a Millionaire" style training game:
+ * Manages the training game with GTOW scoring integration:
  * - Fetches questions via API (PIO/CHART/SCENARIO engines)
  * - Tracks answers and enforces no-repeat logic
- * - Calculates scores and level progression
+ * - Calculates GTOW Score, EV loss, and 5-tier move classification
+ * - Exposes scoring metrics for GTO Wizard-style feedback UI
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { getAuthUser } from '../lib/authUtils';
 import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
+import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
 
@@ -40,6 +42,12 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     // Game completion state
     const [gameComplete, setGameComplete] = useState(false);
     const [levelPassed, setLevelPassed] = useState(false);
+
+    // GTOW scoring integration
+    const gtowScoring = useGTOWScore();
+    const [lastMoveClassification, setLastMoveClassification] = useState(null);
+    const [lastEVLoss, setLastEVLoss] = useState(0);
+    const [lastGTOFrequencies, setLastGTOFrequencies] = useState(null);
 
     // Get user ID for no-repeat tracking
     const userId = getAuthUser()?.id;
@@ -165,8 +173,52 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         if (!currentQuestion || showFeedback) return;
 
         const isCorrect = selectedOptionId === currentQuestion.correctAnswer;
+        const correctAnswer = currentQuestion.correctAnswer;
+        const options = currentQuestion.options || [];
+        const scenario = currentQuestion.scenario || {};
 
-        // Update scores
+        // ═══ PREFER REAL PIO DATA, FALL BACK TO SIMULATED ═══
+        const hasPIOData = currentQuestion.gtoFrequencies && Object.keys(currentQuestion.gtoFrequencies).length > 0;
+        const frequencies = hasPIOData
+            ? currentQuestion.gtoFrequencies  // Real PIO solver frequencies (0-100%)
+            : simulateGTOFrequencies(options, correctAnswer, level);
+
+        // Classify the move — pass real PIO data for accurate EV loss when available
+        const moveResult = classifyMove(
+            selectedOptionId,
+            correctAnswer,
+            frequencies,
+            level,
+            hasPIOData ? currentQuestion.evData : null,        // Real EV data (or null)
+            hasPIOData ? currentQuestion.rawFrequencies : null, // Full PIO frequency matrix
+            currentQuestion.heroHand || scenario.heroHand,      // Hero hand for EV lookup
+            scenario.pot                                        // Pot size for scaling
+        );
+
+        // Store for UI consumption
+        setLastMoveClassification(moveResult.classification);
+        setLastEVLoss(moveResult.evLoss);
+        setLastGTOFrequencies(frequencies);
+
+        // Record to GTOW scoring engine
+        gtowScoring.recordMove({
+            classification: moveResult.classification,
+            evLoss: moveResult.evLoss,
+            frequencyDiff: moveResult.frequencyDiff,
+            isRealData: moveResult.isRealData || false,
+            handData: {
+                heroCards: currentQuestion.heroCards || scenario.heroHand,
+                board: scenario.board,
+                heroPosition: scenario.heroPosition || scenario.position,
+                pot: scenario.pot,
+                action: selectedOptionId,
+                correctAction: correctAnswer,
+                question: currentQuestion.question || currentQuestion.text,
+                source: currentQuestion.source || 'UNKNOWN',
+            },
+        });
+
+        // Update legacy scores
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
             setStreak(prev => {
@@ -185,7 +237,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
 
         // Record to backend (async, non-blocking)
         recordAnswer(currentQuestion.id, selectedOptionId, isCorrect);
-    }, [currentQuestion, showFeedback, bestStreak, recordAnswer]);
+    }, [currentQuestion, showFeedback, bestStreak, recordAnswer, level, gtowScoring]);
 
     /**
      * Save progress to database
@@ -326,6 +378,18 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         showFeedback,
         feedbackResult,
         explanation,
+
+        // GTOW scoring state
+        moveClassification: lastMoveClassification,
+        evLoss: lastEVLoss,
+        gtoFrequencies: lastGTOFrequencies,
+        gtowScore: gtowScoring.gtowScore,
+        totalEVLoss: gtowScoring.totalEVLoss,
+        sessionMistakes: gtowScoring.mistakeCount,
+        handHistory: gtowScoring.handHistory,
+        avgEVLossPerHand: gtowScoring.avgEVLossPerHand,
+        avgEVLossPerMistake: gtowScoring.avgEVLossPerMistake,
+        avgFrequencyDiff: gtowScoring.avgFrequencyDiff,
 
         // Completion state
         gameComplete,

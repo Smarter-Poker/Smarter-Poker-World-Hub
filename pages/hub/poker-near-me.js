@@ -3,7 +3,7 @@
  * Find poker rooms, casinos, and tournaments near you
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
@@ -28,16 +28,80 @@ const LIVE_REFRESH_MS = 120000; // 2 minutes
 const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
+
+// Tab order for swipe navigation
+const TAB_ORDER = ['venues', 'tours', 'series', 'daily', 'live', 'map', 'favorites'];
+
+// API response cache with TTL
+const apiCache = {};
+const API_CACHE_TTL = 60000; // 60 seconds
+function cachedFetch(url, ttl = API_CACHE_TTL) {
+    const now = Date.now();
+    if (apiCache[url] && (now - apiCache[url].time) < ttl) {
+        return Promise.resolve(apiCache[url].data);
+    }
+    return fetch(url).then(r => r.json()).then(data => {
+        apiCache[url] = { data, time: now };
+        return data;
+    });
+}
+
+// Retry wrapper with exponential backoff
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+    let lastError;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            const res = await fetch(url, options);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            lastError = err;
+            if (attempt < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
+            }
+        }
+    }
+    throw lastError;
+}
+
+// Search analytics tracker
+function trackSearchEvent(eventName, data) {
+    try {
+        // Log for analytics (can be wired to Sentry, Mixpanel, etc.)
+        if (typeof window !== 'undefined' && window.__SEARCH_ANALYTICS__) {
+            window.__SEARCH_ANALYTICS__.push({ event: eventName, data, timestamp: Date.now() });
+        }
+        // Store locally for aggregate analysis
+        const key = 'sp-search-analytics';
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        existing.push({ event: eventName, ...data, ts: Date.now() });
+        // Keep last 100 events
+        if (existing.length > 100) existing.splice(0, existing.length - 100);
+        localStorage.setItem(key, JSON.stringify(existing));
+    } catch (e) { /* analytics should never break the app */ }
+}
+
+// Popular cities for autocomplete
+const POPULAR_CITIES = [
+    { name: 'Las Vegas', state: 'NV' }, { name: 'Los Angeles', state: 'CA' },
+    { name: 'Atlantic City', state: 'NJ' }, { name: 'Miami', state: 'FL' },
+    { name: 'Houston', state: 'TX' }, { name: 'Dallas', state: 'TX' },
+    { name: 'Chicago', state: 'IL' }, { name: 'Phoenix', state: 'AZ' },
+    { name: 'San Diego', state: 'CA' }, { name: 'Tampa', state: 'FL' },
+    { name: 'Denver', state: 'CO' }, { name: 'Portland', state: 'OR' },
+    { name: 'Seattle', state: 'WA' }, { name: 'San Francisco', state: 'CA' },
+    { name: 'New Orleans', state: 'LA' }, { name: 'Oklahoma City', state: 'OK' },
+    { name: 'Biloxi', state: 'MS' }, { name: 'Tunica', state: 'MS' },
+    { name: 'Reno', state: 'NV' }, { name: 'San Jose', state: 'CA' },
+    { name: 'Ft. Lauderdale', state: 'FL' }, { name: 'Orlando', state: 'FL' },
+    { name: 'Austin', state: 'TX' }, { name: 'San Antonio', state: 'TX' },
+    { name: 'Nashville', state: 'TN' }, { name: 'Detroit', state: 'MI' },
+    { name: 'Minneapolis', state: 'MN' }, { name: 'St. Louis', state: 'MO' },
+    { name: 'Charlotte', state: 'NC' }, { name: 'Sacramento', state: 'CA' },
+];
 const GEOFENCE_ALERT_TIMEOUT_MS = 30000;
 const TOTAL_VENUES = 483;
 
-const POPULAR_CITIES = [
-    { name: 'Las Vegas', state: 'NV' },
-    { name: 'Los Angeles', state: 'CA' },
-    { name: 'Miami', state: 'FL' },
-    { name: 'Atlantic City', state: 'NJ' },
-    { name: 'Austin', state: 'TX' },
-];
 
 const VENUE_TYPE_LABELS = {
     casino: 'Casino',
@@ -217,6 +281,41 @@ function GeofenceAlertBanner({ venue, onCheckin, onReview, onDismiss }) {
     );
 }
 
+// ---- Error Boundary for Map ----
+class MapErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, info) {
+        console.error('Map rendering error:', error, info);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.5)' }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ marginBottom: 12 }}>
+                        <path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z" />
+                        <line x1="8" y1="2" x2="8" y2="18" />
+                        <line x1="16" y1="6" x2="16" y2="22" />
+                    </svg>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 8 }}>Map Unavailable</p>
+                    <p style={{ fontSize: 13 }}>Unable to load the map. This may be caused by an ad blocker or network issue.</p>
+                    <button
+                        onClick={() => this.setState({ hasError: false, error: null })}
+                        style={{ marginTop: 16, padding: '10px 20px', background: 'rgba(212,168,83,0.2)', border: '1px solid rgba(212,168,83,0.4)', borderRadius: 8, color: '#d4a853', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    >Try Again</button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+
 // ---- Leaflet Map Component (client-side only) ----------------------------
 function VenueMap({ venues, userLocation }) {
     const mapContainerRef = useRef(null);
@@ -258,6 +357,24 @@ function VenueMap({ venues, userLocation }) {
 
         const loadLeaflet = async () => {
             try {
+                // Load Leaflet CSS (required for proper map rendering)
+                if (!document.querySelector('link[href*="leaflet@1.9.4"]')) {
+                    const leafletCSS = document.createElement('link');
+                    leafletCSS.rel = 'stylesheet';
+                    leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                    document.head.appendChild(leafletCSS);
+                }
+                if (!document.querySelector('link[href*="MarkerCluster"]')) {
+                    const clusterCSS = document.createElement('link');
+                    clusterCSS.rel = 'stylesheet';
+                    clusterCSS.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
+                    document.head.appendChild(clusterCSS);
+                    const clusterDefaultCSS = document.createElement('link');
+                    clusterDefaultCSS.rel = 'stylesheet';
+                    clusterDefaultCSS.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
+                    document.head.appendChild(clusterDefaultCSS);
+                }
+
                 // Load Leaflet first
                 await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
 
@@ -344,17 +461,17 @@ function VenueMap({ venues, userLocation }) {
                 ? '/club/' + venue.social_page_id
                 : '/hub/venues/' + venue.id;
 
-            const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;">' +
-                '<div style="font-size:15px;font-weight:700;color:#1a1a2e;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
+            const popupHtml = '<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;max-width:280px;background:#0f172a;padding:12px;border-radius:10px;">' +
+                '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px;">' + (venue.name || '') + '</div>' +
                 '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">' +
-                '<span style="padding:2px 8px;border-radius:4px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
-                '<span style="font-size:12px;color:#666;">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
+                '<span style="padding:2px 8px;border-radius:4px;background:rgba(99,102,241,0.2);color:#818cf8;font-size:11px;font-weight:600;">' + typeBadge + '</span>' +
+                '<span style="font-size:12px;color:rgba(255,255,255,0.5);">' + (venue.city || '') + ', ' + (venue.state || '') + '</span>' +
                 '</div>' +
                 '<div style="font-size:12px;color:' + trust.color + ';font-weight:600;margin-bottom:8px;">Trust: ' + trust.label + ' (' + (venue.trust_score || '-') + '/5)</div>' +
-                '<div style="display:flex;gap:6px;">' +
+                '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
                 '<a href="' + detailPath + '" style="padding:6px 12px;border-radius:6px;background:#d4a853;color:#000;text-decoration:none;font-size:12px;font-weight:600;">View Details</a>' +
-                '<a href="' + detailPath + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:#1e40af;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
-                '<a href="' + detailPath + '?action=review" style="padding:6px 12px;border-radius:6px;background:#374151;color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Review</a>' +
+                '<a href="' + detailPath + '?action=checkin" style="padding:6px 12px;border-radius:6px;background:rgba(37,99,235,0.8);color:#fff;text-decoration:none;font-size:12px;font-weight:600;">Check In</a>' +
+                '<a href="' + detailPath + '?action=review" style="padding:6px 12px;border-radius:6px;background:rgba(255,255,255,0.1);color:#fff;text-decoration:none;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.2);">Review</a>' +
                 '</div>' +
                 '</div>';
 
@@ -502,6 +619,7 @@ export default function PokerNearMePage() {
 
     // UI states
     const [loading, setLoading] = useState(true);
+    const [venueLoading, setVenueLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [gpsLoading, setGpsLoading] = useState(false);
@@ -514,6 +632,26 @@ export default function PokerNearMePage() {
     const [geofenceAlert, setGeofenceAlert] = useState(null);
     const geofenceRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Swipe gesture state
+    const touchStartRef = useRef(null);
+    const touchEndRef = useRef(null);
+    const contentRef = useRef(null);
+
+    // Pull-to-refresh state
+    const [pullDistance, setPullDistance] = useState(0);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const pullStartRef = useRef(null);
+
+    // City autocomplete state
+    const [citySuggestions, setCitySuggestions] = useState([]);
+    const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+
+    // Push notification state
+    const [pushPermission, setPushPermission] = useState('default');
+
+    // Fetch error state for retry UI
+    const [fetchError, setFetchError] = useState(null);
 
     // Hamburger menu preferences
     const [preferences, setPreferences] = useState({
@@ -608,6 +746,7 @@ export default function PokerNearMePage() {
     });
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
+    const searchWrapperRef = useRef(null);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
     const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
 
@@ -652,16 +791,40 @@ export default function PokerNearMePage() {
     // Selected room for detail panel
     const [selectedRoom, setSelectedRoom] = useState(null);
 
-    // Load all venues for the map (from static JSON) on mount
+    // Load all venues for the map (from static JSON) on mount — with offline cache
     useEffect(() => {
         if (typeof window === 'undefined') return;
+        const CACHE_KEY = 'sp-offline-venues';
+        let hadCacheHit = false;
+        // Try offline cache first
+        try {
+            const cached = localStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.venues && parsed.time && (Date.now() - parsed.time) < 3600000) { // 1hr TTL
+                    setAllVenuesForMap(parsed.venues);
+                    hadCacheHit = true;
+                }
+            }
+        } catch (e) { /* ignore */ }
+        // Fetch fresh and update cache
         fetch('/data/all-venues.json')
             .then(function (r) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
-                setAllVenuesForMap(Array.isArray(v) ? v : []);
+                var arr = Array.isArray(v) ? v : [];
+                setAllVenuesForMap(arr);
+                // Cache for offline use
+                try {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify({ venues: arr, time: Date.now() }));
+                } catch (e) { /* storage full, ignore */ }
             })
-            .catch(function () { setAllVenuesForMap([]); });
+            .catch(function () {
+                // Only show error if we have no cached data at all
+                if (!hadCacheHit) {
+                    setFetchError('Unable to load venue data. Check your connection.');
+                }
+            });
     }, []);
 
     // Fetch non-venue data on mount (tours, series, daily tournaments)
@@ -676,6 +839,34 @@ export default function PokerNearMePage() {
             fetchVenues();
         }
     }, [selectedCity, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Auto-refresh venues when venue-affecting filter values change
+    const filterRefreshRef = useRef(null);
+    useEffect(() => {
+        if (!hasSearched) return;
+        // Debounce to prevent rapid re-fetching during filter cascades
+        if (filterRefreshRef.current) clearTimeout(filterRefreshRef.current);
+        filterRefreshRef.current = setTimeout(() => {
+            fetchVenues();
+        }, 400);
+        return () => { if (filterRefreshRef.current) clearTimeout(filterRefreshRef.current); };
+    }, [filters.radius, filters.venueType, filters.hasNLH, filters.hasPLO, filters.hasMixed]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Close search history on outside click
+    useEffect(() => {
+        if (!showSearchHistory) return;
+        const handleClickOutside = (e) => {
+            if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target)) {
+                setShowSearchHistory(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [showSearchHistory]);
 
     // ---------- Geofence monitoring ----------
     const [geofenceStatus, setGeofenceStatus] = useState(null); // 'active' | 'denied' | 'error'
@@ -747,11 +938,27 @@ export default function PokerNearMePage() {
         });
     }, [venues]);
 
-    // --- NEW: Persist favorites to localStorage ---
+    // --- NEW: Persist favorites to localStorage + bus sync ---
     useEffect(() => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('sp-favorites', JSON.stringify(favorites));
+            window.dispatchEvent(new CustomEvent('poker-favorites-sync', { detail: favorites }));
         }
+    }, [favorites]);
+
+    // Listen for favorites changes from other tabs
+    useEffect(() => {
+        const handleFavSync = (e) => {
+            if (e.detail && typeof window !== 'undefined') {
+                const currentStr = JSON.stringify(favorites);
+                const newStr = JSON.stringify(e.detail);
+                if (currentStr !== newStr) {
+                    setFavorites(e.detail);
+                }
+            }
+        };
+        window.addEventListener('poker-favorites-sync', handleFavSync);
+        return () => window.removeEventListener('poker-favorites-sync', handleFavSync);
     }, [favorites]);
 
     // --- NEW: Fetch promotion venue IDs on mount ---
@@ -865,8 +1072,11 @@ export default function PokerNearMePage() {
             (pos) => {
                 setSearchQuery('');
                 setSelectedCity(null);
-                setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                setUserLocation(loc);
                 setHasSearched(true);
+                // Reset pagination on new GPS search
+                setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
                 setTimeout(() => {
                     fetchAllData({ includeVenues: true });
                     fetchLiveGames();
@@ -937,6 +1147,8 @@ export default function PokerNearMePage() {
     };
 
     const fetchVenues = async () => {
+        setVenueLoading(true);
+        setFetchError(null);
         try {
             const params = new URLSearchParams({ limit: '500' });
             if (selectedCity) {
@@ -959,8 +1171,8 @@ export default function PokerNearMePage() {
             if (filters.hasPLO) params.set('hasPLO', 'true');
             if (filters.hasMixed) params.set('hasMixed', 'true');
 
-            const res = await fetch('/api/poker/venues?' + params);
-            const json = await res.json();
+            const url = '/api/poker/venues?' + params;
+            const json = await fetchWithRetry(url);
             const data = json.data;
             let filteredData = data || [];
 
@@ -970,8 +1182,10 @@ export default function PokerNearMePage() {
             }
         } catch (e) {
             console.error('Fetch venues error:', e);
+            setFetchError('Failed to load venues. Tap to retry.');
             setVenues([]);
         }
+        setVenueLoading(false);
     };
 
     const fetchTours = async () => {
@@ -984,8 +1198,8 @@ export default function PokerNearMePage() {
                 params.set('search', searchQuery);
             }
 
-            const res = await fetch('/api/poker/tours?' + params);
-            const json = await res.json();
+            const url = '/api/poker/tours?' + params;
+            const json = await cachedFetch(url);
             setTours(json.data || []);
         } catch (e) {
             console.error('Fetch tours error:', e);
@@ -1026,6 +1240,11 @@ export default function PokerNearMePage() {
             if (selectedCity && selectedCity.state) {
                 params.set('state', selectedCity.state);
             }
+            // Also pass GPS-derived state when available
+            if (!selectedCity && userLocation) {
+                params.set('lat', userLocation.lat.toString());
+                params.set('lng', userLocation.lng.toString());
+            }
             if (searchQuery) {
                 params.set('venue', searchQuery);
             }
@@ -1036,8 +1255,8 @@ export default function PokerNearMePage() {
                 params.set('maxBuyin', filters.maxBuyin);
             }
 
-            const res = await fetch('/api/poker/daily-tournaments?' + params);
-            const json = await res.json();
+            const url = '/api/poker/daily-tournaments?' + params;
+            const json = await cachedFetch(url);
             setDailyTournaments(json.tournaments || []);
         } catch (e) {
             console.error('Fetch daily tournaments error:', e);
@@ -1048,7 +1267,12 @@ export default function PokerNearMePage() {
     const fetchLiveGames = async () => {
         setLiveLoading(true);
         try {
-            const res = await fetch('/api/poker/live-games?active=true');
+            const params = new URLSearchParams({ active: 'true' });
+            if (userLocation) {
+                params.set('lat', userLocation.lat.toString());
+                params.set('lng', userLocation.lng.toString());
+            }
+            const res = await fetch('/api/poker/live-games?' + params);
             const json = await res.json();
             setLiveGames(json.games || json.data || []);
         } catch (e) {
@@ -1063,7 +1287,12 @@ export default function PokerNearMePage() {
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         addToSearchHistory(searchQuery);
         setShowSearchHistory(false);
+        setShowCitySuggestions(false);
         setHasSearched(true);
+        // Reset pagination on new search
+        setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
+        // Track search analytics
+        trackSearchEvent('search', { query: searchQuery, tab: activeTab, hasGPS: !!userLocation });
         fetchAllData({ includeVenues: true });
     };
 
@@ -1071,17 +1300,189 @@ export default function PokerNearMePage() {
         const value = e.target.value;
         setSearchQuery(value);
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+
+        // City autocomplete
+        if (value.trim().length >= 2) {
+            const q = value.trim().toLowerCase();
+            const matches = POPULAR_CITIES.filter(c =>
+                c.name.toLowerCase().includes(q) || c.state.toLowerCase().includes(q)
+            ).slice(0, 6);
+            setCitySuggestions(matches);
+            setShowCitySuggestions(matches.length > 0);
+        } else {
+            setShowCitySuggestions(false);
+        }
+
         if (value.trim().length >= 3) {
             searchDebounceRef.current = setTimeout(() => {
                 setHasSearched(true);
+                setDisplayCount({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
+                trackSearchEvent('auto_search', { query: value, tab: activeTab });
                 fetchAllData({ includeVenues: true });
             }, SEARCH_DEBOUNCE_MS);
         }
     };
 
+    // City suggestion click handler
+    const handleCitySuggestionClick = (city) => {
+        // Clear any pending search debounce to prevent double-fetch
+        if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+        setSearchQuery(city.name + ', ' + city.state);
+        setSelectedCity(city);
+        setUserLocation(null);
+        setShowCitySuggestions(false);
+        setHasSearched(true);
+        trackSearchEvent('city_select', { city: city.name, state: city.state });
+    };
+
     const handleCityClick = (city) => {
         setSelectedCity(city);
         setUserLocation(null);
+    };
+
+    // ═══ DEEP LINK PERSISTENCE: write tab + search to URL (debounced) ═══
+    const deepLinkRef = useRef(null);
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (deepLinkRef.current) clearTimeout(deepLinkRef.current);
+        deepLinkRef.current = setTimeout(() => {
+            const params = new URLSearchParams();
+            if (activeTab !== 'venues') params.set('tab', activeTab);
+            if (searchQuery) params.set('q', searchQuery);
+            if (filters.venueType !== 'all') params.set('filter', filters.venueType);
+            const qs = params.toString();
+            const newUrl = '/hub/poker-near-me' + (qs ? '?' + qs : '');
+            if (router.asPath !== newUrl) {
+                router.replace(newUrl, undefined, { shallow: true });
+            }
+        }, 500);
+        return () => { if (deepLinkRef.current) clearTimeout(deepLinkRef.current); };
+    }, [activeTab, searchQuery, filters.venueType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Read deep link params on mount
+    useEffect(() => {
+        if (router.query.q) setSearchQuery(String(router.query.q));
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ═══ SWIPE GESTURE HANDLERS ═══
+    const handleTouchStart = useCallback((e) => {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, time: Date.now() };
+        touchEndRef.current = null;
+    }, []);
+
+    const handleTouchMove = useCallback((e) => {
+        touchEndRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, []);
+
+    const handleTouchEnd = useCallback(() => {
+        if (!touchStartRef.current || !touchEndRef.current) return;
+        const dx = touchEndRef.current.x - touchStartRef.current.x;
+        const dy = touchEndRef.current.y - touchStartRef.current.y;
+        const elapsed = Date.now() - touchStartRef.current.time;
+        // Must be a horizontal swipe: fast, horizontal dominant, > 80px
+        if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 500) {
+            const currentIdx = TAB_ORDER.indexOf(activeTab);
+            if (currentIdx === -1) return;
+            if (dx < 0 && currentIdx < TAB_ORDER.length - 1) {
+                setActiveTab(TAB_ORDER[currentIdx + 1]);
+            } else if (dx > 0 && currentIdx > 0) {
+                setActiveTab(TAB_ORDER[currentIdx - 1]);
+            }
+        }
+        touchStartRef.current = null;
+        touchEndRef.current = null;
+    }, [activeTab]);
+
+    // ═══ PULL-TO-REFRESH ═══
+    const pullDistanceRef = useRef(0);
+    const handlePullStart = useCallback((e) => {
+        if (window.scrollY <= 0) {
+            pullStartRef.current = e.touches[0].clientY;
+        }
+    }, []);
+
+    const handlePullMove = useCallback((e) => {
+        if (pullStartRef.current === null) return;
+        const diff = e.touches[0].clientY - pullStartRef.current;
+        if (diff > 0 && diff < 150) {
+            pullDistanceRef.current = diff;
+            setPullDistance(diff);
+        }
+    }, []);
+
+    const handlePullEnd = useCallback(() => {
+        const dist = pullDistanceRef.current;
+        if (dist > 80 && !isRefreshing) {
+            setIsRefreshing(true);
+            setPullDistance(0);
+            pullDistanceRef.current = 0;
+            fetchAllData({ includeVenues: true }).finally(() => {
+                setIsRefreshing(false);
+            });
+        } else {
+            setPullDistance(0);
+            pullDistanceRef.current = 0;
+        }
+        pullStartRef.current = null;
+    }, [isRefreshing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ═══ PUSH NOTIFICATION REGISTRATION ═══
+    useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setPushPermission(Notification.permission);
+        }
+    }, []);
+
+    const requestPushPermission = useCallback(async () => {
+        if (!('Notification' in window)) return;
+        try {
+            const result = await Notification.requestPermission();
+            setPushPermission(result);
+            if (result === 'granted') {
+                trackSearchEvent('push_enabled', {});
+            }
+        } catch (e) {
+            console.error('Push permission error:', e);
+        }
+    }, []);
+
+    // ═══ FAVORITES TAB RENDERER ═══
+    const renderFavorites = () => {
+        const favVenues = (allVenuesForMap.length > 0 ? allVenuesForMap : venues).filter(v => isFavorited('venue', v.id));
+        const favCount = Object.keys(favorites).filter(k => favorites[k]).length;
+
+        if (favCount === 0) {
+            return (
+                <div className="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+                    </svg>
+                    <p>No Favorites Yet</p>
+                    <p style={{ fontSize: 13, opacity: 0.5, marginTop: 4 }}>Tap the ♥ icon on any venue to save it here</p>
+                </div>
+            );
+        }
+
+        return (
+            <>
+                <div className="results-bar">
+                    <span className="results-count">{favVenues.length} saved venue{favVenues.length !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="card-grid">
+                    {favVenues.map((venue, i) => (
+                        <VenueCard
+                            key={venue.id || i}
+                            venue={venue}
+                            isFavorited={true}
+                            isNewcomer={isNewcomerFriendly(venue)}
+                            onFavorite={(e) => toggleFavorite('venue', venue.id, e, venue)}
+                            promotionVenueIds={promotionVenueIds}
+                            router={router}
+                        />
+                    ))}
+                </div>
+            </>
+        );
     };
 
     const clearFilters = () => {
@@ -1092,6 +1493,7 @@ export default function PokerNearMePage() {
         setVenues([]);
         setDisplayCount(prev => ({ ...prev, venues: PAGE_SIZE }));
         setFilters({
+            radius: 50,
             venueType: 'all',
             hasNLH: false,
             hasPLO: false,
@@ -1101,7 +1503,9 @@ export default function PokerNearMePage() {
             seriesType: 'all',
             selectedDay: getCurrentDay(),
             minBuyin: '',
-            maxBuyin: ''
+            maxBuyin: '',
+            stakes: 'all',
+            gameType: 'all'
         });
     };
 
@@ -1139,10 +1543,18 @@ export default function PokerNearMePage() {
         if (activeTab === 'live') {
             return renderLiveGames();
         }
+        if (activeTab === 'favorites') {
+            return renderFavorites();
+        }
 
         // For venues tab: show search landing if no search yet, skip skeleton
         if (activeTab === 'venues' && !hasSearched) {
             return renderVenues();
+        }
+
+        // Show loading for venues tab specifically
+        if (activeTab === 'venues' && venueLoading) {
+            return renderSkeletons(8);
         }
 
         if (loading) {
@@ -1164,8 +1576,9 @@ export default function PokerNearMePage() {
     };
 
     const renderMap = () => {
-        // Filter venues based on map filters
-        let filteredVenues = allVenuesForMap;
+        // Use searched venues if a search/GPS is active, otherwise fallback to all venues
+        let baseVenues = (hasSearched && venues.length > 0) ? venues : allVenuesForMap;
+        let filteredVenues = baseVenues;
         if (mapFilters.cashGames) {
             filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
         }
@@ -1190,9 +1603,11 @@ export default function PokerNearMePage() {
             filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.length > 0);
         } else if (filters.gameType === 'mtt') {
             filteredVenues = filteredVenues.filter(v => v.has_tournaments);
+        } else if (filters.gameType === 'mixed') {
+            filteredVenues = filteredVenues.filter(v => v.games_offered && v.games_offered.some(g => /mixed|horse|8-game/i.test(g)));
         }
 
-        if (filters.stakes === '$1/25') {
+        if (filters.stakes === '$1/2') {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('1/2') || s.includes('1/3')));
         } else if (filters.stakes === '$2/5') {
             filteredVenues = filteredVenues.filter(v => v.stakes_cash && v.stakes_cash.some(s => s.includes('2/5')));
@@ -1211,7 +1626,7 @@ export default function PokerNearMePage() {
                     {/* Header Row */}
                     <div className="map-header-row">
                         <h2 className="map-title">Poker Rooms Near You</h2>
-                        <span className="map-stats">{filteredVenues.length} rooms • 0 active tables • 100 tournaments today</span>
+                        <span className="map-stats">{filteredVenues.length} rooms • {liveGames.length} active tables • {dailyTournaments.length} tournaments today</span>
                     </div>
 
                     {/* Quick Filter Chips */}
@@ -1233,11 +1648,25 @@ export default function PokerNearMePage() {
                         </button>
                     </div>
 
-                    {/* Map Container */}
-                    <VenueMap
-                        venues={filteredVenues}
-                        userLocation={userLocation}
-                    />
+                    {/* Map Container - wrapped in Error Boundary */}
+                    <MapErrorBoundary>
+                        <VenueMap
+                            key={filteredVenues.length + '-' + (filteredVenues[0]?.id || 'none') + '-' + (filteredVenues[filteredVenues.length - 1]?.id || 'none')}
+                            venues={filteredVenues}
+                            userLocation={userLocation}
+                        />
+                    </MapErrorBoundary>
+
+                    {/* Recenter Button */}
+                    {userLocation && (
+                        <button className="map-recenter-btn" onClick={requestGpsLocation} aria-label="Recenter on my location">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+                            </svg>
+                            My Location
+                        </button>
+                    )}
 
                     {/* Room List Below Map */}
                     <div className="map-room-list">
@@ -1249,9 +1678,14 @@ export default function PokerNearMePage() {
                                         <span className="room-name">{venue.name}</span>
                                         <span className="room-hours">{venue.is_24_hours ? '24/7' : venue.hours_of_operation || '—'}</span>
                                     </div>
-                                    <div className="room-card-location">{venue.city}, {venue.state}</div>
+                                    <div className="room-card-location">
+                                        {venue.city}, {venue.state}
+                                        {venue.distance_mi && <span className="room-distance"> • {venue.distance_mi.toFixed(1)} mi</span>}
+                                    </div>
                                     <div className="room-card-tags">
-                                        <span className="room-tag">• — Tournaments</span>
+                                        {venue.venue_type && <span className="room-tag">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>}
+                                        {venue.has_tournaments && <span className="room-tag"> • Tournaments</span>}
+                                        {venue.games_offered && venue.games_offered.length > 0 && <span className="room-tag"> • {venue.games_offered.slice(0, 3).join(', ')}</span>}
                                     </div>
                                     <button className="room-view-btn" onClick={(e) => { e.stopPropagation(); router.push(venue.is_social_page ? `/club/${venue.social_page_id}` : `/hub/venues/${venue.id}`); }}>View Room</button>
                                 </div>
@@ -1283,7 +1717,7 @@ export default function PokerNearMePage() {
                         <div className="sidebar-filter-group">
                             <label className="sidebar-label">Stakes</label>
                             <div className="sidebar-chips">
-                                {['all', '$1/25', '$2/5', '$5/10+'].map(stake => (
+                                {['all', '$1/2', '$2/5', '$5/10+'].map(stake => (
                                     <button
                                         key={stake}
                                         className={'sidebar-chip' + (filters.stakes === stake ? ' active' : '')}
@@ -1831,6 +2265,22 @@ export default function PokerNearMePage() {
                         </div>
                     </div>
 
+                    {/* ═══ MOBILE TAB BAR — visible, accessible tab navigation ═══ */}
+                    <div className="mobile-tab-bar">
+                        {[{ key: 'venues', label: 'Venues', icon: '🏠' }, { key: 'tours', label: 'Tours', icon: '🌍' }, { key: 'series', label: 'Series', icon: '📅' }, { key: 'daily', label: 'Daily', icon: '🎯' }, { key: 'live', label: 'Live', icon: '🔴' }, { key: 'map', label: 'Map', icon: '🗺️' }, { key: 'favorites', label: 'Saved', icon: '❤️' }].map(tab => (
+                            <button
+                                key={tab.key}
+                                className={'mtab' + (activeTab === tab.key ? ' active' : '')}
+                                onClick={() => setActiveTab(tab.key)}
+                            >
+                                <span className="mtab-icon">{tab.icon}</span>
+                                <span className="mtab-label">{tab.label}</span>
+                                {tab.key === 'live' && liveGames.length > 0 && <span className="mtab-badge">{liveGames.length}</span>}
+                                {tab.key === 'favorites' && Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="mtab-badge fav">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Distance / Geofence notices (below HUD) */}
                     {(userLocation || nearestDistance) && (
                         <div className="distance-display" style={{ textAlign: 'center', padding: '6px 0', color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
@@ -1958,8 +2408,53 @@ export default function PokerNearMePage() {
                         </div>
                     )}
 
-                    {/* Main Content */}
-                    <main className="pnm-content">
+                    {/* Main Content — with swipe + pull-to-refresh */}
+                    <main
+                        className="pnm-content"
+                        ref={contentRef}
+                        onTouchStart={(e) => { handleTouchStart(e); handlePullStart(e); }}
+                        onTouchMove={(e) => { handleTouchMove(e); handlePullMove(e); }}
+                        onTouchEnd={() => { handleTouchEnd(); handlePullEnd(); }}
+                    >
+                        {/* Pull-to-refresh indicator */}
+                        {(pullDistance > 0 || isRefreshing) && (
+                            <div className="pull-indicator" style={{ height: isRefreshing ? 40 : pullDistance * 0.5, opacity: isRefreshing ? 1 : Math.min(pullDistance / 80, 1) }}>
+                                <span className={isRefreshing ? 'pull-spinner' : ''}>{isRefreshing ? '↻ Refreshing...' : pullDistance > 80 ? '↑ Release to refresh' : '↓ Pull to refresh'}</span>
+                            </div>
+                        )}
+
+                        {/* City autocomplete dropdown */}
+                        {showCitySuggestions && citySuggestions.length > 0 && (
+                            <div className="city-autocomplete">
+                                {citySuggestions.map((city, i) => (
+                                    <button key={i} className="city-suggestion" onClick={() => handleCitySuggestionClick(city)}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                                            <circle cx="12" cy="10" r="3" />
+                                        </svg>
+                                        {city.name}, {city.state}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Fetch error retry banner */}
+                        {fetchError && (
+                            <div className="fetch-error-banner" onClick={() => { setFetchError(null); fetchAllData({ includeVenues: true }); }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+                                {fetchError}
+                            </div>
+                        )}
+
+                        {/* Push notification opt-in */}
+                        {pushPermission === 'default' && userLocation && (
+                            <div className="push-optin-banner">
+                                <span>🔔 Get notified when you’re near a poker room?</span>
+                                <button onClick={requestPushPermission}>Enable</button>
+                                <button onClick={() => setPushPermission('dismissed')} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}>Dismiss</button>
+                            </div>
+                        )}
+
                         {renderContent()}
                     </main>
 
@@ -2867,6 +3362,107 @@ export default function PokerNearMePage() {
                         color: #d4a853;
                     }
 
+                    /* ═══ CITY AUTOCOMPLETE DROPDOWN ═══ */
+                    .city-autocomplete {
+                        background: rgba(15,23,42,0.98);
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-radius: 10px;
+                        overflow: hidden;
+                        margin-bottom: 12px;
+                        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+                    }
+                    .city-suggestion {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        width: 100%;
+                        padding: 12px 14px;
+                        background: transparent;
+                        border: none;
+                        border-bottom: 1px solid rgba(255,255,255,0.06);
+                        color: rgba(255,255,255,0.8);
+                        font-size: 14px;
+                        text-align: left;
+                        cursor: pointer;
+                        transition: background 0.15s;
+                    }
+                    .city-suggestion:last-child { border-bottom: none; }
+                    .city-suggestion:hover {
+                        background: rgba(212,168,83,0.1);
+                        color: #d4a853;
+                    }
+
+                    /* ═══ PULL-TO-REFRESH ═══ */
+                    .pull-indicator {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        overflow: hidden;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.6);
+                        transition: height 0.15s;
+                    }
+                    .pull-spinner {
+                        animation: spin 0.8s linear infinite;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+
+                    /* ═══ FETCH ERROR BANNER ═══ */
+                    .fetch-error-banner {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 12px 16px;
+                        margin-bottom: 12px;
+                        background: rgba(239,68,68,0.12);
+                        border: 1px solid rgba(239,68,68,0.3);
+                        border-radius: 10px;
+                        color: #f87171;
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: background 0.2s;
+                    }
+                    .fetch-error-banner:hover {
+                        background: rgba(239,68,68,0.2);
+                    }
+
+                    /* ═══ PUSH NOTIFICATION OPT-IN ═══ */
+                    .push-optin-banner {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 10px 14px;
+                        margin-bottom: 12px;
+                        background: rgba(59,130,246,0.1);
+                        border: 1px solid rgba(59,130,246,0.2);
+                        border-radius: 10px;
+                        font-size: 13px;
+                        color: rgba(255,255,255,0.7);
+                        flex-wrap: wrap;
+                    }
+                    .push-optin-banner span {
+                        flex: 1;
+                        min-width: 180px;
+                    }
+                    .push-optin-banner button:first-of-type {
+                        padding: 6px 16px;
+                        background: rgba(59,130,246,0.25);
+                        border: 1px solid rgba(59,130,246,0.4);
+                        border-radius: 8px;
+                        color: #60a5fa;
+                        font-size: 12px;
+                        font-weight: 600;
+                        cursor: pointer;
+                    }
+
+                    /* ═══ FAVORITES BADGE VARIANT ═══ */
+                    .mtab-badge.fav {
+                        background: #ef4444;
+                    }
+
                     /* Mobile Filter Drawer */
                     @media (max-width: 768px) {
                         .filter-panel {
@@ -2894,31 +3490,323 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* Mobile */
+                    /* ═══ MOBILE TAB BAR ═══ */
+                    .mobile-tab-bar {
+                        display: none;
+                    }
+                    @media (max-width: 768px) {
+                        .mobile-tab-bar {
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 2px;
+                            padding: 6px 8px;
+                            margin: -8px 4px 8px;
+                            background: rgba(15,23,42,0.8);
+                            border: 1px solid rgba(255,255,255,0.08);
+                            border-radius: 12px;
+                            backdrop-filter: blur(10px);
+                            -webkit-backdrop-filter: blur(10px);
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                        }
+                    }
+                    .mtab {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                        padding: 8px 4px;
+                        border-radius: 8px;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        position: relative;
+                        min-width: 0;
+                    }
+                    .mtab.active {
+                        background: rgba(212,168,83,0.15);
+                        box-shadow: inset 0 -2px 0 #d4a853;
+                    }
+                    .mtab-icon {
+                        font-size: 16px;
+                        line-height: 1;
+                    }
+                    .mtab-label {
+                        font-size: 9px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.5);
+                        text-transform: uppercase;
+                        letter-spacing: 0.3px;
+                    }
+                    .mtab.active .mtab-label {
+                        color: #d4a853;
+                    }
+                    .mtab-badge {
+                        position: absolute;
+                        top: 2px;
+                        right: 4px;
+                        background: #ef4444;
+                        color: #fff;
+                        font-size: 8px;
+                        font-weight: 700;
+                        padding: 1px 4px;
+                        border-radius: 8px;
+                        min-width: 14px;
+                        text-align: center;
+                        animation: livePulse 2s ease-in-out infinite;
+                    }
+
+                    /* ═══ MAP RECENTER BUTTON ═══ */
+                    .map-recenter-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin: 8px 0;
+                        padding: 10px 16px;
+                        background: rgba(59,130,246,0.15);
+                        border: 1px solid rgba(59,130,246,0.3);
+                        border-radius: 10px;
+                        color: #60a5fa;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .map-recenter-btn:hover {
+                        background: rgba(59,130,246,0.25);
+                    }
+
+                    /* ═══ ROOM DISTANCE LABEL ═══ */
+                    .room-distance {
+                        color: #4ade80;
+                        font-weight: 500;
+                    }
+
+                    /* ═══ COMPREHENSIVE MOBILE OPTIMIZATION ═══ */
+
+                    /* Base: padding/margin reductions */
                     @media (max-width: 640px) {
+                        .pnm-page {
+                            padding-bottom: 24px;
+                        }
                         .pnm-hud-panel {
-                            padding: 0 4px;
+                            padding: 0 2px;
                         }
                         .hud-content-overlay {
                             padding: 16% 12% 10%;
+                        }
+                        .pnm-content {
+                            padding: 0 10px;
                         }
                         .results-bar {
                             flex-direction: column;
                             align-items: flex-start;
                             gap: 6px;
+                            padding: 8px 0;
                         }
                         .quick-actions {
                             flex-wrap: wrap;
                         }
+
+                        /* Card grid: single column on mobile */
+                        .card-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 12px;
+                        }
+                        .entity-card {
+                            padding: 14px;
+                        }
+                        .entity-card h4 {
+                            font-size: 15px;
+                        }
+
+                        /* Day selector: horizontal scroll */
+                        .day-selector {
+                            justify-content: flex-start;
+                            flex-wrap: nowrap;
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                            gap: 4px;
+                            padding-bottom: 4px;
+                        }
+                        .day-btn {
+                            flex-shrink: 0;
+                            padding: 8px 12px;
+                            font-size: 12px;
+                        }
+
+                        /* Calendar */
                         .cal-cell {
-                            min-height: 45px;
+                            min-height: 40px;
                             padding: 2px;
                         }
                         .cal-event {
                             font-size: 7px;
                         }
                         .calendar-month {
-                            padding: 10px;
+                            padding: 8px;
+                        }
+                        .calendar-month-title {
+                            font-size: 16px;
+                        }
+
+                        /* Map */
+                        .map-header-row {
+                            flex-direction: column;
+                            align-items: flex-start;
+                            gap: 4px;
+                        }
+                        .map-title {
+                            font-size: 18px;
+                        }
+                        .map-filter-chips {
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                            flex-wrap: nowrap;
+                            padding-bottom: 4px;
+                        }
+                        .filter-chip {
+                            flex-shrink: 0;
+                            padding: 6px 10px;
+                            font-size: 12px;
+                        }
+                        .room-list-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 10px;
+                        }
+                        .room-list-card {
+                            padding: 12px;
+                        }
+                        .map-recenter-btn {
+                            width: 100%;
+                            justify-content: center;
+                        }
+
+                        /* Filter chips */
+                        .filter-chips {
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                            flex-wrap: nowrap;
+                            padding-bottom: 4px;
+                        }
+                        .chip {
+                            flex-shrink: 0;
+                            padding: 6px 12px;
+                            font-size: 12px;
+                        }
+
+                        /* Live games */
+                        .live-game-row {
+                            flex-wrap: wrap;
+                            gap: 6px;
+                        }
+                        .live-badge {
+                            font-size: 10px;
+                        }
+
+                        /* View toggle */
+                        .view-toggle {
+                            width: 100%;
+                        }
+                        .view-btn {
+                            flex: 1;
+                            justify-content: center;
+                            font-size: 11px;
+                            padding: 6px 8px;
+                        }
+
+                        /* Tour cards */
+                        .upcoming-series {
+                            flex-direction: column;
+                            text-align: center;
+                            gap: 4px;
+                        }
+
+                        /* Sort controls */
+                        .sort-controls {
+                            width: 100%;
+                        }
+                        .sort-select {
+                            flex: 1;
+                        }
+
+                        /* Card actions */
+                        .card-actions {
+                            flex-wrap: wrap;
+                        }
+                        .action-btn {
+                            flex: 1;
+                            text-align: center;
+                            min-width: 80px;
+                        }
+
+                        /* Search landing */
+                        .search-landing, .empty-state, .loading-state {
+                            padding: 40px 16px;
+                        }
+
+                        /* Load more */
+                        .load-more-btn {
+                            width: 100%;
+                            padding: 14px;
+                        }
+                    }
+
+                    /* Mobile map sidebar: slide-up drawer instead of hidden */
+                    @media (max-width: 1024px) {
+                        .map-desktop-layout {
+                            grid-template-columns: 1fr !important;
+                        }
+                        .map-sidebar {
+                            display: flex !important;
+                            position: fixed;
+                            bottom: 0;
+                            left: 0;
+                            right: 0;
+                            z-index: 900;
+                            background: rgba(15,23,42,0.98);
+                            border-top: 1px solid rgba(255,255,255,0.1);
+                            border-radius: 16px 16px 0 0;
+                            max-height: 50vh;
+                            overflow-y: auto;
+                            padding: 20px 16px;
+                            box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+                            backdrop-filter: blur(12px);
+                            -webkit-backdrop-filter: blur(12px);
+                            transform: translateY(calc(100% - 50px));
+                            transition: transform 0.3s ease;
+                        }
+                        .map-sidebar::before {
+                            content: 'Filters ▲';
+                            display: block;
+                            text-align: center;
+                            font-size: 12px;
+                            font-weight: 600;
+                            color: rgba(255,255,255,0.4);
+                            margin-bottom: 12px;
+                            cursor: pointer;
+                        }
+                        .map-sidebar:hover,
+                        .map-sidebar:focus-within {
+                            transform: translateY(0);
+                        }
+                    }
+
+                    /* Extra-small screens (under 375px) */
+                    @media (max-width: 375px) {
+                        .mtab-label {
+                            font-size: 8px;
+                        }
+                        .mtab-icon {
+                            font-size: 14px;
+                        }
+                        .pnm-content {
+                            padding: 0 6px;
+                        }
+                        .hud-abs-search-input {
+                            font-size: 13px !important;
                         }
                     }
                 `}</style>
@@ -2943,14 +3831,35 @@ export default function PokerNearMePage() {
                     }
                     .venue-popup .leaflet-popup-content-wrapper {
                         border-radius: 10px;
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                        background: #0f172a;
+                        color: #fff;
+                        border: 1px solid rgba(255,255,255,0.1);
+                    }
+                    .venue-popup .leaflet-popup-content {
+                        margin: 0;
                     }
                     .venue-popup .leaflet-popup-tip {
                         box-shadow: none;
+                        background: #0f172a;
                     }
                     .leaflet-container {
                         background: #0f172a !important;
                         font-family: 'Inter', -apple-system, sans-serif;
+                    }
+                    /* Leaflet controls dark theme */
+                    .leaflet-control-zoom a {
+                        background: rgba(15,23,42,0.9) !important;
+                        color: #fff !important;
+                        border-color: rgba(255,255,255,0.15) !important;
+                    }
+                    .leaflet-control-attribution {
+                        background: rgba(15,23,42,0.8) !important;
+                        color: rgba(255,255,255,0.3) !important;
+                        font-size: 10px !important;
+                    }
+                    .leaflet-control-attribution a {
+                        color: rgba(255,255,255,0.4) !important;
                     }
 
                     /* Two-Column Map Layout */
@@ -2959,14 +3868,6 @@ export default function PokerNearMePage() {
                         grid-template-columns: 1fr 320px;
                         gap: 24px;
                         width: 100%;
-                    }
-                    @media (max-width: 1024px) {
-                        .map-desktop-layout {
-                            grid-template-columns: 1fr;
-                        }
-                        .map-sidebar {
-                            display: none;
-                        }
                     }
 
                     .map-main-section {

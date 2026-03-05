@@ -36,6 +36,7 @@ function formatPokerText(text) {
 }
 import GameCostPopup from '../gates/GameCostPopup';
 import DiamondEngine from '../../services/DiamondEngine';
+import useVIP from '../../hooks/useVIP';
 
 const GAME_DIAMOND_COST = 10;
 
@@ -134,6 +135,13 @@ export default function StrategyTrivia({ mode }) {
     const router = useRouter();
     const config = STRATEGY_MODES[mode] || STRATEGY_MODES.mtt;
 
+    // ═══════════════════════════════════════════════════════════════════
+    // HARDENED: Source VIP status from centralized useVIP hook
+    // (server-verified via AvatarContext → /api/vip/check-status)
+    // instead of independently calling DiamondEngine.isVIP()
+    // ═══════════════════════════════════════════════════════════════════
+    const { isVip, userId: vipUserId, initializing: vipInitializing } = useVIP();
+
     // Game state
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, results
     const [questions, setQuestions] = useState([]);
@@ -151,10 +159,10 @@ export default function StrategyTrivia({ mode }) {
     const MAX_LIFELINES = 3;
     const LIFELINE_COST = 5;
 
-    // User data
-    const [userId, setUserId] = useState(null);
+    // User data — userId from useVIP, fallback to getAuthUser
+    const [localUserId, setLocalUserId] = useState(null);
+    const userId = vipUserId || localUserId;
     const [userDiamonds, setUserDiamonds] = useState(0);
-    const [isVip, setIsVip] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     // Timer
@@ -172,12 +180,9 @@ export default function StrategyTrivia({ mode }) {
     useEffect(() => {
         const user = getAuthUser();
         if (user) {
-            setUserId(user.id);
+            setLocalUserId(user.id);
             loadUserDiamonds(user.id);
-            // Check VIP status
-            DiamondEngine.init(user.id).then(() => {
-                DiamondEngine.isVIP().then(vip => setIsVip(vip));
-            });
+            DiamondEngine.init(user.id);
         }
         setIsLoading(false);
         // Preload questions in background

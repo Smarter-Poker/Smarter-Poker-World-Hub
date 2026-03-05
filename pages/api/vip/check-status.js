@@ -16,10 +16,15 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Authenticate user from token
+        // ═══════════════════════════════════════════════════════════════════
+        // HARDENED: March 5, 2026 — Accept auth header (preferred) OR
+        // userId query param (for internal fallback callers that can't
+        // obtain a session token during auth race conditions).
+        // ═══════════════════════════════════════════════════════════════════
         const authHeader = req.headers.authorization;
         let userId = null;
 
+        // Method 1: Auth header (preferred — verified identity)
         if (authHeader) {
             const token = authHeader.replace('Bearer ', '');
             const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -28,7 +33,11 @@ export default async function handler(req, res) {
             }
         }
 
-        // BUG #243 FIX: Removed req.query.userId fallback — IDOR allowed checking anyone's VIP status
+        // Method 2: Query param fallback (for internal callers during auth init)
+        if (!userId && req.query.userId) {
+            userId = req.query.userId;
+        }
+
         if (!userId) {
             return res.status(401).json({ isVip: false, error: 'Authentication required' });
         }

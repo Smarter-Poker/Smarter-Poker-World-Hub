@@ -39,14 +39,25 @@ export function AvatarProvider({ children }) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
 
+            // Get session token for authenticated API call
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            const headers = {};
+            if (currentSession?.access_token) {
+                headers['Authorization'] = `Bearer ${currentSession.access_token}`;
+            }
+
             const response = await fetch(`/api/vip/check-status?userId=${userId}`, {
-                signal: controller.signal
+                signal: controller.signal,
+                headers
             });
             clearTimeout(timeoutId);
 
             if (response.ok) {
                 const data = await response.json();
-                setIsVip(data.isVip === true);
+                const vipStatus = data.isVip === true;
+                setIsVip(vipStatus);
+                // Sync to localStorage for optimistic rendering via useVIP hook
+                try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { }
             } else {
                 // 🛡️ BULLETPROOF: Fallback to localStorage instead of getUser()
                 const localUser = getAuthUser();
@@ -141,6 +152,9 @@ export function AvatarProvider({ children }) {
             // SIGNED_OUT — always respect it
             if (event === 'SIGNED_OUT') {
                 setUser(null);
+                setIsVip(false);
+                // Clear VIP cache so next user doesn't get stale VIP status
+                try { localStorage.removeItem('sp-vip-status'); } catch (_) { }
                 return;
             }
 
@@ -170,6 +184,27 @@ export function AvatarProvider({ children }) {
             clearTimeout(fallbackTimeout);
         };
     }, []);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // HARDENED: Listen for vip-status-changed bus events so gates
+    // update immediately when VIP is granted mid-session (e.g., phone
+    // verification). Also update localStorage cache for optimistic loads.
+    // ═══════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        function handleVipChange(e) {
+            console.log('[AvatarContext] 🚌 vip-status-changed received:', e.detail);
+            const vipGranted = e.detail?.vipGranted !== false;
+            setIsVip(vipGranted);
+            try { localStorage.setItem('sp-vip-status', String(vipGranted)); } catch (_) { }
+            // Also re-fetch from server to confirm (non-blocking)
+            if (user?.id) {
+                fetchVipStatus(user.id);
+            }
+        }
+
+        window.addEventListener('vip-status-changed', handleVipChange);
+        return () => window.removeEventListener('vip-status-changed', handleVipChange);
+    }, [user]);
 
     // Load user's avatar when user changes
     useEffect(() => {

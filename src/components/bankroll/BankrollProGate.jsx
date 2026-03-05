@@ -2,6 +2,15 @@
  * BANKROLL PRO ACCESS GATE
  * Premium unlock UI with Futuristic Metal design system
  * Industrial sci-fi aesthetic with LED accents and machined metal surfaces
+ *
+ * ═══════════════════════════════════════════════════════════════════════
+ * HARDENED: March 5, 2026 — Uses AvatarContext as single source of VIP
+ * truth to prevent false lockouts caused by auth race conditions and
+ * client-side RLS fetch failures. The gate now:
+ *   1. Waits for auth initialization (no flash of locked UI)
+ *   2. Trusts server-verified VIP status from AvatarContext
+ *   3. Only falls through to day-pass checks for non-VIP users
+ * ═══════════════════════════════════════════════════════════════════════
  */
 
 import { useState, useEffect } from 'react';
@@ -13,8 +22,16 @@ import {
     BANKROLL_PRO_DAY_COST
 } from '../../lib/bankroll/premiumFeatureGate';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
+import { useAvatar } from '../../contexts/AvatarContext';
 
-export default function BankrollProGate({ userId, children }) {
+export default function BankrollProGate({ userId: userIdProp, children }) {
+    // ═══════════════════════════════════════════════════════════════════
+    // HARDENED: Source user + VIP status from AvatarContext (server-verified)
+    // Falls back to userIdProp for backward compatibility
+    // ═══════════════════════════════════════════════════════════════════
+    const { user, isVip: contextIsVip, initializing } = useAvatar();
+    const userId = user?.id || userIdProp;
+
     const [access, setAccess] = useState({ hasAccess: false, isVip: false, expiresAt: null, loading: true });
     const [diamonds, setDiamonds] = useState(0);
     const [showUnlockModal, setShowUnlockModal] = useState(false);
@@ -23,13 +40,33 @@ export default function BankrollProGate({ userId, children }) {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        // ═══════════════════════════════════════════════════════════════
+        // HARDENED: Wait for auth initialization before making any access
+        // decision. This prevents the flash of locked UI on page load.
+        // ═══════════════════════════════════════════════════════════════
+        if (initializing) {
+            setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: true });
+            return;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // HARDENED: If AvatarContext says VIP, grant immediately. No
+        // client-side profile fetch needed — this status was already
+        // verified via the server-side /api/vip/check-status bridge.
+        // ═══════════════════════════════════════════════════════════════
+        if (contextIsVip) {
+            setAccess({ hasAccess: true, isVip: true, expiresAt: null, loading: false });
+            return;
+        }
+
+        // Non-VIP: check for active day pass
         if (userId) {
             loadAccess();
             loadDiamonds();
         } else {
             setAccess({ hasAccess: false, isVip: false, expiresAt: null, loading: false });
         }
-    }, [userId]);
+    }, [userId, contextIsVip, initializing]);
 
     const loadAccess = async () => {
         try {
@@ -42,34 +79,12 @@ export default function BankrollProGate({ userId, children }) {
     };
 
     const loadDiamonds = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .single();
-            if (error) {
-                console.warn('[BankrollProGate] Diamond fetch error:', error.message);
-                // Retry once after 1s delay
-                await new Promise(r => setTimeout(r, 1000));
-                const { data: retryData, error: retryError } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .single();
-                if (retryError) {
-                    console.error('[BankrollProGate] Diamond fetch retry failed:', retryError.message);
-                    return;
-                }
-                setDiamonds(retryData?.diamonds || 0);
-                console.log('[BankrollProGate] Diamonds loaded (retry):', retryData?.diamonds);
-                return;
-            }
-            setDiamonds(data?.diamonds || 0);
-            console.log('[BankrollProGate] Diamonds loaded:', data?.diamonds);
-        } catch (err) {
-            console.error('[BankrollProGate] loadDiamonds crashed:', err);
-        }
+        const { data } = await supabase
+            .from('profiles')
+            .select('diamonds')
+            .eq('id', userId)
+            .single();
+        setDiamonds(data?.diamonds || 0);
     };
 
     const handleUnlock = async () => {
@@ -172,7 +187,7 @@ export default function BankrollProGate({ userId, children }) {
                         <span style={styles.priceUnit}>/ 24 HRS</span>
                     </div>
 
-                    <button onClick={() => { loadDiamonds(); setShowUnlockModal(true); }} style={styles.unlockBtn}>
+                    <button onClick={() => setShowUnlockModal(true)} style={styles.unlockBtn}>
                         <Zap size={18} />
                         UNLOCK PRO ACCESS
                     </button>

@@ -21,11 +21,11 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // BUG #245 FIX: Require JWT auth
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    // BUG #245 FIX: Require JWT auth
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
 
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -335,6 +335,19 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
             'HJ': 'BB'
         };
 
+        // Build normalized GTO frequencies (0-100% scale) for UI frequency bars
+        const gtoFrequencies = {};
+        validActions.forEach(action => {
+            gtoFrequencies[action] = Math.round((handActions[action] || 0) * 100);
+        });
+
+        // Extract hand EVs from strategy matrix for real EV loss computation
+        const handEVs = strategyMatrix.hand_evs || scenario.handEVs || {};
+        const heroHandEV = handEVs[heroHand] || 0;
+        const maxHandEV = Object.keys(handEVs).length > 0
+            ? Math.max(...Object.values(handEVs).filter(v => typeof v === 'number'))
+            : heroHandEV;
+
         const question = {
             id: `pio_${scenario.id}_${Date.now()}`,
             type: 'PIO',
@@ -363,7 +376,16 @@ async function generateQuestionFromPIO(pioScenarios, gameId, level, game) {
             })),
             correctAnswer: optimalAction,
             correctAnswerText: actionNameMap[optimalAction] || optimalAction,
-            frequencies: handActions,
+            frequencies: handActions,  // Raw 0.0-1.0 per action (legacy compatibility)
+            // ═══ REAL PIO DATA FOR GTO WIZARD UI ═══
+            gtoFrequencies,  // Percentage frequencies (0-100%) per action ID for UI
+            rawFrequencies: frequencies,  // Full per-hand frequency matrix from PIO
+            evData: {
+                heroHandEV,
+                optimalEV: maxHandEV,
+                handEVs,
+                heroHand,
+            },
             explanation: maxFreq >= 0.95
                 ? `According to GTO, this is a pure ${actionNameMap[optimalAction] || optimalAction} (${(maxFreq * 100).toFixed(0)}% frequency).`
                 : `GTO mixes here: ${Object.entries(handActions)

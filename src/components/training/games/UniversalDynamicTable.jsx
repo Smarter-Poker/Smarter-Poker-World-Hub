@@ -1,17 +1,262 @@
 /**
- * 🎯 UNIVERSAL DYNAMIC TABLE — All Poker Games
+ * 🎯 UNIVERSAL DYNAMIC TABLE — GTO Wizard-Style Poker Trainer
  * ═══════════════════════════════════════════════════════════════════════════
- * A dynamic poker table that updates with EVERY question/scenario:
- * - Hero position (button, BB, SB, etc.) changes per question
- * - Hero cards update per question
- * - Board cards (flop, turn, river) update per question
- * - Pot size, stack depths change dynamically
- * - Villain positions and actions update per scenario
+ * A dynamic poker table matching GTO Wizard's professional trainer UI:
+ * - Poker-native action buttons (FOLD / CHECK / CALL / RAISE)
+ * - 5-tier move classification (Best/Correct/Inaccuracy/Wrong/Blunder)
+ * - GTOW Score tracking (-100% to +100%)
+ * - Frequency bars showing GTO distribution on feedback
+ * - EV loss per decision in BB
+ * - Session stats HUD (Score, EV Loss, Mistakes)
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useEffect, useCallback, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    MOVE_CLASSIFICATIONS,
+    CLASSIFICATION_CONFIG,
+    simulateGTOFrequencies,
+    classifyMove,
+} from '../../../hooks/useGTOWScore';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F6: BOARD TEXTURE CLASSIFIER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function classifyBoardTexture(boardCards) {
+    if (!boardCards || boardCards.length === 0) return null;
+
+    // Count suits
+    const suitCounts = {};
+    const ranks = [];
+    const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 't': 10, 'j': 11, 'q': 12, 'k': 13, 'a': 14 };
+
+    boardCards.forEach(card => {
+        if (!card || card.length < 2) return;
+        const suit = card[1].toLowerCase();
+        const rank = card[0].toLowerCase();
+        suitCounts[suit] = (suitCounts[suit] || 0) + 1;
+        ranks.push(rankValues[rank] || 0);
+    });
+
+    // Suit texture
+    const maxSuit = Math.max(...Object.values(suitCounts));
+    let suitTexture = 'RAINBOW';
+    if (maxSuit >= 3) suitTexture = 'MONOTONE';
+    else if (maxSuit === 2) suitTexture = 'TWO-TONE';
+
+    // Connectivity (wetness)
+    ranks.sort((a, b) => a - b);
+    let maxGap = 0;
+    let connected = 0;
+    for (let i = 1; i < ranks.length; i++) {
+        const gap = ranks[i] - ranks[i - 1];
+        maxGap = Math.max(maxGap, gap);
+        if (gap <= 2) connected++;
+    }
+
+    // Paired
+    const uniqueRanks = new Set(ranks);
+    const isPaired = uniqueRanks.size < ranks.length;
+
+    let connectTexture = 'STATIC';
+    if (connected >= 2 || (ranks.length >= 3 && maxGap <= 3)) connectTexture = 'DYNAMIC';
+    if (isPaired) connectTexture = 'PAIRED';
+
+    return { suitTexture, connectTexture };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F8: SOUND EFFECTS ENGINE (Web Audio API — no external files needed)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SoundEngine = {
+    _ctx: null,
+    getCtx() {
+        if (!this._ctx && typeof window !== 'undefined') {
+            this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return this._ctx;
+    },
+    play(type) {
+        try {
+            const ctx = this.getCtx();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            gain.gain.value = 0.08;
+
+            const now = ctx.currentTime;
+            switch (type) {
+                case 'best':
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.setValueAtTime(1108, now + 0.08);
+                    osc.frequency.setValueAtTime(1320, now + 0.16);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.start(now); osc.stop(now + 0.4);
+                    break;
+                case 'correct':
+                    osc.frequency.setValueAtTime(660, now);
+                    osc.frequency.setValueAtTime(880, now + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                    break;
+                case 'wrong':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(330, now);
+                    osc.frequency.setValueAtTime(220, now + 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                    break;
+                case 'blunder':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.linearRampToValueAtTime(110, now + 0.4);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                    break;
+                case 'streak':
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.setValueAtTime(659, now + 0.07);
+                    osc.frequency.setValueAtTime(784, now + 0.14);
+                    osc.frequency.setValueAtTime(1047, now + 0.21);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                    break;
+                default:
+                    osc.frequency.setValueAtTime(440, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15);
+            }
+        } catch (e) { /* Silent fail — audio not critical */ }
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F1: RANGE MATRIX VIEWER — 13×13 hand grid colored by action frequency
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+function RangeMatrixViewer({ rawFrequencies, correctAnswer, show }) {
+    if (!show || !rawFrequencies) return null;
+
+    // Build the 13x13 matrix
+    const matrix = useMemo(() => {
+        const grid = [];
+        const actionFreqs = rawFrequencies[correctAnswer] || {};
+
+        for (let r = 0; r < 13; r++) {
+            const row = [];
+            for (let c = 0; c < 13; c++) {
+                let hand;
+                if (r === c) {
+                    hand = RANKS[r] + RANKS[c]; // Pairs: AA, KK, etc.
+                } else if (r < c) {
+                    hand = RANKS[r] + RANKS[c] + 's'; // Suited: AKs, AQs
+                } else {
+                    hand = RANKS[c] + RANKS[r] + 'o'; // Offsuit: AKo, AQo
+                }
+
+                const freq = actionFreqs[hand] || 0;
+                row.push({ hand, freq });
+            }
+            grid.push(row);
+        }
+        return grid;
+    }, [rawFrequencies, correctAnswer]);
+
+    const getColor = (freq) => {
+        if (freq >= 0.9) return '#22c55e';
+        if (freq >= 0.7) return '#4ade80';
+        if (freq >= 0.5) return '#86efac';
+        if (freq >= 0.3) return '#fbbf24';
+        if (freq >= 0.1) return '#f97316';
+        if (freq > 0) return '#ef4444';
+        return 'rgba(255,255,255,0.05)';
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            transition={{ duration: 0.3 }}
+            style={{ padding: '8px 4px', overflowX: 'auto' }}
+        >
+            <div style={{ fontSize: 9, color: '#94a3b8', marginBottom: 4, textAlign: 'center', fontWeight: 'bold', letterSpacing: 1 }}>
+                RANGE MATRIX — {correctAnswer?.toUpperCase()} FREQUENCY
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1, maxWidth: 300, margin: '0 auto' }}>
+                {matrix.flat().map((cell, i) => (
+                    <div
+                        key={i}
+                        title={`${cell.hand}: ${(cell.freq * 100).toFixed(0)}%`}
+                        style={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            background: getColor(cell.freq),
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 6,
+                            fontWeight: 'bold',
+                            color: cell.freq > 0.3 ? '#000' : '#666',
+                            cursor: 'default',
+                        }}
+                    >
+                        {cell.hand}
+                    </div>
+                ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                {[{ label: '90%+', color: '#22c55e' }, { label: '50%+', color: '#86efac' }, { label: '10%+', color: '#f97316' }, { label: '0%', color: 'rgba(255,255,255,0.1)' }].map(l => (
+                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
+                        {l.label}
+                    </div>
+                ))}
+            </div>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F11: STREAK TOAST COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function StreakToast({ message, show }) {
+    if (!show) return null;
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ type: 'spring', damping: 15 }}
+            style={{
+                position: 'fixed',
+                top: 60,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'linear-gradient(135deg, #b45309 0%, #f59e0b 50%, #b45309 100%)',
+                color: '#fff',
+                padding: '8px 20px',
+                borderRadius: 30,
+                fontSize: 14,
+                fontWeight: 'bold',
+                zIndex: 1000,
+                boxShadow: '0 0 30px rgba(245, 158, 11, 0.5)',
+                letterSpacing: 1,
+                textAlign: 'center',
+            }}
+        >
+            {message}
+        </motion.div>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SEAT POSITIONS — 9-Max Layout (portrait orientation)
@@ -181,6 +426,28 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// DETECT ACTION TYPE — Parse option text to determine poker action type
+// ═══════════════════════════════════════════════════════════════════════════
+
+function detectActionType(text) {
+    const lower = (text || '').toLowerCase().trim();
+    if (/fold/i.test(lower)) return 'fold';
+    if (/check/i.test(lower)) return 'check';
+    if (/call/i.test(lower)) return 'call';
+    if (/raise|bet|3[- ]?bet|4[- ]?bet|all[- ]?in|shove|push|jam/i.test(lower)) return 'raise';
+    return 'neutral'; // Fallback for non-poker actions
+}
+
+// Action-type color mapping (GTO Wizard style)
+const ACTION_COLORS = {
+    fold: { bg: 'linear-gradient(180deg, #6b2121 0%, #4a1515 100%)', border: '#ef4444', text: '#ff6b6b' },
+    check: { bg: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)', border: '#22c55e', text: '#4ade80' },
+    call: { bg: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)', border: '#22c55e', text: '#4ade80' },
+    raise: { bg: 'linear-gradient(180deg, #1a3a5a 0%, #0d2540 100%)', border: '#3b82f6', text: '#60a5fa' },
+    neutral: { bg: 'linear-gradient(180deg, #3a3a4a 0%, #2a2a3a 100%)', border: '#64748b', text: '#94a3b8' },
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // LOADING SKELETON — Shown while question is being fetched
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -199,7 +466,7 @@ function LoadingSkeleton() {
                 <div style={loadingStyles.loadingText}>Loading Question...</div>
             </div>
             <div style={loadingStyles.buttonsArea}>
-                {[1, 2, 3, 4].map(i => (
+                {[1, 2, 3].map(i => (
                     <div key={i} style={loadingStyles.buttonSkeleton} />
                 ))}
             </div>
@@ -250,17 +517,51 @@ const loadingStyles = {
         animation: 'pulse 1.5s infinite',
     },
     buttonsArea: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 12,
+        display: 'flex',
+        gap: 10,
         padding: 16,
     },
     buttonSkeleton: {
+        flex: 1,
         height: 56,
         background: 'rgba(255,255,255,0.05)',
         borderRadius: 10,
     },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FREQUENCY BAR COMPONENT — Shows GTO frequency under each action button
+// ═══════════════════════════════════════════════════════════════════════════
+
+function FrequencyBar({ frequency, color, show }) {
+    if (!show) return null;
+    return (
+        <motion.div
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+            style={{
+                height: 4,
+                borderRadius: 2,
+                background: 'rgba(255,255,255,0.1)',
+                marginTop: 6,
+                overflow: 'hidden',
+                transformOrigin: 'left',
+            }}
+        >
+            <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${frequency}%` }}
+                transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
+                style={{
+                    height: '100%',
+                    background: color,
+                    borderRadius: 2,
+                }}
+            />
+        </motion.div>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -277,9 +578,75 @@ export default function UniversalDynamicTable({
     gameType = 'cash', // 'cash', 'mtt', 'sng', 'spins'
     gameTitle = '',    // Title of the training game
     streak = 0,        // Current streak count (only show if >= 2)
+    // GTOW scoring props
+    moveClassification = null,     // 'best', 'correct', 'inaccuracy', 'wrong', 'blunder'
+    evLoss = 0,                    // EV loss in BB for this decision
+    gtoFrequencies = null,         // { a: 60, b: 25, c: 10, d: 5 }
+    gtowScore = 100,               // Current session GTOW score
+    totalSessionEVLoss = 0,        // Cumulative EV loss
+    sessionMistakes = 0,           // Mistake count this session
 }) {
-    const [timeLeft, setTimeLeft] = React.useState(30);
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
+    const [streakToast, setStreakToast] = React.useState(null);
+    const prevStreakRef = useRef(streak);
+
+    // F8: Sound effects on feedback
+    useEffect(() => {
+        if (!showFeedback || !moveClassification) return;
+        const soundMap = {
+            best: 'best', correct: 'correct',
+            inaccuracy: 'wrong', wrong: 'wrong', blunder: 'blunder'
+        };
+        SoundEngine.play(soundMap[moveClassification] || 'wrong');
+    }, [showFeedback, moveClassification]);
+
+    // F11: Streak milestone toasts
+    useEffect(() => {
+        if (streak > prevStreakRef.current && streak >= 3 && streak % 3 === 0) {
+            const messages = {
+                3: '🔥 3 in a row!',
+                6: '🔥🔥 6 streak! On fire!',
+                9: '🔥🔥🔥 9 streak! UNSTOPPABLE!',
+                12: '💎 12 streak! LEGENDARY!',
+            };
+            const msg = messages[streak] || `🔥 ${streak} streak!`;
+            setStreakToast(msg);
+            SoundEngine.play('streak');
+            setTimeout(() => setStreakToast(null), 2500);
+        }
+        prevStreakRef.current = streak;
+    }, [streak]);
+
+    // F9: Keyboard shortcuts
+    useEffect(() => {
+        if (showFeedback || !question) return;
+        const options = question?.options || [];
+        const handler = (e) => {
+            const key = e.key;
+            // Number keys 1-4 map to options
+            if (key >= '1' && key <= '4') {
+                const idx = parseInt(key) - 1;
+                if (idx < options.length) {
+                    const optId = options[idx].id || String.fromCharCode(97 + idx);
+                    handleAnswer(optId);
+                }
+            }
+            // Letter shortcuts: F=fold, C=check/call, R=raise/bet
+            const lower = key.toLowerCase();
+            if (lower === 'f') {
+                const foldOpt = options.find(o => /fold/i.test(o.text));
+                if (foldOpt) handleAnswer(foldOpt.id);
+            } else if (lower === 'c') {
+                const checkCallOpt = options.find(o => /check|call/i.test(o.text));
+                if (checkCallOpt) handleAnswer(checkCallOpt.id);
+            } else if (lower === 'r') {
+                const raiseOpt = options.find(o => /raise|bet|all.in|shove/i.test(o.text));
+                if (raiseOpt) handleAnswer(raiseOpt.id);
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [showFeedback, question]);
 
     // ════════════════════════════════════════════════════════════════════════
     // LOADING STATE — Show skeleton while question is being fetched
@@ -307,6 +674,7 @@ export default function UniversalDynamicTable({
     const board = scenario.board || '';
     const villainPosition = scenario.villainPosition || 'BB';
     const villainAction = scenario.action || scenario.villainAction || '';
+    const street = scenario.street || '';
 
     // Parse hero cards - can be "AhKs" or ["Ah", "Ks"] or from scenario
     const rawHeroCards = question?.heroCards || scenario.heroHand || scenario.heroCards || 'AsKs';
@@ -349,93 +717,123 @@ export default function UniversalDynamicTable({
     // Find hero seat index based on position
     const heroSeatIndex = getHeroSeatIndex(heroPosition, playerCount);
 
-    // Calculate BUTTON position - button is seat 0 in the config, but we need to 
-    // determine which seat index currently HAS the button based on the game state
-    // If hero is BTN, then hero's seat index is the button
-    // If hero is BB, then button is 2 seats before hero (in 9-max)
-    const getButtonSeatIndex = useMemo(() => {
-        // Position to relative offset from button (seat 0)
-        // In SEAT_CONFIGS, seat 0 is always "BTN"
-        // So if hero is at BTN position, hero IS the button
-        const posToSeatIndex = {
-            'BTN': 0, 'BUTTON': 0,
-            'SB': 1,
-            'BB': 2,
-            'UTG': 3,
-            'UTG+1': 4,
-            'MP': 5,
-            'MP+1': 6,
-            'HJ': 7,
-            'CO': 8,
-        };
-
-        // The button is always at the seat that has position "BTN" in this hand
-        // Since heroPosition tells us where hero is, and heroSeatIndex tells us 
-        // which seat hero occupies, we need to find where BTN is
-
-        // For simplicity: BTN is always at seat index 0 in our layout
-        // Hero moves to their correct position based on heroSeatIndex
-        return 0; // BTN is always seat 0 in our static layout
-    }, [heroPosition, playerCount]);
+    // Button is always at seat 0
+    const getButtonSeatIndex = 0;
 
     // Generate STABLE villain stacks using seat index as seed (not random())
-    // This ensures stacks don't change on re-render
     const generateVillainStack = useMemo(() => {
         return (seatIndex) => {
-            // Use question number + seat index to create deterministic but varied stacks
             const seed = (questionNumber || 1) * 13 + seatIndex * 7;
-            // Generate a stack between 30-150 BB based on the seed
             return 30 + (seed % 120);
         };
     }, [questionNumber]);
 
-    // Timer countdown
-    React.useEffect(() => {
-        if (showFeedback) return;
-        const timer = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [showFeedback, questionNumber]);
+    // Compute simulated GTO frequencies for this question (if not passed down)
+    const computedFrequencies = useMemo(() => {
+        if (gtoFrequencies) return gtoFrequencies;
+        return simulateGTOFrequencies(options, correctAnswer, questionNumber);
+    }, [gtoFrequencies, options, correctAnswer, questionNumber]);
 
-    // Reset timer AND selectedAnswer on new question
+    // Compute move classification for feedback display
+    const computedClassification = useMemo(() => {
+        if (moveClassification) return moveClassification;
+        if (!showFeedback || !selectedAnswer) return null;
+        const result = classifyMove(selectedAnswer, correctAnswer, computedFrequencies);
+        return result.classification;
+    }, [moveClassification, showFeedback, selectedAnswer, correctAnswer, computedFrequencies]);
+
+    // Get classification config for display
+    const classConfig = computedClassification ? CLASSIFICATION_CONFIG[computedClassification] : null;
+
+    // Reset selectedAnswer on new question
     React.useEffect(() => {
-        setTimeLeft(30);
         setSelectedAnswer(null);
     }, [questionNumber]);
 
-    const handleAnswer = (answerId) => {
+    const handleAnswer = useCallback((answerId) => {
         if (showFeedback) return;
-        setSelectedAnswer(answerId); // Track which answer was selected
+        setSelectedAnswer(answerId);
         onAnswer(answerId);
-    };
+    }, [showFeedback, onAnswer]);
 
-    const getButtonStyle = (option, index) => {
-        const baseStyle = { ...styles.answerButton };
+    // F6: Board texture classification
+    const boardTexture = useMemo(() => classifyBoardTexture(boardCards), [boardCards]);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ACTION BUTTON STYLES — GTO Wizard-style poker action buttons
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const getActionButtonStyle = (option, index) => {
+        const optionId = option.id || String.fromCharCode(97 + index);
+        const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
+        const actionType = detectActionType(text);
+        const colors = ACTION_COLORS[actionType] || ACTION_COLORS.neutral;
+
+        const baseStyle = {
+            ...styles.actionButton,
+            background: colors.bg,
+            borderColor: colors.border,
+            color: colors.text,
+        };
+
         if (showFeedback) {
-            const optionId = option.id || String.fromCharCode(97 + index); // a, b, c, d
             const isCorrect = optionId === correctAnswer || optionId?.toLowerCase() === correctAnswer?.toLowerCase();
             const isSelected = optionId === selectedAnswer || optionId?.toLowerCase() === selectedAnswer?.toLowerCase();
+            const freq = computedFrequencies[optionId] || computedFrequencies[optionId?.toLowerCase()] || 0;
 
-            // Always show correct answer in green
             if (isCorrect) {
-                return { ...baseStyle, ...styles.correctButton };
+                // Best action — bright green
+                return {
+                    ...baseStyle,
+                    background: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)',
+                    borderColor: '#22c55e',
+                    color: '#22c55e',
+                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.2)',
+                };
             }
-            // Only show selected wrong answer in red (not all wrong answers)
-            if (isSelected && feedbackResult === 'incorrect') {
-                return { ...baseStyle, ...styles.incorrectButton };
+            if (isSelected && !isCorrect) {
+                // Selected wrong — use classification color
+                const clsConfig = classConfig || CLASSIFICATION_CONFIG[MOVE_CLASSIFICATIONS.WRONG];
+                return {
+                    ...baseStyle,
+                    background: clsConfig.bgColor,
+                    borderColor: clsConfig.borderColor,
+                    color: clsConfig.color,
+                    boxShadow: `0 0 20px ${clsConfig.borderColor}40`,
+                };
             }
-            // Dim unselected wrong answers
-            return { ...baseStyle, opacity: 0.5 };
+            // Unselected options — dim them
+            return {
+                ...baseStyle,
+                opacity: 0.35,
+                filter: 'grayscale(0.5)',
+            };
         }
         return baseStyle;
     };
+
+    // Determine street label
+    const streetLabel = useMemo(() => {
+        if (street) return street.toUpperCase();
+        if (boardCards.length === 0) return 'PREFLOP';
+        if (boardCards.length === 3) return 'FLOP';
+        if (boardCards.length === 4) return 'TURN';
+        if (boardCards.length === 5) return 'RIVER';
+        return '';
+    }, [street, boardCards.length]);
+
+    // Build context string (e.g., "BTN vs BB • 3-Bet Pot • Flop")
+    const contextString = useMemo(() => {
+        const parts = [];
+        if (heroPosition) parts.push(heroPosition);
+        if (villainPosition && villainPosition !== heroPosition) parts.push(`vs ${villainPosition}`);
+        if (villainAction) parts.push(villainAction);
+        if (streetLabel) parts.push(streetLabel);
+        return parts.join(' • ');
+    }, [heroPosition, villainPosition, villainAction, streetLabel]);
+
+    // GTOW Score color
+    const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
 
     // ═══════════════════════════════════════════════════════════════════════
     // RENDER
@@ -443,15 +841,48 @@ export default function UniversalDynamicTable({
 
     return (
         <div style={styles.container}>
-            {/* QUESTION BAR - Top - with Game Title and Streak */}
-            <div style={styles.questionBar}>
-                {/* Game Title Row */}
-                <div style={styles.titleRow}>
+            {/* F11: Streak Toast */}
+            <AnimatePresence>
+                <StreakToast message={streakToast} show={!!streakToast} />
+            </AnimatePresence>
+            {/* TOP BAR — Context + Score (GTO Wizard style) */}
+            <div style={styles.topBar}>
+                <div style={styles.topBarLeft}>
                     <div style={styles.gameTitle}>{gameTitle || 'GTO Training'}</div>
-                    <div style={styles.gameBrand}>Smarter.Poker</div>
+                    <div style={styles.contextString}>{contextString}</div>
                 </div>
+                <div style={styles.topBarRight}>
+                    {/* Data source badge */}
+                    {question?.source && (
+                        <div style={{
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            fontSize: 9,
+                            fontWeight: 'bold',
+                            letterSpacing: 1,
+                            background: question.source === 'PIO_DATABASE'
+                                ? 'rgba(0, 212, 255, 0.15)'
+                                : 'rgba(139, 92, 246, 0.15)',
+                            color: question.source === 'PIO_DATABASE' ? '#00d4ff' : '#a78bfa',
+                            border: `1px solid ${question.source === 'PIO_DATABASE' ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
+                        }}>
+                            {question.source === 'PIO_DATABASE' ? 'PIO' : 'AI'}
+                        </div>
+                    )}
+                    {/* GTOW Score */}
+                    <div style={{ ...styles.scoreBadge, borderColor: scoreColor }}>
+                        <div style={{ ...styles.scoreValue, color: scoreColor }}>{gtowScore}%</div>
+                        <div style={styles.scoreLabel}>SCORE</div>
+                    </div>
+                    {/* Question Counter */}
+                    <div style={styles.questionCounter}>
+                        {questionNumber}/{totalQuestions}
+                    </div>
+                </div>
+            </div>
 
-                {/* Question Text with Inline Cards */}
+            {/* QUESTION TEXT — Slim bar below top bar */}
+            <div style={styles.questionBar}>
                 <div style={styles.questionText}>
                     {(() => {
                         const parts = renderInlineCards(questionText);
@@ -472,22 +903,15 @@ export default function UniversalDynamicTable({
                         });
                     })()}
                 </div>
-
-                {/* Streak Indicator - Only show if streak >= 2 */}
+                {/* Streak Badge */}
                 {streak >= 2 && (
                     <motion.div
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         style={styles.streakBadge}
                     >
-                        <motion.span
-                            animate={{ y: [0, -3, 0] }}
-                            transition={{ repeat: Infinity, duration: 0.5 }}
-                            style={{ fontSize: 16 }}
-                        >
-                            🔥
-                        </motion.span>
-                        <span style={styles.streakText}>{streak} STREAK</span>
+                        <span style={{ fontSize: 14 }}>🔥</span>
+                        <span style={styles.streakText}>{streak}</span>
                     </motion.div>
                 )}
             </div>
@@ -505,8 +929,7 @@ export default function UniversalDynamicTable({
                 <div style={styles.seatsContainer}>
                     {seats.map((seat, index) => {
                         const isHero = index === heroSeatIndex;
-                        const isButton = index === getButtonSeatIndex; // Dynamic button position
-                        // Use stable stack calculation for villains
+                        const isButton = index === getButtonSeatIndex;
                         const stackSize = isHero ? heroStack : generateVillainStack(index);
 
                         return (
@@ -542,7 +965,7 @@ export default function UniversalDynamicTable({
                                     }}
                                 />
 
-                                {/* Dealer Button with subtle pulse */}
+                                {/* Dealer Button */}
                                 {isButton && (
                                     <motion.div
                                         initial={{ scale: 0 }}
@@ -556,7 +979,6 @@ export default function UniversalDynamicTable({
 
                                 {/* Badge + Hero Cards */}
                                 <div style={isHero ? styles.heroRow : undefined}>
-                                    {/* Position Badge */}
                                     <div style={{
                                         ...styles.badge,
                                         background: isHero
@@ -570,7 +992,7 @@ export default function UniversalDynamicTable({
                                         <div style={styles.badgeStack}>{stackSize} BB</div>
                                     </div>
 
-                                    {/* Hero Cards - Only show for hero */}
+                                    {/* Hero Cards */}
                                     {isHero && (
                                         <div style={styles.heroCardsInline}>
                                             <motion.img
@@ -604,24 +1026,84 @@ export default function UniversalDynamicTable({
                     })}
                 </div>
 
-                {/* BOARD CARDS - Center of table */}
+                {/* BOARD CARDS - Center of table (F10: Enhanced dealing animation) */}
                 {boardCards.length > 0 && (
                     <div style={styles.boardCards}>
                         {boardCards.map((card, i) => (
                             <motion.img
-                                key={`${card}-${i}`}
+                                key={`${card}-${i}-${questionNumber}`}
                                 src={getCardPath(card)}
                                 alt={card}
                                 style={styles.boardCard}
-                                initial={{ scale: 0, rotateY: 180 }}
-                                animate={{ scale: 1, rotateY: 0 }}
-                                transition={{ delay: i * 0.1, duration: 0.3 }}
+                                initial={{ scale: 0, rotateY: 180, x: -80, opacity: 0 }}
+                                animate={{ scale: 1, rotateY: 0, x: 0, opacity: 1 }}
+                                transition={{
+                                    delay: i * 0.12,
+                                    duration: 0.45,
+                                    type: 'spring',
+                                    stiffness: 200,
+                                    damping: 18,
+                                }}
                             />
                         ))}
+                        {/* F6: Board Texture Badge */}
+                        {boardTexture && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: boardCards.length * 0.12 + 0.2 }}
+                                style={{
+                                    position: 'absolute',
+                                    bottom: -18,
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    display: 'flex',
+                                    gap: 4,
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                <span style={{
+                                    fontSize: 8,
+                                    padding: '1px 5px',
+                                    borderRadius: 4,
+                                    fontWeight: 'bold',
+                                    letterSpacing: 0.5,
+                                    background: boardTexture.connectTexture === 'DYNAMIC'
+                                        ? 'rgba(249, 115, 22, 0.2)' : boardTexture.connectTexture === 'PAIRED'
+                                            ? 'rgba(168, 85, 247, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                                    color: boardTexture.connectTexture === 'DYNAMIC'
+                                        ? '#fb923c' : boardTexture.connectTexture === 'PAIRED'
+                                            ? '#c084fc' : '#94a3b8',
+                                    border: `1px solid ${boardTexture.connectTexture === 'DYNAMIC'
+                                        ? 'rgba(249,115,22,0.3)' : boardTexture.connectTexture === 'PAIRED'
+                                            ? 'rgba(168,85,247,0.3)' : 'rgba(100,116,139,0.2)'}`,
+                                }}>
+                                    {boardTexture.connectTexture}
+                                </span>
+                                <span style={{
+                                    fontSize: 8,
+                                    padding: '1px 5px',
+                                    borderRadius: 4,
+                                    fontWeight: 'bold',
+                                    letterSpacing: 0.5,
+                                    background: boardTexture.suitTexture === 'MONOTONE'
+                                        ? 'rgba(239, 68, 68, 0.2)' : boardTexture.suitTexture === 'TWO-TONE'
+                                            ? 'rgba(59, 130, 246, 0.2)' : 'rgba(100, 116, 139, 0.15)',
+                                    color: boardTexture.suitTexture === 'MONOTONE'
+                                        ? '#f87171' : boardTexture.suitTexture === 'TWO-TONE'
+                                            ? '#60a5fa' : '#94a3b8',
+                                    border: `1px solid ${boardTexture.suitTexture === 'MONOTONE'
+                                        ? 'rgba(239,68,68,0.3)' : boardTexture.suitTexture === 'TWO-TONE'
+                                            ? 'rgba(59,130,246,0.3)' : 'rgba(100,116,139,0.2)'}`,
+                                }}>
+                                    {boardTexture.suitTexture}
+                                </span>
+                            </motion.div>
+                        )}
                     </div>
                 )}
 
-                {/* POT DISPLAY with chip icon */}
+                {/* POT DISPLAY */}
                 {pot > 0 && (
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -661,173 +1143,167 @@ export default function UniversalDynamicTable({
                 </motion.div>
             </div>
 
-            {/* TIMER & COUNTER ROW */}
-            <div style={styles.timerCounterRow}>
-                {/* Timer with circular progress ring */}
-                <div style={styles.timerContainer}>
-                    <svg style={styles.timerRing} viewBox="0 0 60 60">
-                        {/* Background circle */}
-                        <circle
-                            cx="30"
-                            cy="30"
-                            r="26"
-                            stroke="rgba(100,100,100,0.3)"
-                            strokeWidth="4"
-                            fill="none"
-                        />
-                        {/* Progress circle */}
-                        <motion.circle
-                            cx="30"
-                            cy="30"
-                            r="26"
-                            stroke={timeLeft <= 10 ? '#ff3b3b' : '#00d4ff'}
-                            strokeWidth="4"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeDasharray={163.36} // 2 * PI * 26
-                            strokeDashoffset={163.36 * (1 - timeLeft / 30)}
-                            style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
-                        />
-                    </svg>
-                    <motion.div
-                        style={{
-                            ...styles.timerText,
-                            color: timeLeft <= 10 ? '#ff3b3b' : '#00d4ff',
-                        }}
-                        animate={timeLeft <= 5 ? { scale: [1, 1.1, 1] } : {}}
-                        transition={{ repeat: Infinity, duration: 0.5 }}
-                    >
-                        {timeLeft}
-                    </motion.div>
+            {/* SESSION STATS HUD — Score, EV Loss, Mistakes */}
+            <div style={styles.statsHUD}>
+                <div style={styles.statsHUDItem}>
+                    <span style={styles.statsHUDLabel}>EV Loss</span>
+                    <span style={{ ...styles.statsHUDValue, color: totalSessionEVLoss > 0 ? '#ef4444' : '#22c55e' }}>
+                        {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)}` : '0.0'} BB
+                    </span>
                 </div>
-
-                {/* Question Counter */}
-                <div style={styles.questionCounter}>
-                    Q{questionNumber}/{totalQuestions}
+                <div style={styles.statsHUDItem}>
+                    <span style={styles.statsHUDLabel}>Mistakes</span>
+                    <span style={{ ...styles.statsHUDValue, color: sessionMistakes > 0 ? '#fbbf24' : '#22c55e' }}>
+                        {sessionMistakes}
+                    </span>
+                </div>
+                <div style={styles.statsHUDItem}>
+                    <span style={styles.statsHUDLabel}>Streak</span>
+                    <span style={{ ...styles.statsHUDValue, color: streak >= 3 ? '#f97316' : '#94a3b8' }}>
+                        {streak >= 2 ? `🔥 ${streak}` : streak}
+                    </span>
                 </div>
             </div>
 
-            {/* YOUR TURN INDICATOR */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                style={styles.yourTurnIndicator}
-            >
-                <motion.span
-                    animate={{ opacity: [0.7, 1, 0.7] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                >
-                    ▶ YOUR TURN — What's the best action?
-                </motion.span>
-            </motion.div>
-
-            {/* ANSWER GRID - Dynamic layout: 2x2 for 4 options, 1x2 for 2 options */}
-            <div style={{
-                ...styles.answersGrid,
-                gridTemplateRows: options.length <= 2 ? '1fr' : '1fr 1fr', // Single row for push/fold
-            }}>
+            {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
+            <div style={styles.actionBar}>
                 {options.slice(0, 4).map((option, index) => {
-                    const optionId = option.id || String.fromCharCode(97 + index); // a, b, c, d
+                    const optionId = option.id || String.fromCharCode(97 + index);
                     const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
+                    const freq = computedFrequencies[optionId] || computedFrequencies[optionId?.toLowerCase()] || 0;
+                    const actionType = detectActionType(text);
+                    const shortcutKey = index + 1;
+
                     return (
-                        <motion.button
-                            key={optionId}
-                            onClick={() => handleAnswer(optionId)}
-                            disabled={showFeedback}
-                            style={getButtonStyle(option, index)}
-                            whileHover={!showFeedback ? { scale: 1.03, y: -2 } : {}}
-                            whileTap={!showFeedback ? { scale: 0.97 } : {}}
-                        >
-                            {text}
-                        </motion.button>
+                        <div key={optionId} style={styles.actionButtonWrapper}>
+                            <motion.button
+                                onClick={() => handleAnswer(optionId)}
+                                disabled={showFeedback}
+                                style={getActionButtonStyle(option, index)}
+                                whileHover={!showFeedback ? { scale: 1.04, y: -3 } : {}}
+                                whileTap={!showFeedback ? { scale: 0.96 } : {}}
+                            >
+                                {/* F9: Keyboard shortcut hint */}
+                                {!showFeedback && (
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: 3,
+                                        left: 6,
+                                        fontSize: 8,
+                                        color: 'rgba(255,255,255,0.25)',
+                                        fontWeight: 'bold',
+                                    }}>
+                                        {shortcutKey}
+                                    </span>
+                                )}
+                                <span style={styles.actionText}>{text}</span>
+                                {/* Show frequency label on feedback */}
+                                {showFeedback && (
+                                    <motion.span
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.3 }}
+                                        style={styles.freqLabel}
+                                    >
+                                        {freq}%
+                                    </motion.span>
+                                )}
+                            </motion.button>
+                            {/* Frequency bar under button */}
+                            <FrequencyBar
+                                frequency={freq}
+                                color={ACTION_COLORS[actionType]?.border || '#64748b'}
+                                show={showFeedback}
+                            />
+                        </div>
                     );
                 })}
             </div>
 
-            {/* EXPLANATION OVERLAY */}
-            {showFeedback && explanation && (
+            {/* FEEDBACK OVERLAY — 5-Tier Classification */}
+            {showFeedback && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    style={styles.explanationOverlay}
+                    style={styles.feedbackOverlay}
                 >
-                    {/* Confetti for correct answers */}
-                    {feedbackResult === 'correct' && (
-                        <div style={styles.confettiContainer}>
-                            {['🎉', '⭐', '✨', '🌟', '🎊', '💫'].map((emoji, i) => (
-                                <motion.span
-                                    key={i}
-                                    initial={{
-                                        opacity: 1,
-                                        y: 0,
-                                        x: (i - 2.5) * 30,
-                                        scale: 0
-                                    }}
-                                    animate={{
-                                        opacity: 0,
-                                        y: -80 - (i * 15),
-                                        x: (i - 2.5) * 50,
-                                        scale: 1,
-                                        rotate: (i - 2.5) * 45
-                                    }}
-                                    transition={{ duration: 1, delay: i * 0.05 }}
-                                    style={{
-                                        position: 'absolute',
-                                        fontSize: 28,
-                                        top: '40%',
-                                        left: '50%',
-                                    }}
-                                >
-                                    {emoji}
-                                </motion.span>
-                            ))}
-                        </div>
-                    )}
-
                     <motion.div
-                        initial={{ scale: 0.9, y: 20 }}
+                        initial={{ scale: 0.85, y: 30 }}
                         animate={{ scale: 1, y: 0 }}
+                        transition={{ type: 'spring', damping: 20 }}
                         style={{
-                            ...styles.explanationBox,
-                            borderColor: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
-                            boxShadow: feedbackResult === 'correct'
-                                ? '0 0 40px rgba(34, 197, 94, 0.5), 0 0 80px rgba(34, 197, 94, 0.2)'
-                                : '0 0 40px rgba(239, 68, 68, 0.5), 0 0 80px rgba(239, 68, 68, 0.2)',
+                            ...styles.feedbackCard,
+                            borderColor: classConfig?.borderColor || '#3b82f6',
+                            boxShadow: `0 0 30px ${classConfig?.borderColor || '#3b82f6'}40, 0 0 60px ${classConfig?.borderColor || '#3b82f6'}20`,
                         }}
                     >
-                        {/* Result Icon - Enhanced with color */}
+                        {/* Classification Badge */}
                         <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
                             transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
                             style={{
-                                fontSize: 56,
-                                marginBottom: 12,
-                                color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
-                                textShadow: feedbackResult === 'correct'
-                                    ? '0 0 30px rgba(34, 197, 94, 0.8)'
-                                    : '0 0 30px rgba(239, 68, 68, 0.8)',
+                                ...styles.classificationBadge,
+                                background: classConfig?.bgColor || 'rgba(59, 130, 246, 0.15)',
+                                borderColor: classConfig?.borderColor || '#3b82f6',
+                                color: classConfig?.color || '#3b82f6',
                             }}
                         >
-                            {feedbackResult === 'correct' ? '✓' : '✗'}
+                            <span style={styles.classificationIcon}>{classConfig?.icon || '?'}</span>
+                            <span style={styles.classificationLabel}>{classConfig?.label || 'Unknown'}</span>
                         </motion.div>
 
-                        <div style={{
-                            ...styles.explanationTitle,
-                            color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
-                        }}>
-                            {feedbackResult === 'correct' ? 'Correct!' : 'Incorrect'}
-                        </div>
+                        {/* EV Loss */}
+                        {evLoss > 0 && (
+                            <div style={styles.evLossDisplay}>
+                                <span style={styles.evLossLabel}>EV Loss:</span>
+                                <span style={styles.evLossValue}>-{evLoss.toFixed(2)} BB</span>
+                            </div>
+                        )}
 
-                        <div style={styles.explanationText}>{explanation}</div>
+                        {/* Explanation */}
+                        {explanation && (
+                            <div style={styles.feedbackExplanation}>{explanation}</div>
+                        )}
 
-                        {/* Continue Indicator */}
+                        {/* F12: Villain Range Summary */}
+                        {question?.rawFrequencies && (
+                            <div style={{
+                                fontSize: 10,
+                                color: '#94a3b8',
+                                padding: '4px 8px',
+                                background: 'rgba(255,255,255,0.03)',
+                                borderRadius: 6,
+                                marginTop: 4,
+                                textAlign: 'center',
+                            }}>
+                                <span style={{ fontWeight: 'bold', color: '#64748b' }}>GTO Strategy: </span>
+                                {options.slice(0, 4).map(o => {
+                                    const f = computedFrequencies[o.id] || 0;
+                                    if (f <= 0) return null;
+                                    return (
+                                        <span key={o.id} style={{ marginRight: 8 }}>
+                                            {o.text}: <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>{f}%</span>
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* F1: Range Matrix Viewer */}
+                        <RangeMatrixViewer
+                            rawFrequencies={question?.rawFrequencies}
+                            correctAnswer={correctAnswer}
+                            show={!!question?.rawFrequencies}
+                        />
+
+                        {/* Auto-advance indicator */}
                         <motion.div
                             animate={{ opacity: [0.5, 1, 0.5] }}
                             transition={{ repeat: Infinity, duration: 1.5 }}
                             style={styles.continueHint}
                         >
-                            Continuing in 2s...
+                            Next hand in 2s...
                         </motion.div>
                     </motion.div>
                 </motion.div>
@@ -851,74 +1327,123 @@ const styles = {
         overflow: 'hidden',
     },
 
-    questionBar: {
-        width: '100%',
-        padding: '16px 24px',
-        background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
-        borderBottom: '3px solid #00d4ff',
-        boxShadow: '0 0 20px rgba(0, 212, 255, 0.2), inset 0 2px 4px rgba(255,255,255,0.05)',
+    // ── TOP BAR (replaces old questionBar)
+    topBar: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '10px 16px',
+        background: 'linear-gradient(180deg, rgba(30,30,45,0.98) 0%, rgba(15,15,25,0.98) 100%)',
+        borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
         flexShrink: 0,
-        position: 'relative',
     },
 
-    titleRow: {
+    topBarLeft: {
         display: 'flex',
         flexDirection: 'column',
+        gap: 2,
+    },
+
+    topBarRight: {
+        display: 'flex',
         alignItems: 'center',
-        marginBottom: 12,
+        gap: 12,
     },
 
     gameTitle: {
-        fontSize: 20,  // Larger, more prominent
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#00d4ff',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontFamily: "'Inter', sans-serif",
         textTransform: 'uppercase',
-        letterSpacing: 3,
-        textShadow: '0 0 20px rgba(0, 212, 255, 0.8), 0 0 40px rgba(0, 212, 255, 0.4)',
+        letterSpacing: 1.5,
     },
 
-    gameBrand: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.65)',
-        fontFamily: "'Inter', sans-serif",
-        marginTop: 4,
+    contextString: {
+        fontSize: 11,
+        color: '#94a3b8',
         fontWeight: '500',
     },
 
-    questionText: {
-        color: '#ffffff',
-        fontSize: 22,  // Increased from 18
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
-        lineHeight: 1.4,
-        textAlign: 'center',
-        textShadow: '0 0 10px rgba(255, 255, 255, 0.5)',
+    scoreBadge: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '4px 12px',
+        borderRadius: 8,
+        border: '2px solid #22c55e',
+        background: 'rgba(0,0,0,0.3)',
     },
 
-    streakBadge: {
-        position: 'absolute',
-        top: 12,
-        right: 16,
+    scoreValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+        lineHeight: 1,
+    },
+
+    scoreLabel: {
+        fontSize: 8,
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        fontWeight: '600',
+    },
+
+    questionCounter: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+
+    // ── QUESTION BAR
+    questionBar: {
+        padding: '10px 16px',
+        background: 'rgba(0,0,0,0.3)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        flexShrink: 0,
+        position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.3), rgba(251, 146, 60, 0.15))',
-        padding: '6px 12px',
-        borderRadius: 16,
-        border: '1px solid rgba(251, 146, 60, 0.5)',
+        gap: 12,
+    },
+
+    questionText: {
+        color: '#e2e8f0',
+        fontSize: 15,
+        fontWeight: '600',
+        lineHeight: 1.4,
+        flex: 1,
     },
 
     inlineCard: {
-        width: 28,
-        height: 38,
+        width: 24,
+        height: 34,
         borderRadius: 3,
         verticalAlign: 'middle',
-        marginLeft: 4,
+        marginLeft: 3,
         marginRight: 2,
         boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
     },
 
+    streakBadge: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.25), rgba(251, 146, 60, 0.1))',
+        padding: '4px 10px',
+        borderRadius: 12,
+        border: '1px solid rgba(251, 146, 60, 0.4)',
+        flexShrink: 0,
+    },
+
+    streakText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#fbbf24',
+    },
+
+    // ── TABLE AREA
     tableArea: {
         flex: 1,
         position: 'relative',
@@ -926,7 +1451,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 0,
-        padding: '60px 20px 20px 20px',
+        padding: '20px 20px 10px 20px',
     },
 
     tableImage: {
@@ -960,80 +1485,79 @@ const styles = {
     },
 
     avatar: {
-        width: 50,  // Premium size
-        height: 50,
+        width: 46,
+        height: 46,
         borderRadius: '50%',
         objectFit: 'cover',
         background: 'linear-gradient(135deg, #2d2d3a, #1a1a24)',
         border: '3px solid #666',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.5), 0 0 20px rgba(0, 212, 255, 0.15)',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
     },
 
     dealerButton: {
         position: 'absolute',
-        top: -20,         // Above the avatar, toward table center
+        top: -18,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: 24,
-        height: 24,
+        width: 22,
+        height: 22,
         borderRadius: '50%',
         background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
         color: '#000',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         border: '2px solid #fff',
-        boxShadow: '0 2px 10px rgba(251, 191, 36, 0.5), 0 2px 8px rgba(0,0,0,0.4)',
+        boxShadow: '0 2px 10px rgba(251, 191, 36, 0.5)',
         zIndex: 10,
     },
 
     badge: {
-        padding: '6px 12px',  // More readable
-        borderRadius: 6,
-        fontSize: 11,         // Larger for readability
+        padding: '4px 10px',
+        borderRadius: 5,
+        fontSize: 10,
         fontWeight: 'bold',
         color: '#00d4ff',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontFamily: "'Inter', sans-serif",
         textAlign: 'center',
         whiteSpace: 'nowrap',
         background: 'linear-gradient(180deg, rgba(40, 40, 60, 0.95), rgba(20, 20, 35, 0.95))',
-        border: '2px solid rgba(0, 212, 255, 0.4)',
-        boxShadow: '0 0 15px rgba(0, 212, 255, 0.3), 0 4px 8px rgba(0,0,0,0.5)',
-        textShadow: '0 0 8px rgba(0, 212, 255, 0.7)',
+        border: '1.5px solid rgba(0, 212, 255, 0.4)',
+        boxShadow: '0 0 10px rgba(0, 212, 255, 0.2)',
     },
 
     badgeLabel: {
-        fontSize: 10,
+        fontSize: 9,
         opacity: 0.9,
     },
 
     badgeStack: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
     },
 
     heroRow: {
         display: 'flex',
-        flexDirection: 'column',  // Changed to column - cards BELOW badge
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 4,
+        gap: 3,
     },
 
     heroCardsInline: {
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 8,
-        gap: 4,
+        marginTop: 6,
+        gap: 3,
     },
 
     card: {
-        width: 48,      // Larger for visibility
-        height: 68,
+        width: 44,
+        height: 64,
         borderRadius: 5,
-        boxShadow: '0 6px 20px rgba(0,0,0,0.7), 0 0 25px rgba(255, 215, 0, 0.2)',
+        boxShadow: '0 6px 20px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.15)',
         border: '2px solid rgba(255,255,255,0.3)',
     },
 
@@ -1043,16 +1567,16 @@ const styles = {
         left: '50%',
         transform: 'translateX(-50%)',
         display: 'flex',
-        gap: 6,
+        gap: 5,
         zIndex: 3,
     },
 
     boardCard: {
-        width: 56,      // Larger board cards
-        height: 80,
-        borderRadius: 6,
-        boxShadow: '0 6px 20px rgba(0,0,0,0.6), 0 0 15px rgba(255,255,255,0.1)',
-        border: '1px solid rgba(255,255,255,0.15)',
+        width: 52,
+        height: 74,
+        borderRadius: 5,
+        boxShadow: '0 6px 20px rgba(0,0,0,0.6)',
+        border: '1px solid rgba(255,255,255,0.12)',
     },
 
     pot: {
@@ -1061,26 +1585,24 @@ const styles = {
         left: '50%',
         transform: 'translateX(-50%)',
         color: '#fbbf24',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
         fontFamily: "'Orbitron', 'Courier New', monospace",
         textShadow: '0 0 10px rgba(251, 191, 36, 0.6)',
         zIndex: 3,
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
+        gap: 5,
         background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.9), rgba(20, 20, 30, 0.9))',
-        padding: '8px 16px',
-        borderRadius: 12,
+        padding: '6px 14px',
+        borderRadius: 10,
         border: '1px solid rgba(251, 191, 36, 0.4)',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.3), 0 0 15px rgba(251, 191, 36, 0.2)',
     },
 
     chipIcon: {
-        fontSize: 18,
+        fontSize: 16,
     },
 
-    // Speech bubble for villain action
     villainActionBubble: {
         position: 'absolute',
         top: '15%',
@@ -1088,26 +1610,26 @@ const styles = {
         transform: 'translateX(-50%)',
         background: 'linear-gradient(135deg, #ef4444, #dc2626)',
         color: '#fff',
-        padding: '10px 18px',
-        borderRadius: 16,
-        fontSize: 14,
+        padding: '8px 16px',
+        borderRadius: 14,
+        fontSize: 13,
         fontWeight: 'bold',
         zIndex: 10,
         boxShadow: '0 4px 20px rgba(239, 68, 68, 0.5)',
         textAlign: 'center',
-        minWidth: 120,
+        minWidth: 100,
     },
 
     villainActionHeader: {
-        fontSize: 11,
+        fontSize: 10,
         opacity: 0.85,
-        marginBottom: 4,
+        marginBottom: 3,
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
 
     villainActionText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: 'bold',
         textTransform: 'uppercase',
     },
@@ -1130,207 +1652,171 @@ const styles = {
         left: '50%',
         transform: 'translate(-50%, -50%)',
         color: '#64748b',
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
         letterSpacing: 2,
         textTransform: 'uppercase',
         zIndex: 2,
     },
 
-    timerCounterRow: {
+    // ── STATS HUD
+    statsHUD: {
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'space-around',
         alignItems: 'center',
-        padding: '12px 20px',
+        padding: '6px 16px',
+        background: 'rgba(0,0,0,0.4)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
         flexShrink: 0,
     },
 
-    timer: {
-        width: 70,
-        height: 50,
-        background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 50%, #1a1a24 100%)',
-        color: '#ff3b3b',
-        fontSize: 24,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+    statsHUDItem: {
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 8,
-        border: '2px solid #666',
-        boxShadow: '0 0 15px rgba(255, 59, 59, 0.5), inset 0 2px 4px rgba(255,255,255,0.1)',
-        textShadow: '0 0 10px rgba(255, 59, 59, 0.8)',
+        gap: 1,
     },
 
-    timerContainer: {
-        position: 'relative',
-        width: 60,
-        height: 60,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+    statsHUDLabel: {
+        fontSize: 9,
+        color: '#64748b',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        fontWeight: '600',
     },
 
-    timerRing: {
-        position: 'absolute',
-        width: 60,
-        height: 60,
-    },
-
-    timerText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
-        textShadow: '0 0 10px currentColor',
-    },
-
-    streakIndicator: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.2), rgba(251, 146, 60, 0.1))',
-        padding: '8px 14px',
-        borderRadius: 20,
-        border: '1px solid rgba(251, 146, 60, 0.4)',
-    },
-
-    streakText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: '#fbbf24',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
-        letterSpacing: 1,
-    },
-
-    questionCounter: {
-        color: '#00d4ff',
-        fontSize: 12,
-        fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
-        background: 'linear-gradient(180deg, #3a3a4a 0%, #1a1a24 100%)',
-        padding: '8px 14px',
-        borderRadius: 8,
-        border: '1px solid rgba(0, 212, 255, 0.4)',
-        boxShadow: '0 0 10px rgba(0, 212, 255, 0.2)',
-    },
-
-    yourTurnIndicator: {
-        textAlign: 'center',
-        padding: '12px 20px',
-        color: '#00d4ff',
+    statsHUDValue: {
         fontSize: 14,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-        textShadow: '0 0 10px rgba(0, 212, 255, 0.6)',
+        fontFamily: "'Inter', sans-serif",
+    },
+
+    // ── ACTION BAR (GTO Wizard-style poker buttons)
+    actionBar: {
+        display: 'flex',
+        gap: 8,
+        padding: '10px 12px 16px 12px',
         flexShrink: 0,
     },
 
-    answersGrid: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridTemplateRows: '1fr 1fr',
-        gap: 12,
-        padding: '0 0 20px 0',
-        width: '100%',
-        flexShrink: 0,
+    actionButtonWrapper: {
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
     },
 
-    answerButton: {
-        padding: '18px 20px',
-        fontSize: 15,
+    actionButton: {
+        padding: '14px 8px',
+        fontSize: 13,
         fontWeight: 'bold',
-        fontFamily: "'Orbitron', 'Courier New', monospace",
+        fontFamily: "'Inter', sans-serif",
         textTransform: 'uppercase',
-        letterSpacing: '1px',
-        background: 'linear-gradient(180deg, #5a5a70 0%, #3d3d52 30%, #2a2a3d 60%, #1a1a28 100%)',
-        border: '2px solid rgba(0, 212, 255, 0.5)',
-        borderRadius: 12,
-        color: '#00d4ff',
+        letterSpacing: '0.5px',
+        background: 'linear-gradient(180deg, #3a3a4a 0%, #2a2a3a 100%)',
+        border: '2px solid #64748b',
+        borderRadius: 10,
+        color: '#e2e8f0',
         cursor: 'pointer',
-        transition: 'all 0.2s ease-out',
-        boxShadow: '0 0 20px rgba(0, 212, 255, 0.25), 0 4px 15px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.1)',
-        textShadow: '0 0 10px rgba(0, 212, 255, 0.8)',
-        position: 'relative',
-        overflow: 'hidden',
+        transition: 'all 0.15s ease-out',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+        width: '100%',
     },
 
-    correctButton: {
-        background: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)',
-        border: '2px solid #22c55e',
-        color: '#22c55e',
-        boxShadow: '0 0 20px rgba(34, 197, 94, 0.5)',
-        textShadow: '0 0 10px rgba(34, 197, 94, 0.8)',
+    actionText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        lineHeight: 1.2,
+        textAlign: 'center',
     },
 
-    incorrectButton: {
-        background: 'linear-gradient(180deg, #4a1a1a 0%, #301010 100%)',
-        border: '2px solid #ef4444',
-        color: '#ef4444',
-        boxShadow: '0 0 20px rgba(239, 68, 68, 0.5)',
-        textShadow: '0 0 10px rgba(239, 68, 68, 0.8)',
+    freqLabel: {
+        fontSize: 11,
+        opacity: 0.8,
+        fontWeight: '600',
     },
 
-    confettiContainer: {
+    // ── FEEDBACK OVERLAY (5-tier classification)
+    feedbackOverlay: {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        pointerEvents: 'none',
-        overflow: 'hidden',
-        zIndex: 101,
-    },
-
-    explanationOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.88)',
+        background: 'rgba(0, 0, 0, 0.75)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 100,
     },
 
-    explanationBox: {
+    feedbackCard: {
         background: 'linear-gradient(135deg, #1a2744, #0f1a2e)',
-        padding: '32px',
+        padding: '28px 32px',
         borderRadius: 16,
-        maxWidth: 500,
+        maxWidth: 420,
         margin: '0 20px',
         border: '2px solid #3b82f6',
+        textAlign: 'center',
     },
 
-    explanationTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
+    classificationBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '10px 24px',
+        borderRadius: 24,
+        border: '2px solid',
         marginBottom: 16,
-        textAlign: 'center',
-    },
-
-    explanationText: {
-        fontSize: 15,
-        lineHeight: 1.6,
-        color: '#e2e8f0',
-        textAlign: 'center',
-    },
-
-    xpReward: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#22c55e',
+    },
+
+    classificationIcon: {
+        fontSize: 22,
+        fontWeight: 'bold',
+    },
+
+    classificationLabel: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+
+    evLossDisplay: {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 8,
+        marginBottom: 14,
+        fontSize: 15,
+    },
+
+    evLossLabel: {
+        color: '#94a3b8',
+    },
+
+    evLossValue: {
+        color: '#ef4444',
+        fontWeight: 'bold',
+        fontFamily: "'Orbitron', 'Courier New', monospace",
+    },
+
+    feedbackExplanation: {
+        fontSize: 14,
+        lineHeight: 1.6,
+        color: '#cbd5e1',
         marginBottom: 12,
-        textShadow: '0 0 10px rgba(34, 197, 94, 0.6)',
     },
 
     continueHint: {
-        marginTop: 20,
-        fontSize: 13,
-        color: '#64748b',
-        textAlign: 'center',
+        marginTop: 12,
+        fontSize: 12,
+        color: '#475569',
     },
 };
