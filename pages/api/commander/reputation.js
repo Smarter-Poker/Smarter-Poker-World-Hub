@@ -80,8 +80,8 @@ async function getReputation(req, res) {
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, full_name')
-            .limit(500)
-        .in('id', playerIds.slice(0, parseInt(limit)));
+        .in('id', playerIds.slice(0, parseInt(limit)))
+        .limit(500);
 
       const nameMap = {};
       (profiles || []).forEach(p => { nameMap[p.id] = p.display_name || p.full_name || 'Unknown'; });

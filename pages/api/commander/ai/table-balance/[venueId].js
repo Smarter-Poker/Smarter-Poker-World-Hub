@@ -67,7 +67,6 @@ export default async function handler(req, res) {
       .in('game_id', gameIds.length > 0 ? gameIds : ['none'])
       .eq('status', 'occupied')
           .limit(100);
-      .limit(200)
 
     if (seatsError) {
       console.error('Seats fetch error:', seatsError);

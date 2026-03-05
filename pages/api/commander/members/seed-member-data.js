@@ -98,7 +98,6 @@ export default async function handler(req, res) {
             .select('id, first_name, last_name, email, phone, address, date_of_birth, id_type, id_number, id_state, id_expiry, time_balance_minutes, comp_balance')
             .eq('venue_id', venue_id)
                 .limit(100);
-            .limit(500)
 
         if (fetchErr) throw fetchErr;
         if (!members || members.length === 0) {

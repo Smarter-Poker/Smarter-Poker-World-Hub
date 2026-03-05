@@ -69,7 +69,6 @@ export default async function handler(req, res) {
         // Calculate overall stats
         const totalGamesPlayed = data.length;
         const totalGamesMastered = data.filter(p => p.mastery_percentage === 100).length
-            .limit(100);
         const totalQuestionsAnswered = data.reduce((sum, p) => sum + (p.total_questions_answered || 0), 0);
         const totalCorrect = data.reduce((sum, p) => sum + (p.total_correct || 0), 0);
         const overallAccuracy = totalQuestionsAnswered > 0

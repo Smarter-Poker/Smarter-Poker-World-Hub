@@ -83,7 +83,6 @@ export default async function handler(req, res) {
             .eq('venue_id', venue_id)
             .eq('is_active', true)
                 .limit(100);
-            .limit(100)
 
         if (staffErr) throw staffErr;
 

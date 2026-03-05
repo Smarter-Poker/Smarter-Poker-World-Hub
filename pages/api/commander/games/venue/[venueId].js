@@ -63,7 +63,6 @@ export default async function handler(req, res) {
         .in('status', ['waiting', 'running', 'breaking'])
         .order('created_at', { ascending: false })
             .limit(100);
-        .limit(100)
       games = result.data || [];
     }
 
@@ -73,7 +72,6 @@ export default async function handler(req, res) {
       .select('*')
       .eq('venue_id', venueId)
       .order('table_number', { ascending: true });
-      .limit(100)
 
     if (tablesError) {
       console.error('Commander venue tables query error:', tablesError);

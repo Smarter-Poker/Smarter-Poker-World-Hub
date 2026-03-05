@@ -86,7 +86,6 @@ async function awardComp(req, res, staffAuth) {
             .eq('venue_id', staffRecord.venue_id)
             .ilike('first_name', sfFirst)
                 .limit(100);
-            .limit(500);
           if (sfLast) matchQuery = matchQuery.ilike('last_name', sfLast);
           const { data: existingMember } = await matchQuery.maybeSingle();
           if (existingMember) {
@@ -306,7 +305,6 @@ async function getBalances(req, res) {
         .from('commander_members')
         .select('id, first_name, last_name')
         .in('id', memberIds.length > 0 ? memberIds : ['none']);
-        .limit(500)
 
       const memberMap = {};
       (members || []).forEach(m => { memberMap[m.id] = `${m.first_name} ${m.last_name}`; });
@@ -376,7 +374,6 @@ async function getBalances(req, res) {
         .select('total_time_minutes')
         .eq('player_id', userId)
             .limit(100);
-        .limit(500)
 
       const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 

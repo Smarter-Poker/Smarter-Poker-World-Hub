@@ -424,7 +424,6 @@ export default async function handler(req, res) {
           .select('table_number')
           .eq('venue_id', venueId)
               .limit(100);
-          .limit(100);
         const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
 
         // Create missing tables (default 9-max, available status)

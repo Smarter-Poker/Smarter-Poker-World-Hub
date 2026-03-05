@@ -77,7 +77,6 @@ export default async function handler(req, res) {
         .eq('stakes', game.stakes)
         .eq('status', 'waiting')
             .limit(100);
-        .limit(200)
 
       return {
         ...game,

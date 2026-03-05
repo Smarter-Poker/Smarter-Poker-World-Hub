@@ -110,7 +110,6 @@ async function handleGet(req, res) {
         .eq('venue_id', venue_id)
         .order('table_number', { ascending: true })
             .limit(100);
-        .limit(100)
       data = result.data;
       error = result.error;
     }

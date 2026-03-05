@@ -64,7 +64,6 @@ export default async function handler(req, res) {
       .select('id', { count: 'exact', head: true })
       .eq('player_id', user.id)
       .is('read_at', null);
-      .limit(100)
 
     return res.status(200).json({
       success: true,

@@ -53,7 +53,6 @@ async function handleGet(req, res) {
                 .select('id, display_name, role, qr_code')
                 .in('id', staffIds)
                     .limit(100);
-                .limit(100);
             if (staffList) {
                 staffMap = Object.fromEntries(staffList.map(s => [s.id, s]));
             }

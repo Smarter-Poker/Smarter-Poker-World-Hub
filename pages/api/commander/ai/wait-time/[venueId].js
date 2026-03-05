@@ -41,7 +41,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venueId)
       .eq('status', 'waiting')
           .limit(100);
-      .limit(200)
 
     if (waitlistError) {
       console.error('Waitlist fetch error:', waitlistError);
@@ -53,7 +52,6 @@ export default async function handler(req, res) {
       .select('id, game_type, stakes, current_players, max_players, started_at')
       .eq('venue_id', venueId)
       .eq('status', 'running');
-      .limit(100)
 
     if (gamesError) {
       console.error('Games fetch error:', gamesError);

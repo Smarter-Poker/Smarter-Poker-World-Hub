@@ -53,7 +53,6 @@ async function handleGetPayouts(req, res, tournamentId) {
     const totalEntries = (entries || []).length;
     const totalRebuys = (entries || []).reduce((sum, e) => sum + (e.rebuy_count || 0), 0);
     const totalAddons = (entries || []).filter(e => e.addon_taken).length
-        .limit(100);
     const buyinAmount = tournament.buyin_amount || 0;
     const buyinFee = tournament.buyin_fee || 0;
     const rebuyAmount = tournament.rebuy_amount || buyinAmount;

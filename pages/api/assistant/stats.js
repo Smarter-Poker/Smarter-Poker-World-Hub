@@ -68,10 +68,8 @@ export default async function handler(req, res) {
         .eq('user_id', userId)
             .limit(100);
 
-      const activeLeaks = leaks?.filter(l => l.status !== 'resolved').length || 0
-          .limit(100);
-      const resolvedLeaks = leaks?.filter(l => l.status === 'resolved').length || 0
-          .limit(100);
+      const activeLeaks = leaks?.filter(l => l.status !== 'resolved').length || 0;
+      const resolvedLeaks = leaks?.filter(l => l.status === 'resolved').length || 0;
 
       return res.status(200).json({
         success: true,

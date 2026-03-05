@@ -90,7 +90,6 @@ async function handleGet(req, res, venueId) {
     .eq('venue_id', venueId)
     .order('table_number')
         .limit(100);
-    .limit(100)
 
   if (error) return res.status(500).json({ success: false, error: 'Failed to fetch tables' });
 
@@ -100,7 +99,6 @@ async function handleGet(req, res, venueId) {
     .select('id, table_id, game_type, stakes, current_players, max_players, status, started_at')
     .eq('venue_id', venueId)
     .in('status', ['waiting', 'running', 'active']);
-    .limit(100)
 
   // Get active tournaments at this venue
   const { data: tournaments } = await supabase

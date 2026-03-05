@@ -69,7 +69,6 @@ export default async function handler(req, res) {
         .select('total_buyin')
         .eq('player_id', playerId)
         .gte('check_in_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-        .limit(500)
 
       if (sessions) {
         const dailyTotal = sessions.reduce((sum, s) => sum + (s.total_buyin || 0), 0);

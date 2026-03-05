@@ -151,7 +151,6 @@ export default async function handler(req, res) {
         .from('agents')
         .select('id')
         .eq('club_id', clubId);
-        .limit(200)
 
       for (const agent of (agents || [])) {
         await supabaseAdmin
@@ -189,7 +188,6 @@ export default async function handler(req, res) {
         .select('id, user_id, commission_rate, weekly_rake_generated, is_prepaid, parent_agent_id')
         .eq('club_id', clubId)
         .eq('status', 'active');
-        .limit(200)
 
       // ═══════════════════════════════════════════════════════════
       // PROMO CHIPS ARE EXCLUDED FROM SETTLEMENT

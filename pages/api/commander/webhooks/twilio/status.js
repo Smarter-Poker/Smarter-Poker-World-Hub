@@ -52,7 +52,6 @@ export default async function handler(req, res) {
       .eq('channel', 'sms')
       .contains('metadata', { message_sid: MessageSid })
           .limit(100);
-      .limit(100)
 
     if (findError) {
       console.error('Find notification error:', findError);

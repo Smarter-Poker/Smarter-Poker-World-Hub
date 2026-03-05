@@ -68,7 +68,6 @@ export default async function handler(req, res) {
       .eq('venue_id', tournament.venue_id)
       .in('table_number', tableNumbers)
           .limit(100);
-      .limit(100)
 
     const maxSeats = tables?.[0]?.max_seats || 9;
 

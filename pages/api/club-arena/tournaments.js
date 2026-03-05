@@ -553,7 +553,6 @@ export default async function handler(req, res) {
           .select('*')
           .eq('tournament_id', tournamentId)
           .eq('status', 'registered');
-          .limit(500)
 
         for (const reg of (registrations || [])) {
           // Refund by releasing the chip lock (registration used lock_chips_for_table)

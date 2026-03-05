@@ -39,7 +39,6 @@ async function getPreferences(req, res) {
           .limit(100);
 
     if (venue_id) query = query.eq('venue_id', venue_id)
-        .limit(100);
 
     const { data: prefs, error } = await query.maybeSingle();
     if (error) throw error;

@@ -71,7 +71,6 @@ export default async function handler(req, res) {
             .eq('venue_id', venue_id)
             .eq('status', 'active')
                 .limit(100);
-            .limit(100)
 
         if (game_id) {
             gameQuery = gameQuery.eq('id', game_id);

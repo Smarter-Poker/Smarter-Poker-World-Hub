@@ -224,7 +224,6 @@ async function handlePost(req, res) {
         .select('id', { count: 'exact', head: true })
         .eq('venue_id', venue_id)
             .limit(100);
-        .limit(500);
       const memberNumber = `${prefix}-${String((count || 0) + 1).padStart(5, '0')}`;
 
       const nameParts = (display_name || '').trim().split(' ');

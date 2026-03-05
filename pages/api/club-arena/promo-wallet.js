@@ -73,7 +73,6 @@ export default async function handler(req, res) {
           .from('agents')
           .select('user_id, promo_balance, commission_rate, status')
           .eq('club_id', clubId);
-          .limit(200)
 
         // Get display names for agents
         const agentIds = (agents || []).map(a => a.user_id);

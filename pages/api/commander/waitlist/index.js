@@ -40,7 +40,6 @@ export default async function handler(req, res) {
         .in('status', ['waiting', 'called'])
         .order('position', { ascending: true })
             .limit(100);
-        .limit(200)
 
       if (venue_id) {
         query.eq('venue_id', venue_id);
@@ -181,7 +180,6 @@ export default async function handler(req, res) {
           .select('id', { count: 'exact' })
           .eq('player_id', player_id)
           .gte('check_in_at', today);
-          .limit(500)
 
         // If player has more than 3 sessions today and has limits set, warn them
         if (todaySessions >= 3 && limits.daily_limit) {

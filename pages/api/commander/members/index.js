@@ -42,7 +42,6 @@ async function handleList(req, res) {
         .eq('venue_id', venue_id)
         .order('created_at', { ascending: false })
             .limit(100);
-        .limit(500)
 
     if (status) {
         query = query.eq('membership_status', status);
@@ -119,7 +118,6 @@ async function handleCreate(req, res) {
             .ilike('first_name', first_name.trim())
             .ilike('last_name', last_name.trim())
                 .limit(100);
-            .limit(500)
 
         const { data: nameMatches } = await existingQuery;
 
@@ -140,7 +138,6 @@ async function handleCreate(req, res) {
                 .eq('venue_id', venue_id)
                 .ilike('email', email.trim())
                     .limit(100);
-                .limit(500)
 
             if (emailMatches && emailMatches.length > 0) {
                 return res.status(200).json({
@@ -169,7 +166,6 @@ async function handleCreate(req, res) {
             .from('commander_members')
             .select('id', { count: 'exact', head: true })
             .eq('venue_id', venue_id);
-            .limit(500)
 
         const memberNumber = `${prefix}-${String((count || 0) + 1).padStart(5, '0')}`;
 

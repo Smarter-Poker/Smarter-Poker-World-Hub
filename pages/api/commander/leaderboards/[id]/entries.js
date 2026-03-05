@@ -67,7 +67,6 @@ async function listEntries(req, res, leaderboardId) {
         .select('id, first_name, last_name, photo_url, membership_tier')
         .in('id', playerIds)
             .limit(100);
-        .limit(500);
       (members || []).forEach(m => { memberMap[m.id] = m; });
     }
 
@@ -179,7 +178,6 @@ async function calculateAllEntries(req, res, leaderboard) {
       .select('*')
       .eq('venue_id', leaderboard.venue_id)
           .limit(100);
-      .limit(500)
 
     if (!playerStats || playerStats.length === 0) {
       return res.status(200).json({
@@ -197,7 +195,6 @@ async function calculateAllEntries(req, res, leaderboard) {
       .gte('check_in_time', `${leaderboard.start_date}T00:00:00`)
       .lte('check_in_time', `${leaderboard.end_date}T23:59:59`)
           .limit(100);
-      .limit(500)
 
     // Aggregate by player
     const playerData = {};

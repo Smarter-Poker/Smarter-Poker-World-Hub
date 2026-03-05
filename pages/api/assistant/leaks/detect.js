@@ -424,44 +424,37 @@ export default async function handler(req, res) {
 
     // Save detected leaks and link hand examples
     if (detectedLeaks.length > 0) {
-      for (const leak of detectedLeaks) {
-        const existingLeak = existingLeakMap[leak.leak_type];
-        let savedLeakId;
+      // Batch upsert all detected leaks — eliminates N+1 (one round-trip)
+      const { data: upsertedLeaks } = await supabase
+        .from('user_leaks')
+        .upsert(
+          detectedLeaks.map(leak => ({ ...leak, user_id: userId })),
+          { onConflict: 'user_id,leak_type', ignoreDuplicates: false }
+        )
+        .select('id, leak_type')
+        .limit(100);
 
-        if (existingLeak) {
-          await supabase
-            .from('user_leaks')
-            .update(leak)
-            .eq('id', existingLeak.id);
-          savedLeakId = existingLeak.id;
-        } else {
-          const { data: newLeak } = await supabase
-            .from('user_leaks')
-            .insert(leak)
-            .select('id')
-            .single();
-          savedLeakId = newLeak?.id;
-        }
-
-        // Link hand examples to the leak
-        if (savedLeakId) {
-          await linkHandExamplesToLeak(supabase, userId, savedLeakId, leak.leak_type);
+      // Link hand examples using returned IDs
+      if (upsertedLeaks) {
+        for (const { id: savedLeakId, leak_type } of upsertedLeaks) {
+          await linkHandExamplesToLeak(supabase, userId, savedLeakId, leak_type);
         }
       }
     }
 
-    // Check for resolved leaks
-    for (const [leakType, existingLeak] of Object.entries(existingLeakMap)) {
-      if (!detectedLeaks.find(l => l.leak_type === leakType) && existingLeak.status !== 'resolved') {
-        await supabase
-          .from('user_leaks')
-          .update({
-            status: 'resolved',
-            resolved_at: now,
-            updated_at: now,
-          })
-          .eq('id', existingLeak.id);
-      }
+    // Batch-update resolved leaks — eliminates N+1
+    const resolvedIds = Object.entries(existingLeakMap)
+      .filter(([leakType, existingLeak]) =>
+        !detectedLeaks.find(l => l.leak_type === leakType) &&
+        existingLeak.status !== 'resolved'
+      )
+      .map(([, existingLeak]) => existingLeak.id);
+
+    if (resolvedIds.length > 0) {
+      await supabase
+        .from('user_leaks')
+        .update({ status: 'resolved', resolved_at: now, updated_at: now })
+        .in('id', resolvedIds);
     }
 
     // 🚀 NEW BUG #11 FIX: Update Global PA Stats
@@ -472,10 +465,8 @@ export default async function handler(req, res) {
       .eq('user_id', userId)
           .limit(100);
 
-    const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0
-        .limit(100);
-    const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0
-        .limit(100);
+    const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
+    const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
 
     // Fetch existing stats to increment hands
     const { data: existingStats } = await supabase

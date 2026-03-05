@@ -56,7 +56,6 @@ export default async function handler(req, res) {
             .from('commander_tables')
             .select('table_number')
             .eq('venue_id', venue_id);
-            .limit(100)
 
         const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
 

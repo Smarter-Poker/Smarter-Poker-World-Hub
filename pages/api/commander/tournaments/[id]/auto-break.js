@@ -58,7 +58,6 @@ async function getTableData(tournamentId, venueId) {
     .eq('tournament_id', tournamentId)
     .eq('mode', 'tournament')
         .limit(100);
-    .limit(100)
 
   if (!tables || tables.length < 2) return { tables: tables || [], entries: [], tableMap: {} };
 

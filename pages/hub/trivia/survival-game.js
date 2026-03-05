@@ -310,7 +310,7 @@ export default function SurvivalGamePage() {
             // Get questions with appropriate difficulty based on level
             let query = supabase
                 .from('trivia_questions')
-                .select('*');
+                .select('*')
                 .limit(500) // question pool
             // Strict difficulty filtering for proper level progression
             // Levels 1-2 (easy): Only easy questions

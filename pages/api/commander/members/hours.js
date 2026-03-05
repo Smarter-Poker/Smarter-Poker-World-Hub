@@ -34,7 +34,6 @@ export default async function handler(req, res) {
             .eq('venue_id', venue_id)
             .eq('status', 'completed')
                 .limit(100);
-            .limit(500)
 
         // Apply period filter
         if (period !== 'all') {

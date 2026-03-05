@@ -50,7 +50,6 @@ export default async function handler(req, res) {
       .gte('check_in_at', ninetyDaysAgo)
       .order('check_in_at', { ascending: false })
           .limit(100);
-      .limit(500)
 
     if (error) throw error;
 
