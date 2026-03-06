@@ -204,19 +204,21 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
         notes: '',
     });
 
-    // ── Load data ──
+    // ── Load data (with silent auto-retry on first failure) ──
+    const loadAttemptRef = useRef(0);
     const loadData = useCallback(async () => {
         if (!userId) { setIsLoading(false); return; }
         setIsLoading(true);
         setLoadError(null);
 
-        // Hard failsafe escape hatch
+        // Hard failsafe escape hatch (15s)
         const failsafeId = setTimeout(() => {
             if (isMountedRef.current) {
                 setIsLoading(false);
-                setLoadError('Loading timed out. Please refresh or check connection.');
+                // Don't show error on failsafe — just silently stop loading
+                console.warn('[TokeTracker] loadData failsafe timeout fired');
             }
-        }, 8000);
+        }, 15000);
 
         try {
             const [active, gigs, locs] = await Promise.all([
@@ -224,6 +226,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                 fetchGigs(userId),
                 getUserLocations(userId),
             ]);
+            loadAttemptRef.current = 0; // Reset on success
             setActiveGig(active);
             setCompletedGigs(gigs.filter(g => g.status === 'completed'));
             setLocations(locs || []);
@@ -241,7 +244,29 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                 }
             }
         } catch (err) {
-            if (isAbortError(err)) { console.debug('[TokeTracker] loadData aborted (harmless)'); return; }
+            // Silently suppress AbortErrors — always
+            if (isAbortError(err)) {
+                console.debug('[TokeTracker] loadData aborted (harmless — auto-retrying)');
+                // Silent auto-retry after 2s
+                if (loadAttemptRef.current < 2 && isMountedRef.current) {
+                    loadAttemptRef.current++;
+                    clearTimeout(failsafeId);
+                    if (isMountedRef.current) setIsLoading(false);
+                    setTimeout(() => { if (isMountedRef.current) loadData(); }, 2000);
+                } else {
+                    if (isMountedRef.current) setIsLoading(false);
+                }
+                return;
+            }
+            // Non-abort errors: auto-retry once silently, then show error
+            if (loadAttemptRef.current < 1) {
+                console.warn('[TokeTracker] loadData failed, auto-retrying:', err.message);
+                loadAttemptRef.current++;
+                clearTimeout(failsafeId);
+                if (isMountedRef.current) setIsLoading(false);
+                setTimeout(() => { if (isMountedRef.current) loadData(); }, 1500);
+                return;
+            }
             console.error('Error loading toke data:', err);
             if (isMountedRef.current) setLoadError(err.message || String(err));
         } finally {
