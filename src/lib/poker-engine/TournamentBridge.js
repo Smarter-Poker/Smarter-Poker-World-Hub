@@ -36,20 +36,36 @@ class TournamentBridge {
     this.supabase = supabase;
     this._wired = false;
     this._tableCleanup = new Map(); // tableId → cleanup functions
+    // Persistent Realtime channel for tournament-wide events.
+    // Created once in wire(), reused by _broadcastTournament().
+    // Ephemeral channels (created per-broadcast) were the prior bug —
+    // they had no subscribers by the time send() was called.
+    this._tournamentChannel = null;
   }
 
   /**
    * Wire all tournament events to the lobby and database.
    */
-  wire() {
+  async wire() {
     if (this._wired) return;
     this._wired = true;
+
+    // Create the persistent tournament broadcast channel
+    if (this.supabase && this.tournament.tournamentId) {
+      this._tournamentChannel = this.supabase.channel(
+        `tournament:${this.tournament.tournamentId}`,
+        { config: { broadcast: { ack: false } } }
+      );
+      await this._tournamentChannel.subscribe();
+    }
 
     const t = this.tournament;
 
     // ── TABLE LIFECYCLE ──────────────────────────────────────
     t.on('table_created', ({ tableId, tableNumber }) => {
-      this._registerTable(tableId);
+      this._registerTable(tableId).catch(err =>
+        console.error(`[TournamentBridge] _registerTable failed for ${tableId}:`, err.message)
+      );
     });
 
     t.on('table_closed', ({ tableId }) => {
@@ -219,7 +235,7 @@ class TournamentBridge {
    * @param {string} tableId
    * @private
    */
-  _registerTable(tableId) {
+  async _registerTable(tableId) {
     const tableInfo = this.tournament.tables.get(tableId);
     if (!tableInfo) return;
 
@@ -229,12 +245,6 @@ class TournamentBridge {
     if (this.lobby.tables.has(tableId)) return;
 
     // Create supporting objects
-    const sync = new RealtimeSync(tableId, this.supabase);
-    const history = new HandHistoryRecorder({
-      tableId,
-      clubId: this.tournament.clubId,
-      supabase: this.supabase,
-    });
     const timer = new ActionTimer({
       turnTime: this.tournament.actionTime || 30000,
       timeBank: this.tournament.timeBankSeconds || 30000,
@@ -248,38 +258,36 @@ class TournamentBridge {
 
     // Wire timer to table
     timer.on('turn_timeout', ({ playerId }) => {
-      // Auto-fold on timeout
       const seat = table.seats.find(s => s.player?.id === playerId);
       if (seat && table.game.phase !== 'idle') {
         table.processAction(playerId, { type: 'fold' });
       }
     });
 
-    // Wire table events to realtime sync
-    const events = [
-      'hand_start', 'blinds_posted', 'cards_dealt', 'street_start',
-      'action_required', 'action_processed', 'showdown', 'payout',
-      'hand_complete', 'player_seated', 'player_left',
-      'player_disconnected', 'player_reconnected',
-    ];
+    // Create RealtimeSync with correct config-object constructor
+    const sync = new RealtimeSync({
+      supabase: this.supabase,
+      tableId,
+      tableManager: table,
+      actionTimer: timer,
+    });
+    await sync.initialize();
 
-    for (const event of events) {
-      table.on(event, (data) => {
-        if (sync.channel) {
-          sync.channel.send({
-            type: 'broadcast',
-            event,
-            payload: { ...data, tableId, tournamentId: this.tournament.tournamentId },
-          });
-        }
-      });
-    }
+    // Wire StateSerializer for tournament table crash recovery
+    const { StateSerializer } = require('./StateSerializer');
+    const serializer = new StateSerializer(tableId, this.supabase);
+    serializer.wire(table);
 
     // Wire hand history recording
+    const history = new HandHistoryRecorder({
+      tableId,
+      clubId: this.tournament.clubId,
+      supabase: this.supabase,
+    });
     const tableConfig = {
       tableId,
       clubId: this.tournament.clubId,
-      bigBlind: table.bigBlind || this.tournament.blindStructure[0]?.big_blind || 2,
+      bigBlind: table.bigBlind || this.tournament.blindStructure?.[0]?.big_blind || 2,
       variant: this.tournament.variant || 'nlh',
     };
     const getSync = () => this.lobby.tables.get(tableId)?.sync;
@@ -302,12 +310,14 @@ class TournamentBridge {
       sync,
       history,
       timer,
+      serializer,
     });
 
     // Store cleanup function
     this._tableCleanup.set(tableId, () => {
       sync.destroy();
       timer.destroy();
+      serializer.destroy();
     });
   }
 
@@ -325,37 +335,37 @@ class TournamentBridge {
 
   /**
    * Broadcast a tournament-wide event to all connected clients.
+   * Uses the persistent _tournamentChannel created in wire().
+   * Also echoes to each active table channel for players already in-game.
    * @param {string} event
    * @param {Object} data
    * @private
    */
   _broadcastTournament(event, data) {
-    // Broadcast to each table's channel
+    const payload = {
+      ...data,
+      tournamentId: this.tournament.tournamentId,
+    };
+
+    // 1. Persistent dedicated tournament channel (registered clients listen here)
+    if (this._tournamentChannel) {
+      this._tournamentChannel.send({
+        type: 'broadcast',
+        event,
+        payload,
+      }).catch(() => {}); // Non-blocking, non-critical
+    }
+
+    // 2. Also broadcast to each active table channel (players in-game see it too)
     for (const [tableId] of this.tournament.tables) {
       const entry = this.lobby.tables.get(tableId);
       if (entry?.sync?.channel) {
         entry.sync.channel.send({
           type: 'broadcast',
           event: `tournament:${event}`,
-          payload: {
-            ...data,
-            tournamentId: this.tournament.tournamentId,
-          },
-        });
+          payload,
+        }).catch(() => {});
       }
-    }
-
-    // Also broadcast to a dedicated tournament channel
-    if (this.supabase) {
-      const channel = this.supabase.channel(`tournament:${this.tournament.tournamentId}`);
-      channel.send({
-        type: 'broadcast',
-        event,
-        payload: {
-          ...data,
-          tournamentId: this.tournament.tournamentId,
-        },
-      });
     }
   }
 
@@ -590,6 +600,11 @@ class TournamentBridge {
    */
   destroy() {
     this._cleanupAll();
+    // Clean up persistent broadcast channel
+    if (this._tournamentChannel && this.supabase) {
+      this.supabase.removeChannel(this._tournamentChannel).catch(() => {});
+      this._tournamentChannel = null;
+    }
     this._wired = false;
   }
 }

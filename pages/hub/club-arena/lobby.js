@@ -160,7 +160,8 @@ export default function ClubLobby() {
             .subscribe();
 
         const _c = new AbortController();
-        // Polling fallback every 15s for player counts (in case realtime misses)
+        // Polling fallback every 60s — last resort for player counts
+        // (Realtime postgres_changes above handles all UPDATE events instantly)
         const poll = setInterval(async () => {
             try {
                 const { data } = await supabase
@@ -179,7 +180,7 @@ export default function ClubLobby() {
                     }));
                 }
             } catch (_) { }
-        }, 15000);
+        }, 60000); // Reduced from 15s — Realtime handles near-instant updates
 
         return () => {
             supabase.removeChannel(channel);

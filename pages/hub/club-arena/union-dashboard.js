@@ -179,7 +179,7 @@ export default function UnionDashboard() {
             }, () => { loadDashboard(); })
             .subscribe();
 
-        // Silent poll every 30s — does NOT set isLoading to avoid loading flash
+        // Silent poll every 60s as fallback — Realtime postgres_changes handles live updates
         const poll = setInterval(async () => {
             try {
                 const token = await getAuthToken();

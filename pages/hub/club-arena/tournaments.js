@@ -482,26 +482,51 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         .order('registered_at');
       setRegistrations(data || []);
     })();
-    // Poll tournament state if running
-    if (['running', 'late_reg'].includes(t.status)) {
-      const poll = async () => {
-        try {
-          const { data: { session: pollSession } } = await supabase.auth.getSession();
-          const res = await fetch('/api/poker/engine/tournament', {
-            method: 'POST', headers: {
-              'Content-Type': 'application/json',
-              ...(pollSession?.access_token ? { Authorization: `Bearer ${pollSession.access_token}` } : {}),
-            },
-            body: JSON.stringify({ action: 'state', tournamentId: t.id }),
-          });
-          const d = await res.json();
-          if (d.success) setTourneyState(d);
-        } catch (_) { }
-      };
-      poll();
-      const iv = setInterval(poll, 5000);
-      return () => clearInterval(iv);
+
+    // ── Realtime: subscribe to tournament channel for live engine events ──
+    // TournamentBridge broadcasts to `tournament:{id}` on every level_change,
+    // player_busted, player_registered, etc. No more 5s HTTP polling.
+    const liveEvents = [
+      'player_registered', 'player_unregistered', 'player_seated',
+      'player_busted', 'player_eliminated', 'player_moved',
+      'player_rebuy', 'player_addon',
+      'tournament_started', 'level_change', 'break_started', 'break_ended',
+      'tournament_complete', 'victory',
+    ];
+    const tCh = supabase.channel(`tournament:${t.id}`);
+    for (const evt of liveEvents) {
+      tCh.on('broadcast', { event: evt }, (payload) => {
+        setTourneyState(prev => ({ ...prev, ...payload.payload, _lastEvent: evt }));
+        // Re-fetch registrations on player changes
+        if (['player_registered', 'player_unregistered', 'player_busted', 'player_eliminated'].includes(evt)) {
+          supabase
+            .from('tournament_registrations')
+            .select('user_id, status, registered_at, finish_position, payout_amount')
+            .eq('tournament_id', t.id)
+            .in('status', ['registered', 'playing', 'eliminated'])
+            .order('registered_at')
+            .then(({ data }) => { if (data) setRegistrations(data); });
+        }
+      });
     }
+    tCh.subscribe();
+
+    // ── Fallback: postgres_changes on club_tournaments for status/level sync ──
+    // Covers the case where the engine isn't running yet and DB reflects truth.
+    const dbCh = supabase
+      .channel(`tournament-db:${t.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'club_tournaments',
+        filter: `id=eq.${t.id}`,
+      }, (payload) => {
+        setTourneyState(prev => ({ ...prev, ...payload.new }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tCh);
+      supabase.removeChannel(dbCh);
+    };
   }, [t.id, userId, t.status]);
 
   // Find user's assigned table

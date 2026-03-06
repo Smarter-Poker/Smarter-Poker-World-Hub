@@ -832,25 +832,38 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     return () => { active = false; };
   }, [t.id]);
 
-  // Poll engine state for running tournaments
+  // Subscribe to tournament channel for live state (replaces 5s HTTP poll)
   useEffect(() => {
-    if (!['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status)) return;
-    let active = true;
-    const poll = async () => {
-      try {
-        const token = await getToken();
-        const res = await fetch('/api/poker/engine/tournament', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: 'state', tournamentId: t.id }),
-        });
-        const data = await res.json();
-        if (active && data.success !== false) setTourneyState(data);
-      } catch (e) { if (e?.name !== 'AbortError') console.error('[TournamentDetail:poll]', e); }
+    const liveEvents = [
+      'player_registered', 'player_unregistered', 'player_seated',
+      'player_busted', 'player_eliminated', 'player_moved',
+      'player_rebuy', 'player_addon',
+      'tournament_started', 'level_change', 'break_started', 'break_ended',
+      'tournament_complete', 'victory',
+    ];
+    const tCh = supabase.channel(`union-tournament:${t.id}`);
+    for (const evt of liveEvents) {
+      tCh.on('broadcast', { event: evt }, (payload) => {
+        setTourneyState(prev => ({ ...prev, ...payload.payload, _lastEvent: evt }));
+      });
+    }
+    tCh.subscribe();
+
+    // DB fallback: postgres_changes on club_tournaments keeps status/level in sync
+    const dbCh = supabase
+      .channel(`union-tournament-db:${t.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'club_tournaments',
+        filter: `id=eq.${t.id}`,
+      }, (payload) => {
+        setTourneyState(prev => ({ ...prev, ...payload.new }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tCh);
+      supabase.removeChannel(dbCh);
     };
-    poll();
-    const interval = setInterval(poll, 5000);
-    return () => { active = false; clearInterval(interval); };
   }, [t.id, t.status]);
 
   const rows = [

@@ -1575,7 +1575,7 @@ class GameController {
     });
 
     const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
-    bridge.wire();
+    await bridge.wire();
     this._tournaments.set(tournamentId, { controller, bridge });
     console.log(`[GameController] Tournament created: ${tournamentId} (${name})`);
 
@@ -1982,7 +1982,7 @@ class GameController {
           }
 
           const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
-          bridge.wire();
+          await bridge.wire();
           this._tournaments.set(row.id, { controller, bridge });
           console.log(`[GameController] Recovered tournament: ${row.id} (${row.name}, ${row.status}, ${row.tournament_registrations?.length || 0} entries)`);
         } catch (err) {

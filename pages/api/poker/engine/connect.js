@@ -53,6 +53,10 @@ export default async function handler(req, res) {
 
     switch (type) {
       case 'heartbeat':
+        // ── COLD-START AUTO-RECOVERY ──────────────────────────────────
+        // Heartbeat is the first signal from a connected client after a
+        // serverless cold start. Ensure table is loaded before updating presence.
+        await controller.ensureTable(tableId);
         await controller.handleHeartbeat(tableId, playerId);
 
         // ─── Feed GPS to anti-cheat monitor (non-blocking) ─────────
