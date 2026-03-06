@@ -392,7 +392,6 @@ export function useBookmarks(limit = 15) {
       const user = getAuthUser();
 
       if (!user) {
-        // Fallback to localStorage for guests
         if (typeof window !== 'undefined') {
           const stored = JSON.parse(localStorage.getItem('sandbox_bookmarks') || '[]');
           setBookmarks(stored.slice(0, limit).map(b => ({
@@ -410,10 +409,9 @@ export function useBookmarks(limit = 15) {
         return;
       }
 
-      const token = await getAuthToken();
       const { data, error } = await supabase
         .from('sandbox_bookmarks')
-        .select('*')
+        .select('id, hero_hand, hero_position, hero_stack, game_type, board_flop, board_turn, board_river, villains, action_history, label, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);

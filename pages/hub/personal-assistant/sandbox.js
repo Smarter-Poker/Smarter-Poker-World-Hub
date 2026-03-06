@@ -479,9 +479,9 @@ export default function VirtualSandbox() {
           }
 
           // Restore pot size (Bug 12 + 14)
-          if (session.pot_size_bb) {
+          if (session.pot_size_bb != null) {
             skipPotCalcRef.current = true;
-            setPotSize(session.pot_size_bb);
+            setPotSize(Number(session.pot_size_bb) || 6);
           }
           clearResults();
         }} />
