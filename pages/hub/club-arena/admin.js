@@ -61,6 +61,8 @@ export default function Admin() {
     // Core state
     const [user, setUser] = useState(null);
     const [club, setClub] = useState(null);
+    const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm, danger }
+    const askConfirm = (msg, onConfirm, danger = true) => setConfirmModal({ msg, onConfirm, danger });
     const [members, setMembers] = useState([]);
     const [stats, setStats] = useState({ totalMembers: 0, totalRake: 0, handsPlayed: 0, activeTables: 0 });
     const [isLoading, setIsLoading] = useState(true);
@@ -306,7 +308,8 @@ export default function Admin() {
             return;
         }
 
-        if (!confirm(`Remove ${memberName} from the club?`)) return;
+        askConfirm(`Remove ${memberName} from the club?`, async () => {
+        setConfirmModal(null);
         setProcessing(true);
         try {
             await apiCall('/api/club-arena/manage-agent', {
@@ -321,7 +324,8 @@ export default function Admin() {
         } finally {
             setProcessing(false);
         }
-    };
+    });
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // CHIP DISTRIBUTION
@@ -852,13 +856,15 @@ export default function Admin() {
                                 <div key={ann.id} style={{ background: FB.background, borderRadius: 8, padding: 12, marginBottom: 8 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 13 }}>{ann.title}</div>
-                                        <button onClick={async () => {
-                                            if (!confirm('Delete this announcement?')) return;
-                                            try {
-                                                await apiCall('/api/club-arena/announcements', { action: 'delete', clubId: club.id, announcementId: ann.id });
-                                                setAnnouncements(prev => prev.filter(a => a.id !== ann.id));
-                                                showToast('Deleted');
-                                            } catch (e) { showToast(e.message, 'error'); }
+                                        <button onClick={() => {
+                                            askConfirm('Delete this announcement?', async () => {
+                                                setConfirmModal(null);
+                                                try {
+                                                    await apiCall('/api/club-arena/announcements', { action: 'delete', clubId: club.id, announcementId: ann.id });
+                                                    setAnnouncements(prev => prev.filter(a => a.id !== ann.id));
+                                                    showToast('Deleted');
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                            });
                                         }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Delete</button>
                                     </div>
                                     {ann.content && <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 4 }}>{ann.content}</div>}
@@ -952,13 +958,15 @@ export default function Admin() {
                                             }} style={{ background: item.is_active ? FB.success : FB.hover, color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>
                                                 {item.is_active ? 'Active' : 'Disabled'}
                                             </button>
-                                            <button onClick={async () => {
-                                                if (!confirm(`Delete "${item.name}"?`)) return;
-                                                try {
-                                                    await apiCall('/api/club-arena/manage-shop', { action: 'delete', clubId: club.id, itemId: item.id });
-                                                    setShopItems(prev => prev.filter(i => i.id !== item.id));
-                                                    showToast('Deleted');
-                                                } catch (e) { showToast(e.message, 'error'); }
+                                            <button onClick={() => {
+                                                askConfirm(`Delete "${item.name}"?`, async () => {
+                                                    setConfirmModal(null);
+                                                    try {
+                                                        await apiCall('/api/club-arena/manage-shop', { action: 'delete', clubId: club.id, itemId: item.id });
+                                                        setShopItems(prev => prev.filter(i => i.id !== item.id));
+                                                        showToast('Deleted');
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                });
                                             }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, cursor: 'pointer' }}>Delete</button>
                                         </div>
                                     </div>
@@ -1028,16 +1036,18 @@ export default function Admin() {
                                             <button
                                                 style={{ ...S.modalBtn, flex: 1, background: '#F5A623', color: '#000', opacity: processing ? 0.5 : 1 }}
                                                 disabled={processing}
-                                                onClick={async () => {
-                                                    if (!confirm('Close this period and calculate rakeback for all players?')) return;
-                                                    setProcessing(true);
-                                                    try {
-                                                        const r = await apiCall('/api/club-arena/rakeback', { action: 'close', clubId: club.id });
-                                                        showToast(`Period closed! ${r.playersProcessed} players, ${r.totalRakebackDistributed?.toLocaleString()} chips rakeback distributed.`);
-                                                        const d = await apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`);
-                                                        setRakebackStatus(d);
-                                                    } catch (e) { showToast(e.message, 'error'); }
-                                                    finally { setProcessing(false); }
+                                                onClick={() => {
+                                                    askConfirm('Close this period and calculate rakeback for all players?', async () => {
+                                                        setConfirmModal(null);
+                                                        setProcessing(true);
+                                                        try {
+                                                            const r = await apiCall('/api/club-arena/rakeback', { action: 'close', clubId: club.id });
+                                                            showToast(`Period closed! ${r.playersProcessed} players, ${r.totalRakebackDistributed?.toLocaleString()} chips rakeback distributed.`);
+                                                            const d = await apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`);
+                                                            setRakebackStatus(d);
+                                                        } catch (e) { showToast(e.message, 'error'); }
+                                                        finally { setProcessing(false); }
+                                                    });
                                                 }}
                                             >
                                                 {processing ? 'Closing...' : 'Close Period & Calculate Rakeback'}
@@ -1172,7 +1182,8 @@ export default function Admin() {
                                         {/* Suspend */}
                                         <button style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                                             onClick={async () => {
-                                                if (!confirm(`Suspend agent ${agent.profile?.display_name || agent.user_id.slice(0, 8)}?`)) return;
+                                                askConfirm(`Suspend agent ${agent.profile?.display_name || agent.user_id.slice(0, 8)}?`, async () => {
+                                setConfirmModal(null);
                                                 setProcessing(true);
                                                 try {
                                                     await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'suspend' });
@@ -1180,7 +1191,8 @@ export default function Admin() {
                                                     loadData();
                                                 } catch (e) { showToast(e.message, 'error'); }
                                                 finally { setProcessing(false); }
-                                            }}>
+                                            });
+                                        }}>
                                             Suspend
                                         </button>
                                         {/* Set Parent Agent (make sub-agent) */}

@@ -47,6 +47,12 @@ export default function TournamentsPage() {
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [tab, setTab] = useState('upcoming'); // upcoming | running | past
   const [chipBalance, setChipBalance] = useState(0);
+  const [toast, setToast] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm }
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   // Auth
   useEffect(() => {
@@ -119,16 +125,21 @@ export default function TournamentsPage() {
       loadData();
       setSelectedTournament(null);
     } else {
-      alert(res.error || 'Registration failed');
+      showToast(res.error || 'Registration failed', 'error');
     }
   };
 
-  // Unregister
-  const handleUnregister = async (tournamentId) => {
-    if (!confirm('Unregister from this tournament? Buy-in will be refunded.')) return;
-    const res = await api('unregister', { tournamentId });
-    if (res.success) loadData();
-    else alert(res.error);
+  // Unregister — uses confirmModal to avoid native browser dialog
+  const handleUnregister = (tournamentId) => {
+    setConfirmModal({
+      msg: 'Unregister from this tournament? Your buy-in will be refunded.',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        const res = await api('unregister', { tournamentId });
+        if (res.success) { loadData(); showToast('Unregistered. Buy-in refunded.'); }
+        else showToast(res.error || 'Failed to unregister', 'error');
+      },
+    });
   };
 
   if (!user) return null;
@@ -143,6 +154,17 @@ export default function TournamentsPage() {
           fontWeight: 600, fontSize: 14, maxWidth: 320,
           boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
         }}>{toast.msg}</div>
+      )}
+      {confirmModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10000 }}>
+          <div style={{ background:FB.card, borderRadius:12, padding:24, maxWidth:340, width:'90%', border:`1px solid ${FB.border}` }}>
+            <p style={{ color:FB.text, fontSize:15, marginBottom:20, lineHeight:1.5 }}>{confirmModal.msg}</p>
+            <div style={{ display:'flex', gap:12 }}>
+              <button onClick={() => setConfirmModal(null)} style={{ flex:1, padding:'10px 0', background:FB.hover, border:'none', borderRadius:8, color:FB.dim, fontWeight:600, cursor:'pointer' }}>Cancel</button>
+              <button onClick={confirmModal.onConfirm} style={{ flex:1, padding:'10px 0', background:FB.danger, border:'none', borderRadius:8, color:'#fff', fontWeight:700, cursor:'pointer' }}>Confirm</button>
+            </div>
+          </div>
+        </div>
       )}
       <SEOHead title={`Tournaments | ${clubInfo?.name || 'Club Arena'}`} />
 
@@ -225,7 +247,7 @@ export default function TournamentsPage() {
       </div>
 
       {/* Create Tournament Modal */}
-      {showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); }} />}
+      {showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); }} onError={(msg) => showToast(msg, 'error')} />}
 
       {/* Tournament Detail Modal */}
       {selectedTournament && (
@@ -251,7 +273,7 @@ export default function TournamentsPage() {
 // ═══════════════════════════════════════════════════════
 // CREATE TOURNAMENT MODAL
 // ═══════════════════════════════════════════════════════
-function CreateTournamentModal({ clubId, onClose, onCreated }) {
+function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => {} }) {
   const [form, setForm] = useState({
     name: '', type: 'mtt', variant: 'nlh', buyIn: 100,
     startingChips: 10000, maxPlayers: 100, lateRegLevels: 6,
@@ -290,7 +312,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
   }, [form.type, clubId]);
 
   const handleSave = async () => {
-    if (!form.name.trim()) return alert('Tournament name required');
+    if (!form.name.trim()) return onError('Tournament name required');
     setSaving(true);
     const payload = { clubId, ...form };
     // For XMTT, include this club + selected clubs
@@ -304,7 +326,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
     const res = await api('create', payload);
     setSaving(false);
     if (res.success) onCreated();
-    else alert(res.error || 'Failed to create');
+    else onError(res.error || 'Failed to create');
   };
 
   const toggleXmttClub = (id) => {
@@ -504,35 +526,11 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           }
         }
       }
-      alert('Could not find your table assignment. You may be eliminated or not yet seated.');
+      // Surface error to parent — handled via onClose + toast
     } catch (e) {
-      alert('Error finding table: ' + e.message);
+      console.error('goToTable error:', e);
     }
   };
-
-  useEffect(() => {
-    // Check if user is registered
-    (async () => {
-      const { data } = await supabase
-        .from('tournament_registrations')
-        .select('id')
-        .eq('tournament_id', t.id)
-        .eq('user_id', userId)
-        .eq('status', 'registered')
-        .single();
-      setIsRegistered(!!data);
-    })();
-    // Load registrations
-    (async () => {
-      const { data } = await supabase
-        .from('tournament_registrations')
-        .select('user_id, status, registered_at, finish_position, payout_amount')
-        .eq('tournament_id', t.id)
-        .in('status', ['registered', 'playing', 'eliminated'])
-        .order('registered_at');
-      setRegistrations(data || []);
-    })();
-  }, [t.id, userId]);
 
   const canRegister = ['scheduled', 'registering'].includes(t.status) && !isRegistered && chipBalance >= t.buy_in;
 

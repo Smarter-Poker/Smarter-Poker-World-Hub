@@ -63,6 +63,11 @@ export default function ClubLobby() {
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [sortBy, setSortBy] = useState('players'); // players | stakes | name
     const [showBBJ, setShowBBJ] = useState(false);
+    const [toast, setToast] = useState(null); // { msg, type }
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+    };
 
     // BBJ pool data (realtime)
     const { bbjData, loading: bbjLoading } = useBBJ(club?.id, supabase);
@@ -73,7 +78,7 @@ export default function ClubLobby() {
         if (activeFilter !== 'ALL') {
             if (activeFilter === 'nlh' && table.game_variant !== 'nlh' && table.game_variant !== 'short_deck' && table.game_variant !== 'pineapple') return false;
             if (activeFilter === 'plo' && !table.game_variant?.startsWith('plo')) return false;
-            if (activeFilter === 'tournament' && table.table_type !== 'tournament') return false;
+            if (activeFilter === 'tournament' && table.table_type !== 'tournament' && table.game_type !== 'tournament') return false;
             if (activeFilter === 'sng' && table.table_type !== 'sng') return false;
         }
         // Search filter
@@ -106,7 +111,7 @@ export default function ClubLobby() {
             setIsEditingDescription(false);
         } catch (err) {
             console.error('Error updating description:', err);
-            alert('Failed to update description.');
+            showToast('Failed to update description.', 'error');
         }
     }
 
@@ -119,7 +124,7 @@ export default function ClubLobby() {
             }
         }
         setShowCreateGame(null);
-        alert('Created successfully!');
+        showToast('Created successfully!');
     }
 
     useEffect(() => {
@@ -151,7 +156,7 @@ export default function ClubLobby() {
                 schema: 'public',
                 table: 'club_tournaments',
                 filter: `club_id=eq.${club.id}`,
-            }, () => { loadData(); })
+            }, () => { loadClubData(); })
             .subscribe();
 
         const _c = new AbortController();
@@ -245,7 +250,18 @@ export default function ClubLobby() {
             <div style={styles.page}>
                 <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
-                <div style={styles.container}>
+                {/* Toast notification */}
+                {toast && (
+                    <div style={{
+                        position: 'fixed', top: 20, right: 20, zIndex: 9999,
+                        background: toast.type === 'error' ? '#FA383E' : toast.type === 'info' ? '#2374E1' : '#31A24C',
+                        color: '#fff', padding: '12px 20px', borderRadius: 10,
+                        fontWeight: 600, fontSize: 14, maxWidth: 320,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+                        animation: 'fadeIn 0.2s ease',
+                    }}>{toast.msg}</div>
+                )}
+            <div style={styles.container}>
                     <button onClick={() => router.push('/hub/club-arena')} style={styles.backBtn}>
                         &#8592; Back to Club Arena
                     </button>
@@ -452,9 +468,9 @@ export default function ClubLobby() {
                                         if (openTable) {
                                             router.push(`/hub/club-arena/table/${openTable.id}`);
                                         } else if (filteredTables.length > 0) {
-                                            alert('All tables are full. Try joining a waitlist or create a new table.');
+                                            showToast('All tables are full — join a waitlist or create a new table.', 'info');
                                         } else {
-                                            alert('No tables available. Create one!');
+                                            showToast('No tables available yet. Create one!', 'info');
                                         }
                                     }}
                                 >
