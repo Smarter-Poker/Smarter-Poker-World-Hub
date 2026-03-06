@@ -69,13 +69,23 @@ export default function ActivityFeed() {
       try { venueId = JSON.parse(staffSession).venue_id || ''; } catch { }
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
-      // Aggregate from multiple sources for the activity feed
-      const [incidents, checkins, sessions, waitlist] = await Promise.all([
-        fetch(`/api/commander/incidents?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
-      ]);
+      // Fetch each source separately with individual error handling
+      let incidents = { data: [] };
+      let checkins = { data: [] };
+      let sessions = { data: [] };
+      let waitlist = { data: [] };
+      try {
+        const results = await Promise.allSettled([
+          fetch(`/api/commander/incidents?venue_id=${venueId}`, { headers }).then(r => r.json()),
+          fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, { headers }).then(r => r.json()),
+          fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, { headers }).then(r => r.json()),
+          fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json())
+        ]);
+        if (results[0].status === 'fulfilled') incidents = results[0].value || { data: [] };
+        if (results[1].status === 'fulfilled') checkins = results[1].value || { data: [] };
+        if (results[2].status === 'fulfilled') sessions = results[2].value || { data: [] };
+        if (results[3].status === 'fulfilled') waitlist = results[3].value || { data: [] };
+      } catch { /* swallow all fetch errors */ }
 
       const allEvents = [];
 
@@ -129,7 +139,11 @@ export default function ActivityFeed() {
       // Sort by timestamp descending
       allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       setEvents(allEvents.slice(0, 50));
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      // Explicitly swallow AbortError — these are non-critical and can crash the error boundary
+      if (err?.name === 'AbortError') return;
+      console.error('[Activity] fetch error:', err);
+    }
     finally { setLoading(false); }
   }, []);
 
