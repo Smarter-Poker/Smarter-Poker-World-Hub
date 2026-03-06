@@ -15,7 +15,7 @@ const supabase = createClient(
 const VALID_GAME_TYPES = ['nlh', 'plo', 'plo5', 'mixed', 'limit', 'stud', 'razz', 'other'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -31,39 +31,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Verify staff authentication
-    const staffSession = req.headers['x-staff-session'];
-    if (!staffSession) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
-      });
-    }
-
-    let sessionData;
-    try {
-      sessionData = JSON.parse(staffSession);
-    } catch {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_SESSION', message: 'Invalid session format' }
-      });
-    }
-
-    // Verify staff exists and is active
-    const { data: staff, error: staffError } = await supabase
-      .from('commander_staff')
-      .select('id, venue_id, role, is_active')
-      .eq('id', sessionData.id)
-      .eq('is_active', true)
-      .single();
-
-    if (staffError || !staff) {
-      return res.status(401).json({
-        success: false,
-        error: { code: 'INVALID_STAFF', message: 'Staff member not found or inactive' }
-      });
-    }
+    // Note: guardWriteStaff is already called in the main handler (line 23)
+    // so staff auth is already validated. No need for a redundant check here.
 
     const {
       venue_id,
