@@ -1051,7 +1051,7 @@ export default function VideoLibraryPage() {
                                         justifyContent: 'center',
                                         padding: 4,
                                     }}>
-                                        <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                        <img src={source.logo} alt={source.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }}  loading="lazy" />
                                     </div>
                                 )}
                                 {source.name}
@@ -1105,7 +1105,7 @@ export default function VideoLibraryPage() {
                                             <img
                                                 src={getThumbnail(video.videoId)}
                                                 alt={video.title}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" />
                                             {/* Resume play button */}
                                             <div style={{
                                                 position: 'absolute',
@@ -1195,7 +1195,7 @@ export default function VideoLibraryPage() {
                                         height: '100%',
                                         objectFit: 'cover',
                                     }}
-                                    onLoad={(e) => {
+                                    onLoad={(e) = loading="lazy"> {
                                         // YouTube returns 120x90 placeholder when maxres not available
                                         if (e.target.naturalWidth <= 120 && !e.target.src.includes('hqdefault')) {
                                             e.target.src = `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg`;
@@ -1332,7 +1332,7 @@ export default function VideoLibraryPage() {
                                                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
                                             }}>
                                                 <img
-                                                    src={SOURCES.find(s => s.id === video.source)?.logo}
+                                                    src={SOURCES.find(s = loading="lazy"> s.id === video.source)?.logo}
                                                     alt=""
                                                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                                 />
@@ -2272,7 +2272,7 @@ export default function VideoLibraryPage() {
                                         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.25)',
                                     }}>
                                         <img
-                                            src={SOURCES.find(s => s.id === selectedVideo.source)?.logo}
+                                            src={SOURCES.find(s = loading="lazy"> s.id === selectedVideo.source)?.logo}
                                             alt=""
                                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                                         />

@@ -342,7 +342,7 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userI
                                     src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${(currentHand.scenario?.position || 'utg').toLowerCase()}_${currentHand.correctAction}_${currentHand.scenario?.stackDepth || 100}bb.png`}
                                     alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    onError={(e) = loading="lazy"> { e.target.style.display = 'none'; }}
                                 />
                             )}
                         </div>
@@ -645,7 +645,7 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
                                     src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${(currentHand.scenario?.position || 'utg').toLowerCase()}_${currentHand.correctAction}_${currentHand.scenario?.stackDepth || 100}bb.png`}
                                     alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    onError={(e) = loading="lazy"> { e.target.style.display = 'none'; }}
                                 />
                             )}
                         </div>
@@ -970,7 +970,7 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
                                     src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${(currentPattern.scenario?.position || 'utg').toLowerCase()}_${currentPattern.correctAnswer}_${currentPattern.scenario?.stackDepth || 100}bb.png`}
                                     alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    onError={(e) = loading="lazy"> { e.target.style.display = 'none'; }}
                                 />
                             )}
                         </div>
@@ -1314,7 +1314,7 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
                                     src={`https://kuklfnapbkmacvwxktbh.supabase.co/storage/v1/object/public/gto-panels/panels/gto_${(currentScenario?.position || 'utg').toLowerCase()}_${targetAction}_${currentScenario?.stackDepth || 100}bb.png`}
                                     alt="GTO Analysis"
                                     style={{ maxWidth: '100%', borderRadius: 12, border: '2px solid rgba(0,212,255,0.3)', marginTop: 8 }}
-                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                    onError={(e) = loading="lazy"> { e.target.style.display = 'none'; }}
                                 />
                             )}
                         </div>
@@ -4264,7 +4264,7 @@ export default function MemoryGamesPage() {
                                                     borderRadius: 16,
                                                     boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.15)'
                                                 }}
-                                            />
+                                             loading="lazy" />
                                         ) : (
                                             /* Fallback to text if no panel image */
                                             <div style={{

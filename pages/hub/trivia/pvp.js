@@ -729,7 +729,7 @@ export default function PvPPage() {
                                     src="/trivia/panels/panel-finding.jpg"
                                     alt=""
                                     className="result-panel-bg"
-                                />
+                                 loading="lazy" />
                                 {/* Record positioned in upper area */}
                                 <div className="finding-record-zone">
                                     <span className="finding-record">{stats.wins}W - {stats.losses}L</span>
@@ -853,7 +853,7 @@ export default function PvPPage() {
                                     src={result.won || result.tied ? '/trivia/panels/panel-win.jpg' : '/trivia/panels/panel-defeat.jpg'}
                                     alt=""
                                     className="result-panel-bg"
-                                />
+                                 loading="lazy" />
                                 {/* Win/Loss record in the top header bar */}
                                 <div className="result-score-zone">
                                     <div className="panel-stats">

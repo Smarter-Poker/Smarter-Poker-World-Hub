@@ -750,7 +750,7 @@ export default function SignUpPage() {
                 {/* Auth Card */}
                 <div style={styles.authCard}>
                     <div style={styles.logoSection}>
-                        <img src="/smarter-poker-logo.jpg" alt="Smarter.Poker" style={styles.logoImage} />
+                        <img src="/smarter-poker-logo.jpg" alt="Smarter.Poker" style={styles.logoImage}  loading="lazy" />
                         <h1 style={styles.title}>
                             {step === 'info' && 'Create Account'}
                             {step === 'email_pending' && 'Verify Your Email'}

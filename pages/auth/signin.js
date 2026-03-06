@@ -106,7 +106,7 @@ export default function SignInPage() {
                                 borderRadius: '8px',
                                 marginBottom: '8px',
                             }}
-                        />
+                         loading="lazy" />
                         <h1 style={styles.title}>Welcome Back</h1>
                         <p style={styles.subtitle}>Sign In To Continue Your Training</p>
                     </div>

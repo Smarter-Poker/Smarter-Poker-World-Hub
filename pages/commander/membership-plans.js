@@ -353,7 +353,7 @@ export default function MembershipPlansPage() {
               className="mp-bg-img"
               draggable={false}
               onClick={handleImageClick}
-            />
+             loading="lazy" />
 
             {/* Dynamic price overlays — positioned on each card zone */}
             {PLAN_ORDER.map(tier => {

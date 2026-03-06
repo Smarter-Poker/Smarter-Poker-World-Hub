@@ -344,7 +344,7 @@ export default function LivesPage() {
                                         height: '100%',
                                         objectFit: 'contain',
                                     }}
-                                />
+                                 loading="lazy" />
                             ) : (
                                 <div style={{
                                     width: '100%',
@@ -398,7 +398,7 @@ export default function LivesPage() {
                                             border: '2px solid white',
                                             objectFit: 'cover',
                                         }}
-                                    />
+                                     loading="lazy" />
                                     <div>
                                         <div style={{ fontWeight: 700, color: 'white', fontSize: 16 }}>
                                             @{stream.profiles?.username || 'Unknown'}

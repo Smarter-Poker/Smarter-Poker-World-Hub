@@ -163,7 +163,7 @@ export default function MessageRequests() {
                                             src={request.sender?.avatar_url || '/default-avatar.png'}
                                             alt={request.sender?.username}
                                             style={styles.avatar}
-                                        />
+                                         loading="lazy" />
                                         <div style={styles.senderInfo}>
                                             <div style={styles.senderName}>
                                                 {request.sender?.full_name || request.sender?.username || 'Unknown'}

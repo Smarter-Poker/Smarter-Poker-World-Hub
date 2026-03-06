@@ -382,7 +382,7 @@ export default function NotificationsPage() {
                                                 width: 56, height: 56, borderRadius: '50%',
                                                 objectFit: 'cover', border: '2px solid #ddd'
                                             }}
-                                        />
+                                         loading="lazy" />
                                         <div style={{
                                             position: 'absolute', bottom: -2, right: -2,
                                             width: 24, height: 24, borderRadius: '50%',

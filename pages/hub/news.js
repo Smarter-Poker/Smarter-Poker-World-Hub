@@ -1468,7 +1468,7 @@ export default function NewsHub() {
                                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                                 alt=""
                                                                 className="list-thumb"
-                                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
+                                                                onError={(e) = loading="lazy"> { e.target.src = FALLBACK_IMAGES.news; }}
                                                             />
                                                             <div className="list-content">
                                                                 <h4>{article.title}</h4>

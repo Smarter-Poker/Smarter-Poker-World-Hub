@@ -275,7 +275,7 @@ export default function TabletDisplay() {
                                     style={{
                                         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                         objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                    }} />
+                                    }}  loading="lazy" />
 
                                 {/* Center info */}
                                 <div style={{
@@ -312,7 +312,7 @@ export default function TabletDisplay() {
                                         overflow: 'hidden',
                                     }}>
                                         {dealer?.photo_url ? (
-                                            <img src={dealer.photo_url} alt={dealer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <img src={dealer.photo_url} alt={dealer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" />
                                         ) : (
                                             <span style={{ fontSize: 34, fontWeight: 900, color: '#fff' }}>D</span>
                                         )}

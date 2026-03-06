@@ -672,7 +672,7 @@ export default function ReelsPage() {
                         <img
                             src={currentReel?.profiles?.avatar_url || '/default-avatar.png'}
                             style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }}
-                        />
+                         loading="lazy" />
                         <div>
                             <div style={{ color: 'white', fontWeight: 600, fontSize: 15, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
                                 {currentReel?.profiles?.full_name || currentReel?.profiles?.username}

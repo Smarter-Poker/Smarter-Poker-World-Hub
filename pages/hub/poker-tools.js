@@ -326,7 +326,7 @@ export default function PokerToolsPage() {
                                                                                 border: '2px solid #1877F2',
                                                                                 boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
                                                                                 background: '#fff',
-                                                                            }} />
+                                                                            }}  loading="lazy" />
                                                                     </div>
                                                                 ) : (
                                                                     <div key={i} style={{
@@ -406,7 +406,7 @@ export default function PokerToolsPage() {
                                                                 border: '2px solid #1877F2',
                                                                 boxShadow: '0 4px 15px rgba(0,0,0,0.6)',
                                                                 background: '#fff',
-                                                            }} />
+                                                            }}  loading="lazy" />
                                                     </div>
                                                 ) : (
                                                     <div key={ci} style={{
@@ -563,7 +563,7 @@ export default function PokerToolsPage() {
                         {deadCards.map((c, i) => (
                             <div key={i} onClick={() => removeCard('dead', 0, i)} style={{ cursor: 'pointer' }}>
                                 <img src={getCardImage(c.rank, c.suit)} alt=""
-                                    style={{ width: 30, height: 42, borderRadius: 3, border: '1px solid #EF4444', opacity: 0.5 }} />
+                                    style={{ width: 30, height: 42, borderRadius: 3, border: '1px solid #EF4444', opacity: 0.5 }}  loading="lazy" />
                             </div>
                         ))}
                     </div>
@@ -627,7 +627,7 @@ export default function PokerToolsPage() {
                                             onMouseEnter={e => { if (!isDisabled) { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(24,119,242,0.5)'; } }}
                                             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = isUsed ? 'none' : '0 2px 6px rgba(0,0,0,0.3)'; }}>
                                             <img src={imgSrc} alt={`${rank} of ${suit}`}
-                                                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                                                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}  loading="lazy" />
                                         </button>
                                     );
                                 })

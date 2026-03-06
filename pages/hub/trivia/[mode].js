@@ -686,7 +686,7 @@ export default function TriviaModePage() {
                                     alt={`${modeConfig.name} - Start Challenge`}
                                     className="lobby-image"
                                     style={{ borderRadius: 0, width: '100%' }}
-                                />
+                                 loading="lazy" />
                             </div>
                         ) : (
                             /* Fallback text lobby */

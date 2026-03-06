@@ -59,7 +59,7 @@ function Avatar({ src, name, size = 60, hasStory = false }) {
                     objectFit: 'cover',
                     border: hasStory ? `3px solid ${C.card}` : 'none'
                 }}
-            />
+             loading="lazy" />
         </div>
     );
 }

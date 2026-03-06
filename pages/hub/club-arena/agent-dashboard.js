@@ -3,6 +3,7 @@
    Facebook Dark Theme | Downline, Cashouts, Chips, Commissions, Clawback
    ═══════════════════════════════════════════════════════════════════════════════ */
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -631,7 +632,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                         border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
                     }}>
                         {p.profile?.avatar_url
-                            ? <img src={p.profile.avatar_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" />
+                            ? <Image src={p.profile.avatar_url} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
                             : ''}
                     </div>
 

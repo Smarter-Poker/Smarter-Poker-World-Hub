@@ -91,7 +91,7 @@ export default function TimerTest() {
                             height: '100%',
                             objectFit: 'contain',
                         }}
-                    />
+                     loading="lazy" />
 
                     {/* TIMER OVERLAY - Adjust these values */}
                     <div style={{

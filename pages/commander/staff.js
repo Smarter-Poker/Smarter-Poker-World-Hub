@@ -204,7 +204,7 @@ export default function CommanderStaffPage() {
           <div class="badge-name">${name}</div>
           <div class="badge-role">${role}</div>
           <div class="badge-qr">
-            <img src="${qrImageUrl}" alt="QR Code" onload="window.print();" />
+            <img src="${qrImageUrl}" alt="QR Code" onload="window.print();"  loading="lazy" />
           </div>
           <div class="badge-code">${qrCode}</div>
         </div>

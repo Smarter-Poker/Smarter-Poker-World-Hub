@@ -553,7 +553,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
                     borderRadius: 14,
                 }}
                 draggable={false}
-            />
+             loading="lazy" />
 
             {/* Price Overlay At Bottom */}
             <div style={{
@@ -948,7 +948,7 @@ export default function DiamondStorePage() {
                             alt="Diamonds Store"
                             style={{ width: '100%', height: 'auto', display: 'block' }}
                             draggable={false}
-                        />
+                         loading="lazy" />
 
                         {/* ── Tab button clickable zones ── */}
                         {/* Diamonds tab */}
@@ -986,7 +986,7 @@ export default function DiamondStorePage() {
                                 alt="Diamond Packages — Click any box to add to cart"
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
-                            />
+                             loading="lazy" />
 
 
 
@@ -1033,7 +1033,7 @@ export default function DiamondStorePage() {
                                 alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
-                            />
+                             loading="lazy" />
                         </div>
                     )}
 
@@ -1081,7 +1081,7 @@ export default function DiamondStorePage() {
                                             alt={isProcessing ? 'Processing...' : 'Subscribe For $19.99 A Month'}
                                             style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
                                             draggable={false}
-                                        />
+                                         loading="lazy" />
                                     </div>
 
                                 </div>
@@ -1329,7 +1329,7 @@ export default function DiamondStorePage() {
                                                             boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                                                         }}
                                                         draggable={false}
-                                                    />
+                                                     loading="lazy" />
                                                 </div>
                                                 <div style={{
                                                     display: 'flex',

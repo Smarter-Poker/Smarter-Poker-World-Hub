@@ -158,7 +158,7 @@ export default function LandingPage() {
             src="/images/landing-hero.jpg"
             alt="Smarter.Poker — The Future Of The Game"
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
-            onLoad={() => setHeroLoaded(true)}
+            onLoad={() = loading="lazy"> setHeroLoaded(true)}
             draggable={false}
           />
           {!heroLoaded && <div style={styles.shimmer} />}
@@ -188,7 +188,7 @@ export default function LandingPage() {
                 src={overlay.image}
                 alt="Detail View"
                 style={{ ...styles.overlayImg, opacity: overlayLoaded ? 1 : 0 }}
-                onLoad={() => setOverlayLoaded(true)}
+                onLoad={() = loading="lazy"> setOverlayLoaded(true)}
                 draggable={false}
               />
               {!overlayLoaded && (

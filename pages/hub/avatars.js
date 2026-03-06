@@ -137,7 +137,7 @@ export default function AvatarsPage() {
                                     src={avatar.imageUrl || '/avatars/free/shark.png'}
                                     alt="Current Avatar"
                                     className="current-avatar-img"
-                                />
+                                 loading="lazy" />
                                 <div className="current-avatar-info">
                                     <div className="current-avatar-label">Current Avatar</div>
                                     <div className="current-avatar-name">{avatar.name || 'Custom Avatar'}</div>

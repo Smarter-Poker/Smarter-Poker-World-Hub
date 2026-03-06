@@ -466,7 +466,7 @@ export default function MembershipKiosk() {
                   display: 'block'
                 }}
                 draggable={false}
-              />
+               loading="lazy" />
 
               {/* Invisible Hitboxes — positioned relative to the image */}
               {/* Percentages are relative to image dimensions (829x946 after trim) */}

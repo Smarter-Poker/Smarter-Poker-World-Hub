@@ -487,7 +487,7 @@ export default function HorsesAdmin() {
                                                         src={persona.avatar_url}
                                                         alt={persona.name}
                                                         className={styles.avatarImage}
-                                                        onError={(e) => {
+                                                        onError={(e) = loading="lazy"> {
                                                             e.target.style.display = 'none';
                                                             e.target.nextSibling.style.display = 'flex';
                                                         }}
@@ -636,7 +636,7 @@ export default function HorsesAdmin() {
                                                                 src={persona.avatar_url}
                                                                 alt={persona.name}
                                                                 className={styles.tableCellAvatar}
-                                                            />
+                                                             loading="lazy" />
                                                         ) : (
                                                             <span>{persona.gender === 'female' ? '👩' : '👨'}</span>
                                                         )}

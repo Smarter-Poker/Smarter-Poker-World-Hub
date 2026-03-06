@@ -576,7 +576,7 @@ export default function Admin() {
                                         <div key={member.user_id} style={S.memberRow}>
                                             <div style={S.memberAvatar}>
                                                 {member.profiles?.avatar_url ? (
-                                                    <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                    <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" />
                                                 ) : ''}
                                             </div>
                                             <div style={S.memberInfo}>

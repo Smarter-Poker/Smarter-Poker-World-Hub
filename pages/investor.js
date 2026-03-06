@@ -21,14 +21,14 @@ import {
 // =========================================================================
 
 
-const MockHubCarousel = () => <img src="/images/pitch/hub_carousel.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Hub" />;
-const MockClubCommander = () => <img src="/images/pitch/club_commander.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Club Commander" />;
-const MockLiveArena = () => <img src="/images/pitch/live_arena.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Live Arena" />;
-const MockGTO = () => <img src="/images/pitch/gto_training.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="GTO Training" />;
-const MockDiamondStore = () => <img src="/images/pitch/diamond_store.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Diamond Store" />;
-const MockPioSolver = () => <img src="/images/pitch/pio_solver.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="PioSolver" />;
-const MockSocialFeed = () => <img src="/images/pitch/social_feed.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Social Feed" />;
-const MockArcade = () => <img src="/images/pitch/arcade_hologram.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Arcade" />;
+const MockHubCarousel = () => <img src="/images/pitch/hub_carousel.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Hub"  loading="lazy" />;
+const MockClubCommander = () => <img src="/images/pitch/club_commander.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Club Commander"  loading="lazy" />;
+const MockLiveArena = () => <img src="/images/pitch/live_arena.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Live Arena"  loading="lazy" />;
+const MockGTO = () => <img src="/images/pitch/gto_training.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="GTO Training"  loading="lazy" />;
+const MockDiamondStore = () => <img src="/images/pitch/diamond_store.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Diamond Store"  loading="lazy" />;
+const MockPioSolver = () => <img src="/images/pitch/pio_solver.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="PioSolver"  loading="lazy" />;
+const MockSocialFeed = () => <img src="/images/pitch/social_feed.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Social Feed"  loading="lazy" />;
+const MockArcade = () => <img src="/images/pitch/arcade_hologram.png" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }} alt="Arcade"  loading="lazy" />;
 // 36-SLIDE DATA CONFIGURATION
 // =========================================================================
 

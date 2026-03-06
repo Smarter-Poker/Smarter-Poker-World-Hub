@@ -88,7 +88,7 @@ function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
                     objectFit: 'contain',
                     filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))',
                 }}
-            />
+             loading="lazy" />
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -256,7 +256,7 @@ export default function TrainingArenaPage() {
                             src="/images/training/table-vertical.jpg"
                             alt="Poker Table"
                             className="table-img"
-                        />
+                         loading="lazy" />
 
                         {/* POT Display */}
                         <div className="pot">

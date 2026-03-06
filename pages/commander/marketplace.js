@@ -313,7 +313,7 @@ function DealerCard({ dealer, onBook }) {
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
             {dealer.profiles?.avatar_url ? (
-              <img src={dealer.profiles.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+              <img src={dealer.profiles.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover"  loading="lazy" />
             ) : (
               <Users className="w-6 h-6 text-[#1877F2]" />
             )}

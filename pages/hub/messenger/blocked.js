@@ -95,7 +95,7 @@ export default function BlockedUsers() {
                                         src={item.blocked?.avatar_url || '/default-avatar.png'}
                                         alt={item.blocked?.username}
                                         style={styles.avatar}
-                                    />
+                                     loading="lazy" />
                                     <div style={styles.userInfo}>
                                         <div style={styles.username}>
                                             {item.blocked?.full_name || item.blocked?.username || 'Unknown User'}

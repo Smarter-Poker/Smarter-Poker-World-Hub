@@ -330,7 +330,7 @@ export default function HorseAnalytics() {
                         cursor: 'pointer',
                     }}
                 >
-                    <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} />
+                    <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }}  loading="lazy" />
                 </button>
             </div>
         </>

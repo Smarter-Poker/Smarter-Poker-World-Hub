@@ -94,7 +94,7 @@ export default function ProfileEditPage() {
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-[#132240] border-2 border-[#4A5E78] flex items-center justify-center overflow-hidden">
                 {formData.avatar_url ? (
-                  <img src={formData.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover" />
+                  <img src={formData.avatar_url} alt="" className="w-24 h-24 rounded-full object-cover"  loading="lazy" />
                 ) : (
                   <User size={40} className="text-[#64748B]" />
                 )}

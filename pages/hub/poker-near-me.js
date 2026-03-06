@@ -2384,7 +2384,7 @@ export default function PokerNearMePage() {
                                     }}
                                 >
                                     <div className="pnm-icon-img-wrap">
-                                        <img src={item.icon} alt={item.label} className="pnm-icon-img" draggable={false} />
+                                        <img src={item.icon} alt={item.label} className="pnm-icon-img" draggable={false}  loading="lazy" />
                                         {item.badge && <span className="pnm-icon-badge">{item.badge}</span>}
                                     </div>
                                     <span className="pnm-icon-label">{item.label}</span>

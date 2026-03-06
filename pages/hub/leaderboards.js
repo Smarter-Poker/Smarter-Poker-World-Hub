@@ -74,7 +74,7 @@ function Avatar({ src, name, size = 48 }) {
                     width: size, height: size, borderRadius: '50%',
                     objectFit: 'cover', flexShrink: 0
                 }}
-            />
+             loading="lazy" />
         );
     }
     return (

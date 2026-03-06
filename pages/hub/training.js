@@ -128,7 +128,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     src="/smarter-poker-logo-transparent.png"
                     alt="Smarter Poker"
                     style={headerStyles.logo}
-                />
+                 loading="lazy" />
             </div>
 
             {/* RIGHT: Stats + Profile */}

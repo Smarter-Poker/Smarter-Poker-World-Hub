@@ -772,7 +772,7 @@ export default function TournamentsPage() {
                                     src="/trivia/panels/panel-win.jpg"
                                     alt=""
                                     className="result-panel-bg"
-                                />
+                                 loading="lazy" />
                                 <div className="result-panel-content">
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">

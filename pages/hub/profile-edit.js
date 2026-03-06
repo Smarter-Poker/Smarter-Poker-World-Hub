@@ -53,7 +53,7 @@ function Avatar({ src, size = 120, onUpload }) {
                 src={src || '/default-avatar.png'}
                 alt="Profile"
                 style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-            />
+             loading="lazy" />
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
             <div style={{
                 position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: '50%',
@@ -965,7 +965,7 @@ export default function ProfilePage() {
                                                 objectFit: 'cover', marginBottom: 8,
                                                 border: '2px solid #eee'
                                             }}
-                                        />
+                                         loading="lazy" />
                                         <div style={{
                                             fontSize: 13, fontWeight: 600, color: C.text,
                                             maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
@@ -1056,7 +1056,7 @@ export default function ProfilePage() {
                                             marginBottom: 8,
                                             background: 'transparent'
                                         }}
-                                    />
+                                     loading="lazy" />
                                     <div style={{
                                         fontSize: 12,
                                         fontWeight: 600,
@@ -1217,7 +1217,7 @@ export default function ProfilePage() {
                                             width: '100%', height: 'auto',
                                             display: 'block'
                                         }}
-                                    />
+                                     loading="lazy" />
                                     {photo.content && (
                                         <div style={{
                                             padding: '12px 16px', color: 'white',
@@ -1364,7 +1364,7 @@ export default function ProfilePage() {
                                                     src={live.thumbnail_url}
                                                     alt={live.title}
                                                     style={{ width: '100%', height: 'auto', display: 'block' }}
-                                                />
+                                                 loading="lazy" />
                                             ) : (
                                                 <div style={{
                                                     width: '100%', height: '100%',

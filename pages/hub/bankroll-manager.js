@@ -1652,7 +1652,7 @@ export default function BankrollManagerPage() {
                       src={scannerImageUrl}
                       alt="Receipt"
                       style={{ maxWidth: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 8, border: '2px solid rgba(255,255,255,0.1)' }}
-                    />
+                     loading="lazy" />
                   </div>
 
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginTop: 0, marginBottom: 20, textAlign: 'center' }}>
