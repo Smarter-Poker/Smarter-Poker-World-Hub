@@ -181,7 +181,7 @@ export default function PlayerHistoryPage() {
           </div>
 
           {/* Sessions List */}
-          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="table" rows={8} /></div>) : sessions.length === 0 ? (
+          {loading ? (<div style={{ padding: 24 }}><SkeletonLoader variant="table" rows={8} /></div>) : sessions.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <div className="cmd-icon-box mx-auto mb-3">
                 <History className="w-6 h-6" />
