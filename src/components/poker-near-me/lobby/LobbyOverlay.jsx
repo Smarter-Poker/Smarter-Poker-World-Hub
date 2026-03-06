@@ -2,14 +2,14 @@
  * LobbyOverlay.jsx — The 2D UI layer that sits ON TOP of the 3D scene.
  *
  * This renders:
+ *   - "POKER NEAR ME" cinematic title
  *   - Search bar with city autocomplete + voice search button
  *   - Bottom dock (Trip Planner, Calculator, Saved, Friends, Alerts)
- *   - Feature panel drawer (slides up when a pod/dock item is selected)
  *   - Scan line + ambient UI effects
  *
- * The overlay is transparent except for its UI elements, so the 3D scene
- * shows through. Pointer events are set to 'none' on the wrapper and
- * 'auto' on interactive elements, so clicks pass through to the 3D pods.
+ * NOTE: The feature panel drawer is rendered at the PAGE level
+ * (poker-near-me-lobby.js) to avoid z-index stacking context issues.
+ * This overlay only handles search + dock + title.
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -31,14 +31,11 @@ export default function LobbyOverlay({
   activePod,
   onPodSelect,
   onSearch,
-  onPanelClose,
-  panelContent,
   searchQuery,
   onSearchChange,
   liveData = {},
   gpsActive,
   onGpsClick,
-  showPanel,
   citySuggestions = [],
   onCitySelect,
   onVoiceClick,
@@ -70,8 +67,12 @@ export default function LobbyOverlay({
       {/* SCAN LINE */}
       <div className="lobby-scanline" />
 
-      {/* TOP BAR — Search */}
+      {/* TOP BAR — Title + Search */}
       <header className="lobby-topbar" style={{ pointerEvents: 'auto' }}>
+
+        {/* POKER NEAR ME Title */}
+        <h1 className="lobby-title">POKER NEAR ME</h1>
+
         <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
           <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`}>
             <svg className="lobby-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -196,55 +197,6 @@ export default function LobbyOverlay({
           );
         })}
       </nav>
-
-      {/* FEATURE PANEL DRAWER */}
-      <AnimatePresence>
-        {showPanel && panelContent && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              className="lobby-panel-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              onClick={onPanelClose}
-              style={{ pointerEvents: 'auto' }}
-            />
-
-            {/* Panel */}
-            <motion.div
-              className="lobby-panel"
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              style={{ pointerEvents: 'auto' }}
-            >
-              {/* Drag handle */}
-              <div className="lobby-panel-handle">
-                <div className="lobby-panel-handle-bar" />
-              </div>
-
-              {/* Header */}
-              <div className="lobby-panel-header">
-                <h2 className="lobby-panel-title">{panelContent.title}</h2>
-                <button className="lobby-panel-close" onClick={onPanelClose} aria-label="Close panel">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Content — renders the actual feature component */}
-              <div className="lobby-panel-content">
-                {panelContent.component}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
