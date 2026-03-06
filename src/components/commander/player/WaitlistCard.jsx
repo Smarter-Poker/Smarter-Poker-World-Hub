@@ -4,7 +4,7 @@
  */
 import { Clock, MapPin, X, Zap, AlertTriangle } from 'lucide-react';
 
-export default function WaitlistCard({ entry, onLeave }) {
+export default function WaitlistCard({ entry, onLeave, confirmingLeave = false }) {
   const { waitlist_entry, venue, position, estimated_wait } = entry;
   const isCalled = waitlist_entry?.status === 'called';
 
@@ -59,9 +59,15 @@ export default function WaitlistCard({ entry, onLeave }) {
           </div>
         </div>
         {onLeave && !isCalled && (
-          <button onClick={onLeave} className="cmd-btn cmd-btn-danger py-3 px-4" title="Leave Waitlist">
-            <X className="w-5 h-5" />
-          </button>
+          confirmingLeave ? (
+            <button onClick={onLeave} className="cmd-btn py-2 px-3 text-xs font-bold" style={{ background: '#EF4444', color: '#fff' }}>
+              Confirm Leave?
+            </button>
+          ) : (
+            <button onClick={onLeave} className="cmd-btn cmd-btn-danger py-3 px-4" title="Leave Waitlist">
+              <X className="w-5 h-5" />
+            </button>
+          )
         )}
       </div>
 

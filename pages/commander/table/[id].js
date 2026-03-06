@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { Plus, Loader2, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function formatCountdown(minutes) {
@@ -91,8 +93,14 @@ useEffect(() => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+    <div className="min-h-screen bg-[#18191A]" style={{ padding: 16 }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ background: '#2A2B2C', height: 22, width: 160, borderRadius: 6, marginBottom: 12 }} />
+        <SkeletonDark variant="stat-cards" count={3} />
+        <div style={{ marginTop: 12 }}>
+          <SkeletonDark variant="table-rows" rows={6} />
+        </div>
+      </div>
     </div>
   );
 

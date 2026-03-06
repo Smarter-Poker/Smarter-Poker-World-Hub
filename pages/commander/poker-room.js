@@ -11,6 +11,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Power, PowerOff, Users, Settings, Loader2, RefreshCw, LayoutGrid, Wifi, WifiOff, ArrowRightLeft, AlertTriangle, Zap, Trophy } from 'lucide-react';
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
@@ -159,8 +161,15 @@ export default function PokerRoomFunctions() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-[#1877F2] animate-spin" />
+      <div className="min-h-screen bg-[#18191A] p-4" style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ background: '#2A2B2C', height: 28, width: 220, borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ background: '#2A2B2C', height: 14, width: 140, borderRadius: 6 }} />
+        </div>
+        <SkeletonDark variant="stat-cards" count={4} />
+        <div style={{ marginTop: 16 }}>
+          <SkeletonDark variant="poker-room" count={6} rows={4} />
+        </div>
       </div>
     );
   }

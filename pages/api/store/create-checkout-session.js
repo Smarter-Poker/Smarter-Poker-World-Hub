@@ -248,10 +248,44 @@ export default async function handler(req, res) {
                 }
             }
 
-            // TODO: When merchandise_items table is created, look up each item by ID
-            // and use server-side prices instead of client-submitted prices.
-            // For now, enforce aggregate sanity limits.
-            const totalUsd = items.reduce((sum, item) => sum + (parseFloat(item.price) * (parseInt(item.quantity) || 1)), 0);
+            // SECURITY: Look up server-side prices from merchandise_items table.
+            // Items with an 'id' field are validated against the catalog price.
+            // Items without an ID (custom/unlisted) fall back to sanity-checked client price.
+            const itemIds = items.map(i => i.id).filter(Boolean);
+            let catalogPrices = {};
+            if (itemIds.length > 0) {
+                const { data: catalogItems } = await supabase
+                    .from('merchandise_items')
+                    .select('id, name, price_usd, image_url, is_active')
+                    .in('id', itemIds)
+                    .eq('is_active', true);
+                if (catalogItems) {
+                    catalogItems.forEach(ci => { catalogPrices[ci.id] = ci; });
+                }
+                // Reject if any catalogued item ID wasn't found (deleted/inactive)
+                for (const item of items) {
+                    if (item.id && !catalogPrices[item.id]) {
+                        return res.status(400).json({
+                            success: false,
+                            error: { code: 'ITEM_NOT_FOUND', message: `Item "${item.name}" is no longer available` }
+                        });
+                    }
+                }
+            }
+
+            // Build line items using server price where available, client price otherwise
+            const resolvedItems = items.map(item => {
+                const catalog = item.id ? catalogPrices[item.id] : null;
+                return {
+                    name: catalog ? catalog.name : String(item.name).slice(0, 200),
+                    price: catalog ? parseFloat(catalog.price_usd) : parseFloat(item.price),
+                    image: catalog?.image_url || item.image || null,
+                    description: item.description ? String(item.description).slice(0, 500) : undefined,
+                    quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
+                };
+            });
+
+            const totalUsd = resolvedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             if (totalUsd > MAX_ORDER_TOTAL_USD) {
                 return res.status(400).json({
                     success: false,
@@ -259,17 +293,17 @@ export default async function handler(req, res) {
                 });
             }
 
-            sessionConfig.line_items = items.map(item => ({
+            sessionConfig.line_items = resolvedItems.map(item => ({
                 price_data: {
                     currency: 'usd',
                     product_data: {
-                        name: String(item.name).slice(0, 200),
-                        description: item.description ? String(item.description).slice(0, 500) : undefined,
+                        name: item.name,
+                        description: item.description,
                         images: item.image ? [String(item.image).slice(0, 500)] : []
                     },
-                    unit_amount: Math.round(parseFloat(item.price) * 100)
+                    unit_amount: Math.round(item.price * 100)
                 },
-                quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10)
+                quantity: item.quantity
             }));
 
             // Create pending order record (totalUsd already calculated and validated above)
@@ -277,7 +311,7 @@ export default async function handler(req, res) {
                 .from('merchandise_orders')
                 .insert({
                     user_id: user.id,
-                    items: items,
+                    items: resolvedItems,
                     total_usd: totalUsd,
                     status: 'pending'
                 })

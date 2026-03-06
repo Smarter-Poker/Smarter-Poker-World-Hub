@@ -12,6 +12,7 @@ import WaitlistCard from '../../../src/components/commander/player/WaitlistCard'
 
 export default function CommanderHub() {
   const [venues, setVenues] = useState([]);
+  const [confirmLeaveId, setConfirmLeaveId] = useState(null);
   const [myWaitlists, setMyWaitlists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -104,7 +105,12 @@ export default function CommanderHub() {
   }, [userLocation]);
 
   async function handleLeaveWaitlist(entryId) {
-    if (!window.confirm('Leave this waitlist?')) return;
+    if (confirmLeaveId !== entryId) {
+      setConfirmLeaveId(entryId);
+      setTimeout(() => setConfirmLeaveId(null), 4000);
+      return;
+    }
+    setConfirmLeaveId(null);
     try {
       const res = await fetch(`/api/commander/waitlist/${entryId}`, { method: 'DELETE' });
       const data = await res.json();
@@ -198,6 +204,7 @@ export default function CommanderHub() {
                     key={entry.waitlist_entry.id}
                     entry={entry}
                     onLeave={() => handleLeaveWaitlist(entry.waitlist_entry.id)}
+                    confirmingLeave={confirmLeaveId === entry.waitlist_entry.id}
                   />
                 ))}
               </div>

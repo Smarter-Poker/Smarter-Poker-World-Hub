@@ -196,8 +196,8 @@ export default function TournamentDetailPage() {
 
   if (!staff || loading) {
     return (
-      <div className="cmd-page flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22D3EE]" />
+      <div className="cmd-page" style={{ padding: 16 }}>
+        <SkeletonDark variant="tournament" />
       </div>
     );
   }

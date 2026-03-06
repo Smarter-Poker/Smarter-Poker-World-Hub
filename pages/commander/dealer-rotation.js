@@ -15,6 +15,8 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   RefreshCw, Clock, Users, Loader2, ArrowRightLeft, Coffee,
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
   CheckCircle2, AlertTriangle, RotateCcw, ChevronDown, ChevronUp, History
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
@@ -187,9 +189,11 @@ export default function DealerRotation() {
   // ── Loading State ───────────────────────────────────
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader2 style={{ width: 32, height: 32, color: '#1877F2', animation: 'spin 1s linear infinite' }} />
-      <style jsx>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    <div style={{ minHeight: '100vh', background: '#18191A', padding: 16 }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ background: '#2A2B2C', height: 22, width: 180, borderRadius: 6, marginBottom: 16 }} />
+        <SkeletonDark variant="dealer-rotation" />
+      </div>
     </div>
   );
 

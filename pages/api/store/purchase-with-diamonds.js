@@ -43,16 +43,51 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Items array required' });
         }
 
-        // Calculate total USD and diamond cost
-        // NOTE: No server-side catalog exists yet. Client prices are used but validated.
-        // TODO: When merchandise_items table is created, lookup prices server-side.
-        const totalUsd = items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+        // SECURITY: Look up server-side prices from merchandise_items catalog.
+        // Items with an 'id' field are priced from the database.
+        // Items without an ID fall back to client price (sanity-checked).
+        const itemIds = items.map(i => i.id).filter(Boolean);
+        let catalogPrices = {};
+        if (itemIds.length > 0) {
+            const { data: catalogItems } = await supabase
+                .from('merchandise_items')
+                .select('id, name, price_diamonds, price_usd, is_active')
+                .in('id', itemIds)
+                .eq('is_active', true);
+            if (catalogItems) {
+                catalogItems.forEach(ci => { catalogPrices[ci.id] = ci; });
+            }
+            for (const item of items) {
+                if (item.id && !catalogPrices[item.id]) {
+                    return res.status(400).json({ success: false, error: `Item "${item.name}" is no longer available` });
+                }
+            }
+        }
 
-        if (totalUsd <= 0 || items.some(i => !i.price || i.price <= 0 || !i.name)) {
+        const resolvedItems = items.map(item => {
+            const catalog = item.id ? catalogPrices[item.id] : null;
+            // Use catalog diamond price if set, else convert from USD
+            const priceUsd = catalog ? parseFloat(catalog.price_usd) : parseFloat(item.price);
+            const diamondPrice = catalog?.price_diamonds ?? null;
+            return {
+                id: item.id || null,
+                name: catalog ? catalog.name : String(item.name || '').slice(0, 200),
+                priceUsd,
+                diamondPrice,
+                quantity: Math.min(Math.max(parseInt(item.quantity) || 1, 1), 10),
+            };
+        });
+
+        if (resolvedItems.some(i => !i.name || !Number.isFinite(i.priceUsd) || i.priceUsd <= 0)) {
             return res.status(400).json({ success: false, error: 'Invalid item data — all items must have a name and positive price' });
         }
 
-        const diamondCost = Math.ceil(totalUsd * DIAMONDS_PER_DOLLAR);
+        const totalUsd = resolvedItems.reduce((sum, item) => sum + (item.priceUsd * item.quantity), 0);
+        // Diamond cost: use catalog diamond price if available, else convert from USD
+        const diamondCost = resolvedItems.reduce((sum, item) => {
+            const perUnit = item.diamondPrice !== null ? item.diamondPrice : Math.ceil(item.priceUsd * DIAMONDS_PER_DOLLAR);
+            return sum + (perUnit * item.quantity);
+        }, 0);
 
         // Get current diamond balance
         const { data: profile, error: profileError } = await supabase
@@ -114,7 +149,7 @@ export default async function handler(req, res) {
         // Create order record
         await supabase.from('merchandise_orders').insert({
             user_id: user.id,
-            items: items,
+            items: resolvedItems,
             total_usd: totalUsd,
             diamonds_spent: diamondCost,
             payment_method: 'diamonds',

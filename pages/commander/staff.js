@@ -44,6 +44,7 @@ export default function CommanderStaffPage() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [revealedPinId, setRevealedPinId] = useState(null);
   const [linkCodeData, setLinkCodeData] = useState(null); // { staffId, token, url }
   const [linkCodeLoading, setLinkCodeLoading] = useState(null);
@@ -238,7 +239,12 @@ export default function CommanderStaffPage() {
 
   // Delete staff
   async function handleDeleteStaff(staffId) {
-    if (!window.confirm('Remove this staff member?')) return;
+    if (confirmDeleteId !== staffId) {
+      setConfirmDeleteId(staffId);
+      setTimeout(() => setConfirmDeleteId(null), 4000); // auto-cancel after 4s
+      return;
+    }
+    setConfirmDeleteId(null);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -426,12 +432,22 @@ export default function CommanderStaffPage() {
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteStaff(staff.id)}
-                          className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {confirmDeleteId === staff.id ? (
+                          <button
+                            onClick={() => handleDeleteStaff(staff.id)}
+                            className="px-3 py-1.5 text-xs font-semibold bg-[#EF4444] text-white rounded-lg transition-colors hover:bg-red-600"
+                          >
+                            Confirm?
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleDeleteStaff(staff.id)}
+                            className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
+                            title="Remove staff member"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

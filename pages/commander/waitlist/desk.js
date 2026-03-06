@@ -16,6 +16,8 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, PhoneCall, Armchair, SkipForward, Trash2, MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical, CheckCircle } from 'lucide-react';
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 
 // Format phone to 555-555-5555 (internal display only)
@@ -546,9 +548,17 @@ export default function WaitlistDesk() {
   const headerBorderBottom = `2px solid ${darken(c.headerColor, 30)}`;
 
   if (loading) {
-    return <div style={{ minHeight: '100vh', background: c.bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader2 className="animate-spin" size={32} color={c.accentColor} />
-    </div>;
+    return (
+      <div style={{ minHeight: '100vh', background: '#18191A', padding: '16px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto' }}>
+          <div style={{ background: '#2A2B2C', height: 24, width: 200, borderRadius: 6, marginBottom: 16 }} />
+          <SkeletonDark variant="stat-cards" count={3} />
+          <div style={{ marginTop: 16 }}>
+            <SkeletonDark variant="waitlist" rows={8} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
