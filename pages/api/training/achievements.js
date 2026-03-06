@@ -13,9 +13,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -35,14 +35,14 @@ export default async function handler(req, res) {
                 .from('training_achievement_definitions')
                 .select('*')
                 .order('category', { ascending: true })
-                    .limit(100);
+                .limit(100);
 
             // Get user's unlocked achievements
             const { data: userAchievements } = await supabase
                 .from('training_user_achievements')
                 .select('achievement_id, unlocked_at, progress')
                 .eq('user_id', userId)
-                    .limit(100);
+                .limit(100);
 
             const unlockedMap = new Map(
                 (userAchievements || []).map(a => [a.achievement_id, a])
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
             // Get cumulative stats from database
             const { data: leaderboardData } = await supabase
                 .from('training_leaderboard')
-                .select('sessions_completed, questions_correct, accuracy, perfect_rounds')
+                .select('sessions_completed, questions_correct, accuracy, perfect_rounds, total_xp')
                 .eq('user_id', userId)
                 .eq('period_type', 'alltime')
                 .single();
@@ -106,6 +106,7 @@ export default async function handler(req, res) {
                 longestStreak: streakData?.longest_streak || 0,
                 totalSessions: leaderboardData?.sessions_completed || 0,
                 totalCorrect: leaderboardData?.questions_correct || 0,
+                totalXp: leaderboardData?.total_xp || 0,
                 // Perfect rounds from leaderboard (cumulative)
                 perfectRounds: leaderboardData?.perfect_rounds || 0
             };
@@ -121,7 +122,7 @@ export default async function handler(req, res) {
                 .from('training_user_achievements')
                 .select('achievement_id')
                 .eq('user_id', userId)
-                    .limit(100);
+                .limit(100);
 
             const unlockedIds = new Set((existing || []).map(e => e.achievement_id));
 
@@ -153,7 +154,7 @@ export default async function handler(req, res) {
                         break;
 
                     case 'mastery':
-                        progress = cumulativeStats.totalCorrect || 0;
+                        progress = cumulativeStats.totalXp || 0;
                         shouldUnlock = progress >= def.threshold;
                         break;
                 }

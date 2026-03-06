@@ -20,6 +20,8 @@ import SessionHistoryList from './SessionHistoryList';
 import PreflopRangeTrainer from './PreflopRangeTrainer';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
+import dynamic from 'next/dynamic';
+import Confetti from 'react-confetti';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
 
@@ -626,6 +628,16 @@ function GodModeArena({
 
         return (
             <div style={styles.reviewContainer}>
+                {levelPassed && typeof window !== 'undefined' && (
+                    <Confetti
+                        width={window.innerWidth}
+                        height={window.innerHeight}
+                        recycle={false}
+                        numberOfPieces={400}
+                        gravity={0.15}
+                        style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }}
+                    />
+                )}
                 {/* REVIEW HEADER */}
                 <div style={styles.reviewHeader}>
                     <button onClick={onExit} style={styles.reviewBackBtn}>← Back</button>
@@ -822,7 +834,7 @@ function GodModeArena({
                         />
                     </AnimatePresence>
                 </div>
-            </div>
+            </div >
         );
     }
 

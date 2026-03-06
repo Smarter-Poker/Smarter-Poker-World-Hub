@@ -12,14 +12,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 30s, serve stale up to 120s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
-  }
+    // CDN cache: fresh for 30s, serve stale up to 120s
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=120');
+    }
 
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
@@ -34,8 +34,11 @@ export default async function handler(req, res) {
 
     // POST: Update leaderboard entry after session
     if (req.method === 'POST') {
-        const { userId, accuracy, questionsAnswered, questionsCorrect, bestStreak, gameId } = req.body;
+        const { userId, accuracy, questionsAnswered, questionsCorrect, bestStreak, gameId, gtowScore } = req.body;
         const isPerfectRound = accuracy === 100;
+
+        // GTOW Score is the new metric for XP. Default to accuracy if not provided by older games
+        const earnedXp = gtowScore !== undefined ? gtowScore : (accuracy || 0);
 
         if (!userId) {
             return res.status(400).json({ success: false, error: 'userId required' });
@@ -72,6 +75,7 @@ export default async function handler(req, res) {
                             accuracy: newTotal > 0 ? Math.round((newCorrect / newTotal) * 100) : 0,
                             best_streak: Math.max(existing.best_streak || 0, bestStreak || 0),
                             perfect_rounds: (existing.perfect_rounds || 0) + (isPerfectRound ? 1 : 0),
+                            total_xp: (existing.total_xp || 0) + earnedXp,
                             updated_at: new Date().toISOString()
                         })
                         .eq('id', existing.id);
@@ -88,7 +92,7 @@ export default async function handler(req, res) {
                             accuracy: questionsAnswered > 0 ? Math.round((questionsCorrect / questionsAnswered) * 100) : 0,
                             best_streak: bestStreak || 0,
                             perfect_rounds: isPerfectRound ? 1 : 0,
-                            total_xp: 0
+                            total_xp: earnedXp
                         });
                 }
             }

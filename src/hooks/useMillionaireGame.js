@@ -13,6 +13,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { getAuthUser, getSessionToken } from '../lib/authUtils';
 import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
+import { trainingSounds } from '../utils/trainingSounds';
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
 
@@ -256,15 +257,25 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         });
 
         // Update legacy scores
+        let currentStreakCount = prevStreak => prevStreak; // fallback
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
             setStreak(prev => {
                 const newStreak = prev + 1;
                 if (newStreak > bestStreak) setBestStreak(newStreak);
+                if (newStreak % 5 === 0) trainingSounds.play('streak'); // Streak milestone
                 return newStreak;
             });
         } else {
             setStreak(0);
+        }
+
+        // Audio Feedback for Move Quality
+        const cls = moveResult.classification;
+        if (cls === 'Blunder' || cls === 'Mistake' || cls === 'Inaccuracy' || !isCorrect) {
+            trainingSounds.play('incorrect');
+        } else {
+            trainingSounds.play('correct');
         }
 
         // Show feedback
@@ -447,6 +458,14 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
 
             setLevelPassed(passed);
             setGameComplete(true);
+
+            // Audio feedback for level completion
+            if (passed) {
+                if (accuracy === 100) trainingSounds.play('mastery');
+                else trainingSounds.play('levelUp');
+            } else {
+                trainingSounds.play('incorrect');
+            }
 
             // Save progress to database
             saveProgress(passed, accuracy);

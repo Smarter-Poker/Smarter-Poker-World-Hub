@@ -17,7 +17,8 @@ const GamificationService = {
         questionsAnswered,
         questionsCorrect,
         bestStreak,
-        levelPassed
+        levelPassed,
+        gtowScore
     }) {
         if (!userId) {
             console.warn('[GamificationService] No userId provided, skipping');
@@ -43,7 +44,8 @@ const GamificationService = {
                     accuracy,
                     questionsAnswered,
                     questionsCorrect,
-                    bestStreak
+                    bestStreak,
+                    gtowScore
                 })
             });
             results.leaderboard = await leaderboardRes.json();

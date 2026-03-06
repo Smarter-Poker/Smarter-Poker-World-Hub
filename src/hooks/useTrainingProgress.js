@@ -29,91 +29,101 @@ export default function useTrainingProgress() {
     const [progress, setProgress] = useState({});
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from API on mount
-    useEffect(() => {
-        const loadProgress = async () => {
+    const loadProgress = useCallback(async () => {
+        try {
+            // Get user ID from Supabase session (primary method - works reliably)
+            let userId = null;
+
             try {
-                // Get user ID from Supabase session (primary method - works reliably)
-                let userId = null;
+                const { data: { session } } = await supabase.auth.getSession();
+                userId = session?.user?.id;
+                console.log('[useTrainingProgress] Session check:', {
+                    hasSession: !!session,
+                    userId,
+                    userEmail: session?.user?.email
+                });
+            } catch (sessionError) {
+                console.warn('[useTrainingProgress] Session fetch failed, trying localStorage fallback:', sessionError.message);
+            }
 
+            // Fallback to localStorage if session not available
+            if (!userId) {
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    userId = session?.user?.id;
-                    console.log('[useTrainingProgress] Session check:', {
-                        hasSession: !!session,
-                        userId,
-                        userEmail: session?.user?.email
+                    const { getAuthUser } = await import('../lib/authUtils');
+                    const authUser = getAuthUser();
+                    userId = authUser?.id;
+                    console.log('[useTrainingProgress] localStorage fallback:', {
+                        hasUser: !!authUser,
+                        userId
                     });
-                } catch (sessionError) {
-                    console.warn('[useTrainingProgress] Session fetch failed, trying localStorage fallback:', sessionError.message);
-                }
-
-                // Fallback to localStorage if session not available
-                if (!userId) {
-                    try {
-                        const { getAuthUser } = await import('../lib/authUtils');
-                        const authUser = getAuthUser();
-                        userId = authUser?.id;
-                        console.log('[useTrainingProgress] localStorage fallback:', {
-                            hasUser: !!authUser,
-                            userId
-                        });
-                    } catch (e) {
-                        console.warn('[useTrainingProgress] localStorage fallback failed:', e.message);
-                    }
-                }
-
-                if (userId) {
-                    // Fetch from API
-                    console.log('[useTrainingProgress] Fetching progress for userId:', userId);
-                    const response = await fetch(`/api/training/get-progress?userId=${userId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.progress) {
-                            // Convert array to object keyed by game_id
-                            const progressObj = {};
-                            data.progress.forEach(p => {
-                                // Calculate mastery percentage from correct/total answers
-                                const mastery = p.total_answers > 0
-                                    ? Math.round((p.correct_answers / p.total_answers) * 100)
-                                    : 0;
-                                progressObj[p.game_id] = {
-                                    attempts: p.hands_played || p.total_answers || 0,
-                                    levelsCompleted: Math.max(0, (p.level || 1) - 1), // level 2 means 1 level completed
-                                    mastery: mastery,
-                                    bestScore: 0, // Not tracked yet
-                                    totalXP: p.xp || 0,
-                                    lastPlayed: p.last_played_at,
-                                    streakBest: p.best_streak || 0,
-                                    currentLevel: p.level || 1,
-                                };
-                            });
-                            setProgress(progressObj);
-                        }
-                    }
-                } else {
-                    // Fallback to localStorage for anonymous users
-                    const stored = localStorage.getItem(STORAGE_KEY);
-                    if (stored) {
-                        setProgress(JSON.parse(stored));
-                    }
-                }
-            } catch (e) {
-                console.warn('Failed to load training progress:', e);
-                // Fallback to localStorage
-                try {
-                    const stored = localStorage.getItem(STORAGE_KEY);
-                    if (stored) {
-                        setProgress(JSON.parse(stored));
-                    }
-                } catch (e2) {
-                    console.warn('Failed to load from localStorage:', e2);
+                } catch (e) {
+                    console.warn('[useTrainingProgress] localStorage fallback failed:', e.message);
                 }
             }
-            setIsLoaded(true);
-        };
-        loadProgress();
+
+            if (userId) {
+                // Fetch from API
+                console.log('[useTrainingProgress] Fetching progress for userId:', userId);
+                const response = await fetch(`/api/training/get-progress?userId=${userId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.progress) {
+                        // Convert array to object keyed by game_id
+                        const progressObj = {};
+                        data.progress.forEach(p => {
+                            // Calculate mastery percentage from correct/total answers
+                            const mastery = p.total_answers > 0
+                                ? Math.round((p.correct_answers / p.total_answers) * 100)
+                                : 0;
+                            progressObj[p.game_id] = {
+                                attempts: p.hands_played || p.total_answers || 0,
+                                levelsCompleted: Math.max(0, (p.level || 1) - 1), // level 2 means 1 level completed
+                                mastery: mastery,
+                                bestScore: 0, // Not tracked yet
+                                totalXP: p.xp || 0,
+                                lastPlayed: p.last_played_at,
+                                streakBest: p.best_streak || 0,
+                                currentLevel: p.level || 1,
+                            };
+                        });
+                        setProgress(progressObj);
+                    }
+                }
+            } else {
+                // Fallback to localStorage for anonymous users
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    setProgress(JSON.parse(stored));
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load training progress:', e);
+            // Fallback to localStorage
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    setProgress(JSON.parse(stored));
+                }
+            } catch (e2) {
+                console.warn('Failed to load from localStorage:', e2);
+            }
+        }
+        setIsLoaded(true);
     }, []);
+
+    // Load on mount and listen to global events
+    useEffect(() => {
+        loadProgress();
+
+        if (typeof window !== 'undefined') {
+            const handleReload = () => {
+                console.log('[useTrainingProgress] Caught trainingSessionSaved bus event, re-hydrating...');
+                loadProgress();
+            };
+            window.addEventListener('trainingSessionSaved', handleReload);
+            return () => window.removeEventListener('trainingSessionSaved', handleReload);
+        }
+    }, [loadProgress]);
 
     // Save to localStorage on change
     useEffect(() => {
