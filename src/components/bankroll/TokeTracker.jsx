@@ -320,15 +320,20 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
         // Always fire the in-app prompt
         handleDoubleDownPrompt(lastDown);
 
-        // Also try browser notification as a bonus
+        // Also try browser notification as a bonus (ultra-safe for watchOS/iOS WebViews)
         try {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, {
-                    body: message + '\nTap to respond.',
-                    icon: '/icons/icon-192x192.png',
-                    tag: 'toke-down-timer',
-                    requireInteraction: true,
-                });
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+                let perm;
+                try { perm = Notification.permission; } catch (e) { /* ignore security errors */ }
+
+                if (perm === 'granted') {
+                    new Notification(title, {
+                        body: message + '\nTap to respond.',
+                        icon: '/icons/icon-192x192.png',
+                        tag: 'toke-down-timer',
+                        requireInteraction: true,
+                    });
+                }
             }
         } catch (e) {
             // Silently fail — the in-app prompt is the primary mechanism
@@ -389,11 +394,20 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
     // ── Request notification permission ──
     const requestNotificationPermission = useCallback(async () => {
         try {
-            if ('Notification' in window && Notification.permission === 'default') {
-                await Notification.requestPermission();
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+                let perm;
+                try { perm = Notification.permission; } catch (e) { /* ignore strict-mode access throws */ }
+
+                if (perm === 'default') {
+                    // Safe call: older embedded WebKit might not return a Promise
+                    const req = Notification.requestPermission();
+                    if (req && typeof req.then === 'function') {
+                        await req;
+                    }
+                }
             }
         } catch (err) {
-            console.warn('[TokeTracker] Notification permission request aborted or blocked:', err);
+            console.warn('[TokeTracker] Notification permission request blocked/unavailable:', err);
         }
     }, []);
 
