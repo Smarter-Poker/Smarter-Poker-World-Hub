@@ -4,13 +4,14 @@
  * Dual-purpose: TV display mode + staff management panel
  * Facebook Dark theme • Supabase Realtime • Templates • Scheduling
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Plus, Edit3, Trash2, X, Send, Loader2, ChevronDown, Settings, Megaphone, RefreshCw } from 'lucide-react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -57,7 +58,7 @@ export default function AnnouncementsDisplay() {
   const [roomOpen, setRoomOpen] = useState(true);
   const [now, setNow] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(0);
-  const wakeLockRef = useRef(null);
+  useWakeLock();
 
   // ─── Management state ───
   const [showPanel, setShowPanel] = useState(true);
@@ -149,16 +150,7 @@ export default function AnnouncementsDisplay() {
     return () => clearInterval(t);
   }, [totalPages]);
 
-  // ─── Wake lock ───
-  useEffect(() => {
-    const req = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { }
-    };
-    req();
-    const handleVis = () => { if (document.visibilityState === 'visible') req(); };
-    document.addEventListener('visibilitychange', handleVis);
-    return () => { wakeLockRef.current?.release(); document.removeEventListener('visibilitychange', handleVis); };
-  }, []);
+
 
   // ─── CRUD operations ───
   const openCreate = () => {

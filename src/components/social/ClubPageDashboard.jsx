@@ -10,8 +10,8 @@ import { supabase } from '../../lib/supabase';
 
 // Shared color theme (Facebook-style light)
 const C = {
-    bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
-    border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', red: '#FA383E',
+    bg: '#18191A', card: '#242526', text: '#E4E6EB', textSec: '#B0B3B8',
+    border: '#3A3B3C', blue: '#2D88FF', blueHover: '#1A7AFF', green: '#42B72A', red: '#FA383E',
 };
 
 // Utility helpers
@@ -626,7 +626,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                             )}
                             <div style={{
                                 position: 'absolute', bottom: 2, right: 2, width: 24, height: 24, borderRadius: '50%',
-                                background: '#1877F2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#3A3B3C', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 border: '2px solid #fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
                             }}>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -647,32 +647,32 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 {/* ═══ DRAFT BANNER with Setup Completion Tracker ═══ */}
                 {isDraft && (
                     <div style={{
-                        padding: '16px', background: 'linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%)',
-                        borderBottom: '2px solid #F0C040'
+                        padding: '16px', background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.06) 100%)',
+                        borderBottom: '2px solid rgba(245,158,11,0.3)'
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <div style={{
-                                    width: 36, height: 36, borderRadius: '50%', background: '#F0C040',
+                                    width: 36, height: 36, borderRadius: '50%', background: 'rgba(245,158,11,0.2)',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 18, fontWeight: 700, color: '#473D00'
+                                    fontSize: 18, fontWeight: 700, color: '#F59E0B'
                                 }}>⚠</div>
                                 <div>
-                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#473D00' }}>Draft — Not Published Yet</div>
-                                    <div style={{ fontSize: 12, color: '#7A6B00' }}>{completionPct}% complete — {completedCount}/{completionChecks.length} steps done</div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#F59E0B' }}>Draft — Not Published Yet</div>
+                                    <div style={{ fontSize: 12, color: '#B0B3B8' }}>{completionPct}% complete — {completedCount}/{completionChecks.length} steps done</div>
                                 </div>
                             </div>
                             <button onClick={publishPage} disabled={publishing} style={{
                                 padding: '10px 24px', borderRadius: 8, border: 'none',
-                                background: completionPct === 100 ? '#42B72A' : '#888',
+                                background: completionPct === 100 ? '#42B72A' : '#4E4F50',
                                 color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
                                 fontFamily: 'inherit', boxShadow: completionPct === 100 ? '0 2px 8px rgba(66,183,42,0.4)' : 'none',
                                 opacity: publishing ? 0.6 : 1, whiteSpace: 'nowrap'
                             }}>{publishing ? 'Publishing...' : '🚀 Publish Page'}</button>
                         </div>
                         {/* Progress Bar */}
-                        <div style={{ height: 6, borderRadius: 3, background: 'rgba(0,0,0,0.1)', overflow: 'hidden', marginBottom: 10 }}>
-                            <div style={{ height: '100%', width: `${completionPct}%`, borderRadius: 3, background: completionPct === 100 ? '#42B72A' : '#F0C040', transition: 'width 0.5s ease' }} />
+                        <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 10 }}>
+                            <div style={{ height: '100%', width: `${completionPct}%`, borderRadius: 3, background: completionPct === 100 ? '#42B72A' : '#F59E0B', transition: 'width 0.5s ease' }} />
                         </div>
                         {/* Checklist */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -680,8 +680,8 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                                 <div key={item.key} style={{
                                     display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
                                     padding: '4px 10px', borderRadius: 6,
-                                    background: item.done ? 'rgba(66,183,42,0.15)' : 'rgba(0,0,0,0.06)',
-                                    color: item.done ? '#2D8A1E' : '#7A6B00', fontWeight: 600
+                                    background: item.done ? 'rgba(66,183,42,0.15)' : 'rgba(255,255,255,0.06)',
+                                    color: item.done ? '#42B72A' : '#B0B3B8', fontWeight: 600
                                 }}>
                                     <span>{item.done ? '✓' : '○'}</span>
                                     <span style={{ textDecoration: item.done ? 'line-through' : 'none', opacity: item.done ? 0.7 : 1 }}>{item.label}</span>
@@ -1428,7 +1428,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
 
                         {/* QR Code & Referral Section */}
                         {!isDraft && (
-                            <div style={{ marginTop: 12, padding: 16, border: `1px solid ${C.border}`, borderRadius: 12, background: '#FAFBFC' }}>
+                            <div style={{ marginTop: 12, padding: 16, border: `1px solid ${C.border}`, borderRadius: 12, background: '#242526' }}>
                                 <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: C.text }}>QR Code & Referral Link</h4>
                                 <p style={{ margin: '0 0 12px', fontSize: 12, color: C.textSec, lineHeight: 1.4 }}>
                                     Print this QR code and place it on your tables, at the front desk, or in promotions. Players who scan it will auto-follow your page.
@@ -1449,8 +1449,8 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                                             <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4 }}>Referral URL</label>
                                             <div style={{ display: 'flex', gap: 6 }}>
                                                 <input readOnly value={qrData.follow_url} style={{
-                                                    flex: 1, padding: '6px 10px', border: '1px solid #CCD0D5', borderRadius: 6,
-                                                    fontSize: 12, fontFamily: 'monospace', background: '#fff', color: C.text
+                                                    flex: 1, padding: '6px 10px', border: '1px solid #3A3B3C', borderRadius: 6,
+                                                    fontSize: 12, fontFamily: 'monospace', background: '#18191A', color: C.text
                                                 }} onClick={e => { e.target.select(); navigator.clipboard?.writeText(qrData.follow_url); }} />
                                                 <button onClick={() => { navigator.clipboard?.writeText(qrData.follow_url); }} style={{
                                                     padding: '6px 12px', borderRadius: 6, border: 'none', background: C.blue,
