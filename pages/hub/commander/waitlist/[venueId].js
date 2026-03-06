@@ -35,34 +35,8 @@ export default function PlayerWaitlistPage() {
   const [error, setError] = useState(null);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
-  useEffect(() => {
-    if (venueId) {
-      fetchData();
-      const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-      return () => clearInterval(interval);
-    }
-  }, [venueId]);
-
-  // Commander Data Bus — instant sync when waitlist/games change
-  useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });
-
-  function getAuthToken() {
-    // Try direct key first
-    let raw = localStorage.getItem('smarter-poker-auth');
-    if (!raw) {
-      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (sbKeys.length > 0) raw = localStorage.getItem(sbKeys[0]);
-    }
-    if (!raw) return null;
-    // Parse JSON if needed to get access_token
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed.access_token || raw;
-    } catch {
-      return raw;
-    }
-  }
-
+  
+  // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = useCallback(async () => {
     try {
       const [publicRes, waitlistRes] = await Promise.all([
@@ -134,7 +108,36 @@ export default function PlayerWaitlistPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (venueId) {
+      fetchData();
+      const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+      return () => clearInterval(interval);
+    }
   }, [venueId]);
+
+  // Commander Data Bus — instant sync when waitlist/games change
+  useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });
+
+  function getAuthToken() {
+    // Try direct key first
+    let raw = localStorage.getItem('smarter-poker-auth');
+    if (!raw) {
+      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (sbKeys.length > 0) raw = localStorage.getItem(sbKeys[0]);
+    }
+    if (!raw) return null;
+    // Parse JSON if needed to get access_token
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed.access_token || raw;
+    } catch {
+      return raw;
+    }
+  }
+, [venueId]);
 
   // Join a single game
   async function handleJoinGame(gameType, stakes) {

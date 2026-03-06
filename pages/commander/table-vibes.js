@@ -31,23 +31,8 @@ export default function TableVibes() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
-    const stored = localStorage.getItem('commander_staff');
-    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
-    try {
-      const s = JSON.parse(stored);
-      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
-      setStaff(s);
-    } catch { router.push('/commander/login').catch(() => { }); }
-  }, []);
-
-  useEffect(() => {
-    if (staff?.venue_id) fetchVibes();
-  }, [staff, days]);
-
-  // Commander Data Bus — sync table vibes
-  useCommanderSync(staff?.venue_id || '', fetchVibes, { entities: ['tables'] });
-
+  
+  // fetchVibes declared first — must precede useEffect/useCommanderSync that reference it
   const fetchVibes = async () => {
     setLoading(true);
     try {
@@ -64,6 +49,22 @@ export default function TableVibes() {
     finally { setLoading(false); }
   };
 
+useEffect(() => {
+    const stored = localStorage.getItem('commander_staff');
+    if (!stored) { router.push('/commander/login').catch(() => { }); return; }
+    try {
+      const s = JSON.parse(stored);
+      if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
+      setStaff(s);
+    } catch { router.push('/commander/login').catch(() => { }); }
+  }, []);
+
+  useEffect(() => {
+    if (staff?.venue_id) fetchVibes();
+  }, [staff, days]);
+
+  // Commander Data Bus — sync table vibes
+  useCommanderSync(staff?.venue_id || '', fetchVibes, { entities: ['tables'] });
   const renderBar = (value, label, color) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <span style={{ fontSize: 11, color: '#65676B', minWidth: 60, textAlign: 'right' }}>{label}</span>

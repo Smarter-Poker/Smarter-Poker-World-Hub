@@ -29,24 +29,7 @@ export default function LobbyDisplay() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  useEffect(() => {
-    fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-    const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
-  }, [fetchData]);
-
-  // Cross-tab + cross-device real-time sync
-  useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
-
-  // Wake lock
-  useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
-    req();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') req(); });
-    return () => { wakeLockRef.current?.release(); };
-  }, []);
-
+  // fetchData declared FIRST — must precede useEffect/useCommanderSync that reference it
   const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
@@ -80,6 +63,24 @@ export default function LobbyDisplay() {
     } catch (err) { console.error(err); }
     setNow(new Date());
   }, [venueId]);
+
+  useEffect(() => {
+    fetchData();
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+    const clock = setInterval(() => setNow(new Date()), 1000);
+    return () => { clearInterval(poll); clearInterval(clock); };
+  }, [fetchData]);
+
+  // Cross-tab + cross-device real-time sync
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
+
+  // Wake lock
+  useEffect(() => {
+    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
+    req();
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') req(); });
+    return () => { wakeLockRef.current?.release(); };
+  }, []);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

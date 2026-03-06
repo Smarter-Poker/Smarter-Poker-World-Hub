@@ -50,35 +50,8 @@ export default function PlayerCheckIn() {
   const [activeSession, setActiveSession] = useState(null);
   const [now, setNow] = useState(new Date());
 
-  useEffect(() => {
-    if (!code) return;
-    fetchMember();
-    const poll = setInterval(fetchMember, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(poll);
-  }, [code]);
-
-  // Extract venueId for cross-device Supabase sync
-  const [venueId] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
-
-  // Commander Data Bus — sync member status in real-time
-  useCommanderSync(venueId, fetchMember, { entities: ['members', 'tables'] });
-
-  // Local countdown ticker
-  useEffect(() => {
-    const ticker = setInterval(() => {
-      if (activeSession) {
-        setActiveSession(prev => prev ? ({
-          ...prev,
-          time_remaining: Math.max(0, (prev.time_remaining || 0) - 1)
-        }) : null);
-      }
-      setNow(new Date());
-    }, 1000);
-    return () => clearInterval(ticker);
-  }, [activeSession?.session_id]);
-
+  
+  // fetchMember declared first — must precede useEffect/useCommanderSync that reference it
   const fetchMember = async () => {
     try {
       // Use the dealer scan API to validate QR code
@@ -117,6 +90,34 @@ export default function PlayerCheckIn() {
     }
   };
 
+useEffect(() => {
+    if (!code) return;
+    fetchMember();
+    const poll = setInterval(fetchMember, 30000); // fallback — real-time sync handles instant updates
+    return () => clearInterval(poll);
+  }, [code]);
+
+  // Extract venueId for cross-device Supabase sync
+  const [venueId] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
+  });
+
+  // Commander Data Bus — sync member status in real-time
+  useCommanderSync(venueId, fetchMember, { entities: ['members', 'tables'] });
+
+  // Local countdown ticker
+  useEffect(() => {
+    const ticker = setInterval(() => {
+      if (activeSession) {
+        setActiveSession(prev => prev ? ({
+          ...prev,
+          time_remaining: Math.max(0, (prev.time_remaining || 0) - 1)
+        }) : null);
+      }
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(ticker);
+  }, [activeSession?.session_id]);
   if (loading) return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">
       <div className="text-center">

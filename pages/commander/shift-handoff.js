@@ -44,13 +44,7 @@ export default function ShiftHandoff() {
     } catch { router.push('/commander/login').catch(() => { }); }
   }, []);
 
-  useEffect(() => {
-    if (staff?.venue_id) fetchHandoffs();
-  }, [staff]);
-
-  // Commander Data Bus — sync handoffs across tabs
-  useCommanderSync(staff?.venue_id || '', fetchHandoffs, { entities: ['staff'] });
-
+  // fetchHandoffs declared FIRST — must precede useEffect/useCommanderSync that reference it
   const fetchHandoffs = async () => {
     setLoading(true);
     try {
@@ -64,6 +58,13 @@ export default function ShiftHandoff() {
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
+
+  useEffect(() => {
+    if (staff?.venue_id) fetchHandoffs();
+  }, [staff]);
+
+  // Commander Data Bus — sync handoffs across tabs
+  useCommanderSync(staff?.venue_id || '', fetchHandoffs, { entities: ['staff'] });;
 
   const handleSubmit = async () => {
     if (!notes.trim() && !issues.trim()) {

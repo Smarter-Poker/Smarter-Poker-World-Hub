@@ -41,19 +41,8 @@ export default function TableSeating() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
   };
 
-  useEffect(() => {
-    if (!id) return;
-    fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(poll);
-  }, [id]);
-
-  // Real-time sync — instant cross-tab + cross-device updates
-  const venueId = typeof window !== 'undefined'
-    ? (() => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } })()
-    : '';
-  useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
-
+  
+  // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = async () => {
     try {
       const token = getToken();
@@ -74,6 +63,18 @@ export default function TableSeating() {
     finally { setLoading(false); }
   };
 
+useEffect(() => {
+    if (!id) return;
+    fetchData();
+    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+    return () => clearInterval(poll);
+  }, [id]);
+
+  // Real-time sync — instant cross-tab + cross-device updates
+  const venueId = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } })()
+    : '';
+  useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist'] });
   const removePlayer = async (sessionId) => {
     try {
       const token = getToken();
