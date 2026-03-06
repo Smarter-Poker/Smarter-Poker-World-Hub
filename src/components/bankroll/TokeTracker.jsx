@@ -388,8 +388,12 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
 
     // ── Request notification permission ──
     const requestNotificationPermission = useCallback(async () => {
-        if ('Notification' in window && Notification.permission === 'default') {
-            await Notification.requestPermission();
+        try {
+            if ('Notification' in window && Notification.permission === 'default') {
+                await Notification.requestPermission();
+            }
+        } catch (err) {
+            console.warn('[TokeTracker] Notification permission request aborted or blocked:', err);
         }
     }, []);
 
