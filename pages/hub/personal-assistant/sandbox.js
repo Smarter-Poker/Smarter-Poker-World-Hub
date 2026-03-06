@@ -1260,6 +1260,7 @@ export default function VirtualSandboxPage() {
           </div>
         </FeatureGate>
       </div>
+      {UpgradePopup}
     </PageTransition >
   );
 }

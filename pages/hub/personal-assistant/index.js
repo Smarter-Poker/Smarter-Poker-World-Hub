@@ -17,6 +17,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useRecentSessions } from '../../../src/hooks/useAssistant';
 import JarvisChatWidget from '../../../src/components/jarvis/JarvisChatWidget';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STRATEGY HUB — Image-Based Metal Frame Layout
@@ -29,6 +30,9 @@ export default function PersonalAssistantPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [hoveredZone, setHoveredZone] = useState(null);
   const [sessionFilter, setSessionFilter] = useState('mine');
+
+  // ═══ ACTION GATE: Users can view the hub, but navigating to tools is gated ═══
+  const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
 
   // Intro video - only show once per session
   const [showIntro, setShowIntro] = useState(() => {
@@ -87,7 +91,7 @@ export default function PersonalAssistantPage() {
         description="Get Personalized Poker Coaching, Hand Analysis, And Strategy Advice From Jarvis, Your AI Poker Assistant."
         canonical="/hub/personal-assistant"
       >
-        
+
       </SEOHead>
 
       <div style={S.page}>
@@ -114,7 +118,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '13.7%', left: '14.0%', width: '35.4%', height: '33.7%',
             }}
-            onClick={() => router.push('/hub/personal-assistant/sandbox')}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
             title="Virtual Sandbox — Explore Theoretical Hands"
           />
 
@@ -125,7 +129,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '40.0%', left: '17.5%', width: '28.5%', height: '4.9%',
             }}
-            onClick={() => router.push('/hub/personal-assistant/sandbox')}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
             title="Enter Sandbox"
           />
 
@@ -136,7 +140,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '13.7%', left: '50.5%', width: '35.4%', height: '33.7%',
             }}
-            onClick={() => router.push('/hub/personal-assistant/leaks')}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="Leak Finder — Track and Improve Your Game"
           />
 
@@ -147,7 +151,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '40.0%', left: '53.9%', width: '28.5%', height: '4.9%',
             }}
-            onClick={() => router.push('/hub/personal-assistant/leaks')}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="View Leaks"
           />
 
@@ -158,7 +162,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '55.7%', left: '15.1%', width: '22.9%', height: '11.7%',
             }}
-            onClick={() => router.push('/hub/personal-assistant/sandbox')}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/sandbox'); }}
             title="GTO Anchored — Tied To Solver Analysis"
           />
 
@@ -179,7 +183,7 @@ export default function PersonalAssistantPage() {
               ...S.hotspot,
               top: '55.7%', left: '61.9%', width: '22.9%', height: '11.7%',
             }}
-            onClick={() => router.push('/hub/personal-assistant/leaks')}
+            onClick={() => { if (guardAction()) router.push('/hub/personal-assistant/leaks'); }}
             title="Results-Driven — Identify Leaks, Track Improvement"
           />
 
@@ -254,6 +258,7 @@ export default function PersonalAssistantPage() {
 
         {/* Global Jarvis widget is removed to avoid duplicate avatars; functionality is inside the frame */}
       </div>
+      {UpgradePopup}
     </PageTransition>
   );
 }

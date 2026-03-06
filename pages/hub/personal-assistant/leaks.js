@@ -15,6 +15,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useLeaks, useAssistantStats } from '../../../src/hooks/useAssistant';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -534,6 +535,9 @@ export default function LeakFinderPage() {
     const user = getAuthUser();
     if (user) setUserId(user.id);
   }, []);
+
+  // ═══ ACTION GATE: Users can explore leaks, but practice/training is gated ═══
+  const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
   const [selectedLeak, setSelectedLeak] = useState(null);
 
   // Use real hooks for data
@@ -564,10 +568,14 @@ export default function LeakFinderPage() {
   }, [activeLeaks, selectedLeak]);
 
   const handlePracticeSandbox = () => {
+    // ═══ ACTION GATE: Practice requires access ═══
+    if (!guardAction()) return;
     router.push('/hub/personal-assistant/sandbox');
   };
 
   const handleTrainDrills = () => {
+    // ═══ ACTION GATE: Training requires access ═══
+    if (!guardAction()) return;
     router.push('/hub/training');
   };
 
@@ -586,7 +594,7 @@ export default function LeakFinderPage() {
         description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
         canonical="/hub/personal-assistant/leaks"
       >
-        
+
       </SEOHead>
 
       <div className="leaks-page" style={styles.container}>
@@ -702,6 +710,7 @@ export default function LeakFinderPage() {
           </div>
         </FeatureGate>
       </div>
+      {UpgradePopup}
     </PageTransition >
   );
 }
