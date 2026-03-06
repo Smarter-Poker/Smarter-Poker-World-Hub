@@ -60,6 +60,10 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
     const [lastSelectedAction, setLastSelectedAction] = useState(null);
     const multiStreetHandRef = useRef(null);
 
+    // ═══ ADAPTIVE DIFFICULTY STATE ═══
+    const [adaptiveLevelChange, setAdaptiveLevelChange] = useState(null); // { from, to, direction }
+    const adaptiveCheckpointRef = useRef(5); // Check every 5 questions
+
     // Get user ID for no-repeat tracking
     const userId = getAuthUser()?.id;
 
@@ -318,6 +322,40 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
         // Store the selected action for multi-street advance
         setLastSelectedAction(selectedOptionId);
+
+        // ═══ ADAPTIVE DIFFICULTY: Auto-adjust level every 5 questions ═══
+        const answeredSoFar = questionNumber; // 1-based, this is the Nth answer
+        if (answeredSoFar >= adaptiveCheckpointRef.current && answeredSoFar < effectiveQuestionsPerLevel) {
+            const windowSize = 5;
+            const recentHistory = gtowScoring.handHistory.slice(-windowSize);
+            const recentCorrect = recentHistory.filter(h => h.classification === 'best' || h.classification === 'correct').length;
+            const recentAccuracy = (recentCorrect / windowSize) * 100;
+
+            if (recentAccuracy >= 90 && level < 10) {
+                // Player is crushing it → increase difficulty
+                const newLevel = Math.min(10, level + 1);
+                setLevel(newLevel);
+                setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'up' });
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('adaptiveDifficultyChange', {
+                        detail: { from: level, to: newLevel, direction: 'up' }
+                    }));
+                }
+                console.log(`[GTOTrainer] 📈 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
+            } else if (recentAccuracy < 50 && level > 1) {
+                // Player struggling → decrease difficulty
+                const newLevel = Math.max(1, level - 1);
+                setLevel(newLevel);
+                setAdaptiveLevelChange({ from: level, to: newLevel, direction: 'down' });
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('adaptiveDifficultyChange', {
+                        detail: { from: level, to: newLevel, direction: 'down' }
+                    }));
+                }
+                console.log(`[GTOTrainer] 📉 Adaptive: Level ${level} → ${newLevel} (accuracy ${recentAccuracy}%)`);
+            }
+            adaptiveCheckpointRef.current = answeredSoFar + 5; // Next checkpoint
+        }
 
         // ═══ MULTI-STREET: Record action on current hand ═══
         if (multiStreetHandRef.current && !multiStreetHandRef.current.isComplete) {
@@ -615,6 +653,9 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
         // Completion state
         gameComplete,
         levelPassed,
+
+        // Adaptive difficulty
+        adaptiveLevelChange,
 
         // Actions
         submitAnswer,

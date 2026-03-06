@@ -37,7 +37,7 @@ export function FrequencyBar({ action, isOptimal }) {
                     color: isOptimal ? '#22c55e' : '#94a3b8', fontSize: '13px',
                     fontWeight: isOptimal ? '700' : '500', display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
-                    {isOptimal && <span style={{ color: '#22c55e', fontSize: '10px' }}>★</span>}
+                    {isOptimal && <span style={{ color: '#22c55e', fontSize: '10px' }}></span>}
                     {action.label}
                 </span>
                 <span style={{
@@ -174,11 +174,11 @@ export function BoardTextureHUD({ texture }) {
                     color: texture.textColor, textTransform: 'uppercase',
                 }}>{texture.label}</span>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                    {texture.isMonotone && <span style={{ fontSize: '10px' }}>🎨</span>}
-                    {texture.isConnected && <span style={{ fontSize: '10px' }}>🔗</span>}
-                    {texture.isPaired && <span style={{ fontSize: '10px' }}>👯</span>}
-                    {texture.isDry && <span style={{ fontSize: '10px' }}>🏜️</span>}
-                    {texture.isWet && <span style={{ fontSize: '10px' }}>💧</span>}
+                    {texture.isMonotone && <span style={{ fontSize: '10px', color: texture.textColor }}>M</span>}
+                    {texture.isConnected && <span style={{ fontSize: '10px', color: texture.textColor }}>C</span>}
+                    {texture.isPaired && <span style={{ fontSize: '10px', color: texture.textColor }}>P</span>}
+                    {texture.isDry && <span style={{ fontSize: '10px', color: texture.textColor }}>D</span>}
+                    {texture.isWet && <span style={{ fontSize: '10px', color: texture.textColor }}>W</span>}
                 </div>
             </div>
             <p style={{ color: '#cbd5e1', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{texture.strategy}</p>
@@ -226,8 +226,8 @@ export function ActionHistoryBuilder({ actions, onAdd, onRemove, potSize }) {
                         {BET_ACTIONS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
                     </select>
                     <button onClick={() => { onAdd({ ...newAction, label: BET_ACTIONS.find(b => b.id === newAction.action)?.label }); setAdding(false); }}
-                        style={{ ...sty, background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', cursor: 'pointer', fontWeight: '600' }}>✓</button>
-                    <button onClick={() => setAdding(false)} style={{ ...sty, background: 'rgba(239,68,68,0.1)', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>✗</button>
+                        style={{ ...sty, background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', cursor: 'pointer', fontWeight: '600' }}>OK</button>
+                    <button onClick={() => setAdding(false)} style={{ ...sty, background: 'rgba(239,68,68,0.1)', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>X</button>
                 </div>
             ) : (
                 <button onClick={() => setAdding(true)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.15)', color: '#94a3b8', cursor: 'pointer', width: '100%' }}>
@@ -378,11 +378,11 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
 export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     if (!isOpen || !results) return null;
 
-    const shareText = `🃏 GTO Analysis: ${results.heroHand || 'Hand'} on ${scenario?.board || 'Board'}\n` +
-        `✅ Optimal: ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n` +
-        `${results.isMixed ? '🔄 Mixed Strategy' : '⚡ Pure Strategy'}\n` +
-        `📊 Source: ${results.source}\n` +
-        `🎯 Analyze your hands at Smarter.Poker`;
+    const shareText = `GTO Analysis: ${results.heroHand || 'Hand'} on ${scenario?.board || 'Board'}\n` +
+        `Optimal: ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n` +
+        `${results.isMixed ? 'Mixed Strategy' : 'Pure Strategy'}\n` +
+        `Source: ${results.source}\n` +
+        `Analyze your hands at Smarter.Poker`;
 
     const [isPosting, setIsPosting] = useState(false);
 
@@ -431,11 +431,11 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     };
 
     const channels = [
-        { label: isPosting ? '...' : '🃏 Smarter.Poker', onClick: handleInternalPost },
-        { label: '📋 Copy', onClick: handleCopy },
-        { label: '🔗 Share', onClick: handleNativeShare },
-        { label: '🐦 Twitter', onClick: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank') },
-        { label: '👤 Facebook', onClick: () => window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`, '_blank') },
+        { label: isPosting ? '...' : 'Smarter.Poker', onClick: handleInternalPost },
+        { label: 'Copy', onClick: handleCopy },
+        { label: 'Share', onClick: handleNativeShare },
+        { label: 'Twitter', onClick: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank') },
+        { label: 'Facebook', onClick: () => window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(shareText)}`, '_blank') },
     ];
 
     return (

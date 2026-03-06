@@ -10,6 +10,23 @@
 
 import { supabase } from '../supabase';
 
+// ─── Retry Utility — exponential backoff for resilient reads ────────
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 2, baseDelay = 200): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await fn();
+        } catch (err) {
+            lastError = err;
+            if (attempt < retries) {
+                await new Promise(r => setTimeout(r, baseDelay * Math.pow(2, attempt)));
+            }
+        }
+    }
+    throw lastError;
+}
+
 // ─── Types ──────────────────────────────────────────────────────────
 
 export interface TokeGig {
@@ -126,49 +143,51 @@ function decorateDay(day: TokeGigDay, downs: TokeDown[], expenses: TokeExpense[]
  * Fetch all non-deleted gigs for a user (most recent first)
  */
 export async function fetchGigs(userId: string): Promise<TokeGig[]> {
-    // Fetch all gigs in one query
-    const { data, error } = await supabase
-        .from('toke_gigs')
-        .select('*')
-        .eq('user_id', userId)
-        .neq('status', 'deleted')
-        .order('start_date', { ascending: false });
+    return withRetry(async () => {
+        // Fetch all gigs in one query
+        const { data, error } = await supabase
+            .from('toke_gigs')
+            .select('*')
+            .eq('user_id', userId)
+            .neq('status', 'deleted')
+            .order('start_date', { ascending: false });
 
-    if (error) throw error;
-    if (!data || data.length === 0) return [];
+        if (error) throw error;
+        if (!data || data.length === 0) return [];
 
-    const gigIds = data.map(g => g.id);
+        const gigIds = data.map(g => g.id);
 
-    // Two bulk queries instead of 2×N per-gig queries
-    const [{ data: allDownsRaw }, { data: allExpsRaw }] = await Promise.all([
-        supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-        supabase.from('toke_expenses').select('*').in('gig_id', gigIds), // full row needed for category breakdown
-    ]);
+        // Two bulk queries instead of 2×N per-gig queries
+        const [{ data: allDownsRaw }, { data: allExpsRaw }] = await Promise.all([
+            supabase.from('toke_downs').select('*').in('gig_id', gigIds),
+            supabase.from('toke_expenses').select('*').in('gig_id', gigIds), // full row needed for category breakdown
+        ]);
 
-    const downsByGig = new Map<string, TokeDown[]>();
-    const expsByGig = new Map<string, TokeExpense[]>();
-    for (const d of (allDownsRaw || []) as TokeDown[]) {
-        if (!downsByGig.has(d.gig_id)) downsByGig.set(d.gig_id, []);
-        downsByGig.get(d.gig_id)!.push(d);
-    }
-    for (const e of (allExpsRaw || []) as TokeExpense[]) {
-        if (!expsByGig.has(e.gig_id)) expsByGig.set(e.gig_id, []);
-        expsByGig.get(e.gig_id)!.push(e);
-    }
+        const downsByGig = new Map<string, TokeDown[]>();
+        const expsByGig = new Map<string, TokeExpense[]>();
+        for (const d of (allDownsRaw || []) as TokeDown[]) {
+            if (!downsByGig.has(d.gig_id)) downsByGig.set(d.gig_id, []);
+            downsByGig.get(d.gig_id)!.push(d);
+        }
+        for (const e of (allExpsRaw || []) as TokeExpense[]) {
+            if (!expsByGig.has(e.gig_id)) expsByGig.set(e.gig_id, []);
+            expsByGig.get(e.gig_id)!.push(e);
+        }
 
-    return data.map(gig => {
-        const allDowns = downsByGig.get(gig.id) || [];
-        const allExps = expsByGig.get(gig.id) || [];
-        const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
-        return {
-            ...gig,
-            totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
-            totalDowns: dealingDowns.length,
-            totalHoursWorked: computeTotalHours(allDowns),
-            totalExpenses: allExps.reduce((s, e) => s + (e.amount || 0), 0),
-            downs: allDowns,       // ← attached for client-side analytics
-            expenses: allExps,     // ← attached for client-side analytics
-        };
+        return data.map(gig => {
+            const allDowns = downsByGig.get(gig.id) || [];
+            const allExps = expsByGig.get(gig.id) || [];
+            const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
+            return {
+                ...gig,
+                totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
+                totalDowns: dealingDowns.length,
+                totalHoursWorked: computeTotalHours(allDowns),
+                totalExpenses: allExps.reduce((s, e) => s + (e.amount || 0), 0),
+                downs: allDowns,       // ← attached for client-side analytics
+                expenses: allExps,     // ← attached for client-side analytics
+            };
+        });
     });
 }
 
@@ -176,56 +195,58 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
  * Get the active gig with its full day/down/expense tree
  */
 export async function getActiveGig(userId: string): Promise<TokeGig | null> {
-    const { data, error } = await supabase
-        .from('toke_gigs')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
+    return withRetry(async () => {
+        const { data, error } = await supabase
+            .from('toke_gigs')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
 
-    if (error) throw error;
-    if (!data) return null;
+        if (error) throw error;
+        if (!data) return null;
 
-    // Load all days
-    const { data: daysRaw } = await supabase
-        .from('toke_gig_days')
-        .select('*')
-        .eq('gig_id', data.id)
-        .order('day_number', { ascending: true });
+        // Load all days
+        const { data: daysRaw } = await supabase
+            .from('toke_gig_days')
+            .select('*')
+            .eq('gig_id', data.id)
+            .order('day_number', { ascending: true });
 
-    // Load all downs for the whole gig
-    const { data: downs } = await supabase
-        .from('toke_downs')
-        .select('*')
-        .eq('gig_id', data.id)
-        .order('started_at', { ascending: true });
+        // Load all downs for the whole gig
+        const { data: downs } = await supabase
+            .from('toke_downs')
+            .select('*')
+            .eq('gig_id', data.id)
+            .order('started_at', { ascending: true });
 
-    // Load all expenses for the whole gig
-    const { data: expenses } = await supabase
-        .from('toke_expenses')
-        .select('*')
-        .eq('gig_id', data.id)
-        .order('created_at', { ascending: false });
+        // Load all expenses for the whole gig
+        const { data: expenses } = await supabase
+            .from('toke_expenses')
+            .select('*')
+            .eq('gig_id', data.id)
+            .order('created_at', { ascending: false });
 
-    const allDowns = (downs || []) as TokeDown[];
-    const allExpenses = (expenses || []) as TokeExpense[];
+        const allDowns = (downs || []) as TokeDown[];
+        const allExpenses = (expenses || []) as TokeExpense[];
 
-    // Decorate each day
-    const days: TokeGigDay[] = (daysRaw || []).map(day =>
-        decorateDay(day as TokeGigDay, allDowns, allExpenses)
-    );
+        // Decorate each day
+        const days: TokeGigDay[] = (daysRaw || []).map(day =>
+            decorateDay(day as TokeGigDay, allDowns, allExpenses)
+        );
 
-    const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
+        const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
 
-    return {
-        ...data,
-        days,
-        totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
-        totalDowns: dealingDowns.length,
-        totalHoursWorked: computeTotalHours(allDowns),
-        totalExpenses: allExpenses.reduce((s, e) => s + (e.amount || 0), 0),
-    };
+        return {
+            ...data,
+            days,
+            totalTokes: dealingDowns.reduce((s, d) => s + (d.toke_amount || 0), 0),
+            totalDowns: dealingDowns.length,
+            totalHoursWorked: computeTotalHours(allDowns),
+            totalExpenses: allExpenses.reduce((s, e) => s + (e.amount || 0), 0),
+        };
+    });
 }
 
 /**
@@ -661,118 +682,120 @@ export interface TokeAnalytics {
  * Uses the already-efficient bulk gig data to avoid extra queries.
  */
 export async function getTokeAnalytics(userId: string): Promise<TokeAnalytics> {
-    // Fetch all non-deleted gigs
-    const { data: gigs, error: gigErr } = await supabase
-        .from('toke_gigs')
-        .select('id, venue_name, start_date, end_date, hourly_rate, status')
-        .eq('user_id', userId)
-        .neq('status', 'deleted')
-        .order('start_date', { ascending: true });
+    return withRetry(async () => {
+        // Fetch all non-deleted gigs
+        const { data: gigs, error: gigErr } = await supabase
+            .from('toke_gigs')
+            .select('id, venue_name, start_date, end_date, hourly_rate, status')
+            .eq('user_id', userId)
+            .neq('status', 'deleted')
+            .order('start_date', { ascending: true });
 
-    if (gigErr) throw gigErr;
-    if (!gigs || gigs.length === 0) {
+        if (gigErr) throw gigErr;
+        if (!gigs || gigs.length === 0) {
+            return {
+                careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0,
+                avgTokePerDown: 0, avgHoursPerEvent: 0, bestEvent: null,
+                eventTrend: [], downTypes: { cash: 0, tournament: 0, brush: 0, break: 0 },
+                monthlyTrend: [],
+            };
+        }
+
+        const gigIds = gigs.map(g => g.id);
+
+        // Bulk fetch downs and expenses in parallel
+        const [{ data: downsRaw }, { data: expsRaw }] = await Promise.all([
+            supabase.from('toke_downs').select('*').in('gig_id', gigIds),
+            supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
+        ]);
+
+        const allDowns = (downsRaw || []) as TokeDown[];
+        const allExps = (expsRaw || []) as { gig_id: string; amount: number }[];
+
+        // Group by gig
+        const downsByGig = new Map<string, TokeDown[]>();
+        const expsByGig = new Map<string, number>();
+        for (const d of allDowns) {
+            if (!downsByGig.has(d.gig_id)) downsByGig.set(d.gig_id, []);
+            downsByGig.get(d.gig_id)!.push(d);
+        }
+        for (const e of allExps) {
+            expsByGig.set(e.gig_id, (expsByGig.get(e.gig_id) || 0) + (e.amount || 0));
+        }
+
+        // Career-level tallies
+        let careerTokes = 0;
+        let totalHours = 0;
+        let totalExpenses = 0;
+        let totalDealingDowns = 0;
+        const downTypes = { cash: 0, tournament: 0, brush: 0, break: 0 };
+        let bestEvent: TokeAnalytics['bestEvent'] = null;
+        let cumulative = 0;
+        const eventTrend: TokeAnalytics['eventTrend'] = [];
+        const monthlyMap = new Map<string, { tokes: number; events: number }>();
+
+        const completedGigs = gigs.filter(g => g.status === 'completed');
+
+        for (const gig of completedGigs) {
+            const gigDowns = downsByGig.get(gig.id) || [];
+            const gigDealing = gigDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
+            const gigTokes = gigDealing.reduce((s, d) => s + (d.toke_amount || 0), 0);
+            const gigHours = computeTotalHours(gigDowns);
+            const gigExpenses = expsByGig.get(gig.id) || 0;
+
+            careerTokes += gigTokes;
+            totalHours += gigHours;
+            totalExpenses += gigExpenses;
+            totalDealingDowns += gigDealing.length;
+
+            for (const d of gigDowns) {
+                if (d.down_type === 'cash') downTypes.cash++;
+                else if (d.down_type === 'tournament') downTypes.tournament++;
+                else if (d.down_type === 'brush') downTypes.brush++;
+                else if (d.down_type === 'break') downTypes.break++;
+            }
+
+            if (!bestEvent || gigTokes > bestEvent.tokes) {
+                bestEvent = { venueName: gig.venue_name, tokes: gigTokes, date: gig.start_date };
+            }
+
+            cumulative += gigTokes;
+            eventTrend.push({
+                date: gig.start_date,
+                tokes: gigTokes,
+                hours: Math.round(gigHours * 10) / 10,
+                venue: gig.venue_name,
+                cumulative,
+            });
+
+            // Monthly bucket (YYYY-MM)
+            const monthKey = gig.start_date.slice(0, 7);
+            const existing = monthlyMap.get(monthKey) || { tokes: 0, events: 0 };
+            monthlyMap.set(monthKey, { tokes: existing.tokes + gigTokes, events: existing.events + 1 });
+        }
+
+        // Build last 12 calendar months array (even if no data)
+        const monthlyTrend: TokeAnalytics['monthlyTrend'] = [];
+        const now = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            const val = monthlyMap.get(key) || { tokes: 0, events: 0 };
+            monthlyTrend.push({ month: label, ...val });
+        }
+
         return {
-            careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0,
-            avgTokePerDown: 0, avgHoursPerEvent: 0, bestEvent: null,
-            eventTrend: [], downTypes: { cash: 0, tournament: 0, brush: 0, break: 0 },
-            monthlyTrend: [],
+            careerTokes,
+            totalEvents: completedGigs.length,
+            totalHours: Math.round(totalHours * 10) / 10,
+            totalExpenses: Math.round(totalExpenses * 100) / 100,
+            avgTokePerDown: totalDealingDowns > 0 ? Math.round((careerTokes / totalDealingDowns) * 100) / 100 : 0,
+            avgHoursPerEvent: completedGigs.length > 0 ? Math.round((totalHours / completedGigs.length) * 10) / 10 : 0,
+            bestEvent,
+            eventTrend,
+            downTypes,
+            monthlyTrend,
         };
-    }
-
-    const gigIds = gigs.map(g => g.id);
-
-    // Bulk fetch downs and expenses in parallel
-    const [{ data: downsRaw }, { data: expsRaw }] = await Promise.all([
-        supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-        supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
-    ]);
-
-    const allDowns = (downsRaw || []) as TokeDown[];
-    const allExps = (expsRaw || []) as { gig_id: string; amount: number }[];
-
-    // Group by gig
-    const downsByGig = new Map<string, TokeDown[]>();
-    const expsByGig = new Map<string, number>();
-    for (const d of allDowns) {
-        if (!downsByGig.has(d.gig_id)) downsByGig.set(d.gig_id, []);
-        downsByGig.get(d.gig_id)!.push(d);
-    }
-    for (const e of allExps) {
-        expsByGig.set(e.gig_id, (expsByGig.get(e.gig_id) || 0) + (e.amount || 0));
-    }
-
-    // Career-level tallies
-    let careerTokes = 0;
-    let totalHours = 0;
-    let totalExpenses = 0;
-    let totalDealingDowns = 0;
-    const downTypes = { cash: 0, tournament: 0, brush: 0, break: 0 };
-    let bestEvent: TokeAnalytics['bestEvent'] = null;
-    let cumulative = 0;
-    const eventTrend: TokeAnalytics['eventTrend'] = [];
-    const monthlyMap = new Map<string, { tokes: number; events: number }>();
-
-    const completedGigs = gigs.filter(g => g.status === 'completed');
-
-    for (const gig of completedGigs) {
-        const gigDowns = downsByGig.get(gig.id) || [];
-        const gigDealing = gigDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
-        const gigTokes = gigDealing.reduce((s, d) => s + (d.toke_amount || 0), 0);
-        const gigHours = computeTotalHours(gigDowns);
-        const gigExpenses = expsByGig.get(gig.id) || 0;
-
-        careerTokes += gigTokes;
-        totalHours += gigHours;
-        totalExpenses += gigExpenses;
-        totalDealingDowns += gigDealing.length;
-
-        for (const d of gigDowns) {
-            if (d.down_type === 'cash') downTypes.cash++;
-            else if (d.down_type === 'tournament') downTypes.tournament++;
-            else if (d.down_type === 'brush') downTypes.brush++;
-            else if (d.down_type === 'break') downTypes.break++;
-        }
-
-        if (!bestEvent || gigTokes > bestEvent.tokes) {
-            bestEvent = { venueName: gig.venue_name, tokes: gigTokes, date: gig.start_date };
-        }
-
-        cumulative += gigTokes;
-        eventTrend.push({
-            date: gig.start_date,
-            tokes: gigTokes,
-            hours: Math.round(gigHours * 10) / 10,
-            venue: gig.venue_name,
-            cumulative,
-        });
-
-        // Monthly bucket (YYYY-MM)
-        const monthKey = gig.start_date.slice(0, 7);
-        const existing = monthlyMap.get(monthKey) || { tokes: 0, events: 0 };
-        monthlyMap.set(monthKey, { tokes: existing.tokes + gigTokes, events: existing.events + 1 });
-    }
-
-    // Build last 12 calendar months array (even if no data)
-    const monthlyTrend: TokeAnalytics['monthlyTrend'] = [];
-    const now = new Date();
-    for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        const val = monthlyMap.get(key) || { tokes: 0, events: 0 };
-        monthlyTrend.push({ month: label, ...val });
-    }
-
-    return {
-        careerTokes,
-        totalEvents: completedGigs.length,
-        totalHours: Math.round(totalHours * 10) / 10,
-        totalExpenses: Math.round(totalExpenses * 100) / 100,
-        avgTokePerDown: totalDealingDowns > 0 ? Math.round((careerTokes / totalDealingDowns) * 100) / 100 : 0,
-        avgHoursPerEvent: completedGigs.length > 0 ? Math.round((totalHours / completedGigs.length) * 10) / 10 : 0,
-        bestEvent,
-        eventTrend,
-        downTypes,
-        monthlyTrend,
-    };
+    });
 }

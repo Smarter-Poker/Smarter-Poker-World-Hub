@@ -3,7 +3,7 @@
  * Tax documents, licenses, W-2s
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -13,6 +13,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import DealerVault from '../../../src/components/bankroll/DealerVault';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
+import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -56,15 +57,23 @@ export default function DealerVaultPage() {
         return () => window.removeEventListener('toke-gig-completed', loadGigs);
     }, [loadGigs]);
 
+    // Debounced refresh for realtime — prevents flooding during multi-row ops
+    const rtTimerRef = useRef(null);
+    const debouncedLoadGigs = useCallback(() => {
+        if (rtTimerRef.current) clearTimeout(rtTimerRef.current);
+        rtTimerRef.current = setTimeout(loadGigs, 500);
+    }, [loadGigs]);
+    useEffect(() => () => { if (rtTimerRef.current) clearTimeout(rtTimerRef.current); }, []);
+
     // Supabase Real-time Sync for Cross-Device Support
     useEffect(() => {
         if (!userId) return;
         const channel = supabase
             .channel(`toke-vault-sync-${userId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, loadGigs)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, debouncedLoadGigs)
             .subscribe();
         return () => supabase.removeChannel(channel);
-    }, [userId, loadGigs]);
+    }, [userId, debouncedLoadGigs]);
 
     const updatePref = useCallback(async (key, value) => {
         let newPrefs;
@@ -130,7 +139,9 @@ export default function DealerVaultPage() {
                     <h1 style={s.title}>Dealer Vault</h1>
                     <p style={s.subtitle}>Secure Document Storage</p>
 
-                    <DealerVault userId={userId} completedGigs={completedGigs} />
+                    <HubErrorBoundary name="Dealer Vault">
+                        <DealerVault userId={userId} completedGigs={completedGigs} />
+                    </HubErrorBoundary>
                 </div>
             </div>
         </PageTransition>

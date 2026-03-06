@@ -123,6 +123,12 @@ export default function PreflopRangeTrainer({ onExit }) {
     const [showMatrix, setShowMatrix] = useState(false);
     const allHands = useMemo(() => getAllHands(), []);
 
+    // Phase 8: Interactive range-building mode
+    const [trainerMode, setTrainerMode] = useState('quiz'); // 'quiz' | 'build'
+    const [userRange, setUserRange] = useState(new Set());
+    const [rangeChecked, setRangeChecked] = useState(false);
+    const [rangeScore, setRangeScore] = useState(null);
+
     const range = GTO_RANGES[position] || {};
 
     // Deal a new hand
@@ -211,6 +217,43 @@ export default function PreflopRangeTrainer({ onExit }) {
     const accuracy = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
     const accColor = accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444';
 
+    // Phase 8: Toggle a cell in user range (build mode)
+    const toggleUserRangeCell = useCallback((hand) => {
+        if (rangeChecked) return;
+        setUserRange(prev => {
+            const next = new Set(prev);
+            if (next.has(hand)) next.delete(hand);
+            else next.add(hand);
+            return next;
+        });
+    }, [rangeChecked]);
+
+    // Phase 8: Check user range vs solver
+    const checkRange = useCallback(() => {
+        const solverHands = new Set(Object.keys(range).filter(h => range[h] >= 0.5));
+        let correct = 0, missed = 0, extra = 0;
+        solverHands.forEach(h => {
+            if (userRange.has(h)) correct++;
+            else missed++;
+        });
+        userRange.forEach(h => {
+            if (!solverHands.has(h)) extra++;
+        });
+        const total = solverHands.size;
+        const precision = userRange.size > 0 ? Math.round((correct / userRange.size) * 100) : 0;
+        const recall = total > 0 ? Math.round((correct / total) * 100) : 0;
+        const f1 = precision + recall > 0 ? Math.round((2 * precision * recall) / (precision + recall)) : 0;
+        setRangeScore({ correct, missed, extra, total, precision, recall, f1 });
+        setRangeChecked(true);
+    }, [range, userRange]);
+
+    // Reset build mode when position changes
+    useEffect(() => {
+        setUserRange(new Set());
+        setRangeChecked(false);
+        setRangeScore(null);
+    }, [position]);
+
     return (
         <div style={S.container}>
             {/* HEADER */}
@@ -239,6 +282,31 @@ export default function PreflopRangeTrainer({ onExit }) {
                         }}
                     >
                         {pos}
+                    </button>
+                ))}
+            </div>
+
+            {/* MODE TOGGLE */}
+            <div style={{ display: 'flex', gap: 0, margin: '0 16px 10px', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                {[{ id: 'quiz', label: '🎯 Quiz Mode' }, { id: 'build', label: '🏗️ Range Builder' }].map(m => (
+                    <button
+                        key={m.id}
+                        onClick={() => {
+                            setTrainerMode(m.id);
+                            setUserRange(new Set());
+                            setRangeChecked(false);
+                            setRangeScore(null);
+                        }}
+                        style={{
+                            flex: 1, padding: '9px 0', border: 'none', cursor: 'pointer',
+                            fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
+                            background: trainerMode === m.id ? 'rgba(0,212,255,0.15)' : 'rgba(0,0,0,0.2)',
+                            color: trainerMode === m.id ? '#00d4ff' : '#64748b',
+                            borderBottom: trainerMode === m.id ? '2px solid #00d4ff' : '2px solid transparent',
+                            transition: 'all 0.2s ease',
+                        }}
+                    >
+                        {m.label}
                     </button>
                 ))}
             </div>
@@ -369,58 +437,209 @@ export default function PreflopRangeTrainer({ onExit }) {
             </AnimatePresence>
 
             {/* 13x13 RANGE MATRIX */}
-            <div style={S.matrixContainer}>
-                <div style={S.matrixTitle}>{position} Open-Raise Range (RFI)</div>
-                <div style={S.matrix}>
-                    {matrix.flat().map((cell, i) => {
-                        const isHighlighted = showFeedback && cell.isCurrentHand;
-                        const cellColor = cell.freq >= 0.9 ? '#22c55e'
-                            : cell.freq >= 0.7 ? '#4ade80'
-                                : cell.freq >= 0.5 ? '#86efac'
-                                    : cell.freq >= 0.3 ? '#fbbf24'
-                                        : cell.freq >= 0.1 ? '#f97316'
-                                            : cell.freq > 0 ? '#ef4444'
-                                                : 'rgba(255,255,255,0.04)';
+            {trainerMode === 'quiz' ? (
+                <div style={S.matrixContainer}>
+                    <div style={S.matrixTitle}>{position} Open-Raise Range (RFI)</div>
+                    <div style={S.matrix}>
+                        {matrix.flat().map((cell, i) => {
+                            const isHighlighted = showFeedback && cell.isCurrentHand;
+                            const cellColor = cell.freq >= 0.9 ? '#22c55e'
+                                : cell.freq >= 0.7 ? '#4ade80'
+                                    : cell.freq >= 0.5 ? '#86efac'
+                                        : cell.freq >= 0.3 ? '#fbbf24'
+                                            : cell.freq >= 0.1 ? '#f97316'
+                                                : cell.freq > 0 ? '#ef4444'
+                                                    : 'rgba(255,255,255,0.04)';
 
-                        return (
-                            <div
-                                key={i}
-                                style={{
-                                    aspectRatio: '1',
-                                    background: cellColor,
-                                    borderRadius: 2,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 6.5,
-                                    fontWeight: 'bold',
-                                    color: cell.freq > 0.3 ? '#000' : cell.freq > 0 ? '#fff' : '#444',
-                                    border: isHighlighted ? '2px solid #00d4ff' : '1px solid rgba(0,0,0,0.2)',
-                                    boxShadow: isHighlighted ? '0 0 8px rgba(0,212,255,0.6)' : 'none',
-                                    position: 'relative',
-                                }}
-                                title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
-                            >
-                                {cell.hand}
+                            return (
+                                <div
+                                    key={i}
+                                    style={{
+                                        aspectRatio: '1',
+                                        background: cellColor,
+                                        borderRadius: 2,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 6.5,
+                                        fontWeight: 'bold',
+                                        color: cell.freq > 0.3 ? '#000' : cell.freq > 0 ? '#fff' : '#444',
+                                        border: isHighlighted ? '2px solid #00d4ff' : '1px solid rgba(0,0,0,0.2)',
+                                        boxShadow: isHighlighted ? '0 0 8px rgba(0,212,255,0.6)' : 'none',
+                                        position: 'relative',
+                                    }}
+                                    title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
+                                >
+                                    {cell.hand}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div style={S.legend}>
+                        {[
+                            { label: '90%+', color: '#22c55e' },
+                            { label: '50%+', color: '#86efac' },
+                            { label: 'Mixed', color: '#fbbf24' },
+                            { label: '<10%', color: '#f97316' },
+                            { label: 'Fold', color: 'rgba(255,255,255,0.08)' },
+                        ].map(l => (
+                            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
+                                <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
+                                {l.label}
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
                 </div>
-                <div style={S.legend}>
-                    {[
-                        { label: '90%+', color: '#22c55e' },
-                        { label: '50%+', color: '#86efac' },
-                        { label: 'Mixed', color: '#fbbf24' },
-                        { label: '<10%', color: '#f97316' },
-                        { label: 'Fold', color: 'rgba(255,255,255,0.08)' },
-                    ].map(l => (
-                        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
-                            <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
-                            {l.label}
-                        </div>
-                    ))}
+            ) : (
+                /* RANGE BUILDER MODE */
+                <div style={S.matrixContainer}>
+                    <div style={S.matrixTitle}>Click to build your {position} opening range</div>
+                    <div style={S.matrix}>
+                        {matrix.flat().map((cell, i) => {
+                            const isSelected = userRange.has(cell.hand);
+                            const solverInRange = cell.freq >= 0.5;
+
+                            let cellBg = 'rgba(255,255,255,0.04)';
+                            let cellTextColor = '#555';
+                            let cellBorder = '1px solid rgba(255,255,255,0.05)';
+
+                            if (rangeChecked) {
+                                // Show comparison overlay
+                                if (isSelected && solverInRange) {
+                                    cellBg = 'rgba(34, 197, 94, 0.35)'; // Correct: green
+                                    cellTextColor = '#22c55e';
+                                    cellBorder = '1px solid rgba(34,197,94,0.5)';
+                                } else if (!isSelected && solverInRange) {
+                                    cellBg = 'rgba(251, 146, 60, 0.3)'; // Missed: orange
+                                    cellTextColor = '#fb923c';
+                                    cellBorder = '1px solid rgba(251,146,60,0.5)';
+                                } else if (isSelected && !solverInRange) {
+                                    cellBg = 'rgba(239, 68, 68, 0.3)'; // Extra: red
+                                    cellTextColor = '#ef4444';
+                                    cellBorder = '1px solid rgba(239,68,68,0.5)';
+                                }
+                            } else if (isSelected) {
+                                cellBg = 'rgba(0, 212, 255, 0.2)';
+                                cellTextColor = '#00d4ff';
+                                cellBorder = '1px solid rgba(0,212,255,0.5)';
+                            }
+
+                            return (
+                                <div
+                                    key={i}
+                                    onClick={() => toggleUserRangeCell(cell.hand)}
+                                    style={{
+                                        aspectRatio: '1',
+                                        background: cellBg,
+                                        borderRadius: 2,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: 6.5,
+                                        fontWeight: 'bold',
+                                        color: cellTextColor,
+                                        border: cellBorder,
+                                        cursor: rangeChecked ? 'default' : 'pointer',
+                                        transition: 'all 0.1s ease',
+                                        userSelect: 'none',
+                                    }}
+                                    title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
+                                >
+                                    {cell.hand}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Result legend for checked range */}
+                    {rangeChecked && rangeScore && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            style={{
+                                marginTop: 10, padding: '10px 14px', borderRadius: 10,
+                                background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.06)',
+                            }}
+                        >
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 8 }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: 22, fontWeight: 'bold', fontFamily: "'Orbitron', monospace", color: rangeScore.f1 >= 80 ? '#22c55e' : rangeScore.f1 >= 60 ? '#fbbf24' : '#ef4444' }}>
+                                        {rangeScore.f1}%
+                                    </div>
+                                    <div style={{ fontSize: 9, color: '#64748b', letterSpacing: 1 }}>SCORE</div>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(34,197,94,0.5)' }} />
+                                    <span style={{ color: '#22c55e' }}>Correct: {rangeScore.correct}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(251,146,60,0.5)' }} />
+                                    <span style={{ color: '#fb923c' }}>Missed: {rangeScore.missed}</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
+                                    <div style={{ width: 8, height: 8, borderRadius: 2, background: 'rgba(239,68,68,0.5)' }} />
+                                    <span style={{ color: '#ef4444' }}>Extra: {rangeScore.extra}</span>
+                                </div>
+                            </div>
+                            <div style={{ fontSize: 9, color: '#64748b', textAlign: 'center', marginTop: 6 }}>
+                                Precision: {rangeScore.precision}% · Recall: {rangeScore.recall}% · Solver: {rangeScore.total} hands
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Action buttons for build mode */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'center' }}>
+                        {!rangeChecked ? (
+                            <>
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={checkRange}
+                                    disabled={userRange.size === 0}
+                                    style={{
+                                        padding: '10px 24px', borderRadius: 8,
+                                        background: userRange.size > 0 ? 'linear-gradient(180deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))' : 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(0,212,255,0.4)',
+                                        color: userRange.size > 0 ? '#00d4ff' : '#475569',
+                                        fontSize: 13, fontWeight: 700, cursor: userRange.size > 0 ? 'pointer' : 'not-allowed',
+                                    }}
+                                >
+                                    Check Range ({userRange.size} selected)
+                                </motion.button>
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => setUserRange(new Set())}
+                                    style={{
+                                        padding: '10px 16px', borderRadius: 8,
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        color: '#94a3b8', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                                    }}
+                                >
+                                    Clear
+                                </motion.button>
+                            </>
+                        ) : (
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => { setUserRange(new Set()); setRangeChecked(false); setRangeScore(null); }}
+                                style={{
+                                    padding: '10px 24px', borderRadius: 8,
+                                    background: 'linear-gradient(180deg, rgba(0,212,255,0.2), rgba(0,212,255,0.05))',
+                                    border: '1px solid rgba(0,212,255,0.4)',
+                                    color: '#00d4ff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                                }}
+                            >
+                                Try Again
+                            </motion.button>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

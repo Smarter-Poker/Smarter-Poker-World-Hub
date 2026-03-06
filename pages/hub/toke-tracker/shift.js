@@ -12,6 +12,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeTracker from '../../../src/components/bankroll/TokeTracker';
+import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { createClient } from '@supabase/supabase-js';
 
 export default function ShiftTrackerPage() {
@@ -89,7 +90,9 @@ export default function ShiftTrackerPage() {
                 />
 
                 <div style={s.content}>
-                    <TokeTracker userId={userId} refreshTrigger={0} standalone tokePrefs={tokePrefs} />
+                    <HubErrorBoundary name="Shift Tracker">
+                        <TokeTracker userId={userId} refreshTrigger={0} standalone tokePrefs={tokePrefs} />
+                    </HubErrorBoundary>
                 </div>
             </div>
         </PageTransition>

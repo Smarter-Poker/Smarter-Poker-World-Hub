@@ -608,6 +608,8 @@ function GodModeArena({
     // ═══ Phase 21: Game Phase State Machine ═══
     const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
     const [isTransitioning, setIsTransitioning] = useState(false);
+    const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis'
+    const [adaptiveToast, setAdaptiveToast] = useState(null);
 
     // Auto-transition from splash → playing once questions are loaded
     useEffect(() => {
@@ -618,6 +620,22 @@ function GodModeArena({
             return () => clearTimeout(timer);
         }
     }, [gamePhase, currentQuestion, loading]);
+
+    // Phase 8: Listen for adaptive difficulty changes
+    useEffect(() => {
+        const handler = (e) => {
+            const { from, to, direction } = e.detail;
+            setAdaptiveToast({
+                message: direction === 'up'
+                    ? `📈 Difficulty increased! Level ${from} → ${to}`
+                    : `📉 Difficulty decreased: Level ${from} → ${to}`,
+                direction,
+            });
+            setTimeout(() => setAdaptiveToast(null), 3000);
+        };
+        window.addEventListener('adaptiveDifficultyChange', handler);
+        return () => window.removeEventListener('adaptiveDifficultyChange', handler);
+    }, []);
 
     // Auto-transition to review when game completes
     useEffect(() => {
@@ -862,190 +880,251 @@ function GodModeArena({
                         </div>
                     </div>
 
-                    {/* CLASSIFICATION BREAKDOWN */}
-                    <div style={styles.classBreakdown}>
-                        <div style={styles.sectionTitle}>Move Breakdown</div>
-                        <div style={styles.classGrid}>
-                            {Object.entries(CLASSIFICATION_CONFIG).map(([key, config]) => (
-                                <div key={key} style={styles.classItem}>
-                                    <div style={{
-                                        ...styles.classCount,
-                                        color: config.color,
-                                    }}>
-                                        {classificationCounts[key] || 0}
-                                    </div>
-                                    <div style={{
-                                        ...styles.classBadge,
-                                        background: config.bgColor,
-                                        borderColor: config.borderColor,
-                                        color: config.color,
-                                    }}>
-                                        <ClassificationSVGIcon icon={config.icon} size={14} color={config.color} /> {config.label}
-                                    </div>
-                                </div>
-                            ))}
+                    {/* TAB NAVIGATION */}
+                    <div style={{
+                        display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                    }}>
+                        {[{ id: 'overview', label: '📊 Overview' }, { id: 'hands', label: '🂱 Hands' }, { id: 'analysis', label: '🔬 Analysis' }].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setReviewTab(tab.id)}
+                                style={{
+                                    flex: 1, padding: '10px 0',
+                                    background: reviewTab === tab.id
+                                        ? 'rgba(0, 212, 255, 0.15)'
+                                        : 'rgba(0,0,0,0.2)',
+                                    color: reviewTab === tab.id ? '#00d4ff' : '#64748b',
+                                    border: 'none', cursor: 'pointer',
+                                    fontSize: 12, fontWeight: 700,
+                                    letterSpacing: 0.5,
+                                    borderBottom: reviewTab === tab.id ? '2px solid #00d4ff' : '2px solid transparent',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* SUMMARY STATS ROW */}
+                    <div style={styles.summaryRow}>
+                        <div style={styles.summaryItem}>
+                            <div style={styles.summaryValue}>{totalQuestions}</div>
+                            <div style={styles.summaryLabel}>Hands</div>
+                        </div>
+                        <div style={styles.summaryItem}>
+                            <div style={{ ...styles.summaryValue, color: '#ef4444' }}>
+                                -{totalEVLoss.toFixed(1)}
+                            </div>
+                            <div style={styles.summaryLabel}>EV Loss (BB)</div>
+                        </div>
+                        <div style={styles.summaryItem}>
+                            <div style={{ ...styles.summaryValue, color: '#fbbf24' }}>
+                                {sessionMistakes}
+                            </div>
+                            <div style={styles.summaryLabel}>Mistakes</div>
+                        </div>
+                        <div style={styles.summaryItem}>
+                            <div style={styles.summaryValue}>{avgEVLossPerHand.toFixed(2)}</div>
+                            <div style={styles.summaryLabel}>EV/Hand</div>
                         </div>
                     </div>
 
-                    {/* F15: CLASSIFICATION DONUT CHART */}
-                    <ClassificationDonut handHistory={handHistory} gtowScore={gtowScore} />
-
-                    {/* F14: ACCURACY BY POSITION CHART */}
-                    <AccuracyByPositionChart handHistory={handHistory} />
-
-                    {/* F4: EV LOSS GRAPH */}
-                    <EVLossGraph handHistory={handHistory} />
-
-                    {/* F5: MIXED STRATEGY ADHERENCE */}
-                    {mixedStrategyScore !== null && (
-                        <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
-                            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
-                                Action Diversity
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{
-                                    width: '100%', height: 6, background: '#1e293b',
-                                    borderRadius: 3, overflow: 'hidden',
-                                }}>
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        animate={{ width: `${mixedStrategyScore}%` }}
-                                        transition={{ duration: 0.8, delay: 0.3 }}
-                                        style={{
-                                            height: '100%', borderRadius: 3,
-                                            background: mixedStrategyScore >= 50
-                                                ? 'linear-gradient(90deg, #22c55e, #4ade80)'
-                                                : mixedStrategyScore >= 30
-                                                    ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
-                                                    : 'linear-gradient(90deg, #ef4444, #dc2626)',
-                                        }}
-                                    />
-                                </div>
-                                <span style={{
-                                    fontSize: 13, fontWeight: 'bold', minWidth: 40,
-                                    color: mixedStrategyScore >= 50 ? '#22c55e' : mixedStrategyScore >= 30 ? '#fbbf24' : '#ef4444',
-                                }}>
-                                    {mixedStrategyScore}%
-                                </span>
-                            </div>
-                            <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
-                                {mixedStrategyScore >= 60 ? 'Great mixing — GTO-balanced!' : mixedStrategyScore >= 35 ? 'Moderate — try diversifying your actions' : 'Too predictable — mix in more actions'}
+                    {/* ═══ TAB: OVERVIEW ═══ */}
+                    {reviewTab === 'overview' && (<>
+                        <div style={styles.classBreakdown}>
+                            <div style={styles.sectionTitle}>Move Breakdown</div>
+                            <div style={styles.classGrid}>
+                                {Object.entries(CLASSIFICATION_CONFIG).map(([key, config]) => (
+                                    <div key={key} style={styles.classItem}>
+                                        <div style={{
+                                            ...styles.classCount,
+                                            color: config.color,
+                                        }}>
+                                            {classificationCounts[key] || 0}
+                                        </div>
+                                        <div style={{
+                                            ...styles.classBadge,
+                                            background: config.bgColor,
+                                            borderColor: config.borderColor,
+                                            color: config.color,
+                                        }}>
+                                            <ClassificationSVGIcon icon={config.icon} size={14} color={config.color} /> {config.label}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
-                    )}
 
-                    {/* Phase 24: Mistakes-Only Filter + Retrain */}
-                    <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => setMistakesFilterActive(prev => !prev)}
-                            style={{
-                                padding: '8px 16px',
-                                borderRadius: 8,
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                color: '#ef4444',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                letterSpacing: 0.3,
-                            }}
-                        >
-                            🔍 Mistakes Only ({sessionMistakes})
-                        </motion.button>
+                        {/* F15: CLASSIFICATION DONUT CHART */}
+                        <ClassificationDonut handHistory={handHistory} gtowScore={gtowScore} />
 
-                        {sessionMistakes > 0 && (
+                        {/* F14: ACCURACY BY POSITION CHART */}
+                        <AccuracyByPositionChart handHistory={handHistory} />
+
+                        {/* F4: EV LOSS GRAPH */}
+                        <EVLossGraph handHistory={handHistory} />
+
+                        {/* F5: MIXED STRATEGY ADHERENCE */}
+                        {mixedStrategyScore !== null && (
+                            <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+                                <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                                    Action Diversity
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <div style={{
+                                        width: '100%', height: 6, background: '#1e293b',
+                                        borderRadius: 3, overflow: 'hidden',
+                                    }}>
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${mixedStrategyScore}%` }}
+                                            transition={{ duration: 0.8, delay: 0.3 }}
+                                            style={{
+                                                height: '100%', borderRadius: 3,
+                                                background: mixedStrategyScore >= 50
+                                                    ? 'linear-gradient(90deg, #22c55e, #4ade80)'
+                                                    : mixedStrategyScore >= 30
+                                                        ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
+                                                        : 'linear-gradient(90deg, #ef4444, #dc2626)',
+                                            }}
+                                        />
+                                    </div>
+                                    <span style={{
+                                        fontSize: 13, fontWeight: 'bold', minWidth: 40,
+                                        color: mixedStrategyScore >= 50 ? '#22c55e' : mixedStrategyScore >= 30 ? '#fbbf24' : '#ef4444',
+                                    }}>
+                                        {mixedStrategyScore}%
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: 9, color: '#64748b', marginTop: 4 }}>
+                                    {mixedStrategyScore >= 60 ? 'Great mixing — GTO-balanced!' : mixedStrategyScore >= 35 ? 'Moderate — try diversifying your actions' : 'Too predictable — mix in more actions'}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Phase 24: Mistakes-Only Filter + Retrain */}
+                        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
                             <motion.button
                                 whileHover={{ scale: 1.03 }}
                                 whileTap={{ scale: 0.97 }}
-                                onClick={() => {
-                                    // Restart with just the mistake hands
-                                    retryLevel();
-                                }}
+                                onClick={() => setMistakesFilterActive(prev => !prev)}
                                 style={{
                                     padding: '8px 16px',
                                     borderRadius: 8,
-                                    border: '1px solid rgba(251, 146, 60, 0.3)',
-                                    background: 'rgba(251, 146, 60, 0.1)',
-                                    color: '#fb923c',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    color: '#ef4444',
                                     fontSize: 12,
                                     fontWeight: 700,
                                     cursor: 'pointer',
                                     letterSpacing: 0.3,
                                 }}
                             >
-                                🔄 Retrain Mistakes
+                                🔍 Mistakes Only ({sessionMistakes})
                             </motion.button>
-                        )}
-                    </div>
 
-                    {/* Phase 24: Per-Street EV Loss Breakdown */}
-                    {handHistory.length > 0 && (() => {
-                        const streetEV = { flop: 0, turn: 0, river: 0, preflop: 0 };
-                        handHistory.forEach(h => {
-                            const s = h.handData?.street || 'flop';
-                            streetEV[s] = (streetEV[s] || 0) + (h.evLoss || 0);
-                        });
-                        const maxEV = Math.max(0.01, ...Object.values(streetEV));
-                        const streetColors = {
-                            preflop: '#8b5cf6', flop: '#22c55e', turn: '#fbbf24', river: '#ef4444'
-                        };
+                            {sessionMistakes > 0 && (
+                                <motion.button
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => {
+                                        // Restart with just the mistake hands
+                                        retryLevel();
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        borderRadius: 8,
+                                        border: '1px solid rgba(251, 146, 60, 0.3)',
+                                        background: 'rgba(251, 146, 60, 0.1)',
+                                        color: '#fb923c',
+                                        fontSize: 12,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        letterSpacing: 0.3,
+                                    }}
+                                >
+                                    🔄 Retrain Mistakes
+                                </motion.button>
+                            )}
+                        </div>
 
-                        return (
-                            <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
-                                <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
-                                    EV Loss by Street
-                                </div>
-                                {['preflop', 'flop', 'turn', 'river'].map(s => (
-                                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                        <span style={{ width: 55, fontSize: 10, fontWeight: 600, color: streetColors[s], textTransform: 'uppercase' }}>
-                                            {s}
-                                        </span>
-                                        <div style={{ flex: 1, height: 6, background: '#1e293b', borderRadius: 3, overflow: 'hidden' }}>
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${(streetEV[s] / maxEV) * 100}%` }}
-                                                transition={{ duration: 0.6, delay: 0.2 }}
-                                                style={{ height: '100%', background: streetColors[s], borderRadius: 3 }}
-                                            />
-                                        </div>
-                                        <span style={{ width: 45, fontSize: 10, fontWeight: 'bold', color: streetEV[s] > 0 ? '#ef4444' : '#22c55e', textAlign: 'right' }}>
-                                            -{streetEV[s].toFixed(1)}
-                                        </span>
+                        {/* Phase 24: Per-Street EV Loss Breakdown */}
+                        {handHistory.length > 0 && (() => {
+                            const streetEV = { flop: 0, turn: 0, river: 0, preflop: 0 };
+                            handHistory.forEach(h => {
+                                const s = h.handData?.street || 'flop';
+                                streetEV[s] = (streetEV[s] || 0) + (h.evLoss || 0);
+                            });
+                            const maxEV = Math.max(0.01, ...Object.values(streetEV));
+                            const streetColors = {
+                                preflop: '#8b5cf6', flop: '#22c55e', turn: '#fbbf24', river: '#ef4444'
+                            };
+
+                            return (
+                                <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                                        EV Loss by Street
                                     </div>
-                                ))}
-                            </div>
-                        );
-                    })()}
+                                    {['preflop', 'flop', 'turn', 'river'].map(s => (
+                                        <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                            <span style={{ width: 55, fontSize: 10, fontWeight: 600, color: streetColors[s], textTransform: 'uppercase' }}>
+                                                {s}
+                                            </span>
+                                            <div style={{ flex: 1, height: 6, background: '#1e293b', borderRadius: 3, overflow: 'hidden' }}>
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${(streetEV[s] / maxEV) * 100}%` }}
+                                                    transition={{ duration: 0.6, delay: 0.2 }}
+                                                    style={{ height: '100%', background: streetColors[s], borderRadius: 3 }}
+                                                />
+                                            </div>
+                                            <span style={{ width: 45, fontSize: 10, fontWeight: 'bold', color: streetEV[s] > 0 ? '#ef4444' : '#22c55e', textAlign: 'right' }}>
+                                                -{streetEV[s].toFixed(1)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
 
-                    {/* HAND HISTORY — Enhanced Replay Viewer */}
-                    <div id="hand-replay-section">
-                        <HandReplayViewer handHistory={
-                            mistakesFilterActive
-                                ? handHistory.filter(h => h.classification && h.classification !== 'Best' && h.classification !== 'Good')
-                                : handHistory
-                        } />
-                    </div>
+                        {/* HAND HISTORY — Enhanced Replay Viewer */}
+                    </>)}
 
-                    {/* POSITION STATS -- Per-position breakdown */}
-                    <PositionStatsPanel handHistory={handHistory} />
+                    {/* ═══ TAB: HANDS ═══ */}
+                    {reviewTab === 'hands' && (<>
+                        <div id="hand-replay-section">
+                            <HandReplayViewer handHistory={
+                                mistakesFilterActive
+                                    ? handHistory.filter(h => h.classification && h.classification !== 'Best' && h.classification !== 'Good')
+                                    : handHistory
+                            } />
+                        </div>
+                    </>)}
 
-                    {/* LIFETIME STATS -- Aggregated metrics */}
-                    <LifetimeStatsCard
-                        totalHands={totalQuestions}
-                        totalSessions={1}
-                        avgGTOWScore={gtowScore}
-                        bestGTOWScore={gtowScore}
-                        totalEVLoss={totalEVLoss}
-                        avgEVPerHand={avgEVLossPerHand}
-                        longestStreak={bestStreak}
-                        totalMistakes={sessionMistakes}
-                        gamesCompleted={1}
-                    />
+                    {/* ═══ TAB: ANALYSIS ═══ */}
+                    {reviewTab === 'analysis' && (<>
 
-                    {/* SESSION HISTORY -- Past sessions */}
-                    <SessionHistoryList gameId={gameId} userId={userId} limit={5} />
+                        {/* POSITION STATS -- Per-position breakdown */}
+                        <PositionStatsPanel handHistory={handHistory} />
+
+                        {/* LIFETIME STATS -- Aggregated metrics */}
+                        <LifetimeStatsCard
+                            totalHands={totalQuestions}
+                            totalSessions={1}
+                            avgGTOWScore={gtowScore}
+                            bestGTOWScore={gtowScore}
+                            totalEVLoss={totalEVLoss}
+                            avgEVPerHand={avgEVLossPerHand}
+                            longestStreak={bestStreak}
+                            totalMistakes={sessionMistakes}
+                            gamesCompleted={1}
+                        />
+
+                        {/* SESSION HISTORY -- Past sessions */}
+                        <SessionHistoryList gameId={gameId} userId={userId} limit={5} />
+                    </>)}
 
                     {/* ACTION BUTTONS */}
                     <div style={styles.reviewActions}>

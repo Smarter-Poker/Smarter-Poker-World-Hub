@@ -1080,6 +1080,17 @@ function UniversalDynamicTable({
             <AnimatePresence>
                 <StreakToast message={streakToast} show={!!streakToast} />
             </AnimatePresence>
+            {/* F14: Classification Flash Banner */}
+            <ClassificationFlashBanner
+                classification={moveClassification}
+                evLoss={evLoss}
+                show={showFeedback}
+            />
+            {/* F15: Running EV Loss Ticker */}
+            <EVLossTicker
+                totalEVLoss={totalSessionEVLoss}
+                show={questionNumber > 1}
+            />
             {/* TOP BAR — Context + Score (GTO Wizard style) */}
             <div style={styles.topBar}>
                 <div style={styles.topBarLeft}>

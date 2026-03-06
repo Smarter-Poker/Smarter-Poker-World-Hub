@@ -86,6 +86,10 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    // ── Hardening: mounted ref prevents state updates after unmount ──
+    const isMountedRef = useRef(true);
+    useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAddDown, setShowAddDown] = useState(false);
     const [confirmComplete, setConfirmComplete] = useState(false);
@@ -225,24 +229,43 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
         } catch (err) {
             console.error('Error loading toke data:', err);
         } finally {
-            setIsLoading(false);
+            if (isMountedRef.current) setIsLoading(false);
         }
     }, [userId]);
 
+    // ── Debounced loadData for realtime — prevents flooding during multi-row ops ──
+    const realtimeTimerRef = useRef(null);
+    const debouncedLoadData = useCallback(() => {
+        if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
+        realtimeTimerRef.current = setTimeout(() => {
+            if (isMountedRef.current) loadData();
+        }, 500);
+    }, [loadData]);
+
     useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
 
-    // ── Supabase Realtime — auto-refresh on any change to gig data ──
+    // ── Supabase Realtime — debounced auto-refresh on any change to gig data ──
     useEffect(() => {
         if (!userId) return;
         const channel = supabase
             .channel(`toke-realtime-${userId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, () => loadData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gig_days', filter: `user_id=eq.${userId}` }, () => loadData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_downs', filter: `user_id=eq.${userId}` }, () => loadData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_expenses', filter: `user_id=eq.${userId}` }, () => loadData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, debouncedLoadData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gig_days', filter: `user_id=eq.${userId}` }, debouncedLoadData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_downs', filter: `user_id=eq.${userId}` }, debouncedLoadData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_expenses', filter: `user_id=eq.${userId}` }, debouncedLoadData)
             .subscribe();
         return () => { supabase.removeChannel(channel); };
-    }, [userId, loadData]);
+    }, [userId, debouncedLoadData]);
+
+    // ── Auth state listener — re-load when session refreshes ──
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && isMountedRef.current) {
+                loadData();
+            }
+        });
+        return () => subscription?.unsubscribe();
+    }, [loadData]);
 
     // ── Cleanup timers on unmount ──
     useEffect(() => {
@@ -250,6 +273,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             if (downTimerRef.current) clearTimeout(downTimerRef.current);
             if (timerTickRef.current) clearInterval(timerTickRef.current);
             if (liveHoursTickRef.current) clearInterval(liveHoursTickRef.current);
+            if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
         };
     }, []);
 
@@ -519,6 +543,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
 
     // ── DOWN Handlers ──
     const handleAddDown = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig) return;
         const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
         if (!currentDay) { toast.error('Close the current day first, then start a new day.'); return; }
@@ -679,6 +704,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     };
 
     const handleStartNewDay = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig) return;
         const openDay = activeGig.days?.find(d => !d.ended_at);
         if (openDay) { toast.error('Close the current day first.'); return; }
@@ -695,6 +721,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     // ── Expense Handlers ──
     const handleAddExpense = async (e) => {
         e.preventDefault();
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig || !expenseForm.amount) {
             toast.error('Please enter an amount');
             return;

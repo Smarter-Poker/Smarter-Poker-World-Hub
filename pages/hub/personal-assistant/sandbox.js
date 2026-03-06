@@ -43,8 +43,8 @@ const SUITS = [
   { code: 'c', symbol: '♣', color: '#22c55e', name: 'clubs' },
 ];
 const GAME_TYPES = [
-  { id: 'cash', label: 'Cash Game', icon: '💰' },
-  { id: 'tournament', label: 'Tournament', icon: '🏆' },
+  { id: 'cash', label: 'Cash Game', icon: '' },
+  { id: 'tournament', label: 'Tournament', icon: '' },
 ];
 const DEFAULT_VILLAINS = [{ position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100 }];
 
@@ -223,7 +223,7 @@ function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
           >
             <div style={{ fontWeight: '600' }}>{s.title}</div>
             <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>
-              {s.type === 'bookmark' ? `⭐ ${s.stack}` : `${s.stack} • ${s.result || '—'}`}
+              {s.type === 'bookmark' ? `Saved - ${s.stack}` : `${s.stack} - ${s.result || '—'}`}
             </div>
           </button>
         ))}
@@ -425,13 +425,13 @@ export default function VirtualSandbox() {
 
   // Source badge
   const sourceBadge = results ? (
-    results.matchTier <= 2 ? { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', text: '#4ade80', label: '✓ PIO Verified' }
-      : results.matchTier === 3 ? { bg: 'rgba(251,191,36,0.15)', border: '#fbbf24', text: '#fde68a', label: '≈ PIO Approximated' }
-        : { bg: 'rgba(139,92,246,0.15)', border: '#8b5cf6', text: '#c4b5fd', label: '⚡ AI Analysis' }
+    results.matchTier <= 2 ? { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', text: '#4ade80', label: 'PIO Verified' }
+      : results.matchTier === 3 ? { bg: 'rgba(251,191,36,0.15)', border: '#fbbf24', text: '#fde68a', label: 'PIO Approximated' }
+        : { bg: 'rgba(139,92,246,0.15)', border: '#8b5cf6', text: '#c4b5fd', label: 'AI Analysis' }
   ) : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a1a', color: '#e2e8f0', fontFamily: "'Inter',-apple-system,sans-serif" }}>
+    <div className="sandbox-page" style={{ minHeight: '100vh', background: '#0a0a1a', color: '#e2e8f0', fontFamily: "'Inter',-apple-system,sans-serif" }}>
       {/* Onboarding Tour */}
       <OnboardingTour isVisible={showTour} step={tourStep}
         onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
@@ -490,13 +490,13 @@ export default function VirtualSandbox() {
       )}</AnimatePresence>
 
       {/* HEADER */}
-      <div style={{
+      <div className="sandbox-header" style={{
         padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
         background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(10,10,26,0.95) 100%)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={() => router.push('/hub/personal-assistant')}
+            <button onClick={() => router.push('/hub/personal-assistant')} aria-label="Back"
               style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#94a3b8', cursor: 'pointer', fontSize: 14 }}>←</button>
             <div>
               <h1 style={{
@@ -504,24 +504,24 @@ export default function VirtualSandbox() {
                 background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
               }}>
                 Virtual Sandbox</h1>
-              <p style={{ color: '#64748b', fontSize: 11, margin: '1px 0 0' }}>GTO Theoretical Lab — PIO Solver Data</p>
+              <p style={{ color: '#64748b', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => setShowSessions(true)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer' }}>📋 Sessions</button>
-            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.1)', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.2)'}`, color: saveStatus === 'saved' ? '#4ade80' : '#fde68a', cursor: 'pointer', transition: 'all 0.3s' }}>{saveStatus === 'saving' ? '⏳ Saving...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✗ Error' : '⭐ Save'}</button>
-            {results && <button onClick={() => setShowShare(true)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', cursor: 'pointer' }}>↗ Share</button>}
-            <button onClick={resetAll} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>Reset</button>
+          <div className="sandbox-header-actions" style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
+            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.1)', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.2)'}`, color: saveStatus === 'saved' ? '#4ade80' : '#fde68a', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
+            {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', cursor: 'pointer', minHeight: 36 }}>Share</button>}
+            <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
           </div>
         </div>
       </div>
 
-      {/* MAIN LAYOUT */}
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: results ? '1fr 400px' : '1fr', gap: '20px' }}>
+      {/* MAIN LAYOUT — Mobile-first responsive */}
+      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: results ? '1fr 400px' : '1fr', gap: '20px' }}>
         {/* LEFT — Setup + Table */}
         <div>
           {/* Visual Poker Table */}
-          <div style={{ marginBottom: '16px' }}>
+          <div className="sandbox-table-wrap" style={{ marginBottom: '16px' }}>
             <SandboxPokerTable
               heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
               communityCards={communityCards}
@@ -542,14 +542,14 @@ export default function VirtualSandbox() {
 
           {/* Hero Setup */}
           <div id="hero-setup" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
-            <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Hero Setup</h3>
+            <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative' }}>
               <span style={{ color: '#64748b', fontSize: 12, minWidth: 45 }}>Hand:</span>
               <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
               <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
               <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
               <div>
                 <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Position</label>
                 <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
@@ -572,7 +572,7 @@ export default function VirtualSandbox() {
                 <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Game</label>
                 <select value={gameType} onChange={e => setGameType(e.target.value)}
                   style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
-                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.icon} {g.label}</option>)}
+                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
                 </select>
               </div>
             </div>
@@ -583,7 +583,7 @@ export default function VirtualSandbox() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
               <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(139,92,246,0.15)', border: 'none', color: '#c4b5fd', cursor: 'pointer' }}>🎲 Random</button>
+                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(139,92,246,0.15)', border: 'none', color: '#c4b5fd', cursor: 'pointer' }}>Random</button>
                 {board.flop.length === 3 && !board.river && (
                   <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
                     Deal {!board.turn ? 'Turn' : 'River'} ▸
@@ -611,7 +611,7 @@ export default function VirtualSandbox() {
           {/* Villains */}
           <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Villains ({villains.length})</h3>
+              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
               <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
                 disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
             </div>
@@ -665,7 +665,7 @@ export default function VirtualSandbox() {
                 fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
                 boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(59,130,246,0.3)',
               }}>
-              {isAnalyzing ? '⚡ Running GTO Analysis...' : '⚡ Run Theoretical Analysis'}
+              {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
             </motion.button>
           </div>
 
@@ -816,6 +816,80 @@ export default function VirtualSandbox() {
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&display=swap');
+
+        /* Capitalize first letter of every word globally */
+        .sandbox-page * {
+          text-transform: capitalize;
+        }
+        /* Preserve case for code-like elements */
+        .sandbox-page input,
+        .sandbox-page select option,
+        .sandbox-page code,
+        .sandbox-page pre {
+          text-transform: none;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+          .sandbox-main-layout {
+            grid-template-columns: 1fr !important;
+            padding: 10px 12px !important;
+            gap: 12px !important;
+          }
+          .sandbox-header {
+            padding: 10px 12px !important;
+          }
+          .sandbox-header > div {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+          .sandbox-page h1 {
+            font-size: 16px !important;
+          }
+          .sandbox-page h3, .sandbox-page h4 {
+            font-size: 11px !important;
+          }
+          .sandbox-header-actions {
+            flex-wrap: wrap;
+            gap: 6px !important;
+            width: 100%;
+          }
+          .sandbox-header-actions button {
+            font-size: 12px !important;
+            padding: 10px 14px !important;
+            min-height: 44px !important;
+            flex: 1;
+            min-width: 70px;
+          }
+          .sandbox-table-wrap {
+            max-height: 200px;
+            overflow: hidden;
+            border-radius: 12px;
+          }
+          .sandbox-hero-grid {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+          .sandbox-hero-grid select,
+          .sandbox-hero-grid input {
+            font-size: 14px !important;
+            padding: 10px 12px !important;
+            min-height: 44px !important;
+          }
+          .sandbox-hero-grid label {
+            font-size: 12px !important;
+          }
+          #run-analysis button {
+            font-size: 16px !important;
+            padding: 16px !important;
+            min-height: 52px !important;
+          }
+          #results-panel {
+            position: static !important;
+            max-height: none !important;
+          }
+        }
       `}</style>
     </div>
   );

@@ -3,7 +3,7 @@
  * Dealer earnings analytics dashboard
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -12,6 +12,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeDashboard from '../../../src/components/bankroll/TokeDashboard';
+import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -69,15 +70,23 @@ export default function TokeAnalyticsPage() {
         };
     }, [refreshData]);
 
+    // Debounced refresh for realtime — prevents flooding during multi-row ops
+    const rtTimerRef = useRef(null);
+    const debouncedRefresh = useCallback(() => {
+        if (rtTimerRef.current) clearTimeout(rtTimerRef.current);
+        rtTimerRef.current = setTimeout(refreshData, 500);
+    }, [refreshData]);
+    useEffect(() => () => { if (rtTimerRef.current) clearTimeout(rtTimerRef.current); }, []);
+
     // Supabase Real-time Sync for Cross-Device Support
     useEffect(() => {
         if (!userId) return;
         const channel = supabase
             .channel(`toke-analytics-sync-${userId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, refreshData)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, debouncedRefresh)
             .subscribe();
         return () => supabase.removeChannel(channel);
-    }, [userId, refreshData]);
+    }, [userId, debouncedRefresh]);
 
     const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
         setShiftNotifications: (v) => updatePref('shiftNotifications', v),
@@ -117,7 +126,9 @@ export default function TokeAnalyticsPage() {
                     <h1 style={s.title}>Analytics</h1>
                     <p style={s.subtitle}>Earnings Breakdown And Trends</p>
 
-                    <TokeDashboard userId={userId} refreshTrigger={refreshTrigger} />
+                    <HubErrorBoundary name="Toke Analytics">
+                        <TokeDashboard userId={userId} refreshTrigger={refreshTrigger} />
+                    </HubErrorBoundary>
                 </div>
             </div>
         </PageTransition>
