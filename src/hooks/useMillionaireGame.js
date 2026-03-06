@@ -16,7 +16,9 @@ import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWSco
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
 
-export default function useMillionaireGame(gameId, engineType = 'PIO', initialLevel = 1) {
+export default function useMillionaireGame(gameId, engineType = 'PIO', initialLevel = 1, trainerConfig = null) {
+    // If custom trainer config provided, use its questions count
+    const effectiveQuestionsPerLevel = trainerConfig?.questionsCount || QUESTIONS_PER_LEVEL;
     // Game state
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [questionNumber, setQuestionNumber] = useState(1);
@@ -71,27 +73,45 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setError(null);
 
         try {
-            const params = new URLSearchParams({
-                gameId,
-                level: level.toString(),
-                count: QUESTIONS_PER_LEVEL.toString(),
-            });
-
-            console.log(`[MillionaireGame] Pre-loading ${QUESTIONS_PER_LEVEL} questions for ${gameId} level ${level}`);
-
             const token = getSessionToken();
-            const response = await fetch(`/api/training/batch-preload?${params}`, {
+            let apiUrl;
+            let params;
+
+            if (trainerConfig) {
+                // CUSTOM TRAINER MODE — use custom-train API with detailed config
+                params = new URLSearchParams({
+                    gameType: trainerConfig.gameType || 'cash',
+                    stackDepth: (trainerConfig.stackDepth || 100).toString(),
+                    count: (trainerConfig.questionsCount || effectiveQuestionsPerLevel).toString(),
+                });
+                if (trainerConfig.position && trainerConfig.position !== 'any') {
+                    params.set('position', trainerConfig.position);
+                }
+                if (trainerConfig.street) {
+                    params.set('street', trainerConfig.street);
+                }
+                apiUrl = `/api/training/custom-train?${params}`;
+                console.log(`[MillionaireGame] Custom trainer: ${trainerConfig.label || 'custom config'}`);
+            } else {
+                // STANDARD MODE — use batch-preload
+                params = new URLSearchParams({
+                    gameId,
+                    level: level.toString(),
+                    count: effectiveQuestionsPerLevel.toString(),
+                });
+                apiUrl = `/api/training/batch-preload?${params}`;
+                console.log(`[MillionaireGame] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
+            }
+
+            const response = await fetch(apiUrl, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {},
             });
             const data = await response.json();
 
             if (!response.ok || !data.questions || data.questions.length === 0) {
-                // Batch pre-load failed - fallback to single-question mode
-                console.warn('[MillionaireGame] Batch pre-load failed, using single-question mode');
+                console.warn('[MillionaireGame] Pre-load failed, using single-question mode');
                 setPreloadComplete(false);
                 setLoading(false);
-
-                // Fetch first question using old API
                 return fetchSingleQuestion();
             }
 
@@ -99,21 +119,16 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
 
             setPreloadedQuestions(data.questions);
             setPreloadComplete(true);
-
-            // Set first question immediately
             setCurrentQuestion(data.questions[0]);
             setLoading(false);
 
         } catch (err) {
             console.error('[MillionaireGame] Pre-load error:', err);
-            console.warn('[MillionaireGame] Falling back to single-question mode');
             setPreloadComplete(false);
             setLoading(false);
-
-            // Fallback to single-question mode
             return fetchSingleQuestion();
         }
-    }, [gameId, level]);
+    }, [gameId, level, trainerConfig, effectiveQuestionsPerLevel]);
 
     /**
      * FALLBACK: Fetch single question (old behavior)
@@ -354,7 +369,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                     userId,
                     gameId,
                     level,
-                    questionsAnswered: QUESTIONS_PER_LEVEL,
+                    questionsAnswered: effectiveQuestionsPerLevel,
                     questionsCorrect: correctCount,
                     accuracy,
                     passed,
@@ -395,10 +410,10 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setCurrentStreet('flop');
         setHandSummary(null);
 
-        if (questionNumber >= QUESTIONS_PER_LEVEL) {
+        if (questionNumber >= effectiveQuestionsPerLevel) {
             // Level complete
-            const accuracy = Math.round((correctCount / QUESTIONS_PER_LEVEL) * 100);
-            const passed = checkLevelPassed(level, correctCount, QUESTIONS_PER_LEVEL);
+            const accuracy = Math.round((correctCount / effectiveQuestionsPerLevel) * 100);
+            const passed = checkLevelPassed(level, correctCount, effectiveQuestionsPerLevel);
 
             setLevelPassed(passed);
             setGameComplete(true);
@@ -492,7 +507,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         // Current state
         currentQuestion,
         questionNumber,
-        totalQuestions: QUESTIONS_PER_LEVEL,
+        totalQuestions: effectiveQuestionsPerLevel,
         level,
         loading,
         error,

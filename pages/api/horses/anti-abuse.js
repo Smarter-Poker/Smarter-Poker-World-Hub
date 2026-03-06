@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     const { data: profile } = await supabaseAdmin
         .from('profiles').select('role').eq('id', user.id).single();
 
-    const isAdmin = profile && ['admin', 'superadmin', 'owner'].includes(profile?.role);
+    const isAdmin = profile && ['admin', 'superadmin', 'owner', 'venue_owner'].includes(profile?.role);
 
     if (!isAdmin) {
         // Fallback: Check commander_staff for owner/manager role

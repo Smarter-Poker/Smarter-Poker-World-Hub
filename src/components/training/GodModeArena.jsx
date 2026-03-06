@@ -12,6 +12,7 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameUIRouter from './GameUIRouter';
+import TrainerConfigModal from './TrainerConfigModal';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import TRAINING_CONFIG from '../../config/trainingConfig';
@@ -381,6 +382,16 @@ function GodModeArena({
 }) {
     const engineType = getEngineType(gameId);
 
+    // Trainer config state
+    const [trainerConfig, setTrainerConfig] = useState(null);
+    const [showConfigModal, setShowConfigModal] = useState(false);
+
+    const handleConfigStart = useCallback((config) => {
+        setTrainerConfig(config);
+        setShowConfigModal(false);
+        // Game will re-mount with new config
+    }, []);
+
     const {
         currentQuestion,
         questionNumber,
@@ -420,7 +431,7 @@ function GodModeArena({
         startNextLevel,
         retryLevel,
         resetGame,
-    } = useMillionaireGame(gameId, 'PIO', level);
+    } = useMillionaireGame(gameId, 'PIO', level, trainerConfig);
 
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
@@ -658,6 +669,64 @@ function GodModeArena({
     if (hasFullScreenUI) {
         return (
             <div style={styles.fullScreenContainer}>
+                {/* Trainer Config Modal */}
+                <TrainerConfigModal
+                    isOpen={showConfigModal}
+                    onClose={() => setShowConfigModal(false)}
+                    onStart={handleConfigStart}
+                    currentGameId={gameId}
+                />
+                {/* Config gear button */}
+                <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowConfigModal(true)}
+                    style={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        width: 36,
+                        height: 36,
+                        borderRadius: '50%',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: trainerConfig
+                            ? 'rgba(0, 212, 255, 0.15)'
+                            : 'rgba(255,255,255,0.05)',
+                        color: trainerConfig ? '#00d4ff' : '#94a3b8',
+                        fontSize: 18,
+                        cursor: 'pointer',
+                        zIndex: 100,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                    title={trainerConfig ? `Custom: ${trainerConfig.label}` : 'Configure Trainer'}
+                >
+                    ⚙
+                </motion.button>
+                {/* Active config badge */}
+                {trainerConfig && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                            position: 'absolute',
+                            top: 14,
+                            right: 56,
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            background: 'rgba(0, 212, 255, 0.1)',
+                            border: '1px solid rgba(0, 212, 255, 0.2)',
+                            color: '#00d4ff',
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: 0.3,
+                            zIndex: 100,
+                        }}
+                    >
+                        {trainerConfig.label}
+                    </motion.div>
+                )}
                 {error ? (
                     <div style={styles.errorState}>
                         <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
