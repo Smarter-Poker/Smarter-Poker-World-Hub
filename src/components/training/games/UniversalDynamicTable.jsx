@@ -91,6 +91,30 @@ const SoundEngine = {
 
             const now = ctx.currentTime;
             switch (type) {
+                case 'deal': {
+                    // Card dealing: short noise burst (shuffling sound)
+                    const noise = ctx.createBufferSource();
+                    const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+                    const noiseData = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < noiseData.length; i++) noiseData[i] = Math.random() * 2 - 1;
+                    noise.buffer = noiseBuffer;
+                    const noiseGain = ctx.createGain();
+                    noiseGain.gain.setValueAtTime(0.12, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    noise.connect(noiseGain);
+                    noiseGain.connect(ctx.destination);
+                    noise.start(now);
+                    return; // Early return — skip oscillator
+                }
+                case 'new_hand': {
+                    // New hand: ascending chime
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(660, now + 0.05);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15);
+                    break;
+                }
                 case 'best':
                     osc.frequency.setValueAtTime(880, now);
                     osc.frequency.setValueAtTime(1108, now + 0.08);
@@ -604,6 +628,21 @@ function UniversalDynamicTable({
         SoundEngine.play(soundMap[moveClassification] || 'wrong');
     }, [showFeedback, moveClassification]);
 
+    // Play card deal sound when board cards appear (new question)
+    const prevQuestionNum = useRef(questionNumber);
+    useEffect(() => {
+        if (questionNumber !== prevQuestionNum.current) {
+            prevQuestionNum.current = questionNumber;
+            SoundEngine.play('new_hand');
+            // Stagger card deal sounds for board cards
+            if (boardCards && boardCards.length > 0) {
+                boardCards.forEach((_, i) => {
+                    setTimeout(() => SoundEngine.play('deal'), 120 * i + 200);
+                });
+            }
+        }
+    }, [questionNumber, boardCards]);
+
     // F11: Streak milestone toasts
     useEffect(() => {
         if (streak > prevStreakRef.current && streak >= 3 && streak % 3 === 0) {
@@ -917,13 +956,13 @@ function UniversalDynamicTable({
                             fontSize: 9,
                             fontWeight: 'bold',
                             letterSpacing: 1,
-                            background: question.source === 'PIO_DATABASE'
+                            background: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER')
                                 ? 'rgba(0, 212, 255, 0.15)'
                                 : 'rgba(139, 92, 246, 0.15)',
-                            color: question.source === 'PIO_DATABASE' ? '#00d4ff' : '#a78bfa',
-                            border: `1px solid ${question.source === 'PIO_DATABASE' ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
+                            color: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? '#00d4ff' : '#a78bfa',
+                            border: `1px solid ${(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
                         }}>
-                            {question.source === 'PIO_DATABASE' ? 'PIO' : 'AI'}
+                            {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? 'SOLVER' : 'AI'}
                         </div>
                     )}
                     {/* GTOW Score */}
