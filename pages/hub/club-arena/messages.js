@@ -304,7 +304,24 @@ function ConversationItem({ conversation, isActive, onClick }) {
                     <span style={{ color: C.textSec }}> · {timeAgo(conversation.last_message_at)}</span>
                 </div>
             </div>
-            {isUnread && <div style={{ width: 12, height: 12, borderRadius: '50%', background: C.blue }} />}
+            {isUnread && (
+                <div style={{
+                    minWidth: conversation.unreadCount > 9 ? 22 : 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: C.blue,
+                    color: '#fff',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                    flexShrink: 0,
+                }}>
+                    {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount || ''}
+                </div>
+            )}
         </div>
     );
 }

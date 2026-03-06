@@ -117,19 +117,20 @@ export default function Leaderboard() {
                     let allHands = [];
                     if (boardType !== 'chips') {
                         try {
+                            // Fetch hand histories — cap at 500 for all-time, 200 for filtered periods
+                            const handLimit = dateFilter ? 200 : 500;
                             let handQuery = supabase
                                 .from('hand_histories')
                                 .select('player_ids, winner_ids, hand_data, pot_total, completed_at')
                                 .eq('club_id', clubData.id)
-                                .limit(100) // recent hands
+                                .order('completed_at', { ascending: false })
+                                .limit(handLimit);
 
                             if (dateFilter) {
                                 handQuery = handQuery.gte('completed_at', dateFilter);
                             }
 
-                            const { data: handData, error: handErr } = await handQuery
-                                .order('completed_at', { ascending: false })
-                                .limit(2000);
+                            const { data: handData, error: handErr } = await handQuery;
 
                             if (!handErr && handData) {
                                 allHands = handData;

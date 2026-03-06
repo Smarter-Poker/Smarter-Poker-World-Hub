@@ -558,22 +558,35 @@ export default function Cashier() {
 
                             {/* Transaction History */}
                             <h2 style={S.sectionTitle}>Transaction History</h2>
-                            {transactions.length > 0 ? transactions.map((tx, i) => (
-                                <div key={tx.id || i} style={S.listItem}>
-                                    <div>
+                            {transactions.length > 0 ? transactions.map((tx, i) => {
+                                const txIcons = {
+                                    buyin: '📥', deposit: '📥', withdrawal: '📤', cashout: '📤',
+                                    win: '🏆', loss: '📉', rake: '🃏', send: '➡️', receive: '⬅️',
+                                    purchase: '🛍️', rakeback: '💰', bonus: '🎁', promo: '🎉',
+                                };
+                                const icon = txIcons[tx.transaction_type] || '💱';
+                                const isPos = (tx.amount || 0) >= 0;
+                                return (
+                                <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>
+                                    <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
                                         <div style={S.txDate}>
+                                            {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
                                             {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
                                         </div>
                                     </div>
                                     <div style={{
                                         ...S.txAmount,
-                                        color: (tx.amount || 0) >= 0 ? FB.success : FB.danger
+                                        color: isPos ? FB.success : FB.danger,
+                                        background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
+                                        borderRadius: 6, padding: '3px 8px',
                                     }}>
-                                        {(tx.amount || 0) >= 0 ? '+' : ''}{(tx.amount || 0).toLocaleString()}
+                                        {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
                                     </div>
                                 </div>
-                            )) : (
+                                );
+                            }) : (
                                 <div style={S.emptyState}>
                                     <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}></span>
                                     <p>No Transactions Yet</p>

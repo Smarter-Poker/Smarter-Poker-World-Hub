@@ -77,6 +77,8 @@ export default function UnionDashboard() {
     const [dashboard, setDashboard] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
+    const [clubSearch, setClubSearch] = useState('');
+    const [agentSearch, setAgentSearch] = useState('');
     const [toast, setToast] = useState(null);
 
     // Mint chips state
@@ -444,9 +446,18 @@ export default function UnionDashboard() {
                 {/* ═══ CLUBS TAB ═══ */}
                 {activeTab === 'clubs' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        {clubs.length === 0 ? (
-                            <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 40 }}>No clubs in this union yet.</div>
-                        ) : clubs.map(club => (
+                        {clubs.length > 4 && (
+                            <input
+                                type="text"
+                                value={clubSearch}
+                                onChange={e => setClubSearch(e.target.value)}
+                                placeholder="Search clubs..."
+                                style={{ padding: '8px 14px', background: '#3A3B3C', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 13, outline: 'none' }}
+                            />
+                        )}
+                        {clubs.filter(cl => !clubSearch || (cl.name || '').toLowerCase().includes(clubSearch.toLowerCase())).length === 0 ? (
+                            <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 40 }}>{clubSearch ? `No clubs match "${clubSearch}"` : 'No clubs in this union yet.'}</div>
+                        ) : clubs.filter(cl => !clubSearch || (cl.name || '').toLowerCase().includes(clubSearch.toLowerCase())).map(club => (
                             <div key={club.id} style={{
                                 background: FB.cardBg, borderRadius: 12, padding: 16,
                                 border: `1px solid ${FB.border}`, cursor: 'pointer',
@@ -471,9 +482,18 @@ export default function UnionDashboard() {
                 {/* ═══ AGENTS TAB ═══ */}
                 {activeTab === 'agents' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {agents.length === 0 ? (
-                            <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 40 }}>No agents across union clubs.</div>
-                        ) : agents.map(agent => {
+                        {agents.length > 4 && (
+                            <input
+                                type="text"
+                                value={agentSearch}
+                                onChange={e => setAgentSearch(e.target.value)}
+                                placeholder="Search agents..."
+                                style={{ padding: '8px 14px', background: '#3A3B3C', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 13, outline: 'none' }}
+                            />
+                        )}
+                        {agents.filter(a => !agentSearch || (a.profile?.display_name || a.profile?.username || '').toLowerCase().includes(agentSearch.toLowerCase())).length === 0 ? (
+                            <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 40 }}>{agentSearch ? `No agents match "${agentSearch}"` : 'No agents across union clubs.'}</div>
+                        ) : agents.filter(a => !agentSearch || (a.profile?.display_name || a.profile?.username || '').toLowerCase().includes(agentSearch.toLowerCase())).map(agent => {
                             const clubName = clubs.find(c => c.id === agent.club_id)?.name || 'Unknown Club';
                             return (
                                 <div key={agent.id} style={{

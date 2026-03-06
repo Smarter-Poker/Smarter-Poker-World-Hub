@@ -96,6 +96,8 @@ export default function AgentDashboard() {
     const [cashoutModal, setCashoutModal] = useState(null); // cashout request object
     const [cashoutNote, setCashoutNote] = useState('');
     const [clawbackModal, setClawbackModal] = useState(null); // transaction object
+    const [promoteModal, setPromoteModal] = useState(null); // { player } for sub-agent promotion
+    const [promoteRate, setPromoteRate] = useState('');
     const [processing, setProcessing] = useState(false);
     const [subAgents, setSubAgents] = useState([]);
     const [subAgentsLoaded, setSubAgentsLoaded] = useState(false);
@@ -355,20 +357,7 @@ export default function AgentDashboard() {
                     <PlayersTab
                         players={players}
                         onDistribute={(p) => setDistributeModal({ playerId: p.user_id, playerName: p.profile?.display_name || p.nickname || 'Player' })}
-                        onPromote={async (p) => {
-                            const rate = prompt(`Promote ${p.profile?.display_name || 'player'} to Sub-Agent.\n\nEnter commission rate (e.g. 5 for 5%).\nMust be lower than your rate.`);
-                            if (!rate) return;
-                            const pct = parseFloat(rate);
-                            if (isNaN(pct) || pct < 1 || pct > 90) { showToast('Enter a number between 1-90', 'error'); return; }
-                            try {
-                                await apiCall('/api/club-arena/manage-agent', {
-                                    action: 'promote_to_sub_agent', clubId: dashboard.clubId,
-                                    targetUserId: p.user_id, commissionRate: pct / 100,
-                                });
-                                showToast(`${p.profile?.display_name || 'Player'} promoted to Sub-Agent at ${pct}%!`);
-                                setSubAgentsLoaded(false); // Force reload
-                            } catch (e) { showToast(e.message || 'Promotion failed', 'error'); }
-                        }}
+                        onPromote={(p) => { setPromoteModal({ player: p }); setPromoteRate(''); }}
                     />
                 )}
                 {activeTab === 'cashouts' && (
@@ -528,6 +517,70 @@ export default function AgentDashboard() {
                             {processing ? 'Reversing...' : 'Confirm Clawback'}
                         </button>
                     </div>
+                </ModalOverlay>
+            )}
+
+            {/* ═══ PROMOTE TO SUB-AGENT MODAL ═══ */}
+            {promoteModal && (
+                <ModalOverlay onClose={() => setPromoteModal(null)}>
+                    <h3 style={modalTitle}>Promote to Sub-Agent</h3>
+                    <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                        Player: <strong style={{ color: FB.textPrimary }}>
+                            {promoteModal.player?.profile?.display_name || promoteModal.player?.nickname || 'Player'}
+                        </strong>
+                    </p>
+                    <p style={{ color: FB.textSecondary, fontSize: 12, marginBottom: 12 }}>
+                        Set commission rate (1–90%). Must be lower than your own rate of{' '}
+                        <strong style={{ color: FB.gold }}>{((myAgent?.commission_rate || 0) * 100).toFixed(0)}%</strong>.
+                    </p>
+                    <input
+                        type="number" value={promoteRate}
+                        onChange={(e) => setPromoteRate(e.target.value)}
+                        placeholder="Commission % (e.g. 5)"
+                        min="1" max="90" step="0.5"
+                        style={inputStyle}
+                        autoFocus
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 16 }}>
+                        {[5, 10, 15, 20].map(v => (
+                            <button key={v} onClick={() => setPromoteRate(String(v))} style={{
+                                ...btnStyle, flex: 1, padding: '6px 0', fontSize: 12,
+                                background: promoteRate === String(v) ? FB.primary : FB.cardBg,
+                                color: promoteRate === String(v) ? '#fff' : FB.textSecondary,
+                            }}>
+                                {v}%
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={async () => {
+                            const pct = parseFloat(promoteRate);
+                            if (isNaN(pct) || pct < 1 || pct > 90) {
+                                showToast('Enter a number between 1 and 90', 'error'); return;
+                            }
+                            setProcessing(true);
+                            try {
+                                await apiCall('/api/club-arena/manage-agent', {
+                                    action: 'promote_to_sub_agent',
+                                    clubId: dashboard.clubId,
+                                    targetUserId: promoteModal.player.user_id,
+                                    commissionRate: pct / 100,
+                                });
+                                showToast(`Promoted to Sub-Agent at ${pct}% commission!`);
+                                setPromoteModal(null);
+                                setPromoteRate('');
+                                setSubAgentsLoaded(false);
+                            } catch (e) {
+                                showToast(e.message || 'Promotion failed', 'error');
+                            } finally {
+                                setProcessing(false);
+                            }
+                        }}
+                        disabled={processing || !promoteRate}
+                        style={{ ...actionBtn, background: processing || !promoteRate ? FB.border : FB.purple }}
+                    >
+                        {processing ? 'Promoting...' : 'Confirm Promotion'}
+                    </button>
                 </ModalOverlay>
             )}
 

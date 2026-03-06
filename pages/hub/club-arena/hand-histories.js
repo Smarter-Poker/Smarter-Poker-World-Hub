@@ -128,6 +128,11 @@ export default function HandHistories() {
                         query = query.contains('player_ids', [authUser.id]);
                     }
 
+                    // Server-side variant filter (avoids pagination gaps)
+                    if (gameType !== 'all') {
+                        query = query.eq('variant', gameType);
+                    }
+
                     const { data: handData, error } = await query;
 
                     if (error) {
@@ -171,11 +176,6 @@ export default function HandHistories() {
                             filtered = filtered.filter(h => h.profit > 0);
                         } else if (resultFilter === 'losses') {
                             filtered = filtered.filter(h => h.profit < 0);
-                        }
-
-                        // Filter by game type
-                        if (gameType !== 'all') {
-                            filtered = filtered.filter(h => h.game_type === gameType);
                         }
 
                         if (reset) {
@@ -402,7 +402,13 @@ export default function HandHistories() {
                     ) : hands.length === 0 ? (
                         <div style={S.emptyState}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}></span>
-                            <p>No Hands Found</p>
+                            <p>
+                                    {resultFilter !== 'all'
+                                        ? `No ${resultFilter === 'wins' ? 'winning' : 'losing'} hands in this period.`
+                                        : gameType !== 'all'
+                                        ? `No ${gameType.toUpperCase()} hands found.`
+                                        : 'No hands yet. Play some hands to see your history!'}
+                                </p>
                             <p style={{ fontSize: '13px', marginTop: '8px' }}>Play Some Poker To See Your History!</p>
                         </div>
                     ) : (

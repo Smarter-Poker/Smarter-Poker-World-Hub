@@ -63,6 +63,7 @@ export default function UnionGames() {
   const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [showCreateTable, setShowCreateTable] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(''); // filter tournaments/tables by name
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -199,6 +200,14 @@ export default function UnionGames() {
     };
   }, [unionId, user, clubs.length, tab, loadTournaments, loadTables]);
 
+  // Filtered lists based on search
+  const filteredTournaments = searchQuery.trim()
+    ? tournaments.filter(t => (t.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    : tournaments;
+  const filteredTables = searchQuery.trim()
+    ? tables.filter(t => (t.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    : tables;
+
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
@@ -293,7 +302,7 @@ export default function UnionGames() {
       {/* Main tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${FB.border}`, background: FB.card }}>
         {[{ id: 'tournaments', label: 'Tournaments' }, { id: 'cash', label: 'Cash Games' }].map(t => (
-          <button key={t.id} onClick={() => { setTab(t.id); setSelectedTournament(null); }}
+          <button key={t.id} onClick={() => { setTab(t.id); setSelectedTournament(null); setSearchQuery(''); }}
             style={{
               flex: 1, padding: '12px 0', background: 'transparent', border: 'none',
               borderBottom: tab === t.id ? `3px solid ${FB.primary}` : '3px solid transparent',
@@ -323,6 +332,21 @@ export default function UnionGames() {
               }}>{f}</button>
           ))
         )}
+      </div>
+
+      {/* Search bar */}
+      <div style={{ padding: '0 16px 8px' }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder={tab === 'tournaments' ? 'Search tournaments...' : 'Search tables...'}
+          style={{
+            width: '100%', padding: '8px 14px', background: FB.card,
+            border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.text,
+            fontSize: 13, outline: 'none', boxSizing: 'border-box',
+          }}
+        />
       </div>
 
       {/* Stats Bar */}
@@ -366,12 +390,12 @@ export default function UnionGames() {
           <SkeletonDark variant="table-rows" rows={5} />
         ) : tab === 'tournaments' ? (
           /* ═══ TOURNAMENTS LIST ═══ */
-          tournaments.length === 0 ? (
+          filteredTournaments.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: FB.dim }}>
-              No {subTab} tournaments. {subTab === 'upcoming' && 'Create one to get started!'}
+              {searchQuery ? `No tournaments match "${searchQuery}"` : `No ${subTab} tournaments. ${subTab === 'upcoming' ? 'Create one to get started!' : ''}`}
             </div>
           ) : (
-            tournaments.map(t => (
+            filteredTournaments.map(t => (
               <div key={t.id} onClick={() => setSelectedTournament(t)} style={{
                 background: FB.card, borderRadius: 12, padding: 16, marginTop: 12,
                 border: `1px solid ${FB.border}`, cursor: 'pointer',
@@ -421,12 +445,12 @@ export default function UnionGames() {
           )
         ) : (
           /* ═══ CASH GAMES LIST ═══ */
-          tables.length === 0 ? (
+          filteredTables.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 40, color: FB.dim }}>
-              No {tableFilter} tables. Create one to get started!
+              {searchQuery ? `No tables match "${searchQuery}"` : `No ${tableFilter} tables. Create one to get started!`}
             </div>
           ) : (
-            tables.map(t => (
+            filteredTables.map(t => (
               <div key={t.id} style={{
                 background: FB.card, borderRadius: 12, padding: 16, marginTop: 12,
                 border: `1px solid ${FB.border}`,
@@ -798,7 +822,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
           .eq('tournament_id', t.id)
           .in('status', ['registered', 'playing', 'eliminated', 'winner'])
           .order('registered_at')
-          .limit(500);
+          .limit(200);
         if (error) console.error('[TournamentDetail] regs fetch:', error);
         if (active) setRegs(data || []);
       } catch (e) {

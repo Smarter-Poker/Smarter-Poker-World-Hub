@@ -23,6 +23,81 @@ const FB = {
     hover: '#3A3B3C',
 };
 
+
+// ─── Mini Profit Sparkline ──────────────────────────────────────
+function ProfitSparkline({ activities }) {
+    if (!activities || activities.length < 2) return null;
+
+    // Build cumulative P&L series
+    let running = 0;
+    const values = activities.slice().reverse().map(a => {
+        running += a.type === 'win' ? a.amount : -a.amount;
+        return running;
+    });
+
+    const min = Math.min(...values, 0);
+    const max = Math.max(...values, 0);
+    const range = max - min || 1;
+
+    const W = 280, H = 56;
+    const pts = values.map((v, i) => {
+        const x = (i / (values.length - 1)) * W;
+        const y = H - ((v - min) / range) * H;
+        return `${x},${y}`;
+    });
+
+    const isUp = values[values.length - 1] >= 0;
+    const color = isUp ? '#31A24C' : '#FA383E';
+    const zeroY = H - ((0 - min) / range) * H;
+
+    return (
+        <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Profit Trend (Last {activities.length} Hands)
+            </div>
+            <div style={{ background: '#242526', borderRadius: 8, padding: '12px 16px', border: '1px solid #3E4042' }}>
+                <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', overflow: 'visible' }}>
+                    {/* Zero line */}
+                    {min < 0 && max > 0 && (
+                        <line x1="0" y1={zeroY} x2={W} y2={zeroY}
+                            stroke="#3E4042" strokeWidth="1" strokeDasharray="3,3" />
+                    )}
+                    {/* Area fill */}
+                    <defs>
+                        <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={color} stopOpacity="0.25" />
+                            <stop offset="100%" stopColor={color} stopOpacity="0.03" />
+                        </linearGradient>
+                    </defs>
+                    <polygon
+                        points={`0,${H} ${pts.join(' ')} ${W},${H}`}
+                        fill="url(#sparkGrad)"
+                    />
+                    {/* Line */}
+                    <polyline
+                        points={pts.join(' ')}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                    />
+                    {/* End dot */}
+                    <circle cx={pts[pts.length - 1].split(',')[0]} cy={pts[pts.length - 1].split(',')[1]}
+                        r="3.5" fill={color} />
+                </svg>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#B0B3B8', marginTop: 4 }}>
+                    <span>Oldest</span>
+                    <span style={{ color, fontWeight: 700 }}>
+                        {running >= 0 ? '+' : ''}{running.toLocaleString()} net
+                    </span>
+                    <span>Latest</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function PlayerStats() {
     const router = useRouter();
     const clubIdParam = router.query?.club || null;
@@ -414,6 +489,11 @@ export default function PlayerStats() {
                                     <div style={S.statLabel}>Hands Won</div>
                                 </div>
                             </div>
+
+                            {/* Profit Trend Sparkline */}
+                            {recentActivity.length >= 2 && (
+                                <ProfitSparkline activities={recentActivity} />
+                            )}
 
                             {/* Best Hand */}
                             {stats.bestHand && (

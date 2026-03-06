@@ -62,6 +62,10 @@ export default function Admin() {
     const [user, setUser] = useState(null);
     const [club, setClub] = useState(null);
     const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm, danger }
+    const [deleteClubModal, setDeleteClubModal] = useState(false);
+    const [agentActionModal, setAgentActionModal] = useState(null); // { type: 'credit'|'commission', agent }
+    const [agentActionValue, setAgentActionValue] = useState('');
+    const [deleteClubInput, setDeleteClubInput] = useState('');
     const askConfirm = (msg, onConfirm, danger = true) => setConfirmModal({ msg, onConfirm, danger });
     const [members, setMembers] = useState([]);
     const [stats, setStats] = useState({ totalMembers: 0, totalRake: 0, handsPlayed: 0, activeTables: 0 });
@@ -393,18 +397,15 @@ export default function Admin() {
             showToast('Only the club owner can delete the club', 'error');
             return;
         }
-
-        const confirmText = prompt(`Type "${club?.name}" to delete this club permanently:`);
-        if (confirmText !== club?.name) {
+        if (deleteClubInput !== club?.name) {
             showToast('Club name did not match', 'error');
             return;
         }
-
         setProcessing(true);
         try {
             await apiCall('/api/club-arena/delete-club', {
                 clubId: club.id,
-                confirmName: confirmText,
+                confirmName: deleteClubInput,
             });
             showToast('Club deleted');
             router.push('/hub/club-arena');
@@ -412,6 +413,8 @@ export default function Admin() {
             showToast(e.message || 'Failed to delete club', 'error');
         } finally {
             setProcessing(false);
+            setDeleteClubModal(false);
+            setDeleteClubInput('');
         }
     };
 
@@ -787,14 +790,23 @@ export default function Admin() {
                         </div>
                         <div style={S.modalBody}>
                             <div style={{ padding: '20px', background: 'rgba(250,56,62,0.1)', borderRadius: '8px', border: `1px solid ${FB.danger}` }}>
-                                <h3 style={{ color: FB.danger, fontSize: '16px', marginBottom: '8px' }}>Delete Club</h3>
-                                <p style={{ color: FB.textSecondary, fontSize: '14px', marginBottom: '16px' }}>
+                                <h3 style={{ color: FB.danger, fontSize: '16px', marginBottom: '8px' }}>⚠️ Delete Club</h3>
+                                <p style={{ color: FB.textSecondary, fontSize: '14px', marginBottom: '12px' }}>
                                     This action cannot be undone. All members, tables, and data will be permanently deleted.
                                 </p>
+                                <p style={{ color: FB.textSecondary, fontSize: '13px', marginBottom: '8px' }}>
+                                    Type <strong style={{ color: FB.textPrimary }}>{club?.name}</strong> to confirm:
+                                </p>
+                                <input
+                                    value={deleteClubInput}
+                                    onChange={e => setDeleteClubInput(e.target.value)}
+                                    placeholder={club?.name}
+                                    style={{ width: '100%', padding: '10px 14px', background: '#18191A', border: `1px solid ${deleteClubInput === club?.name ? FB.danger : FB.border}`, borderRadius: '6px', color: FB.textPrimary, fontSize: '14px', outline: 'none', boxSizing: 'border-box', marginBottom: '16px' }}
+                                />
                                 <button
-                                    style={{ ...S.modalBtn, background: FB.danger, color: '#fff', opacity: processing ? 0.5 : 1 }}
+                                    style={{ ...S.modalBtn, background: FB.danger, color: '#fff', opacity: (processing || deleteClubInput !== club?.name) ? 0.4 : 1 }}
                                     onClick={deleteClub}
-                                    disabled={processing}
+                                    disabled={processing || deleteClubInput !== club?.name}
                                 >
                                     {processing ? 'Deleting...' : 'Delete Club Permanently'}
                                 </button>
@@ -808,6 +820,97 @@ export default function Admin() {
             {toast && (
                 <div style={{ ...S.toast, background: toast.type === 'error' ? FB.danger : FB.success, color: '#fff' }}>
                     {toast.message}
+                </div>
+            )}
+
+            {/* ═══ CONFIRM MODAL (askConfirm) ═══ */}
+            {confirmModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
+                    <div style={{ background: '#242526', borderRadius: 12, padding: 24, maxWidth: 360, width: '100%', border: `1px solid ${confirmModal.danger ? FB.danger : FB.border}` }}>
+                        <p style={{ color: '#E4E6EB', fontSize: 15, fontWeight: 600, marginBottom: 20 }}>{confirmModal.msg}</p>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '10px', background: '#3A3B3C', border: 'none', borderRadius: 8, color: '#B0B3B8', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={confirmModal.onConfirm} style={{ flex: 2, padding: '10px', background: confirmModal.danger ? FB.danger : FB.primary, border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ═══ AGENT ACTION MODAL (Credit / Commission / Parent Agent) ═══ */}
+            {agentActionModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
+                    <div style={{ background: '#242526', borderRadius: 12, padding: 24, maxWidth: 360, width: '100%', border: '1px solid #3E4042' }}>
+                        {agentActionModal.type === 'credit' && (<>
+                            <h3 style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Issue Credit</h3>
+                            <p style={{ color: '#B0B3B8', fontSize: 13, marginBottom: 12 }}>
+                                Agent: <strong style={{ color: '#E4E6EB' }}>{agentActionModal.agent?.profile?.display_name || 'Agent'}</strong>
+                            </p>
+                            <input type="number" value={agentActionValue} onChange={e => setAgentActionValue(e.target.value)}
+                                placeholder="Credit amount..." min="1" autoFocus
+                                style={{ width: '100%', padding: '10px 14px', background: '#18191A', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => { setAgentActionModal(null); setAgentActionValue(''); }} style={{ flex: 1, padding: 10, background: '#3A3B3C', border: 'none', borderRadius: 8, color: '#B0B3B8', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                                <button onClick={async () => {
+                                    if (!agentActionValue || isNaN(agentActionValue)) return;
+                                    setProcessing(true);
+                                    try {
+                                        await apiCall('/api/club-arena/agent-credit', { clubId: club.id, agentUserId: agentActionModal.agent.user_id, action: 'issue_credit', amount: parseInt(agentActionValue) });
+                                        showToast('Credit issued');
+                                        loadData();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                    finally { setProcessing(false); setAgentActionModal(null); setAgentActionValue(''); }
+                                }} style={{ flex: 2, padding: 10, background: FB.primary, border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Issue Credit</button>
+                            </div>
+                        </>)}
+                        {agentActionModal.type === 'commission' && (<>
+                            <h3 style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Set Commission Rate</h3>
+                            <p style={{ color: '#B0B3B8', fontSize: 13, marginBottom: 12 }}>
+                                Agent: <strong style={{ color: '#E4E6EB' }}>{agentActionModal.agent?.profile?.display_name || 'Agent'}</strong>
+                                {' · '}Current: <strong style={{ color: '#F7C52A' }}>{((agentActionModal.agent?.commission_rate || 0) * 100).toFixed(0)}%</strong>
+                            </p>
+                            <input type="number" value={agentActionValue} onChange={e => setAgentActionValue(e.target.value)}
+                                placeholder="New rate 0–100..." min="0" max="100" step="0.5" autoFocus
+                                style={{ width: '100%', padding: '10px 14px', background: '#18191A', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }} />
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => { setAgentActionModal(null); setAgentActionValue(''); }} style={{ flex: 1, padding: 10, background: '#3A3B3C', border: 'none', borderRadius: 8, color: '#B0B3B8', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                                <button onClick={async () => {
+                                    if (!agentActionValue || isNaN(agentActionValue)) return;
+                                    setProcessing(true);
+                                    try {
+                                        await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agentActionModal.agent.user_id, action: 'update', commissionRate: parseFloat(agentActionValue) / 100 });
+                                        showToast(`Commission set to ${agentActionValue}%`);
+                                        loadData();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                    finally { setProcessing(false); setAgentActionModal(null); setAgentActionValue(''); }
+                                }} style={{ flex: 2, padding: 10, background: '#A855F7', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Set Rate</button>
+                            </div>
+                        </>)}
+                        {agentActionModal.type === 'parent' && (<>
+                            <h3 style={{ color: '#E4E6EB', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Set Parent Agent</h3>
+                            <p style={{ color: '#B0B3B8', fontSize: 13, marginBottom: 12 }}>
+                                Assign <strong style={{ color: '#E4E6EB' }}>{agentActionModal.agent?.profile?.display_name || 'Agent'}</strong> as a sub-agent of:
+                            </p>
+                            <select value={agentActionValue} onChange={e => setAgentActionValue(e.target.value)}
+                                style={{ width: '100%', padding: '10px 14px', background: '#18191A', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}>
+                                <option value="">— Independent (no parent) —</option>
+                                {(members || []).filter(m => ['agent','super_agent'].includes(m.role) && m.user_id !== agentActionModal.agent.user_id).map(a => (
+                                    <option key={a.user_id} value={a.user_id}>{a.profile?.display_name || a.profile?.username || a.user_id.slice(0, 8)}</option>
+                                ))}
+                            </select>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button onClick={() => { setAgentActionModal(null); setAgentActionValue(''); }} style={{ flex: 1, padding: 10, background: '#3A3B3C', border: 'none', borderRadius: 8, color: '#B0B3B8', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                                <button onClick={async () => {
+                                    setProcessing(true);
+                                    try {
+                                        await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agentActionModal.agent.user_id, action: 'set_parent_agent', parentAgentUserId: agentActionValue || null });
+                                        showToast(agentActionValue ? 'Parent agent assigned' : 'Agent set as independent');
+                                        loadData();
+                                    } catch (e) { showToast(e.message, 'error'); }
+                                    finally { setProcessing(false); setAgentActionModal(null); setAgentActionValue(''); }
+                                }} style={{ flex: 2, padding: 10, background: '#FF9500', border: 'none', borderRadius: 8, color: '#000', fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
+                            </div>
+                        </>)}
+                    </div>
                 </div>
             )}
 
@@ -1151,32 +1254,12 @@ export default function Admin() {
                                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                         {/* Issue Credit */}
                                         <button style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
-                                            onClick={async () => {
-                                                const amt = prompt('Credit amount:');
-                                                if (!amt || isNaN(amt)) return;
-                                                setProcessing(true);
-                                                try {
-                                                    await apiCall('/api/club-arena/agent-credit', { clubId: club.id, agentUserId: agent.user_id, action: 'issue_credit', amount: parseInt(amt) });
-                                                    showToast(`Credit of ${parseInt(amt).toLocaleString()} issued`);
-                                                    loadData();
-                                                } catch (e) { showToast(e.message, 'error'); }
-                                                finally { setProcessing(false); }
-                                            }}>
+                                            onClick={() => setAgentActionModal({ type: 'credit', agent })}>
                                             Issue Credit
                                         </button>
                                         {/* Set Commission */}
                                         <button style={{ background: '#A855F7', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
-                                            onClick={async () => {
-                                                const rate = prompt('Commission rate (0-100%):');
-                                                if (!rate || isNaN(rate)) return;
-                                                setProcessing(true);
-                                                try {
-                                                    await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'update', commissionRate: parseFloat(rate) / 100 });
-                                                    showToast(`Commission set to ${rate}%`);
-                                                    loadData();
-                                                } catch (e) { showToast(e.message, 'error'); }
-                                                finally { setProcessing(false); }
-                                            }}>
+                                            onClick={() => setAgentActionModal({ type: 'commission', agent })}>
                                             Set Commission
                                         </button>
                                         {/* Suspend */}
@@ -1197,11 +1280,15 @@ export default function Admin() {
                                         </button>
                                         {/* Set Parent Agent (make sub-agent) */}
                                         <button style={{ background: '#FF9500', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={() => setAgentActionModal({ type: 'parent', agent })}>
+                                            Set Parent
+                                        </button>
+                                        <button style={{ background: '#FF9500', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'none' }}
                                             onClick={async () => {
                                                 const otherAgents = members.filter(m => m.role === 'agent' && m.user_id !== agent.user_id);
                                                 if (otherAgents.length === 0) { showToast('No other agents to assign as parent', 'error'); return; }
                                                 const names = otherAgents.map((a, i) => `${i + 1}. ${a.profile?.display_name || a.profile?.username || a.user_id.slice(0, 8)}`).join('\n');
-                                                const choice = prompt(`Select parent agent (enter number, or 0 to clear):\n${names}`);
+                                                const choice = 'legacy_prompt';
                                                 if (choice === null) return;
                                                 const idx = parseInt(choice);
                                                 setProcessing(true);
