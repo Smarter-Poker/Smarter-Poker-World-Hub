@@ -18,13 +18,14 @@ import {
   Menu, X, Users, Clock, Layout, Map, Bell, Trophy,
   Monitor, DollarSign, Gift, Calendar, Tv, Activity, BarChart3,
   AlertTriangle, PlusCircle, Lock, Upload, QrCode, Settings, LogOut,
-  Package, Briefcase, Globe, Crown
+  Package, Briefcase, Globe, Crown, FileText
 } from 'lucide-react';
 import CommanderErrorBoundary from './CommanderErrorBoundary';
 import FloorCallAlert from './FloorCallAlert';
 import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../lib/commander/tierConfig';
 import { canRoleAccessRoute, isSensitiveRoute } from '../../../lib/commander/auth';
 import useClubBranding from '../../../lib/commander/useClubBranding';
+import { supabase } from '../../../lib/supabase';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/commander/dashboard', icon: Layout },
@@ -60,6 +61,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
   const [showClubPagePopup, setShowClubPagePopup] = useState(false);
+  const [clubPageId, setClubPageId] = useState(null); // Set when venue has an existing club page
   const [showUpgradeModal, setShowUpgradeModal] = useState(null); // null or { label, requiredTier }
   const [currentTier, setCurrentTier] = useState('home_game');
 
@@ -182,7 +184,8 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);
         const json = await res.json();
         if (json.success && json.data && json.data.length > 0) {
-          // Already has a page, no need to remind
+          // Already has a page, no need to remind — store the page ID for hamburger link
+          setClubPageId(json.data[0].id);
           return;
         }
 
@@ -203,12 +206,16 @@ export default function CommanderLayout({ children, title, backHref = '/commande
     localStorage.setItem('club_page_popup_dismissed', new Date().toISOString());
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // HARDENED: Sign out of Supabase first to kill the auth session cookie
+    try { await supabase.auth.signOut(); } catch { /* non-critical */ }
+    // Clear ALL commander-related localStorage keys
     localStorage.removeItem('commander_staff');
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
     localStorage.removeItem('commander_security_gate');
+    localStorage.removeItem('commander_login_origin');
     localStorage.removeItem('commander_branding');
     // Clear all PIN unlock grants from this session
     try {
@@ -216,9 +223,8 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         if (k.startsWith('pin_unlock_')) sessionStorage.removeItem(k);
       });
     } catch { }
-    if (router.asPath !== '/commander/login') {
-      router.push('/commander/login').catch(() => { });
-    }
+    // Bulletproof redirect
+    window.location.href = '/commander/login';
   };
 
   // ── PIN GATE VERIFICATION ──
@@ -784,6 +790,22 @@ export default function CommanderLayout({ children, title, backHref = '/commande
                 );
               })}
               <div className="cmd-menu-divider" />
+              {/* Dynamic Club Page Link */}
+              <button
+                className="cmd-menu-item"
+                style={{ color: clubPageId ? '#1877F2' : '#31A24C', fontWeight: 600 }}
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (clubPageId) {
+                    window.location.href = `/hub/social-media?viewPage=${clubPageId}`;
+                  } else {
+                    window.location.href = '/hub/social-media?createPage=true';
+                  }
+                }}
+              >
+                {clubPageId ? <Globe size={18} /> : <FileText size={18} />}
+                {clubPageId ? 'My Club Page' : 'Create Club Page'}
+              </button>
               <button className="cmd-menu-item danger" onClick={handleLogout}>
                 <LogOut size={18} /> Sign Out
               </button>
@@ -866,7 +888,7 @@ export default function CommanderLayout({ children, title, backHref = '/commande
                 Set up a public page for <strong style={{ color: '#ddd' }}>{venueName}</strong> on Smarter.Poker Social. Attract new players and keep your regulars updated.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { dismissClubPagePopup(); router.push('/hub/social-media?createPage=true'); }} style={{
+                <button onClick={() => { dismissClubPagePopup(); window.location.href = '/hub/social-media?createPage=true'; }} style={{
                   padding: '12px 24px', borderRadius: 10, border: 'none',
                   background: 'linear-gradient(135deg, #1877F2, #166FE5)', color: '#fff',
                   fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
