@@ -13,7 +13,7 @@
  * 
  * Auto-refreshes, filterable by category.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Users, DollarSign, Bell, Play, Pause, Timer, XCircle } from 'lucide-react';
@@ -58,33 +58,10 @@ export default function ActivityFeed() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
-    let isMounted = true;
-    let pollTimeout;
-
-    const runPoll = async () => {
-      if (!isMounted) return;
-      await fetchEvents();
-      if (isMounted) {
-        pollTimeout = setTimeout(runPoll, 5000);
-      }
-    };
-
-    runPoll();
-    const clock = setInterval(() => setNow(new Date()), 30000);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(pollTimeout);
-      clearInterval(clock);
-    };
-  }, []);
-
-  // Commander Data Bus — sync activity feed across tabs
-  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
-  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
-
-  const fetchEvents = async () => {
+  // FIXED: Wrapped in useCallback to prevent infinite re-render loop.
+  // Previously, fetchEvents was recreated every render which caused
+  // useCommanderSync to retrigger its useEffect endlessly.
+  const fetchEvents = useCallback(async () => {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -154,7 +131,35 @@ export default function ActivityFeed() {
       setEvents(allEvents.slice(0, 50));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    let pollTimeout;
+
+    const runPoll = async () => {
+      if (!isMounted) return;
+      await fetchEvents();
+      if (isMounted) {
+        pollTimeout = setTimeout(runPoll, 5000);
+      }
+    };
+
+    runPoll();
+    const clock = setInterval(() => setNow(new Date()), 30000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimeout);
+      clearInterval(clock);
+    };
+  }, [fetchEvents]);
+
+  // Commander Data Bus — sync activity feed across tabs
+  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
+  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
+
+  // fetchEvents is now defined above via useCallback
 
   const filteredEvents = events.filter(e => {
     if (filter === 'all') return true;
