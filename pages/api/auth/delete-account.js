@@ -10,6 +10,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { hashEmail } from '../../../src/lib/antiAbuse';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,7 +18,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.auth)) return;
+    if (!applyRateLimit(req, res, LIMITS.auth)) return;
 
     if (req.method !== 'DELETE') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
             .select('club_id, chip_balance, locked_chips')
             .eq('user_id', userId)
             .or('chip_balance.gt.0,locked_chips.gt.0')
-                .limit(200);
+            .limit(200);
 
         if (activeBalances?.length > 0) {
             const totalChips = activeBalances.reduce((sum, m) => sum + (m.chip_balance || 0) + (m.locked_chips || 0), 0);
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
             .from('clubs')
             .select('id, name')
             .eq('owner_id', userId)
-                .limit(100);
+            .limit(100);
 
         if (ownedClubs?.length > 0) {
             return res.status(400).json({
@@ -92,7 +93,7 @@ export default async function handler(req, res) {
             .from('unions')
             .select('id, name')
             .eq('owner_id', userId)
-                .limit(50);
+            .limit(50);
 
         if (ownedUnions?.length > 0) {
             return res.status(400).json({
