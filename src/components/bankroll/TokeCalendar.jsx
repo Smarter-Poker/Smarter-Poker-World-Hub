@@ -15,6 +15,7 @@ import {
     updateCalendarEvent,
 } from '../../lib/bankroll/calendarSelectors';
 import toast from '../../stores/toastStore';
+import { supabase } from '../../lib/supabase';
 
 const MONTHS = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -43,20 +44,52 @@ function TokeCalendar({ userId }) {
     const [addForm, setAddForm] = useState({ title: '', venue_name: '', notes: '', alert_enabled: true });
     const [saving, setSaving] = useState(false);
 
+    const isMountedRef = useRef(true);
+    useEffect(() => {
+        return () => { isMountedRef.current = false; };
+    }, []);
+
     const loadEvents = useCallback(async () => {
         if (!userId) return;
         setIsLoading(true);
         try {
             const data = await fetchCalendarEvents(userId);
-            setEvents(data);
+            if (isMountedRef.current) setEvents(data);
         } catch (err) {
             console.error('Calendar load error:', err);
         } finally {
-            setIsLoading(false);
+            if (isMountedRef.current) setIsLoading(false);
         }
     }, [userId]);
 
+    const realtimeTimerRef = useRef(null);
+    const debouncedLoadEvents = useCallback(() => {
+        if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
+        realtimeTimerRef.current = setTimeout(() => {
+            if (isMountedRef.current) loadEvents();
+        }, 500);
+    }, [loadEvents]);
+
     useEffect(() => { loadEvents(); }, [loadEvents]);
+
+    // ── Supabase Realtime — debounced auto-refresh ──
+    useEffect(() => {
+        if (!userId) return;
+        const channel = supabase
+            .channel(`toke-calendar-${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_calendar_events', filter: `user_id=eq.${userId}` }, debouncedLoadEvents)
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [userId, debouncedLoadEvents]);
+
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && isMountedRef.current) {
+                loadEvents();
+            }
+        });
+        return () => subscription?.unsubscribe();
+    }, [loadEvents]);
 
     // Build a fast lookup: 'YYYY-MM-DD' → [events]
     const eventMap = {};
@@ -100,9 +133,18 @@ function TokeCalendar({ userId }) {
                 alert_enabled: addForm.alert_enabled,
             });
 
-            // Request notification permission if alert enabled
-            if (addForm.alert_enabled && 'Notification' in window && Notification.permission === 'default') {
-                await Notification.requestPermission();
+            // Request notification permission if alert enabled safely (fire-and-forget)
+            if (addForm.alert_enabled && 'Notification' in window) {
+                try {
+                    if (Notification.permission === 'default') {
+                        const req = Notification.requestPermission();
+                        if (req && typeof req.then === 'function') {
+                            req.catch(() => { }); // prevent unhandled rejections
+                        }
+                    }
+                } catch (e) {
+                    // Ignore strict-mode access throws or missing methods
+                }
             }
 
             toast.success('Event added to calendar!');

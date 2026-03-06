@@ -27,7 +27,26 @@ export async function requestPermission() {
   }
 
   try {
-    const result = await Notification.requestPermission();
+    // Safari sometimes hangs on Notification.requestPermission. 
+    // We race it against a 2-second timeout to prevent UI freezing.
+    const permissionPromise = new Promise((resolve) => {
+      try {
+        const req = Notification.requestPermission((perm) => {
+          resolve(perm); // Legacy Safari callback
+        });
+        if (req && typeof req.then === 'function') {
+          req.then(resolve).catch(() => resolve('default')); // Modern Promise
+        }
+      } catch (e) {
+        resolve('default');
+      }
+    });
+
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => resolve('default'), 2000); // 2 second max wait
+    });
+
+    const result = await Promise.race([permissionPromise, timeoutPromise]);
     _savePrefs({ push: result === 'granted' });
     return result;
   } catch {

@@ -44,8 +44,8 @@ export function TableCard({ card, style = {} }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function computeSeatPositions(maxSeats) {
-    const cx = 50, cy = 44;
-    const rx = 42, ry = 36;
+    const cx = 50, cy = 40;
+    const rx = 42, ry = 30;
     const dealerAngle = Math.PI * 0.5;
     const dealerPos = {
         top: `${cy - ry * Math.sin(dealerAngle) - 8}%`,
@@ -97,7 +97,7 @@ export default function SandboxPokerTable({
     return (
         <div style={{
             position: 'relative', width: '100%', paddingBottom: '60%',
-            overflow: 'hidden',
+            overflow: 'visible',
             background: 'radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, #1a1a2e 90%)',
             borderRadius: 12,
         }}>

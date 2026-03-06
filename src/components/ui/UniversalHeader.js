@@ -159,7 +159,7 @@ export default function UniversalHeader({
     const { unreadCount } = useUnreadCount();
 
     // Derived values — use mounted guard for client-only values to prevent hydration mismatch
-    const displayAvatar = mounted ? (contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url) : null;
+    const displayAvatar = mounted ? (user?.avatar || contextUser?.user_metadata?.avatar_url || contextAvatar?.imageUrl) : null;
     const isVipDisplay = mounted ? (isVip || contextVip) : false;
 
     // Live Help state

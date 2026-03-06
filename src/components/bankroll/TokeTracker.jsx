@@ -86,6 +86,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [loadError, setLoadError] = useState(null);
 
     // ── Hardening: mounted ref prevents state updates after unmount ──
     const isMountedRef = useRef(true);
@@ -204,6 +205,16 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     const loadData = useCallback(async () => {
         if (!userId) { setIsLoading(false); return; }
         setIsLoading(true);
+        setLoadError(null);
+
+        // Hard failsafe escape hatch
+        const failsafeId = setTimeout(() => {
+            if (isMountedRef.current) {
+                setIsLoading(false);
+                setLoadError('Loading timed out. Please refresh or check connection.');
+            }
+        }, 8000);
+
         try {
             const [active, gigs, locs] = await Promise.all([
                 getActiveGig(userId),
@@ -228,7 +239,9 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             }
         } catch (err) {
             console.error('Error loading toke data:', err);
+            if (isMountedRef.current) setLoadError(err.message || String(err));
         } finally {
+            clearTimeout(failsafeId);
             if (isMountedRef.current) setIsLoading(false);
         }
     }, [userId]);
@@ -238,7 +251,11 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     const debouncedLoadData = useCallback(() => {
         if (realtimeTimerRef.current) clearTimeout(realtimeTimerRef.current);
         realtimeTimerRef.current = setTimeout(() => {
-            if (isMountedRef.current) loadData();
+            if (isMountedRef.current) {
+                loadData();
+                // Broadcast update so main Bankroll Dashboard and Toke Dashboard re-render
+                window.dispatchEvent(new CustomEvent('bankroll-updated'));
+            }
         }, 500);
     }, [loadData]);
 
@@ -429,7 +446,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                     // Safe call: older embedded WebKit might not return a Promise
                     const req = Notification.requestPermission();
                     if (req && typeof req.then === 'function') {
-                        await req;
+                        req.catch(() => { });
                     }
                 }
             }
@@ -1821,6 +1838,8 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                 <h3 style={styles.historyTitle}>Completed Events</h3>
                 {isLoading ? (
                     <div style={styles.loadingPlaceholder}>Loading Events...</div>
+                ) : loadError ? (
+                    <div style={{ ...styles.emptyState, color: '#ef4444' }}>Error: {loadError}</div>
                 ) : completedGigs.length === 0 ? (
                     <div style={styles.emptyState}>No Completed Events Yet. Start Your First Event Above!</div>
                 ) : (
@@ -2015,24 +2034,25 @@ const styles = {
     activeGigMeta: { fontSize: 14, color: '#B0B3B8', margin: '0 0 16px' },
 
     // Running stats
-    runningStats: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 },
-    runningStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#3A3B3C', borderRadius: 8, padding: '10px 8px' },
-    runningStatLabel: { fontSize: 14, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+    runningStats: { display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+    runningStat: { flex: '1 1 90px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#3A3B3C', borderRadius: 8, padding: '10px 8px' },
+    runningStatLabel: { fontSize: 13, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4, textAlign: 'center' },
     runningStatValue: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
 
     // Timer
     timerBanner: {
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         background: 'rgba(245, 158, 11, 0.1)', border: '2px solid rgba(245, 158, 11, 0.3)',
         borderRadius: 10, padding: '10px 14px', marginBottom: 16,
     },
-    timerIcon: { fontSize: 24 },
-    timerInfo: { flex: 1, display: 'flex', flexDirection: 'column' },
+    timerIcon: { fontSize: 24, flexShrink: 0 },
+    timerInfo: { flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column' },
     timerLabel: { fontSize: 13, fontWeight: 600, color: '#E4E6EB' },
     timerCountdown: { fontSize: 20, fontWeight: 800, color: '#f59e0b', fontFamily: 'monospace' },
     endDownBtn: {
         background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        whiteSpace: 'nowrap',
     },
 
     // Downs list
@@ -2041,13 +2061,13 @@ const styles = {
     downsScroll: { maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 },
     downRow: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-        background: '#3A3B3C', borderRadius: 6, padding: '8px 10px',
+        background: '#3A3B3C', borderRadius: 6, padding: '8px 10px', flexWrap: 'wrap',
     },
-    downInfo: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 0, flex: 1 },
+    downInfo: { display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', minWidth: 100, flex: 1 },
     downTypeBadge: { fontSize: 11, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' },
-    downDetail: { fontSize: 12, color: '#B0B3B8' },
-    downTime: { fontSize: 11, color: '#B0B3B8' },
-    downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 },
+    downDetail: { fontSize: 12, color: '#B0B3B8', wordBreak: 'break-word' },
+    downTime: { fontSize: 11, color: '#B0B3B8', whiteSpace: 'nowrap' },
+    downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 140 },
     tokeDisplay: {
         background: 'none', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13,
         fontWeight: 700, cursor: 'pointer', padding: '0 6px',
@@ -2056,7 +2076,7 @@ const styles = {
     },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
     tokeInput: {
-        width: 70, padding: '4px 6px', background: '#242526', border: '1px solid #3A3B3C',
+        width: 60, padding: '4px 6px', background: '#242526', border: '1px solid #3A3B3C',
         borderRadius: 4, color: '#fff', fontSize: 13, textAlign: 'right',
     },
     tokeSaveBtn: {
@@ -2066,6 +2086,7 @@ const styles = {
     endDownSmallBtn: {
         background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
         borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+        whiteSpace: 'nowrap',
     },
     downDeleteBtn: {
         background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
@@ -2073,10 +2094,11 @@ const styles = {
     },
 
     // Actions
-    activeActions: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+    activeActions: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'center' },
     editBtn: {
         background: 'rgba(59, 130, 246, 0.15)', color: '#3b82f6', border: '2px solid rgba(59, 130, 246, 0.3)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        flex: '1 1 120px', textAlign: 'center', whiteSpace: 'nowrap',
     },
     addDownBtn: {
         background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '2px solid rgba(245, 158, 11, 0.3)',
