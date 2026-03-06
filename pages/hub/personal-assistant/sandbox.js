@@ -1025,8 +1025,8 @@ export default function VirtualSandbox() {
             min-width: 70px;
           }
           .sandbox-table-wrap {
-            max-height: 200px;
-            overflow: hidden;
+            max-height: 220px;
+            overflow: visible;
             border-radius: 12px;
           }
           .sandbox-hero-grid {

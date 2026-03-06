@@ -221,6 +221,25 @@ export default function TriviaModePage() {
         const categories = CATEGORY_MAP[mode];
 
         // ═══════════════════════════════════════════════════════════════
+        // STEP 0: Fetch user's 60-day question history to prevent repeats
+        // ═══════════════════════════════════════════════════════════════
+        let excludedSet = new Set();
+        if (userId) {
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+            const { data: history } = await supabase
+                .from('trivia_user_question_history')
+                .select('question_id')
+                .eq('user_id', userId)
+                .gte('created_at', sixtyDaysAgo.toISOString());
+
+            if (history) {
+                history.forEach(h => excludedSet.add(h.question_id));
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // STEP 1: Try to load today's daily-tagged questions
         // All users get the same 20 questions per category per day
         // ═══════════════════════════════════════════════════════════════
@@ -236,9 +255,13 @@ export default function TriviaModePage() {
 
         const { data: dailyQuestions } = await dailyQuery;
 
-        if (dailyQuestions && dailyQuestions.length >= count) {
-            // Shuffle daily questions so order isn't predictable by category
-            return shuffleArray(dailyQuestions).slice(0, count);
+        if (dailyQuestions) {
+            // Filter out questions the user has seen in the last 60 days
+            const filteredDaily = dailyQuestions.filter(q => !excludedSet.has(q.id));
+            if (filteredDaily.length >= count) {
+                // Shuffle daily questions so order isn't predictable by category
+                return shuffleArray(filteredDaily).slice(0, count);
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -246,7 +269,7 @@ export default function TriviaModePage() {
         // Used when daily questions haven't been rotated yet
         // ═══════════════════════════════════════════════════════════════
 
-        let poolQuery = supabase.from('trivia_questions').select('*').limit(500); // question pool
+        let poolQuery = supabase.from('trivia_questions').select('*').limit(1500); // larger pool to allow filtering
         if (categories && categories.length > 0) {
             poolQuery = poolQuery.in('category', categories);
         }
@@ -257,8 +280,16 @@ export default function TriviaModePage() {
             return getFallbackQuestions(count);
         }
 
+        // Filter out questions seen in the last 60 days
+        let filteredPool = poolQuestions.filter(q => !excludedSet.has(q.id));
+
+        // If they have played so much they exhausted the pool, fallback to including seen questions
+        if (filteredPool.length < count && poolQuestions.length >= count) {
+            filteredPool = poolQuestions;
+        }
+
         // Use date-seeded shuffle for daily-consistent question selection
-        return seededShuffle(poolQuestions, today).slice(0, count);
+        return seededShuffle(filteredPool, today).slice(0, count);
     }
 
     // Simple Fisher-Yates shuffle

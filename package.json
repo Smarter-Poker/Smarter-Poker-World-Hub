@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=7168' next build",
     "start": "next start",
     "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts"
@@ -86,6 +86,7 @@
     "daisyui": "^5.5.14",
     "postcss": "^8.5.6",
     "tailwindcss-3d": "^1.1.0",
-    "typescript": "5.9.3"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }
