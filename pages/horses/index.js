@@ -474,7 +474,7 @@ export default function HorsesAdmin() {
         }
     };
 
-    const handleGrinderAction = async (action) => {
+    const handleGrinderAction = async (action, club) => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.access_token) {
@@ -484,6 +484,7 @@ export default function HorsesAdmin() {
 
             // Define chips to give if adding to club
             const bodyPayload = { action };
+            if (club) bodyPayload.club = club;
             if (action === 'add_to_club') {
                 bodyPayload.chips = settings.grinder_starting_chips || 10000;
             }
@@ -744,7 +745,7 @@ export default function HorsesAdmin() {
                         <div className={styles.grinderView}>
                             <div className={styles.grinderHeader}>
                                 <h2>🎰 Grinder Horses - Poker AI</h2>
-                                <p className={styles.grinderSubtitle}>Same Horses, Second Job: Playing Poker 16hrs/day Across 4 Tables Max</p>
+                                <p className={styles.grinderSubtitle}>Same Horses, Second Job: Playing Poker 16hrs/day Across 4 Tables Max in Shark Club & Club JAQK</p>
                             </div>
 
                             <div className={styles.grinderStats}>
@@ -767,28 +768,35 @@ export default function HorsesAdmin() {
                             </div>
 
                             <div className={styles.grinderControls}>
-                                <h3>🏠 Club Management</h3>
+                                <h3>🏠 Club Management — Shark Club & Club JAQK</h3>
                                 <div className={styles.clubActions}>
                                     <button
                                         className={styles.btnSuccess}
-                                        onClick={() => handleGrinderAction('add_to_club')}
+                                        onClick={() => handleGrinderAction('add_to_club', 'shark_club')}
                                         disabled={grinderLoading}
                                     >
-                                        🐴 Add All Horses to Shark Club ({settings.grinder_starting_chips || 10000} chips each)
+                                        🦈 Add All Horses to Shark Club ({settings.grinder_starting_chips || 10000} chips)
+                                    </button>
+                                    <button
+                                        className={styles.btnSuccess}
+                                        onClick={() => handleGrinderAction('add_to_club', 'club_jaqk')}
+                                        disabled={grinderLoading}
+                                    >
+                                        🃏 Add All Horses to Club JAQK ({settings.grinder_starting_chips || 10000} chips)
                                     </button>
                                     <button
                                         className={styles.actionBtn}
                                         onClick={() => handleGrinderAction('start')}
                                         disabled={grinderLoading}
                                     >
-                                        🎮 Start Auto-Join
+                                        🎮 Start Auto-Join (Both Clubs)
                                     </button>
                                     <button
                                         className={styles.actionBtn}
                                         onClick={() => handleGrinderAction('stop')}
                                         disabled={grinderLoading}
                                     >
-                                        ⏹️ Stop All Horses
+                                        ⏹️ Stop All Horses (Both Clubs)
                                     </button>
                                 </div>
                             </div>
@@ -849,6 +857,7 @@ export default function HorsesAdmin() {
                                     <thead>
                                         <tr>
                                             <th>Horse</th>
+                                            <th>Club</th>
                                             <th>Specialty</th>
                                             <th>Play Style</th>
                                             <th>Tables</th>
@@ -876,6 +885,15 @@ export default function HorsesAdmin() {
                                                             <small>@{persona.alias}</small>
                                                         </div>
                                                     </div>
+                                                </td>
+                                                <td>
+                                                    <span style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(59,130,246,0.15)', color: '#60a5fa' }}>
+                                                        🦈 Shark
+                                                    </span>
+                                                    {' '}
+                                                    <span style={{ fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: 'rgba(168,85,247,0.15)', color: '#c084fc' }}>
+                                                        🃏 JAQK
+                                                    </span>
                                                 </td>
                                                 <td>{persona.specialty?.replace('_', ' ')}</td>
                                                 <td><span className={styles.voiceTag}>{persona.voice}</span></td>

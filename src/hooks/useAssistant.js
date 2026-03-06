@@ -433,7 +433,7 @@ export function useBookmarks(limit = 15) {
           board_flop: b.board_flop,
           board_turn: b.board_turn,
           board_river: b.board_river,
-          villain_config: typeof b.villain_config === 'string' ? JSON.parse(b.villain_config) : b.villain_config,
+          villain_config: typeof b.villains === 'string' ? JSON.parse(b.villains) : b.villains,
           action_history: typeof b.action_history === 'string' ? JSON.parse(b.action_history) : b.action_history,
           pot_size_bb: b.pot_size_bb,
         }));

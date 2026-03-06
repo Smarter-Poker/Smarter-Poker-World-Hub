@@ -17,7 +17,7 @@ import { trainingSounds } from '../utils/trainingSounds';
 
 const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions per level
 
-export default function useMillionaireGame(gameId, engineType = 'PIO', initialLevel = 1, trainerConfig = null) {
+export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel = 1, trainerConfig = null) {
     // If custom trainer config provided, use its questions count
     const baseQuestionsPerLevel = trainerConfig?.questionsCount || QUESTIONS_PER_LEVEL;
     const [effectiveQuestionsPerLevel, setEffectiveQuestionsPerLevel] = useState(baseQuestionsPerLevel);

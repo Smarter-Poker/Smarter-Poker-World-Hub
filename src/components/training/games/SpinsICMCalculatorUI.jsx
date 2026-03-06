@@ -13,7 +13,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import MillionaireQuestion from '../MillionaireQuestion';
+import GTOQuestionCard from '../GTOQuestionCard';
 
 export default function SpinsICMCalculatorUI({ question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level }) {
     if (!question) return null;
@@ -83,7 +83,7 @@ export default function SpinsICMCalculatorUI({ question, onAnswer, showFeedback,
             </div>
 
             {/* Standard Millionaire Question UI */}
-            <MillionaireQuestion
+            <GTOQuestionCard
                 question={question}
                 level={level}
                 questionNumber={questionNumber}

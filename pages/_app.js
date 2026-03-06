@@ -128,6 +128,21 @@ if (typeof window !== 'undefined') {
 
   // Store current version
   localStorage.setItem(CACHE_VERSION_KEY, BUILD_VERSION);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SUPABASE ABORT ERROR DEFENSE — Suppress harmless navigator.locks AbortError
+  // This MUST run BEFORE React mounts to prevent the dev overlay from catching it.
+  // The AbortError from @supabase/auth-js/locks.js is a known non-critical issue
+  // that occurs during page transitions when in-flight session refreshes are aborted.
+  // ═══════════════════════════════════════════════════════════════════════════
+  window.addEventListener('unhandledrejection', function earlyAbortSuppressor(event) {
+    const msg = String(event?.reason?.message || event?.reason || '').toLowerCase();
+    if (msg.includes('aborterror') || msg.includes('signal is aborted') || msg.includes('aborted without reason')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      // Silently swallow — this is Supabase auth-js lock cleanup, not a real error
+    }
+  }, true); // 'true' = capture phase, fires before React's handler
 }
 
 // Dynamic import to avoid SSR issues with celebration animations

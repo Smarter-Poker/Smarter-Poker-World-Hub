@@ -16,7 +16,7 @@ import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
 // Components defined locally within this file or in other imports
-import useMillionaireGame from '../../hooks/useMillionaireGame';
+import useGTOTrainer from '../../hooks/useGTOTrainer';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import dynamic from 'next/dynamic';
 import Confetti from 'react-confetti';
@@ -599,7 +599,7 @@ function GodModeArena({
         startNextLevel,
         retryLevel,
         resetGame,
-    } = useMillionaireGame(gameId, 'PIO', level, trainerConfig);
+    } = useGTOTrainer(gameId, 'PIO', level, trainerConfig);
 
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);

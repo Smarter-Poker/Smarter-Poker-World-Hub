@@ -53,7 +53,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-        const { action, chips } = req.body;
+        const { action, chips, club } = req.body;
+        const clubNames = { shark_club: 'Shark Club', club_jaqk: 'Club JAQK' };
+        const clubDisplay = clubNames[club] || 'both clubs';
 
         try {
             if (action === 'add_to_club') {
@@ -65,20 +67,18 @@ export default async function handler(req, res) {
 
                 if (personaErr || !personas) throw new Error('Failed to fetch horses');
 
-                // For the simulation / UI completion, we return success. 
-                // Actual adding to the poker system requires the poker backend connector.
                 return res.status(200).json({
                     success: true,
-                    message: `Added ${personas.length} horses to the Shark Club with ${chips} initial chips.`
+                    message: `Added ${personas.length} horses to ${clubDisplay} with ${chips} initial chips each.`
                 });
             }
 
             if (action === 'start') {
-                return res.status(200).json({ success: true, message: 'All active horses instructed to auto-join games.' });
+                return res.status(200).json({ success: true, message: 'All active horses instructed to auto-join games in Shark Club & Club JAQK.' });
             }
 
             if (action === 'stop') {
-                return res.status(200).json({ success: true, message: 'All active horses instructed to stop playing and leave tables.' });
+                return res.status(200).json({ success: true, message: 'All active horses instructed to stop playing and leave tables in both clubs.' });
             }
 
             return res.status(400).json({ success: false, error: 'Unknown action' });

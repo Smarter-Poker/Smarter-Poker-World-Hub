@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import MillionaireQuestion from './MillionaireQuestion';
+import GTOQuestionCard from './GTOQuestionCard';
 
 // Import game-specific UIs
 import UniversalDynamicTable from './games/UniversalDynamicTable';

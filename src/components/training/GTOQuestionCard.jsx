@@ -178,7 +178,7 @@ const styles = {
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 
-export default function MillionaireQuestion({
+export default function GTOQuestionCard({
     question,
     level = 1,
     questionNumber = 1,

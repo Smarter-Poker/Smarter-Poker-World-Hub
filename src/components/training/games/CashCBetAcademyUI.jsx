@@ -13,7 +13,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import MillionaireQuestion from '../MillionaireQuestion';
+import GTOQuestionCard from '../GTOQuestionCard';
 
 export default function CashCBetAcademyUI({ question, onAnswer, showFeedback, feedbackResult, explanation, questionNumber, totalQuestions, level }) {
     if (!question) return null;
@@ -67,7 +67,7 @@ export default function CashCBetAcademyUI({ question, onAnswer, showFeedback, fe
             </div>
 
             {/* Standard Millionaire Question UI */}
-            <MillionaireQuestion
+            <GTOQuestionCard
                 question={question}
                 level={level}
                 questionNumber={questionNumber}
