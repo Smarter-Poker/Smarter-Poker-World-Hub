@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
-import { supabase } from '../../../../../../src/lib/supabase';
+import { supabase } from '../../../../src/lib/supabase';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
