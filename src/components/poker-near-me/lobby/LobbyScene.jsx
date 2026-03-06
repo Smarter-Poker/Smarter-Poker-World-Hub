@@ -191,8 +191,8 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
       <R3FErrorBoundary>
         <Canvas
           camera={{
-            position: [0, 5, 7],
-            fov: 50,
+            position: [0, 4, 9],
+            fov: 48,
             near: 0.1,
             far: 100,
           }}

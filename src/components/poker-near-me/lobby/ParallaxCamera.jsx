@@ -11,10 +11,13 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { Vector3 } from 'three';
 
 // How much the camera shifts (in world units)
-const PARALLAX_STRENGTH_X = 1.2;
-const PARALLAX_STRENGTH_Y = 0.6;
+const PARALLAX_STRENGTH_X = 1.5;
+const PARALLAX_STRENGTH_Y = 0.8;
 // Lerp speed (0-1, lower = smoother/slower)
 const LERP_SPEED = 0.04;
+// Base camera position — lower and further back for better pod face visibility
+const BASE_Y = 4.0;
+const BASE_Z = 9.0;
 
 /**
  * ParallaxCamera — attaches to the R3F camera and adjusts it every frame.
@@ -22,7 +25,7 @@ const LERP_SPEED = 0.04;
 export function ParallaxCamera() {
   const { camera } = useThree();
   const mouseRef = useRef({ x: 0, y: 0 });
-  const targetPos = useRef(new Vector3(0, 5, 7));
+  const targetPos = useRef(new Vector3(0, BASE_Y, BASE_Z));
   const lookTarget = useRef(new Vector3(0, 0, 0));
 
   // Mouse tracking
@@ -57,8 +60,8 @@ export function ParallaxCamera() {
 
     targetPos.current.set(
       mx * PARALLAX_STRENGTH_X,
-      5 + my * -PARALLAX_STRENGTH_Y,
-      7
+      BASE_Y + my * -PARALLAX_STRENGTH_Y,
+      BASE_Z
     );
 
     // Smooth lerp camera position

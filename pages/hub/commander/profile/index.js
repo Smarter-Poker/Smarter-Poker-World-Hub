@@ -129,14 +129,14 @@ export default function PlayerProfilePage() {
   }, []);
   // Realtime subscription — live updates
   useEffect(() => {
-    if (!user?.id) return;
+    if (!profile?.id) return;
     const _ch = supabase
-      .channel(`cmd-profile:${user?.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_members', filter: `user_id=eq.${user?.id}` }, () => {})
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_player_stats', filter: `user_id=eq.${user?.id}` }, () => {})
+      .channel(`cmd-profile:${profile.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_members', filter: `user_id=eq.${profile.id}` }, () => { refreshProfile(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_player_stats', filter: `user_id=eq.${profile.id}` }, () => { refreshProfile(); })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+  }, [profile?.id, refreshProfile]);
 
   const menuItems = [
     { href: hasClubPage ? `/hub/social-media?viewPage=${hasClubPage}` : '/hub/social-media?createPage=true', label: hasClubPage ? 'Club Page' : 'Create Club Page', icon: Globe },

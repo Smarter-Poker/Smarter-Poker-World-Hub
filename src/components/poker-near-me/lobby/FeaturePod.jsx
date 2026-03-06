@@ -194,17 +194,33 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
         {pod.icon}
       </Text>
 
-      {/* Label text below the pod — bigger and brighter */}
+      {/* Label text on the pod front face — visible from camera */}
       <Text
-        position={[0, -0.65, 0]}
-        fontSize={0.14}
+        position={[0, -0.22, 0.15]}
+        fontSize={0.11}
+        anchorX="center"
+        anchorY="top"
+        color={hovered || isActive ? '#ffffff' : '#8899aa'}
+        textAlign="center"
+        maxWidth={1.2}
+        lineHeight={1.1}
+        letterSpacing={0.06}
+      >
+        {pod.label}
+      </Text>
+
+      {/* Floating label below pod — billboard faces camera */}
+      <Text
+        position={[0, -0.7, 0.3]}
+        fontSize={0.12}
         anchorX="center"
         anchorY="top"
         color={hovered || isActive ? '#ffffff' : pod.color}
         textAlign="center"
         maxWidth={1.5}
-        lineHeight={1.2}
-        letterSpacing={0.08}
+        letterSpacing={0.1}
+        outlineWidth={0.015}
+        outlineColor="#000000"
       >
         {pod.label}
       </Text>

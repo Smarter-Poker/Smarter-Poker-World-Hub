@@ -105,15 +105,15 @@ export default function CommanderHub() {
     return () => _ctrl.abort();
   }, [userLocation]);
   // Realtime listener — live updates for index.js
+  // NOTE: user object not available here — use a stable channel name
   useEffect(() => {
-    if (!user.id) return;
     const ch = supabase
-      .channel(`cmd-home:${user.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist' }, () => { fetchVenues(); })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); })
+      .channel('cmd-home-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist' }, () => { fetchVenues(); fetchMyWaitlists(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); fetchLiveGames(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user.id]);
+  }, []);
 
   async function handleLeaveWaitlist(entryId) {
     if (confirmLeaveId !== entryId) {
