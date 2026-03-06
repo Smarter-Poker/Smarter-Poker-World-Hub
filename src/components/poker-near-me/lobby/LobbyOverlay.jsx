@@ -15,13 +15,55 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// SVG dock icons — crisp at any DPI, consistent across platforms
+const DockIconSVG = ({ id }) => {
+  const props = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  switch (id) {
+    case 'roadtrip': return (
+      <svg {...props}>
+        <path d="M3 12h4l3-9 4 18 3-9h4" />
+        <circle cx="5" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
+        <path d="M7 19h10" />
+      </svg>
+    );
+    case 'calculator': return (
+      <svg {...props}>
+        <rect x="4" y="2" width="16" height="20" rx="2" />
+        <line x1="8" y1="6" x2="16" y2="6" />
+        <line x1="8" y1="10" x2="8" y2="10.01" /><line x1="12" y1="10" x2="12" y2="10.01" /><line x1="16" y1="10" x2="16" y2="10.01" />
+        <line x1="8" y1="14" x2="8" y2="14.01" /><line x1="12" y1="14" x2="12" y2="14.01" /><line x1="16" y1="14" x2="16" y2="14.01" />
+        <line x1="8" y1="18" x2="8" y2="18.01" /><line x1="12" y1="18" x2="16" y2="18" />
+      </svg>
+    );
+    case 'favorites': return (
+      <svg {...props}>
+        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+      </svg>
+    );
+    case 'social': return (
+      <svg {...props}>
+        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 00-3-3.87" /><path d="M16 3.13a4 4 0 010 7.75" />
+      </svg>
+    );
+    case 'alerts': return (
+      <svg {...props}>
+        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+        <path d="M13.73 21a2 2 0 01-3.46 0" />
+      </svg>
+    );
+    default: return null;
+  }
+};
+
 // Dock items (bottom bar)
 const DOCK_ITEMS = [
-  { id: 'roadtrip',   label: 'Trip Planner', icon: '\u{1F5FA}\uFE0F' },
-  { id: 'calculator',  label: 'Calculator',   icon: '\u{1F4B0}' },
-  { id: 'favorites',  label: 'Saved',        icon: '\u{1F516}' },
-  { id: 'social',     label: 'Friends',      icon: '\u{1F465}' },
-  { id: 'alerts',     label: 'Alerts',       icon: '\u{1F514}' },
+  { id: 'roadtrip',   label: 'Trip Planner' },
+  { id: 'calculator',  label: 'Calculator' },
+  { id: 'favorites',  label: 'Saved' },
+  { id: 'social',     label: 'Friends' },
+  { id: 'alerts',     label: 'Alerts' },
 ];
 
 /**
@@ -190,7 +232,7 @@ export default function LobbyOverlay({
               className={`lobby-dock-btn ${isActive ? 'active' : ''}`}
               onClick={() => onPodSelect?.(item.id)}
             >
-              <span className="lobby-dock-icon">{item.icon}</span>
+              <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
               <span className="lobby-dock-label">{item.label}</span>
               {badge > 0 && <span className="lobby-dock-badge">{badge}</span>}
             </button>

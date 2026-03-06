@@ -193,16 +193,14 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── Deep Link: write URL params on state change ───
-  // Using window.history directly to avoid router.replace re-render cycle
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
     if (activePod) params.set('pod', activePod);
     if (searchQuery) params.set('q', searchQuery);
     const qs = params.toString();
     const newUrl = qs ? `/hub/poker-near-me-lobby?${qs}` : '/hub/poker-near-me-lobby';
-    if (window.location.pathname + window.location.search !== newUrl) {
-      window.history.replaceState(null, '', newUrl);
+    if (router.asPath !== newUrl) {
+      router.replace(newUrl, undefined, { shallow: true });
     }
   }, [activePod, searchQuery]);
 
@@ -598,7 +596,7 @@ export default function PokerNearMeLobby() {
       case 'wallet':
         component = (
           <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-            <span style={{ fontSize: 48 }}>💎</span>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6ee7ef" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 8px rgba(110,231,239,0.5))', }} ><polygon points="12 2 22 8.5 12 22 2 8.5" /><line x1="2" y1="8.5" x2="22" y2="8.5" /><line x1="12" y1="2" x2="8" y2="8.5" /><line x1="12" y1="2" x2="16" y2="8.5" /><line x1="8" y1="8.5" x2="12" y2="22" /><line x1="16" y1="8.5" x2="12" y2="22" /></svg>
             <p style={{ fontSize: 16, fontWeight: 600, marginTop: 12, marginBottom: 8 }}>Rewards & Points</p>
             <p style={{ fontSize: 13 }}>Track loyalty points, comps, and promotions across venues.</p>
           </div>
@@ -700,86 +698,23 @@ export default function PokerNearMeLobby() {
           liveData={liveData}
         />
 
-        {/* Layer 2 — UI Overlay (search + dock only; panel is at page level) */}
+        {/* Layer 2 — UI Overlay */}
         <LobbyOverlay
           activePod={activePod}
           onPodSelect={handlePodClick}
           onSearch={handleSearch}
+          onPanelClose={handlePanelClose}
+          panelContent={panelContent}
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
           liveData={liveData}
           gpsActive={gpsActive}
           onGpsClick={handleGpsClick}
+          showPanel={showPanel}
           citySuggestions={citySuggestions}
           onCitySelect={handleCitySelect}
           onVoiceClick={() => setShowVoiceSearch(true)}
         />
-
-        {/* Layer 3 — Feature Panel Drawer (rendered at page level to escape overlay z-index) */}
-        {showPanel && panelContent && (
-          <>
-            {/* Backdrop */}
-            <div
-              onClick={handlePanelClose}
-              style={{
-                position: 'fixed', inset: 0, zIndex: 50,
-                background: 'rgba(3, 4, 8, 0.6)',
-                backdropFilter: 'blur(6px)',
-                WebkitBackdropFilter: 'blur(6px)',
-              }}
-            />
-            {/* Panel */}
-            <div
-              className="lobby-panel-page"
-              style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0,
-                maxHeight: '82vh', zIndex: 51,
-                background: 'linear-gradient(160deg, rgba(18, 24, 40, 0.97), rgba(8, 12, 22, 0.98))',
-                borderTop: '1px solid rgba(110, 231, 239, 0.15)',
-                borderRadius: '20px 20px 0 0',
-                boxShadow: '0 -8px 60px rgba(0,0,0,0.5), 0 0 30px rgba(110,231,239,0.04)',
-                display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                animation: 'lobby-panelSlideUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
-              }}
-            >
-              {/* Drag handle */}
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(200,214,229,0.2)' }} />
-              </div>
-              {/* Header */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '8px 20px 12px',
-                borderBottom: '1px solid rgba(110, 231, 239, 0.08)',
-              }}>
-                <h2 style={{
-                  fontFamily: 'var(--font-premium-display)',
-                  fontSize: 20, fontWeight: 700, margin: 0,
-                  background: 'linear-gradient(90deg, #e0e8f0, #6ee7ef)',
-                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}>{panelContent.title}</h2>
-                <button onClick={handlePanelClose} aria-label="Close panel" style={{
-                  background: 'none', border: 'none', color: 'rgba(200,214,229,0.5)',
-                  cursor: 'pointer', padding: 4, borderRadius: 8,
-                  transition: 'color 0.2s, background 0.2s',
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-              {/* Content */}
-              <div style={{
-                flex: 1, overflowY: 'auto', padding: '16px 20px 24px',
-                WebkitOverflowScrolling: 'touch',
-              }}>
-                {panelContent.component}
-              </div>
-            </div>
-          </>
-        )}
 
         {/* Voice Search Modal */}
         {showVoiceSearch && (
