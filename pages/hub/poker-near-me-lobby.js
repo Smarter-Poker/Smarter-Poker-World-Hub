@@ -29,12 +29,33 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 
 // Dynamic imports — 3D scene (client-only, no SSR)
+// Uses .catch() pattern matching the working WorldHub import in pages/hub/index.js
 const LobbyScene = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyScene'),
-  { ssr: false }
+  () => import('../../src/components/poker-near-me/lobby/LobbyScene').catch(err => {
+    console.error('[PokerNearMeLobby] LobbyScene module failed to load:', err);
+    return {
+      default: () => (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 16, flexDirection: 'column', gap: 12 }}>
+          <div>3D Scene — Reloading...</div>
+          <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer' }}>Refresh</button>
+        </div>
+      )
+    };
+  }),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 16 }}>
+        Initializing 3D Lobby...
+      </div>
+    ),
+  }
 );
 const LobbyOverlay = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyOverlay'),
+  () => import('../../src/components/poker-near-me/lobby/LobbyOverlay').catch(err => {
+    console.error('[PokerNearMeLobby] LobbyOverlay failed to load:', err);
+    return { default: () => null };
+  }),
   { ssr: false }
 );
 
@@ -53,7 +74,7 @@ const FilterPanel = dynamic(() => import('../../src/components/poker-near-me/Fil
 
 // ─── Constants ───
 const SEARCH_DEBOUNCE_MS = 400;
-const API_CACHE_TTL = 60000;
+const API_CACHE_TT = 60000;
 const LIVE_REFRESH_MS = 120000;
 const PAGE_SIZE = 24;
 
@@ -286,7 +307,7 @@ export default function PokerNearMeLobby() {
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No venues found</p>
                 <p style={{ fontSize: 13 }}>Try searching a city or use GPS to find nearby rooms.</p>
-              </div>
+              </diw>
             )}
           </div>
         );
