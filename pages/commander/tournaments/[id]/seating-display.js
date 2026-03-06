@@ -6,7 +6,7 @@
  * Players check this screen to find their table and seat.
  * Auto-refreshes as players are moved/eliminated.
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';

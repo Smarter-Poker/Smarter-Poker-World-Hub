@@ -566,10 +566,10 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
         } catch (e) { console.error('Pin error:', e); }
     };
 
-    const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
+    const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
     const labelSt = { display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 };
     const btnPrimary = { padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
-    const btnSec = { padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
+    const btnSec = { padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
     const cardSt = { background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 };
     const savedBadge = metaSaved ? <span style={{ fontSize: 12, color: metaSaved === 'Error saving' ? '#F02849' : '#42B72A', fontWeight: 600, marginLeft: 8 }}>{metaSaved}</span> : null;
 
@@ -590,7 +590,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 {/* Cover Photo Area */}
                 <div style={{
                     height: 200, position: 'relative',
-                    background: coverPhoto ? `url(${coverPhoto}) center/cover no-repeat` : 'linear-gradient(135deg, #1877F2 0%, #166FE5 50%, #1877F2 100%)',
+                    background: coverPhoto ? `url(${coverPhoto}) center/cover no-repeat` : 'linear-gradient(135deg, #2D88FF 0%, #1A7AFF 50%, #2D88FF 100%)',
                     display: 'flex', alignItems: 'flex-end', padding: 16
                 }}>
                     {/* Edit Cover Photo button */}
@@ -614,7 +614,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                             style={{
                                 width: 80, height: 80, borderRadius: '50%', background: '#fff',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 30, fontWeight: 800, color: '#1877F2', border: '3px solid #fff',
+                                fontSize: 30, fontWeight: 800, color: '#2D88FF', border: '3px solid #3A3B3C',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.2)', cursor: 'pointer',
                                 position: 'relative', overflow: 'hidden'
                             }}
@@ -626,14 +626,14 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                             )}
                             <div style={{
                                 position: 'absolute', bottom: 2, right: 2, width: 24, height: 24, borderRadius: '50%',
-                                background: '#3A3B3C', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                background: '#2D88FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 border: '2px solid #fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
                             }}>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
                                 </svg>
                             </div>
-                            {logoUploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#1877F2', borderRadius: '50%' }}>...</div>}
+                            {logoUploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(36,37,38,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#2D88FF', borderRadius: '50%' }}>...</div>}
                         </div>
                         <div>
                             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#fff', textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>{page.name}</h2>
@@ -694,28 +694,28 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 {/* Action Bar */}
                 <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => { if (window.history.length > 1) router.back(); else onBack(); }} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
+                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Back</button>
                     <button onClick={() => setEditingPage(!editingPage)} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none',
-                        background: editingPage ? C.blue : '#E4E6EB',
+                        background: editingPage ? C.blue : '#3A3B3C',
                         color: editingPage ? '#fff' : C.text,
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>Edit Page</button>
                     {onGoLive && <button onClick={onGoLive} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
+                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
                         color: '#E53935', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 6
                     }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E53935', display: 'inline-block' }}></span>Go Live</button>}
                     <button onClick={() => setShowPreview(!showPreview)} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none',
-                        background: showPreview ? '#7C3AED' : '#E4E6EB',
+                        background: showPreview ? '#7C3AED' : '#3A3B3C',
                         color: showPreview ? '#fff' : C.text,
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                     }}>{showPreview ? '✕ Exit Preview' : '👁 Preview as Visitor'}</button>
                     <button onClick={() => router.push(`/club/${page.id}`)} style={{
-                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
+                        padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto'
                     }}>View Public Page</button>
                 </div>
@@ -739,42 +739,42 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                     <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>Edit Page Info</h3>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Name</label>
                     <input value={editName} onChange={e => setEditName(e.target.value)}
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Description</label>
                     <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3}
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, resize: 'vertical', marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, resize: 'vertical', marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <div style={{ display: 'flex', gap: 10 }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Website</label>
                             <input value={editWebsite} onChange={e => setEditWebsite(e.target.value)} placeholder="https://..."
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Phone</label>
                             <input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="(555) 555-5555"
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                         </div>
                     </div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, marginTop: 10 }}>Profile Image URL</label>
                     <input value={editAvatarUrl} onChange={e => setEditAvatarUrl(e.target.value)} placeholder="https://your-image-url.com/logo.png"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Street Address</label>
                     <input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="123 Main St"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                     <div style={{ display: 'flex', gap: 10 }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>City</label>
                             <input value={editCity} onChange={e => setEditCity(e.target.value)} placeholder="Las Vegas"
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>State</label>
                             <input value={editState} onChange={e => setEditState(e.target.value)} placeholder="NV"
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #CCD0D5', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                        <button onClick={() => setEditingPage(false)} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                         <button onClick={handleSavePage} disabled={saving} style={{
                             padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff',
                             fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.5 : 1
@@ -800,9 +800,9 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                             placeholder={`What's happening at ${page.name || 'your venue'}?`}
                             rows={3}
                             style={{
-                                width: '100%', padding: '10px 14px', border: '1px solid #CCD0D5', borderRadius: 8,
+                                width: '100%', padding: '10px 14px', border: '1px solid #3A3B3C', borderRadius: 8,
                                 fontSize: 15, outline: 'none', resize: 'vertical', fontFamily: 'inherit',
-                                boxSizing: 'border-box', lineHeight: 1.4, color: '#050505', background: '#fff'
+                                boxSizing: 'border-box', lineHeight: 1.4, color: '#E4E6EB', background: '#18191A'
                             }}
                         />
 
@@ -810,7 +810,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                         {postMedia.length > 0 && (
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
                                 {postMedia.map((m, i) => (
-                                    <div key={i} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid #CCD0D5' }}>
+                                    <div key={i} style={{ position: 'relative', width: 80, height: 80, borderRadius: 8, overflow: 'hidden', border: '1px solid #3A3B3C' }}>
                                         {m.type === 'video' ? (
                                             <video src={m.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
@@ -827,12 +827,12 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                         )}
 
                         {/* Media toolbar + Post button */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px solid #E4E6EB' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px solid #3A3B3C' }}>
                             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                                 <input type="file" accept="image/*,video/*" multiple ref={postMediaRef} onChange={handlePostMediaSelect} style={{ display: 'none' }} />
                                 <button onClick={() => postMediaRef.current?.click()} disabled={postUploading} style={{
                                     display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8,
-                                    border: 'none', background: '#F0F2F5', color: '#1877F2', fontSize: 13,
+                                    border: 'none', background: '#3A3B3C', color: '#2D88FF', fontSize: 13,
                                     fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
                                 }}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#45BD62" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -842,7 +842,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                                 </button>
                             </div>
                             <button onClick={handlePost} disabled={posting || postUploading || (!postContent.trim() && postMedia.length === 0)} style={{
-                                padding: '8px 24px', borderRadius: 8, border: 'none', background: '#1877F2', color: '#fff',
+                                padding: '8px 24px', borderRadius: 8, border: 'none', background: '#2D88FF', color: '#fff',
                                 fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                                 opacity: (posting || postUploading || (!postContent.trim() && postMedia.length === 0)) ? 0.5 : 1
                             }}>{posting ? 'Posting...' : 'Post'}</button>
@@ -852,7 +852,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                     {/* Posts Feed */}
                     {loadingPosts ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: '#1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                            <div style={{ width: 32, height: 32, border: '3px solid #3A3B3C', borderTopColor: '#2D88FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
                             <p>Loading Posts...</p>
                         </div>
                     ) : posts.length === 0 ? (
@@ -863,7 +863,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {posts.map(post => (
-                                <div key={post.id} style={{ background: C.card, borderRadius: 10, border: '1px solid #E4E6EB', overflow: 'hidden' }}>
+                                <div key={post.id} style={{ background: C.card, borderRadius: 10, border: '1px solid #3A3B3C', overflow: 'hidden' }}>
                                     <div style={{ padding: '12px 14px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

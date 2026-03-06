@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
@@ -92,6 +93,7 @@ export default function TabletDisplay() {
     const [now, setNow] = useState(Date.now());
     const lastFetchAt = useRef(Date.now());
     const [tickerOffset, setTickerOffset] = useState(0);
+    useWakeLock();
 
     // Resolve venue_id from query or localStorage
     const venueId = venue || (() => {
@@ -100,13 +102,12 @@ export default function TabletDisplay() {
 
     /* ─── Data Fetching ─────────────────────────────────────────── */
 
-    const fetchData = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
+    const fetchData = useCallback(async (signal) => {
         if (!tableNumber) return;
         try {
             const url = `/api/commander/dealer/tablet-data?table=${tableNumber}${venueId ? `&venue_id=${venueId}` : ''}`;
-            const res = await fetch(url, { signal });
+            const opts = signal ? { signal } : {};
+            const res = await fetch(url, opts);
             const json = await res.json();
             if (json.success) {
                 setData(json.data);
@@ -119,18 +120,20 @@ export default function TabletDisplay() {
                 setError(json.error || 'Failed to load table data');
             }
         } catch (err) {
-            console.error('Tablet fetch error:', err);
-            setError('Connection lost — retrying...');
+            if (err.name !== 'AbortError') {
+                console.error('Tablet fetch error:', err);
+                setError('Connection lost — retrying...');
+            }
         }
         setLoading(false);
     }, [tableNumber, venueId]);
 
-    // Initial fetch + polling
     useEffect(() => {
         if (!tableNumber) return;
-        fetchData();
+        const controller = new AbortController();
+        fetchData(controller.signal);
         const poll = setInterval(fetchData, POLL_INTERVAL);
-        return () => clearInterval(poll);
+        return () => { controller.abort(); clearInterval(poll); };
     }, [tableNumber, fetchData]);
 
     // 1-second clock for live countdowns
@@ -145,30 +148,6 @@ export default function TabletDisplay() {
         return () => clearInterval(ticker);
     }, []);
 
-    /* ─── Screen Wake Lock ─────────────────────────────────────── */
-
-    useEffect(() => {
-        let wakeLock = null;
-        const requestWakeLock = async () => {
-            const controller = new AbortController();
-            const { signal } = controller;
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch { /* Not supported or permission denied */ }
-        };
-        requestWakeLock();
-        // Re-acquire on visibility change
-        const handleVisibility = () => {
-            if (document.visibilityState === 'visible') requestWakeLock();
-        };
-        document.addEventListener('visibilitychange', handleVisibility);
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibility);
-            if (wakeLock) wakeLock.release().catch(() => { });
-        };
-    }, []);
 
     /* ─── Heartbeat ────────────────────────────────────────────── */
 
