@@ -114,8 +114,22 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
 
     const enablePush = async () => {
         if (!('Notification' in window)) return;
-        const result = await Notification.requestPermission();
-        setPrefs(p => ({ ...p, pushEnabled: result === 'granted' }));
+
+        try {
+            const permissionPromise = new Promise((resolve) => {
+                const req = Notification.requestPermission(resolve);
+                if (req && typeof req.then === 'function') {
+                    req.then(resolve).catch(() => resolve('default'));
+                }
+            });
+
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('default'), 2000));
+            const result = await Promise.race([permissionPromise, timeoutPromise]);
+
+            setPrefs(p => ({ ...p, pushEnabled: result === 'granted' }));
+        } catch {
+            setPrefs(p => ({ ...p, pushEnabled: false }));
+        }
     };
 
     return (
