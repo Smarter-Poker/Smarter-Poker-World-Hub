@@ -452,7 +452,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.success('Double down created!');
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to create double down');
+            toast.error(err.message || 'Failed to create double down');
         }
         await loadData();
     };
@@ -520,9 +520,8 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (isAbortError(err)) { console.debug('[TokeTracker] createGig aborted (harmless)'); return; }
             console.error('[TokeTracker] Failed to create gig:', err);
-            toast.error(err.message || 'Failed to create event — check your connection', 5000);
+            toast.error(err.message || 'Failed to create event — check your connection and try again', 5000);
         }
     };
 
@@ -542,7 +541,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                 detail: { userId, gigId: activeGig.id }
             }));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to complete gig');
+            toast.error(err.message || 'Failed to complete gig');
         }
     };
 
@@ -559,7 +558,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to delete gig');
+            toast.error(err.message || 'Failed to delete gig');
         }
     };
 
@@ -591,7 +590,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to update gig');
+            toast.error(err.message || 'Failed to update gig');
         }
     };
 
@@ -620,7 +619,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to add down');
+            toast.error(err.message || 'Failed to add down');
         }
     };
 
@@ -658,7 +657,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await endDown(endingDown.id, tokeAmt);
             toast.success('Down ended');
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to end down');
+            toast.error(err.message || 'Failed to end down');
         }
         await loadData();
         window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -690,7 +689,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await endDown(downId);
             toast.success('Down ended');
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to end down');
+            toast.error(err.message || 'Failed to end down');
         }
         await loadData();
         window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -704,7 +703,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to delete down');
+            toast.error(err.message || 'Failed to delete down');
         }
     };
 
@@ -718,7 +717,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to save toke');
+            toast.error(err.message || 'Failed to save toke');
         }
     };
 
@@ -732,7 +731,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to update multiplier');
+            toast.error(err.message || 'Failed to update multiplier');
         }
     };
 
@@ -764,7 +763,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.success(`Day ${currentDay.day_number} closed! 🎉`);
             setCloseDayNotes('');
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to close day');
+            toast.error(err.message || 'Failed to close day');
         }
         await loadData();
         window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -782,7 +781,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to start new day');
+            toast.error(err.message || 'Failed to start new day');
         }
     };
 
@@ -809,7 +808,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            if (!isAbortError(err)) toast.error(err.message || 'Failed to add expense');
+            toast.error(err.message || 'Failed to add expense');
         }
     };
 
