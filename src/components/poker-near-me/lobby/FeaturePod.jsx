@@ -189,8 +189,6 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
         anchorX="center"
         anchorY="middle"
         color={pod.color}
-        font="/fonts/Inter-Bold.woff"
-        fontWeight={700}
         letterSpacing={0.02}
       >
         {pod.icon}
@@ -207,8 +205,6 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
         maxWidth={1.5}
         lineHeight={1.2}
         letterSpacing={0.08}
-        font="/fonts/Inter-Bold.woff"
-        fontWeight={700}
       >
         {pod.label}
       </Text>
