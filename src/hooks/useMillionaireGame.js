@@ -131,8 +131,8 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     }, [gameId, level, trainerConfig, effectiveQuestionsPerLevel]);
 
     /**
-     * FALLBACK: Fetch single question (old behavior)
-     * Used when batch pre-load fails
+     * FALLBACK: Fetch single question via deterministic batch-preload (count=1)
+     * Eliminates all Grok AI dependency — pure solver data only
      */
     const fetchSingleQuestion = useCallback(async () => {
         if (!gameId) return;
@@ -144,29 +144,28 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         try {
             const params = new URLSearchParams({
                 gameId,
-                engineType,
                 level: level.toString(),
-                ...(userId && { userId }),
+                count: '1',
             });
 
             const token = getSessionToken();
-            const response = await fetch(`/api/training/get-question?${params}`, {
+            const response = await fetch(`/api/training/batch-preload?${params}`, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {},
             });
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to fetch question');
+            if (!response.ok || !data.questions || data.questions.length === 0) {
+                throw new Error(data.error || 'No solver data available');
             }
 
-            setCurrentQuestion(data.question);
+            setCurrentQuestion(data.questions[0]);
         } catch (err) {
             console.error('[MillionaireGame] Fetch error:', err);
             setError(err.message);
         } finally {
             setLoading(false);
         }
-    }, [gameId, engineType, level, userId]);
+    }, [gameId, level]);
 
 
     /**

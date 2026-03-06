@@ -140,9 +140,9 @@ export default function HandHistories() {
                         // Transform each hand: extract per-player data from hand_data JSONB
                         let filtered = (handData || []).map(hand => {
                             const hd = hand.hand_data || {};
-                            const player = hd.players?.find(p =>String(p.id) === String(userId));
+                            const player = hd.players?.find(p => String(p.id) === String(userId));
                             const winnerIds = hand.winner_ids || [];
-                            const isWinner = winnerIds.some(w =>String(w) === String(userId));
+                            const isWinner = winnerIds.some(w => String(w) === String(userId));
                             const netResult = player?.netResult ?? 0;
 
                             return {
@@ -456,7 +456,7 @@ export default function HandHistories() {
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={membership?.role} />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={null} />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════
@@ -556,7 +556,7 @@ export default function HandHistories() {
 
                                         // Player name lookup
                                         const pName = (pid) => {
-                                            const p = selectedHand.players?.find(pl =>String(pl.id) === String(pid));
+                                            const p = selectedHand.players?.find(pl => String(pl.id) === String(pid));
                                             return p?.displayName || `Player`;
                                         };
 
