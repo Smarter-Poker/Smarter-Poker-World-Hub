@@ -2041,7 +2041,7 @@ const styles = {
         fontSize: 14,
         fontWeight: 'bold',
         fontFamily: "'Orbitron', 'Courier New', monospace",
-        textShadow: '0 0 10px rgba(251, 191, 36, 0.6)',
+        textShadow: '0 1px 4px rgba(0,0,0,0.6)',
         zIndex: 3,
         display: 'flex',
         alignItems: 'center',

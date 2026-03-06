@@ -441,12 +441,19 @@ export default function TriviaModePage() {
     };
 
     const handleComplete = async (gameResult) => {
-        const { correctCount, totalQuestions, timeSpent, timeRemaining, answers } = gameResult;
+        const {
+            correctCount, totalQuestions, timeSpent, timeRemaining, answers,
+            stakePot = 0, cashedOut = false,
+            opponentScore = null, opponentName = null,
+            streak: gameStreak = 0,
+        } = gameResult;
 
         // Calculate rewards with streak multiplier
-        const baseDiamonds = calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
+        // In stakes mode (arcade), the stakePot IS the reward — don't double-count
+        const isStakesMode = mode === 'arcade' && stakePot > 0;
+        const baseDiamonds = isStakesMode ? 0 : calculateDiamonds(mode, correctCount, totalQuestions, timeRemaining);
         const streakTier = getStreakTier(userStreak);
-        const diamondsEarned = calculateRewardWithMultiplier(baseDiamonds, userStreak);
+        const diamondsEarned = isStakesMode ? stakePot : calculateRewardWithMultiplier(baseDiamonds, userStreak);
 
         // Check for perfect score (100% correct)
         const isPerfect = correctCount === totalQuestions && totalQuestions > 0;
@@ -608,7 +615,12 @@ export default function TriviaModePage() {
             timeRemaining: timeRemaining || 0,
             diamondsEarned,
             dailyBonusDiamonds,
-            streak: newStreak
+            streak: newStreak,
+            // New addictive game mechanics data
+            stakePot: isStakesMode ? stakePot : 0,
+            cashedOut,
+            opponentScore,
+            opponentName,
         });
 
         setGameState('results');

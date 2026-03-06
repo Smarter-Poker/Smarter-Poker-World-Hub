@@ -347,7 +347,7 @@ const promoStyles = {
         fontWeight: 800,
         color: '#fff',
         cursor: 'pointer',
-        boxShadow: '0 4px 16px rgba(255, 107, 53, 0.4)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
     },
     xpBadge: {
         padding: '3px 8px',
@@ -480,7 +480,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
                 width: '90%',
                 textAlign: 'center',
                 border: '2px solid rgba(255, 107, 0, 0.5)',
-                boxShadow: '0 0 60px rgba(255, 107, 0, 0.3)',
+                boxShadow: 'none',
             }}>
                 <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
                 <h2 style={{
@@ -1343,7 +1343,7 @@ const styles = {
         fontWeight: 800,
         margin: '0 0 0.5vw 0',
         letterSpacing: '0.1vw',
-        textShadow: '0 0 3vw rgba(255,107,53,0.5)',
+        textShadow: '0 2px 6px rgba(0,0,0,0.5)',
         lineHeight: 1.1,
     },
 
@@ -1397,7 +1397,7 @@ const styles = {
         fontSize: 'var(--vp-font-md, clamp(10px, 1.6vw, 15px))',
         fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: '0 0.5vw 2vw rgba(255,107,53,0.4)',
+        boxShadow: '0 0.5vw 2vw rgba(0,0,0,0.4)',
         letterSpacing: '0.05vw',
         WebkitTapHighlightColor: 'transparent',
     },

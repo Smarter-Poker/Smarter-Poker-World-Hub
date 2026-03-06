@@ -1358,7 +1358,7 @@ const styles = {
     },
     splashIcon: {
         fontSize: 64,
-        filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.4))',
+        filter: 'none',
     },
     splashTitle: {
         fontSize: 28,
@@ -1367,7 +1367,7 @@ const styles = {
         textAlign: 'center',
         letterSpacing: 1.5,
         textTransform: 'uppercase',
-        textShadow: '0 0 24px rgba(0, 212, 255, 0.3)',
+        textShadow: 'none',
     },
     splashSubtitle: {
         fontSize: 14,

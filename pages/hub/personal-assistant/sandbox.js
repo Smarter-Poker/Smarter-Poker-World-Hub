@@ -462,7 +462,7 @@ export default function VirtualSandbox() {
           </div>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button onClick={() => setShowSessions(true)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer' }}>📋 Sessions</button>
-            <button onClick={saveBookmark} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', color: '#fde68a', cursor: 'pointer' }}>⭐ Save</button>
+            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.1)', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.2)'}`, color: saveStatus === 'saved' ? '#4ade80' : '#fde68a', cursor: 'pointer', transition: 'all 0.3s' }}>{saveStatus === 'saving' ? '⏳ Saving...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✗ Error' : '⭐ Save'}</button>
             {results && <button onClick={() => setShowShare(true)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', cursor: 'pointer' }}>↗ Share</button>}
             <button onClick={resetAll} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>Reset</button>
           </div>
