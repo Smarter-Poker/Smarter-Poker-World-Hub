@@ -864,8 +864,9 @@ function ClawbackTimer({ createdAt }) {
             setRemaining(`${m}:${s.toString().padStart(2, '0')}`);
         };
         update();
+        const _c = new AbortController();
         const iv = setInterval(update, 1000);
-        return () => clearInterval(iv);
+        return () => { _c.abort(); clearInterval(iv); };
     }, [createdAt]);
 
     return (

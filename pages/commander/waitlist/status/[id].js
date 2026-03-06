@@ -28,7 +28,7 @@ export default function WaitlistStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchStatus = useCallback(async () => {
+  const fetchStatus = useCallback(async (signal) => {
     if (!id) return;
     try {
       const res = await fetch(`/api/commander/waitlist/${id}`);
@@ -59,9 +59,10 @@ export default function WaitlistStatus() {
 
   useEffect(() => {
     if (!id) return;
-    fetchStatus();
-    const poll = setInterval(fetchStatus, 15000); // fallback — Supabase Realtime handles instant updates
-    return () => clearInterval(poll);
+    const _c = new AbortController();
+    fetchStatus(_c.signal);
+    const poll = setInterval(() => fetchStatus(_c.signal), 15000); // fallback — Supabase Realtime handles instant updates
+    return () => { _c.abort(); clearInterval(poll); };
   }, [id, fetchStatus]);
 
   // Supabase Realtime — instant updates when waitlist changes

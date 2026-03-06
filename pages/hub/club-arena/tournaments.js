@@ -472,9 +472,10 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           if (d.success) setTourneyState(d);
         } catch (_) { }
       };
+      const _c = new AbortController();
       poll();
       const iv = setInterval(poll, 5000);
-      return () => clearInterval(iv);
+      return () => { _c.abort(); clearInterval(iv); };
     }
   }, [t.id, userId, t.status]);
 

@@ -75,8 +75,8 @@ export default function PromotionsDisplay() {
   }, [promotions.length]);
 
   useEffect(() => {
-    fetchData();
-    const poll = setInterval(fetchData, 30000);
+    const _c = new AbortController(); fetchData(_c.signal);
+    const poll = setInterval(() => fetchData(_c.signal), 30000);
     const clock = setInterval(() => setNow(new Date()), 1000);
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);

@@ -196,11 +196,13 @@ export default function DiamondArcade() {
     ];
 
     useEffect(() => {
+        const _ctrl = new AbortController();
         loadUser();
         const interval = setInterval(() => {
             setResetTime(getTimeUntilReset());
         }, 1000);
         return () => {
+            _ctrl.abort();
             clearInterval(interval);
             if (duelPollRef.current) clearInterval(duelPollRef.current);
         };

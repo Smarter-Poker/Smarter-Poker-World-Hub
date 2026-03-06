@@ -107,6 +107,7 @@ useEffect(() => {
 
   // Local countdown ticker
   useEffect(() => {
+    const _ctrl = new AbortController();
     const ticker = setInterval(() => {
       if (activeSession) {
         setActiveSession(prev => prev ? ({
@@ -116,7 +117,7 @@ useEffect(() => {
       }
       setNow(new Date());
     }, 1000);
-    return () => clearInterval(ticker);
+    return () => { _ctrl.abort(); clearInterval(ticker); };
   }, [activeSession?.session_id]);
   if (loading) return (
     <div className="min-h-screen bg-[#18191A] flex items-center justify-center">

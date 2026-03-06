@@ -39,7 +39,7 @@ export default function BreakManager() {
 
   const checkingRef = useRef(false);
 
-  const checkBreak = useCallback(async () => {
+  const checkBreak = useCallback(async (signal) => {
     if (!tournamentId || checkingRef.current) return;
     checkingRef.current = true;
     try {
@@ -66,7 +66,7 @@ export default function BreakManager() {
   useCommanderSync(venueId, checkBreak, { entities: ['tournaments'] });
 
   // 30s safety poll (debounce ref prevents conflicts with RT pushes)
-  useEffect(() => { checkBreak(); const i = setInterval(checkBreak, 30000); return () => clearInterval(i); }, [checkBreak]);
+  useEffect(() => { const _c = new AbortController(); checkBreak(_c.signal); const i = setInterval(() => checkBreak(_c.signal), 30000); return () => { _c.abort(); clearInterval(i); }; }, [checkBreak]);
 
   const executeBreak = async () => {
     if (!breakData?.break_table || assignments.length === 0) return;

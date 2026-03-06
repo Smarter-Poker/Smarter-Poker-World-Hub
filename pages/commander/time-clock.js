@@ -36,10 +36,10 @@ export default function TimeClock() {
     }, [router]);
 
     // Fetch today's entries
-    const fetchEntries = useCallback(async () => {
+    const fetchEntries = useCallback(async (signal) => {
         if (!venueId) return;
         try {
-            const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`);
+            const res = await fetch(`/api/commander/time-clock?venue_id=${venueId}`, signal ? { signal } : {});
             const data = await res.json();
             if (data.success) {
                 setEntries(data.data.entries || []);
@@ -52,7 +52,7 @@ export default function TimeClock() {
         }
     }, [venueId]);
 
-    useEffect(() => { fetchEntries(); }, [fetchEntries]);
+    useEffect(() => { const _c = new AbortController(); fetchEntries(_c.signal); return () => _c.abort(); }, [fetchEntries]);
 
     // Real-time sync — listen for staff entity changes (clock in/out from other tabs/devices)
     useCommanderSync(venueId, fetchEntries, { entities: ['staff'] });

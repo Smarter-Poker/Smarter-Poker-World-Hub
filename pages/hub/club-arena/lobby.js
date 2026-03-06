@@ -148,6 +148,7 @@ export default function ClubLobby() {
             })
             .subscribe();
 
+        const _c = new AbortController();
         // Polling fallback every 15s for player counts (in case realtime misses)
         const poll = setInterval(async () => {
             try {

@@ -24,10 +24,10 @@ export default function TournamentClockDisplay() {
   const [loading, setLoading] = useState(true);
 
   // Fetch tournament data
-  const fetchTournament = useCallback(async () => {
+  const fetchTournament = useCallback(async (signal) => {
     if (!id) return;
     try {
-      const res = await fetch(`/api/commander/tournaments/${id}`);
+      const res = await fetch(`/api/commander/tournaments/${id}`, signal ? { signal } : {});
       const data = await res.json();
       if (data.success) {
         setTournament(data.data.tournament);
@@ -43,9 +43,10 @@ export default function TournamentClockDisplay() {
   }, [id]);
 
   useEffect(() => {
-    fetchTournament();
-    const interval = setInterval(fetchTournament, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(interval);
+    const _c = new AbortController();
+    fetchTournament(_c.signal);
+    const interval = setInterval(() => fetchTournament(_c.signal), 30000); // fallback — real-time sync handles instant updates
+    return () => { _c.abort(); clearInterval(interval); };
   }, [fetchTournament]);
 
   // Commander Data Bus — instant sync when tournament state changes (clock, entries, etc.)
