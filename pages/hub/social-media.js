@@ -2464,16 +2464,13 @@ export default function SocialMediaPage() {
 
         setIsPosting(true);
 
-        // Check if posting as Club Page
-        let identityStoredRaw = null;
-        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { }
-        const identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null;
-        const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;
+        // Check if posting as Club Page (uses context hook, not raw localStorage — prevents desync)
+        const isClubPost = isClubMode && clubPage?.id;
 
         try {
             if (isClubPost) {
                 // ═══ CLUB PAGE POST — route through page posts API ═══
-                const clubPageId = identityStored.clubPage.id;
+                const clubPageId = clubPage.id;
 
                 const res = await fetch('/api/social/pages/posts', {
                     method: 'POST',
@@ -2509,16 +2506,16 @@ export default function SocialMediaPage() {
                     link_description: linkPreview?.description || null,
                     link_image: linkPreview?.image || null,
                     author: {
-                        name: identityStored.clubPage.name,
+                        name: clubPage.name,
                         username: null,
-                        avatar: identityStored.clubPage.avatar_url
+                        avatar: clubPage.avatar_url
                     },
                     isClubPagePost: true,
                     clubPageId: clubPageId
                 }, ...prev]);
 
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                toast.success(`Posted as ${identityStored.clubPage.name}!`, 2000);
+                toast.success(`Posted as ${clubPage.name}!`, 2000);
                 return true;
             }
 

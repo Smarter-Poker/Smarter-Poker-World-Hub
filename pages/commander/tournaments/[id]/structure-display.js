@@ -57,8 +57,12 @@ export default function StructureDisplay() {
       try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { }
     };
     requestWakeLock();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') requestWakeLock(); });
-    return () => { wakeLockRef.current?.release(); };
+    const handleVisChange = () => { if (document.visibilityState === 'visible') requestWakeLock(); };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
   }, []);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();

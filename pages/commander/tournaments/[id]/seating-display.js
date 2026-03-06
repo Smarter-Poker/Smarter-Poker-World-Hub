@@ -49,8 +49,12 @@ export default function SeatingDisplay() {
   useEffect(() => {
     const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
     req();
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') req(); });
-    return () => { wakeLockRef.current?.release(); };
+    const handleVisChange = () => { if (document.visibilityState === 'visible') req(); };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
   }, []);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();

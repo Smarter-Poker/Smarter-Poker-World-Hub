@@ -5,7 +5,7 @@
  * but fully read-only — no action buttons, no modals, no editing.
  * Auto-refreshes every 5 seconds. Designed for TV / player-facing display.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
@@ -44,6 +44,27 @@ export default function WaitlistDisplay() {
   const [venueName, setVenueName] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
+  const wakeLockRef = useRef(null);
+
+  // Keep screen awake — this is a TV/player-facing display
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch { /* not supported or permission denied */ }
+    };
+    requestWakeLock();
+    const handleVisChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
+  }, []);
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -223,7 +244,7 @@ export default function WaitlistDisplay() {
   return (
     <>
       <SEOHead title="Player View — Poker Waiting List" noindex={true} />
-      <div style={{ minHeight: '100vh', background: c.bgColor, color: c.textColor, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', background: c.bgColor, color: c.textColor, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
         {/* ═══ TOP BAR ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderBottom: `2px solid ${c.borderColor}44`, background: c.cardBgColor }}>

@@ -17,6 +17,7 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FeatureGate from '../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
@@ -610,6 +611,12 @@ export default function PokerNearMePage() {
     const { user } = useAvatar();
     const userId = user?.id;
 
+    // ═══════════════════════════════════════════════════════════════
+    // ACTION-INTERCEPTOR: Users can see the page but interacting
+    // (search, filter, etc.) triggers the upgrade popup for non-VIP.
+    // ═══════════════════════════════════════════════════════════════
+    const { hasAccess, guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
+
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
     const [activeEventSub, setActiveEventSub] = useState('tours');
@@ -1083,6 +1090,8 @@ export default function PokerNearMePage() {
     };
 
     const requestGpsLocation = () => {
+        // ═══ ACTION GATE: Non-VIP users see upgrade popup on GPS ═══
+        if (!guardAction()) return;
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser');
             return;
@@ -1312,6 +1321,8 @@ export default function PokerNearMePage() {
 
     const handleSearch = (e) => {
         e.preventDefault();
+        // ═══ ACTION GATE: Non-VIP users see upgrade popup on search ═══
+        if (!guardAction()) return;
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         addToSearchHistory(searchQuery);
         setShowSearchHistory(false);
@@ -1353,6 +1364,8 @@ export default function PokerNearMePage() {
 
     // City suggestion click handler
     const handleCitySuggestionClick = (city) => {
+        // ═══ ACTION GATE: Non-VIP users see upgrade popup on city search ═══
+        if (!guardAction()) return;
         // Clear any pending search debounce to prevent double-fetch
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         setSearchQuery(city.name + ', ' + city.state);
@@ -2341,120 +2354,43 @@ export default function PokerNearMePage() {
                         </div>
                     </div>
 
-                    {/* ═══ HIGH-FIDELITY BENTO DASHBOARD ═══ */}
-                    <div className="pnm-bento-grid">
-                        {/* VENUES (Large) */}
-                        <div className={'bento-tile bento-large' + (activeTab === 'venues' ? ' active' : '')} onClick={() => setActiveTab('venues')}>
-                            <img src="/images/pnm-redesign/pnm_tile_search_venues.png" alt="Venues" className="bento-tile-bg" />
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                                <span className="bento-label">Search Venues</span>
-                            </div>
-                        </div>
-
-                        {/* NEAR ME NOW (Large) */}
-                        <div className={'bento-tile bento-large' + (activeTab === '_nearme' ? ' active' : '')} onClick={() => setActiveTab('_nearme')}>
-                            <img src="/images/pnm-redesign/pnm_tile_near_me_now.png" alt="Near Me" className="bento-tile-bg" />
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>
-                                <span className="bento-label" style={{ color: '#4ade80' }}>Near Me Now</span>
-                            </div>
-                        </div>
-
-                        {/* LIVE GAMES (Wide) */}
-                        <div className={'bento-tile bento-wide' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
-                            <img src="/images/pnm-redesign/pnm_tile_live_games.png" alt="Live Games" className="bento-tile-bg" />
-                            <div className="bento-content">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" fill="#ef4444" /></svg>
-                                    <span className="bento-label" style={{ color: '#fca5a5' }}>Live Games</span>
-                                    {liveGames.length > 0 && <span style={{ background: '#ef4444', color: '#fff', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 800 }}>{liveGames.length}</span>}
+                    {/* ═══ CUSTOM ICON DASHBOARD — NO BACKGROUNDS ═══ */}
+                    <div className="pnm-icon-grid">
+                        {[
+                            { key: 'venues', tab: 'venues', label: 'Search Venues', icon: '/images/pnm-redesign/icon_search_venues.png' },
+                            { key: 'nearme', tab: '_nearme', label: 'Near Me Now', icon: '/images/pnm-redesign/icon_near_me_now.png' },
+                            { key: 'live', tab: 'live', label: 'Live Games', icon: '/images/pnm-redesign/icon_live_games.png', badge: liveGames.length > 0 ? liveGames.length : null },
+                            { key: 'map', tab: 'map', label: 'Map View', icon: '/images/pnm-redesign/icon_map_view.png' },
+                            { key: 'tours', tab: 'events', sub: 'tours', label: 'Tours', icon: '/images/pnm-redesign/icon_tours.png' },
+                            { key: 'series', tab: 'events', sub: 'series', label: 'Series', icon: '/images/pnm-redesign/icon_series.png' },
+                            { key: 'daily', tab: 'events', sub: 'daily', label: 'Daily', icon: '/images/pnm-redesign/icon_daily.png' },
+                            { key: 'calendar', tab: 'events', sub: 'calendar', label: 'Calendar', icon: '/images/pnm-redesign/icon_calendar.png' },
+                            { key: 'trip', tab: '_trip', label: 'Trip Planner', icon: '/images/pnm-redesign/icon_trip_planner.png' },
+                            { key: 'saved', tab: 'saved', label: 'Saved', icon: '/images/pnm-redesign/icon_saved.png' },
+                            { key: 'friends', tab: '_friends', label: 'Friends', icon: '/images/pnm-redesign/icon_friends.png' },
+                            { key: 'alerts', tab: '_alerts', label: 'Alerts', icon: '/images/pnm-redesign/icon_alerts.png' },
+                            { key: 'cost', tab: '_cost', label: 'Cost Calculator', icon: '/images/pnm-redesign/icon_cost_calculator.png' },
+                        ].map(item => {
+                            const isActive = item.sub
+                                ? (activeTab === item.tab && activeEventSub === item.sub)
+                                : (activeTab === item.tab);
+                            return (
+                                <div
+                                    key={item.key}
+                                    className={'pnm-icon-item' + (isActive ? ' active' : '')}
+                                    onClick={() => {
+                                        setActiveTab(item.tab);
+                                        if (item.sub) setActiveEventSub(item.sub);
+                                    }}
+                                >
+                                    <div className="pnm-icon-img-wrap">
+                                        <img src={item.icon} alt={item.label} className="pnm-icon-img" draggable={false} />
+                                        {item.badge && <span className="pnm-icon-badge">{item.badge}</span>}
+                                    </div>
+                                    <span className="pnm-icon-label">{item.label}</span>
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* TRIP PLANNER (Wide) */}
-                        <div className={'bento-tile bento-wide' + (activeTab === '_trip' ? ' active' : '')} onClick={() => setActiveTab('_trip')}>
-                            <img src="/images/pnm-redesign/pnm_tile_trip_planner.png" alt="Trip Planner" className="bento-tile-bg" />
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                                <span className="bento-label" style={{ color: '#d8b4fe' }}>Trip Planner</span>
-                            </div>
-                        </div>
-
-                        {/* MAP */}
-                        <div className={'bento-tile' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /></svg>
-                                <span className="bento-label">Map</span>
-                            </div>
-                        </div>
-
-                        {/* TOURS */}
-                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'tours' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('tours'); }}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                                <span className="bento-label">Tours</span>
-                            </div>
-                        </div>
-
-                        {/* SERIES */}
-                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'series' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('series'); }}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                                <span className="bento-label">Series</span>
-                            </div>
-                        </div>
-
-                        {/* DAILY */}
-                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'daily' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('daily'); }}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                                <span className="bento-label">Daily</span>
-                            </div>
-                        </div>
-
-                        {/* CALENDAR */}
-                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'calendar' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('calendar'); }}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" /></svg>
-                                <span className="bento-label">Calendar</span>
-                            </div>
-                        </div>
-
-                        {/* SAVED */}
-                        <div className={'bento-tile' + (activeTab === 'saved' ? ' active' : '')} onClick={() => setActiveTab('saved')}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-                                <span className="bento-label" style={{ color: '#f472b6' }}>Saved</span>
-                            </div>
-                        </div>
-
-                        {/* ALERTS */}
-                        <div className={'bento-tile' + (activeTab === '_alerts' ? ' active' : '')} onClick={() => setActiveTab('_alerts')}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
-                                <span className="bento-label" style={{ color: '#facc15' }}>Alerts</span>
-                            </div>
-                        </div>
-
-                        {/* FRIENDS */}
-                        <div className={'bento-tile' + (activeTab === '_friends' ? ' active' : '')} onClick={() => setActiveTab('_friends')}>
-                            <div className="bento-content">
-                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                                <span className="bento-label" style={{ color: '#60a5fa' }}>Friends</span>
-                            </div>
-                        </div>
-
-                        {/* COST CALCULATOR */}
-                        <div className={'bento-tile bento-wide' + (activeTab === '_cost' ? ' active' : '')} onClick={() => setActiveTab('_cost')}>
-                            <div className="bento-content">
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-                                    <span className="bento-label" style={{ color: '#34d399' }}>Cost Calculator</span>
-                                </div>
-                            </div>
-                        </div>
+                            );
+                        })}
                     </div>
 
                     {/* Distance / Geofence notices (below HUD) */}
@@ -2815,104 +2751,107 @@ export default function PokerNearMePage() {
                         color: #d4a853;
                     }
 
-                    /* ═══ HIGH-FIDELITY BENTO DASHBOARD ═══ */
-                    .pnm-bento-grid {
+                    /* ═══ CUSTOM ICON DASHBOARD — NO BACKGROUNDS ═══ */
+                    .pnm-icon-grid {
                         display: grid;
                         grid-template-columns: repeat(4, 1fr);
-                        grid-auto-rows: 90px;
-                        gap: 12px;
-                        padding: 0 16px 24px;
+                        gap: 16px 12px;
+                        padding: 8px 16px 28px;
                         max-width: 800px;
                         margin: 0 auto;
                     }
                     @media (max-width: 600px) {
-                        .pnm-bento-grid {
-                            grid-template-columns: repeat(2, 1fr);
-                            grid-auto-rows: 100px;
+                        .pnm-icon-grid {
+                            grid-template-columns: repeat(3, 1fr);
+                            gap: 18px 10px;
                         }
-                        .bento-large {
-                            grid-column: span 2 !important;
+                    }
+                    @media (max-width: 360px) {
+                        .pnm-icon-grid {
+                            grid-template-columns: repeat(2, 1fr);
                         }
                     }
 
-                    .bento-tile {
-                        position: relative;
-                        border-radius: 16px;
-                        overflow: hidden;
-                        background: rgba(30, 41, 59, 0.6);
-                        backdrop-filter: blur(12px);
-                        -webkit-backdrop-filter: blur(12px);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
+                    .pnm-icon-item {
                         display: flex;
                         flex-direction: column;
-                        justify-content: flex-end;
-                        padding: 12px;
+                        align-items: center;
+                        gap: 8px;
                         cursor: pointer;
-                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                        -webkit-tap-highlight-color: transparent;
                     }
-                    .bento-tile:active {
-                        transform: scale(0.96);
-                    }
-                    .bento-tile.active {
-                        border-color: rgba(212, 168, 83, 0.8);
-                        box-shadow: 0 0 20px rgba(212, 168, 83, 0.3), inset 0 0 15px rgba(212,168,83,0.1);
-                    }
-                    .bento-tile::before {
-                        content: '';
-                        position: absolute;
-                        inset: 0;
-                        background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,23,42,0.95) 100%);
-                        z-index: 1;
-                        border-radius: 16px;
+                    .pnm-icon-item:active {
+                        transform: scale(0.90);
                     }
 
-                    .bento-tile-bg {
-                        position: absolute;
-                        inset: 0;
+                    .pnm-icon-img-wrap {
+                        position: relative;
+                        width: 80px;
+                        height: 80px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        border-radius: 20px;
+                        transition: all 0.3s ease;
+                    }
+                    @media (max-width: 600px) {
+                        .pnm-icon-img-wrap {
+                            width: 72px;
+                            height: 72px;
+                        }
+                    }
+
+                    .pnm-icon-item.active .pnm-icon-img-wrap {
+                        box-shadow: 0 0 18px rgba(212, 168, 83, 0.5), 0 0 40px rgba(212, 168, 83, 0.2);
+                        border-radius: 22px;
+                        background: rgba(212, 168, 83, 0.08);
+                    }
+
+                    .pnm-icon-img {
                         width: 100%;
                         height: 100%;
-                        object-fit: cover;
-                        opacity: 0.5;
-                        transition: opacity 0.4s ease, transform 0.6s ease;
+                        object-fit: contain;
+                        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+                        transition: transform 0.3s ease, filter 0.3s ease;
                     }
-                    .bento-tile:hover .bento-tile-bg {
-                        opacity: 0.8;
-                        transform: scale(1.08);
+                    .pnm-icon-item:hover .pnm-icon-img {
+                        transform: scale(1.12);
+                        filter: drop-shadow(0 6px 20px rgba(212,168,83,0.4));
                     }
-
-                    .bento-content {
-                        position: relative;
-                        z-index: 2;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 6px;
+                    .pnm-icon-item.active .pnm-icon-img {
+                        filter: drop-shadow(0 0 16px rgba(212, 168, 83, 0.6));
                     }
 
-                    .bento-icon {
-                        width: 26px;
-                        height: 26px;
-                        color: rgba(255,255,255,0.8);
-                        filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
+                    .pnm-icon-label {
+                        color: rgba(255,255,255,0.75);
+                        font-size: 11px;
+                        font-weight: 600;
+                        letter-spacing: 0.3px;
+                        text-align: center;
+                        text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+                        line-height: 1.2;
+                        max-width: 90px;
+                    }
+                    .pnm-icon-item.active .pnm-icon-label {
+                        color: #d4a853;
+                        text-shadow: 0 0 8px rgba(212, 168, 83, 0.4);
                     }
 
-                    .bento-label {
+                    .pnm-icon-badge {
+                        position: absolute;
+                        top: -4px;
+                        right: -4px;
+                        background: #ef4444;
                         color: #fff;
-                        font-size: 13px;
-                        font-weight: 700;
-                        letter-spacing: 0.5px;
-                        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-                    }
-
-                    .bento-large { 
-                        grid-column: span 2; 
-                        grid-row: span 2; 
-                    }
-                    .bento-wide { 
-                        grid-column: span 2; 
-                    }
-                    .bento-tall { 
-                        grid-row: span 2; 
+                        font-size: 10px;
+                        font-weight: 800;
+                        padding: 2px 6px;
+                        border-radius: 10px;
+                        min-width: 18px;
+                        text-align: center;
+                        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
+                        animation: livePulse 2s ease-in-out infinite;
                     }
 
 
@@ -4398,6 +4337,8 @@ export default function PokerNearMePage() {
                     }
                 `}</style>
                 </FeatureGate>
+                {/* Action-interceptor upgrade popup (rendered when non-VIP tries gated action) */}
+                {UpgradePopup}
             </div>
         </>
     );

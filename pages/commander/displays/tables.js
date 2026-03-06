@@ -224,10 +224,14 @@ export default function TablesDisplay() {
       } catch { }
     };
     requestWakeLock();
-    document.addEventListener('visibilitychange', () => {
+    const handleVisChange = () => {
       if (document.visibilityState === 'visible') requestWakeLock();
-    });
-    return () => { wakeLockRef.current?.release(); };
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
   }, []);
 
   /* ─── Lock / Unlock ──────────────────────────────── */

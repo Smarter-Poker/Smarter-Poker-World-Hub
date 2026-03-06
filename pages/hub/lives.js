@@ -7,6 +7,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { supabase } from '../../src/lib/supabase';
 import FeatureGate from '../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import { getAuthUser } from '../../src/lib/authUtils';
 
 // Colors
@@ -38,6 +39,9 @@ export default function LivesPage() {
         const user = getAuthUser();
         if (user) setUserId(user.id);
     }, []);
+
+    // ═══ ACTION GATE: Users can explore/watch, but interactions are gated ═══
+    const { guardAction, UpgradePopup } = useFeatureGate('lives');
 
     // Fetch all streams (active lives + recorded)
     useEffect(() => {
@@ -122,6 +126,8 @@ export default function LivesPage() {
     const currentStream = streams[currentIndex];
 
     const handleLivelike = async () => {
+        // ═══ ACTION GATE: Like requires access ═══
+        if (!guardAction()) return;
         if (!currentStream) return;
         const wasLiked = likedStreams[currentStream.id];
         setLikedStreams(prev => ({ ...prev, [currentStream.id]: !wasLiked }));
@@ -138,6 +144,8 @@ export default function LivesPage() {
     };
 
     const handleLiveChat = async () => {
+        // ═══ ACTION GATE: Chat requires access ═══
+        if (!guardAction()) return;
         if (!currentStream) return;
         setShowChat(prev => !prev);
         if (!showChat && chatMessages.length === 0) {
@@ -170,6 +178,8 @@ export default function LivesPage() {
     };
 
     const handleLiveShare = async () => {
+        // ═══ ACTION GATE: Share requires access ═══
+        if (!guardAction()) return;
         if (!currentStream) return;
         const url = window.location.origin + '/hub/lives?id=' + currentStream.id;
         try {
@@ -584,6 +594,7 @@ export default function LivesPage() {
         }
       `}</style>
             </FeatureGate>
+            {UpgradePopup}
         </>
     );
 }

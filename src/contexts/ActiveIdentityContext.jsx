@@ -45,50 +45,70 @@ export function ActiveIdentityProvider({ children }) {
     }, []);
 
     // Auto-detect club page for Commander users
+    // HARDENED: Always checks by owner_id as fallback, even without commander_staff in localStorage.
+    // This ensures freshly registered Commanders can see their Club Page immediately after registration.
     useEffect(() => {
         const detectClubPage = async () => {
             try {
-                const stored = localStorage.getItem('commander_staff');
-                if (!stored) return;
-
-                const data = JSON.parse(stored);
-                if (!data || !data.venue_id) return;
-
-                // Get the current user ID
+                // ── Step 1: Get userId from auth data (required) ──
                 let userId = null;
-                const authData = localStorage.getItem('smarter-poker-auth');
-                if (authData) {
-                    const parsed = JSON.parse(authData);
-                    userId = parsed?.user?.id;
-                }
+                try {
+                    const authData = localStorage.getItem('smarter-poker-auth');
+                    if (authData) {
+                        const parsed = JSON.parse(authData);
+                        userId = parsed?.user?.id;
+                    }
+                    // Fallback: try legacy sb-* keys
+                    if (!userId) {
+                        const sbKeys = Object.keys(localStorage).filter(
+                            k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                        );
+                        if (sbKeys.length > 0) {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            userId = tokenData?.user?.id;
+                        }
+                    }
+                } catch (e) { /* ignore parse errors */ }
 
-                // Fetch club page by venue_id
-                const res = await fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`);
-                const json = await res.json();
+                if (!userId) return; // Not logged in, nothing to detect
 
-                if (json.success && json.data && json.data.length > 0) {
-                    const page = json.data[0];
+                // ── Step 2: Try venue_id lookup (if commander_staff exists) ──
+                try {
+                    const stored = localStorage.getItem('commander_staff');
+                    if (stored) {
+                        const data = JSON.parse(stored);
+                        if (data?.venue_id) {
+                            const res = await fetch(`/api/social/pages?linked_venue_id=${data.venue_id}`);
+                            const json = await res.json();
+                            if (json.success && json.data && json.data.length > 0) {
+                                const page = json.data[0];
+                                setAvailableClubPage({
+                                    id: page.id,
+                                    name: page.name,
+                                    avatar_url: page.avatar_url,
+                                    page_type: page.page_type || 'club',
+                                });
+                                console.log('[ActiveIdentity] Club page found (by venue):', page.name);
+                                return; // Found — done
+                            }
+                        }
+                    }
+                } catch (e) { /* commander_staff parse failed, try fallback */ }
+
+                // ── Step 3: Always fallback to owner_id lookup ──
+                // This catches freshly registered Commanders who haven't logged into
+                // Commander yet (so commander_staff isn't in localStorage).
+                const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
+                const json2 = await res2.json();
+                if (json2.success && json2.data && json2.data.length > 0) {
+                    const page = json2.data[0];
                     setAvailableClubPage({
                         id: page.id,
                         name: page.name,
                         avatar_url: page.avatar_url,
                         page_type: page.page_type || 'club',
                     });
-                    console.log('[ActiveIdentity] Club page found:', page.name);
-                } else if (userId) {
-                    // Fallback: check by owner_id
-                    const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
-                    const json2 = await res2.json();
-                    if (json2.success && json2.data && json2.data.length > 0) {
-                        const page = json2.data[0];
-                        setAvailableClubPage({
-                            id: page.id,
-                            name: page.name,
-                            avatar_url: page.avatar_url,
-                            page_type: page.page_type || 'club',
-                        });
-                        console.log('[ActiveIdentity] Club page found (by owner):', page.name);
-                    }
+                    console.log('[ActiveIdentity] Club page found (by owner):', page.name);
                 }
             } catch (e) {
                 console.warn('[ActiveIdentity] Club page detection failed:', e);

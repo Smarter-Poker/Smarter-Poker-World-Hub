@@ -16,6 +16,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useSandboxAnalysis } from '../../../src/hooks/useAssistant';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -728,6 +729,9 @@ export default function VirtualSandboxPage() {
     if (user) setUserId(user.id);
   }, []);
 
+  // ═══ ACTION GATE: Users can explore/configure, but running analysis is gated ═══
+  const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
+
   // Hero state
   const [heroCard1, setHeroCard1] = useState('As');
   const [heroCard2, setHeroCard2] = useState('Qd');
@@ -822,6 +826,8 @@ export default function VirtualSandboxPage() {
 
   // Run analysis using real API
   const runAnalysis = async () => {
+    // ═══ ACTION GATE: Running analysis requires access ═══
+    if (!guardAction()) return;
     // Check for unrealistic setups (Masterplan Section VIII)
     const warning = checkUnrealisticSetup();
     if (warning) {
@@ -855,13 +861,13 @@ export default function VirtualSandboxPage() {
   return (
     <PageTransition>
       <SEOHead
-                title="AI Sandbox — Practice With Jarvis"
-                description="Practice Poker Scenarios In The AI Sandbox With Jarvis Guidance."
-                canonical="/hub/personal-assistant/sandbox"
-                noindex={true}
-            >
-                
-            </SEOHead>
+        title="AI Sandbox — Practice With Jarvis"
+        description="Practice Poker Scenarios In The AI Sandbox With Jarvis Guidance."
+        canonical="/hub/personal-assistant/sandbox"
+        noindex={true}
+      >
+
+      </SEOHead>
 
       <div className="sandbox-page" style={styles.container}>
         <div style={styles.bgGrid} />

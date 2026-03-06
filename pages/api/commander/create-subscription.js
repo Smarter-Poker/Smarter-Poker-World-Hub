@@ -453,22 +453,61 @@ export default async function handler(req, res) {
       }
     }
 
-    // ─── 6. Social Hub page (best-effort) ────────────────────────────
+    // ─── 6. Auto-create Social Club Page (direct DB insert) ──────────
+    // Pages start as DRAFTS (is_public: false) — user must edit and publish.
+    // Includes duplicate guard to prevent creating a second page for the same venue.
     try {
-      await fetch(`${process.env.SOCIAL_HUB_API_URL}/api/create-club-page`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.SOCIAL_HUB_API_KEY}`
-        },
-        body: JSON.stringify({
-          venue_id: venueId, name: clubInfo.name,
-          description: `${clubInfo.name}${venueCity && venueState ? ` - Poker Room in ${venueCity}, ${venueState}` : ''}`,
-          address: venueAddress || null, city: venueCity || null, state: venueState || null,
-          website: clubInfo.website || null, owner_id: userId
-        })
-      });
-    } catch (e) { /* non-critical */ }
+      // Duplicate guard: skip if a social page already exists for this venue
+      const { data: existingPage } = await supabase
+        .from('social_pages')
+        .select('id')
+        .eq('linked_venue_id', String(venueId))
+        .limit(1);
+
+      if (existingPage && existingPage.length > 0) {
+        console.log(`[Registration] Club page already exists for venue ${venueId}, skipping auto-create.`);
+      } else {
+        const pageSlug = clubInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60) + '-' + Date.now().toString(36);
+        const referralCode = pageSlug.substring(0, 20) + '-' + Math.random().toString(36).substring(2, 6);
+
+        const { data: newPage, error: pageError } = await supabase
+          .from('social_pages')
+          .insert({
+            owner_id: userId,
+            name: clubInfo.name,
+            slug: pageSlug,
+            page_type: 'club',
+            description: `${clubInfo.name}${venueCity && venueState ? ` — Poker in ${venueCity}, ${venueState}` : ''}`,
+            category: 'poker',
+            linked_venue_id: String(venueId),
+            location_city: venueCity || '',
+            location_state: venueState || '',
+            is_public: false, // ← DRAFT MODE — not visible in public listings until user publishes
+            allow_member_posts: true,
+            metadata: {
+              source: 'commander_registration',
+              referral_code: referralCode,
+              status: 'draft',
+              needs_setup: true
+            }
+          })
+          .select('id')
+          .single();
+
+        if (!pageError && newPage) {
+          // Auto-follow as owner
+          await supabase.from('social_page_followers').insert({
+            page_id: newPage.id,
+            user_id: userId,
+            role: 'owner',
+            status: 'approved'
+          });
+          console.log(`[Registration] ✅ Club page auto-created (DRAFT): ${clubInfo.name} (ID: ${newPage.id})`);
+        } else {
+          console.error('[Registration] Club page auto-create failed:', pageError?.message);
+        }
+      }
+    } catch (e) { console.error('[Registration] Club page auto-create error (non-critical):', e.message); }
 
     // ─── 7. Welcome email (best-effort) ──────────────────────────────
     try {

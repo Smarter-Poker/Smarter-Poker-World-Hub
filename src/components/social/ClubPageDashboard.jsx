@@ -108,6 +108,20 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
     const [editState, setEditState] = useState(page.location_state || '');
     const [editAddress, setEditAddress] = useState((page.metadata || {}).address || '');
     const [saving, setSaving] = useState(false);
+    const [publishing, setPublishing] = useState(false);
+    const isDraft = !page.is_public || page.metadata?.needs_setup;
+
+    // ── JWT Auth Helper: ensures all mutation calls include the Bearer token ──
+    const getAuthHeaders = async () => {
+        const headers = { 'Content-Type': 'application/json' };
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+        } catch (e) { /* will fall through without auth — server will reject if required */ }
+        return headers;
+    };
 
     // Enhanced state — Photos, Schedule, Tournaments, Amenities
     const meta = page.metadata || {};
@@ -192,8 +206,9 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 const merged = { ...page.metadata, cover_photo_url: url };
                 setMetaSaving(true); setMetaSaved('');
                 try {
+                    const saveHeaders = await getAuthHeaders();
                     const res = await fetch('/api/social/pages', {
-                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        method: 'PUT', headers: saveHeaders,
                         body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged }),
                     });
                     const json = await res.json();
@@ -234,8 +249,9 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 const merged = { ...page.metadata, logo_url: url };
                 setMetaSaving(true); setMetaSaved('');
                 try {
+                    const saveHeaders = await getAuthHeaders();
                     const res = await fetch('/api/social/pages', {
-                        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                        method: 'PUT', headers: saveHeaders,
                         body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged }),
                     });
                     const json = await res.json();
@@ -370,8 +386,9 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
         setMetaSaving(true); setMetaSaved('');
         try {
             const merged = { ...page.metadata, ...newMeta };
+            const authHeaders = await getAuthHeaders();
             const res = await fetch('/api/social/pages', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                method: 'PUT', headers: authHeaders,
                 body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
             });
             const json = await res.json();
@@ -461,16 +478,50 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
         const { signal } = controller;
         setSaving(true);
         try {
-            // Merge address into metadata
+            // Merge address into metadata and clear draft flags on save
             const updatedMetadata = { ...page.metadata, address: editAddress.trim() };
+            // Auto-publish on save: if page was a draft, publishing it when the user saves edits
+            if (updatedMetadata.needs_setup) delete updatedMetadata.needs_setup;
+            if (updatedMetadata.status === 'draft') updatedMetadata.status = 'published';
+
+            const body = {
+                id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(),
+                website: editWebsite.trim(), phone: editPhone.trim(),
+                avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(),
+                location_state: editState.trim(), metadata: updatedMetadata,
+                is_public: true, // Always publish when user saves edits
+            };
+            const authHeaders = await getAuthHeaders();
             const res = await fetch('/api/social/pages', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, name: editName.trim(), description: editDesc.trim(), website: editWebsite.trim(), phone: editPhone.trim(), avatar_url: editAvatarUrl.trim() || null, location_city: editCity.trim(), location_state: editState.trim(), metadata: updatedMetadata }),
+                method: 'PUT', headers: authHeaders,
+                body: JSON.stringify(body),
             });
             const json = await res.json();
             if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
         } catch (e) { console.error('Save error:', e); }
         setSaving(false);
+    };
+
+    // Publish page (separate from save — for the draft banner button)
+    const publishPage = async () => {
+        setPublishing(true);
+        try {
+            const updatedMetadata = { ...page.metadata };
+            delete updatedMetadata.needs_setup;
+            if (updatedMetadata.status === 'draft') updatedMetadata.status = 'published';
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch('/api/social/pages', {
+                method: 'PUT', headers: authHeaders,
+                body: JSON.stringify({
+                    id: page.id, owner_id: userId,
+                    is_public: true,
+                    metadata: updatedMetadata
+                }),
+            });
+            const json = await res.json();
+            if (json.success && json.data) { onPageUpdated(json.data); }
+        } catch (e) { console.error('Publish error:', e); }
+        setPublishing(false);
     };
 
     const handleTogglePin = async (post) => {
@@ -557,6 +608,34 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                         </div>
                     </div>
                 </div>
+
+                {/* ═══ DRAFT BANNER — shown when page is not yet published ═══ */}
+                {isDraft && (
+                    <div style={{
+                        padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        background: 'linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%)',
+                        borderBottom: '2px solid #F0C040', gap: 12, flexWrap: 'wrap'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{
+                                width: 32, height: 32, borderRadius: '50%', background: '#F0C040',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 16, fontWeight: 700, color: '#473D00'
+                            }}>⚠</div>
+                            <div>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: '#473D00' }}>Draft — Not Published Yet</div>
+                                <div style={{ fontSize: 12, color: '#7A6B00' }}>Customize your page, then publish it to make it visible to the public.</div>
+                            </div>
+                        </div>
+                        <button onClick={publishPage} disabled={publishing} style={{
+                            padding: '10px 24px', borderRadius: 8, border: 'none',
+                            background: '#42B72A', color: '#fff', fontSize: 14,
+                            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                            boxShadow: '0 2px 8px rgba(66,183,42,0.4)',
+                            opacity: publishing ? 0.6 : 1, whiteSpace: 'nowrap'
+                        }}>{publishing ? 'Publishing...' : '🚀 Publish Page'}</button>
+                    </div>
+                )}
 
                 {/* Action Bar */}
                 <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>

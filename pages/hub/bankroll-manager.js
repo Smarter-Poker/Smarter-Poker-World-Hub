@@ -14,6 +14,7 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FeatureGate from '../../src/components/gates/FeatureGate';
+import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getBankrollPreferences, updateBankrollPreferences } from '../../src/services/bankrollPreferences';
@@ -144,6 +145,9 @@ export default function BankrollManagerPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const userId = user?.id;
+
+  // ═══ ACTION GATE: Users can explore dashboard, but logging/pro tools are gated ═══
+  const { guardAction, UpgradePopup } = useFeatureGate('bankroll_manager');
 
   // UI State
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -316,8 +320,8 @@ export default function BankrollManagerPage() {
 
   // Load all data
   const loadData = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     // Fix: Set isLoading false even when no user (prevents infinite skeleton)
     if (!userId) {
       setIsLoading(false);
@@ -529,9 +533,11 @@ export default function BankrollManagerPage() {
 
   // Gate Log+ behind bankroll check
   const handleLogClick = useCallback(async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
     if (!userId) { setShowLogModal(true); return; } // Will show login prompt
+    // ═══ ACTION GATE: Log entry requires access ═══
+    if (!guardAction()) return;
     if (bankrollInitialized === false) {
       setShowStartingBankroll(true);
       return;
@@ -572,6 +578,8 @@ export default function BankrollManagerPage() {
   };
 
   const handleSidebarClick = (sectionId) => {
+    // ═══ ACTION GATE: Pro tool sidebar actions require access ═══
+    if (sectionId !== 'dashboard' && !guardAction()) return;
     if (sectionId === 'scan-receipt') {
       setShowScanner(true);
       setScannerStep('scan');
@@ -702,7 +710,7 @@ export default function BankrollManagerPage() {
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
         canonical="/hub/bankroll-manager"
       >
-        
+
       </SEOHead>
 
       <div className="bankroll-page" style={styles.container}>
@@ -1997,6 +2005,7 @@ export default function BankrollManagerPage() {
           />
         )}
       </AnimatePresence>
+      {UpgradePopup}
     </PageTransition >
   );
 }
@@ -2440,7 +2449,7 @@ const styles = {
     boxShadow: '0 0 10px rgba(0,212,255,0.6), 0 0 20px rgba(0,212,255,0.3)',
   },
   proToolsTitle: {
-    fontFamily: "var(--font-orbitron), sans-serif" ,
+    fontFamily: "var(--font-orbitron), sans-serif",
     fontSize: 20,
     fontWeight: 700,
     letterSpacing: '0.15em',

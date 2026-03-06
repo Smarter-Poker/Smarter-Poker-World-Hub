@@ -15,6 +15,19 @@ import { supabase } from '../supabase';
 export async function checkFeatureAccess(userId, featureKey) {
     if (!userId) return { hasAccess: false, isVip: false, expiresAt: null, diamonds: 0 };
 
+    // ═══════════════════════════════════════════════════════════════════
+    // VIP DEFENSE LAYER 0: Check localStorage cache BEFORE any network
+    // This prevents VIP lockouts if network is slow/down
+    // ═══════════════════════════════════════════════════════════════════
+    if (typeof window !== 'undefined') {
+        try {
+            if (localStorage.getItem('sp-vip-status') === 'true') {
+                console.log('[FeatureGate] VIP confirmed via localStorage cache — skipping network check');
+                return { hasAccess: true, isVip: true, expiresAt: null, diamonds: 0 };
+            }
+        } catch (e) { }
+    }
+
     // Ensure Supabase session is ready before querying
     let sessionUserId = null;
     try {
@@ -100,6 +113,10 @@ export async function checkFeatureAccess(userId, featureKey) {
 
     // VIP users get unlimited access
     if (profile.is_vip) {
+        // Sync VIP status to localStorage for optimistic rendering
+        if (typeof window !== 'undefined') {
+            try { localStorage.setItem('sp-vip-status', 'true'); } catch (_) { }
+        }
         return { hasAccess: true, isVip: true, expiresAt: null, diamonds: profile.diamonds || 0 };
     }
 

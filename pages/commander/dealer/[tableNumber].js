@@ -173,6 +173,27 @@ export default function DealerTablet() {
   // Commander Data Bus — instant cross-tab sync + Supabase Realtime cross-device
   useCommanderSync(venueId, fetchTable, { entities: ['tables', 'games', 'dealers'] });
 
+  // Keep screen awake — this is a dealer tablet mounted at the table
+  const wakeLockRef = useRef(null);
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch { /* not supported or permission denied */ }
+    };
+    requestWakeLock();
+    const handleVisChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
+  }, []);
+
   // Store last sync timestamp for drift-free countdown
   const lastSyncRef = useRef(Date.now());
   const serverSnapshotRef = useRef({});

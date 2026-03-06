@@ -731,6 +731,40 @@ function UniversalDynamicTable({
         prevStreakRef.current = streak;
     }, [streak]);
 
+    // Phase 25: Keyboard Shortcuts (1-4 for actions, Space for next, Esc to exit)
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            // Don't intercept if user is typing in an input
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            const key = e.key;
+
+            // During feedback: Space/Enter = next hand
+            if (showFeedback && (key === ' ' || key === 'Enter')) {
+                e.preventDefault();
+                if (onNextHand) onNextHand();
+                return;
+            }
+
+            // During question: 1-4 = select answer
+            if (!showFeedback && !selectedAnswer) {
+                const keyNum = parseInt(key);
+                if (keyNum >= 1 && keyNum <= 4) {
+                    e.preventDefault();
+                    const opts = question?.options || [];
+                    if (opts[keyNum - 1]) {
+                        const optId = opts[keyNum - 1].id || opts[keyNum - 1];
+                        setSelectedAnswer(optId);
+                        if (onAnswer) onAnswer(optId);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [showFeedback, selectedAnswer, onNextHand, onAnswer, question]);
+
     // ════════════════════════════════════════════════════════════════════════
     // LOADING STATE — Show skeleton while question is being fetched
     // ════════════════════════════════════════════════════════════════════════
@@ -1504,6 +1538,49 @@ function UniversalDynamicTable({
                             <span style={styles.classificationIcon}>{classConfig?.icon || '?'}</span>
                             <span style={styles.classificationLabel}>{classConfig?.label || 'Unknown'}</span>
                         </motion.div>
+
+                        {/* Phase 22: Your Pick Indicator */}
+                        {selectedAnswer && (
+                            <motion.div
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.15 }}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    padding: '6px 14px',
+                                    borderRadius: 8,
+                                    background: feedbackResult === 'correct'
+                                        ? 'rgba(34, 197, 94, 0.1)'
+                                        : 'rgba(239, 68, 68, 0.1)',
+                                    border: `1px solid ${feedbackResult === 'correct' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                                }}
+                            >
+                                <span style={{
+                                    fontSize: 16,
+                                    fontWeight: 'bold',
+                                    color: feedbackResult === 'correct' ? '#22c55e' : '#ef4444',
+                                }}>
+                                    {feedbackResult === 'correct' ? '✓' : '✗'}
+                                </span>
+                                <span style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>
+                                    Your Pick: {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                </span>
+                                {evLoss > 0 && (
+                                    <span style={{
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: '#ef4444',
+                                        padding: '2px 6px',
+                                        borderRadius: 4,
+                                        background: 'rgba(239, 68, 68, 0.15)',
+                                    }}>
+                                        -{evLoss.toFixed(2)} BB
+                                    </span>
+                                )}
+                            </motion.div>
+                        )}
 
                         {/* EV Loss */}
                         {evLoss > 0 && (

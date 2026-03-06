@@ -34,6 +34,7 @@ import DiamondEngine from '../../src/services/DiamondEngine';
 import GameCostPopup from '../../src/components/gates/GameCostPopup';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
+import SmartPracticeCard from '../../src/components/training/SmartPracticeCard';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for GodModeArena to avoid SSR issues
@@ -1014,6 +1015,18 @@ export default function TrainingPage() {
 
                         {/* Streaks Badge */}
                         <StreaksBadge bestStreak={bestStreak} />
+
+                        {/* Phase 23: Smart Practice Card */}
+                        <SmartPracticeCard
+                            handHistory={[]}
+                            onStartPractice={(config) => {
+                                const game = TRAINING_LIBRARY[0];
+                                if (game) {
+                                    setActiveGame({ ...game, smartConfig: config });
+                                    setShowArena(true);
+                                }
+                            }}
+                        />
 
                         {/* Gamification Quick-Access Nav */}
                         <div style={gamificationNavStyles.container}>

@@ -592,6 +592,38 @@ function GodModeArena({
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
 
+    // ═══ Phase 21: Game Phase State Machine ═══
+    const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
+    const [isTransitioning, setIsTransitioning] = useState(false);
+
+    // Auto-transition from splash → playing once questions are loaded
+    useEffect(() => {
+        if (gamePhase === 'splash' && currentQuestion && !loading) {
+            const timer = setTimeout(() => {
+                setGamePhase('playing');
+            }, 1800); // Show splash for 1.8s
+            return () => clearTimeout(timer);
+        }
+    }, [gamePhase, currentQuestion, loading]);
+
+    // Auto-transition to review when game completes
+    useEffect(() => {
+        if (gameComplete && gamePhase === 'playing') {
+            setGamePhase('review');
+        }
+    }, [gameComplete, gamePhase]);
+
+    // Wrapped nextQuestion with transition guard
+    const handleNextQuestion = useCallback(() => {
+        if (isTransitioning) return;
+        setIsTransitioning(true);
+        // Small delay for visual breathing room
+        setTimeout(() => {
+            nextQuestion();
+            setIsTransitioning(false);
+        }, 350);
+    }, [nextQuestion, isTransitioning]);
+
     // F5: Mixed strategy adherence tracking
     const mixedStrategyScore = useMemo(() => {
         if (!handHistory || handHistory.length < 5) return null;
@@ -757,8 +789,99 @@ function GodModeArena({
                         </div>
                     )}
 
+                    {/* Phase 24: Mistakes-Only Filter + Retrain */}
+                    <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => {
+                                // Toggle mistakes filter inline - HandReplayViewer will filter
+                                const el = document.getElementById('hand-replay-section');
+                                if (el) el.dataset.mistakesOnly = el.dataset.mistakesOnly === 'true' ? 'false' : 'true';
+                            }}
+                            style={{
+                                padding: '8px 16px',
+                                borderRadius: 8,
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                color: '#ef4444',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                letterSpacing: 0.3,
+                            }}
+                        >
+                            🔍 Mistakes Only ({sessionMistakes})
+                        </motion.button>
+
+                        {sessionMistakes > 0 && (
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => {
+                                    // Restart with just the mistake hands
+                                    retryLevel();
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(251, 146, 60, 0.3)',
+                                    background: 'rgba(251, 146, 60, 0.1)',
+                                    color: '#fb923c',
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    letterSpacing: 0.3,
+                                }}
+                            >
+                                🔄 Retrain Mistakes
+                            </motion.button>
+                        )}
+                    </div>
+
+                    {/* Phase 24: Per-Street EV Loss Breakdown */}
+                    {handHistory.length > 0 && (() => {
+                        const streetEV = { flop: 0, turn: 0, river: 0, preflop: 0 };
+                        handHistory.forEach(h => {
+                            const s = h.handData?.street || 'flop';
+                            streetEV[s] = (streetEV[s] || 0) + (h.evLoss || 0);
+                        });
+                        const maxEV = Math.max(0.01, ...Object.values(streetEV));
+                        const streetColors = {
+                            preflop: '#8b5cf6', flop: '#22c55e', turn: '#fbbf24', river: '#ef4444'
+                        };
+
+                        return (
+                            <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+                                <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                                    EV Loss by Street
+                                </div>
+                                {['preflop', 'flop', 'turn', 'river'].map(s => (
+                                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                        <span style={{ width: 55, fontSize: 10, fontWeight: 600, color: streetColors[s], textTransform: 'uppercase' }}>
+                                            {s}
+                                        </span>
+                                        <div style={{ flex: 1, height: 6, background: '#1e293b', borderRadius: 3, overflow: 'hidden' }}>
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(streetEV[s] / maxEV) * 100}%` }}
+                                                transition={{ duration: 0.6, delay: 0.2 }}
+                                                style={{ height: '100%', background: streetColors[s], borderRadius: 3 }}
+                                            />
+                                        </div>
+                                        <span style={{ width: 45, fontSize: 10, fontWeight: 'bold', color: streetEV[s] > 0 ? '#ef4444' : '#22c55e', textAlign: 'right' }}>
+                                            -{streetEV[s].toFixed(1)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
                     {/* HAND HISTORY — Enhanced Replay Viewer */}
-                    <HandReplayViewer handHistory={handHistory} />
+                    <div id="hand-replay-section">
+                        <HandReplayViewer handHistory={handHistory} />
+                    </div>
 
                     {/* POSITION STATS -- Per-position breakdown */}
                     <PositionStatsPanel handHistory={handHistory} />
@@ -854,89 +977,134 @@ function GodModeArena({
                     onStart={handleConfigStart}
                     currentGameId={gameId}
                 />
-                {/* Config gear button */}
-                <motion.button
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setShowConfigModal(true)}
-                    style={{
-                        position: 'absolute',
-                        top: 12,
-                        right: 12,
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        background: trainerConfig
-                            ? 'rgba(0, 212, 255, 0.15)'
-                            : 'rgba(255,255,255,0.05)',
-                        color: trainerConfig ? '#00d4ff' : '#94a3b8',
-                        fontSize: 18,
-                        cursor: 'pointer',
-                        zIndex: 100,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                    title={trainerConfig ? `Custom: ${trainerConfig.label}` : 'Configure Trainer'}
-                >
-                    ⚙
-                </motion.button>
-                {/* Active config badge */}
-                {trainerConfig && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        style={{
-                            position: 'absolute',
-                            top: 14,
-                            right: 56,
-                            padding: '4px 10px',
-                            borderRadius: 8,
-                            background: 'rgba(0, 212, 255, 0.1)',
-                            border: '1px solid rgba(0, 212, 255, 0.2)',
-                            color: '#00d4ff',
-                            fontSize: 10,
-                            fontWeight: 600,
-                            letterSpacing: 0.3,
-                            zIndex: 100,
-                        }}
-                    >
-                        {trainerConfig.label}
-                    </motion.div>
-                )}
-                {error ? (
-                    <div style={styles.errorState}>
-                        <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
-                        <button onClick={() => window.location.reload()} style={styles.retryButton}>
-                            Retry
-                        </button>
-                    </div>
-                ) : currentQuestion ? (
-                    <GameUIRouter
-                        gameId={gameId}
-                        gameName={gameName}
-                        streak={streak}
-                        question={currentQuestion}
-                        level={currentLevel}
-                        questionNumber={questionNumber}
-                        totalQuestions={totalQuestions}
-                        onAnswer={submitAnswer}
-                        showFeedback={showFeedback}
-                        feedbackResult={feedbackResult}
-                        explanation={explanation}
-                        // GTOW scoring props
-                        moveClassification={moveClassification}
-                        evLoss={evLoss}
-                        gtoFrequencies={gtoFrequencies}
-                        gtowScore={gtowScore}
-                        totalSessionEVLoss={totalEVLoss}
-                        sessionMistakes={sessionMistakes}
-                        onNextHand={nextQuestion}
-                        isMultiStreetActive={isMultiStreetActive}
-                        currentStreet={currentStreet}
-                    />
-                ) : null}
+
+                <AnimatePresence mode="wait">
+                    {/* ═══ SPLASH SCREEN ═══ */}
+                    {gamePhase === 'splash' && (
+                        <motion.div
+                            key="splash"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, scale: 1.05 }}
+                            transition={{ duration: 0.4 }}
+                            style={styles.splashScreen}
+                        >
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                                style={styles.splashContent}
+                            >
+                                <div style={styles.splashIcon}>🎯</div>
+                                <div style={styles.splashTitle}>{gameName || 'GTO Training'}</div>
+                                <div style={styles.splashSubtitle}>Level {currentLevel}</div>
+                                <motion.div
+                                    animate={{ opacity: [0.4, 1, 0.4] }}
+                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                    style={styles.splashLoader}
+                                >
+                                    Loading Solver Data...
+                                </motion.div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+
+                    {/* ═══ GAMEPLAY ═══ */}
+                    {gamePhase === 'playing' && (
+                        <motion.div
+                            key="playing"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            style={{ width: '100%', height: '100%', position: 'relative' }}
+                        >
+                            {/* Config gear button */}
+                            <motion.button
+                                whileHover={{ scale: 1.1, rotate: 90 }}
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => setShowConfigModal(true)}
+                                style={{
+                                    position: 'absolute',
+                                    top: 12,
+                                    right: 12,
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: '50%',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    background: trainerConfig
+                                        ? 'rgba(0, 212, 255, 0.15)'
+                                        : 'rgba(255,255,255,0.05)',
+                                    color: trainerConfig ? '#00d4ff' : '#94a3b8',
+                                    fontSize: 18,
+                                    cursor: 'pointer',
+                                    zIndex: 100,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}
+                                title={trainerConfig ? `Custom: ${trainerConfig.label}` : 'Configure Trainer'}
+                            >
+                                ⚙
+                            </motion.button>
+                            {/* Active config badge */}
+                            {trainerConfig && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 14,
+                                        right: 56,
+                                        padding: '4px 10px',
+                                        borderRadius: 8,
+                                        background: 'rgba(0, 212, 255, 0.1)',
+                                        border: '1px solid rgba(0, 212, 255, 0.2)',
+                                        color: '#00d4ff',
+                                        fontSize: 10,
+                                        fontWeight: 600,
+                                        letterSpacing: 0.3,
+                                        zIndex: 100,
+                                    }}
+                                >
+                                    {trainerConfig.label}
+                                </motion.div>
+                            )}
+                            {error ? (
+                                <div style={styles.errorState}>
+                                    <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
+                                    <button onClick={() => window.location.reload()} style={styles.retryButton}>
+                                        Retry
+                                    </button>
+                                </div>
+                            ) : currentQuestion ? (
+                                <GameUIRouter
+                                    gameId={gameId}
+                                    gameName={gameName}
+                                    streak={streak}
+                                    question={currentQuestion}
+                                    level={currentLevel}
+                                    questionNumber={questionNumber}
+                                    totalQuestions={totalQuestions}
+                                    onAnswer={submitAnswer}
+                                    showFeedback={showFeedback}
+                                    feedbackResult={feedbackResult}
+                                    explanation={explanation}
+                                    // GTOW scoring props
+                                    moveClassification={moveClassification}
+                                    evLoss={evLoss}
+                                    gtoFrequencies={gtoFrequencies}
+                                    gtowScore={gtowScore}
+                                    totalSessionEVLoss={totalEVLoss}
+                                    sessionMistakes={sessionMistakes}
+                                    onNextHand={handleNextQuestion}
+                                    isMultiStreetActive={isMultiStreetActive}
+                                    currentStreet={currentStreet}
+                                />
+                            ) : null}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         );
     }
@@ -1024,6 +1192,49 @@ const styles = {
         height: '100vh',
         background: 'transparent',
         overflow: 'hidden',
+    },
+
+    // ── PHASE 21: SPLASH SCREEN STYLES
+    splashScreen: {
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(145deg, #0a0a1a 0%, #0d1b30 50%, #0a0a1a 100%)',
+        zIndex: 999,
+    },
+    splashContent: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 16,
+    },
+    splashIcon: {
+        fontSize: 64,
+        filter: 'drop-shadow(0 0 20px rgba(0, 212, 255, 0.4))',
+    },
+    splashTitle: {
+        fontSize: 28,
+        fontWeight: 800,
+        color: '#fff',
+        textAlign: 'center',
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
+        textShadow: '0 0 24px rgba(0, 212, 255, 0.3)',
+    },
+    splashSubtitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: '#00d4ff',
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+    },
+    splashLoader: {
+        marginTop: 12,
+        fontSize: 12,
+        color: '#64748b',
+        letterSpacing: 1,
     },
 
     container: {

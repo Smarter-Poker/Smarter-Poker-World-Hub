@@ -9,7 +9,7 @@
  * Designed for tablet at room entrance, large touch targets
  */
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { UserCheck, Users, Search, Phone, ChevronRight, Loader2, CheckCircle2, AlertTriangle, Plus, X } from 'lucide-react';
@@ -87,6 +87,27 @@ export default function MembershipKiosk() {
         setStaffHeader(staffStr);
       }
     } catch { /* */ }
+  }, []);
+
+  // Keep screen awake — this is a player-facing kiosk
+  const wakeLockRef = useRef(null);
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch { /* not supported or permission denied */ }
+    };
+    requestWakeLock();
+    const handleVisChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisChange);
+      wakeLockRef.current?.release();
+    };
   }, []);
 
   // Commander Data Bus — sync waitlist + games across tabs
