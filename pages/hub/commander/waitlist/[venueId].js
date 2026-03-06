@@ -108,7 +108,7 @@ export default function PlayerWaitlistPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [venueId]);
 
   useEffect(() => {
     if (venueId) {
@@ -137,7 +137,6 @@ export default function PlayerWaitlistPage() {
       return raw;
     }
   }
-, [venueId]);
 
   // Join a single game
   async function handleJoinGame(gameType, stakes) {
