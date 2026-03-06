@@ -13,6 +13,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { supabase } from '../../src/lib/supabase';
 import { Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight, Shield, Link2, AlertCircle } from 'lucide-react';
+import SkeletonLight from '../../src/components/ui/SkeletonLight';
 
 // ── Design tokens ──
 const C = {
@@ -591,10 +592,7 @@ export default function MyVenuesPage() {
 
                 <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px 80px' }}>
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                            <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.elevated}`, borderTopColor: C.blue, animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-                            <div style={{ fontSize: 14, color: C.textSec }}>Loading your venues...</div>
-                        </div>
+                        <SkeletonLight variant="list" rows={4} />
                     ) : (
                         <>
                             {/* Email match banner */}

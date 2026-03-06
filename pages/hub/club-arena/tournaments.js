@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { supabase } from '../../../src/lib/supabase';
+import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -172,7 +173,7 @@ export default function TournamentsPage() {
 
       {/* Tournament List */}
       <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
-        {loading && <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>Loading...</div>}
+        {loading && <SkeletonLight variant="list" rows={5} />}
 
         {!loading && tournaments.length === 0 && (
           <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>

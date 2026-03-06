@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -375,21 +376,10 @@ export default function SocialPageDetail() {
         return (
             <>
                 <UniversalHeader />
-                <div style={{
-                    minHeight: '100vh', background: C.bg, display: 'flex',
-                    alignItems: 'center', justifyContent: 'center', paddingTop: 60,
-                    fontFamily: "var(--font-inter), -apple-system, sans-serif" ,
-                }}>
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{
-                            width: 32, height: 32, border: `3px solid #E4E6EB`,
-                            borderTopColor: C.blue, borderRadius: '50%',
-                            animation: 'spin 0.8s linear infinite', margin: '0 auto',
-                        }} />
-                        <p style={{ color: C.textSec, fontSize: 14, marginTop: 12 }}>Loading Page...</p>
-                    </div>
+                <div style={{ minHeight: '100vh', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
+                    <SkeletonLight variant="profile" />
+                    <SkeletonLight variant="feed" rows={2} />
                 </div>
-                <style jsx global>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </>
         );
     }

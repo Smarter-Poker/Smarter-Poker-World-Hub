@@ -17,6 +17,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { supabase } from '../../src/lib/supabase';
+import SkeletonLight from '../../src/components/ui/SkeletonLight';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESIGN TOKENS — Facebook Dark palette
@@ -774,17 +775,7 @@ export default function MyClubsPage() {
                     {activeTab === 'my-clubs' && (
                         <>
                             {loading ? (
-                                <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                                    <div style={{
-                                        width: 40, height: 40, borderRadius: '50%',
-                                        border: `3px solid ${C.elevated}`,
-                                        borderTopColor: C.blue,
-                                        animation: 'spin 0.8s linear infinite',
-                                        margin: '0 auto 16px',
-                                    }} />
-                                    <div style={{ fontSize: 14, color: C.textSec }}>Loading Your Clubs...</div>
-
-                                </div>
+                                <SkeletonLight variant="list" rows={5} />
                             ) : (followedVenues.length === 0 && arenaClubs.length === 0) ? (
                                 <EmptyState onSearchFocus={focusSearch} />
                             ) : (

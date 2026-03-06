@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -305,7 +306,7 @@ export default function UnionGames() {
       {/* Content */}
       <div style={{ padding: '0 16px 100px' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 40, color: FB.dim }}>Loading...</div>
+          <SkeletonLight variant="list" rows={5} />
         ) : tab === 'tournaments' ? (
           /* ═══ TOURNAMENTS LIST ═══ */
           tournaments.length === 0 ? (

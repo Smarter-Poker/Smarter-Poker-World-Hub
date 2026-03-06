@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
+import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -161,10 +162,9 @@ export default function ManageSocialPage() {
     if (loading) {
         return (
             <><UniversalHeader />
-                <div style={{
-                    minHeight: '100vh', background: C.bg, paddingTop: 80, textAlign: 'center',
-                    fontFamily: "var(--font-inter), -apple-system, sans-serif" }}>
-                    <p style={{ color: C.textSec }}>Loading...</p>
+                <div style={{ minHeight: '100vh', background: C.bg, padding: '76px 16px 80px', fontFamily: "var(--font-inter), -apple-system, sans-serif", maxWidth: 700, margin: '0 auto' }}>
+                    <SkeletonLight variant="profile" />
+                    <SkeletonLight variant="list" rows={4} />
                 </div></>
         );
     }
