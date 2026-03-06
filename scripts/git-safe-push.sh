@@ -93,6 +93,8 @@ find "${GIT_DIR}" -name ".*.swp" -type f -delete 2>/dev/null || true
 if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
   echo "🧹 Aborting stale rebase..."
   GIT_EDITOR=true git rebase --abort 2>/dev/null || true
+  # Force-remove if --abort couldn't clear it (corrupt/empty state)
+  rm -rf "${GIT_DIR}/rebase-merge" "${GIT_DIR}/rebase-apply" 2>/dev/null || true
 fi
 
 # 1d. Abort any leftover merge
@@ -159,6 +161,8 @@ while [ $attempt -lt $MAX_RETRIES ]; do
   # Clean any leftover rebase state before trying
   if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
     GIT_EDITOR=true git rebase --abort 2>/dev/null || true
+    # Force-remove if --abort couldn't clear it
+    rm -rf "${GIT_DIR}/rebase-merge" "${GIT_DIR}/rebase-apply" 2>/dev/null || true
   fi
 
   # Ensure tree is still clean (something may have dirtied it between iterations)

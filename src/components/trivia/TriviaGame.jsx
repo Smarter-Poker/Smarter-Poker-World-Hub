@@ -72,6 +72,8 @@ export default function TriviaGame({
     const timerRef = useRef(null);
     const startTimeRef = useRef(Date.now());
     const gameContainerRef = useRef(null);
+    const opponentDataRef = useRef({ score: null, name: null });
+    const stakePotRef = useRef(0); // Ref to avoid stale closure in advanceQuestion
 
     const currentQuestion = questions[currentIndex];
     const isCorrect = selectedAnswer === currentQuestion?.correct_index;
@@ -92,7 +94,8 @@ export default function TriviaGame({
             setTimeRemaining(prev => {
                 if (prev <= 1) {
                     clearInterval(timerRef.current);
-                    handleTimeUp();
+                    // handleTimeUp called inline to avoid stale closure
+                    setIsGameActive(false);
                     return 0;
                 }
                 // Sound effects for countdown
@@ -112,10 +115,12 @@ export default function TriviaGame({
         onComplete({
             answers, correctCount: cc, totalQuestions: questions.length,
             timeSpent, timeRemaining: 0,
-            stakePot: enableStakes ? stakePot : undefined,
+            stakePot: enableStakes ? stakePotRef.current : undefined,
             streak,
+            opponentScore: opponentDataRef.current.score,
+            opponentName: opponentDataRef.current.name,
         });
-    }, [answers, questions, onComplete, stakePot, streak, enableStakes]);
+    }, [answers, questions, onComplete, streak, enableStakes]);
 
     // ── Spawn floating diamond ──
     const spawnFloatingDiamond = (value) => {
@@ -164,7 +169,11 @@ export default function TriviaGame({
             // Stakes pot
             if (enableStakes) {
                 const stakeValue = STAKE_VALUES[Math.min(currentIndex, STAKE_VALUES.length - 1)] * getMultiplier();
-                setStakePot(prev => prev + stakeValue);
+                setStakePot(prev => {
+                    const newPot = prev + stakeValue;
+                    stakePotRef.current = newPot;
+                    return newPot;
+                });
                 spawnFloatingDiamond(stakeValue);
             } else {
                 spawnFloatingDiamond(1);
@@ -199,6 +208,7 @@ export default function TriviaGame({
                 setShowBust(true);
                 setTimeout(() => setShowBust(false), 2000);
                 setStakePot(0);
+                stakePotRef.current = 0;
             }
         }
 
@@ -224,8 +234,10 @@ export default function TriviaGame({
                 answers: currentAnswers, correctCount: cc,
                 totalQuestions: questions.length, timeSpent,
                 timeRemaining: timeRemaining || 0,
-                stakePot: enableStakes ? stakePot : undefined,
+                stakePot: enableStakes ? stakePotRef.current : undefined,
                 streak,
+                opponentScore: opponentDataRef.current.score,
+                opponentName: opponentDataRef.current.name,
             });
         } else {
             audio.cardDealWhoosh();
@@ -245,8 +257,7 @@ export default function TriviaGame({
         setIsGameActive(false);
         clearInterval(timerRef.current);
 
-        // Award diamonds
-        onDiamondsChange?.(stakePot);
+        // Do NOT call onDiamondsChange here — handleComplete in [mode].js handles the award
 
         confetti({
             particleCount: 100, spread: 70, origin: { y: 0.5 },
@@ -259,6 +270,8 @@ export default function TriviaGame({
                 answers, correctCount, totalQuestions: questions.length,
                 timeSpent, timeRemaining: timeRemaining || 0,
                 stakePot, cashedOut: true, streak,
+                opponentScore: opponentDataRef.current.score,
+                opponentName: opponentDataRef.current.name,
             });
         }, 2000);
     };
