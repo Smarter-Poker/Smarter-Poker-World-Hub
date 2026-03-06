@@ -102,7 +102,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     params.set('handClass', trainerConfig.handClass);
                 }
                 apiUrl = `/api/training/custom-train?${params}`;
-                console.log(`[MillionaireGame] Custom trainer: ${trainerConfig.label || 'custom config'}`);
+                console.log(`[GTOTrainer] Custom trainer: ${trainerConfig.label || 'custom config'}`);
             } else {
                 // STANDARD MODE — use batch-preload
                 params = new URLSearchParams({
@@ -111,7 +111,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     count: effectiveQuestionsPerLevel.toString(),
                 });
                 apiUrl = `/api/training/batch-preload?${params}`;
-                console.log(`[MillionaireGame] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
+                console.log(`[GTOTrainer] Pre-loading ${effectiveQuestionsPerLevel} questions for ${gameId} level ${level}`);
             }
 
             const response = await fetch(apiUrl, {
@@ -124,19 +124,19 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             try {
                 data = JSON.parse(textResponse);
             } catch (e) {
-                console.error('[MillionaireGame] Non-JSON response:', textResponse.substring(0, 100));
+                console.error('[GTOTrainer] Non-JSON response:', textResponse.substring(0, 100));
                 if (response.status === 401) throw new Error('Auth required');
                 throw new Error(`Server error (${response.status})`);
             }
 
             if (!response.ok || !data.questions || data.questions.length === 0) {
-                console.warn('[MillionaireGame] Pre-load failed, using single-question mode');
+                console.warn('[GTOTrainer] Pre-load failed, using single-question mode');
                 setPreloadComplete(false);
                 setLoading(false);
                 return fetchSingleQuestion();
             }
 
-            console.log(`[MillionaireGame] ✅ Pre-loaded ${data.questions.length} questions`);
+            console.log(`[GTOTrainer] ✅ Pre-loaded ${data.questions.length} questions`);
 
             setPreloadedQuestions(data.questions);
             setPreloadComplete(true);
@@ -144,14 +144,14 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
             // Bug 5 fix: Cap question count at actual returned count to prevent game never ending
             if (data.questions.length < effectiveQuestionsPerLevel) {
-                console.warn(`[MillionaireGame] API returned ${data.questions.length}/${effectiveQuestionsPerLevel} questions, capping`);
+                console.warn(`[GTOTrainer] API returned ${data.questions.length}/${effectiveQuestionsPerLevel} questions, capping`);
                 setEffectiveQuestionsPerLevel(data.questions.length);
             }
 
             setLoading(false);
 
         } catch (err) {
-            console.error('[MillionaireGame] Pre-load error:', err);
+            console.error('[GTOTrainer] Pre-load error:', err);
             setPreloadComplete(false);
             setLoading(false);
             return fetchSingleQuestion();
@@ -197,7 +197,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
             setCurrentQuestion(data.questions[0]);
         } catch (err) {
-            console.error('[MillionaireGame] Fetch error:', err);
+            console.error('[GTOTrainer] Fetch error:', err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -230,7 +230,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             });
         } catch (err) {
             // Non-blocking - continue even if recording fails
-            console.warn('[MillionaireGame] Record error:', err);
+            console.warn('[GTOTrainer] Record error:', err);
         }
     }, [userId, gameId, level]);
 
@@ -390,7 +390,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             return false;
 
         } catch (err) {
-            console.warn('[MillionaireGame] Multi-street advance error:', err);
+            console.warn('[GTOTrainer] Multi-street advance error:', err);
             setIsMultiStreetActive(false);
             multiStreetHandRef.current = null;
             setLoading(false);
@@ -437,7 +437,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             }
 
         } catch (err) {
-            console.warn('[MillionaireGame] Save progress error:', err);
+            console.warn('[GTOTrainer] Save progress error:', err);
         }
     }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, trainerConfig]);
 
@@ -502,7 +502,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                         setIsMultiStreetActive(true);
                         setCurrentStreet(street);
                     } catch (e) {
-                        console.warn('[MillionaireGame] MultiStreetHand import failed:', e);
+                        console.warn('[GTOTrainer] MultiStreetHand import failed:', e);
                     }
                 }
             } else {
