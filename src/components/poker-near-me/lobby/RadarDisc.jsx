@@ -11,8 +11,13 @@
  */
 
 import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useFrame, useThree } from '@react-three/fiber';
+import {
+  ShaderMaterial,
+  DoubleSide,
+  Color,
+  Vector3,
+} from 'three';
 
 // Shader for the radar sweep beam
 const sweepVertexShader = `
@@ -145,7 +150,6 @@ function VenueMarker({ position, color = '#6ee7ef', delay = 0 }) {
  */
 function CenterBeacon() {
   const ringRef = useRef();
-  const dotRef = useRef();
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
@@ -159,14 +163,14 @@ function CenterBeacon() {
   return (
     <group position={[0, 0.06, 0]}>
       {/* Solid center dot */}
-      <mesh ref={dotRef}>
+      <mesh>
         <sphereGeometry args={[0.06, 16, 16]} />
         <meshBasicMaterial color="#00d2ff" />
       </mesh>
       {/* Expanding pulse ring */}
       <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.08, 0.12, 32]} />
-        <meshBasicMaterial color="#00d2ff" transparent opacity={0.6} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#00d2ff" transparent opacity={0.6} side={DoubleSide} />
       </mesh>
     </group>
   );
@@ -176,28 +180,26 @@ function CenterBeacon() {
  * RadarDisc — the full radar assembly.
  */
 export function RadarDisc({ liveData }) {
-  const sweepRef = useRef();
-  const discRef = useRef();
   const groupRef = useRef();
   const sweepAngleRef = useRef(0);
 
   // Disc surface shader material
   const discMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
+    return new ShaderMaterial({
       vertexShader: discVertexShader,
       fragmentShader: discFragmentShader,
       uniforms: {
         uTime: { value: 0 },
       },
       transparent: true,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       depthWrite: false,
     });
   }, []);
 
   // Sweep overlay shader material
   const sweepMaterial = useMemo(() => {
-    return new THREE.ShaderMaterial({
+    return new ShaderMaterial({
       vertexShader: sweepVertexShader,
       fragmentShader: sweepFragmentShader,
       uniforms: {
@@ -205,7 +207,7 @@ export function RadarDisc({ liveData }) {
         uSweepAngle: { value: 0 },
       },
       transparent: true,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       depthWrite: false,
     });
   }, []);
@@ -234,7 +236,7 @@ export function RadarDisc({ liveData }) {
     sweepMaterial.uniforms.uTime.value = t;
 
     // Rotate sweep
-    sweepAngleRef.current = t * 0.8; // ~one revolution per 8 seconds
+    sweepAngleRef.current = t * 0.8;
     sweepMaterial.uniforms.uSweepAngle.value = sweepAngleRef.current;
 
     // Very subtle idle rotation of the entire radar

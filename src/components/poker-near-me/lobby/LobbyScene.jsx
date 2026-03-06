@@ -7,29 +7,16 @@
  *   - Orbiting 3D feature pods (metallic, glowing)
  *   - Ambient particle field
  *   - Parallax camera tied to mouse/tilt
- *   - Post-processing (bloom, vignette)
  *
  * The scene is layered UNDER the standard app UI (search, panels, dock).
  */
 
-import React, { useRef, useMemo, useCallback, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
+import React, { Suspense } from 'react';
+import { Canvas } from '@react-three/fiber';
 import { RadarDisc } from './RadarDisc';
 import { FeaturePod } from './FeaturePod';
 import { ParticleField } from './ParticleField';
 import { ParallaxCamera } from './ParallaxCamera';
-
-// Try to import postprocessing — graceful fallback if not installed
-let EffectComposer, Bloom, Vignette;
-try {
-  const pp = require('@react-three/postprocessing');
-  EffectComposer = pp.EffectComposer;
-  Bloom = pp.Bloom;
-  Vignette = pp.Vignette;
-} catch (e) {
-  // postprocessing not installed — will skip effects
-}
 
 // Feature pod definitions — each maps to a real tab/feature
 const FEATURE_PODS = [
@@ -52,8 +39,6 @@ const POD_Y = 0.15; // slight elevation above the radar disc
  * Inner scene content — runs inside the Canvas context.
  */
 function SceneContent({ onPodClick, activePod, liveData }) {
-  const groupRef = useRef();
-
   return (
     <>
       {/* Ambient + directional lighting */}
@@ -65,42 +50,26 @@ function SceneContent({ onPodClick, activePod, liveData }) {
       <pointLight position={[0, 2, 0]} intensity={0.6} color="#6ee7ef" distance={8} decay={2} />
       <pointLight position={[0, -2, 0]} intensity={0.2} color="#1a365d" distance={6} decay={2} />
 
-      {/* Main group — everything orbits around center */}
-      <group ref={groupRef}>
-        {/* Central radar disc */}
-        <RadarDisc liveData={liveData} />
+      {/* Central radar disc */}
+      <RadarDisc liveData={liveData} />
 
-        {/* Feature pods orbiting the radar */}
-        {FEATURE_PODS.map((pod) => (
-          <FeaturePod
-            key={pod.id}
-            pod={pod}
-            radius={POD_ORBIT_RADIUS}
-            y={POD_Y}
-            isActive={activePod === pod.id}
-            onClick={() => onPodClick(pod.id)}
-          />
-        ))}
-      </group>
+      {/* Feature pods orbiting the radar */}
+      {FEATURE_PODS.map((pod) => (
+        <FeaturePod
+          key={pod.id}
+          pod={pod}
+          radius={POD_ORBIT_RADIUS}
+          y={POD_Y}
+          isActive={activePod === pod.id}
+          onClick={() => onPodClick(pod.id)}
+        />
+      ))}
 
       {/* Ambient particle field */}
       <ParticleField count={200} />
 
       {/* Parallax camera controller */}
       <ParallaxCamera />
-
-      {/* Post-processing (optional — graceful fallback if not installed) */}
-      {EffectComposer && Bloom && Vignette && (
-        <EffectComposer>
-          <Bloom
-            intensity={0.8}
-            luminanceThreshold={0.2}
-            luminanceSmoothing={0.9}
-            radius={0.8}
-          />
-          <Vignette eskil={false} offset={0.3} darkness={0.7} />
-        </EffectComposer>
-      )}
     </>
   );
 }
@@ -130,13 +99,16 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
           near: 0.1,
           far: 100,
         }}
-        dpr={[1, 1.5]} // cap pixel ratio for performance
+        dpr={[1, 1.5]}
         gl={{
           antialias: true,
           alpha: true,
           powerPreference: 'high-performance',
         }}
         style={{ background: 'transparent' }}
+        onCreated={({ gl }) => {
+          gl.setClearColor(0x000000, 0);
+        }}
       >
         <Suspense fallback={null}>
           <SceneContent

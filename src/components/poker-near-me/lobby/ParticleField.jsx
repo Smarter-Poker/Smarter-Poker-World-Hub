@@ -2,20 +2,24 @@
  * ParticleField.jsx — Ambient floating particle system.
  *
  * Creates a field of small luminous particles that drift slowly,
- * giving the lobby its "alive" atmosphere. Uses instanced rendering
+ * giving the lobby its "alive" atmosphere. Uses Points rendering
  * for performance.
  *
  * Features:
  *   - Random positions in a large bounding volume
  *   - Individual drift velocities
- *   - Per-particle opacity pulse (sinusoidal, phase-offset)
  *   - Cyan-tinted color to match the lobby aesthetic
- *   - GPU-friendly: single draw call via InstancedBufferGeometry
+ *   - GPU-friendly: single draw call via Points
  */
 
 import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
+import {
+  BufferGeometry,
+  Float32BufferAttribute,
+  PointsMaterial,
+  AdditiveBlending,
+} from 'three';
 
 /**
  * ParticleField — renders count particles as a single Points object.
@@ -27,10 +31,9 @@ export function ParticleField({ count = 200, spread = 12 }) {
   const pointsRef = useRef();
 
   // Generate initial positions, velocities, and phase offsets
-  const { positions, velocities, phases, colors } = useMemo(() => {
+  const { positions, velocities, colors } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const vel = new Float32Array(count * 3);
-    const pha = new Float32Array(count);
     const col = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
@@ -46,34 +49,31 @@ export function ParticleField({ count = 200, spread = 12 }) {
       vel[i3 + 1] = (Math.random() - 0.5) * 0.002;
       vel[i3 + 2] = (Math.random() - 0.5) * 0.003;
 
-      // Phase offset for opacity pulse
-      pha[i] = Math.random() * Math.PI * 2;
-
       // Cyan-ish color with slight variation
       col[i3] = 0.3 + Math.random() * 0.2;     // R
       col[i3 + 1] = 0.7 + Math.random() * 0.25; // G
       col[i3 + 2] = 0.85 + Math.random() * 0.15; // B
     }
 
-    return { positions: pos, velocities: vel, phases: pha, colors: col };
+    return { positions: pos, velocities: vel, colors: col };
   }, [count, spread]);
 
   // Create geometry with color attribute
   const geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    const geo = new BufferGeometry();
+    geo.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new Float32BufferAttribute(colors, 3));
     return geo;
   }, [positions, colors]);
 
   // Material
   const material = useMemo(() => {
-    return new THREE.PointsMaterial({
+    return new PointsMaterial({
       size: 0.04,
       vertexColors: true,
       transparent: true,
       opacity: 0.6,
-      blending: THREE.AdditiveBlending,
+      blending: AdditiveBlending,
       depthWrite: false,
       sizeAttenuation: true,
     });

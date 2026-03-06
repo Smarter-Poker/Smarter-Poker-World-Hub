@@ -14,7 +14,7 @@
 import React, { useRef, useState, useCallback, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, RoundedBox } from '@react-three/drei';
-import * as THREE from 'three';
+import { Color, Vector3, DoubleSide } from 'three';
 
 /**
  * Convert degrees to radians.
@@ -25,12 +25,6 @@ function degToRad(deg) {
 
 /**
  * FeaturePod — a single clickable 3D pod.
- *
- * @param {object}   pod       - { id, label, icon, angle, color }
- * @param {number}   radius    - Orbit radius from center
- * @param {number}   y         - Base Y position
- * @param {boolean}  isActive  - Whether this pod is currently selected
- * @param {function} onClick   - Callback when clicked
  */
 export function FeaturePod({ pod, radius, y, isActive, onClick }) {
   const groupRef = useRef();
@@ -40,8 +34,8 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
 
   // Compute orbital position
   const basePos = useMemo(() => {
-    const rad = degToRad(pod.angle - 90); // -90 so angle 0 = top
-    return new THREE.Vector3(
+    const rad = degToRad(pod.angle - 90);
+    return new Vector3(
       Math.cos(rad) * radius,
       y,
       Math.sin(rad) * radius
@@ -49,7 +43,7 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
   }, [pod.angle, radius, y]);
 
   // Parse pod color
-  const podColor = useMemo(() => new THREE.Color(pod.color), [pod.color]);
+  const podColor = useMemo(() => new Color(pod.color), [pod.color]);
 
   // Hover handlers
   const handlePointerOver = useCallback((e) => {
@@ -141,7 +135,7 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           color={pod.color}
           transparent
           opacity={0.12}
-          side={THREE.DoubleSide}
+          side={DoubleSide}
         />
       </mesh>
 
@@ -152,7 +146,7 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           color={pod.color}
           transparent
           opacity={0.1}
-          side={THREE.DoubleSide}
+          side={DoubleSide}
           depthWrite={false}
         />
       </mesh>
@@ -163,7 +157,6 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
         fontSize={0.28}
         anchorX="center"
         anchorY="middle"
-        font={undefined}
       >
         {pod.icon}
       </Text>
@@ -178,7 +171,6 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
         textAlign="center"
         maxWidth={1.2}
         lineHeight={1.3}
-        font="/fonts/Inter-SemiBold.woff"
         letterSpacing={0.06}
       >
         {pod.label}
