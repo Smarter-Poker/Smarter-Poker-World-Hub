@@ -18,19 +18,51 @@
 #   2 = push failed after all retries
 # ═══════════════════════════════════════════════════════════════════════════════
 
-set -euo pipefail
+# NOTE: Do NOT use 'set -e' or 'set -o pipefail' here.
+# Many git commands intentionally return non-zero:
+#   - git diff --cached --quiet → returns 1 when there ARE staged changes
+#   - git commit → returns 1 when nothing to commit
+#   - git rebase --continue → returns 1 when editor is needed
+# Using set -e would cause premature script termination on expected outcomes.
+set -u  # Only catch unset variables
 
 MSG="${1:-Daily update}"
 BRANCH="${2:-main}"
 REMOTE="${3:-origin}"
 MAX_RETRIES=5
+LOCK_FILE=""
 
-# ── Resolve repo root ──
+# ── Resolve repo root and cd into it ──
+# The script may be called from any directory (e.g. /tmp by an agent).
+# We derive the repo from the script's own location, then cd into it.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}/.." 2>/dev/null || true
+
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "❌ Not a git repository."
   exit 1
 }
+cd "$REPO_ROOT"
 GIT_DIR="$(git rev-parse --git-dir 2>/dev/null)"
+
+# ── Agent collision lock ──
+# Prevents two agents from pushing simultaneously (the root cause of most failures)
+LOCK_FILE="${GIT_DIR}/git-safe-push.lock"
+if [ -f "$LOCK_FILE" ]; then
+  lock_age=$(( $(date +%s) - $(stat -f %m "$LOCK_FILE" 2>/dev/null || echo 0) ))
+  if [ "$lock_age" -lt 120 ]; then
+    echo "⏳ Another git-safe-push is running (lock is ${lock_age}s old). Waiting..."
+    sleep_count=0
+    while [ -f "$LOCK_FILE" ] && [ $sleep_count -lt 60 ]; do
+      sleep 2
+      sleep_count=$((sleep_count + 1))
+    done
+  fi
+  # If lock is older than 120s, it's stale — remove it
+  rm -f "$LOCK_FILE" 2>/dev/null || true
+fi
+echo $$ > "$LOCK_FILE"
+trap 'rm -f "$LOCK_FILE" 2>/dev/null' EXIT INT TERM HUP
 
 echo "═══════════════════════════════════════════════════"
 echo "🤖 git-safe-push v3.0 — Autonomous Agent Push"
@@ -137,9 +169,7 @@ while [ $attempt -lt $MAX_RETRIES ]; do
   fi
 
   # ── PULL WITH REBASE ──
-  pull_ok=true
   if ! GIT_EDITOR=true git pull --rebase "${REMOTE}" "${BRANCH}" 2>&1; then
-    pull_ok=false
 
     # ── AUTO-RESOLVE CONFLICTS ──
     echo "⚠️  Conflicts during rebase. Auto-resolving (accept theirs)..."
@@ -156,7 +186,6 @@ while [ $attempt -lt $MAX_RETRIES ]; do
         if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
           GIT_EDITOR=true git rebase --continue 2>/dev/null || break
         else
-          pull_ok=true
           break
         fi
       else
@@ -177,7 +206,6 @@ while [ $attempt -lt $MAX_RETRIES ]; do
             if [ -d "${GIT_DIR}/rebase-merge" ] || [ -d "${GIT_DIR}/rebase-apply" ]; then
               continue
             fi
-            pull_ok=true
             break
           fi
         fi

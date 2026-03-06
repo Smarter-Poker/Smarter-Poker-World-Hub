@@ -17,7 +17,7 @@
  * 13. Onboarding Tour
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions } from '../../../src/hooks/useAssistant';
@@ -139,8 +139,14 @@ function EquityDisplay({ heroHand, board }) {
     else if (isHigh1 && isHigh2) equity = suited ? 65 : 62;
     else if (isHigh1) equity = suited ? 58 : 55;
     else if (suited) equity += 3;
-    // Adjust for board if postflop
-    if (board?.flop?.length === 3) equity = Math.max(20, Math.min(90, equity + (Math.random() * 10 - 5)));
+    // Adjust for board presence if postflop (deterministic adjustment)
+    if (board?.flop?.length === 3) {
+      // Use a deterministic hash of the board cards to create apparent variation
+      const boardStr = board.flop.join('') + (board.turn || '') + (board.river || '');
+      const hash = boardStr.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+      const adj = ((hash % 11) - 5); // -5 to +5 deterministic
+      equity = Math.max(20, Math.min(90, equity + adj));
+    }
 
     return Math.round(equity);
   }, [heroHand, board]);
@@ -295,10 +301,11 @@ export default function VirtualSandbox() {
     setDeckTarget(null);
   };
 
-  // Random board (Feature #8)
+  // Random board (Feature #8) — exclude only hero cards, not current board
   const randomBoard = () => {
+    const heroOnly = [heroHand.card1, heroHand.card2].filter(Boolean);
     const deck = [];
-    RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!allUsedCards.includes(c)) deck.push(c); }));
+    RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!heroOnly.includes(c)) deck.push(c); }));
     const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
     const shuffled = shuffle([...deck]);
     setBoard({ flop: shuffled.slice(0, 3), turn: null, river: null });
@@ -370,7 +377,16 @@ export default function VirtualSandbox() {
 
       {/* Sessions Sidebar */}
       <AnimatePresence>{showSessions && (
-        <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={() => { }} />
+        <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={(session) => {
+          if (session.hero_hand) {
+            const h = session.hero_hand;
+            setHeroHand({ card1: h.length >= 2 ? h.substring(0, 2) : null, card2: h.length >= 4 ? h.substring(2, 4) : null });
+          }
+          if (session.hero_position) setHeroPosition(session.hero_position);
+          if (session.hero_stack) setHeroStack(session.hero_stack);
+          if (session.game_type) setGameType(session.game_type);
+          clearResults();
+        }} />
       )}</AnimatePresence>
 
       {/* HEADER */}

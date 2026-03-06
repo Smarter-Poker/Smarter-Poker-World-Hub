@@ -151,7 +151,7 @@ export default function SandboxPokerTable({
                                             padding: '3px 10px', border: '1px solid #333',
                                         }}>
                                             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#222', border: '1px solid #444' }} />
-                                            <span style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>POT {pot.toFixed(1)} BB</span>
+                                            <span style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>POT {(pot || 0).toFixed(1)} BB</span>
                                         </div>
 
                                         {/* Board Texture Badge */}

@@ -25,8 +25,8 @@ dist-ssr
 .vercel
 .env*.local
 .next/
-node_modules
-node_modules
+
+# Content engine
 src/content-engine/node_modules
 
 # Credentials (keep secure)
@@ -34,14 +34,9 @@ src/content-engine/node_modules
 .agent/skills/deployment.md
 .env.production
 *.env.*
-node_modules
-
-# Agent credentials - NEVER COMMIT
-.agent/skills/credentials/.env
 
 # Auto-generated service worker files (next-pwa / workbox)
 public/sw.js
 public/sw.js.map
 public/workbox-*.js
 public/workbox-*.js.map
-
