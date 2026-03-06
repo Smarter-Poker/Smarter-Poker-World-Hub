@@ -421,6 +421,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             const down = await createDoubleDown(userId, activeGig.id, currentDay.id, promptDown);
             startDownTimer(DOWN_TIMER_MS, down);
             toast.success('Double down created!');
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to create double down');
         }
@@ -488,6 +489,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
             await requestNotificationPermission();
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             console.error('[TokeTracker] Failed to create gig:', err);
             toast.error(err.message || 'Failed to create event — check your connection', 5000);
@@ -525,6 +527,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             if (timerTickRef.current) clearInterval(timerTickRef.current);
             setTimerActive(false);
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to delete gig');
         }
@@ -556,6 +559,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.success('Event updated!');
             setEditMode(false);
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to update gig');
         }
@@ -584,6 +588,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             setDownForm({ down_type: 'cash', tournament_name: '', table_number: '', game_type: '', cash_variant: 'Holdem', cash_stakes: '1/3', tournament_buyin: '' });
             startDownTimer(DOWN_TIMER_MS, down);
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to add down');
         }
@@ -596,6 +601,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     };
 
     const handleEndDownConfirm = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!endingDown) return;
         const tokeAmt = parseFloat(endTokeValue) || 0;
         // Optimistic UI update
@@ -625,10 +631,12 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.error(err.message || 'Failed to end down');
         }
         await loadData();
+        window.dispatchEvent(new CustomEvent('toke-data-updated'));
     };
 
     // Legacy direct-end (called from non-dealing downs like break/brush when no toke needed)
     const handleEndDown = async (downId) => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         const openDay = activeGig?.days?.find(d => !d.ended_at);
         const down = openDay?.downs?.find(d => d.id === downId);
         if (down && (down.down_type === 'cash' || down.down_type === 'brush')) {
@@ -655,37 +663,44 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.error(err.message || 'Failed to end down');
         }
         await loadData();
+        window.dispatchEvent(new CustomEvent('toke-data-updated'));
     };
 
     const handleDeleteDown = async (downId) => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         try {
             await deleteDown(downId);
             toast.success('Down deleted');
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to delete down');
         }
     };
 
     const handleSaveToke = async (downId) => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         try {
             await updateDownToke(downId, parseFloat(tokeEditValue) || 0);
             toast.success('Toke saved');
             setEditingTokeId(null);
             setTokeEditValue('');
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to save toke');
         }
     };
 
     const handleSaveMultiplier = async (downId) => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         try {
             await updateDownMultiplier(downId, parseFloat(multiplierEditValue) || 1.0);
             toast.success('Multiplier updated');
             setEditingMultiplierId(null);
             setMultiplierEditValue('');
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to update multiplier');
         }
@@ -693,6 +708,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
 
     // ── Day Handlers ──
     const handleCloseDay = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         const currentDay = activeGig?.days?.find(d => !d.ended_at) || null;
         if (!currentDay) return;
         // Optimistic UI — mark day as ended immediately
@@ -721,6 +737,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.error(err.message || 'Failed to close day');
         }
         await loadData();
+        window.dispatchEvent(new CustomEvent('toke-data-updated'));
     };
 
     const handleStartNewDay = async () => {
@@ -733,6 +750,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await createDay(userId, activeGig.id, nextNum);
             toast.success(`Day ${nextNum} started!`);
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to start new day');
         }
@@ -759,6 +777,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             setShowAddExpense(false);
             setExpenseForm({ category: 'food', amount: '', description: '', receipt_url: null });
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to add expense');
         }
@@ -770,6 +789,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             await deleteExpense(expenseId);
             toast.success('Expense deleted');
             await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to delete expense');
         }
