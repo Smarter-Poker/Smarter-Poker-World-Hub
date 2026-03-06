@@ -61,7 +61,7 @@ export default function ActivityFeed() {
   // FIXED: Wrapped in useCallback to prevent infinite re-render loop.
   // Previously, fetchEvents was recreated every render which caused
   // useCommanderSync to retrigger its useEffect endlessly.
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (signal) => {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -76,12 +76,13 @@ export default function ActivityFeed() {
       let waitlist = { data: [] };
       let tables = { data: [] };
       try {
+        const fo = signal ? { headers, signal } : { headers };
         const results = await Promise.allSettled([
-          fetch(`/api/commander/incidents?venue_id=${venueId}`, { headers }).then(r => r.json()),
-          fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, { headers }).then(r => r.json()),
-          fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, { headers }).then(r => r.json()),
-          fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()),
-          fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json())
+          fetch(`/api/commander/incidents?venue_id=${venueId}`, fo).then(r => r.json()),
+          fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, fo).then(r => r.json()),
+          fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, fo).then(r => r.json()),
+          fetch(`/api/commander/waitlist?venue_id=${venueId}`, fo).then(r => r.json()),
+          fetch(`/api/commander/tables?venue_id=${venueId}`, fo).then(r => r.json())
         ]);
         if (results[0].status === 'fulfilled') incidents = results[0].value || { data: [] };
         if (results[1].status === 'fulfilled') checkins = results[1].value || { data: [] };
@@ -173,10 +174,11 @@ export default function ActivityFeed() {
   useEffect(() => {
     let isMounted = true;
     let pollTimeout;
+    const _c = new AbortController();
 
     const runPoll = async () => {
       if (!isMounted) return;
-      await fetchEvents();
+      await fetchEvents(_c.signal);
       if (isMounted) {
         pollTimeout = setTimeout(runPoll, 5000);
       }
@@ -187,6 +189,7 @@ export default function ActivityFeed() {
 
     return () => {
       isMounted = false;
+      _c.abort();
       clearTimeout(pollTimeout);
       clearInterval(clock);
     };

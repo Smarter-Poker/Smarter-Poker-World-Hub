@@ -51,12 +51,13 @@ export default function MustMoveManager() {
   const getToken = () => localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
   const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/commander/games/must-move-status?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) setData(json.data);
@@ -64,13 +65,14 @@ export default function MustMoveManager() {
     finally { setLoading(false); }
   }, [venueId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); return () => _c.abort(); }, [fetchData]);
 
   // Auto-refresh every 15 seconds
   useEffect(() => {
     if (!venueId) return;
-    const iv = setInterval(fetchData, 15000);
-    return () => clearInterval(iv);
+    const _cp = new AbortController();
+    const iv = setInterval(() => fetchData(_cp.signal), 15000);
+    return () => { _cp.abort(); clearInterval(iv); };
   }, [venueId, fetchData]);
 
   // Cross-tab + cross-device real-time sync

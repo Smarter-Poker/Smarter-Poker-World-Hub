@@ -72,12 +72,13 @@ export default function TDControlCenter() {
     return null;
   }, []);
 
-  const fetchFloor = useCallback(async () => {
+  const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
       const token = getToken();
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': token }
+        headers: { 'x-staff-session': token },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) {
@@ -87,7 +88,7 @@ export default function TDControlCenter() {
         setError(json.error);
       }
     } catch (err) {
-      setError('Failed to load tournament data');
+      if (err.name !== 'AbortError') setError('Failed to load tournament data');
     } finally {
       setLoading(false);
     }
@@ -96,9 +97,11 @@ export default function TDControlCenter() {
   // Initial load + Realtime subscription + 5-min fallback poll
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
-    fetchFloor();
-    pollRef.current = setInterval(fetchFloor, 300000); // 5-min fallback (realtime handles instant updates)
+    const _c = new AbortController();
+    fetchFloor(_c.signal);
+    pollRef.current = setInterval(() => fetchFloor(_c.signal), 300000); // 5-min fallback (realtime handles instant updates)
     return () => {
+      _c.abort();
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [fetchFloor]);

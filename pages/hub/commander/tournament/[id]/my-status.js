@@ -104,7 +104,7 @@ export default function MyTournamentStatus() {
         finally { setLoading(false); }
     }, [id, router]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => { let active = true; fetchData(); return () => { active = false; }; }, [fetchData]);
 
     // Supabase Realtime — instant sync when tournament/player data changes
     useTournamentRealtime(id, fetchData);
@@ -112,8 +112,9 @@ export default function MyTournamentStatus() {
     // Fallback polling
     useEffect(() => {
         if (!id) return;
+        const _c = new AbortController();
         const interval = setInterval(fetchData, 30000);
-        return () => clearInterval(interval);
+        return () => { _c.abort(); clearInterval(interval); };
     }, [id, fetchData]);
 
     // Check push notification status

@@ -32,14 +32,15 @@ export default function VenueDetail() {
   const [message, setMessage] = useState(null);
 
   // Fetch venue data
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!id) return;
 
     try {
+      const fo = signal ? { signal } : {};
       const [venueRes, gamesRes, waitlistRes] = await Promise.all([
-        fetch(`/api/commander/venues/${id}`),
-        fetch(`/api/commander/games/venue/${id}`),
-        fetch(`/api/commander/waitlist/venue/${id}`)
+        fetch(`/api/commander/venues/${id}`, fo),
+        fetch(`/api/commander/games/venue/${id}`, fo),
+        fetch(`/api/commander/waitlist/venue/${id}`, fo)
       ]);
 
       const [venueData, gamesData, waitlistData] = await Promise.all([
@@ -70,11 +71,11 @@ export default function VenueDetail() {
   useCommanderSync(id || '', fetchData, { entities: ['games', 'tables', 'waitlist'] });
 
   useEffect(() => {
-    fetchData();
-
+    const _c = new AbortController();
+    fetchData(_c.signal);
     // Auto-refresh every minute
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => fetchData(_c.signal), 60000);
+    return () => { _c.abort(); clearInterval(interval); };
   }, [id]);
 
   // Handle join waitlist

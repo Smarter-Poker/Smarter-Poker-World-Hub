@@ -141,7 +141,7 @@ export default function UnionDashboard() {
         }
     }, [unionIdParam, user]);
 
-    useEffect(() => { loadDashboard(); }, [loadDashboard]);
+    useEffect(() => { const _c = new AbortController(); loadDashboard(); return () => _c.abort(); }, [loadDashboard]);
 
     // ── Realtime subscriptions for live data ──
     useEffect(() => {

@@ -84,15 +84,16 @@ export default function TournamentDetailPage() {
 
 
   // Fetch tournament data
-  const fetchTournament = useCallback(async () => {
+  const fetchTournament = useCallback(async (signal) => {
     if (!id) return;
 
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { 'x-staff-session': staffSession };
+      const fo = signal ? { headers, signal } : { headers };
       const [tournamentRes, entriesRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`, { headers }),
-        fetch(`/api/commander/tournaments/${id}/entries`, { headers })
+        fetch(`/api/commander/tournaments/${id}`, fo),
+        fetch(`/api/commander/tournaments/${id}/entries`, fo)
       ]);
 
       const tournamentData = await tournamentRes.json();
@@ -108,7 +109,7 @@ export default function TournamentDetailPage() {
         setEntries(entriesData.data.entries || []);
       }
     } catch (error) {
-      console.error('Failed to fetch tournament:', error);
+      if (error.name !== 'AbortError') console.error('Failed to fetch tournament:', error);
     } finally {
       setLoading(false);
     }
@@ -119,7 +120,9 @@ export default function TournamentDetailPage() {
 
   useEffect(() => {
     if (staff && id) {
-      fetchTournament();
+      const _c = new AbortController();
+      fetchTournament(_c.signal);
+      return () => _c.abort();
     }
   }, [staff, id, fetchTournament]);
 

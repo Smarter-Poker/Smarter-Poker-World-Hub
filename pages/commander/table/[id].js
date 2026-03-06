@@ -43,16 +43,17 @@ export default function TableSeating() {
 
   
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
-  const fetchData = async () => {
+  const fetchData = async (signal) => {
     try {
       const token = getToken();
       const venueId = getVenueId();
       const staffSession = getStaffSession();
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const fo = signal ? { headers, signal } : { headers };
       const [tableRes, sessionsRes, waitlistRes] = await Promise.all([
-        fetch(`/api/commander/tables/${id}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/dealer/sessions?table_id=${id}&status=active`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/tables/${id}`, fo).then(r => r.json()),
+        fetch(`/api/commander/dealer/sessions?table_id=${id}&status=active`, fo).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, fo).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
       if (tableRes.data || tableRes.success) setTable(tableRes.data || tableRes);
       const sessionsArr = Array.isArray(sessionsRes.data) ? sessionsRes.data : [];
@@ -65,9 +66,10 @@ export default function TableSeating() {
 
 useEffect(() => {
     if (!id) return;
-    fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(poll);
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    const poll = setInterval(() => fetchData(_c.signal), 30000); // fallback — real-time sync handles instant updates
+    return () => { _c.abort(); clearInterval(poll); };
   }, [id]);
 
   // Real-time sync — instant cross-tab + cross-device updates

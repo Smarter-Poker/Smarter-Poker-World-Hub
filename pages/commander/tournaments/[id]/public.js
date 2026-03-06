@@ -69,9 +69,10 @@ export default function TournamentPublic() {
 
   useEffect(() => {
     if (!id) return;
-    fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(poll);
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    const poll = setInterval(() => fetchData(_c.signal), 30000); // fallback — real-time sync handles instant updates
+    return () => { _c.abort(); clearInterval(poll); };
   }, [id, fetchData]);
 
   // Supabase Realtime — instant sync when tournament data changes
@@ -89,12 +90,13 @@ export default function TournamentPublic() {
     return () => clearInterval(tick);
   }, [clock?.is_running, clock?.current_level]);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
+      const fo = signal ? { signal } : {};
       const [tRes, cRes, eRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${id}`).then(r => r.json()),
-        fetch(`/api/commander/tournaments/${id}/clock`).then(r => r.json()).catch(() => ({})),
-        fetch(`/api/commander/tournaments/${id}/entries`).then(r => r.json()).catch(() => ({ entries: [] }))
+        fetch(`/api/commander/tournaments/${id}`, fo).then(r => r.json()),
+        fetch(`/api/commander/tournaments/${id}/clock`, fo).then(r => r.json()).catch(() => ({})),
+        fetch(`/api/commander/tournaments/${id}/entries`, fo).then(r => r.json()).catch(() => ({ entries: [] }))
       ]);
 
       // Tournament API returns { success, data: { tournament } }

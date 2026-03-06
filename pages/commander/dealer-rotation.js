@@ -59,7 +59,7 @@ export default function DealerRotation() {
     };
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
       const venueId = getVenueId();
       if (!venueId) { setLoading(false); return; }
@@ -95,10 +95,11 @@ export default function DealerRotation() {
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    const poll = setInterval(() => fetchData(_c.signal), 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
+    return () => { _c.abort(); clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
   // Commander Data Bus — sync dealers + tables across tabs

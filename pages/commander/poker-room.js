@@ -37,7 +37,7 @@ export default function PokerRoomFunctions() {
     } catch { }
   }, []);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -104,7 +104,7 @@ export default function PokerRoomFunctions() {
     finally { setLoading(false); }
   }, [venueId]);
 
-  useEffect(() => { fetchData(); const i = setInterval(fetchData, 30000); return () => clearInterval(i); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); const i = setInterval(() => fetchData(_c.signal), 30000); return () => { _c.abort(); clearInterval(i); }; }, [fetchData]);
 
   // Cross-tab + cross-device real-time sync
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games', 'waitlist', 'settings'] });

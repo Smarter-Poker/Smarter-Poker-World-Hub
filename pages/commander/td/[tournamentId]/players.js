@@ -54,11 +54,12 @@ export default function TDPlayers() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
 
-  const fetchFloor = useCallback(async () => {
+  const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': getToken() }
+        headers: { 'x-staff-session': getToken() },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) setFloor(json.data);
@@ -67,7 +68,7 @@ export default function TDPlayers() {
   }, [tournamentId]);
 
   useTournamentRealtime(tournamentId, fetchFloor);
-  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 30000); return () => clearInterval(i); }, [fetchFloor]); // 30s fallback
+  useEffect(() => { const _c = new AbortController(); fetchFloor(_c.signal); const i = setInterval(() => fetchFloor(_c.signal), 30000); return () => { _c.abort(); clearInterval(i); }; }, [fetchFloor]); // 30s fallback
 
   // Build flat player list from full entries array (all statuses)
   const allPlayers = [];

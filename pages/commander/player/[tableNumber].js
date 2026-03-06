@@ -319,11 +319,11 @@ export default function PlayerTableDisplay() {
   const isTexas = venueType === 'texas';
 
   // Fetch all tablet data (table info, sessions, dealer) in one call
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!tableNumber) return;
     try {
       const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
-      const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
+      const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`, signal ? { signal } : {});
       const json = await res.json();
       if (json.success) {
         setPlayers(json.data.players || []);
@@ -336,9 +336,10 @@ export default function PlayerTableDisplay() {
 
   useEffect(() => {
     if (!tableNumber) return;
-    fetchData();
-    const poll = setInterval(fetchData, 15000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(poll);
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    const poll = setInterval(() => fetchData(_c.signal), 15000); // fallback — real-time sync handles instant updates
+    return () => { _c.abort(); clearInterval(poll); };
   }, [tableNumber, fetchData]);
 
   // Local ticker (countdown for Texas, re-render for elapsed display)
