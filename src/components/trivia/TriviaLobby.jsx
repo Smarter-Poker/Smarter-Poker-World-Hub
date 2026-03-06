@@ -270,6 +270,18 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
     return (
         <div className="trivia-lobby">
 
+            {/* ════ Floating Card Suit Particles ════ */}
+            <div className="suit-particles" aria-hidden>
+                {['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'].map((s, i) => (
+                    <span key={i} className={`suit ${s === '♥' || s === '♦' ? 'red' : ''}`} style={{
+                        left: `${(i / 16) * 100 + Math.random() * 6}%`,
+                        animationDelay: `${i * 1.2 + Math.random() * 2}s`,
+                        animationDuration: `${8 + Math.random() * 6}s`,
+                        fontSize: `${14 + Math.random() * 12}px`,
+                    }}>{s}</span>
+                ))}
+            </div>
+
             {/* Daily Trivia Hero Card - Image Based */}
             <div
                 className="daily-trivia-banner"
@@ -408,6 +420,33 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     max-width: 1000px;
                     margin: 0 auto;
                     font-family: 'Rajdhani', 'Orbitron', sans-serif;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                /* ═══ Floating Card Suit Particles ═══ */
+                .suit-particles {
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    z-index: 0;
+                    overflow: hidden;
+                }
+                .suit {
+                    position: absolute;
+                    bottom: -30px;
+                    color: rgba(255, 255, 255, 0.04);
+                    animation: suitFloat linear infinite;
+                    opacity: 0;
+                }
+                .suit.red {
+                    color: rgba(239, 68, 68, 0.04);
+                }
+                @keyframes suitFloat {
+                    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+                    10% { opacity: 1; }
+                    90% { opacity: 0.5; }
+                    100% { transform: translateY(-800px) rotate(360deg); opacity: 0; }
                 }
 
 
@@ -569,6 +608,35 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     border-radius: 12px;
                     overflow: hidden;
                     cursor: pointer;
+                    animation: cardEntrance 0.5s ease backwards;
+                    transition: transform 0.25s ease, box-shadow 0.25s ease;
+                }
+                .mode-image-card:hover {
+                    transform: translateY(-4px) scale(1.02);
+                    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.2);
+                }
+                .mode-image-card:nth-child(1) { animation-delay: 0s; }
+                .mode-image-card:nth-child(2) { animation-delay: 0.06s; }
+                .mode-image-card:nth-child(3) { animation-delay: 0.12s; }
+                .mode-image-card:nth-child(4) { animation-delay: 0.18s; }
+                .mode-image-card:nth-child(5) { animation-delay: 0.24s; }
+                .mode-image-card:nth-child(6) { animation-delay: 0.3s; }
+                .mode-image-card:nth-child(7) { animation-delay: 0.36s; }
+                .mode-image-card:nth-child(8) { animation-delay: 0.42s; }
+                .mode-image-card:nth-child(9) { animation-delay: 0.48s; }
+                .mode-image-card:nth-child(10) { animation-delay: 0.54s; }
+                .mode-image-card:nth-child(11) { animation-delay: 0.6s; }
+                .mode-image-card:nth-child(12) { animation-delay: 0.66s; }
+
+                @keyframes cardEntrance {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
                 }
 
                 .mode-image-card__img {

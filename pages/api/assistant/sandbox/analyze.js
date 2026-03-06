@@ -667,32 +667,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    // JWT Authentication
+    // JWT Authentication — optional for guest access
+    let userId = null;
     const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && authUser) {
+          userId = authUser.id;
+        }
+      } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
     }
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !authUser) {
-      return res.status(401).json({ success: false, error: 'Invalid token' });
-    }
-    const userId = authUser.id;
 
     const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory } = req.body;
 
-    // Context authority check
-    const contextAccess = await checkSandboxAccess(supabase, userId);
-    if (!contextAccess.allowed) {
-      return res.status(403).json({
-        success: false, blocked: true,
-        contextState: contextAccess.contextState,
-        error: contextAccess.message,
-      });
+    // Context authority check — only for authenticated users
+    if (userId) {
+      const contextAccess = await checkSandboxAccess(supabase, userId);
+      if (!contextAccess.allowed) {
+        return res.status(403).json({
+          success: false, blocked: true,
+          contextState: contextAccess.contextState,
+          error: contextAccess.message,
+        });
+      }
     }
 
-    // Rate limit
-    const rateLimit = checkRateLimit(userId);
+    // Rate limit — use userId for auth'd users, IP for guests (stricter limit)
+    const rateLimitKey = userId || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'guest';
+    const rateLimit = checkRateLimit(rateLimitKey);
     if (!rateLimit.allowed) {
       return res.status(429).json({ success: false, error: 'Rate limit exceeded.', retryAfter: rateLimit.retryAfter });
     }

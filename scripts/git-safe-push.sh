@@ -49,16 +49,17 @@ GIT_DIR="$(git rev-parse --git-dir 2>/dev/null)"
 # Prevents two agents from pushing simultaneously (the root cause of most failures)
 LOCK_FILE="${GIT_DIR}/git-safe-push.lock"
 if [ -f "$LOCK_FILE" ]; then
-  lock_age=$(( $(date +%s) - $(stat -f %m "$LOCK_FILE" 2>/dev/null || echo 0) ))
-  if [ "$lock_age" -lt 120 ]; then
-    echo "⏳ Another git-safe-push is running (lock is ${lock_age}s old). Waiting..."
-    sleep_count=0
-    while [ -f "$LOCK_FILE" ] && [ $sleep_count -lt 60 ]; do
+  existing_pid="$(cat "$LOCK_FILE" 2>/dev/null || echo "")"
+  # Check if the process that created the lock is still alive
+  if [ -n "$existing_pid" ] && kill -0 "$existing_pid" 2>/dev/null; then
+    echo "⏳ Another git-safe-push is running (PID ${existing_pid}). Waiting up to 30s..."
+    wait_count=0
+    while [ -f "$LOCK_FILE" ] && kill -0 "$existing_pid" 2>/dev/null && [ $wait_count -lt 15 ]; do
       sleep 2
-      sleep_count=$((sleep_count + 1))
+      wait_count=$((wait_count + 1))
     done
   fi
-  # If lock is older than 120s, it's stale — remove it
+  # Remove stale lock (process dead or wait timed out)
   rm -f "$LOCK_FILE" 2>/dev/null || true
 fi
 echo $$ > "$LOCK_FILE"

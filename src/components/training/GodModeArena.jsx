@@ -741,7 +741,15 @@ function GodModeArena({
                     background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 16, padding: 40, maxWidth: 420, textAlign: 'center',
                 }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>{isAuthError ? '🔒' : '⚠️'}</div>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>{isAuthError ? (
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                    ) : (
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                    )}</div>
                     <h2 style={{ color: '#fff', fontSize: 20, margin: '0 0 12px', fontFamily: "'Orbitron', sans-serif" }}>
                         {isAuthError ? 'Sign In Required' : 'Connection Error'}
                     </h2>
@@ -753,7 +761,7 @@ function GodModeArena({
                     <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                         {isAuthError && (
                             <button
-                                onClick={() => window.location.href = '/'}
+                                onClick={() => window.location.href = '/auth/signin'}
                                 style={{
                                     padding: '12px 24px', borderRadius: 10, border: 'none',
                                     background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
