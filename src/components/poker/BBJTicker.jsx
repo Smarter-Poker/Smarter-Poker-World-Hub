@@ -18,7 +18,7 @@ const GOLD = '#FFD700';
 const GOLD_DARK = '#B8860B';
 const POLL_INTERVAL_MS = 30000; // Refresh from API every 30s
 
-export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = null }) {
+export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = null, supabase = null }) {
   const [poolAmount, setPoolAmount] = useState(0);
   const [hourlyRate, setHourlyRate] = useState(0);
   const [displayAmount, setDisplayAmount] = useState(0);
@@ -41,12 +41,30 @@ export default function BBJTicker({ clubId, variant = 'table', bbjWonEvent = nul
     } catch { /* silent */ }
   }, [clubId]);
 
-  // Initial fetch + polling
+  // Initial fetch + polling (30s fallback)
   useEffect(() => {
     fetchPool();
     const interval = setInterval(fetchPool, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchPool]);
+
+  // Realtime subscription — instant updates when bbj_pools changes
+  useEffect(() => {
+    if (!supabase || !clubId) return;
+    const ch = supabase
+      .channel(`bbj-ticker:${clubId}`)
+      .on('postgres_changes', {
+        event: 'UPDATE', schema: 'public', table: 'bbj_pools',
+        filter: `club_id=eq.${clubId}`,
+      }, (payload) => {
+        const amt = Number(payload.new.pool_amount || 0);
+        setPoolAmount(amt);
+        setHourlyRate(Number(payload.new.hourly_rate || 0));
+        targetRef.current = amt;
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [supabase, clubId]);
 
   // ── Smooth tick-up animation ──
   useEffect(() => {

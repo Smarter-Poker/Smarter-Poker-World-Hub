@@ -169,7 +169,7 @@ export async function findMatch(userId, stakeAmount) {
  * @returns {Object} Subscription object
  */
 export function subscribeToMatch(matchId, onUpdate) {
-    const subscription = supabase
+    const channel = supabase
         .channel(`pvp_match:${matchId}`)
         .on('postgres_changes',
             { event: 'UPDATE', schema: 'public', table: 'trivia_pvp_matches', filter: `id=eq.${matchId}` },
@@ -179,7 +179,8 @@ export function subscribeToMatch(matchId, onUpdate) {
         )
         .subscribe();
 
-    return subscription;
+    // Return cleanup function for callers to use in useEffect return
+    return () => { supabase.removeChannel(channel); };
 }
 
 /**
@@ -189,7 +190,7 @@ export function subscribeToMatch(matchId, onUpdate) {
  * @returns {Object} Subscription object
  */
 export function subscribeToQueue(stakeAmount, onNewPlayer) {
-    const subscription = supabase
+    const channel = supabase
         .channel(`pvp_queue:${stakeAmount}`)
         .on('postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'trivia_pvp_queue', filter: `stake_amount=eq.${stakeAmount}` },
@@ -201,7 +202,8 @@ export function subscribeToQueue(stakeAmount, onNewPlayer) {
         )
         .subscribe();
 
-    return subscription;
+    // Return cleanup function for callers to use in useEffect return
+    return () => { supabase.removeChannel(channel); };
 }
 
 /**

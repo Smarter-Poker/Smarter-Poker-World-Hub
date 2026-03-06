@@ -2533,6 +2533,7 @@ function LivePokerTable({
                 clubId={tableState.clubId}
                 variant="table"
                 bbjWonEvent={result?.bbj || null}
+                supabase={supabase}
               />
             )}
 
