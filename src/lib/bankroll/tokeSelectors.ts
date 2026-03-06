@@ -239,28 +239,39 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
  * Create a new gig AND auto-create Day 1
  */
 export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<TokeGig> {
-    const existing = await getActiveGig(userId);
-    if (existing) throw new Error('You already have an active event. Complete or delete it first.');
+    // Check for existing active gig — but don't let an abort kill the whole create flow
+    try {
+        const existing = await getActiveGig(userId);
+        if (existing) throw new Error('You already have an active event. Complete or delete it first.');
+    } catch (checkErr: any) {
+        // If it's an "already have active" error, re-throw it
+        if (checkErr?.message?.includes('already have an active')) throw checkErr;
+        // If it's an abort/network error, log and proceed (optimistic — the insert will also fail if there's a real problem)
+        console.warn('[createGig] Active gig check failed (proceeding):', checkErr?.message);
+    }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
 
-    const { data, error } = await supabase
-        .from('toke_gigs')
-        .insert({
-            user_id: userId,
-            venue_name: gig.venue_name,
-            venue_address: gig.venue_address || null,
-            location_id: safeLocationId,
-            start_date: gig.start_date || new Date().toISOString().split('T')[0],
-            hourly_rate: gig.hourly_rate || 0,
-            notes: gig.notes || null,
-            status: 'active',
-        })
-        .select()
-        .single();
+    const data = await withRetry(async () => {
+        const { data: row, error } = await supabase
+            .from('toke_gigs')
+            .insert({
+                user_id: userId,
+                venue_name: gig.venue_name,
+                venue_address: gig.venue_address || null,
+                location_id: safeLocationId,
+                start_date: gig.start_date || new Date().toISOString().split('T')[0],
+                hourly_rate: gig.hourly_rate || 0,
+                notes: gig.notes || null,
+                status: 'active',
+            })
+            .select()
+            .single();
 
-    if (error) throw error;
+        if (error) throw error;
+        return row;
+    });
 
     // Auto-create Day 1
     await createDay(userId, data.id, 1);

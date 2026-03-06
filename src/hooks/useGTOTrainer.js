@@ -309,7 +309,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
 
         // Audio Feedback for Move Quality
         const cls = moveResult.classification;
-        if (cls === 'Blunder' || cls === 'Mistake' || cls === 'Inaccuracy' || !isCorrect) {
+        if (cls === 'blunder' || cls === 'wrong' || cls === 'inaccuracy') {
             trainingSounds.play('incorrect');
         } else {
             trainingSounds.play('correct');
