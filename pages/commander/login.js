@@ -31,7 +31,11 @@ export default function CommanderLogin() {
     if (router.query.expired === '1') {
       setError('Your session has expired. Please sign in again.');
     }
-  }, [router.query.expired]);
+    // Show 'no subscription' message for OAuth users who signed in but don't have a Commander account
+    if (router.query.no_sub === '1') {
+      setError('No active Club Commander subscription found. Please sign up below to create your venue.');
+    }
+  }, [router.query.expired, router.query.no_sub]);
 
   // Auto-restore session — if user has valid Supabase session + remember flag, skip login
   useEffect(() => {
