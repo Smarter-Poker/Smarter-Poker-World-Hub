@@ -2,7 +2,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
 
 (async () => {
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log('  Phase 4: Waitlist Operations (Add, Call, Seat)');
+    console.log('  Phase 5: Tables & Floor Management');
     console.log('═══════════════════════════════════════════════════════════════');
 
     const browser = await chromium.launch({ headless: true });
@@ -11,25 +11,7 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
     let lastError = '';
     page.on('pageerror', e => { lastError = e.message; });
 
-    // ── Helper: Set React input value ──
-    const setReactValue = async (selector, value) => {
-        await page.evaluate(([sel, val]) => {
-            const el = document.querySelector(sel);
-            if (!el) return false;
-            const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-            nativeSet.call(el, val);
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            el.dispatchEvent(new Event('change', { bubbles: true }));
-            // Also try React's synthetic approach
-            const tracker = el._valueTracker;
-            if (tracker) tracker.setValue('');
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-            return true;
-        }, [selector, value]);
-    };
-
-    // ── Remove visibility:hidden from ThemeProvider ──
-    const removeVisibilityHidden = async () => {
+    const removeVH = async () => {
         await page.evaluate(() => {
             document.querySelectorAll('div[style*="visibility"]').forEach(d => {
                 if (d.style.visibility === 'hidden') d.style.visibility = 'visible';
@@ -44,268 +26,248 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
         if (await page.evaluate(() => !!document.querySelector('input[type="email"]'))) break;
         await page.waitForTimeout(1000);
     }
-    await removeVisibilityHidden();
+    await removeVH();
     await page.waitForTimeout(500);
-
-    // Use Playwright's native fill (now that visibility is visible)
     try {
         await page.fill('input[type="email"]', 'johndonnahue4485@yahoo.com', { timeout: 3000 });
         await page.fill('input[type="password"]', 'SmarterPoker2026!', { timeout: 3000 });
         await page.click('button:has-text("Sign In")', { timeout: 3000 });
     } catch {
-        // Fallback: use evaluate
-        await page.evaluate((creds) => {
-            const nativeSet = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        await page.evaluate((c) => {
+            const ns = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
             const eEl = document.querySelector('input[type="email"]'), pEl = document.querySelector('input[type="password"]');
-            if (eEl) { nativeSet.call(eEl, creds[0]); eEl.dispatchEvent(new Event('input', { bubbles: true })); }
-            if (pEl) { nativeSet.call(pEl, creds[1]); pEl.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (eEl) { ns.call(eEl, c[0]); eEl.dispatchEvent(new Event('input', { bubbles: true })); }
+            if (pEl) { ns.call(pEl, c[1]); pEl.dispatchEvent(new Event('input', { bubbles: true })); }
             document.querySelectorAll('button').forEach(b => { if (b.textContent.includes('Sign In')) b.click(); });
         }, ['johndonnahue4485@yahoo.com', 'SmarterPoker2026!']);
     }
     await page.waitForURL('**/commander/dashboard*', { timeout: 20000 });
-    console.log('  ✅ Logged in.');
-
-    // Override venue_id to 2006
     await page.evaluate(() => {
         const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
         s.venue_id = 2006; s.venue_name = 'E2E Test Poker Room';
         localStorage.setItem('commander_staff', JSON.stringify(s));
     });
+    console.log('  ✅ Logged in.');
     await page.waitForTimeout(1500);
 
-    // ── NAVIGATE TO WAITLIST DESK ──
-    console.log('\n[PHASE 4] Waitlist Operations');
-    console.log('  → Navigating to /commander/waitlist/desk...');
-    await page.evaluate(() => { window.location.href = '/commander/waitlist/desk'; });
+    // ===============================================================
+    // STEP 1: Navigate to Tables page
+    // ===============================================================
+    console.log('\n[STEP 1] Tables Page');
+    await page.evaluate(() => { window.location.href = '/commander/tables'; });
     await page.waitForTimeout(6000);
-
-    // Poll for page content
-    let pageReady = false;
-    for (let i = 0; i < 20; i++) {
-        await removeVisibilityHidden();
-        pageReady = await page.evaluate(() => {
-            const text = document.body?.innerText || '';
-            return text.includes('POKER WAITING LIST') || text.includes('Add Player') || text.includes('Add Game') || text.includes('No Games');
+    for (let i = 0; i < 15; i++) {
+        await removeVH();
+        const ready = await page.evaluate(() => {
+            const t = document.body?.innerText || '';
+            return t.includes('Tables and Floor') || t.includes('Table') || t.includes('Idle Tables') || t.includes('No Tables');
         });
-        if (pageReady) break;
+        if (ready) break;
         await page.waitForTimeout(1000);
     }
-    if (!pageReady) {
-        console.log('FATAL: Waitlist desk never rendered. LastErr:', lastError.substring(0, 200));
-        await browser.close(); process.exit(1);
-    }
-    console.log('  ✅ Waitlist desk loaded.');
 
-    // ── STEP 1: ADD A PLAYER TO WAITLIST ──
-    console.log('\n  Step 1: Add Player to Waitlist');
-
-    // Click "Add Player" button using evaluate
-    await page.evaluate(() => {
-        [...document.querySelectorAll('button')].find(b => b.textContent.includes('Add Player'))?.click();
-    });
-    await page.waitForTimeout(1500);
-    await removeVisibilityHidden();
-
-    // Fill in player name using React-compatible setter
-    await setReactValue('input[placeholder*="name" i], input[placeholder*="Name" i], input[type="text"]', 'E2E Test Walker');
-    await page.waitForTimeout(300);
-
-    // Try using Playwright's native type as fallback
-    try {
-        const nameInputs = await page.$$('input[type="text"]');
-        for (const inp of nameInputs) {
-            const ph = await inp.getAttribute('placeholder');
-            if (ph && (ph.toLowerCase().includes('name') || ph.toLowerCase().includes('player'))) {
-                await inp.fill('E2E Test Walker');
-                break;
-            }
-        }
-    } catch { /* Fallback failed, that's OK */ }
-    await page.waitForTimeout(200);
-
-    // Optionally fill phone
-    try {
-        const phoneInputs = await page.$$('input[type="tel"], input[placeholder*="phone" i], input[placeholder*="Phone" i]');
-        if (phoneInputs.length > 0) await phoneInputs[0].fill('5551234567');
-    } catch { /* optional */ }
-    await page.waitForTimeout(200);
-
-    // Click "Add to Waitlist" button
-    await page.evaluate(() => {
-        const btns = [...document.querySelectorAll('button')];
-        const addBtn = btns.find(b => b.textContent.includes('Add to Waitlist'));
-        if (addBtn) addBtn.click();
-        else {
-            const altBtn = btns.find(b => b.textContent.includes('Add') && !b.textContent.includes('Add Player') && !b.textContent.includes('Add Game'));
-            if (altBtn) altBtn.click();
-        }
-    });
-    await page.waitForTimeout(3000);
-
-    // Verify player was added
-    const addResult = await page.evaluate(() => {
-        const text = document.body.innerText;
+    const tablesState = await page.evaluate(() => {
+        const t = document.body.innerText;
         return {
-            hasTestWalker: text.includes('E2E Test Walker') || text.includes('E2e Test Walker'),
-            hasAdded: text.includes('added to waitlist'),
-            hasWaiting: /\d+ waiting/.test(text),
-            snippet: text.substring(0, 500)
+            hasHeader: t.includes('Tables and Floor'),
+            hasAddTable: t.includes('Add Table'),
+            hasTable1: t.includes('Table 1'),
+            hasTable2: t.includes('Table 2'),
+            hasLive: t.includes('Live Tables'),
+            hasIdle: t.includes('Idle Tables'),
+            hasNoTables: t.includes('No Tables'),
+            snippet: t.substring(0, 400)
         };
     });
-    console.log(`  Add result: playerVisible=${addResult.hasTestWalker} addedMsg=${addResult.hasAdded}`);
+    console.log(`  Header=${tablesState.hasHeader} AddTable=${tablesState.hasAddTable} T1=${tablesState.hasTable1} T2=${tablesState.hasTable2} Live=${tablesState.hasLive} Idle=${tablesState.hasIdle}`);
 
-    if (addResult.hasTestWalker) {
-        console.log('  ✅ Player "E2E Test Walker" added to waitlist!');
+    if (tablesState.hasHeader || tablesState.hasTable1) {
+        console.log('  ✅ Tables page loaded!');
     } else {
-        console.log('  ⚠️ Player not visible in waitlist. Body:', addResult.snippet.substring(0, 200));
-        // Try direct API call as fallback
-        console.log('  → Trying direct API fallback...');
-        const apiResult = await page.evaluate(async () => {
-            const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
-            const staffSession = localStorage.getItem('commander_staff') || '';
-            try {
-                const res = await fetch('/api/commander/waitlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-staff-session': staffSession },
-                    body: JSON.stringify({ venue_id: staff.venue_id, game_type: 'NLH', stakes: '$1/$2', player_name: 'E2E Test Walker', signup_method: 'staff' })
-                });
-                const json = await res.json();
-                return { status: res.status, ok: res.ok, data: json };
-            } catch (err) { return { error: err.message }; }
-        });
-        console.log(`  API result:`, JSON.stringify(apiResult).substring(0, 300));
-        if (apiResult.data?.success) {
-            console.log('  ✅ Player added via API!');
-            // Refresh the desk
-            await page.evaluate(() => { window.location.reload(); });
-            await page.waitForTimeout(5000);
-            await removeVisibilityHidden();
-        }
+        console.log('  ⚠️ Tables page may not have loaded. Snippet:', tablesState.snippet.substring(0, 200));
     }
 
-    // ── STEP 2: CALL PLAYER ──
-    console.log('\n  Step 2: Call Player');
-    // Check if player is now visible
-    const playerVisible = await page.evaluate(() => {
-        const text = document.body.innerText;
-        return text.includes('E2E Test Walker') || text.includes('E2e Test Walker');
+    // ===============================================================
+    // STEP 2: Add a new table via API (then verify on page)
+    // ===============================================================
+    console.log('\n[STEP 2] Add New Table');
+    const addTableResult = await page.evaluate(async () => {
+        const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        try {
+            const res = await fetch('/api/commander/tables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                body: JSON.stringify({ venue_id: staff.venue_id, table_number: 99, table_name: 'E2E Test Table', max_seats: 8 })
+            });
+            return await res.json();
+        } catch (err) { return { error: err.message }; }
     });
+    console.log(`  API: success=${addTableResult.success || false}`, addTableResult.data?.table?.id ? `id=${addTableResult.data.table.id}` : (addTableResult.error?.message || ''));
 
-    if (!playerVisible) {
-        console.log('  ⚠️ Player not visible — attempting call via API...');
-        // Get the waitlist entry ID
-        const waitlistData = await page.evaluate(async () => {
+    if (addTableResult.success) {
+        console.log('  ✅ Table 99 (E2E Test Table) created!');
+        // Reload to see new table
+        await page.evaluate(() => { window.location.reload(); });
+        await page.waitForTimeout(5000);
+        await removeVH();
+        const hasT99 = await page.evaluate(() => document.body.innerText.includes('Table 99'));
+        console.log(`  Visible on page: ${hasT99 ? '✅' : '⚠️ not visible'}`);
+    } else {
+        console.log(`  ⚠️ Table creation failed: ${addTableResult.error?.message || JSON.stringify(addTableResult.error)}`);
+    }
+
+    // ===============================================================
+    // STEP 3: Verify existing tables (from Phase 3 provisioning)
+    // ===============================================================
+    console.log('\n[STEP 3] Verify Tables API');
+    const tablesData = await page.evaluate(async () => {
+        const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        const staffSession = localStorage.getItem('commander_staff') || '';
+        try {
+            const res = await fetch(`/api/commander/tables?venue_id=${staff.venue_id}`, {
+                headers: { 'x-staff-session': staffSession }
+            });
+            return await res.json();
+        } catch (err) { return { error: err.message }; }
+    });
+    const tablesList = tablesData.data?.tables || [];
+    console.log(`  Tables count: ${tablesList.length}`);
+    tablesList.forEach(t => console.log(`    Table ${t.table_number}: ${t.table_name || 'unnamed'} | ${t.max_seats} seats | status=${t.status} | game=${t.game_type || 'none'}`));
+
+    // ===============================================================
+    // STEP 4: Start a game on an idle table via API
+    // ===============================================================
+    console.log('\n[STEP 4] Start Game on Table');
+    const idleTable = tablesList.find(t => t.status === 'available') || tablesList.find(t => t.status !== 'in_use');
+    if (idleTable) {
+        console.log(`  → Starting PLO $2/$5 on Table ${idleTable.table_number}...`);
+        const startResult = await page.evaluate(async (tableId) => {
             const staff = JSON.parse(localStorage.getItem('commander_staff') || '{}');
-            const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
             const staffSession = localStorage.getItem('commander_staff') || '';
             try {
-                const res = await fetch(`/api/commander/waitlist?venue_id=${staff.venue_id}`, {
-                    headers: { 'Authorization': `Bearer ${token}`, 'x-staff-session': staffSession }
+                // Create game
+                const gameRes = await fetch('/api/commander/games', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                    body: JSON.stringify({ venue_id: staff.venue_id, table_id: tableId, game_type: 'PLO', stakes: '$2/$5', max_players: 9, status: 'waiting' })
+                });
+                const gameData = await gameRes.json();
+                if (!gameData.success && !gameData.data) return { step: 'game', error: gameData };
+
+                // Update table status
+                const tableRes = await fetch(`/api/commander/tables/${tableId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                    body: JSON.stringify({ status: 'in_use', game_type: 'PLO', stakes: '$2/$5', mode: 'cash', table_purpose: 'cash_game' })
+                });
+                const tableData = await tableRes.json();
+                return { success: true, game: gameData, table: tableData };
+            } catch (err) { return { error: err.message }; }
+        }, idleTable.id);
+        console.log(`  Start result: success=${startResult.success || false}`);
+        if (startResult.success) {
+            console.log(`  ✅ PLO $2/$5 started on Table ${idleTable.table_number}!`);
+        } else {
+            console.log(`  ⚠️ Start failed:`, JSON.stringify(startResult.error || startResult).substring(0, 200));
+        }
+    } else {
+        console.log('  ⚠️ No idle table available to start game on.');
+    }
+
+    // ===============================================================
+    // STEP 5: Set table status (reserved)
+    // ===============================================================
+    console.log('\n[STEP 5] Set Table Status');
+    const tableToReserve = tablesList.find(t => t.status === 'available' && t.id !== idleTable?.id);
+    if (tableToReserve) {
+        const setStatusResult = await page.evaluate(async (tableId) => {
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            try {
+                const res = await fetch(`/api/commander/tables/${tableId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'x-staff-session': staffSession },
+                    body: JSON.stringify({ status: 'reserved' })
                 });
                 return await res.json();
             } catch (err) { return { error: err.message }; }
-        });
-        console.log(`  Waitlist entries: ${waitlistData.data?.length || 0}`);
-
-        if (waitlistData.data?.length > 0) {
-            const entry = waitlistData.data.find(e => e.player_name === 'E2E Test Walker') || waitlistData.data[0];
-            console.log(`  Found entry: ${entry.player_name} (${entry.id}) status=${entry.status}`);
-
-            // Call via API
-            const callResult = await page.evaluate(async (entryId) => {
-                const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
-                const staffSession = localStorage.getItem('commander_staff') || '';
-                try {
-                    const res = await fetch(`/api/commander/waitlist/${entryId}/call`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-staff-session': staffSession },
-                        body: JSON.stringify({ notify_sms: true })
-                    });
-                    return await res.json();
-                } catch (err) { return { error: err.message }; }
-            }, entry.id);
-            console.log(`  Call API result:`, JSON.stringify(callResult).substring(0, 200));
-            if (callResult.success) console.log('  ✅ Player called via API!');
-            else console.log('  ⚠️ Call failed:', callResult.error);
-
-            // Seat via API
-            console.log('\n  Step 3: Seat Player');
-            const seatResult = await page.evaluate(async ([wlId]) => {
-                const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') || '';
-                const staffSession = localStorage.getItem('commander_staff') || '';
-                try {
-                    const res = await fetch('/api/commander/waitlist/seat', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-staff-session': staffSession },
-                        body: JSON.stringify({ waitlist_id: wlId, table_number: 1, seat_number: 1 })
-                    });
-                    return await res.json();
-                } catch (err) { return { error: err.message }; }
-            }, [entry.id]);
-            console.log(`  Seat API result:`, JSON.stringify(seatResult).substring(0, 200));
-            if (seatResult.success) console.log('  ✅ Player seated via API!');
-            else console.log('  ⚠️ Seat failed:', seatResult.error);
-        }
+        }, tableToReserve.id);
+        console.log(`  Set Table ${tableToReserve.table_number} to Reserved: ${setStatusResult.success ? '✅' : '⚠️ ' + JSON.stringify(setStatusResult.error)}`);
     } else {
-        // Player visible in UI — use click-based interaction
-        console.log('  → Clicking on player name...');
-        await page.evaluate(() => {
-            const spans = [...document.querySelectorAll('span')];
-            const playerSpan = spans.find(s => s.textContent.includes('E2E Test Walker') || s.textContent.includes('E2e Test Walker'));
-            if (playerSpan) playerSpan.click();
+        console.log('  ⚠️ No available table to reserve (all in use or only one).');
+    }
+
+    // ===============================================================
+    // STEP 6: Navigate to Floor page
+    // ===============================================================
+    console.log('\n[STEP 6] Floor Map Page');
+    await page.evaluate(() => { window.location.href = '/commander/floor'; });
+    await page.waitForTimeout(6000);
+    for (let i = 0; i < 10; i++) {
+        await removeVH();
+        const ready = await page.evaluate(() => {
+            const t = document.body?.innerText || '';
+            return t.includes('Floor') || t.includes('Table') || t.includes('Edit');
         });
+        if (ready) break;
         await page.waitForTimeout(1000);
+    }
 
-        // Click "Text" button
-        await page.evaluate(() => {
-            const btns = [...document.querySelectorAll('button')];
-            (btns.find(b => b.textContent.includes('Text')) || btns.find(b => b.textContent.includes('Call')))?.click();
-        });
-        await page.waitForTimeout(3000);
+    const floorState = await page.evaluate(() => {
+        const t = document.body.innerText;
+        return {
+            hasFloor: t.includes('Floor'),
+            hasTable: t.includes('Table'),
+            hasEdit: t.includes('Edit'),
+            snippet: t.substring(0, 400)
+        };
+    });
+    console.log(`  Floor=${floorState.hasFloor} Table=${floorState.hasTable} Edit=${floorState.hasEdit}`);
+    if (floorState.hasFloor || floorState.hasTable) {
+        console.log('  ✅ Floor map loaded!');
+    } else {
+        console.log('  ⚠️ Floor map may not have loaded. Snippet:', floorState.snippet.substring(0, 200));
+    }
 
-        const callVerify = await page.evaluate(() => document.body.innerText.includes('TEXTED'));
-        console.log(`  Called: ${callVerify ? '✅' : '⚠️ status not verified'}`);
-
-        // Click on player again for Seat
-        console.log('\n  Step 3: Seat Player');
-        await page.evaluate(() => {
-            const spans = [...document.querySelectorAll('span')];
-            spans.find(s => s.textContent.includes('E2E Test Walker') || s.textContent.includes('E2e Test Walker'))?.click();
-        });
-        await page.waitForTimeout(1000);
-
-        await page.evaluate(() => {
-            [...document.querySelectorAll('button')].find(b => b.textContent.includes('Seat'))?.click();
-        });
-        await page.waitForTimeout(1500);
-
-        // In the seat modal, select table and seat
-        await page.evaluate(() => {
-            const btns = [...document.querySelectorAll('button')];
-            (btns.find(b => b.textContent.includes('Table 1')) || btns.find(b => b.textContent.match(/T\d/)))?.click();
-        });
-        await page.waitForTimeout(800);
-        await page.evaluate(() => {
-            [...document.querySelectorAll('button')].find(b => b.textContent.includes('Seat 1') || b.textContent.match(/^S?1$/))?.click();
-        });
-        await page.waitForTimeout(500);
-        await page.evaluate(() => {
-            [...document.querySelectorAll('button')].find(b => b.textContent.includes('Confirm'))?.click();
-        });
-        await page.waitForTimeout(3000);
-
-        const seatResult = await page.evaluate(() => {
-            const text = document.body.innerText;
-            return { gone: !text.includes('E2E Test Walker'), seated: text.includes('seated') };
-        });
-        console.log(`  Seat: removed=${seatResult.gone} seatedMsg=${seatResult.seated}`);
-        if (seatResult.gone || seatResult.seated) console.log('  ✅ Player seated!');
+    // ===============================================================
+    // STEP 7: Delete the test table (cleanup)
+    // ===============================================================
+    console.log('\n[STEP 7] Cleanup — Delete Test Table');
+    const t99 = tablesList.find(t => t.table_number === 99);
+    if (t99) {
+        const delResult = await page.evaluate(async (tableId) => {
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            try {
+                const res = await fetch(`/api/commander/tables/${tableId}`, {
+                    method: 'DELETE',
+                    headers: { 'x-staff-session': staffSession }
+                });
+                return await res.json();
+            } catch (err) { return { error: err.message }; }
+        }, t99.id);
+        console.log(`  Delete Table 99: ${delResult.success ? '✅ cleaned up' : '⚠️ ' + JSON.stringify(delResult.error)}`);
+    } else if (addTableResult.data?.table?.id) {
+        // Try with the ID from the add response
+        const delResult = await page.evaluate(async (tableId) => {
+            const staffSession = localStorage.getItem('commander_staff') || '';
+            try {
+                const res = await fetch(`/api/commander/tables/${tableId}`, {
+                    method: 'DELETE',
+                    headers: { 'x-staff-session': staffSession }
+                });
+                return await res.json();
+            } catch (err) { return { error: err.message }; }
+        }, addTableResult.data.table.id);
+        console.log(`  Delete Table 99: ${delResult.success ? '✅ cleaned up' : '⚠️'}`);
+    } else {
+        console.log('  ⚠️ No test table to delete.');
     }
 
     // ── FINAL SUMMARY ──
     console.log('\n═══════════════════════════════════════════════════════════════');
-    console.log('  ✅ PHASE 4 COMPLETED — Waitlist operations tested!');
+    const checks = [tablesState.hasHeader || tablesState.hasTable1, addTableResult.success, tablesList.length > 0, floorState.hasFloor || floorState.hasTable];
+    const passCount = checks.filter(Boolean).length;
+    console.log(`  ✅ PHASE 5 COMPLETED — ${passCount}/${checks.length} checks passed!`);
     console.log('═══════════════════════════════════════════════════════════════');
 
     await browser.close();

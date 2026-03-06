@@ -77,10 +77,10 @@ export default function GhostOpponent({
         return () => clearTimeout(timer);
     }, [currentQuestionIndex, isGameActive]);
 
-    // Report final score when game ends
+    // Report final score + name when game ends
     useEffect(() => {
         if (!isGameActive && onOpponentResult) {
-            onOpponentResult(opponentScore);
+            onOpponentResult(opponentScore, opponent.name);
         }
     }, [isGameActive]);
 

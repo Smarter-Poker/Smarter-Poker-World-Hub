@@ -6,6 +6,7 @@
 
 let _ctx = null;
 function getCtx() {
+    if (typeof window === 'undefined') return null;
     if (!_ctx || _ctx.state === 'closed') {
         try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); }
         catch { return null; }
@@ -17,7 +18,7 @@ function getCtx() {
 // ══ Mute Toggle ══
 const MUTE_KEY = 'trivia_audio_muted';
 let _muted = false;
-try { _muted = localStorage.getItem(MUTE_KEY) === 'true'; } catch { }
+try { if (typeof window !== 'undefined') _muted = localStorage.getItem(MUTE_KEY) === 'true'; } catch { }
 
 export function isMuted() { return _muted; }
 export function toggleMute() {

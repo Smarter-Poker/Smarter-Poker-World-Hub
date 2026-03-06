@@ -330,6 +330,9 @@ export default function TriviaGame({
                     currentQuestionIndex={currentIndex}
                     playerCorrectCount={correctCount}
                     isGameActive={isGameActive}
+                    onOpponentResult={(score, name) => {
+                        opponentDataRef.current = { score, name };
+                    }}
                 />
             )}
 
