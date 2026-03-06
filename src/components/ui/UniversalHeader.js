@@ -132,27 +132,25 @@ export default function UniversalHeader({
     onMenuClick = null  // Callback for hamburger menu click
 }) {
     const router = useRouter();
-    const [user, setUser] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cachedUser = localStorage.getItem('sp-cached-header-user');
-                if (cachedUser) return JSON.parse(cachedUser);
-            } catch (e) { }
-        }
-        return null;
-    });
+    const [mounted, setMounted] = useState(false);
+    const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ diamonds: 0 });
     const [activePass, setActivePass] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
-    const [isVip, setIsVip] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try { return localStorage.getItem('sp-vip-status') === 'true'; } catch (e) { return false; }
-        }
-        return false;
-    });
+    const [isVip, setIsVip] = useState(false);
+
+    // Hydrate from cache after mount to avoid SSR mismatch
+    useEffect(() => {
+        setMounted(true);
+        try {
+            const cachedUser = localStorage.getItem('sp-cached-header-user');
+            if (cachedUser) setUser(JSON.parse(cachedUser));
+            if (localStorage.getItem('sp-vip-status') === 'true') setIsVip(true);
+        } catch (e) { }
+    }, []);
 
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
@@ -160,9 +158,9 @@ export default function UniversalHeader({
     // Global Unread Messages State (instant caching)
     const { unreadCount } = useUnreadCount();
 
-    // Derived values to prevent "flash of missing data" on mount
-    const displayAvatar = contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url;
-    const isVipDisplay = isVip || contextVip;
+    // Derived values — use mounted guard for client-only values to prevent hydration mismatch
+    const displayAvatar = mounted ? (contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url) : null;
+    const isVipDisplay = mounted ? (isVip || contextVip) : false;
 
     // Live Help state
     const liveHelp = useLiveHelp();

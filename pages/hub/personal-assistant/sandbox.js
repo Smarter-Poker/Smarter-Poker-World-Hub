@@ -367,13 +367,13 @@ export default function VirtualSandbox() {
   // Save bookmark (Feature #5)
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
   const saveBookmark = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(null), 2000);
-      return;
-    }
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus(null), 2000);
+        return;
+      }
       setSaveStatus('saving');
       const { error } = await supabase.from('sandbox_bookmarks').insert({
         user_id: user.id,
@@ -393,10 +393,10 @@ export default function VirtualSandbox() {
           window.dispatchEvent(new CustomEvent('pa-data-updated'));
         }
       }
-      setTimeout(() => setSaveStatus(null), 2000);
     } catch (e) {
       console.error('Bookmark save error:', e);
       setSaveStatus('error');
+    } finally {
       setTimeout(() => setSaveStatus(null), 2000);
     }
   };

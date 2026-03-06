@@ -60,44 +60,9 @@ export default async function handler(req, res) {
         const userId = user.id;
         const now = new Date().toISOString();
 
-        // NOTE: training_level_history is already inserted by save-progress.js
-        // which is called first. We skip it here to avoid duplicate rows.
-
-        // 2. Update training_progress with GTOW lifetime stats
-        const { data: existing } = await supabase
-            .from('training_progress')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('game_id', gameId)
-            .maybeSingle();
-
-        const progressUpdate = {
-            hands_played: (existing?.hands_played || 0) + (handsPlayed || 0),
-            correct_answers: (existing?.correct_answers || 0) + (correctCount || 0),
-            total_answers: (existing?.total_answers || 0) + (handsPlayed || 0),
-            best_streak: Math.max(bestStreak || 0, existing?.best_streak || 0),
-            current_streak: bestStreak || 0,
-            last_played_at: now,
-        };
-
-        if (levelPassed && level) {
-            progressUpdate.level = Math.max(level + 1, existing?.level || 1);
-        }
-
-        if (existing) {
-            await supabase.from('training_progress')
-                .update(progressUpdate)
-                .eq('user_id', userId)
-                .eq('game_id', gameId);
-        } else {
-            await supabase.from('training_progress')
-                .insert({
-                    user_id: userId,
-                    game_id: gameId,
-                    level: levelPassed ? Math.min((level || 1) + 1, 10) : (level || 1),
-                    ...progressUpdate,
-                });
-        }
+        // NOTE: training_progress is managed exclusively by save-progress.js
+        // to avoid double-write race conditions. This endpoint only writes
+        // to training_sessions for detailed session history.
 
         // 3. Save detailed session to training_sessions (JSONB-rich table)
         // Try to save to training_sessions if the table exists

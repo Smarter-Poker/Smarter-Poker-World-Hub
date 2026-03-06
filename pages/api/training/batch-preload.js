@@ -97,9 +97,9 @@ export default async function handler(req, res) {
                     for (let i = 0; i < boardStr.length; i += 2) {
                         if (i + 1 < boardStr.length) cards.push(boardStr.substring(i, i + 2));
                     }
-                    qData.boardCards = cards.length >= 3 ? cards : _randomBoard();
+                    qData.boardCards = cards.length >= 3 ? cards : _randomBoard(qData.heroCards);
                 } else {
-                    qData.boardCards = _randomBoard();
+                    qData.boardCards = _randomBoard(qData.heroCards);
                 }
             }
 
@@ -180,16 +180,16 @@ export default async function handler(req, res) {
     }
 }
 
-/** Generate a random 3-card board */
-function _randomBoard() {
+/** Generate a random 3-card board, excluding hero cards */
+function _randomBoard(heroCards = []) {
     const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     const suits = ['h', 'd', 'c', 's'];
-    const used = new Set();
+    const used = new Set(heroCards.map(c => c.toLowerCase()));
     const cards = [];
     while (cards.length < 3) {
         const c = ranks[Math.floor(Math.random() * ranks.length)] +
             suits[Math.floor(Math.random() * suits.length)];
-        if (!used.has(c)) { used.add(c); cards.push(c); }
+        if (!used.has(c.toLowerCase())) { used.add(c.toLowerCase()); cards.push(c); }
     }
     return cards;
 }
