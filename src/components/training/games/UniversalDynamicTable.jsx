@@ -1513,6 +1513,65 @@ function UniversalDynamicTable({
                             </div>
                         )}
 
+                        {/* Per-Action EV Comparison — GTO Wizard-style */}
+                        {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                style={{
+                                    marginTop: 6,
+                                    padding: '8px 12px',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    borderRadius: 8,
+                                    border: '1px solid rgba(255,255,255,0.06)',
+                                }}
+                            >
+                                <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1.2, marginBottom: 6, textTransform: 'uppercase' }}>
+                                    EV by Action
+                                </div>
+                                {options.slice(0, 4).map(opt => {
+                                    const optId = opt.id || opt;
+                                    const ev = question.evData.actionEVs[optId];
+                                    if (ev === undefined) return null;
+                                    const maxEV = Math.max(...Object.values(question.evData.actionEVs).filter(v => typeof v === 'number'));
+                                    const minEV = Math.min(...Object.values(question.evData.actionEVs).filter(v => typeof v === 'number'));
+                                    const range = maxEV - minEV || 1;
+                                    const barWidth = Math.max(5, ((ev - minEV) / range) * 100);
+                                    const isOptimal = optId === correctAnswer;
+                                    const isSelected = optId === selectedAnswer;
+                                    const barColor = isOptimal ? '#22c55e' : isSelected ? (classConfig?.color || '#ef4444') : '#475569';
+
+                                    return (
+                                        <div key={optId} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                                            <div style={{
+                                                width: 50, fontSize: 10, fontWeight: 600,
+                                                color: isOptimal ? '#22c55e' : isSelected ? (classConfig?.color || '#94a3b8') : '#94a3b8',
+                                                textAlign: 'right',
+                                            }}>
+                                                {typeof opt === 'object' ? opt.text : opt}
+                                            </div>
+                                            <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 3, overflow: 'hidden' }}>
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${barWidth}%` }}
+                                                    transition={{ duration: 0.5, delay: 0.3 }}
+                                                    style={{ height: '100%', background: barColor, borderRadius: 3 }}
+                                                />
+                                            </div>
+                                            <div style={{
+                                                width: 50, fontSize: 10, fontWeight: 'bold', textAlign: 'right',
+                                                fontFamily: "'Orbitron', monospace",
+                                                color: ev >= 0 ? '#22c55e' : '#ef4444',
+                                            }}>
+                                                {ev >= 0 ? '+' : ''}{ev.toFixed(2)}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </motion.div>
+                        )}
+
                         {/* Explanation */}
                         {explanation && (
                             <div style={styles.feedbackExplanation}>{explanation}</div>
