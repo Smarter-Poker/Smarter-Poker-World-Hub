@@ -47,6 +47,21 @@ export default function VenueIntelPage() {
 
     useEffect(() => { loadGigs(); }, [loadGigs]);
 
+    useEffect(() => {
+        window.addEventListener('toke-gig-completed', loadGigs);
+        return () => window.removeEventListener('toke-gig-completed', loadGigs);
+    }, [loadGigs]);
+
+    // Supabase Real-time Sync for Cross-Device Support
+    useEffect(() => {
+        if (!userId) return;
+        const channel = supabase
+            .channel(`toke-venues-sync-${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, loadGigs)
+            .subscribe();
+        return () => supabase.removeChannel(channel);
+    }, [userId, loadGigs]);
+
     const updatePref = useCallback(async (key, value) => {
         let newPrefs;
         setTokePrefs(prev => {

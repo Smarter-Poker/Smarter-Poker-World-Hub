@@ -81,7 +81,7 @@ const EXPENSE_CATEGORIES = [
     { id: 'tip_out', label: 'Tip Out' },
 ];
 
-function TokeTracker({ userId, refreshTrigger, standalone = false }) {
+function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {} }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
@@ -301,6 +301,8 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
     }, []);
 
     const fireDownNotification = useCallback((lastDown) => {
+        if (tokePrefs.downTimerAlerts === false) return; // 🛡️ Respect user preference
+
         const downLabel = DOWN_TYPE_LABELS[lastDown.down_type] || 'dealing';
         let message = '';
         let title = '⏰ Down Timer';
@@ -393,6 +395,8 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
 
     // ── Request notification permission ──
     const requestNotificationPermission = useCallback(async () => {
+        if (tokePrefs.shiftNotifications === false && tokePrefs.downTimerAlerts === false) return;
+
         try {
             if (typeof window !== 'undefined' && 'Notification' in window) {
                 let perm;

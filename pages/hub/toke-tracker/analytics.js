@@ -21,6 +21,9 @@ export default function TokeAnalyticsPage() {
     const [mounted, setMounted] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
     const [tokePrefs, setTokePrefs] = useState({});
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refreshData = useCallback(() => setRefreshTrigger(t => t + 1), []);
 
     // SSR-safe: hydrate prefs + mount flag on client only
     useEffect(() => {
@@ -54,8 +57,22 @@ export default function TokeAnalyticsPage() {
     useEffect(() => {
         const handler = (e) => { if (e.detail) setTokePrefs(e.detail); };
         window.addEventListener('toke-settings-sync', handler);
-        return () => window.removeEventListener('toke-settings-sync', handler);
-    }, []);
+        window.addEventListener('toke-gig-completed', refreshData);
+        return () => {
+            window.removeEventListener('toke-settings-sync', handler);
+            window.removeEventListener('toke-gig-completed', refreshData);
+        };
+    }, [refreshData]);
+
+    // Supabase Real-time Sync for Cross-Device Support
+    useEffect(() => {
+        if (!userId) return;
+        const channel = supabase
+            .channel(`toke-analytics-sync-${userId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'toke_gigs', filter: `user_id=eq.${userId}` }, refreshData)
+            .subscribe();
+        return () => supabase.removeChannel(channel);
+    }, [userId, refreshData]);
 
     const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
         setShiftNotifications: (v) => updatePref('shiftNotifications', v),
@@ -95,7 +112,7 @@ export default function TokeAnalyticsPage() {
                     <h1 style={s.title}>Analytics</h1>
                     <p style={s.subtitle}>Earnings Breakdown And Trends</p>
 
-                    <TokeDashboard userId={userId} refreshTrigger={0} />
+                    <TokeDashboard userId={userId} refreshTrigger={refreshTrigger} />
                 </div>
             </div>
         </PageTransition>

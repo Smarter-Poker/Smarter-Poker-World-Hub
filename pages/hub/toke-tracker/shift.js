@@ -89,7 +89,7 @@ export default function ShiftTrackerPage() {
                 />
 
                 <div style={s.content}>
-                    <TokeTracker userId={userId} refreshTrigger={0} standalone />
+                    <TokeTracker userId={userId} refreshTrigger={0} standalone tokePrefs={tokePrefs} />
                 </div>
             </div>
         </PageTransition>
