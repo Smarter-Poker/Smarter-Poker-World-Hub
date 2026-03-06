@@ -171,6 +171,148 @@ function HandHistoryRow({ entry, index }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// F14: ACCURACY BY POSITION — Horizontal bar chart per seat
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AccuracyByPositionChart({ handHistory }) {
+    const positionData = useMemo(() => {
+        if (!handHistory || handHistory.length === 0) return [];
+        const byPos = {};
+        handHistory.forEach(h => {
+            const pos = h.handData?.heroPosition || h.handData?.position || 'UNK';
+            if (!byPos[pos]) byPos[pos] = { total: 0, correct: 0 };
+            byPos[pos].total++;
+            if (h.classification === 'best' || h.classification === 'correct') {
+                byPos[pos].correct++;
+            }
+        });
+        return Object.entries(byPos)
+            .map(([pos, data]) => ({
+                position: pos,
+                accuracy: Math.round((data.correct / data.total) * 100),
+                total: data.total,
+            }))
+            .sort((a, b) => b.accuracy - a.accuracy);
+    }, [handHistory]);
+
+    if (positionData.length < 2) return null;
+
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                Accuracy by Position
+            </div>
+            {positionData.map((p, i) => {
+                const color = p.accuracy >= 80 ? '#22c55e' : p.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+                return (
+                    <div key={p.position} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: 40, fontSize: 11, fontWeight: 700, color: '#00d4ff', textAlign: 'right', fontFamily: "'Orbitron', monospace" }}>
+                            {p.position}
+                        </div>
+                        <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${p.accuracy}%` }}
+                                transition={{ duration: 0.6, delay: i * 0.08 }}
+                                style={{ height: '100%', background: color, borderRadius: 4 }}
+                            />
+                        </div>
+                        <div style={{ width: 38, fontSize: 11, fontWeight: 'bold', color, textAlign: 'right' }}>
+                            {p.accuracy}%
+                        </div>
+                        <div style={{ width: 24, fontSize: 9, color: '#64748b', textAlign: 'right' }}>
+                            ({p.total})
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// F15: CLASSIFICATION DONUT CHART — SVG donut of move distribution
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ClassificationDonut({ handHistory, gtowScore }) {
+    const segments = useMemo(() => {
+        if (!handHistory || handHistory.length === 0) return [];
+        const counts = {};
+        Object.values(MOVE_CLASSIFICATIONS).forEach(c => counts[c] = 0);
+        handHistory.forEach(h => { if (h.classification) counts[h.classification]++; });
+        const total = handHistory.length;
+        const colorMap = {};
+        Object.entries(CLASSIFICATION_CONFIG).forEach(([key, cfg]) => { colorMap[key] = cfg.color; });
+
+        let cumAngle = 0;
+        return Object.entries(counts)
+            .filter(([, count]) => count > 0)
+            .map(([key, count]) => {
+                const pct = count / total;
+                const startAngle = cumAngle;
+                cumAngle += pct * 360;
+                return { key, count, pct, startAngle, endAngle: cumAngle, color: colorMap[key] || '#666' };
+            });
+    }, [handHistory]);
+
+    if (segments.length === 0) return null;
+
+    const cx = 55, cy = 55, r = 40, strokeWidth = 12;
+    const circumference = 2 * Math.PI * r;
+    const scoreColor = gtowScore >= 80 ? '#22c55e' : gtowScore >= 60 ? '#fbbf24' : '#ef4444';
+
+    let dashOffset = 0;
+
+    return (
+        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <svg width={110} height={110} viewBox="0 0 110 110">
+                {/* Background ring */}
+                <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={strokeWidth} />
+                {/* Segments */}
+                {segments.map(seg => {
+                    const segLen = seg.pct * circumference;
+                    const offset = dashOffset;
+                    dashOffset += segLen;
+                    return (
+                        <circle
+                            key={seg.key}
+                            cx={cx} cy={cy} r={r}
+                            fill="none"
+                            stroke={seg.color}
+                            strokeWidth={strokeWidth}
+                            strokeDasharray={`${segLen} ${circumference - segLen}`}
+                            strokeDashoffset={-offset}
+                            transform={`rotate(-90 ${cx} ${cy})`}
+                            strokeLinecap="butt"
+                        />
+                    );
+                })}
+                {/* Center score */}
+                <text x={cx} y={cy - 4} textAnchor="middle" fill={scoreColor} fontSize="18" fontWeight="bold" fontFamily="'Orbitron', monospace">
+                    {gtowScore}
+                </text>
+                <text x={cx} y={cy + 10} textAnchor="middle" fill="#64748b" fontSize="7" fontWeight="600" letterSpacing="1">
+                    GTOW
+                </text>
+            </svg>
+            <div style={{ flex: 1 }}>
+                {segments.map(seg => (
+                    <div key={seg.key} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
+                        <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600, flex: 1 }}>
+                            {CLASSIFICATION_CONFIG[seg.key]?.label || seg.key}
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 'bold', color: seg.color }}>
+                            {seg.count} ({Math.round(seg.pct * 100)}%)
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // F4: EV LOSS GRAPH — Cumulative EV loss sparkline
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -547,6 +689,12 @@ function GodModeArena({
                             ))}
                         </div>
                     </div>
+
+                    {/* F15: CLASSIFICATION DONUT CHART */}
+                    <ClassificationDonut handHistory={handHistory} gtowScore={gtowScore} />
+
+                    {/* F14: ACCURACY BY POSITION CHART */}
+                    <AccuracyByPositionChart handHistory={handHistory} />
 
                     {/* F4: EV LOSS GRAPH */}
                     <EVLossGraph handHistory={handHistory} />

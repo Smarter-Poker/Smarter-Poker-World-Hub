@@ -85,7 +85,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [showAddDown, setShowAddDown] = useState(false);
     const [confirmComplete, setConfirmComplete] = useState(false);
@@ -400,6 +400,10 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
             toast.error('Please select or enter a venue');
             return;
         }
+        if (!userId) {
+            toast.error('You must be logged in to create an event', 5000);
+            return;
+        }
         try {
             await createGig(userId, {
                 ...newGig,
@@ -411,7 +415,8 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
             await requestNotificationPermission();
             await loadData();
         } catch (err) {
-            toast.error(err.message || 'Failed to create gig');
+            console.error('[TokeTracker] Failed to create gig:', err);
+            toast.error(err.message || 'Failed to create event — check your connection', 5000);
         }
     };
 
