@@ -19,7 +19,8 @@ const QUESTIONS_PER_LEVEL = TRAINING_CONFIG.questionsPerLevel; // 25 questions p
 
 export default function useMillionaireGame(gameId, engineType = 'PIO', initialLevel = 1, trainerConfig = null) {
     // If custom trainer config provided, use its questions count
-    const effectiveQuestionsPerLevel = trainerConfig?.questionsCount || QUESTIONS_PER_LEVEL;
+    const baseQuestionsPerLevel = trainerConfig?.questionsCount || QUESTIONS_PER_LEVEL;
+    const [effectiveQuestionsPerLevel, setEffectiveQuestionsPerLevel] = useState(baseQuestionsPerLevel);
     // Game state
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [questionNumber, setQuestionNumber] = useState(1);
@@ -140,6 +141,13 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
             setPreloadedQuestions(data.questions);
             setPreloadComplete(true);
             setCurrentQuestion(data.questions[0]);
+
+            // Bug 5 fix: Cap question count at actual returned count to prevent game never ending
+            if (data.questions.length < effectiveQuestionsPerLevel) {
+                console.warn(`[MillionaireGame] API returned ${data.questions.length}/${effectiveQuestionsPerLevel} questions, capping`);
+                setEffectiveQuestionsPerLevel(data.questions.length);
+            }
+
             setLoading(false);
 
         } catch (err) {
@@ -403,7 +411,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
             };
 
-            // 1. Save basic progress (existing)
+            // Save basic progress (training_progress + training_level_history)
             await fetch('/api/training/save-progress', {
                 method: 'POST', headers,
                 body: JSON.stringify({
@@ -418,27 +426,10 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 }),
             });
 
-            // 2. Save detailed session (new — Phase 10)
-            await fetch('/api/training/save-session', {
-                method: 'POST', headers,
-                body: JSON.stringify({
-                    gameId,
-                    gameName: gameId,
-                    gtowScore: gtowScoring.gtowScore,
-                    totalEVLoss: gtowScoring.totalEVLoss,
-                    handsPlayed: gtowScoring.handsPlayed,
-                    mistakeCount: gtowScoring.mistakeCount,
-                    avgEVLossPerHand: gtowScoring.avgEVLossPerHand,
-                    avgEVLossPerMistake: gtowScoring.avgEVLossPerMistake,
-                    avgFrequencyDiff: gtowScoring.avgFrequencyDiff,
-                    accuracy, correctCount, bestStreak,
-                    levelPassed: passed, level,
-                    handHistory: gtowScoring.handHistory,
-                    trainerConfig,
-                }),
-            }).catch(err => console.warn('[MillionaireGame] Save session error:', err));
+            // NOTE: save-session is handled by GodModeArena's auto-save useEffect
+            // to avoid duplicate training_sessions rows.
 
-            // 3. Dispatch event bus for real-time updates across pages
+            // Dispatch event bus for real-time updates across pages
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('trainingSessionSaved', {
                     detail: { gameId, gtowScore: gtowScoring.gtowScore, handsPlayed: gtowScoring.handsPlayed },
@@ -550,8 +541,9 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
+        setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
         preloadAllQuestions();
-    }, [preloadAllQuestions]);
+    }, [preloadAllQuestions, baseQuestionsPerLevel]);
 
     /**
      * Reset entire game
@@ -567,8 +559,9 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setGameComplete(false);
         setLevelPassed(false);
         setPreloadComplete(false);
+        setEffectiveQuestionsPerLevel(baseQuestionsPerLevel); // Reset to original count
         preloadAllQuestions();
-    }, [preloadAllQuestions]);
+    }, [preloadAllQuestions, baseQuestionsPerLevel]);
 
     // 🚀 Pre-load all questions on mount
     useEffect(() => {

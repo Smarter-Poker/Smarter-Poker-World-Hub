@@ -23,6 +23,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 const SUPPRESSED_PATTERNS = [
     'resizeobserver loop',           // Browser layout optimization, not a real error
     'aborterror',                    // User navigated away mid-fetch
+    'signal is aborted',             // Supabase auth-js lock abort during navigation
     'failed to fetch',               // Transient network blip (retried by other systems)
     'load failed',                   // Same as above, Safari variant
     'network request failed',        // Same pattern, React Native bridge
@@ -64,7 +65,10 @@ export default function GlobalErrorCatcher() {
         const handleError = (event) => {
             const message = event?.error?.message || event?.message || String(event);
 
-            if (shouldSuppress(message)) return;
+            if (shouldSuppress(message)) {
+                event.preventDefault(); // 🛡️ Block React dev overlay for harmless errors
+                return;
+            }
 
             console.error('[GlobalErrorCatcher] 🔥 Uncaught error:', event?.error || message);
 
@@ -89,7 +93,10 @@ export default function GlobalErrorCatcher() {
             const reason = event?.reason;
             const message = reason?.message || String(reason);
 
-            if (shouldSuppress(message)) return;
+            if (shouldSuppress(message)) {
+                event.preventDefault(); // 🛡️ Block React dev overlay for harmless errors
+                return;
+            }
 
             console.error('[GlobalErrorCatcher] 🔥 Unhandled promise rejection:', reason);
 

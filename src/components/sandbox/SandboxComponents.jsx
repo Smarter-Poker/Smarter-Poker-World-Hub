@@ -10,6 +10,11 @@
  */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SocialService } from '../../services/SocialService';
+import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
+import toast from '../../stores/toastStore';
+import { claimReward } from '../../lib/claimReward';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
@@ -379,6 +384,8 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
         `📊 Source: ${results.source}\n` +
         `🎯 Analyze your hands at Smarter.Poker`;
 
+    const [isPosting, setIsPosting] = useState(false);
+
     const handleNativeShare = async () => {
         try {
             if (navigator.share) {
@@ -386,9 +393,45 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
             } else { handleCopy(); }
         } catch (e) { console.log('Share cancelled'); }
     };
-    const handleCopy = () => { navigator.clipboard?.writeText(shareText); alert('Copied to clipboard!'); };
+    const handleCopy = () => { navigator.clipboard?.writeText(shareText); toast.success('Copied to clipboard!'); };
+
+    const handleInternalPost = async () => {
+        try {
+            setIsPosting(true);
+            const user = getAuthUser();
+            if (!user) {
+                toast.error('You must be logged in to post.');
+                return;
+            }
+
+            const socialService = new SocialService(supabase);
+            const displayContent = `I just analyzed a hand in the GTO Sandbox!\n\n` +
+                `**Hero:** ${results.heroHand || 'Hand'} on ${scenario?.board || 'Preflop'}\n` +
+                `**Optimal line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\n` +
+                `*${results.explanation?.substring(0, 150) || 'Check out my full analysis on Smarter.Poker.'}...*`;
+
+            const newPost = await socialService.createPost({
+                authorId: user.id,
+                content: displayContent,
+                contentType: 'text',
+                visibility: 'public'
+            });
+
+            if (newPost) {
+                claimReward('/api/rewards/social-post', { userId: user.id, postId: newPost.id }, 'New Post Published');
+                toast.success('Posted to your feed!', 2000);
+                setTimeout(onClose, 1500);
+            }
+        } catch (err) {
+            console.error('Feed post error:', err);
+            toast.error('Failed to post to feed.');
+        } finally {
+            setIsPosting(false);
+        }
+    };
 
     const channels = [
+        { label: isPosting ? '...' : '🃏 Smarter.Poker', onClick: handleInternalPost },
         { label: '📋 Copy', onClick: handleCopy },
         { label: '🔗 Share', onClick: handleNativeShare },
         { label: '🐦 Twitter', onClick: () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank') },
@@ -412,11 +455,14 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
                     {shareText}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {channels.map(ch => (
-                        <button key={ch.label} onClick={ch.onClick} style={{
+                    {channels.map((ch, idx) => (
+                        <button key={ch.label} onClick={ch.onClick} disabled={isPosting && idx === 0} style={{
                             padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '600',
-                            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-                            color: '#e2e8f0', cursor: 'pointer',
+                            background: idx === 0 ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'rgba(255,255,255,0.05)',
+                            border: idx === 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                            color: '#e2e8f0', cursor: isPosting && idx === 0 ? 'wait' : 'pointer',
+                            opacity: isPosting && idx === 0 ? 0.7 : 1,
+                            gridColumn: idx === 0 ? '1 / -1' : 'auto'
                         }}>{ch.label}</button>
                     ))}
                 </div>

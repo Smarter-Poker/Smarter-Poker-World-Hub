@@ -13,6 +13,16 @@ import StreakBadge from './StreakBadge';
 import { supabase } from '../../lib/supabase';
 import { getAuthUser } from '../../lib/authUtils';
 
+// Pre-computed particle positions to avoid Math.random() hydration mismatches
+const SUITS = ['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'];
+const SUIT_PARTICLES = SUITS.map((suit, i) => ({
+    suit,
+    left: (i / 16) * 100 + (((i * 7 + 3) % 10) * 0.6),
+    delay: i * 1.2 + (((i * 13 + 5) % 10) * 0.2),
+    duration: 8 + (((i * 11 + 7) % 10) * 0.6),
+    fontSize: 14 + (((i * 17 + 2) % 10) * 1.2),
+}));
+
 const GAME_COST = 10; // diamonds per game for non-VIP
 const ACKNOWLEDGED_KEY = 'trivia_charge_acknowledged';
 
@@ -278,13 +288,13 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
             {/* ════ Floating Card Suit Particles ════ */}
             {mounted && (
                 <div className="suit-particles" aria-hidden>
-                    {['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'].map((s, i) => (
-                        <span key={i} className={`suit ${s === '♥' || s === '♦' ? 'red' : ''}`} style={{
-                            left: `${(i / 16) * 100 + Math.random() * 6}%`,
-                            animationDelay: `${i * 1.2 + Math.random() * 2}s`,
-                            animationDuration: `${8 + Math.random() * 6}s`,
-                            fontSize: `${14 + Math.random() * 12}px`,
-                        }}>{s}</span>
+                    {SUIT_PARTICLES.map((p, i) => (
+                        <span key={i} className={`suit ${p.suit === '♥' || p.suit === '♦' ? 'red' : ''}`} style={{
+                            left: `${p.left}%`,
+                            animationDelay: `${p.delay}s`,
+                            animationDuration: `${p.duration}s`,
+                            fontSize: `${p.fontSize}px`,
+                        }}>{p.suit}</span>
                     ))}
                 </div>
             )}

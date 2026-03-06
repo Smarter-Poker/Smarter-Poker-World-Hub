@@ -14,13 +14,13 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-  // BUG #246 FIX: Require JWT auth
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // BUG #246 FIX: Require JWT auth
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -31,6 +31,11 @@ export default async function handler(req, res) {
 
         if (!userId) {
             return res.status(400).json({ success: false, error: 'userId is required' });
+        }
+
+        // Bug 6 fix: Validate userId matches the authenticated user
+        if (userId !== _authUser.id) {
+            return res.status(403).json({ success: false, error: 'Cannot access other users\' progress' });
         }
 
         // If gameId is provided, fetch progress for that game only
@@ -59,7 +64,7 @@ export default async function handler(req, res) {
             .select('*')
             .eq('user_id', userId)
             .order('last_played_at', { ascending: false })
-                .limit(100);
+            .limit(100);
 
         if (error) {
             console.error('Error fetching all progress:', error);

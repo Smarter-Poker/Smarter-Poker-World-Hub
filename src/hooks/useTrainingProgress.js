@@ -62,9 +62,13 @@ export default function useTrainingProgress() {
             }
 
             if (userId) {
-                // Fetch from API
+                // Fetch from API with auth header
                 console.log('[useTrainingProgress] Fetching progress for userId:', userId);
-                const response = await fetch(`/api/training/get-progress?userId=${userId}`);
+                const { data: { session: authSession } } = await supabase.auth.getSession();
+                const token = authSession?.access_token;
+                const response = await fetch(`/api/training/get-progress?userId=${userId}`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                });
                 if (response.ok) {
                     const data = await response.json();
                     if (data.success && data.progress) {

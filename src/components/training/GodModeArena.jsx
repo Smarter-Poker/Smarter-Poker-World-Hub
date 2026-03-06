@@ -603,6 +603,7 @@ function GodModeArena({
 
     const [showDrillFilters, setShowDrillFilters] = useState(false);
     const [drillFilters, setDrillFilters] = useState(null);
+    const [mistakesFilterActive, setMistakesFilterActive] = useState(false);
 
     // ═══ Phase 21: Game Phase State Machine ═══
     const [gamePhase, setGamePhase] = useState('splash'); // 'splash' | 'playing' | 'review'
@@ -938,11 +939,7 @@ function GodModeArena({
                         <motion.button
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
-                            onClick={() => {
-                                // Toggle mistakes filter inline - HandReplayViewer will filter
-                                const el = document.getElementById('hand-replay-section');
-                                if (el) el.dataset.mistakesOnly = el.dataset.mistakesOnly === 'true' ? 'false' : 'true';
-                            }}
+                            onClick={() => setMistakesFilterActive(prev => !prev)}
                             style={{
                                 padding: '8px 16px',
                                 borderRadius: 8,
@@ -1024,7 +1021,11 @@ function GodModeArena({
 
                     {/* HAND HISTORY — Enhanced Replay Viewer */}
                     <div id="hand-replay-section">
-                        <HandReplayViewer handHistory={handHistory} />
+                        <HandReplayViewer handHistory={
+                            mistakesFilterActive
+                                ? handHistory.filter(h => h.classification && h.classification !== 'Best' && h.classification !== 'Good')
+                                : handHistory
+                        } />
                     </div>
 
                     {/* POSITION STATS -- Per-position breakdown */}
@@ -1049,12 +1050,12 @@ function GodModeArena({
                     {/* ACTION BUTTONS */}
                     <div style={styles.reviewActions}>
                         {levelPassed && currentLevel < TRAINING_CONFIG.totalLevels && (
-                            <button onClick={startNextLevel} style={styles.nextLevelButton}>
+                            <button onClick={() => { sessionSavedRef.current = false; startNextLevel(); }} style={styles.nextLevelButton}>
                                 Next Level ({currentLevel + 1})
                             </button>
                         )}
                         {!levelPassed && (
-                            <button onClick={retryLevel} style={styles.retryButton}>
+                            <button onClick={() => { sessionSavedRef.current = false; retryLevel(); }} style={styles.retryButton}>
                                 Retry Level {currentLevel}
                             </button>
                         )}

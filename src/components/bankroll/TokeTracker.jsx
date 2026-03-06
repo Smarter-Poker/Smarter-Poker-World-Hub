@@ -300,6 +300,14 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
         }, durationMs);
     }, []);
 
+    const [showDoubleDownPrompt, setShowDoubleDownPrompt] = useState(false);
+    const [promptDown, setPromptDown] = useState(null);
+
+    const handleDoubleDownPrompt = useCallback((lastDown) => {
+        setPromptDown(lastDown);
+        setShowDoubleDownPrompt(true);
+    }, []);
+
     const fireDownNotification = useCallback((lastDown) => {
         // 1. ALWAYS fire the in-app prompt regardless of system notification settings
         handleDoubleDownPrompt(lastDown);
@@ -340,14 +348,6 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             // Silently fail if blocked by sandbox
         }
     }, [tokePrefs.downTimerAlerts, handleDoubleDownPrompt]);
-
-    const [showDoubleDownPrompt, setShowDoubleDownPrompt] = useState(false);
-    const [promptDown, setPromptDown] = useState(null);
-
-    const handleDoubleDownPrompt = useCallback((lastDown) => {
-        setPromptDown(lastDown);
-        setShowDoubleDownPrompt(true);
-    }, []);
 
     const handleDoubleDownYes = async () => {
         if (!promptDown || !activeGig) return;

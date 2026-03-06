@@ -320,6 +320,8 @@ export function useRecentSessions(limit = 10) {
           board_turn,
           board_river,
           villain_config,
+          action_history,
+          pot_size_bb,
           created_at,
           sandbox_results (
             primary_action,
@@ -338,15 +340,21 @@ export function useRecentSessions(limit = 10) {
           id: s.id,
           title: `${s.hero_position} with ${s.hero_hand}`,
           stack: `${s.hero_stack_bb}BB`,
+          hero_stack: s.hero_stack_bb, // Raw numeric value for restore
+          hero_position: s.hero_position,
+          hero_hand: s.hero_hand,
+          game_type: s.game_type,
           evLoss: 0, // Would need actual EV data
           type: 'sandbox',
           date: s.created_at,
           result: s.sandbox_results?.[0]?.primary_action,
-          // Newly added fields for full restoration
+          // Full restoration fields
           board_flop: s.board_flop,
           board_turn: s.board_turn,
           board_river: s.board_river,
           villain_config: s.villain_config,
+          action_history: s.action_history,
+          pot_size_bb: s.pot_size_bb,
         }));
         setSessions(formatted);
       }
@@ -368,6 +376,89 @@ export function useRecentSessions(limit = 10) {
   }, [fetchSessions]);
 
   return { sessions, isLoading, refetch: fetchSessions };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// useBookmarks — Fetch saved sandbox bookmarks
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useBookmarks(limit = 15) {
+  const [bookmarks, setBookmarks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchBookmarks = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const user = getAuthUser();
+
+      if (!user) {
+        // Fallback to localStorage for guests
+        if (typeof window !== 'undefined') {
+          const stored = JSON.parse(localStorage.getItem('sandbox_bookmarks') || '[]');
+          setBookmarks(stored.slice(0, limit).map(b => ({
+            ...b,
+            title: b.label || 'Saved Scenario',
+            stack: `${b.hero_stack || 100}BB`,
+            type: 'bookmark',
+            villain_config: typeof b.villains === 'string' ? JSON.parse(b.villains) : b.villains,
+            action_history: typeof b.action_history === 'string' ? JSON.parse(b.action_history) : b.action_history,
+          })));
+        } else {
+          setBookmarks([]);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      const token = await getAuthToken();
+      const { data, error } = await supabase
+        .from('sandbox_bookmarks')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching bookmarks:', error);
+        setBookmarks([]);
+      } else {
+        const formatted = (data || []).map(b => ({
+          id: b.id,
+          title: b.label || b.hero_hand || 'Saved Scenario',
+          stack: `${b.hero_stack || 100}BB`,
+          hero_stack: b.hero_stack,
+          hero_position: b.hero_position,
+          hero_hand: b.hero_hand,
+          game_type: b.game_type,
+          type: 'bookmark',
+          date: b.created_at,
+          board_flop: b.board_flop,
+          board_turn: b.board_turn,
+          board_river: b.board_river,
+          villain_config: typeof b.villain_config === 'string' ? JSON.parse(b.villain_config) : b.villain_config,
+          action_history: typeof b.action_history === 'string' ? JSON.parse(b.action_history) : b.action_history,
+          pot_size_bb: b.pot_size_bb,
+        }));
+        setBookmarks(formatted);
+      }
+    } catch (err) {
+      console.error('Fetch bookmarks error:', err);
+      setBookmarks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [limit]);
+
+  useEffect(() => {
+    fetchBookmarks();
+
+    // 🔄 BUS LISTENER for real-time Bookmark updates
+    const handleUpdate = () => fetchBookmarks();
+    window.addEventListener('pa-data-updated', handleUpdate);
+    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+  }, [fetchBookmarks]);
+
+  return { bookmarks, isLoading, refetch: fetchBookmarks };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

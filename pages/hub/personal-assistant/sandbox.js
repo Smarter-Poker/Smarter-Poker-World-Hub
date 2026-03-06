@@ -17,10 +17,10 @@
  * 13. Onboarding Tour
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSandboxAnalysis, useArchetypes, useRecentSessions } from '../../../src/hooks/useAssistant';
+import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
@@ -169,36 +169,65 @@ function EquityDisplay({ heroHand, board }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RECENT SESSIONS SIDEBAR (Feature #6)
+// RECENT SESSIONS & BOOKMARKS SIDEBAR (Feature #6 + Gap #1)
 // ═══════════════════════════════════════════════════════════════
 function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
   const { sessions } = useRecentSessions(15);
+  const { bookmarks } = useBookmarks(15);
+  const [activeTab, setActiveTab] = useState('sessions');
+
   if (!isOpen) return null;
+
+  const displayList = activeTab === 'sessions' ? sessions : bookmarks;
 
   return (
     <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
       style={{
         position: 'fixed', left: 0, top: 0, bottom: 0, width: '280px', zIndex: 1000,
         background: '#0f172a', borderRight: '1px solid rgba(255,255,255,0.1)',
-        padding: '16px', overflowY: 'auto',
+        padding: '16px', display: 'flex', flexDirection: 'column'
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>Recent Sessions</h3>
+        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>History</h3>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}>×</button>
       </div>
-      {sessions.length === 0 ? (
-        <p style={{ color: '#475569', fontSize: '12px' }}>No sessions yet. Run your first analysis!</p>
-      ) : sessions.map((s, i) => (
-        <button key={s.id || i} onClick={() => { onLoad(s); onClose(); }}
+
+      {/* Sessions / Bookmarks Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px' }}>
+        <button onClick={() => setActiveTab('sessions')}
           style={{
-            width: '100%', padding: '10px', marginBottom: '6px', borderRadius: '8px', textAlign: 'left',
-            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-            color: '#e2e8f0', cursor: 'pointer', fontSize: '12px',
-          }}>
-          <div style={{ fontWeight: '600' }}>{s.title}</div>
-          <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>{s.stack} • {s.result || '—'}</div>
-        </button>
-      ))}
+            flex: 1, padding: '6px 0', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', border: 'none',
+            background: activeTab === 'sessions' ? 'rgba(59,130,246,0.3)' : 'transparent',
+            color: activeTab === 'sessions' ? '#93c5fd' : '#64748b'
+          }}>Sessions</button>
+        <button onClick={() => setActiveTab('bookmarks')}
+          style={{
+            flex: 1, padding: '6px 0', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', border: 'none',
+            background: activeTab === 'bookmarks' ? 'rgba(59,130,246,0.3)' : 'transparent',
+            color: activeTab === 'bookmarks' ? '#93c5fd' : '#64748b'
+          }}>Bookmarks</button>
+      </div>
+
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {displayList.length === 0 ? (
+          <p style={{ color: '#475569', fontSize: '12px', textAlign: 'center', marginTop: '40px' }}>
+            {activeTab === 'sessions' ? 'No recent sessions.' : 'No saved bookmarks yet.'}
+          </p>
+        ) : displayList.map((s, i) => (
+          <button key={s.id || i} onClick={() => { onLoad(s); onClose(); }}
+            style={{
+              width: '100%', padding: '10px', marginBottom: '6px', borderRadius: '8px', textAlign: 'left',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              color: '#e2e8f0', cursor: 'pointer', fontSize: '12px',
+            }}
+          >
+            <div style={{ fontWeight: '600' }}>{s.title}</div>
+            <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>
+              {s.type === 'bookmark' ? `⭐ ${s.stack}` : `${s.stack} • ${s.result || '—'}`}
+            </div>
+          </button>
+        ))}
+      </div>
     </motion.div>
   );
 }
@@ -221,6 +250,7 @@ export default function VirtualSandbox() {
   const [board, setBoard] = useState({ flop: [], turn: null, river: null });
   const [actionHistory, setActionHistory] = useState([]);
   const [potSize, setPotSize] = useState(6);
+  const skipPotCalcRef = useRef(false); // Bug 14 fix: prevent pot size race on session restore
 
   // UI State
   const [deckTarget, setDeckTarget] = useState(null); // 'hero1','hero2','board'
@@ -284,6 +314,11 @@ export default function VirtualSandbox() {
 
   // Pot calculation
   useEffect(() => {
+    // Bug 14 fix: skip recalc when restoring from session
+    if (skipPotCalcRef.current) {
+      skipPotCalcRef.current = false;
+      return;
+    }
     let pot = 1.5;
     actionHistory.forEach(a => {
       if (a.action === 'bet_33') pot += pot * 0.33;
@@ -344,7 +379,7 @@ export default function VirtualSandbox() {
         user_id: user.id,
         hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
         hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
-        board_flop: board.flop.join(','), board_turn: board.turn, board_river: board.river,
+        board_flop: board.flop.join(''), board_turn: board.turn, board_river: board.river,
         villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
         label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
       });
@@ -412,14 +447,17 @@ export default function VirtualSandbox() {
             setHeroHand({ card1: h.length >= 2 ? h.substring(0, 2) : null, card2: h.length >= 4 ? h.substring(2, 4) : null });
           }
           if (session.hero_position) setHeroPosition(session.hero_position);
-          if (session.hero_stack) setHeroStack(session.hero_stack);
+          if (session.hero_stack != null) setHeroStack(Number(session.hero_stack) || 100);
           if (session.game_type) setGameType(session.game_type);
 
-          // Restore Board
+          // Restore Board — handle both comma-separated ("As,Kd,Jh") and concatenated ("AsKdJh") formats
           const newBoard = { flop: [], turn: null, river: null };
           if (session.board_flop) {
-            // board_flop is a string like "AsKdJh", split into 2-char chunks:
-            newBoard.flop = session.board_flop.match(/.{1,2}/g) || [];
+            if (session.board_flop.includes(',')) {
+              newBoard.flop = session.board_flop.split(',').filter(Boolean);
+            } else {
+              newBoard.flop = session.board_flop.match(/.{1,2}/g) || [];
+            }
           }
           if (session.board_turn) newBoard.turn = session.board_turn;
           if (session.board_river) newBoard.river = session.board_river;
@@ -433,8 +471,18 @@ export default function VirtualSandbox() {
             setVillains([{ position: session.hero_position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: session.hero_stack || 100 }]);
           }
 
-          // Note: actionHistory isn't saved in sandbox_sessions currently, so we clear it.
-          setActionHistory([]);
+          // Restore Action History from Bookmarks
+          if (session.action_history && Array.isArray(session.action_history)) {
+            setActionHistory(session.action_history);
+          } else {
+            setActionHistory([]);
+          }
+
+          // Restore pot size (Bug 12 + 14)
+          if (session.pot_size_bb) {
+            skipPotCalcRef.current = true;
+            setPotSize(session.pot_size_bb);
+          }
           clearResults();
         }} />
       )}</AnimatePresence>
@@ -636,10 +684,12 @@ export default function VirtualSandbox() {
                           runPositionComparison(p);
                         }
                       }}
+                      disabled={isAnalyzing}
                       style={{
                         padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                         background: isCurrentTarget ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)', color: isCurrentTarget ? '#93c5fd' : '#94a3b8', cursor: 'pointer',
+                        border: '1px solid rgba(255,255,255,0.1)', color: isCurrentTarget ? '#93c5fd' : '#94a3b8',
+                        cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
                       }}>{p}</button>
                   );
                 })}
