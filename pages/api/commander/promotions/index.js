@@ -142,13 +142,30 @@ async function createPromotion(req, res) {
     }
 
     // Check if user is staff at this venue
-    const { data: staff } = await supabase
+    let staff = null;
+    const { data: staffRow } = await supabase
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
+
+    if (staffRow) {
+      staff = staffRow;
+    } else {
+      // Fallback: check if user is the venue owner via subscription
+      const { data: sub } = await supabase
+        .from('commander_subscriptions')
+        .select('id, venue_id, owner_id')
+        .eq('owner_id', user.id)
+        .eq('venue_id', venue_id)
+        .in('status', ['active', 'trialing'])
+        .single();
+      if (sub) {
+        staff = { id: user.id, role: 'owner', _isOwnerFallback: true };
+      }
+    }
 
     if (!staff) {
       return res.status(403).json({ success: false, error: 'You are not authorized to create promotions for this venue' });
@@ -213,7 +230,7 @@ async function createPromotion(req, res) {
         image_url,
         terms_conditions,
         settings,
-        created_by: staff.id
+        created_by: staff._isOwnerFallback ? null : staff.id
       })
       .select(`
         *,

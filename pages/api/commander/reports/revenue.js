@@ -38,13 +38,27 @@ export default async function handler(req, res) {
     const { venue_id, range = 'month', start: customStart, end: customEnd } = req.query;
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
 
-    const { data: staff } = await supabase
+    let staff = null;
+    const { data: staffRow } = await supabase
       .from('commander_staff')
       .select('id, role')
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
+    if (staffRow) {
+      staff = staffRow;
+    } else {
+      // Fallback: check if user is the venue owner via subscription
+      const { data: sub } = await supabase
+        .from('commander_subscriptions')
+        .select('id, venue_id, owner_id')
+        .eq('owner_id', user.id)
+        .eq('venue_id', venue_id)
+        .in('status', ['active', 'trialing'])
+        .single();
+      if (sub) staff = { id: user.id, role: 'owner' };
+    }
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const { start, end } = getDateRange(range, customStart, customEnd);

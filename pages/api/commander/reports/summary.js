@@ -36,14 +36,29 @@ export default async function handler(req, res) {
     const { range = 'today' } = req.query;
     const { start, end } = getDateRange(range);
 
-    // Get venue from staff record
-    const { data: staff } = await supabase
+    // Get venue from staff record, with owner fallback
+    let staffVenueId = null;
+    const { data: staffRow } = await supabase
       .from('commander_staff')
       .select('venue_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
-    if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
+    if (staffRow) {
+      staffVenueId = staffRow.venue_id;
+    } else {
+      // Fallback: check if user is a venue owner via subscription
+      const { data: sub } = await supabase
+        .from('commander_subscriptions')
+        .select('venue_id')
+        .eq('owner_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .limit(1)
+        .single();
+      if (sub) staffVenueId = sub.venue_id;
+    }
+    if (!staffVenueId) return res.status(403).json({ success: false, error: 'Staff access required' });
+    const staff = { venue_id: staffVenueId };
 
     // Tournament stats
     const { data: tournaments } = await supabase

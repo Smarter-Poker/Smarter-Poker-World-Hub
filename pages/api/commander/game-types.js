@@ -15,7 +15,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -28,12 +28,26 @@ export default async function handler(req, res) {
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { data: staff } = await supabase
+    let staff = null;
+    const { data: staffRow } = await supabase
       .from('commander_staff')
       .select('venue_id, role, name')
       .eq('user_id', user.id)
       .eq('is_active', true)
       .single();
+    if (staffRow) {
+      staff = staffRow;
+    } else {
+      // Fallback: check if user is a venue owner via subscription
+      const { data: sub } = await supabase
+        .from('commander_subscriptions')
+        .select('id, venue_id, owner_id')
+        .eq('owner_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .limit(1)
+        .single();
+      if (sub) staff = { venue_id: sub.venue_id, role: 'owner', name: 'Owner' };
+    }
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const venueId = staff.venue_id;
@@ -47,11 +61,11 @@ export default async function handler(req, res) {
         .eq('venue_id', venueId)
         .order('sort_order', { ascending: true })
         .order('name', { ascending: true })
-            .limit(100);
+        .limit(100);
 
       if (!showInactive) {
         query = query.eq('is_active', true)
-            .limit(100);
+          .limit(100);
       }
 
       const { data, error } = await query;
@@ -66,7 +80,7 @@ export default async function handler(req, res) {
       }
 
       const { name, short_code, stakes, min_buyin, max_buyin, max_players,
-              rake_type, rake_percent, rake_cap, time_rate, color, notes, sort_order } = req.body;
+        rake_type, rake_percent, rake_cap, time_rate, color, notes, sort_order } = req.body;
 
       if (!name || !short_code || !stakes) {
         return res.status(400).json({ success: false, error: 'Name, short code, and stakes are required' });
@@ -116,8 +130,8 @@ export default async function handler(req, res) {
 
       const updates = {};
       const allowed = ['name', 'short_code', 'stakes', 'min_buyin', 'max_buyin', 'max_players',
-                        'rake_type', 'rake_percent', 'rake_cap', 'time_rate', 'color', 'notes',
-                        'sort_order', 'is_active'];
+        'rake_type', 'rake_percent', 'rake_cap', 'time_rate', 'color', 'notes',
+        'sort_order', 'is_active'];
       for (const key of allowed) {
         if (req.body[key] !== undefined) {
           updates[key] = key === 'short_code' ? req.body[key].toUpperCase() : req.body[key];
