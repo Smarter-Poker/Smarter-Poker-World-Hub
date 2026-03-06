@@ -493,14 +493,34 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             return;
         }
 
-        // Bulletproof fallback: manually check session if prop is falsy
+        // Bulletproof fallback: 3-layer userId resolution
         let actualUserId = userId;
         if (!actualUserId) {
+            // Layer 1: Read Supabase session directly from localStorage (synchronous, never throws)
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                actualUserId = session?.user?.id;
-            } catch (err) {
-                console.warn('[TokeTracker] session fallback check failed:', err);
+                const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (storageKey) {
+                    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                    actualUserId = stored?.user?.id || stored?.currentSession?.user?.id;
+                }
+            } catch (e) { /* ignore parse errors */ }
+
+            // Layer 2: Try supabase.auth.getSession() (may fail with AbortError)
+            if (!actualUserId) {
+                try {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    actualUserId = session?.user?.id;
+                } catch (err) {
+                    console.warn('[TokeTracker] getSession fallback failed:', err?.message);
+                }
+            }
+
+            // Layer 3: Try custom smarter-poker-auth key
+            if (!actualUserId) {
+                try {
+                    const custom = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    actualUserId = custom?.user?.id;
+                } catch (e) { /* ignore */ }
             }
         }
 
