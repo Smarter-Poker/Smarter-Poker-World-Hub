@@ -190,8 +190,116 @@ export class DeterministicGTOEngine {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // SOLVED SPOTS ENGINE (Postflop GTO)
+    // MULTI-STREET: Query next street solver data
     // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Query solver data for the next street (turn or river).
+     * Called by MultiStreetHandManager after hero makes a decision.
+     *
+     * @param {Object} params
+     * @param {Object} params.gameConfig - PIO game config
+     * @param {string} params.heroHand - Hero's hand notation (e.g., 'AKs')
+     * @param {string[]} params.boardCards - Current board cards (e.g., ['3h', '7c', '7s', '9d'])
+     * @param {string} params.street - Street to query ('turn' or 'river')
+     * @param {number} params.pot - Current pot in BB
+     * @param {number} params.stackDepth - Stack depth in BB
+     * @param {string} params.heroPosition - Hero's position
+     * @param {string} params.villainPosition - Villain's position
+     * @returns {Object|null} Question with real solver data, or null
+     */
+    async queryNextStreet({ gameConfig, heroHand, boardCards, street, pot, stackDepth, heroPosition, villainPosition }) {
+        if (!gameConfig || !boardCards || boardCards.length < 3) return null;
+
+        try {
+            // Build the board suffix for hash matching
+            const boardStr = boardCards.map(c => c.toLowerCase()).join('');
+
+            // Try exact match first — scenario_hash contains the board
+            const { data: exactMatches, error: exactErr } = await supabase
+                .from('solved_spots_gold')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .eq('game_type', gameConfig.pioGameType)
+                .eq('stack_depth', gameConfig.pioStackDepth)
+                .eq('street', street)
+                .ilike('scenario_hash', `%${boardStr}%`)
+                .limit(5);
+
+            if (exactErr) {
+                console.error('[DeterministicEngine] queryNextStreet exact match error:', exactErr.message);
+            }
+
+            if (exactMatches && exactMatches.length > 0) {
+                // Found an exact board match — use it
+                const scenario = exactMatches[Math.floor(Math.random() * exactMatches.length)];
+                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
+
+                if (question) {
+                    console.log(`[DeterministicEngine] ✅ Multi-street: found ${street} data for board ${boardStr}`);
+                    return question;
+                }
+            }
+
+            // No exact match — try partial board match (flop portion only)
+            const flopStr = boardCards.slice(0, 3).map(c => c.toLowerCase()).join('');
+            const { data: partialMatches } = await supabase
+                .from('solved_spots_gold')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .eq('game_type', gameConfig.pioGameType)
+                .eq('stack_depth', gameConfig.pioStackDepth)
+                .eq('street', street)
+                .ilike('scenario_hash', `%${flopStr}%`)
+                .limit(5);
+
+            if (partialMatches && partialMatches.length > 0) {
+                const scenario = partialMatches[Math.floor(Math.random() * partialMatches.length)];
+                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
+
+                if (question) {
+                    // Override board with our actual board (partial match may have different turn/river)
+                    question.scenario.board = boardCards.join(' ');
+                    question.boardCards = boardCards;
+                    console.log(`[DeterministicEngine] ✅ Multi-street: partial match for ${street} (flop: ${flopStr})`);
+                    return question;
+                }
+            }
+
+            // No match at all — try ANY scenario on this street (same game type)
+            // This gives us solver-accurate frequencies even if the exact board doesn't match
+            const { data: anyMatches } = await supabase
+                .from('solved_spots_gold')
+                .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+                .eq('game_type', gameConfig.pioGameType)
+                .eq('stack_depth', gameConfig.pioStackDepth)
+                .eq('street', street)
+                .limit(10);
+
+            if (anyMatches && anyMatches.length > 0) {
+                const scenario = anyMatches[Math.floor(Math.random() * anyMatches.length)];
+                const question = this.buildQuestionFromScenario(scenario, gameConfig, 5, 0);
+
+                if (question) {
+                    // Override with our actual board and hero hand
+                    question.scenario.board = boardCards.join(' ');
+                    question.boardCards = boardCards;
+                    question.heroHand = heroHand;
+                    question.heroCards = parseHandToCards(heroHand);
+                    question.scenario.heroHand = heroHand;
+                    question.scenario.pot = Math.round(pot);
+                    question.question = `You hold ${heroHand} on the ${street}. Board: ${boardCards.join(' ')}. What is the GTO play?`;
+                    console.log(`[DeterministicEngine] ⚠️ Multi-street: using similar ${street} scenario (different board)`);
+                    return question;
+                }
+            }
+
+            console.log(`[DeterministicEngine] ❌ No ${street} solver data available for ${gameConfig.pioGameType}`);
+            return null;
+        } catch (err) {
+            console.error('[DeterministicEngine] queryNextStreet error:', err.message);
+            return null;
+        }
+    }
+
 
     async generateFromSolvedSpots(gameConfig, level, seenIds) {
         const scenarios = await this.fetchSolverPool(gameConfig, level, 25);

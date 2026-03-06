@@ -613,6 +613,9 @@ function UniversalDynamicTable({
     sessionMistakes = 0,           // Mistake count this session
     // UI-2: Manual advance callback
     onNextHand = null,             // Called when user clicks "Next Hand →"
+    // Multi-street props
+    isMultiStreetActive = false,    // Whether we're mid-hand across streets
+    currentStreet = 'flop',         // Current street: 'flop', 'turn', 'river'
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -964,6 +967,37 @@ function UniversalDynamicTable({
                         }}>
                             {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? 'SOLVER' : 'AI'}
                         </div>
+                    )}
+                    {/* Multi-Street Indicator Badge */}
+                    {isMultiStreetActive && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            style={{
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                fontSize: 9,
+                                fontWeight: 'bold',
+                                letterSpacing: 1,
+                                background: currentStreet === 'river'
+                                    ? 'rgba(239, 68, 68, 0.15)'
+                                    : currentStreet === 'turn'
+                                        ? 'rgba(251, 146, 60, 0.15)'
+                                        : 'rgba(34, 197, 94, 0.15)',
+                                color: currentStreet === 'river'
+                                    ? '#f87171'
+                                    : currentStreet === 'turn'
+                                        ? '#fb923c'
+                                        : '#4ade80',
+                                border: `1px solid ${currentStreet === 'river'
+                                    ? 'rgba(239,68,68,0.3)'
+                                    : currentStreet === 'turn'
+                                        ? 'rgba(251,146,60,0.3)'
+                                        : 'rgba(34,197,94,0.3)'}`,
+                            }}
+                        >
+                            {currentStreet.toUpperCase()}
+                        </motion.div>
                     )}
                     {/* GTOW Score */}
                     <div style={{ ...styles.scoreBadge, borderColor: scoreColor }}>
@@ -1434,7 +1468,7 @@ function UniversalDynamicTable({
                             show={!!question?.rawFrequencies}
                         />
 
-                        {/* UI-2: Next Hand button (replaces auto-advance timer) */}
+                        {/* UI-2: Next Hand / Continue Hand button */}
                         {onNextHand ? (
                             <motion.button
                                 onClick={onNextHand}
@@ -1447,9 +1481,13 @@ function UniversalDynamicTable({
                                     marginTop: 8,
                                     padding: '10px 28px',
                                     borderRadius: 10,
-                                    border: '1px solid rgba(0, 212, 255, 0.4)',
-                                    background: 'linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
-                                    color: '#00d4ff',
+                                    border: isMultiStreetActive
+                                        ? '1px solid rgba(251, 146, 60, 0.5)'
+                                        : '1px solid rgba(0, 212, 255, 0.4)',
+                                    background: isMultiStreetActive
+                                        ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.2) 0%, rgba(251, 146, 60, 0.05) 100%)'
+                                        : 'linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
+                                    color: isMultiStreetActive ? '#fb923c' : '#00d4ff',
                                     fontSize: 14,
                                     fontWeight: 700,
                                     cursor: 'pointer',
@@ -1457,7 +1495,7 @@ function UniversalDynamicTable({
                                     fontFamily: "'Inter', -apple-system, sans-serif",
                                 }}
                             >
-                                Next Hand →
+                                {isMultiStreetActive ? 'Continue Hand →' : 'Next Hand →'}
                             </motion.button>
                         ) : (
                             <motion.div
@@ -1470,8 +1508,9 @@ function UniversalDynamicTable({
                         )}
                     </motion.div>
                 </motion.div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }
 

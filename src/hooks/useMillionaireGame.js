@@ -9,7 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getAuthUser, getSessionToken } from '../lib/authUtils';
 import TRAINING_CONFIG, { checkLevelPassed, getXPReward, getRequiredCorrect } from '../config/trainingConfig';
 import useGTOWScore, { simulateGTOFrequencies, classifyMove } from './useGTOWScore';
@@ -48,6 +48,13 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
     const [lastMoveClassification, setLastMoveClassification] = useState(null);
     const [lastEVLoss, setLastEVLoss] = useState(0);
     const [lastGTOFrequencies, setLastGTOFrequencies] = useState(null);
+
+    // ═══ MULTI-STREET STATE ═══
+    const [currentStreet, setCurrentStreet] = useState('flop');
+    const [isMultiStreetActive, setIsMultiStreetActive] = useState(false);
+    const [handSummary, setHandSummary] = useState(null);
+    const [lastSelectedAction, setLastSelectedAction] = useState(null);
+    const multiStreetHandRef = useRef(null);
 
     // Get user ID for no-repeat tracking
     const userId = getAuthUser()?.id;
@@ -247,9 +254,87 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         setExplanation(currentQuestion.explanation || '');
         setShowFeedback(true);
 
+        // Store the selected action for multi-street advance
+        setLastSelectedAction(selectedOptionId);
+
+        // ═══ MULTI-STREET: Record action on current hand ═══
+        if (multiStreetHandRef.current && !multiStreetHandRef.current.isComplete) {
+            multiStreetHandRef.current.recordAction(
+                selectedOptionId,
+                moveResult.classification,
+                moveResult.evLoss
+            );
+        }
+
         // Record to backend (async, non-blocking)
         recordAnswer(currentQuestion.id, selectedOptionId, isCorrect);
     }, [currentQuestion, showFeedback, bestStreak, recordAnswer, level, gtowScoring]);
+
+    /**
+     * ═══ MULTI-STREET: Advance to next street within same hand ═══
+     * Called by nextQuestion() when multi-street hand is active.
+     * Queries API for next-street solver data.
+     */
+    const advanceToNextStreet = useCallback(async () => {
+        const hand = multiStreetHandRef.current;
+        if (!hand || hand.isComplete) return false;
+
+        try {
+            setLoading(true);
+
+            // Call API endpoint to get next-street question
+            const token = getSessionToken();
+            const params = new URLSearchParams({
+                gameId,
+                heroHand: hand.heroHand,
+                boardCards: hand.boardCards.join(','),
+                street: hand.nextStreetName,
+                pot: Math.round(hand.pot).toString(),
+                stackDepth: hand.stackDepth.toString(),
+            });
+
+            const response = await fetch(`/api/training/next-street?${params}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.question) {
+                    // Enrich with multi-street context
+                    const nextQ = data.question;
+                    nextQ.scenario = {
+                        ...nextQ.scenario,
+                        isMultiStreet: true,
+                        streetNumber: hand.streetIndex + 2,
+                        previousActions: hand.streetActions,
+                        pot: Math.round(hand.pot),
+                        board: hand.boardCards.join(' ') + ' ' + (data.newCard || ''),
+                    };
+                    nextQ.heroCards = hand.heroCards;
+
+                    setCurrentQuestion(nextQ);
+                    setCurrentStreet(hand.nextStreetName);
+                    setShowFeedback(false);
+                    setLoading(false);
+                    return true;
+                }
+            }
+
+            // Next street failed — end the hand
+            setIsMultiStreetActive(false);
+            setHandSummary(hand.getHandSummary());
+            multiStreetHandRef.current = null;
+            setLoading(false);
+            return false;
+
+        } catch (err) {
+            console.warn('[MillionaireGame] Multi-street advance error:', err);
+            setIsMultiStreetActive(false);
+            multiStreetHandRef.current = null;
+            setLoading(false);
+            return false;
+        }
+    }, [gameId]);
 
     /**
      * Save progress to database
@@ -286,11 +371,29 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
 
     /**
      * Advance to next question or complete level
-     * 🚀 INSTANT - Serves from pre-loaded array, no API call
-     * FALLBACK - Fetches single question if pre-load failed
+     * 🚀 MULTI-STREET: First tries to advance the street within same hand
+     * If no next street → advance to next hand from pre-loaded array
      */
-    const nextQuestion = useCallback(() => {
+    const nextQuestion = useCallback(async () => {
         setShowFeedback(false);
+
+        // ═══ MULTI-STREET: Try advancing street first ═══
+        if (isMultiStreetActive && multiStreetHandRef.current && !multiStreetHandRef.current.isComplete) {
+            // Hero didn't fold — try to advance to next street
+            if (lastSelectedAction !== 'f') {
+                const advanced = await advanceToNextStreet();
+                if (advanced) return; // Successfully moved to next street
+            }
+
+            // Multi-street hand is done — save summary
+            setHandSummary(multiStreetHandRef.current.getHandSummary());
+            setIsMultiStreetActive(false);
+            multiStreetHandRef.current = null;
+        }
+
+        // Reset street state for new hand
+        setCurrentStreet('flop');
+        setHandSummary(null);
 
         if (questionNumber >= QUESTIONS_PER_LEVEL) {
             // Level complete
@@ -305,15 +408,30 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         } else {
             if (preloadComplete && preloadedQuestions[questionNumber]) {
                 // Serve next question from pre-loaded array (INSTANT)
-                setCurrentQuestion(preloadedQuestions[questionNumber]);
+                const nextQ = preloadedQuestions[questionNumber];
+                setCurrentQuestion(nextQ);
                 setQuestionNumber(prev => prev + 1);
+
+                // ═══ START MULTI-STREET HAND if this is a postflop PIO question ═══
+                const scenario = nextQ.scenario || {};
+                const street = scenario.street || '';
+                if ((street === 'flop' || street === 'turn') && nextQ.source === 'DETERMINISTIC_SOLVER') {
+                    try {
+                        const { MultiStreetHand } = await import('../engines/MultiStreetHandManager');
+                        multiStreetHandRef.current = new MultiStreetHand(nextQ);
+                        setIsMultiStreetActive(true);
+                        setCurrentStreet(street);
+                    } catch (e) {
+                        console.warn('[MillionaireGame] MultiStreetHand import failed:', e);
+                    }
+                }
             } else {
                 // Fallback to single-question mode
                 setQuestionNumber(prev => prev + 1);
                 fetchSingleQuestion();
             }
         }
-    }, [questionNumber, correctCount, level, preloadComplete, preloadedQuestions, saveProgress, fetchSingleQuestion]);
+    }, [questionNumber, correctCount, level, preloadComplete, preloadedQuestions, saveProgress, fetchSingleQuestion, isMultiStreetActive, advanceToNextStreet, lastSelectedAction]);
 
     /**
      * Start next level (if passed)
@@ -406,6 +524,11 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
         avgEVLossPerHand: gtowScoring.avgEVLossPerHand,
         avgEVLossPerMistake: gtowScoring.avgEVLossPerMistake,
         avgFrequencyDiff: gtowScoring.avgFrequencyDiff,
+
+        // Multi-street state
+        currentStreet,
+        isMultiStreetActive,
+        handSummary,
 
         // Completion state
         gameComplete,

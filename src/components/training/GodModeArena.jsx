@@ -410,6 +410,10 @@ function GodModeArena({
         avgEVLossPerHand,
         avgEVLossPerMistake,
         avgFrequencyDiff,
+        // Multi-street state
+        currentStreet,
+        isMultiStreetActive,
+        handSummary,
         // Actions
         submitAnswer,
         nextQuestion,
@@ -682,6 +686,8 @@ function GodModeArena({
                         totalSessionEVLoss={totalEVLoss}
                         sessionMistakes={sessionMistakes}
                         onNextHand={nextQuestion}
+                        isMultiStreetActive={isMultiStreetActive}
+                        currentStreet={currentStreet}
                     />
                 ) : null}
             </div>
@@ -729,6 +735,8 @@ function GodModeArena({
                         totalSessionEVLoss={totalEVLoss}
                         sessionMistakes={sessionMistakes}
                         onNextHand={nextQuestion}
+                        isMultiStreetActive={isMultiStreetActive}
+                        currentStreet={currentStreet}
                     />
                 ) : null}
             </div>

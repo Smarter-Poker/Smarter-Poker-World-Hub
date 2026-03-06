@@ -84,6 +84,9 @@ export default function GameUIRouter({
     sessionMistakes = 0,
     // UI-2: Manual advance callback
     onNextHand = null,
+    // Multi-street props
+    isMultiStreetActive = false,
+    currentStreet = 'flop',
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -129,6 +132,9 @@ export default function GameUIRouter({
             sessionMistakes={sessionMistakes}
             // UI-2: Manual advance
             onNextHand={onNextHand}
+            // Multi-street props
+            isMultiStreetActive={isMultiStreetActive}
+            currentStreet={currentStreet}
         />
     );
 }
