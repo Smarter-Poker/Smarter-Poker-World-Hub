@@ -118,8 +118,34 @@ export default async function handler(req, res) {
       case 'state': {
         const { tournamentId } = params;
         if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
-        const state = controller.getTournamentState(tournamentId);
-        if (!state) return res.status(404).json({ success: false, error: 'Tournament not found' });
+        let state = controller.getTournamentState(tournamentId);
+
+        // Cold-start fallback: if tournament not in memory, read basic state from DB
+        if (!state) {
+          const { data: row } = await supabase
+            .from('club_tournaments')
+            .select('*, tournament_registrations(user_id, status, registered_at)')
+            .eq('id', tournamentId)
+            .single();
+
+          if (!row) return res.status(404).json({ success: false, error: 'Tournament not found' });
+
+          // Return a minimal DB-based state so the UI can still display info
+          return res.status(200).json({
+            success: true,
+            tournamentId,
+            name: row.name,
+            status: row.status,
+            buyIn: row.buy_in,
+            startingChips: row.starting_chips,
+            maxPlayers: row.max_players,
+            entries: (row.tournament_registrations || []).filter(r => r.status !== 'cancelled').length,
+            prizePool: 0,
+            tables: [],
+            _fromDb: true, // Flag so UI knows this is a DB snapshot, not live state
+          });
+        }
+
         return res.status(200).json({ success: true, ...state });
       }
 

@@ -259,6 +259,7 @@ class LobbyManager {
       sync,
       timer,
       history,
+      serializer, // Stored for external access (e.g., force-flush on admin operations)
       config: {
         tableId: config.tableId,
         clubId: config.clubId,

@@ -36,6 +36,12 @@ export default async function handler(req, res) {
     if (!tableId) return res.status(400).json({ error: 'tableId required' });
 
     const controller = await getController();
+
+    // ── COLD-START AUTO-RECOVERY ──────────────────────────────────
+    if (!controller.lobby.tables.has(tableId)) {
+      await controller.ensureTable(tableId);
+    }
+
     const state = await controller.getTableState(tableId, playerId);
 
     if (!state) return res.status(404).json({ error: 'Table not found' });

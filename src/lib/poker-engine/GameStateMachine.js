@@ -2102,9 +2102,12 @@ class GameStateMachine {
     positions[bbIdx] = 'bb';
 
     // UTG (next after BB)
-    if (n > 3) {
+    // In 3-handed, the button player IS UTG for straddle purposes.
+    // We always assign UTG for n >= 3 so straddle logic can find them by label.
+    if (n >= 3) {
       const utgIdx = (bbIdx + 1) % n;
-      positions[utgIdx] = 'utg';
+      // Only set UTG if it isn't already the button (shouldn't happen, but guard it)
+      if (positions[utgIdx] === 'mp' || n === 3) positions[utgIdx] = 'utg';
     }
 
     // CO (before button)

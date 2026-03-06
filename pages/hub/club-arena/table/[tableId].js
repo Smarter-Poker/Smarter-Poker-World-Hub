@@ -1,9 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    CLUB ARENA — Live Poker Table (Multi-Table Support)
    Supports up to 4 simultaneous tables via MultiTableView
+
+   Hybrid Architecture: Supabase Realtime for live broadcasts,
+   HTTP API for all game actions, StateSerializer for crash recovery.
+   Auto-reconnects on cold start / server recycle with exponential backoff.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/seo/SEOHead';
@@ -16,104 +20,250 @@ const MultiTableView = dynamic(
 
 const FB = {
   background: '#18191A',
+  cardBg: '#242526',
+  textPrimary: '#E4E6EB',
   textSecondary: '#B0B3B8',
   primary: '#2374E1',
   danger: '#FA383E',
+  border: '#3E4042',
 };
+
+const VARIANT_LABELS = {
+  nlh: 'NLH', holdem: 'NLH', no_limit_holdem: 'NLH',
+  plo4: 'PLO4', plo: 'PLO4', omaha: 'PLO4', omaha4: 'PLO4',
+  plo5: 'PLO5', omaha5: 'PLO5',
+  plo6: 'PLO6', omaha6: 'PLO6',
+  plo8: 'PLO Hi/Lo', omaha_hilo: 'PLO Hi/Lo',
+  short_deck: 'Short Deck', '6plus': 'Short Deck',
+  ofc: 'OFC', pineapple: 'Pineapple',
+};
+
+// Exponential backoff reconnect — 1s, 2s, 4s, 8s, 16s, then give up
+async function connectWithRetry(tableId, token, maxAttempts = 5) {
+  let delay = 1000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch('/api/poker/engine/club-connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ tableId }),
+      });
+      const r = await res.json();
+      if (r.success) return { success: true, data: r };
+
+      // Non-retryable errors
+      if (r.code === 'OBSERVERS_RESTRICTED' || r.code === 'OBSERVER_TIME_EXPIRED') {
+        return { success: false, fatal: true, error: r.error, code: r.code };
+      }
+
+      // On last attempt give up
+      if (attempt === maxAttempts) return { success: false, error: r.error };
+    } catch (_) {
+      if (attempt === maxAttempts) return { success: false, error: 'Network error — check your connection' };
+    }
+
+    console.log(`[ClubArenaTable] Engine connect attempt ${attempt} failed, retrying in ${delay}ms…`);
+    await new Promise(r => setTimeout(r, delay));
+    delay = Math.min(delay * 2, 16000);
+  }
+  return { success: false, error: 'Could not connect to game server after multiple attempts' };
+}
 
 export default function ClubArenaTable() {
   const router = useRouter();
   if (!router.isReady) return null;
+
   const { tableId, tournament: tournamentId } = router.query;
   const [user, setUser] = useState(null);
   const [initialTable, setInitialTable] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [connectStatus, setConnectStatus] = useState('Connecting to table…');
+  const retryRef = useRef(false);
 
-  useEffect(() => {    const _c = new AbortController();
-
+  // Auth guard
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
       else router.push('/auth/login');
     });
-    return () => _c.abort();
   }, []);
 
-  useEffect(() => {    const _c = new AbortController();
+  // Engine connect with retry
+  useEffect(() => {
+    if (!tableId || !user || retryRef.current) return;
+    retryRef.current = true;
 
-    if (!tableId || !user) return;
     (async () => {
-      setLoading(true); setError(null);
-      try {
-        const { data: td, error: fe } = await supabase
-          .from('tables').select('*, clubs(name, avatar_url)').eq('id', tableId).single();
-        if (fe || !td) { setError('Table not found'); setLoading(false); return; }
+      setLoading(true);
+      setError(null);
 
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        const res = await fetch('/api/poker/engine/club-connect', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ tableId }),
-        });
-        const r = await res.json();
-        if (!r.success) {
-          setError(r.code === 'OBSERVERS_RESTRICTED'
-            ? '🔒 Observers are not allowed at this table'
-            : r.error || 'Engine connect failed');
-          setLoading(false); return;
+      // 1. Fetch table metadata from DB
+      const { data: td, error: fe } = await supabase
+        .from('tables')
+        .select('*, clubs(name, avatar_url)')
+        .eq('id', tableId)
+        .single();
+
+      if (fe || !td) {
+        setError('Table not found');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Get auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      // 3. Connect to engine with retry backoff
+      setConnectStatus('Connecting to poker engine…');
+      const result = await connectWithRetry(tableId, token);
+
+      if (!result.success) {
+        if (result.code === 'OBSERVERS_RESTRICTED') {
+          setError('🔒 Observers are not allowed at this table');
+        } else if (result.code === 'OBSERVER_TIME_EXPIRED') {
+          setError('⏱️ Observer time limit reached (30 minutes). Please join the waitlist to play.');
+        } else {
+          setError(result.error || 'Could not connect to game server');
         }
+        setLoading(false);
+        return;
+      }
 
-        const vl = { nlh:"NLH", plo4:'PLO4', plo5:'PLO5', plo6:'PLO6',
-          plo8:'PLO Hi/Lo', short_deck:'Short Deck', ofc:'OFC' }[td.game_variant] || 'NLH';
+      // 4. Build initial table config
+      const variant = VARIANT_LABELS[td.game_variant] || 'NLH';
+      setInitialTable({
+        tableId: td.id,
+        name: td.name,
+        stakes: `${td.small_blind}/${td.big_blind}`,
+        variant,
+        clubName: td.clubs?.name || '',
+        clubId: td.club_id,
+        tournamentId: tournamentId || null,
+        // Pass observer time limit info to the UI if set
+        observerTimeLimit: result.data?.observerTimeLimit || null,
+      });
 
-        setInitialTable({
-          tableId: td.id, name: td.name, stakes: `${td.small_blind}/${td.big_blind}`,
-          variant: vl, clubName: td.clubs?.name || '', clubId: td.club_id,
-        });
-      } catch (e) { setError('Connection failed'); }
-      finally { setLoading(false); }
+      setLoading(false);
     })();
-    return () => _c.abort();
   }, [tableId, user]);
-  // Realtime subscription — live updates
+
+  // Realtime: re-run engine connect if table status changes (e.g., table restarted)
   useEffect(() => {
     if (!tableId) return;
-    const _ch = supabase
-      .channel(`ca-table:${tableId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` }, () => {})
+
+    const ch = supabase
+      .channel(`ca-table-status:${tableId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
+        (payload) => {
+          // If table was reset/restarted by admin, force a reconnect
+          if (payload.new?.status === 'waiting' && initialTable) {
+            console.log('[ClubArenaTable] Table reset detected — reconnecting engine');
+            retryRef.current = false; // Allow re-connect
+          }
+        }
+      )
       .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [tableId]);
+
+    return () => supabase.removeChannel(ch);
+  }, [tableId, initialTable]);
 
   const handleExit = useCallback(() => {
     const cid = initialTable?.clubId;
     router.push(cid ? `/hub/club-arena/lobby?club=${cid}` : '/hub/club-arena');
   }, [router, initialTable?.clubId]);
 
+  const handleRetry = useCallback(() => {
+    retryRef.current = false;
+    setError(null);
+    setLoading(true);
+    // Trigger re-connect by re-running the effect
+    setUser(u => ({ ...u }));
+  }, []);
+
+  // ── Loading screen ──
   if (loading || !user) return (
-    <div style={{ background: '#18191A', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <SEOHead title="Loading Table..." />
-      <div style={{ color: FB.textSecondary, fontSize: 16 }}>Connecting to table...</div>
+    <div style={{
+      background: FB.background, minHeight: '100vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16,
+    }}>
+      <SEOHead title="Connecting to Table…" />
+      <div style={{
+        width: 48, height: 48, border: `3px solid ${FB.border}`,
+        borderTop: `3px solid ${FB.primary}`,
+        borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+      }} />
+      <div style={{ color: FB.textSecondary, fontSize: 15 }}>{connectStatus}</div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 
+  // ── Error screen ──
   if (error) return (
-    <div style={{ background:'#18191A', minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
+    <div style={{
+      background: FB.background, minHeight: '100vh',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24,
+    }}>
       <SEOHead title="Table Error" />
-      <div style={{ color: FB.danger, fontSize: 18, fontWeight: 700 }}>{error}</div>
-      <button onClick={() => router.back()} style={{ background: FB.primary, color:'#fff', border:'none', padding:'10px 24px', borderRadius:8, cursor:'pointer' }}>Go Back</button>
+      <div style={{
+        background: FB.cardBg, border: `1px solid ${FB.border}`,
+        borderRadius: 16, padding: '32px 28px', maxWidth: 420, width: '100%',
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+        <div style={{ color: FB.danger, fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+          Connection Error
+        </div>
+        <div style={{ color: FB.textSecondary, fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
+          {error}
+        </div>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleRetry}
+            style={{
+              background: FB.primary, color: '#fff', border: 'none',
+              padding: '10px 22px', borderRadius: 8, cursor: 'pointer',
+              fontWeight: 600, fontSize: 14,
+            }}
+          >
+            🔄 Retry
+          </button>
+          <button
+            onClick={() => router.back()}
+            style={{
+              background: 'transparent', color: FB.textSecondary,
+              border: `1px solid ${FB.border}`,
+              padding: '10px 22px', borderRadius: 8, cursor: 'pointer',
+              fontWeight: 600, fontSize: 14,
+            }}
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
     </div>
   );
 
+  // ── Live table ──
   if (initialTable) return (
     <>
       <SEOHead title={`${initialTable.name} | ${initialTable.variant} ${initialTable.stakes}`} />
-      <MultiTableView supabase={supabase} userId={user.id} initialTable={initialTable} onExit={handleExit} />
+      <MultiTableView
+        supabase={supabase}
+        userId={user.id}
+        initialTable={initialTable}
+        onExit={handleExit}
+      />
     </>
   );
+
   return null;
 }

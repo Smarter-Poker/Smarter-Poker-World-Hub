@@ -69,6 +69,13 @@ export default async function handler(req, res) {
     const controller = await getController();
     const antiCheat = controller.antiCheat; // Shared instance — same data as background monitor
 
+    // ── COLD-START AUTO-RECOVERY ──────────────────────────────────
+    // If this serverless function spun up fresh, reconnect from DB first.
+    if (!controller.lobby.tables.has(tableId)) {
+      const recovered = await controller.ensureTable(tableId);
+      if (!recovered) return res.status(404).json({ error: 'Table not found' });
+    }
+
     // Get table entry to check if this is a club table
     const entry = controller.lobby.tables.get(tableId);
     if (!entry) return res.status(404).json({ error: 'Table not found' });

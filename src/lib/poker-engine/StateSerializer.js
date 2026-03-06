@@ -26,7 +26,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-const SAVE_DEBOUNCE_MS = 500; // Don't save more than once per 500ms
+const SAVE_DEBOUNCE_MS = 100; // Don't save more than once per 100ms (was 500ms)
 
 class StateSerializer {
   /**
@@ -55,6 +55,13 @@ class StateSerializer {
 
     // Save on street change
     table.on('street_start', () => this._queueSave());
+
+    // CRITICAL: Immediate flush on showdown and payout — these are the
+    // highest-stakes moments. If the server dies here, chips could be
+    // lost or duplicated. Bypass debounce and write synchronously.
+    table.on('showdown', () => this._immediateFlush());
+    table.on('payout', () => this._immediateFlush());
+    table.on('all_in_showdown', () => this._immediateFlush());
 
     // Clear on hand complete
     table.on('hand_complete', () => this._clearState());
@@ -229,6 +236,22 @@ class StateSerializer {
       console.error('[StateSerializer] Recovery failed:', err.message);
       return false;
     }
+  }
+
+  /**
+   * Immediate flush — bypasses debounce. Used for showdown/payout events
+   * where we cannot afford to lose state if the serverless function dies.
+   * @private
+   */
+  async _immediateFlush() {
+    if (!this.supabase) return;
+    // Cancel any pending debounced save — we're doing it now
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
+    }
+    this._pendingState = this.serialize();
+    await this._flush();
   }
 
   /**

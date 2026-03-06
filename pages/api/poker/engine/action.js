@@ -49,6 +49,16 @@ export default async function handler(req, res) {
 
     const controller = await getController();
 
+    // ── COLD-START AUTO-RECOVERY ──────────────────────────────────
+    // If this serverless function spun up fresh and the table isn't in
+    // memory yet, ensureTable() re-connects it from DB before we fail.
+    if (!controller.lobby.tables.has(tableId)) {
+      const recovered = await controller.ensureTable(tableId);
+      if (!recovered) {
+        return res.status(404).json({ success: false, error: 'Table not found' });
+      }
+    }
+
     // ── SPECIAL ACTIONS (non-game) ─────────────────────────────
     // These are handled outside the standard game action flow
 

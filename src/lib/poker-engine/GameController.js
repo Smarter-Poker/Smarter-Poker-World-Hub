@@ -174,6 +174,9 @@ class GameController {
     // Recover active tables from DB
     await this._recoverTables();
 
+    // Recover active tournaments from DB
+    await this._recoverTournaments();
+
     // Start background tasks
     this._snapshotInterval = setInterval(() => this._saveAllSnapshots(), STATE_SNAPSHOT_INTERVAL_MS);
     this._staleCheckInterval = setInterval(() => this._cleanupStaleTables(), STALE_TABLE_CHECK_MS);
@@ -1736,6 +1739,32 @@ class GameController {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // PUBLIC: COLD-START RECOVERY HELPER
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Ensure a table is loaded in memory. Called by action/state/seat API routes.
+   * If the serverless function cold-started and this table wasn't recovered,
+   * re-connects it from the DB on demand — zero downtime for active games.
+   * @param {string} tableId
+   * @returns {Promise<boolean>} true if table is now available
+   */
+  async ensureTable(tableId) {
+    await this._ensureInit();
+    if (this.lobby.tables.has(tableId)) return true;
+
+    // Not in memory — try to reconnect from DB
+    console.log(`[GameController] Cold-start auto-recovery: reconnecting table ${tableId}`);
+    const result = await this.connectToClubTable(tableId);
+    if (result.success) {
+      console.log(`[GameController] Auto-recovery succeeded: ${tableId}`);
+    } else {
+      console.warn(`[GameController] Auto-recovery failed for ${tableId}: ${result.error}`);
+    }
+    return result.success;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // PRIVATE: STATE PERSISTENCE
   // ═══════════════════════════════════════════════════════════════════
 
@@ -1873,6 +1902,100 @@ class GameController {
     }
   }
 
+  /**
+   * Recover active tournaments from DB on cold start.
+   * Reconstructs TournamentController instances for tournaments in
+   * registering / late_reg / running / break states.
+   * @private
+   */
+  async _recoverTournaments() {
+    if (!this.supabase) return;
+    try {
+      const { data: rows, error } = await this.supabase
+        .from('club_tournaments')
+        .select('*, tournament_registrations(user_id, status)')
+        .in('status', ['registering', 'late_reg', 'running', 'break', 'final_table'])
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error || !rows || rows.length === 0) {
+        console.log('[GameController] No active tournaments to recover');
+        return;
+      }
+
+      for (const row of rows) {
+        try {
+          const s = row.settings || {};
+          const controller = new TournamentController({
+            tournamentId: row.id,
+            name: row.name,
+            clubId: row.club_id,
+            unionId: row.union_id,
+            tournamentType: TOURNAMENT_TYPE[row.type?.toUpperCase()] || TOURNAMENT_TYPE.MTT,
+            variant: VARIANT_MAP[row.variant] || 'holdem',
+            buyIn: row.buy_in || 0,
+            startingChips: row.starting_chips || 10000,
+            maxPlayers: row.max_players || 100,
+            maxTableSize: s.maxTableSize || 9,
+            blindStructure: s.blindStructure,
+            lateRegLevels: s.lateRegLevels || 6,
+            allowsRebuys: s.rebuyEnabled || false,
+            rebuyEndLevel: s.rebuyLevels || 4,
+            maxRebuys: s.maxRebuys || 1,
+            rebuyCost: s.rebuyCost || row.buy_in || 0,
+            rebuyChips: s.rebuyChips || row.starting_chips || 10000,
+            allowsAddon: s.addonEnabled || false,
+            addonCost: s.addonCost,
+            addonChips: s.addonChips || row.starting_chips || 10000,
+            guaranteedPrize: s.guaranteedPrize || 0,
+            payoutStructure: s.payoutStructure,
+            sngSize: s.sngSize || 6,
+            levelDuration: (s.levelDuration || 15) * 60000,
+            actionTime: (s.actionTime || 30) * 1000,
+            timeBankSeconds: (s.timeBankSeconds || 30) * 1000,
+            autoStartDelay: s.autoStartDelay || 3000,
+            breakSchedule: s.breakSchedule,
+            bountyType: s.bountyType || 'none',
+            bountyAmount: s.bountyAmount || 0,
+            ledger: this.ledger,
+          });
+
+          // Restore status and registrations from DB
+          controller.status = row.status;
+
+          // Re-populate entries from tournament_registrations
+          if (row.tournament_registrations?.length > 0) {
+            for (const reg of row.tournament_registrations) {
+              if (reg.status === 'registered' || reg.status === 'active') {
+                controller.entries = controller.entries || new Map();
+                controller.entries.set(reg.user_id, {
+                  playerId: reg.user_id,
+                  status: reg.status,
+                  stack: row.starting_chips || 10000,
+                  rebuys: 0,
+                  addonTaken: false,
+                  totalInvested: row.buy_in || 0,
+                  clubId: row.club_id,
+                });
+              }
+            }
+          }
+
+          const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
+          bridge.wire();
+          this._tournaments.set(row.id, { controller, bridge });
+          console.log(`[GameController] Recovered tournament: ${row.id} (${row.name}, ${row.status}, ${row.tournament_registrations?.length || 0} entries)`);
+        } catch (err) {
+          console.error(`[GameController] Failed to recover tournament ${row.id}:`, err.message);
+        }
+      }
+
+      console.log(`[GameController] Recovered ${rows.length} tournaments from DB`);
+    } catch (err) {
+      console.error('[GameController] Tournament recovery failed:', err.message);
+    }
+  }
+
   /** @private */
   async _saveAllSnapshots() {
     if (!this.supabase || !this.lobby) return;
@@ -2002,4 +2125,8 @@ module.exports = {
   GameController,
   getController,
   getControllerSync,
+  ensureTable: async (tableId) => {
+    const ctrl = await getController();
+    return ctrl.ensureTable(tableId);
+  },
 };
