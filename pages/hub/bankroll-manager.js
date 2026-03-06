@@ -209,7 +209,7 @@ export default function BankrollManagerPage() {
   const handleChartTypeChange = (type) => {
     setChartType(type);
     setShowChartTypeDropdown(false);
-    try { localStorage.setItem('bankroll_chart_type', type); } catch (_) { }
+    try { localStorage.setItem('bankroll_chart_type', type); } catch (_) { console.error("[bankroll-manager.js]", _); }
   };
 
   const toggleGameType = (type) => {

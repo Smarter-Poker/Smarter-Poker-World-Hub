@@ -278,13 +278,13 @@ function NavigationGuard({ children }) {
           video.currentTime = 0;
           video.src = '';
           video.load();
-        } catch (e) { }
+        } catch (e) { console.error("[_app.js]", e); }
       });
       document.querySelectorAll('audio').forEach(audio => {
-        try { audio.pause(); } catch (e) { }
+        try { audio.pause(); } catch (e) { console.error("[_app.js]", e); }
       });
       document.querySelectorAll('iframe').forEach(iframe => {
-        try { iframe.src = 'about:blank'; } catch (e) { }
+        try { iframe.src = 'about:blank'; } catch (e) { console.error("[_app.js]", e); }
       };
 
       // Also set React state (for components that check it)

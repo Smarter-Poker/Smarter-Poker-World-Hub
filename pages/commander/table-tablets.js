@@ -76,7 +76,7 @@ function haptic(intensity = 'medium') {
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(ms);
         }
-    } catch { /* silently ignore on unsupported devices */ }
+    } catch (e) { console.error("[table-tablets.js]", e); }
 }
 
 // Arc-length parameterized ellipse for equal visual spacing — matches tables.js
@@ -195,7 +195,7 @@ export default function TableTabletsPage() {
                 const { table_number, venue_id: savedVenue } = JSON.parse(saved);
                 if (table_number) setLockedTable(table_number);
             }
-        } catch { /* ignore */ }
+        } catch (e) { console.error("[table-tablets.js]", e); }
     }, [router]);
 
     // When locked table is set, also set it as the fullscreen table
@@ -386,7 +386,7 @@ export default function TableTabletsPage() {
                                     if (sessions.length > 0) sessionsByTable[parseInt(tNum)] = sessions;
                                 });
                             }
-                        } catch { /* non-fatal — fallback to no session data */ }
+                        } catch (e) { console.error("[table-tablets.js]", e); }
                     }
 
                     // Fetch tournament entries — one floor-view call per unique tournament_id
@@ -405,7 +405,7 @@ export default function TableTabletsPage() {
                                     });
                                 });
                             }
-                        } catch { /* non-fatal */ }
+                        } catch (e) { console.error("[table-tablets.js]", e); }
                     }));
 
                     // Merge session data for cash tables
@@ -508,7 +508,7 @@ export default function TableTabletsPage() {
                 });
                 setDisplayStatus(map);
             }
-        } catch { /* non-fatal */ }
+        } catch (e) { console.error("[table-tablets.js]", e); }
     }, [venueId]);
 
     const copyTabletUrl = (tableNum) => {
@@ -606,7 +606,7 @@ export default function TableTabletsPage() {
                                 stopDealerCamera();
                                 handleDealerScan(barcodes[0].rawValue);
                             }
-                        } catch { }
+                        } catch (e) { console.error("[table-tablets.js]", e); }
                     }, 300);
                     scanIntervalRef.current = interval;
                 }
@@ -843,7 +843,7 @@ export default function TableTabletsPage() {
                                 if (barcodes.length > 0) {
                                     handleSeatScan(barcodes[0].rawValue, tableNumber, seatNumber);
                                 }
-                            } catch { }
+                            } catch (e) { console.error("[table-tablets.js]", e); }
                         }, 300);
                     }
                 };
@@ -1515,7 +1515,7 @@ export default function TableTabletsPage() {
                         {/* BOTTOM-LEFT: Call Floor */}
                         {(() => {
                             const isA = callFloorSent; return (
-                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); } } catch { } } setCallFloorSent(false); setCallFloorId(null); }}
+                                <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); } } catch (e) { console.error("[table-tablets.js]", e); } } setCallFloorSent(false); setCallFloorId(null); }}
                                     style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
 
                                     <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}  loading="lazy" />

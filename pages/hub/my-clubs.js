@@ -507,7 +507,7 @@ export default function MyClubsPage() {
                         if (/^\d+$/.test(sid) && !venueIds.includes(sid)) venueIds.push(sid);
                     });
                 }
-            } catch { }
+            } catch (e) { console.error("[my-clubs.js]", e); }
 
             setFollowedIds(new Set(venueIds));
             setFollowedPageKeys(allPageKeys);
@@ -545,7 +545,7 @@ export default function MyClubsPage() {
                             const games = json.games || json.data || [];
                             gameMap[vid] = Array.isArray(games) ? games.length : 0;
                         }
-                    } catch { }
+                    } catch (e) { console.error("[my-clubs.js]", e); }
                     try {
                         const res = await fetch(`/api/commander/waitlist/venue/${vid}`, signal ? { signal } : {});
                         const json = await res.json();
@@ -554,7 +554,7 @@ export default function MyClubsPage() {
                                 sum + (wl.players ? wl.players.length : 0), 0);
                             wlMap[vid] = totalPlayers;
                         }
-                    } catch { }
+                    } catch (e) { console.error("[my-clubs.js]", e); }
                 }));
                 setLiveGamesMap(gameMap);
                 setWaitlistMap(wlMap);
@@ -656,7 +656,7 @@ export default function MyClubsPage() {
                 ids = ids.filter(x => x !== vid);
             }
             localStorage.setItem('followed-venues', JSON.stringify(ids));
-        } catch { }
+        } catch (e) { console.error("[my-clubs.js]", e); }
 
         // Persist to API
         try {
@@ -670,7 +670,7 @@ export default function MyClubsPage() {
                     user_id: getUserId(),
                 }),
             });
-        } catch { }
+        } catch (e) { console.error("[my-clubs.js]", e); }
     };
 
 

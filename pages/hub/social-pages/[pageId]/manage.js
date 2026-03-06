@@ -89,7 +89,7 @@ export default function ManageSocialPage() {
             const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
             const json = await res.json();
             if (json.success) setMembers(json.data || []);
-        } catch { }
+        } catch (e) { console.error("[manage.js]", e); }
     };
 
     const fetchPosts = async () => {
@@ -97,7 +97,7 @@ export default function ManageSocialPage() {
             const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&limit=50`);
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch { }
+        } catch (e) { console.error("[manage.js]", e); }
     };
 
     const handleSave = async () => {
@@ -135,7 +135,7 @@ export default function ManageSocialPage() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setPosts(prev => prev.filter(p => p.id !== postId));
-        } catch { }
+        } catch (e) { console.error("[manage.js]", e); }
     };
 
     const handlePinPost = async (postId, pinned) => {
@@ -150,7 +150,7 @@ export default function ManageSocialPage() {
                 body: JSON.stringify({ id: postId, author_id: user.id, is_pinned: !pinned }),
             });
             setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_pinned: !pinned } : p));
-        } catch { }
+        } catch (e) { console.error("[manage.js]", e); }
     };
 
     const inputStyle = {

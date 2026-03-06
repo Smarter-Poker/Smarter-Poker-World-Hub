@@ -52,7 +52,7 @@ function PostCard({ post, user, onLike, onComment }) {
             const res = await fetch(`/api/social/pages/engage?post_id=${post.id}`);
             const json = await res.json();
             if (json.success) setComments(json.data || []);
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
         setLoadingComments(false);
         setShowComments(true);
     };
@@ -78,7 +78,7 @@ function PostCard({ post, user, onLike, onComment }) {
                 setCommentText('');
                 onComment(post.id);
             }
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
     };
 
     return (
@@ -267,7 +267,7 @@ export default function SocialPageDetail() {
             const res = await fetch(`/api/social/pages/posts?${params}`, { signal });
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
     }, [page, user]);
 
     const fetchFollowers = useCallback(async () => {
@@ -277,7 +277,7 @@ export default function SocialPageDetail() {
             const res = await fetch(`/api/social/pages/follow?page_id=${page.id}${reqParam}`);
             const json = await res.json();
             if (json.success) setFollowers(json.data || []);
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
     }, [page, user]);
 
     useEffect(() => {
@@ -315,7 +315,7 @@ export default function SocialPageDetail() {
                     action: newState ? 'follow' : 'unfollow',
                 }),
             });
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
     };
 
     const handlePost = async () => {
@@ -339,7 +339,7 @@ export default function SocialPageDetail() {
                 setNewPost('');
                 fetchPosts();
             }
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
         setPosting(false);
     };
 
@@ -363,7 +363,7 @@ export default function SocialPageDetail() {
                 },
                 body: JSON.stringify({ action: 'like', post_id: postId, user_id: user.id }),
             });
-        } catch { }
+        } catch (e) { console.error("[[pageId].js]", e); }
     };
 
     const handleCommentAdded = (postId) => {

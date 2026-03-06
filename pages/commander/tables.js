@@ -68,6 +68,7 @@ export default function CommanderTablesPage() {
   const [sessions, setSessions] = useState({}); // keyed by table_number
   const [dealerMap, setDealerMap] = useState({}); // table_number -> dealer_name
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -109,7 +110,7 @@ export default function CommanderTablesPage() {
             : [];
         setTables(tablesArr);
       }
-    } catch (err) { console.error('Failed to fetch tables:', err); }
+    } catch (err) { console.error('Failed to fetch tables:', err); setLoadError('Failed to load tables. Tap to retry.'); }
 
     // Fetch games
     try {
@@ -133,10 +134,10 @@ export default function CommanderTablesPage() {
           const res = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
           const json = await res.json();
           if (json.success) sessionData[tNum] = json.data || [];
-        } catch { }
+        } catch (e) { console.error("[tables.js]", e); }
       }));
       setSessions(sessionData);
-    } catch { }
+    } catch (e) { console.error("[tables.js]", e); }
 
     setLoading(false);
 
@@ -321,7 +322,13 @@ export default function CommanderTablesPage() {
   }, [tables, selectedTableId]);
 
   if (!staff || loading) {
-    return (
+    if (loadError) return (
+    <div style={{ minHeight: '100vh', background: '#18191A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#fff' }}>
+      <span style={{ fontSize: 16 }}>⚠️ {loadError}</span>
+      <button onClick={() => { setLoadError(null); fetchTables(); }} style={{ padding: '8px 20px', background: '#1877F2', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Retry</button>
+    </div>
+  );
+  return (
       <div className="cmd-page flex items-center justify-center" style={{ minHeight: '100vh', background: '#18191A' }}>
         <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>

@@ -79,7 +79,7 @@ function playMessageSound() {
         const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK');
         audio.volume = 0.3;
         audio.play().catch(() => { });
-    } catch (e) { }
+    } catch (e) { console.error("[messenger.js]", e); }
 }
 
 function timeAgo(timestamp) {
@@ -1640,7 +1640,7 @@ export default function MessengerPage() {
                                 .neq('sender_id', userId)
                                 .gt('created_at', p.last_read_at || '1970-01-01');
                             unreadCount = count || 0;
-                        } catch (e) { }
+                        } catch (e) { console.error("[messenger.js]", e); }
 
                         return {
                             id: p.conversation_id,

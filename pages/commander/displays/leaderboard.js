@@ -84,7 +84,7 @@ export default function LeaderboardDisplay() {
       const mJson = await mRes.json();
       const members = (mJson?.data?.members || mJson?.members || []).filter(m => m.membership_status === 'active');
       setTotalMembers(members.length);
-      if (!venueName) { try { setVenueName(JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_name || ''); } catch { } }
+      if (!venueName) { try { setVenueName(JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_name || ''); } catch (e) { console.error("[leaderboard.js]", e); } }
 
       const built = [];
 
@@ -124,7 +124,7 @@ export default function LeaderboardDisplay() {
             }
           });
         }
-      } catch { }
+      } catch (e) { console.error("[leaderboard.js]", e); }
 
       // ════════════════════════════════════════════════════════════
       // SECTION B: LEAGUE STANDINGS
@@ -153,10 +153,10 @@ export default function LeaderboardDisplay() {
                   })),
                 });
               }
-            } catch { }
+            } catch (e) { console.error("[leaderboard.js]", e); }
           }
         }
-      } catch { }
+      } catch (e) { console.error("[leaderboard.js]", e); }
 
       // ════════════════════════════════════════════════════════════
       // SECTION C: AUTO-GENERATED BOARDS
@@ -183,7 +183,7 @@ export default function LeaderboardDisplay() {
             })),
           });
         }
-      } catch { }
+      } catch (e) { console.error("[leaderboard.js]", e); }
 
       // ── C2: Most Visits (All Time) ──
       const byVisits = [...members].filter(m => (m.visit_count || 0) > 0).sort((a, b) => (b.visit_count || 0) - (a.visit_count || 0)).slice(0, 15);

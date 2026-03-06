@@ -147,7 +147,7 @@ function ScheduleTab({ staffId, venueId, token }) {
                 setTotalShifts(json.data.total_shifts);
                 setTotalHours(json.data.total_hours);
             }
-        } catch { }
+        } catch (e) { console.error("[my-venues.js]", e); }
         setLoading(false);
     }, [staffId, venueId, token, weekOffset]);
 
@@ -230,7 +230,7 @@ function DownsTab({ staffId, venueId, token }) {
                 });
                 const json = await res.json();
                 if (json.success) setData(json.data);
-            } catch { }
+            } catch (e) { console.error("[my-venues.js]", e); }
             setLoading(false);
         };
         fetch_();
@@ -312,7 +312,7 @@ function TimeClockTab({ staffId, venueId, token }) {
                 });
                 const json = await res.json();
                 if (json.success) setData(json.data);
-            } catch { }
+            } catch (e) { console.error("[my-venues.js]", e); }
             setLoading(false);
         };
         fetch_();
@@ -454,7 +454,7 @@ function EmailMatchBanner({ matches, token, onLinked }) {
             if (data.success) {
                 setTimeout(() => onLinked(), 1000);
             }
-        } catch { }
+        } catch (e) { console.error("[my-venues.js]", e); }
         setLinking(null);
     };
 

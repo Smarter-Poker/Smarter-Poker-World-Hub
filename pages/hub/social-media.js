@@ -408,7 +408,7 @@ function LinkPreviewCard({ url }) {
                         image: null,
                         siteName: urlObj.hostname.replace(/^www\./, '')
                     });
-                } catch (e) { }
+                } catch (e) { console.error("[social-media.js]", e); }
             }
             setLoading(false);
         };
@@ -3664,14 +3664,14 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
-        } catch { }
+        } catch (e) { console.error("[social-media.js]", e); }
         try {
             await fetch('/api/poker/follow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
             });
-        } catch { }
+        } catch (e) { console.error("[social-media.js]", e); }
     };
 
     const cats = [
@@ -4675,7 +4675,7 @@ export default function SocialMediaPage() {
 
         // Check if posting as Club Page
         let identityStoredRaw = null;
-        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { }
+        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { console.error("[social-media.js]", e); }
         const identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null;
         const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;
 

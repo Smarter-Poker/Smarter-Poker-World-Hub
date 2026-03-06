@@ -275,7 +275,7 @@ export default function DealerTablet() {
     try {
       const staffSession = getStaffSession();
       let vid = '';
-      try { vid = JSON.parse(staffSession).venue_id || ''; } catch { }
+      try { vid = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.error("[[tableNumber].js]", e); }
       const res = await fetch('/api/commander/dealer/scan-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -461,7 +461,7 @@ export default function DealerTablet() {
       const token = getToken();
       const staffSession = getStaffSession();
       let vid = '';
-      try { vid = JSON.parse(staffSession).venue_id || ''; } catch { }
+      try { vid = JSON.parse(staffSession).venue_id || ''; } catch (e) { console.error("[[tableNumber].js]", e); }
       await fetch('/api/commander/floor-calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },

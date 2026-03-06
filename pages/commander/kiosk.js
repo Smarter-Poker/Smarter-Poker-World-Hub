@@ -88,7 +88,7 @@ export default function MembershipKiosk() {
         if (staffData.venue_id) setVenueId(staffData.venue_id);
         setStaffHeader(staffStr);
       }
-    } catch { /* */ }
+    } catch (e) { console.error("[kiosk.js]", e); }
     return () => _ctrl.abort();
   }, []);
 
@@ -146,7 +146,7 @@ export default function MembershipKiosk() {
           return; // Have real games, skip fallback
         }
       }
-    } catch { /* */ }
+    } catch (e) { console.error("[kiosk.js]", e); }
     // Fallback if no games were fetched — use ref-safe check
     setAvailableGames(prev => {
       if (prev.length > 0) return prev; // Already have games from a previous fetch
@@ -179,7 +179,7 @@ export default function MembershipKiosk() {
         });
         setWaitlistMatches(matches);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); setLoadError("Failed to load kiosk data."); }
     finally { setSearching(false); }
   };
 
@@ -255,7 +255,7 @@ export default function MembershipKiosk() {
             });
           }
         }
-      } catch { /* non-critical */ }
+      } catch (e) { console.error("[kiosk.js]", e); }
 
       setCheckinIsWaitlisted(foundOnWaitlist);
       broadcastChange('waitlist');
@@ -427,9 +427,15 @@ export default function MembershipKiosk() {
 
   // Haptic feedback for touch devices (iPads, mobiles)
   const haptic = () => {
-    try { if (navigator.vibrate) navigator.vibrate(15); } catch { /* not supported */ }
+    try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { console.error("[kiosk.js]", e); }
   };
 
+  if (loadError) return (
+    <div style={{ minHeight: '100vh', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#fff' }}>
+      <span style={{ fontSize: 18 }}>⚠️ {loadError}</span>
+      <button onClick={() => { setLoadError(null); }} style={{ padding: '8px 20px', background: '#1877F2', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Dismiss</button>
+    </div>
+  );
   return (
     <>
       <SEOHead

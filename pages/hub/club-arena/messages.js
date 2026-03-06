@@ -78,7 +78,7 @@ function playMessageSound() {
         const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleR0tRXFuYz0mFTNNaWxofmh+YKStoJd/aGtbL09OYUFRYWOHeoKK');
         audio.volume = 0.3;
         audio.play().catch(() => { });
-    } catch (e) { }
+    } catch (e) { console.error("[messages.js]", e); }
 }
 
 function timeAgo(timestamp) {

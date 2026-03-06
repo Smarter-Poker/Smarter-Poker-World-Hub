@@ -36,7 +36,7 @@ export default function ArticlePage() {
             try {
                 const user = await getAuthUser();
                 if (user?.id) setUserId(user.id);
-            } catch { }
+            } catch (e) { console.error("[article.js]", e); }
         }
         loadUser();
     }, []);
@@ -62,7 +62,7 @@ export default function ArticlePage() {
                 .eq('article_id', article.id)
                 .maybeSingle();
             setIsBookmarked(!!data);
-        } catch { }
+        } catch (e) { console.error("[article.js]", e); }
     };
 
     const handleBookmark = async () => {
@@ -126,7 +126,7 @@ export default function ArticlePage() {
                 .neq('id', excludeId)
                 .limit(3);
             if (data) setRelated(data);
-        } catch (e) { }
+        } catch (e) { console.error("[article.js]", e); }
     };
 
     const formatDate = (dateStr) => {

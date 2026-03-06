@@ -133,14 +133,14 @@ export default function SurvivalGamePage() {
             if (savedSettings) {
                 setSettings(JSON.parse(savedSettings));
             }
-        } catch (e) { }
+        } catch (e) { console.error("[survival-game.js]", e); }
     }, []);
 
     // Save settings to localStorage when changed
     useEffect(() => {
         try {
             localStorage.setItem('trivia_settings', JSON.stringify(settings));
-        } catch (e) { }
+        } catch (e) { console.error("[survival-game.js]", e); }
     }, [settings]);
 
     // Visibility-based timer pause (when user leaves app/tab)
@@ -209,7 +209,7 @@ export default function SurvivalGamePage() {
                     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
                     osc.start(ctx.currentTime);
                     osc.stop(ctx.currentTime + 0.15);
-                } catch (e) { }
+                } catch (e) { console.error("[survival-game.js]", e); }
             };
             const speed = Math.max(200, 600 - ((8 - timeLeft) * 50));
             if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);

@@ -68,7 +68,7 @@ export default function DailyPresetsPage() {
     try {
       const sub = JSON.parse(localStorage.getItem('commander_subscription') || '{}');
       if (sub.tier) setCurrentTier(sub.tier);
-    } catch { }
+    } catch (e) { console.error("[room-presets.js]", e); }
   }, [router]);
 
   // Fetch hard stop settings
@@ -88,7 +88,7 @@ export default function DailyPresetsPage() {
           }
         })
         .catch(() => { });
-    } catch { }
+    } catch (e) { console.error("[room-presets.js]", e); }
   }, [staff]);
 
   async function handleHardStopSave() {
@@ -108,7 +108,7 @@ export default function DailyPresetsPage() {
         setHardStopSuccess('Hard Stop settings saved');
         setTimeout(() => setHardStopSuccess(null), 3000);
       }
-    } catch { }
+    } catch (e) { console.error("[room-presets.js]", e); }
     finally { setHardStopSaving(false); }
   }
 
@@ -129,7 +129,7 @@ export default function DailyPresetsPage() {
         setAutoCompSuccess('Hourly comp rate saved');
         setTimeout(() => setAutoCompSuccess(null), 3000);
       }
-    } catch { }
+    } catch (e) { console.error("[room-presets.js]", e); }
     finally { setAutoCompSaving(false); }
   }
 
