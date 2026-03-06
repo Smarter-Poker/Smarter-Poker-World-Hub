@@ -166,6 +166,16 @@ export default async function handler(req, res) {
                 throw error;
             }
 
+            // Audit log for PATCH
+            await logAdminAction(supabaseAdmin, {
+                admin_user_id: user.id,
+                action: 'promo_code_updated',
+                target_type: 'promo_code',
+                target_id: id,
+                details: updates,
+                ip_address: extractClientIP(req),
+            });
+
             return res.status(200).json({ success: true, code: data });
         } catch (err) {
             console.error('Update promo code error:', err);

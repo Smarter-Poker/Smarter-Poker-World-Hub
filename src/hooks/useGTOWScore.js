@@ -189,6 +189,14 @@ export function calculateRealEVLoss(evData, selectedAction, optimalAction, rawFr
 /**
  * Classify a player's move using the 5-tier GTO Wizard system.
  * 
+ * MIXED STRATEGY HANDLING (improved for real solver data):
+ * If GTO solver says Check 62% / Bet 38%, BOTH are considered correct.
+ * The classification is based on the frequency of the chosen action:
+ * - >=20% → BEST (valid GTO play, major part of the mix)
+ * - >=5%  → CORRECT (minor but valid part of mix)
+ * - >=1%  → INACCURACY (marginal, rarely used)
+ * - 0%    → WRONG or BLUNDER (not in solver strategy)
+ * 
  * @param {string} selectedAnswer - The player's chosen answer ID
  * @param {string} correctAnswer - The correct (highest-frequency) answer ID
  * @param {Object} gtoFrequencies - Map of option ID → frequency % (0-100 scale)
@@ -211,18 +219,27 @@ export function classifyMove(selectedAnswer, correctAnswer, gtoFrequencies = {},
     // Frequency difference from the most frequent action
     const frequencyDiff = Math.abs(correctFreq - selectedFreq);
 
-    // Classification logic matching GTO Wizard's tiers
+    // ═══ MIXED STRATEGY CLASSIFICATION (Real Solver Logic) ═══
+    // GTO Wizard treats any action with significant frequency as valid
     let classification;
 
     if (selectedNorm === correctNorm) {
+        // Chose the highest-frequency action — always BEST
         classification = MOVE_CLASSIFICATIONS.BEST;
-    } else if (selectedFreq >= 3.5) {
+    } else if (selectedFreq >= 20) {
+        // Major part of the mix (e.g., 38% check when 62% bet) — still BEST
+        classification = MOVE_CLASSIFICATIONS.BEST;
+    } else if (selectedFreq >= 5) {
+        // Minor but valid part of the mix — CORRECT
         classification = MOVE_CLASSIFICATIONS.CORRECT;
-    } else if (selectedFreq > 0 && selectedFreq < 3.5) {
+    } else if (selectedFreq >= 1) {
+        // Marginal frequency — INACCURACY (technically in solver strategy but rare)
         classification = MOVE_CLASSIFICATIONS.INACCURACY;
-    } else if (selectedFreq === 0 && frequencyDiff < 50) {
+    } else if (frequencyDiff < 50) {
+        // Not in strategy but close to other valid actions — WRONG
         classification = MOVE_CLASSIFICATIONS.WRONG;
     } else {
+        // Completely off — BLUNDER
         classification = MOVE_CLASSIFICATIONS.BLUNDER;
     }
 

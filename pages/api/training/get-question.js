@@ -14,6 +14,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
+import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -70,41 +71,62 @@ export default async function handler(req, res) {
                 .select('question_id')
                 .eq('user_id', userId)
                 .eq('game_id', gameId)
-                    .limit(100);
+                .limit(100);
 
             seenQuestionIds = (seen || []).map(s => s.question_id);
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        // STEP 3: ROUTE TO CORRECT ENGINE BASED ON GAME CONFIG
+        // STEP 3: DETERMINISTIC ENGINE — PRIMARY SOURCE (No Grok AI)
         // ═══════════════════════════════════════════════════════════════════
         let question = null;
 
-        // Route based on preferredEngine from game config
-        if (preferredEngine === 'SCENARIO') {
-            // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
-            question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
+        // Get PIO game config for solver data lookup
+        const pioConfig = pioQueryService.getGameConfig(gameId);
 
-        } else if (preferredEngine === 'CHART') {
-            // CHART ENGINE: Push/Fold Charts - Uses memory_charts_gold
-            question = await generateQuestionFromChart(gameId, level, game, stackDepth);
-
-            // Fallback to Grok for ICM/push-fold questions if no chart data
-            if (!question) {
-                question = await generateChartQuestionWithGrok(gameId, level, game, gameConfig);
-            }
-
-        } else {
-            // PIO ENGINE: GTO Solver Data (Default)
+        // TRY DETERMINISTIC ENGINE FIRST for PIO/CHART games
+        if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
             try {
-                const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
-
-                if (pioScenarios && pioScenarios.length > 0) {
-                    question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
-                } else {
+                question = await deterministicEngine.generateQuestion({
+                    gameId,
+                    level: parseInt(level),
+                    seenIds: seenQuestionIds,
+                    gameConfig: pioConfig,
+                });
+                if (question) {
+                    console.log(`[Training] ✅ DETERMINISTIC engine served question for ${gameId} (source: ${question.source})`);
                 }
-            } catch (pioError) {
-                console.error('[Training] ⚠️ PIO query failed:', pioError.message);
+            } catch (detErr) {
+                console.error('[Training] ⚠️ Deterministic engine failed, falling back:', detErr.message);
+            }
+        }
+
+        // FALLBACK: Route to legacy engine if deterministic failed
+        if (!question) {
+            if (preferredEngine === 'SCENARIO') {
+                // SCENARIO ENGINE: Mental Game / Psychology - Uses Grok AI
+                question = await generateQuestionWithGrok(gameId, 'SCENARIO', level, gameType, game, gameConfig);
+
+            } else if (preferredEngine === 'CHART') {
+                // CHART ENGINE: Push/Fold Charts - Uses memory_charts_gold
+                question = await generateQuestionFromChart(gameId, level, game, stackDepth);
+
+                // Fallback to Grok for ICM/push-fold questions if no chart data
+                if (!question) {
+                    question = await generateChartQuestionWithGrok(gameId, level, game, gameConfig);
+                }
+
+            } else {
+                // PIO ENGINE: GTO Solver Data (Default)
+                try {
+                    const pioScenarios = await pioQueryService.queryScenarios(gameId, parseInt(level), userId);
+
+                    if (pioScenarios && pioScenarios.length > 0) {
+                        question = await generateQuestionFromPIO(pioScenarios, gameId, level, game);
+                    }
+                } catch (pioError) {
+                    console.error('[Training] ⚠️ PIO query failed:', pioError.message);
+                }
             }
         }
 

@@ -8,6 +8,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { pioQueryService } from '../../../src/services/PIOQueryService';
+import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,8 +43,32 @@ export default async function handler(req, res) {
         const questionCount = parseInt(count, 10);
         const gameLevel = parseInt(level, 10);
 
+        // ═══ TRY DETERMINISTIC ENGINE FIRST ═══
+        const pioConfig = pioQueryService.getGameConfig(gameId);
+        if (pioConfig && pioConfig.sourceOfTruth !== 'SCENARIO') {
+            try {
+                const detQuestions = await deterministicEngine.generateBatch({
+                    gameId,
+                    level: gameLevel,
+                    count: questionCount,
+                    gameConfig: pioConfig,
+                });
 
-        // Fetch questions from cache
+                if (detQuestions && detQuestions.length >= 5) {
+                    console.log(`[BatchPreload] ✅ DETERMINISTIC engine served ${detQuestions.length} questions for ${gameId}`);
+                    return res.status(200).json({
+                        success: true,
+                        questions: detQuestions,
+                        source: 'DETERMINISTIC_SOLVER',
+                        count: detQuestions.length,
+                    });
+                }
+            } catch (detErr) {
+                console.error('[BatchPreload] ⚠️ Deterministic batch failed, falling back to cache:', detErr.message);
+            }
+        }
+
+        // ═══ FALLBACK: Fetch from question cache ═══
         const { data: questions, error } = await supabase
             .from('training_question_cache')
             .select('*')

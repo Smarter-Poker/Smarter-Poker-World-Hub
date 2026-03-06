@@ -193,7 +193,13 @@ export default async function handler(req, res) {
         let welcomePackageAllowed = true;
         let abuseReason = null;
 
-        if (emailHash) {
+        // Disposable email check (CREATED path)
+        if (isDisposableEmail(userEmail)) {
+            welcomePackageAllowed = false;
+            abuseReason = `Disposable email domain detected: ${userEmail.split('@')[1]}`;
+        }
+
+        if (emailHash && welcomePackageAllowed) {
             try {
                 // Check 1: Has this email hash been seen before? (re-signup after deletion)
                 const { data: emailMatch } = await supabase
