@@ -103,7 +103,7 @@ export default function ClockSetup() {
         finally { setLoading(false); }
     }, []);
 
-    useEffect(() => { if (staff) fetchPresets(); }, [staff, fetchPresets]);
+    useEffect(() => { if (staff) { const _c = new AbortController(); fetchPresets(_c.signal); return () => _c.abort(); } }, [staff, fetchPresets]);
 
     // Commander Data Bus — sync clock presets
     useCommanderSync(staff?.venue_id || '', fetchPresets, { entities: ['tournaments'] });

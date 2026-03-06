@@ -40,7 +40,7 @@ export default function WaitlistMetrics() {
     finally { setLoading(false); }
   }, [venueId, range]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); return () => _c.abort(); }, [fetchData]);
 
   const s = data?.summary || {};
   const wt = data?.wait_times || {};

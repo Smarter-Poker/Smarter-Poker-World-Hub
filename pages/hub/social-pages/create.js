@@ -57,7 +57,7 @@ export default function CreateSocialPage() {
         setForm(prev => ({ ...prev, [field]: value }));
     }
 
-    async function handleSubmit() {
+    async function handleSubmit(signal) {
         if (!form.name.trim()) { setError('Page name is required'); return; }
         if (!form.page_type) { setError('Select a page type'); return; }
 

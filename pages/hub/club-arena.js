@@ -262,7 +262,7 @@ export default function ClubArenaPage() {
     }, []);
 
     // Fetch real stats from Supabase for the Shark Club card
-    async function fetchSharkClubStats() {
+    async function fetchSharkClubStats(signal) {
         try {
             const { data: club } = await supabase
                 .from('clubs')
@@ -306,7 +306,7 @@ export default function ClubArenaPage() {
         }
     }
 
-    async function loadUserData() {
+    async function loadUserData(signal) {
         try {
             // Fast auth via Supabase session (no localStorage digging)
             const { data: { session } } = await supabase.auth.getSession();

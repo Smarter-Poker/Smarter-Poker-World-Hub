@@ -41,7 +41,7 @@ export default function ResponsibleGaming() {
     finally { setLoading(false); }
   }, [venueId]);
 
-  useEffect(() => { fetchMembers(); }, [fetchMembers]);
+  useEffect(() => { const _c = new AbortController(); fetchMembers(_c.signal); return () => _c.abort(); }, [fetchMembers]);
 
   // Search/check specific player
   const handleSearch = async () => {

@@ -233,7 +233,7 @@ export default function HomeGamePage() {
   useEffect(() => {
     if (!code) return;
 
-    async function fetchGroupData() {
+    async function fetchGroupData(signal) {
       setLoading(true);
       try {
         const res = await fetch(`/api/public/home-game/${code}`);

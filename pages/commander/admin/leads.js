@@ -37,7 +37,7 @@ export default function LeadManagementPage() {
     fetchLeads();
   }, [statusFilter]);
 
-  async function fetchLeads() {
+  async function fetchLeads(signal) {
     setLoading(true);
     try {
       const res = await fetch(`/api/commander/admin/leads?status=${statusFilter}`);

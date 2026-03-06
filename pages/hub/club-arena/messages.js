@@ -349,7 +349,7 @@ export default function ClubMessages() {
     // ═══════════════════════════════════════════════════════════════════════
 
     useEffect(() => {
-        async function init() {
+        async function init(signal) {
             try {
                 let authUser = null;
 
@@ -504,7 +504,7 @@ export default function ClubMessages() {
         }
     }
 
-    async function loadConversations() {
+    async function loadConversations(signal) {
         if (!user?.id) return;
 
         try {

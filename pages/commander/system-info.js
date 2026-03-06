@@ -44,7 +44,7 @@ export default function SystemInfoPage() {
     finally { setLoading(false); setRefreshing(false); }
   }
 
-  useEffect(() => { if (staff) fetchInfo(); }, [staff]);
+  useEffect(() => { if (staff) { const _c = new AbortController(); fetchInfo(_c.signal); return () => _c.abort(); } }, [staff]);
 
   function StatusBadge({ status }) {
     if (status === 'healthy') return <span className="flex items-center gap-1.5 text-[#31A24C] text-sm"><CheckCircle className="w-4 h-4" /> Healthy</span>;

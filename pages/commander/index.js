@@ -215,7 +215,7 @@ export default function CommanderLanding() {
     }
   }
 
-  async function handleEmailSubmit() {
+  async function handleEmailSubmit(signal) {
     if (!email.trim()) return;
     setSubmitting(true);
     try {

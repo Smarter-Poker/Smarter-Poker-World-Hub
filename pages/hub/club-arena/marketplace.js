@@ -177,7 +177,7 @@ export default function Marketplace() {
         }
     }, [clubIdParam]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PURCHASE ITEM

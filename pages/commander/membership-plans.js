@@ -66,12 +66,12 @@ export default function MembershipPlansPage() {
     } catch { router.push('/commander/login').catch(() => { }); }
   }, [router]);
 
-  useEffect(() => { if (venueId) fetchPlans(); }, [venueId]);
+  useEffect(() => { if (venueId) { const _c = new AbortController(); fetchPlans(_c.signal); return () => _c.abort(); } }, [venueId]);
 
   // Commander Data Bus — sync plans
   useCommanderSync(venueId, fetchPlans, { entities: ['settings'] });
 
-  async function fetchPlans() {
+  async function fetchPlans(signal) {
     setLoading(true);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');

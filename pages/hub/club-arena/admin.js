@@ -189,7 +189,7 @@ export default function Admin() {
         }
     }, [clubIdParam]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
 
     // Load announcements or shop items when those modals open
     useEffect(() => {
@@ -1301,7 +1301,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
         finally { setLoading(false); }
     };
 
-    useEffect(() => { if (clubId) loadBalances(); }, [clubId]);
+    useEffect(() => { if (clubId) { const _c = new AbortController(); loadBalances(_c.signal); return () => _c.abort(); } }, [clubId]);
 
     const handleMint = async () => {
         const amt = parseFloat(mintAmount);

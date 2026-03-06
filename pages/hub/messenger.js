@@ -1125,7 +1125,7 @@ export default function MessengerPage() {
 
     // Load user and conversations
     useEffect(() => {
-        async function init() {
+        async function init(signal) {
             try {
                 //  BULLETPROOF: Try localStorage first for instant session (PWA/notification opens)
                 let authUser = null;
@@ -1230,7 +1230,7 @@ export default function MessengerPage() {
     useEffect(() => {
         if (!user?.id) return;
 
-        async function checkPendingCalls() {
+        async function checkPendingCalls(signal) {
             try {
                 const { data: { session: pendingSession } } = await supabase.auth.getSession();
                 const res = await fetch(`/api/calls/pending?userId=${user.id}`, {

@@ -26,7 +26,7 @@ export default function SquadJoinPage() {
     fetchSquad();
   }, [code, router]);
 
-  async function fetchSquad() {
+  async function fetchSquad(signal) {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
@@ -46,7 +46,7 @@ export default function SquadJoinPage() {
     }
   }
 
-  async function handleJoin() {
+  async function handleJoin(signal) {
     setJoining(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');

@@ -56,7 +56,7 @@ export default function HighHands() {
     finally { setLoading(false); }
   }, [venueId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); return () => _c.abort(); }, [fetchData]);
 
   // Commander Data Bus — sync high hands across tabs
   useCommanderSync(venueId, fetchData, { entities: ['settings'] });

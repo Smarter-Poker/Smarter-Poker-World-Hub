@@ -35,7 +35,7 @@ export default function PlayerCheckInPage() {
     }
   }, [venueId]);
 
-  async function fetchVenueData() {
+  async function fetchVenueData(signal) {
     try {
       const [venueRes, gamesRes, promosRes] = await Promise.all([
         fetch(`/api/commander/venues/${venueId}`),
@@ -64,7 +64,7 @@ export default function PlayerCheckInPage() {
     }
   }
 
-  async function handleCheckIn() {
+  async function handleCheckIn(signal) {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/check-in/${venueId}`);

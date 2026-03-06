@@ -62,7 +62,7 @@ export default function ProfileSettingsPage() {
       });
   });
 
-  async function handleSave() {
+  async function handleSave(signal) {
     setSaving(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');

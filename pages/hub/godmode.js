@@ -27,7 +27,7 @@ export default function GodModePage() {
     loadHandData();
   }, [handId]);
 
-  async function loadHandData() {
+  async function loadHandData(signal) {
     setLoading(true);
     setError(null);
     try {

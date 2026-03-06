@@ -56,7 +56,7 @@ export default function CreateSquadPage() {
     fetchFriends();
   }, [router]);
 
-  async function fetchVenues() {
+  async function fetchVenues(signal) {
     try {
       const res = await fetch('/api/commander/venues?commander_enabled=true');
       const data = await res.json();
@@ -69,7 +69,7 @@ export default function CreateSquadPage() {
     }
   }
 
-  async function fetchFriends() {
+  async function fetchFriends(signal) {
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       const res = await fetch('/api/friends', {
@@ -101,7 +101,7 @@ export default function CreateSquadPage() {
     }));
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(signal) {
     if (!formData.venue_id || !formData.stakes || formData.members.length === 0) {
       return;
     }

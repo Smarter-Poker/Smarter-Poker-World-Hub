@@ -138,7 +138,7 @@ export default function HandDetailPage() {
     }
   }, [handId]);
 
-  async function fetchHand() {
+  async function fetchHand(signal) {
     setLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -157,7 +157,7 @@ export default function HandDetailPage() {
     }
   }
 
-  async function handleAnalyze() {
+  async function handleAnalyze(signal) {
     setAnalyzing(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -181,7 +181,7 @@ export default function HandDetailPage() {
     }
   }
 
-  async function handleShare() {
+  async function handleShare(signal) {
     if (navigator.share) {
       try {
         await navigator.share({

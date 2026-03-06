@@ -62,7 +62,7 @@ export default function ExportsHub() {
     finally { setLoading(false); }
   }, [venueId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); return () => _c.abort(); }, [fetchData]);
 
   const createExport = async (exportType) => {
     setCreating(exportType);

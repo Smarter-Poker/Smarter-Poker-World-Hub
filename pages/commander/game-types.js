@@ -67,7 +67,7 @@ export default function GameTypesPage() {
     finally { setLoading(false); }
   }, [venueId]);
 
-  useEffect(() => { fetchGameTypes(); }, [fetchGameTypes]);
+  useEffect(() => { const _c = new AbortController(); fetchGameTypes(_c.signal); return () => _c.abort(); }, [fetchGameTypes]);
 
   // Commander Data Bus — sync game types across tabs
   useCommanderSync(venueId, fetchGameTypes, { entities: ['games'] });
@@ -100,7 +100,7 @@ export default function GameTypesPage() {
     }));
   }
 
-  async function handleSave() {
+  async function handleSave(signal) {
     if (!form.name || !form.short_code || !form.stakes) {
       setError('Name, code, and stakes are required');
       return;

@@ -111,7 +111,7 @@ export default function LeagueDetailPage() {
   const standings = swrData?.standings || [];
   const events = swrData?.events || [];
 
-  async function handleJoinLeague() {
+  async function handleJoinLeague(signal) {
     setJoining(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');

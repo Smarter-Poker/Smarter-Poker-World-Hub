@@ -37,7 +37,7 @@ export default function PilotVenuesPage() {
     fetchPilots();
   }, []);
 
-  async function fetchPilots() {
+  async function fetchPilots(signal) {
     setLoading(true);
     try {
       const res = await fetch('/api/commander/admin/pilots');

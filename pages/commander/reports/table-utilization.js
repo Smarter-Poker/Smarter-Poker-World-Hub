@@ -40,7 +40,7 @@ export default function TableUtilization() {
     finally { setLoading(false); }
   }, [venueId, range]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); return () => _c.abort(); }, [fetchData]);
 
   const s = data?.summary || {};
   const maxHeat = Math.max(...(data?.hourly_heatmap || [1]), 1);

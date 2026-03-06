@@ -178,7 +178,7 @@ export default function PlayerNotificationsPage() {
     }
   }
 
-  async function handleMarkAllRead() {
+  async function handleMarkAllRead(signal) {
     // Optimistic update
     const prevNotifications = [...notifications];
     setNotifications(prev =>

@@ -25,7 +25,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
     ? Math.max(1, Math.ceil((new Date(formData.end_date) - new Date(formData.start_date)) / (1000 * 60 * 60 * 24)) + 1)
     : 1;
 
-  async function handleSubmit() {
+  async function handleSubmit(signal) {
     if (!formData.start_date || !formData.end_date) return;
 
     setSubmitting(true);
@@ -166,7 +166,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  async function handleSubmit() {
+  async function handleSubmit(signal) {
     if (!formData.date) return;
 
     setSubmitting(true);

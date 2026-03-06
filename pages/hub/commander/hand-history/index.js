@@ -156,7 +156,7 @@ export default function HandHistoryPage() {
     fetchSessions();
   }, []);
 
-  async function fetchSessions() {
+  async function fetchSessions(signal) {
     setLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');

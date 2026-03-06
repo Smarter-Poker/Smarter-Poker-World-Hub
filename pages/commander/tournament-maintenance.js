@@ -46,7 +46,7 @@ export default function TournamentMaintenance() {
         finally { setLoading(false); }
     }, []);
 
-    useEffect(() => { if (staff) fetchTournaments(); }, [staff, fetchTournaments]);
+    useEffect(() => { if (staff) { const _c = new AbortController(); fetchTournaments(_c.signal); return () => _c.abort(); } }, [staff, fetchTournaments]);
 
     // Commander Data Bus — sync tournaments across tabs
     useCommanderSync(staff?.venue_id || '', fetchTournaments, { entities: ['tournaments'] });

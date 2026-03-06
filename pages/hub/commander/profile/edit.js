@@ -38,7 +38,7 @@ export default function ProfileEditPage() {
       });
   });
 
-  async function handleSave() {
+  async function handleSave(signal) {
     if (!formData.display_name.trim()) {
       setError('Display name is required');
       return;

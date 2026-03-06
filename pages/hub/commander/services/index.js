@@ -147,7 +147,7 @@ function RequestModal({ type, session, onSubmit, onClose }) {
 
   const serviceType = SERVICE_TYPES.find(s => s.type === type);
 
-  async function handleSubmit() {
+  async function handleSubmit(signal) {
     setLoading(true);
     await onSubmit({
       request_type: type,

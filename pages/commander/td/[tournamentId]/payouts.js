@@ -77,7 +77,7 @@ export default function TDPayouts() {
     }, [tournamentId, getToken]);
 
     useTournamentRealtime(tournamentId, fetchPayouts);
-    useEffect(() => { fetchPayouts(); }, [fetchPayouts]);
+    useEffect(() => { const _c = new AbortController(); fetchPayouts(_c.signal); return () => _c.abort(); }, [fetchPayouts]);
 
     const handleOverride = (position, value) => {
         setOverrides(prev => ({ ...prev, [position]: parseInt(value) || 0 }));

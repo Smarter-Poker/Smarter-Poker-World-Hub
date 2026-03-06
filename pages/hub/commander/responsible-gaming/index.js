@@ -114,7 +114,7 @@ export default function ResponsibleGamingPage() {
     }
   );
 
-  async function handleSaveLimits() {
+  async function handleSaveLimits(signal) {
     setSaving(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -142,7 +142,7 @@ export default function ResponsibleGamingPage() {
     }
   }
 
-  async function handleSelfExclude() {
+  async function handleSelfExclude(signal) {
     if (!exclusion) return;
 
     setSaving(true);

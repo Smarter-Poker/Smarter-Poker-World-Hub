@@ -253,7 +253,7 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
   const sev = SEVERITY_LEVELS.find(s => s.value === incident.severity) || SEVERITY_LEVELS[1];
   const typeInfo = INCIDENT_TYPES.find(t => t.value === incident.incident_type) || INCIDENT_TYPES[5];
 
-  async function handleResolve() {
+  async function handleResolve(signal) {
     if (!resolution) return;
     setLoading(true);
     await onResolve(incident.id, resolution);
@@ -378,7 +378,7 @@ export default function IncidentsPage() {
   // Commander Data Bus — sync incidents across tabs
   useCommanderSync(venueId, fetchIncidents, { entities: ['incidents'] });
 
-  async function fetchIncidents() {
+  async function fetchIncidents(signal) {
     setLoading(true);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');

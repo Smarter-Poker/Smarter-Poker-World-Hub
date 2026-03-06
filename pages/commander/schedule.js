@@ -291,7 +291,7 @@ export default function StaffSchedule() {
     finally { setLoading(false); }
   }, [weekStart]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { const _c = new AbortController(); fetchData(_c.signal); return () => _c.abort(); }, [fetchData]);
 
   // Commander Data Bus — sync staff/schedule across tabs
   // Listen for both 'staff' changes (new employees) and 'settings' changes (schedule shifts)

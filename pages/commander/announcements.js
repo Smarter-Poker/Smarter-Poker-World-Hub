@@ -55,7 +55,7 @@ export default function CommanderAnnouncementsPage() {
     }
   }, [router]);
 
-  async function handleSend() {
+  async function handleSend(signal) {
     if (!message.trim()) return;
 
     setSending(true);
