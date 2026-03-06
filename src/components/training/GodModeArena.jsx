@@ -714,6 +714,58 @@ function GodModeArena({
     // nextQuestion is passed down as onNextHand to UniversalDynamicTable
 
     // ═══════════════════════════════════════════════════════════════════════
+    // ERROR STATE — Graceful fallback when API fails (auth, network, etc.)
+    // ═══════════════════════════════════════════════════════════════════════
+    if (error && !gameComplete && !currentQuestion) {
+        const isAuthError = error.toLowerCase().includes('auth') || error.toLowerCase().includes('401');
+        return (
+            <div style={{
+                minHeight: '100vh', background: 'linear-gradient(180deg, #0a0a15, #1a1a2e)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+            }}>
+                <div style={{
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 16, padding: 40, maxWidth: 420, textAlign: 'center',
+                }}>
+                    <div style={{ fontSize: 48, marginBottom: 16 }}>{isAuthError ? '🔒' : '⚠️'}</div>
+                    <h2 style={{ color: '#fff', fontSize: 20, margin: '0 0 12px', fontFamily: "'Orbitron', sans-serif" }}>
+                        {isAuthError ? 'Sign In Required' : 'Connection Error'}
+                    </h2>
+                    <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
+                        {isAuthError
+                            ? 'You need to be signed in to access GTO training. Sign in to track your progress and compete on leaderboards.'
+                            : error}
+                    </p>
+                    <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                        {isAuthError && (
+                            <button
+                                onClick={() => window.location.href = '/'}
+                                style={{
+                                    padding: '12px 24px', borderRadius: 10, border: 'none',
+                                    background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                                    color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14,
+                                }}
+                            >
+                                Sign In
+                            </button>
+                        )}
+                        <button
+                            onClick={onExit}
+                            style={{
+                                padding: '12px 24px', borderRadius: 10,
+                                border: '1px solid rgba(255,255,255,0.2)', background: 'transparent',
+                                color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 14,
+                            }}
+                        >
+                            Back to Training
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // POST-SESSION REVIEW SCREEN — GTO Wizard-style completion
     // ═══════════════════════════════════════════════════════════════════════
 

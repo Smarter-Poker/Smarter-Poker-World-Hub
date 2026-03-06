@@ -444,22 +444,22 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
 
     // Fetch posts
     useEffect(() => {
+        const controller = new AbortController();
         const fetchPosts = async () => {
             setLoadingPosts(true);
             try {
-                const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`, { signal });
+                const res = await fetch(`/api/social/pages/posts?page_id=${page.id}&user_id=${userId}`, { signal: controller.signal });
                 const json = await res.json();
                 if (json.success) setPosts(json.data || []);
-            } catch (e) { console.error('Club page posts fetch error:', e); }
+            } catch (e) { if (e.name !== 'AbortError') console.error('Club page posts fetch error:', e); }
             setLoadingPosts(false);
         };
 
         fetchPosts();
+        return () => controller.abort();
     }, [page.id, userId]);
 
     const handlePost = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!postContent.trim() && postMedia.length === 0) return;
         setPosting(true);
         try {
@@ -489,8 +489,6 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
     };
 
     const handleSavePage = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         setSaving(true);
         try {
             // Merge address into metadata and clear draft flags on save
@@ -952,7 +950,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         {DAYS.map(day => {
                             const d = schedule[day];
                             return (
-                                <div key={day} style={{ background: d.open ? 'rgba(24,119,242,0.06)' : '#f5f5f5', borderRadius: 10, padding: '10px 14px', border: `1px solid ${d.open ? 'rgba(24,119,242,0.2)' : '#e4e6eb'}` }}>
+                                <div key={day} style={{ background: d.open ? 'rgba(45,136,255,0.08)' : '#2A2B2C', borderRadius: 10, padding: '10px 14px', border: `1px solid ${d.open ? 'rgba(45,136,255,0.2)' : '#3A3B3C'}` }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: d.open ? 8 : 0 }}>
                                         <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', minWidth: 70 }}>
                                             <input type="checkbox" checked={d.open} onChange={e => setSchedule(prev => ({ ...prev, [day]: { ...prev[day], open: e.target.checked } }))} style={{ width: 18, height: 18, accentColor: C.blue }} />
@@ -1003,7 +1001,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Tournament Schedule</h3>
                     </div>
                     {/* Commander-only notice */}
-                    <div style={{ background: 'rgba(24,119,242,0.06)', border: '1px solid rgba(24,119,242,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ background: 'rgba(45,136,255,0.06)', border: '1px solid rgba(45,136,255,0.2)', borderRadius: 10, padding: '12px 16px', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontSize: 18 }}>&#9432;</span>
                         <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Tournament Schedules Are Managed Through Club Commander</div>
@@ -1021,7 +1019,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                 const GLABELS = { NLH: "NL Hold'em", PLO: 'PLO', PLO5: 'PLO-5', PLO8: 'PLO Hi-Lo', nlh: "NL Hold'em", plo: 'PLO', plo5: 'PLO-5', plo8: 'PLO Hi-Lo', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz' };
                                 const isLive = ['running', 'break', 'final_table'].includes(t.status);
                                 const isCompleted = t.status === 'completed';
-                                const statusColor = isLive ? '#42B72A' : isCompleted ? '#B0B3B8' : '#1877F2';
+                                const statusColor = isLive ? '#42B72A' : isCompleted ? '#B0B3B8' : '#2D88FF';
                                 const statusLabel = isLive ? (t.status === 'break' ? 'BREAK' : t.status === 'final_table' ? 'FINAL TABLE' : 'LIVE') : isCompleted ? 'Completed' : 'Upcoming';
                                 const prizePool = (t.current_entries || 0) * (t.buyin_amount || 0);
                                 return (
@@ -1029,12 +1027,12 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                         onClick={() => t.id && window.open(`/commander/tournaments/${t.id}/public`, '_blank')}
                                         style={{
                                             display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                                            background: isLive ? 'rgba(66,183,42,0.04)' : '#f5f5f5',
+                                            background: isLive ? 'rgba(66,183,42,0.04)' : '#2A2B2C',
                                             borderRadius: 10,
-                                            border: isLive ? '1px solid rgba(66,183,42,0.25)' : '1px solid #e4e6eb',
+                                            border: isLive ? '1px solid rgba(66,183,42,0.25)' : '1px solid #3A3B3C',
                                             cursor: t.id ? 'pointer' : 'default', transition: 'all 0.15s'
                                         }}>
-                                        {d && <div style={{ minWidth: 44, textAlign: 'center', background: '#fff', borderRadius: 8, padding: '4px 6px', border: '1px solid #e4e6eb' }}>
+                                        {d && <div style={{ minWidth: 44, textAlign: 'center', background: '#3A3B3C', borderRadius: 8, padding: '4px 6px', border: '1px solid #4E4F50' }}>
                                             <div style={{ fontSize: 10, color: C.textSec, textTransform: 'uppercase', fontWeight: 700 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</div>
                                             <div style={{ fontSize: 16, fontWeight: 800, color: C.text }}>{d.getDate()}</div>
                                         </div>}
@@ -1045,7 +1043,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                                     fontSize: 9, fontWeight: 800, color: statusColor, textTransform: 'uppercase',
                                                     letterSpacing: 0.5, display: 'inline-flex', alignItems: 'center', gap: 4,
                                                     padding: '2px 6px', borderRadius: 4,
-                                                    background: isLive ? 'rgba(66,183,42,0.12)' : isCompleted ? 'rgba(176,179,184,0.12)' : 'rgba(24,119,242,0.08)'
+                                                    background: isLive ? 'rgba(66,183,42,0.12)' : isCompleted ? 'rgba(176,179,184,0.12)' : 'rgba(45,136,255,0.08)'
                                                 }}>
                                                     {isLive && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#42B72A', animation: 'pulse 1.5s infinite' }} />}
                                                     {statusLabel}
@@ -1093,7 +1091,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                             <div style={{ fontSize: 13, fontWeight: 700, color: C.blue, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>{cat.cat}</div>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 4 }}>
                                 {cat.items.map(item => (
-                                    <label key={item.k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: amenities[item.k] ? 'rgba(24,119,242,0.08)' : '#f5f5f5', border: `1px solid ${amenities[item.k] ? 'rgba(24,119,242,0.3)' : '#e4e6eb'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                                    <label key={item.k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: amenities[item.k] ? 'rgba(45,136,255,0.08)' : '#2A2B2C', border: `1px solid ${amenities[item.k] ? 'rgba(45,136,255,0.3)' : '#3A3B3C'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
                                         <input type="checkbox" checked={!!amenities[item.k]} onChange={e => setAmenities(prev => ({ ...prev, [item.k]: e.target.checked }))} style={{ width: 16, height: 16, accentColor: C.blue }} />
                                         <span style={{ fontSize: 13, color: C.text }}>{item.l}</span>
                                     </label>
@@ -1107,7 +1105,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             {/* Pending Follow Requests — visible above all tabs */}
             {pendingFollowers.length > 0 && (
                 <div style={{ ...cardSt, marginBottom: 8 }}>
-                    <div style={{ marginBottom: 0, borderRadius: 10, border: '2px solid #f59e0b', background: '#fffbeb', padding: 12 }}>
+                    <div style={{ marginBottom: 0, borderRadius: 10, border: '2px solid #f59e0b', background: 'rgba(245,158,11,0.08)', padding: 12 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>Pending Follow Requests ({pendingFollowers.length})</div>
                         {pendingFollowers.map(f => (
                             <div key={f.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #fde68a' }}>
@@ -1138,14 +1136,14 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                         <Link href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage In Club Commander →</Link>
                     </div>
 
-                    <div style={{ fontSize: 12, color: C.textSec, padding: '8px 12px', background: '#f0f7ff', borderRadius: 8, marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, color: C.textSec, padding: '8px 12px', background: 'rgba(45,136,255,0.06)', borderRadius: 8, marginBottom: 12 }}>
                         Live games are managed through Club Commander. This board shows the current game status in real-time.
                     </div>
 
                     {/* Read-Only Games List */}
                     {loadingGames ? (
                         <div style={{ textAlign: 'center', padding: 40, color: C.textSec }}>
-                            <div style={{ width: 32, height: 32, border: '3px solid #E4E6EB', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                            <div style={{ width: 32, height: 32, border: '3px solid #3A3B3C', borderTopColor: C.blue, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
                             Loading games...
                         </div>
                     ) : liveGames.length === 0 ? (
@@ -1204,7 +1202,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                 return (
                                     <div key={game.id} style={{ background: '#1a1a2e', borderRadius: 16, border: '1px solid #2d2d44', overflow: 'hidden' }}>
                                         {/* Game Header */}
-                                        <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)', color: '#fff' }}>
+                                        <div style={{ padding: '12px 16px', background: game.status === 'running' ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)' : 'linear-gradient(135deg, #2D88FF 0%, #1A7AFF 100%)', color: '#fff' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                                 <div>
                                                     <div style={{ fontSize: 16, fontWeight: 800 }}>{game.game_name}</div>
@@ -1257,14 +1255,14 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                                 }}>
                                                     <div style={{
                                                         width: 80, height: 80, borderRadius: '50%', margin: '0 auto 4px',
-                                                        background: 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                                        border: '3px solid #E4E6EB',
+                                                        background: 'linear-gradient(135deg, #2D88FF 0%, #1A7AFF 100%)',
+                                                        border: '3px solid #3A3B3C',
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                        boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(24,119,242,0.4)',
+                                                        boxShadow: '0 2px 12px rgba(0,0,0,0.6), 0 0 16px rgba(45,136,255,0.4)',
                                                         fontSize: 32, fontWeight: 900, color: '#fff',
                                                         letterSpacing: 1,
                                                     }}>D</div>
-                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1877F2', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#2D88FF', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {game.dealer_name || 'No Dealer'}
                                                     </div>
                                                 </div>
@@ -1321,7 +1319,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                                             background: 'rgba(36,37,38,0.9)',
                                                             borderRadius: 14,
                                                             padding: '6px 12px 6px 6px',
-                                                            border: `2px solid ${isOccupied ? 'rgba(24,119,242,0.5)' : 'rgba(62,64,66,0.6)'}`,
+                                                            border: `2px solid ${isOccupied ? 'rgba(45,136,255,0.5)' : 'rgba(62,64,66,0.6)'}`,
                                                             backdropFilter: 'blur(6px)',
                                                             minWidth: 80,
                                                         }}>
@@ -1330,9 +1328,9 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                                                 width: 68, height: 68, borderRadius: '50%', flexShrink: 0,
                                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                 background: isOccupied
-                                                                    ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)')
-                                                                    : 'rgba(255,255,255,0.06)',
-                                                                border: `2px solid ${isOccupied ? '#1877F2' : 'rgba(62,64,66,0.5)'}`,
+                                                                    ? (avatarUrl ? 'transparent' : 'linear-gradient(135deg, #2D88FF 0%, #1A7AFF 100%)')
+                                                                    : 'rgba(62,64,66,0.3)',
+                                                                border: `2px solid ${isOccupied ? '#2D88FF' : 'rgba(62,64,66,0.5)'}`,
                                                                 overflow: 'hidden',
                                                             }}>
                                                                 {isOccupied ? (
@@ -1441,7 +1439,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                                 ) : qrData ? (
                                     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                                         <div style={{ textAlign: 'center' }}>
-                                            <img src={qrData.qr_code_url} alt="Club Page QR Code" style={{ width: 180, height: 180, borderRadius: 8, border: '1px solid #E4E6EB' }} />
+                                            <img src={qrData.qr_code_url} alt="Club Page QR Code" style={{ width: 180, height: 180, borderRadius: 8, border: '1px solid #3A3B3C' }} />
                                             <div style={{ marginTop: 6 }}>
                                                 <a href={qrData.qr_code_url} download={`${page.name}-qr-code.svg`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.blue, fontWeight: 600, textDecoration: 'none' }}>
                                                     Download QR Code
