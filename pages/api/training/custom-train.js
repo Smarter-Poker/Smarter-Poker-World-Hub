@@ -45,6 +45,7 @@ export default async function handler(req, res) {
         position,
         stackDepth = '100',
         street,
+        handClass,
         count = '25',
     } = req.query;
 
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
     const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
 
     try {
-        console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${parsedCount} hands`);
+        console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
 
         // Build query filters
         let query = supabase
@@ -116,13 +117,13 @@ export default async function handler(req, res) {
                     });
                 }
 
-                return buildAndReturnQuestions(res, anyData, parsedCount, position, parsedStack, street);
+                return buildAndReturnQuestions(res, anyData, parsedCount, position, parsedStack, street, handClass);
             }
 
-            return buildAndReturnQuestions(res, fallbackData, parsedCount, position, parsedStack, street);
+            return buildAndReturnQuestions(res, fallbackData, parsedCount, position, parsedStack, street, handClass);
         }
 
-        return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street);
+        return buildAndReturnQuestions(res, scenarios, parsedCount, position, parsedStack, street, handClass);
 
     } catch (err) {
         console.error('[CustomTrain] Error:', err);
@@ -133,7 +134,7 @@ export default async function handler(req, res) {
 /**
  * Build questions from scenarios and return response
  */
-function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, street) {
+function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, street, handClass) {
     const engine = new DeterministicGTOEngine();
     const questions = [];
     const usedIds = new Set();
@@ -147,6 +148,7 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
             sourceOfTruth: 'PioSOLVER',
             pioGameType: scenario.game_type,
             pioStackDepth: scenario.stack_depth,
+            handClass: handClass, // Pass handClass to engine
         };
 
         const question = engine.buildQuestionFromScenario(scenario, gameConfig, 5, i);
@@ -172,6 +174,6 @@ function buildAndReturnQuestions(res, scenarios, count, position, stackDepth, st
         success: true,
         questions,
         totalAvailable: scenarios.length,
-        config: { position, stackDepth, street },
+        config: { position, stackDepth, street, handClass },
     });
 }

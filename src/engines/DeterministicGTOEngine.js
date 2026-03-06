@@ -130,6 +130,35 @@ function hashSeed(str) {
     return Math.abs(hash);
 }
 
+/**
+ * Check if a hand notation (e.g., "AKs", "22") matches a specific Hand Class
+ */
+function matchesHandClass(hand, handClass) {
+    if (!handClass || handClass === 'all') return true;
+    if (!hand || hand.length < 2) return false;
+
+    const r1 = hand[0];
+    const r2 = hand[1];
+    const isSuited = hand.length >= 3 && hand[2] === 's';
+
+    const rankValues = { '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14 };
+    const val1 = rankValues[r1];
+    const val2 = rankValues[r2];
+
+    switch (handClass) {
+        case 'pocket_pairs':
+            return r1 === r2;
+        case 'suited_connectors':
+            return isSuited && Math.abs(val1 - val2) === 1;
+        case 'broadways':
+            return val1 >= 10 && val2 >= 10 && r1 !== r2;
+        case 'suited_aces':
+            return isSuited && (r1 === 'A' || r2 === 'A') && r1 !== r2;
+        default:
+            return true;
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN ENGINE CLASS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -346,7 +375,18 @@ export class DeterministicGTOEngine {
         // Pick from the frequency data — these are the hands the solver analyzed
         const sampleAction = actions.find(a => frequencies[a]) || actions[0];
         const handFreqs = frequencies[sampleAction] || {};
-        const allHands = Object.keys(handFreqs).filter(h => h && h.length >= 2);
+        let allHands = Object.keys(handFreqs).filter(h => h && h.length >= 2);
+
+        // ═══ APPLY HAND CLASS FILTER ═══
+        if (gameConfig.handClass && gameConfig.handClass !== 'all') {
+            const filteredHands = allHands.filter(h => matchesHandClass(h, gameConfig.handClass));
+            if (filteredHands.length > 0) {
+                allHands = filteredHands;
+            } else {
+                // Return null to force custom-train.js to skip this scenario
+                return null;
+            }
+        }
 
         if (allHands.length === 0) return null;
 

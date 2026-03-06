@@ -90,6 +90,9 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 if (trainerConfig.street) {
                     params.set('street', trainerConfig.street);
                 }
+                if (trainerConfig.handClass) {
+                    params.set('handClass', trainerConfig.handClass);
+                }
                 apiUrl = `/api/training/custom-train?${params}`;
                 console.log(`[MillionaireGame] Custom trainer: ${trainerConfig.label || 'custom config'}`);
             } else {

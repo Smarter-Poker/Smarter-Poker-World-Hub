@@ -62,6 +62,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const [position, setPosition] = useState('BTN');
     const [stackDepth, setStackDepth] = useState(100);
     const [street, setStreet] = useState('all');
+    const [handClass, setHandClass] = useState('all');
     const [questionsCount, setQuestionsCount] = useState(25);
 
     // Available positions for selected game type
@@ -84,14 +85,15 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
             position,
             stackDepth,
             street: street === 'all' ? null : street,
+            handClass: handClass === 'all' ? null : handClass,
             questionsCount,
             // PIO solver config
             pioGameTypes: gameTypeConfig?.pioTypes || ['hu_cash'],
             pioStackDepth: stackDepth,
             // Display info
-            label: `${gameTypeConfig?.label} | ${position} | ${stackDepth}BB | ${street === 'all' ? 'All Streets' : street.charAt(0).toUpperCase() + street.slice(1)}`,
+            label: `${gameTypeConfig?.label} | ${position} | ${stackDepth}BB | ${street === 'all' ? 'All Streets' : street.charAt(0).toUpperCase() + street.slice(1)} | ${handClass === 'all' ? 'Any Hand' : handClass}`,
         });
-    }, [gameType, position, stackDepth, street, questionsCount, onStart]);
+    }, [gameType, position, stackDepth, street, handClass, questionsCount, onStart]);
 
     if (!isOpen) return null;
 
@@ -108,7 +110,7 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.9, opacity: 0, y: 30 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    style={styles.modal}
+                    style={{ ...styles.modal, maxHeight: '95vh' }}
                 >
                     {/* Header */}
                     <div style={styles.header}>
@@ -201,6 +203,33 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                                     >
                                         <span>{s.icon}</span>
                                         <span style={styles.streetLabel}>{s.label}</span>
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* SECTION 4.5: Hand Class Filter */}
+                        <div style={styles.section}>
+                            <div style={styles.sectionLabel}>HAND CLASS</div>
+                            <div style={styles.chipRow}>
+                                {[
+                                    { id: 'all', label: 'Any Hand' },
+                                    { id: 'pocket_pairs', label: 'Pocket Pairs (22-AA)' },
+                                    { id: 'suited_connectors', label: 'Suited Connectors (e.g. 87s)' },
+                                    { id: 'broadways', label: 'Broadways (AT-AK, KQ, etc)' },
+                                    { id: 'suited_aces', label: 'Suited Aces (A2s-A9s)' },
+                                ].map(h => (
+                                    <motion.button
+                                        key={h.id}
+                                        whileHover={{ scale: 1.08 }}
+                                        whileTap={{ scale: 0.92 }}
+                                        onClick={() => setHandClass(h.id)}
+                                        style={{
+                                            ...styles.chip,
+                                            ...(handClass === h.id ? styles.chipActive : {}),
+                                        }}
+                                    >
+                                        {h.label}
                                     </motion.button>
                                 ))}
                             </div>
