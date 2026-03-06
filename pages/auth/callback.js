@@ -99,17 +99,17 @@ export default function AuthCallback() {
                                 localStorage.setItem('commander_staff', JSON.stringify(staffSession));
                                 localStorage.setItem('commander_remember', 'true');
 
-                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                                setTimeout(() => { window.location.href = '/commander/dashboard'; }, 1000);
                                 return;
                             } else {
                                 // No subscription found — send to login with message
                                 // (prevents redirect loop: dashboard → login → dashboard)
-                                setTimeout(() => router.replace('/commander/login?no_sub=1'), 1000);
+                                setTimeout(() => { window.location.href = '/commander/login?no_sub=1'; }, 1000);
                                 return;
                             }
                         } catch (err) {
                             console.error('Failed to init commander session:', err);
-                            setTimeout(() => router.replace('/commander/login'), 1000);
+                            setTimeout(() => { window.location.href = '/commander/login'; }, 1000);
                             return;
                         }
                     }
@@ -325,7 +325,7 @@ export default function AuthCallback() {
                     }
 
                     sessionStorage.setItem('needs_phone_verify', user.id);
-                    setTimeout(() => router.replace('/commander/dashboard'), 1500);
+                    setTimeout(() => { window.location.href = '/commander/dashboard'; }, 1500);
                 } else {
                     // Redirect to hub with intro + phone verification prompt
                     sessionStorage.setItem('just_authenticated', 'true');

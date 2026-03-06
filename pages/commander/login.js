@@ -40,36 +40,36 @@ export default function CommanderLogin() {
   // Auto-restore session — if user has valid Supabase session + remember flag, skip login
   useEffect(() => {
     async function checkExistingSession() {
+      // HARDENED: 8-second timeout prevents infinite loading screen if Supabase hangs
+      const safetyTimeout = setTimeout(() => setCheckingSession(false), 8000);
       try {
         const remembered = localStorage.getItem('commander_remember');
         const staffData = localStorage.getItem('commander_staff');
-        if (!remembered || !staffData) { setCheckingSession(false); return; }
+        if (!remembered || !staffData) { clearTimeout(safetyTimeout); setCheckingSession(false); return; }
 
         // Verify Supabase session is still valid
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          // Session valid — go straight to dashboard (replace to avoid invariant error)
-          if (router.pathname !== '/commander/dashboard') {
-            router.replace('/commander/dashboard').catch(() => { });
-          }
+          clearTimeout(safetyTimeout);
+          // Session valid — go straight to dashboard
+          window.location.href = '/commander/dashboard';
           return;
         }
 
         // Session expired — try to refresh
         const { data: { session: refreshed } } = await supabase.auth.refreshSession();
         if (refreshed) {
-          if (router.pathname !== '/commander/dashboard') {
-            router.replace('/commander/dashboard').catch(() => { });
-          }
+          clearTimeout(safetyTimeout);
+          window.location.href = '/commander/dashboard';
           return;
         }
 
         // Refresh failed — keep commander_remember and staff email for pre-fill
-        // Only clear session-specific tokens, not the remember flag
         localStorage.removeItem('commander_venue');
         localStorage.removeItem('commander_subscription');
       } catch (err) {
       }
+      clearTimeout(safetyTimeout);
       setCheckingSession(false);
     }
     checkExistingSession();
@@ -113,6 +113,10 @@ export default function CommanderLogin() {
 
       if (authError) throw authError;
 
+      // HARDENED: 15-second timeout on subscription check
+      const abortController = new AbortController();
+      const fetchTimeout = setTimeout(() => abortController.abort(), 15000);
+
       // Check if user has a commander subscription (server-side to bypass RLS)
       // CRITICAL FIX: Send JWT Bearer token — check-subscription requires auth (BUG #260)
       const subRes = await fetch('/api/commander/check-subscription', {
@@ -122,11 +126,14 @@ export default function CommanderLogin() {
           'Authorization': `Bearer ${data.session.access_token}`,
         },
         body: JSON.stringify({ userId: data.user.id }),
+        signal: abortController.signal,
       });
+      clearTimeout(fetchTimeout);
       const subData = await subRes.json();
 
       if (!subRes.ok || !subData.subscription) {
         setError('No active Club Commander subscription found for this account.');
+        setLoading(false);
         return;
       }
 
@@ -170,7 +177,11 @@ export default function CommanderLogin() {
 
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Invalid email or password');
+      if (err.name === 'AbortError') {
+        setError('Login timed out. Please check your connection and try again.');
+      } else {
+        setError(err.message || 'Invalid email or password');
+      }
     } finally {
       setLoading(false);
     }

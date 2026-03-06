@@ -182,6 +182,10 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
     try {
+      // HARDENED: 30-second timeout (registration does a lot of server-side work)
+      const abortController = new AbortController();
+      const fetchTimeout = setTimeout(() => abortController.abort(), 30000);
+
       const res = await fetch('/api/commander/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,8 +204,10 @@ export default function RegisterPage() {
           selectedTier,
           existingAccount,
           skipPayment: true,
-        })
+        }),
+        signal: abortController.signal,
       });
+      clearTimeout(fetchTimeout);
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Registration failed');
 
