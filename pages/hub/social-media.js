@@ -2178,6 +2178,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             } catch (e) { console.error('Club page posts fetch error:', e); }
             setLoadingPosts(false);
         };
+
         fetchPosts();
     }, [page.id, userId]);
 

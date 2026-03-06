@@ -57,13 +57,13 @@ import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
 import TokeTracker from '../../src/components/bankroll/TokeTracker';
 import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
-const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
+const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean Facebook-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
