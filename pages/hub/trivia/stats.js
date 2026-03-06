@@ -14,6 +14,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 
 export default function TriviaStats() {
     const router = useRouter();
+    const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({
         totalQuestions: 0,
@@ -34,6 +35,7 @@ export default function TriviaStats() {
                     setIsLoading(false);
                     return;
                 }
+                setUserId(user.id);
 
                 // Get streak data
                 const { data: streakData } = await supabase
@@ -81,15 +83,15 @@ export default function TriviaStats() {
 
         loadStats();
     }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`trivia-stats:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user?.id}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`trivia-stats:${userId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
 
     const StatCard = ({ label, value, color }) => (
         <div style={{ background: '#242526', border: '1px solid #4e4f50', borderRadius: '12px', padding: '24px' }}>

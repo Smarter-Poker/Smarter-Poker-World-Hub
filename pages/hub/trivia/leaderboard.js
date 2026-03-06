@@ -94,15 +94,15 @@ export default function TriviaLeaderboard() {
 
         loadLeaderboard();
     }, [period]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`trivia-lb`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores' }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!currentUserId) return;
+        const _ch = supabase
+            .channel(`trivia-lb`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores' }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [currentUserId]);
 
     function getTodayCST() {
         const now = new Date();

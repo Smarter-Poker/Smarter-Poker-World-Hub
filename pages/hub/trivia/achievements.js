@@ -32,6 +32,7 @@ const ACHIEVEMENTS = [
 
 export default function TriviaAchievements() {
     const router = useRouter();
+    const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [achievements, setAchievements] = useState([]);
     const [unlockedCount, setUnlockedCount] = useState(0);
@@ -47,6 +48,7 @@ export default function TriviaAchievements() {
                     setIsLoading(false);
                     return;
                 }
+                setUserId(user.id);
 
                 // Get user's trivia stats
                 const { data: streakData } = await supabase
@@ -94,15 +96,15 @@ export default function TriviaAchievements() {
 
         loadAchievements();
     }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`trivia-ach:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${user?.id}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`trivia-ach:${userId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
 
     return (
         <>
