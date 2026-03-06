@@ -39,8 +39,30 @@ import dynamic from 'next/dynamic';
 
 // Dynamic import for GodModeArena to avoid SSR issues
 const GodModeArena = dynamic(
-    () => import('../../src/components/training/GodModeArena'),
-    { ssr: false }
+    () => import('../../src/components/training/GodModeArena').catch(err => {
+        console.error('[Training] Failed to load GodModeArena chunk:', err);
+        // Return a fallback component on chunk load failure
+        return {
+            default: () => (
+                <div style={{ padding: 40, textAlign: 'center', color: '#fff' }}>
+                    <h3 style={{ color: '#ef4444', marginBottom: 12 }}>Failed to load game arena</h3>
+                    <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: 16 }}>Please refresh the page to try again.</p>
+                    <button onClick={() => window.location.reload()} style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Refresh</button>
+                </div>
+            )
+        };
+    }),
+    {
+        ssr: false,
+        loading: () => (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'rgba(255,255,255,0.5)' }}>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+                    <div>Loading game arena...</div>
+                </div>
+            </div>
+        ),
+    }
 );
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import TrainingSettingsMenu from '../../src/components/training/TrainingSettingsMenu';
@@ -128,7 +150,7 @@ function TrainingHeader({ gamesPlayed = 0 }) {
                     src="/smarter-poker-logo-transparent.png"
                     alt="Smarter Poker"
                     style={headerStyles.logo}
-                 loading="lazy" />
+                    loading="lazy" />
             </div>
 
             {/* RIGHT: Stats + Profile */}
@@ -181,7 +203,7 @@ const headerStyles = {
         background: 'linear-gradient(180deg, rgba(10, 22, 40, 0.98), rgba(5, 15, 30, 0.95))',
         backdropFilter: 'blur(15px)',
         WebkitBackdropFilter: 'blur(15px)',
-        borderBottom: '2px solid rgba(0, 212, 255, 0.3)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
         zIndex: 100,
     },
     logoContainer: {
@@ -415,8 +437,7 @@ function FilterBar({ active, onFilter, gameCount }) {
                                 ...styles.filterPill,
                                 background: isActive ? '#fff' : 'transparent',
                                 color: isActive ? '#0a0a15' : '#fff',
-                                border: isActive ? 'none' : `2px solid ${filter.color}`,
-                                boxShadow: isActive ? 'none' : `0 0 12px ${filter.color}44`,
+                                border: isActive ? 'none' : `1px solid ${filter.color}60`,
                             }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}

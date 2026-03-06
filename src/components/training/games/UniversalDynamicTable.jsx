@@ -296,7 +296,7 @@ function StreakToast({ message, show }) {
                 fontSize: 14,
                 fontWeight: 'bold',
                 zIndex: 1000,
-                boxShadow: '0 0 30px rgba(245, 158, 11, 0.5)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                 letterSpacing: 1,
                 textAlign: 'center',
             }}
@@ -556,11 +556,11 @@ function detectActionType(text) {
 
 // Action-type color mapping (GTO Wizard style)
 const ACTION_COLORS = {
-    fold: { bg: 'linear-gradient(180deg, #6b2121 0%, #4a1515 100%)', border: '#ef4444', text: '#ff6b6b' },
-    check: { bg: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)', border: '#22c55e', text: '#4ade80' },
-    call: { bg: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)', border: '#22c55e', text: '#4ade80' },
-    raise: { bg: 'linear-gradient(180deg, #1a3a5a 0%, #0d2540 100%)', border: '#3b82f6', text: '#60a5fa' },
-    neutral: { bg: 'linear-gradient(180deg, #3a3a4a 0%, #2a2a3a 100%)', border: '#64748b', text: '#94a3b8' },
+    fold: { bg: '#4a1515', border: '#ef4444', text: '#ff6b6b' },
+    check: { bg: '#0d3018', border: '#22c55e', text: '#4ade80' },
+    call: { bg: '#0d3018', border: '#22c55e', text: '#4ade80' },
+    raise: { bg: '#0d2540', border: '#3b82f6', text: '#60a5fa' },
+    neutral: { bg: '#2a2a3a', border: '#64748b', text: '#94a3b8' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1554,7 +1554,7 @@ function UniversalDynamicTable({
                         style={{
                             ...styles.feedbackCard,
                             borderColor: classConfig?.borderColor || '#3b82f6',
-                            boxShadow: `0 0 30px ${classConfig?.borderColor || '#3b82f6'}40, 0 0 60px ${classConfig?.borderColor || '#3b82f6'}20`,
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
                         }}
                     >
                         {/* Classification Badge */}
@@ -1963,7 +1963,7 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         border: '2px solid #fff',
-        boxShadow: '0 2px 10px rgba(251, 191, 36, 0.5)',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
         zIndex: 10,
     },
 
@@ -1978,7 +1978,7 @@ const styles = {
         whiteSpace: 'nowrap',
         background: 'linear-gradient(180deg, rgba(40, 40, 60, 0.95), rgba(20, 20, 35, 0.95))',
         border: '1.5px solid rgba(0, 212, 255, 0.4)',
-        boxShadow: '0 0 10px rgba(0, 212, 255, 0.2)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
     },
 
     badgeLabel: {
@@ -2010,7 +2010,7 @@ const styles = {
         width: 44,
         height: 64,
         borderRadius: 5,
-        boxShadow: '0 6px 20px rgba(0,0,0,0.7), 0 0 20px rgba(255, 215, 0, 0.15)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
         border: '2px solid rgba(255,255,255,0.3)',
     },
 
@@ -2175,7 +2175,7 @@ const styles = {
         fontSize: 11,
         fontWeight: 'bold',
         zIndex: 10,
-        boxShadow: '0 2px 12px rgba(239, 68, 68, 0.4)',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
         textAlign: 'center',
         minWidth: 70,
     },

@@ -144,72 +144,75 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                             transition={{ duration: 0.4, ease: 'easeOut' }}
                             style={styles.readyFullScreen}
                         >
-                            {/* Category Badge */}
-                            {game?.category && (
-                                <div style={{
-                                    ...styles.categoryBadge,
-                                    background: getCategoryColor(game.category),
-                                }}>
-                                    {game.category}
+                            {/* Scrollable content area */}
+                            <div style={styles.readyScrollContent}>
+                                {/* Category Badge */}
+                                {game?.category && (
+                                    <div style={{
+                                        ...styles.categoryBadge,
+                                        background: getCategoryColor(game.category),
+                                    }}>
+                                        {game.category}
+                                    </div>
+                                )}
+
+                                {/* Game Title */}
+                                <h1 style={styles.gameTitle}>
+                                    {game?.name || 'Training Game'}
+                                </h1>
+
+                                {/* Purpose Section */}
+                                <div style={styles.purposeSection}>
+                                    <div style={styles.sectionLabel}>Purpose</div>
+                                    <p style={styles.sectionText}>
+                                        {game?.purpose || 'Master Critical Decision Making In Common Poker Spots Through Repetition And Instant Feedback.'}
+                                    </p>
                                 </div>
-                            )}
 
-                            {/* Game Title - Title Case */}
-                            <h1 style={styles.gameTitle}>
-                                {game?.name || 'Training Game'}
-                            </h1>
+                                {/* What You'll Improve Section */}
+                                <div style={styles.learnSection}>
+                                    <div style={styles.sectionLabel}>What You'll Improve</div>
+                                    <div style={styles.skillsList}>
+                                        {(game?.skills || ['Preflop Hand Selection', 'Position Awareness', 'Bet Sizing', 'Fold Equity']).map((skill, i) => (
+                                            <div key={i} style={styles.skillItem}>
+                                                <span style={styles.skillCheck}>✓</span>
+                                                <span style={styles.skillText}>{skill}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
 
-                            {/* Purpose Section */}
-                            <div style={styles.purposeSection}>
-                                <div style={styles.sectionLabel}>Purpose</div>
-                                <p style={styles.sectionText}>
-                                    {game?.purpose || 'Master Critical Decision Making In Common Poker Spots Through Repetition And Instant Feedback.'}
+                                {/* Game Stats */}
+                                <div style={styles.gameStatsRow}>
+                                    <div style={styles.statBox}>
+                                        <span style={styles.statValue}>{game?.hands || TRAINING_CONFIG.questionsPerLevel}</span>
+                                        <span style={styles.statLabel}>Hands</span>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <span style={styles.statValue}>{game?.passThreshold || TRAINING_CONFIG.passThresholds[1]}%</span>
+                                        <span style={styles.statLabel}>To Pass</span>
+                                    </div>
+                                    <div style={styles.statBox}>
+                                        <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 💎10</span>
+                                        <span style={styles.statLabel}>Perfect Bonus</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sticky bottom CTA - always visible */}
+                            <div style={styles.stickyCTA}>
+                                <motion.button
+                                    style={styles.readyButton}
+                                    onClick={handleReady}
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                >
+                                    I'm Ready
+                                </motion.button>
+                                <p style={styles.tipText}>
+                                    Answer Fast + Perfect Score = Diamond Bonus
                                 </p>
                             </div>
-
-                            {/* What You'll Learn Section */}
-                            <div style={styles.learnSection}>
-                                <div style={styles.sectionLabel}>What You'll Improve</div>
-                                <div style={styles.skillsList}>
-                                    {(game?.skills || ['Preflop Hand Selection', 'Position Awareness', 'Bet Sizing', 'Fold Equity']).map((skill, i) => (
-                                        <div key={i} style={styles.skillItem}>
-                                            <span style={styles.skillCheck}>✓</span>
-                                            <span style={styles.skillText}>{skill}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Game Stats */}
-                            <div style={styles.gameStatsRow}>
-                                <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{game?.hands || TRAINING_CONFIG.questionsPerLevel}</span>
-                                    <span style={styles.statLabel}>Hands</span>
-                                </div>
-                                <div style={styles.statBox}>
-                                    <span style={styles.statValue}>{game?.passThreshold || TRAINING_CONFIG.passThresholds[1]}%</span>
-                                    <span style={styles.statLabel}>To Pass</span>
-                                </div>
-                                <div style={styles.statBox}>
-                                    <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 💎10</span>
-                                    <span style={styles.statLabel}>Perfect Bonus</span>
-                                </div>
-                            </div>
-
-                            {/* Ready Button */}
-                            <motion.button
-                                style={styles.readyButton}
-                                onClick={handleReady}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                I'm Ready
-                            </motion.button>
-
-                            {/* Tip */}
-                            <p style={styles.tipText}>
-                                Answer Fast + Perfect Score = Diamond Bonus
-                            </p>
                         </motion.div>
                     )}
                 </motion.div>
@@ -275,13 +278,27 @@ const styles = {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 24px',
         background: 'linear-gradient(180deg, #0d0d14 0%, #0a0a0a 100%)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         textAlign: 'center',
+    },
+
+    readyScrollContent: {
+        flex: 1,
         overflowY: 'auto',
+        padding: '40px 24px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    stickyCTA: {
+        padding: '16px 24px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        background: 'linear-gradient(0deg, #0a0a0a 60%, transparent)',
     },
 
     categoryBadge: {

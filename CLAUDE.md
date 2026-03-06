@@ -1,5 +1,20 @@
 # Claude Instructions for Smarter-Poker-World-Hub
 
+## 🚨 MANDATORY: Git Push Protocol (ALL AGENTS)
+
+**NEVER run individual git commands (`git add`, `git commit`, `git push`, `git pull`).** 
+Always use the autonomous push script:
+
+```bash
+bash ~/Documents/Smarter-Poker-World-Hub/scripts/git-safe-push.sh "your commit message"
+```
+
+This script handles lock files, ghost files, conflicts, and retries — fully autonomously. 
+See `.agent/workflows/deploy.md` for details. **Violation of this rule causes cascading failures.**
+
+---
+
+
 ## Project Overview
 
 This is the Smarter.Poker platform - a comprehensive poker training and community application.
