@@ -235,6 +235,12 @@ export function useSandboxAnalysis() {
 
       const data = await response.json();
 
+      // Guard: HTTP-level errors (500, 503, etc.)
+      if (!response.ok) {
+        setError(data.error || `Server error (${response.status})`);
+        return { success: false, error: data.error };
+      }
+
       if (data.success) {
         setResults({
           // New enriched response fields
@@ -338,7 +344,7 @@ export function useRecentSessions(limit = 10) {
       } else {
         const formatted = (data || []).map(s => ({
           id: s.id,
-          title: `${s.hero_position} with ${s.hero_hand}`,
+          title: `${s.hero_position || 'Unknown'} with ${s.hero_hand || '??'}`,
           stack: `${s.hero_stack_bb}BB`,
           hero_stack: s.hero_stack_bb, // Raw numeric value for restore
           hero_position: s.hero_position,
@@ -451,6 +457,7 @@ export function useBookmarks(limit = 15) {
     fetchBookmarks();
 
     // 🔄 BUS LISTENER for real-time Bookmark updates
+    if (typeof window === 'undefined') return;
     const handleUpdate = () => fetchBookmarks();
     window.addEventListener('pa-data-updated', handleUpdate);
     return () => window.removeEventListener('pa-data-updated', handleUpdate);

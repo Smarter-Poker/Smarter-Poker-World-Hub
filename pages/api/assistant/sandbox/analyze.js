@@ -364,7 +364,7 @@ function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize) {
   // Get EV data
   let heroEV = 0;
   for (const variant of handVariants) {
-    if (handEVs[variant] !== undefined) { heroEV = handEVs[variant]; break; }
+    if (handEVs[variant] !== undefined) { heroEV = Number(handEVs[variant]) || 0; break; }
   }
 
   const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');

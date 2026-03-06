@@ -12,11 +12,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     // Require JWT auth for write operations
+    const supabase = createClient(supabaseUrl, supabaseKey);
     if (req.method !== 'GET') {
         const _token = req.headers.authorization?.replace('Bearer ', '');
         if (!_token) return res.status(401).json({ success: false, error: 'Authentication required' });
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'userId required' });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     try {
         const now = new Date();

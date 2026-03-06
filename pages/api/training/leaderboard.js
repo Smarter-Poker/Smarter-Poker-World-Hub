@@ -21,6 +21,8 @@ export default async function handler(req, res) {
         if (!applyRateLimit(req, res, LIMITS.write)) return;
     }
 
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     // Require JWT auth for write operations
     if (req.method !== 'GET') {
         const _token = req.headers.authorization?.replace('Bearer ', '');
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
         if (req.body) req.body.userId = _authUser.id;
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+
 
     // POST: Update leaderboard entry after session
     if (req.method === 'POST') {

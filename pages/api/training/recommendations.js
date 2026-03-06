@@ -29,24 +29,25 @@ const TRAINING_GAMES = [
 ];
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 300s, serve stale up to 3600s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
-  }
+    // CDN cache: fresh for 300s, serve stale up to 3600s
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+    }
 
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-  // BUG #246 FIX: Require JWT auth
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // BUG #246 FIX: Require JWT auth
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { userId } = req.query;
 
     if (!userId) {

@@ -10,7 +10,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const DEFAULT_PROGRESS = {
@@ -23,7 +23,7 @@ const DEFAULT_PROGRESS = {
 };
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.read)) return;
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
 
     const { gameId } = req.query;
 

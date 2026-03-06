@@ -359,6 +359,7 @@ export default function VirtualSandbox() {
   const dealNextStreet = () => {
     const deck = [];
     RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!allUsedCards.includes(c)) deck.push(c); }));
+    if (deck.length === 0) return; // Guard: no cards left in deck
     const card = deck[Math.floor(Math.random() * deck.length)];
     if (board.flop.length === 3 && !board.turn) setBoard(b => ({ ...b, turn: card }));
     else if (board.turn && !board.river) setBoard(b => ({ ...b, river: card }));
@@ -442,7 +443,7 @@ export default function VirtualSandbox() {
       {/* Sessions Sidebar */}
       <AnimatePresence>{showSessions && (
         <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={(session) => {
-          if (session.hero_hand) {
+          if (session.hero_hand && typeof session.hero_hand === 'string') {
             const h = session.hero_hand;
             setHeroHand({ card1: h.length >= 2 ? h.substring(0, 2) : null, card2: h.length >= 4 ? h.substring(2, 4) : null });
           }
@@ -465,10 +466,11 @@ export default function VirtualSandbox() {
 
           // Restore Villains
           if (session.villain_config && Array.isArray(session.villain_config) && session.villain_config.length > 0) {
-            setVillains(session.villain_config);
+            // Ensure all villain stacks are numeric (DB may store as strings)
+            setVillains(session.villain_config.map(v => ({ ...v, stack: Number(v.stack) || 100 })));
           } else {
             // Default villain if missing
-            setVillains([{ position: session.hero_position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: session.hero_stack || 100 }]);
+            setVillains([{ position: session.hero_position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: Number(session.hero_stack) || 100 }]);
           }
 
           // Restore Action History from Bookmarks
