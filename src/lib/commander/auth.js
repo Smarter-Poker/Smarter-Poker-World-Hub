@@ -5,9 +5,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
+// Safe fallbacks prevent crashes when this module is tree-shaken into the client bundle
+// (CommanderLayout imports constants from this file). Server-only env vars like
+// SUPABASE_SERVICE_ROLE_KEY are undefined in the browser.
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
 );
 
 /**
