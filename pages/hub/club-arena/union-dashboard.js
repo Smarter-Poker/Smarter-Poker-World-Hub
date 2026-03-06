@@ -383,17 +383,17 @@ export default function UnionDashboard() {
                 {activeTab === 'overview' && (
                     <div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-                            <StatCard label="Clubs" value={stats.totalClubs} color={FB.primary} />
-                            <StatCard label="Members" value={stats.totalMembers?.toLocaleString()} color={FB.textPrimary} />
-                            <StatCard label="Agents" value={stats.totalAgents} color={FB.orange} />
-                            <StatCard label="Agent Players" value={stats.totalAgentPlayers} color={FB.purple} />
+                            <StatCard label="Clubs" value={stats?.totalClubs ?? 0} color={FB.primary} />
+                            <StatCard label="Members" value={(stats?.totalMembers ?? 0).toLocaleString()} color={FB.textPrimary} />
+                            <StatCard label="Agents" value={stats?.totalAgents ?? 0} color={FB.orange} />
+                            <StatCard label="Agent Players" value={stats?.totalAgentPlayers ?? 0} color={FB.purple} />
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                            <StatCard label="Total Treasury" value={stats.totalTreasury?.toLocaleString()} color={FB.gold} />
-                            <StatCard label="Total Rake" value={stats.totalRake?.toLocaleString()} color={FB.success} />
-                            <StatCard label="Weekly Rake" value={stats.totalWeeklyRake?.toLocaleString()} color={FB.primary} />
-                            <StatCard label="Union Hold" value={stats.estimatedUnionHold?.toLocaleString()} color={FB.gold}
-                                sub={`${((stats.unionHoldRate || 0) * 100).toFixed(0)}% of period rake`} />
+                            <StatCard label="Total Treasury" value={(stats?.totalTreasury ?? 0).toLocaleString()} color={FB.gold} />
+                            <StatCard label="Total Rake" value={(stats?.totalRake ?? 0).toLocaleString()} color={FB.success} />
+                            <StatCard label="Weekly Rake" value={(stats?.totalWeeklyRake ?? 0).toLocaleString()} color={FB.primary} />
+                            <StatCard label="Union Hold" value={(stats?.estimatedUnionHold ?? 0).toLocaleString()} color={FB.gold}
+                                sub={`${(((stats?.unionHoldRate) || 0) * 100).toFixed(0)}% of period rake`} />
                         </div>
 
                         {/* BBJ Summary — shown if any balance > 0 */}
@@ -533,7 +533,7 @@ export default function UnionDashboard() {
                             </div>
                             <div style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, flex: '1 1 200px' }}>
                                 <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4, textTransform: 'uppercase' }}>Total Members</div>
-                                <div style={{ fontSize: 20, fontWeight: 800, color: FB.textPrimary }}>{stats.totalMembers?.toLocaleString()}</div>
+                                <div style={{ fontSize: 20, fontWeight: 800, color: FB.textPrimary }}>{(stats?.totalMembers ?? 0).toLocaleString()}</div>
                                 <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 2 }}>Players across all clubs</div>
                             </div>
                         </div>

@@ -106,12 +106,23 @@ export default async function handler(req, res) {
         return res.json({ success: true, tables: [], clubs: [] });
       }
 
-      const { data: tables, error } = await supabaseAdmin
+      // Only return active/waiting tables by default; pass statusFilter=['closed','all'] to include closed
+      const tableStatusFilter = params.statusFilter;
+      let tablesQuery = supabaseAdmin
         .from('tables')
         .select('*')
         .in('club_id', clubIds)
         .order('created_at', { ascending: false })
         .limit(100);
+
+      if (!tableStatusFilter || tableStatusFilter === 'active') {
+        tablesQuery = tablesQuery.in('status', ['waiting', 'running']);
+      } else if (tableStatusFilter === 'closed') {
+        tablesQuery = tablesQuery.eq('status', 'closed');
+      }
+      // else 'all' — no filter
+
+      const { data: tables, error } = await tablesQuery;
 
       if (error) throw error;
 
@@ -135,6 +146,16 @@ export default async function handler(req, res) {
       }
       if (!name?.trim()) return res.status(400).json({ success: false, error: 'Tournament name required' });
 
+      // Validate financial params — prevent negative/absurd values
+      const resolvedBuyIn = parseInt(buyIn || buy_in) || 1000;
+      const resolvedStartChips = parseInt(startingChips || starting_chips) || 5000;
+      const resolvedMaxPlayers = Math.min(parseInt(maxPlayers || max_players) || 100, 5000);
+      const resolvedGuarantee = parseInt(guaranteedPrize || guaranteed_prize) || 0;
+      if (resolvedBuyIn < 0) return res.status(400).json({ success: false, error: 'buy_in cannot be negative' });
+      if (resolvedStartChips < 100) return res.status(400).json({ success: false, error: 'starting_chips must be at least 100' });
+      if (resolvedMaxPlayers < 2) return res.status(400).json({ success: false, error: 'max_players must be at least 2' });
+      if (resolvedGuarantee < 0) return res.status(400).json({ success: false, error: 'guaranteed_prize cannot be negative' });
+
       const tournamentType = type || 'mtt'; // xmtt | mtt | sng
       const clubParticipants = (participatingClubIds?.length > 0)
         ? participatingClubIds.filter(id => clubIds.includes(id))
@@ -146,14 +167,14 @@ export default async function handler(req, res) {
           club_id: resolvedClubId,
           name: name.trim(),
           game_type: variant || game_type || 'nlhe',
-          buy_in: parseInt(buyIn || buy_in) || 1000,
-          starting_chips: parseInt(startingChips || starting_chips) || 5000,
-          max_players: parseInt(maxPlayers || max_players) || 100,
-          blind_levels: parseInt(blind_levels) || 15,
-          blind_duration: parseInt(blind_duration) || 10,
-          late_reg_levels: parseInt(lateRegLevels || late_reg_levels) || 6,
+          buy_in: resolvedBuyIn,
+          starting_chips: resolvedStartChips,
+          max_players: resolvedMaxPlayers,
+          blind_levels: Math.max(1, parseInt(blind_levels) || 15),
+          blind_duration: Math.max(1, parseInt(blind_duration) || 10),
+          late_reg_levels: Math.max(0, parseInt(lateRegLevels || late_reg_levels) || 6),
           start_time: scheduledStart || start_time || new Date(Date.now() + 3600000).toISOString(),
-          guaranteed_prize: parseInt(guaranteedPrize || guaranteed_prize) || 0,
+          guaranteed_prize: resolvedGuarantee,
           rebuy_allowed: rebuyEnabled ?? rebuy_allowed ?? true,
           addon_allowed: addonEnabled ?? addon_allowed ?? false,
           status: 'scheduled',
@@ -213,6 +234,10 @@ export default async function handler(req, res) {
           status: 'waiting',
           player_count: 0,
           created_by: auth.user.id,
+          settings: {
+            createdByUnion: true,
+            unionId,
+          },
         })
         .select()
         .single();
@@ -299,12 +324,35 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Tournament already finished' });
       }
 
-      // Count registrants to refund before cancelling
-      const { count: refundCount } = await supabaseAdmin
+      // Fetch all registered players and refund their buy-ins
+      const { data: registrations } = await supabaseAdmin
         .from('tournament_registrations')
-        .select('*', { count: 'exact', head: true })
+        .select('id, user_id, buy_in_amount, status')
         .eq('tournament_id', tournamentId)
         .in('status', ['registered', 'playing']);
+
+      const toRefund = registrations || [];
+
+      // Refund each player by releasing their chip lock
+      const refundResults = await Promise.allSettled(
+        toRefund.map(async (reg) => {
+          await supabaseAdmin.rpc('unlock_chips_from_table', {
+            p_user_id: reg.user_id,
+            p_club_id: tourn.club_id,
+            p_table_id: tournamentId,
+            p_amount: reg.buy_in_amount || 0,
+          });
+          await supabaseAdmin
+            .from('tournament_registrations')
+            .update({ status: 'refunded' })
+            .eq('id', reg.id);
+        })
+      );
+
+      const refundErrors = refundResults.filter(r => r.status === 'rejected');
+      if (refundErrors.length > 0) {
+        console.error(`[union-games] cancel_tournament: ${refundErrors.length}/${toRefund.length} refunds failed`);
+      }
 
       const { error } = await supabaseAdmin
         .from('club_tournaments')
@@ -312,7 +360,7 @@ export default async function handler(req, res) {
         .eq('id', tournamentId);
 
       if (error) throw error;
-      return res.json({ success: true, refunded: refundCount || 0 });
+      return res.json({ success: true, refunded: toRefund.length - refundErrors.length });
     }
 
     // ════════════════════════════════════════════════════════════

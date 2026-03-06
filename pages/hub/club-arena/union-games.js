@@ -114,12 +114,13 @@ export default function UnionGames() {
   const loadTables = useCallback(async () => {
     if (!unionId) return;
     try {
-      const res = await api('list_tables', { unionId });
+      // Pass statusFilter so API queries only what we need (no client-side filtering needed)
+      const statusFilter = tableFilter === 'active' ? 'active'
+        : tableFilter === 'closed' ? 'closed'
+        : 'all';
+      const res = await api('list_tables', { unionId, statusFilter });
       if (res.success) {
-        const all = res.tables || [];
-        if (tableFilter === 'active') setTables(all.filter(t => ['waiting', 'running'].includes(t.status)));
-        else if (tableFilter === 'closed') setTables(all.filter(t => t.status === 'closed'));
-        else setTables(all);
+        setTables(res.tables || []);
         if (res.clubs?.length) setClubs(res.clubs);
       } else {
         console.error('[union-games] list_tables:', res.error);
