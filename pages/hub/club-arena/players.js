@@ -128,6 +128,19 @@ export default function Players() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // ── Realtime: member join/leave/online status refreshes ───────────────
+    useEffect(() => {
+        if (!clubIdParam) return;
+        const ch = supabase
+            .channel(`players-live:${clubIdParam}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members',
+                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' },
+                () => loadData())
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [clubIdParam, loadData]);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // FILTER & SORT
     // ═══════════════════════════════════════════════════════════════════════════

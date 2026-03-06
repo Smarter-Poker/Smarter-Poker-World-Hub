@@ -249,6 +249,19 @@ export default function PlayerStats() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // ── Realtime: refresh stats on new hands/transactions ─────────────────
+    useEffect(() => {
+        if (!clubIdParam) return;
+        const ch = supabase
+            .channel(`stats-live:${clubIdParam}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
+                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chip_transactions',
+                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [clubIdParam, loadData]);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES
     // ═══════════════════════════════════════════════════════════════════════════

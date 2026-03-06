@@ -179,6 +179,19 @@ export default function Marketplace() {
 
     useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
 
+    // ── Realtime: live shop item/purchase updates ─────────────────────────
+    useEffect(() => {
+        if (!clubIdParam) return;
+        const ch = supabase
+            .channel(`shop-live:${clubIdParam}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_shop_items',
+                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_shop_purchases',
+                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [clubIdParam, loadData]);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // PURCHASE ITEM
     // ═══════════════════════════════════════════════════════════════════════════

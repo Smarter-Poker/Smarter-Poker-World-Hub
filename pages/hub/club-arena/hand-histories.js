@@ -206,6 +206,20 @@ export default function HandHistories() {
         if (page > 0) loadData(false);
     }, [page, loadData]);
 
+    // ── Realtime: auto-refresh when new hands are recorded ────────────────
+    useEffect(() => {
+        if (!clubIdParam) return;
+        const ch = supabase
+            .channel(`hands-live:${clubIdParam}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
+                filter: `club_id=eq.${clubIdParam}` }, () => {
+                    setPage(0);
+                    loadData(true);
+                })
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [clubIdParam, loadData]);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // CARD RENDERING
     // ═══════════════════════════════════════════════════════════════════════════

@@ -201,6 +201,17 @@ export default function Leaderboard() {
 
     useEffect(() => { loadData(); }, [loadData]);
 
+    // ── Realtime: refresh leaderboard on new hand results ─────────────────
+    useEffect(() => {
+        if (!clubIdParam) return;
+        const ch = supabase
+            .channel(`leaderboard-live:${clubIdParam}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
+                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [clubIdParam, loadData]);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // STYLES
     // ═══════════════════════════════════════════════════════════════════════════

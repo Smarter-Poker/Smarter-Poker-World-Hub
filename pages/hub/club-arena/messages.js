@@ -343,6 +343,7 @@ export default function ClubMessages() {
     const [callingUser, setCallingUser] = useState(null);
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showMessageSearch, setShowMessageSearch] = useState(false);
+    const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
 
     // ═══════════════════════════════════════════════════════════════════════
     //  BULLETPROOF AUTH
@@ -584,6 +585,48 @@ export default function ClubMessages() {
             supabase.removeChannel(channel);
         };
     }, [activeConversation?.id, user?.id]);
+
+    // ═══════════════════════════════════════════════════════════════════════
+    //  INCOMING CALL LISTENER
+    //  Listens on call-signal:${user.id} for incoming_call and call_ended events
+    // ═══════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id) return;
+        const callChannel = supabase
+            .channel(`call-signal:${user.id}`)
+            .on('broadcast', { event: 'incoming_call' }, ({ payload }) => {
+                // Only accept call if not already in a call
+                setIncomingCall(prev => prev ? prev : {
+                    callerId: payload.callerId,
+                    callerName: payload.callerName,
+                    callerAvatar: payload.callerAvatar,
+                    callType: payload.callType || 'video',
+                    roomName: payload.roomName,
+                });
+            })
+            .on('broadcast', { event: 'call_ended' }, () => {
+                // Caller hung up before we answered
+                setIncomingCall(null);
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(callChannel);
+        };
+    }, [user?.id]);
+
+    const handleAcceptCall = () => {
+        if (!incomingCall) return;
+        setCallType(incomingCall.callType);
+        setCallRoomName(incomingCall.roomName);
+        setCallingUser({ id: incomingCall.callerId, display_name: incomingCall.callerName, avatar_url: incomingCall.callerAvatar });
+        setIncomingCall(null);
+        setShowCall(true);
+    };
+
+    const handleRejectCall = () => {
+        setIncomingCall(null);
+    };
 
     // ═══════════════════════════════════════════════════════════════════════
     //  VIDEO/VOICE CALL FUNCTIONS
@@ -952,7 +995,35 @@ export default function ClubMessages() {
                 </div>
 
                 {/* LiveKit Video Call Modal */}
-                {showCall && callRoomName && (
+                {/* Incoming call notification banner */}
+        {incomingCall && (
+            <div style={{
+                position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+                zIndex: 9999, background: '#1877F2', borderRadius: 16, padding: '16px 24px',
+                display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                minWidth: 320, maxWidth: 400,
+            }}>
+                {incomingCall.callerAvatar && (
+                    <img src={incomingCall.callerAvatar} alt="" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+                )}
+                <div style={{ flex: 1 }}>
+                    <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{incomingCall.callerName}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
+                        Incoming {incomingCall.callType === 'video' ? '📹 Video' : '📞 Voice'} Call
+                    </div>
+                </div>
+                <button onClick={handleAcceptCall} style={{
+                    background: '#31A24C', border: 'none', borderRadius: 50, width: 44, height: 44,
+                    cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }} title="Accept">✓</button>
+                <button onClick={handleRejectCall} style={{
+                    background: '#FA383E', border: 'none', borderRadius: 50, width: 44, height: 44,
+                    cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }} title="Reject">✕</button>
+            </div>
+        )}
+
+        {showCall && callRoomName && (
                     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: '#000' }}>
                         <div style={{ position: 'absolute', top: 16, left: 16, right: 16, display: 'flex', alignItems: 'center', gap: 12, zIndex: 10001 }}>
                             <button onClick={endCall} style={{ width: 40, height: 40, borderRadius: '50%', background: C.red, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

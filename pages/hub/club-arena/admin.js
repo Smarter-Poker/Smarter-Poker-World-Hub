@@ -191,6 +191,19 @@ export default function Admin() {
 
     useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
 
+    // ── Realtime: live table + member updates ─────────────────────────────
+    useEffect(() => {
+        if (!club?.id) return;
+        const ch = supabase
+            .channel(`admin-live:${club.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tables',
+                filter: `club_id=eq.${club.id}` }, () => loadData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members',
+                filter: `club_id=eq.${club.id}` }, () => loadData())
+            .subscribe();
+        return () => { supabase.removeChannel(ch); };
+    }, [club?.id, loadData]);
+
     // Load announcements or shop items when those modals open
     useEffect(() => {
         if (!club) return;
