@@ -129,7 +129,7 @@ export default function PlayerProfilePage() {
     { href: '/hub/commander/profile/settings', label: 'Settings', icon: Settings }
   ];
 
-  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="profile" count={1} /></div>;
+  if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="profile" count={1} /></div>;
 
   const memberSince = profile?.member_since ? new Date(profile.member_since) : null;
   const unlockedCount = achievements.filter(a => a.unlocked).length;

@@ -31,7 +31,7 @@ export default function AchievementsPage() {
   const locked = achievements.filter(a => !a.unlocked);
   const filtered = filter === 'unlocked' ? unlocked : filter === 'locked' ? locked : achievements;
 
-  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
+  if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
 
   return (
     <>

@@ -269,7 +269,7 @@ export default function PlayerNotificationsPage() {
           </div>
 
           {/* Notifications List */}
-          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="rows" rows={6} /></div>) : filteredNotifications.length === 0 ? (
+          {(loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="rows" rows={6} /></div>) : filteredNotifications.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <div className="cmd-icon-box mx-auto mb-3">
                 <Bell className="w-7 h-7" />

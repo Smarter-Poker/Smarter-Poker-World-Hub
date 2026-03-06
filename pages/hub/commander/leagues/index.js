@@ -219,7 +219,7 @@ export default function LeaguesPage() {
           </div>
 
           {/* Leagues List */}
-          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="card" count={4} /></div>) : filteredLeagues.length > 0 ? (
+          {(loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="card" count={4} /></div>) : filteredLeagues.length > 0 ? (
             <section>
               <h2 className="font-semibold text-white mb-3">
                 {filter === 'all' ? 'All Leagues' : filter === 'active' ? 'Active Leagues' : 'Upcoming Leagues'}

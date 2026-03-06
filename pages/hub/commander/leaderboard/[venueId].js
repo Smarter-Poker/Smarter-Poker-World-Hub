@@ -197,7 +197,7 @@ export default function LeaderboardPage() {
           </div>
 
           {/* Leaderboard */}
-          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="leaderboard" rows={8} /></div>) : leaderboard.length === 0 ? (
+          {(loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="leaderboard" rows={8} /></div>) : leaderboard.length === 0 ? (
             <div className="cmd-panel p-8 text-center">
               <Trophy className="w-12 h-12 text-[#9CA3AF] mx-auto mb-3" />
               <p className="text-[#64748B]">No Leaderboard Data Available</p>

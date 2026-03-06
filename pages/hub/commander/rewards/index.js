@@ -163,7 +163,7 @@ export default function PlayerRewardsPage() {
     setTimeout(() => setComingSoonMessage(null), 3000);
   }
 
-  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={6} /></div>;
+  if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={6} /></div>;
 
   return (
     <>

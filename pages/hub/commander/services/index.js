@@ -351,7 +351,7 @@ export default function ServicesPage() {
   const activeRequests = requests.filter(r => ['pending', 'in_progress'].includes(r.status));
   const hasActiveRequest = (type) => activeRequests.some(r => r.request_type === type);
 
-  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
+  if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={4} /></div>;
 
   if (!session) {
     return (

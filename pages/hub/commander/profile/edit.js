@@ -69,7 +69,7 @@ export default function ProfileEditPage() {
     }
   }
 
-  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={5} /></div>;
+  if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="rows" rows={5} /></div>;
 
   return (
     <>

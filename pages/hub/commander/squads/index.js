@@ -154,7 +154,7 @@ export default function SquadsPage() {
         </header>
 
         <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
-          {(isLoading || loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="card" count={3} /></div>) : (
+          {(loading) ? (<div style={{ padding: 24 }}><SkeletonLoader variant="card" count={3} /></div>) : (
             <>
               {/* Invitations */}
               {invitations.length > 0 && (

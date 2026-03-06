@@ -139,7 +139,7 @@ export default function LeagueDetailPage() {
 
   const myRank = currentUserId ? standings.findIndex(s => s.player_id === currentUserId) + 1 : 0;
 
-  if (isLoading || loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={3} /></div>;
+  if (loading) return <div style={{ padding: 40 }}><SkeletonLoader variant="card" count={3} /></div>;
 
   if (!league) {
     return (
