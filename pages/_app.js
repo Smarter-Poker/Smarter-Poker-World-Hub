@@ -278,14 +278,14 @@ function NavigationGuard({ children }) {
           video.currentTime = 0;
           video.src = '';
           video.load();
-        } catch (e) { console.error("[_app.js]", e); }
+        } catch (e) { }
       });
       document.querySelectorAll('audio').forEach(audio => {
-        try { audio.pause(); } catch (e) { console.error("[_app.js]", e); }
+        try { audio.pause(); } catch (e) { }
       });
       document.querySelectorAll('iframe').forEach(iframe => {
-        try { iframe.src = 'about:blank'; } catch (e) { console.error("[_app.js]", e); }
-      };
+        try { iframe.src = 'about:blank'; } catch (e) { }
+      });
 
       // Also set React state (for components that check it)
       setIsNavigating(true);
@@ -401,95 +401,95 @@ export default function App({ Component, pageProps }) {
 
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
-    <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable}`} style={{ minHeight: '100vh' }}>
-    <>
-      {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
-      <Head>
-        {isCommander ? (
-          <>
-            <link rel="manifest" href="/commander-manifest.json" />
-            <link rel="apple-touch-icon" sizes="180x180" href="/icons/commander-apple-touch-icon.png" />
-            <link rel="icon" type="image/png" sizes="192x192" href="/icons/commander-icon-192.png" />
-            <link rel="icon" type="image/png" sizes="512x512" href="/icons/commander-icon-512.png" />
-            <meta name="apple-mobile-web-app-title" content="Club Commander" />
-            <meta name="application-name" content="Club Commander" />
-          </>
-        ) : (
-          <>
-            <link rel="manifest" href="/manifest.json" />
-            <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
-            <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-            <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
-            <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
-            <meta name="application-name" content="Smarter.Poker" />
-          </>
-        )}
-      </Head>
-      <AntiGravityProvider>
-        <ThemeProvider>
-          <UnreadProvider>
-            <AvatarProvider>
-              <ExternalLinkProvider>
-                <OneSignalProvider>
-                  <TrainingSettingsProvider>
-                    <NavigationGuard>
-                      <ActiveIdentityProvider>
-                        <WorldThemeProvider>
-                          <PageErrorBoundary key={router.asPath}>
-                            <Component {...pageProps} />
-                          </PageErrorBoundary>
-                          <HubErrorBoundary name="Celebrations" fallback={<></>}>
-                            <CelebrationManager />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Diamond Toast" fallback={<></>}>
-                            <DiamondToast />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Toast Container" fallback={<></>}>
-                            <ToastContainer />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
-                            <GlobalNotificationPrompt />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
-                            <PWAInstallPrompt />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>
-                            <PhoneVerifyGate />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Proactive Help" fallback={<></>}>
-                            <ProactiveHelp
-                              onAccept={() => {
-                                // Open Jarvis when user accepts help
-                                if (typeof window !== 'undefined') {
-                                  window.dispatchEvent(new CustomEvent('open-jarvis'));
-                                }
-                              }}
-                              onDismiss={() => {
-                                console.log('[ProactiveHelp] User dismissed help prompt');
-                              }}
-                            />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
-                            <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>
-                            <GlobalErrorCatcher />
-                          </HubErrorBoundary>
-                          <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
-                            <ChunkLoadRecovery />
-                          </HubErrorBoundary>
-                        </WorldThemeProvider>
-                      </ActiveIdentityProvider>
-                    </NavigationGuard>
-                  </TrainingSettingsProvider>
-                </OneSignalProvider>
-              </ExternalLinkProvider>
-            </AvatarProvider>
-          </UnreadProvider>
-        </ThemeProvider>
-      </AntiGravityProvider>
-    </>
-    </div>
+      <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable}`} style={{ minHeight: '100vh' }}>
+        <>
+          {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
+          <Head>
+            {isCommander ? (
+              <>
+                <link rel="manifest" href="/commander-manifest.json" />
+                <link rel="apple-touch-icon" sizes="180x180" href="/icons/commander-apple-touch-icon.png" />
+                <link rel="icon" type="image/png" sizes="192x192" href="/icons/commander-icon-192.png" />
+                <link rel="icon" type="image/png" sizes="512x512" href="/icons/commander-icon-512.png" />
+                <meta name="apple-mobile-web-app-title" content="Club Commander" />
+                <meta name="application-name" content="Club Commander" />
+              </>
+            ) : (
+              <>
+                <link rel="manifest" href="/manifest.json" />
+                <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180.png" />
+                <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+                <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png" />
+                <meta name="apple-mobile-web-app-title" content="Smarter.Poker" />
+                <meta name="application-name" content="Smarter.Poker" />
+              </>
+            )}
+          </Head>
+          <AntiGravityProvider>
+            <ThemeProvider>
+              <UnreadProvider>
+                <AvatarProvider>
+                  <ExternalLinkProvider>
+                    <OneSignalProvider>
+                      <TrainingSettingsProvider>
+                        <NavigationGuard>
+                          <ActiveIdentityProvider>
+                            <WorldThemeProvider>
+                              <PageErrorBoundary key={router.asPath}>
+                                <Component {...pageProps} />
+                              </PageErrorBoundary>
+                              <HubErrorBoundary name="Celebrations" fallback={<></>}>
+                                <CelebrationManager />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Diamond Toast" fallback={<></>}>
+                                <DiamondToast />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Toast Container" fallback={<></>}>
+                                <ToastContainer />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Notification Prompt" fallback={<></>}>
+                                <GlobalNotificationPrompt />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="PWA Install Prompt" fallback={<></>}>
+                                <PWAInstallPrompt />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Phone Verify Gate" fallback={<></>}>
+                                <PhoneVerifyGate />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Proactive Help" fallback={<></>}>
+                                <ProactiveHelp
+                                  onAccept={() => {
+                                    // Open Jarvis when user accepts help
+                                    if (typeof window !== 'undefined') {
+                                      window.dispatchEvent(new CustomEvent('open-jarvis'));
+                                    }
+                                  }}
+                                  onDismiss={() => {
+                                    console.log('[ProactiveHelp] User dismissed help prompt');
+                                  }}
+                                />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Jarvis Panel" fallback={<></>}>
+                                <JarvisPanel isOpen={isJarvisOpen} onClose={onJarvisClose} />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Global Error Catcher" fallback={<></>}>
+                                <GlobalErrorCatcher />
+                              </HubErrorBoundary>
+                              <HubErrorBoundary name="Chunk Load Recovery" fallback={<></>}>
+                                <ChunkLoadRecovery />
+                              </HubErrorBoundary>
+                            </WorldThemeProvider>
+                          </ActiveIdentityProvider>
+                        </NavigationGuard>
+                      </TrainingSettingsProvider>
+                    </OneSignalProvider>
+                  </ExternalLinkProvider>
+                </AvatarProvider>
+              </UnreadProvider>
+            </ThemeProvider>
+          </AntiGravityProvider>
+        </>
+      </div>
     </SWRConfig>
   );
 }
@@ -510,5 +510,5 @@ export function reportWebVitals({ id, name, label, value }) {
     if (process.env.NODE_ENV === 'development') {
       console.log(`[WebVital] ${name}: ${Math.round(value)}${name === 'CLS' ? '' : 'ms'}`);
     }
-  } catch (_) {}
+  } catch (_) { }
 }

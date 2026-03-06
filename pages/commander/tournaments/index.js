@@ -180,7 +180,7 @@ export default function CommanderTournamentsPage() {
                 src="/images/commander/icons/tn-controls.png"
                 alt="TD"
                 style={{ width: 34, height: 34, objectFit: 'contain' }}
-                onError={e = loading="lazy"> { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
               />
               <div style={{ display: 'none', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
                 <Sliders size={24} style={{ color: '#F59E0B' }} />

@@ -280,7 +280,7 @@ export default function DealerTablet() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qr_code: qrCode, table_number: parseInt(tableNumber), venue_id: vid })
-      };
+      });
       const json = await res.json();
       if (json.success) {
         setCurrentDealer(json.data.dealer);

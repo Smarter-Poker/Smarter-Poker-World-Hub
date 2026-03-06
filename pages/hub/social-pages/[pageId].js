@@ -113,7 +113,7 @@ function PostCard({ post, user, onLike, onComment }) {
                     {post.media_urls.slice(0, 4).map((url, i) => (
                         <img key={i} src={url} alt="" style={{
                             maxWidth: '100%', display: 'block', margin: '0 auto',
-                            marginBottom: post.media_urls.length  loading="lazy"> 1 ? 2 : 0
+                            marginBottom: post.media_urls.length > 1 ? 2 : 0
                         }} />
                     ))}
                 </div>
@@ -391,7 +391,7 @@ export default function SocialPageDetail() {
                 <div style={{
                     minHeight: '100vh', background: C.bg, display: 'flex',
                     alignItems: 'center', justifyContent: 'center', paddingTop: 60,
-                    fontFamily: "var(--font-inter), -apple-system, sans-serif" ,
+                    fontFamily: "var(--font-inter), -apple-system, sans-serif",
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Page Not Found</h2>
@@ -422,7 +422,7 @@ export default function SocialPageDetail() {
 
             <div style={{
                 minHeight: '100vh', background: C.bg, paddingBottom: 72,
-                fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif" ,
+                fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif",
             }}>
                 {/* Cover */}
                 <div style={{

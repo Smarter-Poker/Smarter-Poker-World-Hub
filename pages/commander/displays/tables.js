@@ -223,7 +223,7 @@ export default function TablesDisplay() {
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') requestWakeLock();
-    };
+    });
     return () => { wakeLockRef.current?.release(); };
   }, []);
 

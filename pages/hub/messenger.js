@@ -160,7 +160,7 @@ function Avatar({ src, name, size = 40, online, showOnline = true }) {
                         borderRadius: '50%',
                         objectFit: 'cover',
                     }}
-                 loading="lazy" />
+                    loading="lazy" />
             ) : (
                 <div
                     style={{
@@ -732,7 +732,7 @@ function MessageBubble({ message, isOwn, showAvatar, sender, showTime, isLastInG
                                             borderRadius: 12,
                                             cursor: 'pointer',
                                         }}
-                                        onClick={() = loading="lazy"> window.open(url, '_blank')}
+                                        onClick={() => window.open(url, '_blank')}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
                                             e.target.insertAdjacentHTML('afterend', '<span>Image Failed To Load</span>');

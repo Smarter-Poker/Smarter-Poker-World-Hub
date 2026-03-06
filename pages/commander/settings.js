@@ -370,11 +370,11 @@ export default function CommanderSettingsPage() {
                   }}>
                     {logoUrl ? (
                       <img src={logoUrl} alt="Club Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={e = loading="lazy"> { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                        onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
                     ) : (
                       <span style={{
                         fontSize: 36, fontWeight: 900, color: '#4A5E78',
-                        fontFamily: "var(--font-orbitron), sans-serif" , textTransform: 'uppercase',
+                        fontFamily: "var(--font-orbitron), sans-serif", textTransform: 'uppercase',
                       }}>
                         {(venue?.name || 'P').charAt(0)}
                       </span>

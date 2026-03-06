@@ -68,7 +68,7 @@ export default function ActivityFeed() {
       if (isMounted) {
         pollTimeout = setTimeout(runPoll, 5000);
       }
-    });
+    };
 
     runPoll();
     const clock = setInterval(() => setNow(new Date()), 30000);

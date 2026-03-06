@@ -158,7 +158,8 @@ export default function LandingPage() {
             src="/images/landing-hero.jpg"
             alt="Smarter.Poker — The Future Of The Game"
             style={{ ...styles.heroImage, opacity: heroLoaded ? 1 : 0 }}
-            onLoad={() = loading="lazy"> setHeroLoaded(true)}
+            onLoad={() => setHeroLoaded(true)}
+            loading="lazy"
             draggable={false}
           />
           {!heroLoaded && <div style={styles.shimmer} />}
@@ -188,7 +189,8 @@ export default function LandingPage() {
                 src={overlay.image}
                 alt="Detail View"
                 style={{ ...styles.overlayImg, opacity: overlayLoaded ? 1 : 0 }}
-                onLoad={() = loading="lazy"> setOverlayLoaded(true)}
+                onLoad={() => setOverlayLoaded(true)}
+                loading="lazy"
                 draggable={false}
               />
               {!overlayLoaded && (
@@ -257,7 +259,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" ,
+    fontFamily: "var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   },
   nav: {
     width: '100%',
@@ -274,7 +276,7 @@ const styles = {
   },
   logo: { display: 'flex', alignItems: 'center' },
   logoText: {
-    fontFamily: "var(--font-orbitron), sans-serif" ,
+    fontFamily: "var(--font-orbitron), sans-serif",
     fontSize: '16px',
     fontWeight: 800,
     background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
@@ -292,7 +294,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 600,
-    fontFamily: "var(--font-inter), sans-serif" ,
+    fontFamily: "var(--font-inter), sans-serif",
   },
   navButtonPrimary: {
     background: 'linear-gradient(135deg, #00c6ff 0%, #0072ff 100%)',
@@ -303,7 +305,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: '13px',
     fontWeight: 600,
-    fontFamily: "var(--font-inter), sans-serif" ,
+    fontFamily: "var(--font-inter), sans-serif",
     boxShadow: '0 0 20px rgba(0, 198, 255, 0.25)',
   },
   imageWrapper: { position: 'relative', width: '100%' },
@@ -382,6 +384,6 @@ const styles = {
   footerText: {
     fontSize: '12px',
     color: '#475569',
-    fontFamily: "var(--font-inter), sans-serif" ,
+    fontFamily: "var(--font-inter), sans-serif",
   },
 };

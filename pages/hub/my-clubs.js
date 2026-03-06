@@ -203,7 +203,7 @@ function ClubCard({ venue, liveGameCount, waitlistCount, isFollowed, onToggleFol
                                 objectFit: 'cover',
                                 border: `1px solid ${C.borderLight}`,
                             }}
-                            onError={(e) = loading="lazy"> { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                            onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                         />
                     ) : null}
                     <div style={{
@@ -327,7 +327,7 @@ function SearchResultCard({ venue, isFollowed, onToggleFollow, onNavigate }) {
                         objectFit: 'cover',
                         border: `1px solid ${C.borderLight}`,
                     }}
-                    onError={(e) = loading="lazy"> { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                 />
             ) : null}
             <div style={{

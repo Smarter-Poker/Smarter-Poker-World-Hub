@@ -446,7 +446,7 @@ export default function ClockSetup() {
                                         src={formDisplay.logo_url}
                                         alt="Logo preview"
                                         style={{ height: 36, maxWidth: 200, objectFit: 'contain', borderRadius: 4 }}
-                                        onError={e = loading="lazy"> { e.target.style.display = 'none'; }}
+                                        onError={e => { e.target.style.display = 'none'; }}
                                         loading="lazy"
                                         decoding="async"
                                     />

@@ -95,7 +95,7 @@ export default function AnnouncementsDisplay() {
     try {
       const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      };
+      });
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
     } catch (err) { }
@@ -248,7 +248,7 @@ export default function AnnouncementsDisplay() {
       <div onClick={goFullscreen}
         style={{
           height: '100vh', background: '#18191A', color: '#E4E6EB',
-          fontFamily: "var(--font-inter), sans-serif" , userSelect: 'none',
+          fontFamily: "var(--font-inter), sans-serif", userSelect: 'none',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}>
 

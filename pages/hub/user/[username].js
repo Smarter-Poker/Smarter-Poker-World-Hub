@@ -44,7 +44,7 @@ function Avatar({ src, name, size = 120, showOnline = false, onlineTime = null }
                 <img src={src} alt={name} style={{
                     width: size, height: size, borderRadius: '50%', objectFit: 'cover',
                     border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                }}  loading="lazy" />
+                }} loading="lazy" />
             ) : (
                 <div style={{
                     width: size, height: size, borderRadius: '50%', background: bgColor,
@@ -77,7 +77,7 @@ function FriendAvatar({ friend, currentUserFriends = [] }) {
                         width: '100%', aspectRatio: '1', borderRadius: '50%',
                         objectFit: 'cover', background: '#e4e6eb',
                         border: '3px solid #1877F2'
-                    }}  loading="lazy" />
+                    }} loading="lazy" />
             </div>
             <div style={{
                 fontSize: 13, fontWeight: 600, color: C.text,
@@ -360,12 +360,12 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                         post.content_type === 'video' ? (
                             <video src={post.media_urls[0]} controls style={{ width: '100%', maxHeight: 400, objectFit: 'cover' }} />
                         ) : (
-                            <img src={post.media_urls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }}  loading="lazy" />
+                            <img src={post.media_urls[0]} alt="" style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }} loading="lazy" />
                         )
                     ) : (
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
                             {post.media_urls.slice(0, 4).map((url, i) => (
-                                <img key={i} src={url} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} alt="Image"  loading="lazy" />
+                                <img key={i} src={url} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} alt="Image" loading="lazy" />
                             ))}
                         </div>
                     )}
@@ -387,7 +387,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
                         <div style={{ marginBottom: 12, maxHeight: 300, overflowY: 'auto' }}>
                             {comments.map((c, i) => (
                                 <div key={c.id || i} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                                    <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar"  loading="lazy" />
+                                    <img src={c.author?.avatar_url || '/default-avatar.png'} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" loading="lazy" />
                                     <div style={{ flex: 1, background: '#f0f2f5', borderRadius: 12, padding: '8px 12px' }}>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.author?.full_name || c.author?.username || 'User'}</div>
                                         <div style={{ fontSize: 14, color: C.text, marginTop: 2 }}>{c.content}</div>
@@ -632,7 +632,7 @@ export default function UserProfilePage() {
                 console.error('Error fetching profile:', e);
             }
             setLoading(false);
-        });
+        };
 
         fetchProfile();
     }, [username]);
@@ -868,7 +868,7 @@ export default function UserProfilePage() {
                                     <img key={f.id} src={f.avatar_url || '/default-avatar.png'}
                                         style={{
                                             width: 28, height: 28, borderRadius: '50%', objectFit: 'cover',
-                                            border: '2px solid white', marginLeft: i  loading="lazy"> 0 ? -10 : 0
+                                            border: '2px solid white', marginLeft: i > 0 ? -10 : 0
                                         }} />
                                 ))}
                             </div>
@@ -1291,7 +1291,7 @@ export default function UserProfilePage() {
                                     {photos.map(photo => (
                                         photo.media_urls?.map((url, i) => (
                                             <div key={`${photo.id}-${i}`} style={{ aspectRatio: '1', overflow: 'hidden' }}>
-                                                <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Image"  loading="lazy" />
+                                                <img src={url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Image" loading="lazy" />
                                             </div>
                                         ))
                                     ))}
@@ -1342,7 +1342,7 @@ export default function UserProfilePage() {
                                         <Link key={reel.id} href={`/hub/reels?id=${reel.id}`} style={{ textDecoration: 'none' }}>
                                             <div style={{ aspectRatio: '9/16', position: 'relative', overflow: 'hidden', borderRadius: 8, background: '#000' }}>
                                                 {reel.thumbnail_url ? (
-                                                    <img src={reel.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Video thumbnail"  loading="lazy" />
+                                                    <img src={reel.thumbnail_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Video thumbnail" loading="lazy" />
                                                 ) : (
                                                     <video src={reel.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
                                                 )}
