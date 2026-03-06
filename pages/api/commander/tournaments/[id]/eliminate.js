@@ -83,7 +83,6 @@ export default async function handler(req, res) {
       .select('*', { count: 'exact', head: true })
       .eq('tournament_id', tournamentId)
       .in('status', ['seated', 'active'])
-          .limit(100);
 
     const finishPosition = remainingCount;
 
@@ -289,7 +288,7 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Eliminate player error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -298,7 +297,6 @@ async function getTotalRebuys(tournamentId) {
     .from('commander_tournament_entries')
     .select('rebuy_count')
     .eq('tournament_id', tournamentId)
-        .limit(100);
 
   return data?.reduce((sum, e) => sum + (e.rebuy_count || 0), 0) || 0;
 }
@@ -309,7 +307,6 @@ async function getTotalAddons(tournamentId) {
     .select('*', { count: 'exact', head: true })
     .eq('tournament_id', tournamentId)
     .eq('addon_taken', true)
-        .limit(100);
 
   return count || 0;
 }

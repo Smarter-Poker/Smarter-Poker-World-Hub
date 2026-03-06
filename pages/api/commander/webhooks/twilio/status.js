@@ -89,7 +89,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Twilio webhook error:', error);
     // Still return 200 to prevent Twilio from retrying
-    return res.status(200).json({ received: true, error: error.message });
+    return res.status(200).json({ received: true, error: 'Internal server error' });
   }
 }
 

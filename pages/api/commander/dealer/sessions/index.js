@@ -23,24 +23,23 @@ export default async function handler(req, res) {
 
   const { table, venue_id } = req.query;
 
-  if (!table) {
-    return res.status(400).json({ success: false, error: 'table parameter is required' });
+  if (!table || !venue_id) {
+    return res.status(400).json({ success: false, error: 'table and venue_id parameters are required' });
+  }
+
+  const tableNum = parseInt(table);
+  if (isNaN(tableNum)) {
+    return res.status(400).json({ success: false, error: 'table must be a number' });
   }
 
   try {
     let query = supabase
       .from('commander_table_sessions')
       .select('*')
-      .eq('table_number', parseInt(table))
+      .eq('venue_id', venue_id)
+      .eq('table_number', tableNum)
       .in('status', ['active', 'paused', 'meal_break'])
-      .order('seat_number', { ascending: true })
-          .limit(100);
-
-    // Filter by venue_id if provided (security: prevents cross-venue leakage)
-    if (venue_id) {
-      query = query.eq('venue_id', parseInt(venue_id))
-          .limit(100);
-    }
+      .order('seat_number', { ascending: true });
 
     const { data: sessions, error } = await query;
     if (error) throw error;
@@ -54,8 +53,7 @@ export default async function handler(req, res) {
       const { data: members } = await supabase
         .from('commander_members')
         .select('id, time_balance_minutes, membership_tier, membership_status, membership_expires')
-        .in('id', memberIds)
-            .limit(100)
+        .in('id', memberIds);
       if (members) {
         memberMap = Object.fromEntries(members.map(m => [m.id, m]));
       }
@@ -69,8 +67,7 @@ export default async function handler(req, res) {
         .from('commander_tables')
         .select('table_number, mode, table_purpose')
         .in('table_number', tableNums)
-            .limit(100)
-      if (venue_id) tableQuery = tableQuery.eq('venue_id', parseInt(venue_id));
+        .eq('venue_id', venue_id);
       const { data: tables } = await tableQuery;
       (tables || []).forEach(t => {
         if (t.mode === 'tournament' || t.table_purpose === 'tournament') {
@@ -113,6 +110,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, data: withTimeRemaining });
   } catch (err) {
     console.error('Dealer sessions error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

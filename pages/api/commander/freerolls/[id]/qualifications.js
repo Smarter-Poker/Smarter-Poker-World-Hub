@@ -48,7 +48,6 @@ async function listQualifications(req, res, freerollId) {
             .order('is_qualified', { ascending: false })
             .order('hours_logged', { ascending: false })
             .order('points_earned', { ascending: false })
-                .limit(100);
 
         if (error) throw error;
 
@@ -146,7 +145,7 @@ async function upsertQualification(req, res, freerollId) {
         console.error('Upsert qualification error:', error);
         return res.status(500).json({
             success: false,
-            error: { code: 'SERVER_ERROR', message: error.message }
+            error: { code: 'SERVER_ERROR', message: 'Internal server error' }
         });
     }
 }
@@ -175,7 +174,7 @@ async function removeQualification(req, res, freerollId) {
         console.error('Remove qualification error:', error);
         return res.status(500).json({
             success: false,
-            error: { code: 'SERVER_ERROR', message: error.message }
+            error: { code: 'SERVER_ERROR', message: 'Internal server error' }
         });
     }
 }

@@ -13,7 +13,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -84,8 +84,7 @@ async function awardComp(req, res, staffAuth) {
             .from('commander_members')
             .select('id, venue_id, first_name, last_name, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, membership_status, membership_expires, membership_tier, time_balance_minutes')
             .eq('venue_id', staffRecord.venue_id)
-            .ilike('first_name', sfFirst)
-                .limit(100)
+            .ilike('first_name', sfFirst);
           if (sfLast) matchQuery = matchQuery.ilike('last_name', sfLast);
           const { data: existingMember } = await matchQuery.maybeSingle();
           if (existingMember) {
@@ -280,7 +279,7 @@ async function awardComp(req, res, staffAuth) {
     });
   } catch (error) {
     console.error('Award comp error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -348,7 +347,9 @@ async function getBalances(req, res) {
       userId = user.id;
     }
 
-    const { player_id, sort_by = 'current_balance', limit = 50, offset = 0 } = req.query;
+    const { player_id, sort_by = 'current_balance', limit: rawLimit = '50', offset: rawOffset = '0' } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
+    const offset = parseInt(rawOffset) || 0;
 
     // If no venue_id, return user's balances across all venues
     if (!venue_id) {
@@ -359,8 +360,7 @@ async function getBalances(req, res) {
           poker_venues:venue_id (id, name, city, state)
         `)
         .eq('player_id', userId)
-        .order('current_balance', { ascending: false })
-            .limit(100);
+        .order('current_balance', { ascending: false });
 
       if (error) throw error;
 
@@ -372,13 +372,12 @@ async function getBalances(req, res) {
       const { data: sessions } = await supabase
         .from('commander_player_sessions')
         .select('total_time_minutes')
-        .eq('player_id', userId)
-            .limit(100)
+        .eq('player_id', userId);
 
       const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 
       res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
-    return res.status(200).json({
+      return res.status(200).json({
         success: true,
         data: {
           balances,
@@ -409,15 +408,14 @@ async function getBalances(req, res) {
         .eq('venue_id', venue_id);
 
       if (player_id) {
-        query = query.eq('player_id', player_id)
-            .limit(100);
+        query = query.eq('player_id', player_id);
       }
 
       const validSortFields = ['current_balance', 'lifetime_earned', 'lifetime_redeemed', 'last_earned_at'];
       const sortField = validSortFields.includes(sort_by) ? sort_by : 'current_balance';
       query = query.order(sortField, { ascending: false });
 
-      query = query.range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+      query = query.range(offset, offset + limit - 1);
 
       const { data, error, count } = await query;
 
@@ -427,8 +425,7 @@ async function getBalances(req, res) {
       const { data: totals } = await supabase
         .from('commander_comp_balances')
         .select('current_balance, lifetime_earned, lifetime_redeemed')
-        .eq('venue_id', venue_id)
-            .limit(100);
+        .eq('venue_id', venue_id);
 
       const summary = totals?.reduce((acc, b) => ({
         total_outstanding: acc.total_outstanding + parseFloat(b.current_balance || 0),
@@ -440,8 +437,8 @@ async function getBalances(req, res) {
         balances: data,
         total: count,
         summary,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit,
+        offset
       });
     }
 
@@ -467,7 +464,7 @@ async function getBalances(req, res) {
     });
   } catch (error) {
     console.error('Get comp balances error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -595,6 +592,6 @@ async function voidComp(req, res, staffAuth) {
     });
   } catch (error) {
     console.error('Void comp error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

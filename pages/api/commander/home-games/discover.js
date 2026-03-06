@@ -36,8 +36,9 @@ export default async function handler(req, res) {
       radius = 50, // miles
       game_type,
       stakes,
-      limit = 20
+      limit: rawLimit = '20'
     } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 20, 100);
 
     if (type === 'groups') {
       return discoverGroups(req, res, {
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid type. Use "groups" or "players"' });
   } catch (error) {
     console.error('Discovery error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -129,8 +130,7 @@ async function discoverGroups(req, res, options) {
       .from('commander_home_members')
       .select('group_id, status')
       .eq('user_id', userId)
-      .in('group_id', groups.map(g => g.id))
-          .limit(100);
+      .in('group_id', groups.map(g => g.id));
 
     const membershipMap = {};
     memberships?.forEach(m => {

@@ -54,7 +54,21 @@ const FULL_SCREEN_UI_GAMES = [
     'adv-016', 'adv-017', 'adv-018', 'adv-019', 'adv-020',
 ];
 
+// SVG ICON RENDERER for classification badges
+function ClassificationSVGIcon({ icon, size = 14, color = 'currentColor' }) {
+    const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    switch (icon) {
+        case 'star': return <svg {...props} strokeWidth="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+        case 'check': return <svg {...props} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>;
+        case 'alert': return <svg {...props} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
+        case 'x': return <svg {...props} strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+        case 'warning': return <svg {...props} strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+        default: return <span>{icon || '?'}</span>;
+    }
+}
+
 function getEngineType(gameId) {
+
     const game = getGameById(gameId);
     if (!game) return 'PIO';
     if (game.category === 'PSYCHOLOGY') return 'SCENARIO';
@@ -101,7 +115,7 @@ function HandHistoryRow({ entry, index }) {
                     color: config.color, fontSize: 11, fontWeight: 'bold',
                     minWidth: 80, justifyContent: 'center',
                 }}>
-                    <span>{config.icon}</span>
+                    <span><ClassificationSVGIcon icon={config.icon} size={12} color={config.color} /></span>
                     <span>{config.label}</span>
                 </div>
                 <div style={{
@@ -859,7 +873,7 @@ function GodModeArena({
                                         borderColor: config.borderColor,
                                         color: config.color,
                                     }}>
-                                        {config.icon} {config.label}
+                                        <ClassificationSVGIcon icon={config.icon} size={14} color={config.color} /> {config.label}
                                     </div>
                                 </div>
                             ))}

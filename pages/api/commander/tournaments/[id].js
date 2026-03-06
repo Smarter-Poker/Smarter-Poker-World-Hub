@@ -76,7 +76,7 @@ async function getTournament(req, res, id) {
     return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
     console.error('Get tournament error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
 
@@ -123,7 +123,7 @@ async function updateTournament(req, res, id, staff) {
     return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
     console.error('Update tournament error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
 
@@ -175,6 +175,6 @@ async function cancelTournament(req, res, id, staff) {
     return res.status(200).json({ success: true, data: { tournament, message: 'Tournament cancelled' } });
   } catch (error) {
     console.error('Cancel tournament error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }

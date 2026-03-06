@@ -79,7 +79,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('created_at', start)
       .lte('created_at', end)
-          .limit(100);
 
     let tournamentFees = 0;
     let tournamentBuyins = 0;
@@ -90,7 +89,6 @@ export default async function handler(req, res) {
         .from('commander_tournament_entries')
         .select('id, buyin_amount, rebuy_count')
         .eq('tournament_id', t.id)
-            .limit(100);
       const count = (entries || []).length;
       tournamentEntryCount += count;
       tournamentBuyins += count * (t.buyin_amount || 0);
@@ -108,18 +106,14 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('created_at', start)
       .lte('created_at', end)
-          .limit(100);
 
     // Comps issued (type = 'award' OR 'auto_hourly'), voids (type = 'void')
     const compAwards = (compTxns || []).filter(c => c.type === 'award' || c.type === 'auto_hourly' || (!c.type))
-        .limit(100);
     const compVoids = (compTxns || []).filter(c => c.type === 'void')
-        .limit(100);
     const compsIssued = compAwards.reduce((s, c) => s + Math.abs(c.amount || 0), 0);
     const compsVoided = compVoids.reduce((s, c) => s + Math.abs(c.amount || 0), 0);
     const compsNet = Math.max(0, compsIssued - compsVoided);
     const compsAutoHourly = compAwards.filter(c => c.type === 'auto_hourly').reduce((s, c) => s + Math.abs(c.amount || 0), 0)
-        .limit(100);
     const compsManual = compAwards.filter(c => c.type !== 'auto_hourly').reduce((s, c) => s + Math.abs(c.amount || 0), 0);
 
     // Per-category breakdown
@@ -145,7 +139,6 @@ export default async function handler(req, res) {
           .from('commander_tournament_entries')
           .select('id, rebuy_count')
           .eq('tournament_id', t.id)
-              .limit(100);
 
         const count = (entries || []).length;
         const rebuys = (entries || []).reduce((s, e) => s + (e.rebuy_count || 0), 0);

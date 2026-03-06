@@ -103,7 +103,7 @@ async function listEvents(req, res) {
     return res.status(200).json({ events: data });
   } catch (error) {
     console.error('List events error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -226,6 +226,6 @@ async function createEvent(req, res) {
     return res.status(201).json({ event });
   } catch (error) {
     console.error('Create event error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

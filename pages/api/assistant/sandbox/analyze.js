@@ -1,225 +1,25 @@
 /**
  * POST /api/assistant/sandbox/analyze
- * Runs GTO analysis on a sandbox scenario
+ * ═══════════════════════════════════════════════════════════════════════════
+ * GTO Sandbox Analysis Engine — Powered by Real PIO Solver Data
  *
- * Per Masterplan Section VIII: Safety & Friction Elements
- * - Cache repeated sandbox configs
- * - Rate-limit combinatorial exploration
- * - Block reverse-engineering attempts
- * 
- * NEW: Grok AI Integration (Phase 3)
- * - Tier 3 analysis now uses Grok for intelligent reasoning
+ * Data Pipeline:
+ *   Tier 1: Exact board match in solved_spots_gold (scenario_hash ILIKE)
+ *   Tier 2: Partial board match (flop portion only)
+ *   Tier 3: Same game_type/street/stack from solver pool
+ *   Tier 4: Grok AI analysis (fallback when no solver data exists)
+ *
+ * Outputs:
+ *   - Per-hand action frequencies from strategy_matrix
+ *   - Per-hand EV from hand_evs
+ *   - Full range heatmap data (all 1326 combos)
+ *   - Action labels with pot-relative sizing
+ *   - Source badge (PIO Verified / PIO Approximated / Grok AI)
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { getGrokClient } from '../../../../src/lib/grokClient';
-
-// ═══════════════════════════════════════════════════════════════════════════
-// AI-POWERED ANALYSIS (Tier 3 with Grok)
-// ═══════════════════════════════════════════════════════════════════════════
-
-async function analyzeWithGrok(params) {
-  try {
-    const grok = getGrokClient();
-
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize } = params;
-
-    // Build board string
-    const boardCards = [
-      ...(board?.flop || []),
-      board?.turn,
-      board?.river
-    ].filter(Boolean);
-
-    const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
-    const villainDesc = villains?.map(v => `${v.archetype?.name || 'Unknown'} (${v.stack}bb)`).join(', ') || 'Unknown';
-
-    const prompt = `You are a GTO poker expert. Analyze this scenario and provide optimal action frequencies.
-
-SCENARIO:
-- Hero Hand: ${heroHand?.card1 || 'As'} ${heroHand?.card2 || 'Kd'}
-- Hero Position: ${heroPosition || 'BTN'}
-- Hero Stack: ${heroStack || 100}bb
-- Game Type: ${gameType === 'tournament' ? 'Tournament (ICM)' : 'Cash Game'}
-- Pot Size: ${potSize || 0}bb
-- Board: ${boardStr}
-- Villains: ${villainDesc}
-
-Respond in this exact JSON format:
-{
-  "primaryAction": "Bet 66% Pot",
-  "primaryFrequency": 65,
-  "alternatives": [
-    {"action": "Check", "frequency": 25},
-    {"action": "Bet 33% Pot", "frequency": 10}
-  ],
-  "whyNot": "Brief explanation why this is the GTO play",
-  "confidence": "High"
-}
-
-RULES:
-- Frequencies must sum to 100
-- Provide exactly 2 alternatives
-- Actions: Fold, Check, Call, Bet 33% Pot, Bet 66% Pot, Bet 75% Pot, Bet 100% Pot, Raise 2.5x, All-In
-- Consider stack depth, position, and villain tendencies
-- Be specific about bet sizing`;
-
-    const response = await grok.chat.completions.create({
-      model: 'grok-3', // Grok-3
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      max_tokens: 500,
-    });
-
-    const content = response.choices[0]?.message?.content || '';
-
-    // Parse JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('No JSON in response');
-    }
-
-    const analysis = JSON.parse(jsonMatch[0]);
-
-    return {
-      ...analysis,
-      source: 'Grok AI Analysis',
-      street: boardCards.length === 0 ? 'preflop' :
-        boardCards.length <= 3 ? 'flop' :
-          boardCards.length === 4 ? 'turn' : 'river',
-      sensitivityFlags: heroStack < 50 ? ['stack_sensitive'] : [],
-      context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition} vs ${villainDesc}`,
-    };
-  } catch (error) {
-    console.error('[Sandbox] Grok analysis failed, using fallback:', error.message);
-    return null; // Fall back to rule-based
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// RATE LIMITING & CACHING — Per Masterplan Section VIII
-
-// Simple in-memory cache (in production, use Redis)
-const analysisCache = new Map();
-const rateLimitMap = new Map();
-
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 30; // 30 requests per minute
-
-/**
- * Check rate limit for a user
- */
-function checkRateLimit(userId) {
-  const now = Date.now();
-  const userKey = userId || 'anonymous';
-
-  if (!rateLimitMap.has(userKey)) {
-    rateLimitMap.set(userKey, { count: 1, windowStart: now });
-    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
-  }
-
-  const userLimit = rateLimitMap.get(userKey);
-
-  // Reset window if expired
-  if (now - userLimit.windowStart > RATE_LIMIT_WINDOW_MS) {
-    rateLimitMap.set(userKey, { count: 1, windowStart: now });
-    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
-  }
-
-  // Check if over limit
-  if (userLimit.count >= MAX_REQUESTS_PER_WINDOW) {
-    const retryAfter = Math.ceil((userLimit.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000);
-    return { allowed: false, remaining: 0, retryAfter };
-  }
-
-  userLimit.count++;
-  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - userLimit.count };
-}
-
-/**
- * Generate cache key from analysis params
- */
-function getCacheKey(params) {
-  const { heroHand, heroPosition, heroStack, gameType, villains, board } = params;
-  return JSON.stringify({
-    h: [heroHand?.card1, heroHand?.card2].sort().join(''),
-    p: heroPosition,
-    s: Math.round(heroStack / 10) * 10, // Round to nearest 10
-    g: gameType,
-    v: villains?.map(v => v.archetype?.id).sort().join(','),
-    b: [
-      ...(board?.flop || []),
-      board?.turn,
-      board?.river
-    ].filter(Boolean).sort().join(''),
-  });
-}
-
-/**
- * Get cached analysis if available
- */
-function getCachedAnalysis(cacheKey) {
-  const cached = analysisCache.get(cacheKey);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.analysis;
-  }
-  return null;
-}
-
-/**
- * Cache analysis result
- */
-function cacheAnalysis(cacheKey, analysis) {
-  // Limit cache size
-  if (analysisCache.size > 1000) {
-    // Remove oldest entries
-    const keysToDelete = Array.from(analysisCache.keys()).slice(0, 100);
-    keysToDelete.forEach(k => analysisCache.delete(k));
-  }
-
-  analysisCache.set(cacheKey, {
-    analysis,
-    timestamp: Date.now(),
-  });
-}
-
-/**
- * Detect potential reverse-engineering attempts
- */
-function detectReverseEngineering(userId, params) {
-  const userKey = userId || 'anonymous';
-  const recentRequests = rateLimitMap.get(`${userKey}_history`) || [];
-  const now = Date.now();
-
-  // Keep last 5 minutes of request history
-  const recent = recentRequests.filter(r => now - r.timestamp < 5 * 60 * 1000);
-
-  // Add current request
-  recent.push({
-    timestamp: now,
-    stack: params.heroStack,
-    villains: params.villains?.length || 0,
-  });
-
-  rateLimitMap.set(`${userKey}_history`, recent.slice(-50));
-
-  // Check for suspicious patterns
-  if (recent.length >= 10) {
-    // Rapid stack size iterations (potential range exploration)
-    const uniqueStacks = new Set(recent.map(r => r.stack)).size;
-    if (uniqueStacks > 8 && recent.length <= 15) {
-      return {
-        suspicious: true,
-        reason: 'rapid_stack_iteration',
-        warning: 'Slow down! Exploring many stack sizes quickly may indicate automated range building.',
-      };
-    }
-  }
-
-  return { suspicious: false };
-}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -227,373 +27,639 @@ const supabase = createClient(
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TRUTH SEAL GENERATORS — Ensures reproducibility per Masterplan Section VII
+// ACTION LABELS — Matches DeterministicGTOEngine standard
 // ═══════════════════════════════════════════════════════════════════════════
 
-/**
- * Generate a unique template ID for this scenario configuration.
- * Identical inputs will always produce identical template IDs.
- */
-function generateTemplateId(params) {
-  const {
-    heroHand,
-    heroPosition,
-    heroStack,
-    gameType,
-    villains,
-    board,
-  } = params;
+const ACTION_LABELS = {
+  'c': 'Check', 'x': 'Check', 'f': 'Fold',
+  'b': 'Bet', 'b16': 'Bet 16%', 'b25': 'Bet 25%', 'b33': 'Bet 33%',
+  'b45': 'Bet 45%', 'b50': 'Bet 50%', 'b66': 'Bet 66%', 'b75': 'Bet 75%',
+  'b100': 'Bet Pot', 'b150': 'Overbet 150%', 'b200': 'Overbet 200%',
+  'allin': 'All-In', 'r': 'Raise',
+};
 
-  // Create deterministic string from all inputs
-  const inputString = [
-    heroHand?.card1 || '',
-    heroHand?.card2 || '',
-    heroPosition || '',
-    heroStack || 0,
-    gameType || 'cash',
-    (villains || []).map(v => `${v.archetype?.id || 'gto'}:${v.stack || 100}`).join(','),
-    (board?.flop || []).join(''),
-    board?.turn || '',
-    board?.river || '',
-  ].join('|');
+const ACTION_COLORS = {
+  'Fold': '#ef4444', 'Check': '#6b7280', 'Call': '#f59e0b',
+  'Bet': '#3b82f6', 'Raise': '#22c55e', 'All-In': '#ec4899',
+};
 
-  // Simple hash function for deterministic ID
-  let hash = 0;
-  for (let i = 0; i < inputString.length; i++) {
-    const char = inputString.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
+function getActionLabel(actionCode, potSize = 6) {
+  if (ACTION_LABELS[actionCode]) return ACTION_LABELS[actionCode];
+  const betMatch = actionCode.match(/^b(\d+)$/);
+  if (betMatch) {
+    const pct = parseInt(betMatch[1]);
+    return `Bet ${pct}%`;
   }
-  return `tmpl_${Math.abs(hash).toString(16).padStart(8, '0')}`;
+  const raiseMatch = actionCode.match(/^r(\d+)$/);
+  if (raiseMatch) return `Raise ${raiseMatch[1]}%`;
+  return actionCode.toUpperCase();
 }
 
-/**
- * Generate a hash representing stack depth and format configuration.
- * Used for cache invalidation and reproducibility verification.
- */
-function generateStackFormatHash(heroStack, gameType, villains) {
-  const stackDepth = heroStack <= 30 ? 'short' : heroStack <= 60 ? 'medium' : 'deep';
-  const avgVillainStack = villains?.length > 0
-    ? Math.round(villains.reduce((sum, v) => sum + (v.stack || 100), 0) / villains.length)
-    : 100;
-  const format = gameType === 'tournament' ? 'icm' : 'chipev';
-
-  return `${stackDepth}_${format}_vs${avgVillainStack}bb`;
+function getActionColor(actionLabel) {
+  for (const [key, color] of Object.entries(ACTION_COLORS)) {
+    if (actionLabel.startsWith(key)) return color;
+  }
+  return '#3b82f6';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SOLVER TEMPLATE MATCHING — Tier 1/2 Data Source Hierarchy
+// RATE LIMITING & CACHING
 // ═══════════════════════════════════════════════════════════════════════════
 
-/**
- * Attempt to find a matching solver template in the database.
- * Returns null if no match found (will fall back to AI approximation).
- */
-async function findSolverTemplate(supabase, params) {
-  const {
-    heroHand,
-    heroPosition,
-    heroStack,
-    gameType,
-    board,
-  } = params;
+const analysisCache = new Map();
+const rateLimitMap = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 30;
 
-  // Normalize stack depth to common ranges solvers use
-  const stackDepth = heroStack <= 25 ? 20 :
-    heroStack <= 35 ? 30 :
-      heroStack <= 50 ? 40 :
-        heroStack <= 75 ? 60 :
-          heroStack <= 125 ? 100 : 150;
-
-  // Determine street
-  const boardCards = [
-    ...(board?.flop || []),
-    board?.turn,
-    board?.river
-  ].filter(Boolean);
-
-  const street = boardCards.length === 0 ? 'preflop' :
-    boardCards.length <= 3 ? 'flop' :
-      boardCards.length === 4 ? 'turn' : 'river';
-
-  // Build board texture classification for matching
-  let boardTexture = null;
-  if (street !== 'preflop' && board?.flop) {
-    const flop = board.flop.filter(Boolean);
-    if (flop.length === 3) {
-      // Check for monotone, two-tone, rainbow
-      const suits = flop.map(c => c[1]);
-      const uniqueSuits = new Set(suits).size;
-      const ranks = flop.map(c => c[0]);
-      const highCards = ranks.filter(r => ['A', 'K', 'Q', 'J', 'T'].includes(r)).length;
-
-      if (uniqueSuits === 1) boardTexture = 'monotone';
-      else if (uniqueSuits === 2) boardTexture = 'two_tone';
-      else boardTexture = 'rainbow';
-
-      if (highCards >= 2) boardTexture += '_high';
-      else if (highCards === 0) boardTexture += '_low';
-    }
+function checkRateLimit(userId) {
+  const now = Date.now();
+  const key = userId || 'anonymous';
+  if (!rateLimitMap.has(key)) {
+    rateLimitMap.set(key, { count: 1, windowStart: now });
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
   }
-
-  try {
-    // First try exact template match
-    let query = supabase
-      .from('solver_templates')
-      .select('*')
-      .eq('game_type', gameType === 'tournament' ? 'mtt' : 'cash')
-      .eq('stack_depth_bb', stackDepth)
-      .ilike('position_config', `%${heroPosition}%`)
-          .limit(100);
-
-    if (boardTexture) {
-      query = query.ilike('board_texture', `%${boardTexture.split('_')[0]}%`)
-          .limit(100);
-    }
-
-    const { data: exactMatch } = await query.limit(1).single();
-
-    if (exactMatch) {
-      return {
-        template: exactMatch,
-        tier: 1,
-        source: `Solver-Verified (${exactMatch.solver_version || 'Pio'})`,
-      };
-    }
-
-    // Try approximate match with nearby stack depth
-    const nearbyStacks = [stackDepth - 20, stackDepth + 20].filter(s => s > 0);
-    const { data: approxMatch } = await supabase
-      .from('solver_templates')
-      .select('*')
-      .eq('game_type', gameType === 'tournament' ? 'mtt' : 'cash')
-      .in('stack_depth_bb', nearbyStacks)
-      .ilike('position_config', `%${heroPosition}%`)
-      .limit(1)
-      .single();
-
-    if (approxMatch) {
-      return {
-        template: approxMatch,
-        tier: 2,
-        source: 'Solver-Approximated',
-      };
-    }
-
-    return null;
-  } catch (error) {
-    // No match found or query error
-    return null;
+  const entry = rateLimitMap.get(key);
+  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap.set(key, { count: 1, windowStart: now });
+    return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - 1 };
   }
+  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
+    return { allowed: false, remaining: 0, retryAfter: Math.ceil((entry.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000) };
+  }
+  entry.count++;
+  return { allowed: true, remaining: MAX_REQUESTS_PER_WINDOW - entry.count };
 }
 
-/**
- * Parse solver template frequencies into our output format.
- */
-function parseSolverTemplate(template, params) {
-  const frequencies = template.frequencies || {};
-  const actions = Object.entries(frequencies)
-    .map(([action, freq]) => ({ action, frequency: parseFloat(freq) || 0 }))
-    .sort((a, b) => b.frequency - a.frequency);
-
-  if (actions.length === 0) {
-    return null;
-  }
-
-  const primary = actions[0];
-  const alternatives = actions.slice(1, 3); // Take top 2 alternatives
-
-  // Ensure we always have 2 alternatives
-  while (alternatives.length < 2) {
-    alternatives.push({ action: 'Fold', frequency: 0 });
-  }
-
-  return {
-    primaryAction: primary.action,
-    primaryFrequency: Math.round(primary.frequency),
-    alternatives: alternatives.map(a => ({
-      action: a.action,
-      frequency: Math.round(a.frequency)
-    })),
-    whyNot: template.explanation || 'This action follows GTO equilibrium strategy.',
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// GTO APPROXIMATION ENGINE (Tier 3 Fallback)
-// ═══════════════════════════════════════════════════════════════════════════
-
-// GTO approximation engine - used when no solver data exists
-function analyzeScenario(params) {
-  const {
-    heroHand,
-    heroPosition,
-    heroStack,
-    gameType,
-    villains,
-    board,
-    potSize
-  } = params;
-
-  // Parse hero hand
-  const hand1 = heroHand?.card1 || 'As';
-  const hand2 = heroHand?.card2 || 'Kd';
-  const isPair = hand1[0] === hand2[0];
-  const isSuited = hand1[1] === hand2[1];
-  const highCard = hand1[0];
-
-  // Analyze board texture
-  const boardCards = [
-    ...(board?.flop || []),
-    board?.turn,
-    board?.river
-  ].filter(Boolean);
-
-  const street = boardCards.length === 0 ? 'preflop' :
-    boardCards.length <= 3 ? 'flop' :
-      boardCards.length === 4 ? 'turn' : 'river';
-
-  // Check for draws and made hands
-  const suitCounts = {};
-  const rankCounts = {};
-  boardCards.forEach(card => {
-    if (card && card.length >= 2) {
-      const suit = card[1];
-      const rank = card[0];
-      suitCounts[suit] = (suitCounts[suit] || 0) + 1;
-      rankCounts[rank] = (rankCounts[rank] || 0) + 1;
-    }
+function getCacheKey(params) {
+  const { heroHand, heroPosition, heroStack, gameType, board } = params;
+  return JSON.stringify({
+    h: [heroHand?.card1, heroHand?.card2].sort().join(''),
+    p: heroPosition, s: Math.round(heroStack / 10) * 10,
+    g: gameType,
+    b: [...(board?.flop || []), board?.turn, board?.river].filter(Boolean).sort().join(''),
   });
+}
 
-  const hasFlushDraw = Object.values(suitCounts).some(c => c >= 3);
-  const isPaired = Object.values(rankCounts).some(c => c >= 2);
-  const isDry = !hasFlushDraw && !isPaired && boardCards.length > 0;
+// ═══════════════════════════════════════════════════════════════════════════
+// SOLVER DATA QUERY ENGINE — Mirrors DeterministicGTOEngine patterns
+// ═══════════════════════════════════════════════════════════════════════════
 
-  // Check villain types
-  const hasCallingStation = villains?.some(v =>
-    v.archetype?.id === 'loose_passive' || v.archetype?.name?.includes('Calling')
-  );
-  const hasTAG = villains?.some(v =>
-    v.archetype?.id === 'tight_aggressive' || v.archetype?.name?.includes('TAG')
-  );
-  const hasLAG = villains?.some(v =>
-    v.archetype?.id === 'loose_aggressive' || v.archetype?.name?.includes('LAG')
-  );
+/**
+ * Determine the PIO game_type for the solved_spots_gold table
+ */
+function getPioGameType(gameType, street) {
+  if (gameType === 'tournament' || gameType === 'mtt') {
+    if (street === 'river') return 'river_mtt_icm';
+    if (street === 'turn') return 'turn_mtt_icm';
+    return 'flop_mtt_chipev';
+  }
+  if (gameType === 'spin' || gameType === 'sng') {
+    return 'turn_spin';
+  }
+  // Cash game
+  if (street === 'turn' || street === 'river') return 'postflop_complete';
+  return 'hu_cash';
+}
 
-  // Position advantage
-  const positionValue = {
-    'BTN': 5, 'CO': 4, 'HJ': 3, 'MP': 2, 'MP+1': 2, 'UTG+1': 1, 'UTG': 0, 'SB': 1, 'BB': 2
-  };
-  const posValue = positionValue[heroPosition] || 3;
-  const inPosition = posValue >= 4;
+/**
+ * Normalize stack to nearest solver bucket
+ */
+function normalizeStack(stack) {
+  const buckets = [8, 10, 15, 20, 30, 40, 60, 80, 100, 150, 200];
+  let closest = buckets[0];
+  let minDiff = Math.abs(stack - closest);
+  for (const b of buckets) {
+    const diff = Math.abs(stack - b);
+    if (diff < minDiff) { minDiff = diff; closest = b; }
+  }
+  return closest;
+}
 
-  // Generate GTO-like frequencies based on scenario
-  let primaryAction = 'Check';
-  let primaryFrequency = 50;
-  let alternatives = [];
-  let whyNot = '';
-  let confidence = 'High';
-  let dataSource = 'AI Approximation';
+/**
+ * Determine current street from board state
+ */
+function getStreet(board) {
+  const cards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+  if (cards.length === 0) return 'preflop';
+  if (cards.length <= 3) return 'flop';
+  if (cards.length === 4) return 'turn';
+  return 'river';
+}
+
+/**
+ * Build board string from board object for hash matching
+ */
+function buildBoardStr(board) {
+  const cards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+  return cards.map(c => c.toLowerCase()).join('');
+}
+
+/**
+ * Convert hero hand from card1+card2 format to PIO hand notation
+ * e.g., { card1: 'As', card2: 'Kd' } → 'AKo'
+ * e.g., { card1: 'Ah', card2: 'Kh' } → 'AKs'
+ * e.g., { card1: 'Qs', card2: 'Qh' } → 'QQ'
+ */
+function heroHandToNotation(heroHand) {
+  if (!heroHand?.card1 || !heroHand?.card2) return null;
+  const r1 = heroHand.card1[0];
+  const s1 = heroHand.card1[1];
+  const r2 = heroHand.card2[0];
+  const s2 = heroHand.card2[1];
+
+  // Rank order: A > K > Q > J > T > 9 > ... > 2
+  const RANK_ORDER = 'AKQJT98765432';
+  const i1 = RANK_ORDER.indexOf(r1);
+  const i2 = RANK_ORDER.indexOf(r2);
+
+  // Ensure higher rank first
+  const high = i1 <= i2 ? r1 : r2;
+  const low = i1 <= i2 ? r2 : r1;
+  const highSuit = i1 <= i2 ? s1 : s2;
+  const lowSuit = i1 <= i2 ? s2 : s1;
+
+  if (high === low) return `${high}${low}`; // Pair: "AA", "KK" etc.
+  const suited = highSuit === lowSuit;
+  return `${high}${low}${suited ? 's' : 'o'}`;
+}
+
+/**
+ * 3-Tier board matching against solved_spots_gold
+ * Same pattern as DeterministicGTOEngine.queryNextStreet
+ */
+async function querySolverData(params) {
+  const { heroStack, gameType, board } = params;
+  const street = getStreet(board);
 
   if (street === 'preflop') {
-    // Preflop logic
-    if (isPair || ['A', 'K', 'Q'].includes(highCard)) {
-      primaryAction = 'Raise 2.5x';
-      primaryFrequency = 85;
-      alternatives = [
-        { action: 'Call', frequency: 10 },
-        { action: 'Fold', frequency: 5 }
-      ];
-      whyNot = 'Strong hands should be raised for value and to build the pot.';
-    } else {
-      primaryAction = inPosition ? 'Raise 2.5x' : 'Fold';
-      primaryFrequency = inPosition ? 60 : 70;
-      alternatives = inPosition
-        ? [{ action: 'Call', frequency: 25 }, { action: 'Fold', frequency: 15 }]
-        : [{ action: 'Call', frequency: 20 }, { action: 'Raise 2.5x', frequency: 10 }];
-    }
-  } else if (street === 'flop') {
-    // Flop c-bet logic
-    if (isDry && inPosition) {
-      primaryAction = 'Bet 33% Pot';
-      primaryFrequency = 70;
-      alternatives = [
-        { action: 'Check', frequency: 20 },
-        { action: 'Bet 75% Pot', frequency: 10 }
-      ];
-      whyNot = hasCallingStation
-        ? 'C-betting here maximizes fold equity against the Calling Station.'
-        : 'On dry boards in position, small c-bets are highly profitable.';
-    } else if (hasFlushDraw) {
-      primaryAction = 'Bet 66% Pot';
-      primaryFrequency = 55;
-      alternatives = [
-        { action: 'Check', frequency: 30 },
-        { action: 'Bet 33% Pot', frequency: 15 }
-      ];
-      whyNot = 'Wet boards require larger bets to charge draws.';
-    } else {
-      primaryAction = 'Check';
-      primaryFrequency = 55;
-      alternatives = [
-        { action: 'Bet 33% Pot', frequency: 30 },
-        { action: 'Bet 66% Pot', frequency: 15 }
-      ];
-      whyNot = 'Mixed strategy is optimal here. Checking protects your checking range.';
-    }
-  } else if (street === 'turn') {
-    // Turn barrel logic
-    if (inPosition && !hasFlushDraw) {
-      primaryAction = 'Bet 66% Pot';
-      primaryFrequency = 50;
-      alternatives = [
-        { action: 'Check', frequency: 35 },
-        { action: 'Bet 33% Pot', frequency: 15 }
-      ];
-      whyNot = 'Turn barrels apply maximum pressure and deny equity.';
-    } else {
-      primaryAction = 'Check';
-      primaryFrequency = 60;
-      alternatives = [
-        { action: 'Bet 66% Pot', frequency: 30 },
-        { action: 'Bet 100% Pot', frequency: 10 }
-      ];
-      whyNot = 'Out of position, checking is often correct to control pot size.';
-    }
-  } else {
-    // River logic
-    primaryAction = 'Check';
-    primaryFrequency = 50;
-    alternatives = [
-      { action: 'Bet 75% Pot', frequency: 35 },
-      { action: 'Bet 125% Pot', frequency: 15 }
-    ];
-    whyNot = 'River decisions are highly dependent on hand strength and board runout.';
-    confidence = 'Medium';
+    return queryPreflopData(params);
   }
 
-  // Adjust for stack depth
-  if (heroStack < 40) {
-    confidence = 'Medium';
-    dataSource = 'AI Approximation (Short Stack)';
+  const pioGameType = getPioGameType(gameType, street);
+  const stackDepth = normalizeStack(heroStack);
+  const boardStr = buildBoardStr(board);
+  const flopStr = (board?.flop || []).filter(Boolean).map(c => c.toLowerCase()).join('');
+
+  // ━━━ TIER 1: Exact board match ━━━
+  try {
+    const { data: exactMatches, error } = await supabase
+      .from('solved_spots_gold')
+      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+      .eq('game_type', pioGameType)
+      .eq('stack_depth', stackDepth)
+      .eq('street', street)
+      .ilike('scenario_hash', `%${boardStr}%`)
+      .limit(5);
+
+    if (!error && exactMatches && exactMatches.length > 0) {
+      const scenario = exactMatches[Math.floor(Math.random() * exactMatches.length)];
+      if (scenario.strategy_matrix) {
+        return { scenario, matchTier: 1, source: 'PIO Solver — Exact Match' };
+      }
+    }
+  } catch (e) { console.error('[Sandbox] Tier 1 query error:', e.message); }
+
+  // ━━━ TIER 2: Partial board match (flop portion) ━━━
+  if (flopStr.length >= 6) {
+    try {
+      const { data: partialMatches } = await supabase
+        .from('solved_spots_gold')
+        .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+        .eq('game_type', pioGameType)
+        .eq('stack_depth', stackDepth)
+        .eq('street', street)
+        .ilike('scenario_hash', `%${flopStr}%`)
+        .limit(5);
+
+      if (partialMatches && partialMatches.length > 0) {
+        const scenario = partialMatches[Math.floor(Math.random() * partialMatches.length)];
+        if (scenario.strategy_matrix) {
+          return { scenario, matchTier: 2, source: 'PIO Solver — Board Approximated' };
+        }
+      }
+    } catch (e) { console.error('[Sandbox] Tier 2 query error:', e.message); }
   }
 
-  // Build context string
-  const villainTypes = villains?.slice(0, 2).map(v => v.archetype?.name || 'Unknown').join(' & ') || 'Unknown';
-  const context = `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition} vs ${villainTypes}`;
+  // ━━━ TIER 3: Any scenario with same game_type/street/stack ━━━
+  try {
+    const { data: anyMatches } = await supabase
+      .from('solved_spots_gold')
+      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+      .eq('game_type', pioGameType)
+      .eq('stack_depth', stackDepth)
+      .eq('street', street)
+      .limit(10);
+
+    if (anyMatches && anyMatches.length > 0) {
+      const scenario = anyMatches[Math.floor(Math.random() * anyMatches.length)];
+      if (scenario.strategy_matrix) {
+        return { scenario, matchTier: 3, source: 'PIO Solver — Similar Spot' };
+      }
+    }
+  } catch (e) { console.error('[Sandbox] Tier 3 query error:', e.message); }
+
+  // ━━━ TIER 3b: Try nearby stack depths ━━━
+  const nearbyStacks = [stackDepth - 20, stackDepth + 20, stackDepth - 40, stackDepth + 40].filter(s => s > 0);
+  try {
+    const { data: nearbyMatches } = await supabase
+      .from('solved_spots_gold')
+      .select('id, scenario_hash, street, stack_depth, game_type, strategy_matrix')
+      .eq('game_type', pioGameType)
+      .in('stack_depth', nearbyStacks)
+      .eq('street', street)
+      .limit(5);
+
+    if (nearbyMatches && nearbyMatches.length > 0) {
+      const scenario = nearbyMatches[Math.floor(Math.random() * nearbyMatches.length)];
+      if (scenario.strategy_matrix) {
+        return { scenario, matchTier: 3, source: `PIO Solver — ${scenario.stack_depth}bb Approximated` };
+      }
+    }
+  } catch (e) { console.error('[Sandbox] Tier 3b query error:', e.message); }
+
+  return null; // No solver data — will fall back to Grok
+}
+
+/**
+ * Query preflop data from memory_charts_gold
+ */
+async function queryPreflopData(params) {
+  const { heroStack, heroPosition } = params;
+  const stackDepth = normalizeStack(heroStack);
+
+  try {
+    const { data: charts } = await supabase
+      .from('memory_charts_gold')
+      .select('*')
+      .lte('stack_depth', stackDepth + 5)
+      .gte('stack_depth', Math.max(1, stackDepth - 5))
+      .limit(10);
+
+    if (charts && charts.length > 0) {
+      // Find a chart matching hero position if possible
+      const posMatch = charts.find(c =>
+        c.hero_position?.toUpperCase() === heroPosition?.toUpperCase()
+      );
+      const chart = posMatch || charts[0];
+      return { chart, matchTier: 1, source: 'Nash Chart — Preflop', isPreflop: true };
+    }
+  } catch (e) { console.error('[Sandbox] Preflop query error:', e.message); }
+
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STRATEGY MATRIX PARSER — Extracts per-hand GTO frequencies & EVs
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Parse strategy_matrix for a specific hero hand
+ */
+function parseStrategyForHand(strategyMatrix, heroHandNotation, potSize) {
+  const actions = strategyMatrix.actions || [];
+  const frequencies = strategyMatrix.frequencies || {};
+  const handEVs = strategyMatrix.hand_evs || {};
+
+  if (actions.length === 0) return null;
+
+  // Try multiple hand notation formats (solvers use various formats)
+  const handVariants = [
+    heroHandNotation,
+    heroHandNotation?.toUpperCase(),
+    heroHandNotation?.toLowerCase(),
+  ].filter(Boolean);
+
+  // Get per-action frequencies for this hand
+  const handActions = {};
+  const validActions = [];
+  let optimalAction = null;
+  let maxFreq = -1;
+
+  actions.forEach(action => {
+    let freq = 0;
+    for (const variant of handVariants) {
+      const f = frequencies[action]?.[variant];
+      if (f !== undefined && f >= 0 && f <= 1) { freq = f; break; }
+    }
+    handActions[action] = freq;
+    validActions.push(action);
+    if (freq > maxFreq) { maxFreq = freq; optimalAction = action; }
+  });
+
+  if (!optimalAction) return null;
+
+  // Build enriched action data
+  const actionData = validActions
+    .map(action => ({
+      id: action,
+      label: getActionLabel(action, potSize),
+      frequency: Math.round(handActions[action] * 100),
+      frequencyRaw: handActions[action],
+      color: getActionColor(getActionLabel(action, potSize)),
+      isOptimal: action === optimalAction,
+    }))
+    .sort((a, b) => b.frequency - a.frequency);
+
+  // Get EV data
+  let heroEV = 0;
+  for (const variant of handVariants) {
+    if (handEVs[variant] !== undefined) { heroEV = handEVs[variant]; break; }
+  }
+
+  const allEVs = Object.values(handEVs).filter(v => typeof v === 'number');
+  const maxEV = allEVs.length > 0 ? Math.max(...allEVs) : heroEV;
+  const minEV = allEVs.length > 0 ? Math.min(...allEVs) : heroEV;
+  const avgEV = allEVs.length > 0 ? allEVs.reduce((s, v) => s + v, 0) / allEVs.length : 0;
+
+  const isMixed = maxFreq < 0.95 && validActions.filter(a => handActions[a] > 0.05).length > 1;
 
   return {
-    primaryAction,
-    primaryFrequency,
-    alternatives,
-    context,
-    source: dataSource,
-    confidence,
-    whyNot,
-    street,
-    sensitivityFlags: heroStack < 50 ? ['stack_sensitive'] : []
+    heroHand: heroHandNotation,
+    actions: actionData,
+    optimalAction: {
+      id: optimalAction,
+      label: getActionLabel(optimalAction, potSize),
+      frequency: Math.round(maxFreq * 100),
+      color: getActionColor(getActionLabel(optimalAction, potSize)),
+    },
+    isMixed,
+    ev: {
+      hero: parseFloat(heroEV.toFixed(3)),
+      heroDisplay: heroEV >= 0 ? `+${heroEV.toFixed(2)} BB` : `${heroEV.toFixed(2)} BB`,
+      max: parseFloat(maxEV.toFixed(3)),
+      min: parseFloat(minEV.toFixed(3)),
+      avg: parseFloat(avgEV.toFixed(3)),
+      evLoss: parseFloat(Math.max(0, maxEV - heroEV).toFixed(3)),
+    },
   };
 }
+
+/**
+ * Build range heatmap data — per-hand frequencies for ALL hands in the matrix
+ * Used for the 13x13 range grid visualization
+ */
+function buildRangeHeatmap(strategyMatrix) {
+  const actions = strategyMatrix.actions || [];
+  const frequencies = strategyMatrix.frequencies || {};
+  const handEVs = strategyMatrix.hand_evs || {};
+
+  if (actions.length === 0) return null;
+
+  // Get all hands from the first action's frequency map
+  const sampleAction = actions.find(a => frequencies[a] && Object.keys(frequencies[a]).length > 0);
+  if (!sampleAction) return null;
+
+  const allHands = Object.keys(frequencies[sampleAction]);
+  if (allHands.length === 0) return null;
+
+  // Build per-hand, per-action frequency map
+  const rangeData = {};
+  allHands.forEach(hand => {
+    rangeData[hand] = {};
+    let bestAction = null;
+    let bestFreq = -1;
+    actions.forEach(action => {
+      const freq = frequencies[action]?.[hand] || 0;
+      if (freq >= 0 && freq <= 1) {
+        rangeData[hand][action] = Math.round(freq * 100);
+        if (freq > bestFreq) { bestFreq = freq; bestAction = action; }
+      }
+    });
+    rangeData[hand]._optimal = bestAction;
+    rangeData[hand]._ev = handEVs[hand] || 0;
+  });
+
+  return {
+    hands: allHands,
+    actions: actions.map(a => ({ id: a, label: getActionLabel(a) })),
+    data: rangeData,
+    totalHands: allHands.length,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PREFLOP CHART PARSER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function parsePreflopChart(chart, heroHandNotation) {
+  const handMatrix = chart.hand_matrix || {};
+  const handData = handMatrix[heroHandNotation] || handMatrix[heroHandNotation?.toUpperCase()];
+
+  if (!handData) {
+    // Hand not found in chart — return general info
+    return {
+      heroHand: heroHandNotation,
+      actions: [
+        { id: 'push', label: 'Push All-In', frequency: 0, color: '#ec4899', isOptimal: false },
+        { id: 'fold', label: 'Fold', frequency: 100, color: '#ef4444', isOptimal: true },
+      ],
+      optimalAction: { id: 'fold', label: 'Fold', frequency: 100, color: '#ef4444' },
+      isMixed: false,
+      ev: { hero: 0, heroDisplay: '0.00 BB', max: 0, min: 0, avg: 0, evLoss: 0 },
+    };
+  }
+
+  const pushFreq = Math.round((handData.push || 0) * 100);
+  const foldFreq = 100 - pushFreq;
+  const isPush = pushFreq > 50;
+
+  return {
+    heroHand: heroHandNotation,
+    actions: [
+      { id: 'push', label: 'Push All-In', frequency: pushFreq, color: '#ec4899', isOptimal: isPush },
+      { id: 'fold', label: 'Fold', frequency: foldFreq, color: '#ef4444', isOptimal: !isPush },
+    ],
+    optimalAction: {
+      id: isPush ? 'push' : 'fold',
+      label: isPush ? 'Push All-In' : 'Fold',
+      frequency: isPush ? pushFreq : foldFreq,
+      color: isPush ? '#ec4899' : '#ef4444',
+    },
+    isMixed: pushFreq > 10 && pushFreq < 90,
+    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+  };
+}
+
+function buildPreflopHeatmap(chart) {
+  const handMatrix = chart.hand_matrix || {};
+  const allHands = Object.keys(handMatrix);
+  if (allHands.length === 0) return null;
+
+  const rangeData = {};
+  allHands.forEach(hand => {
+    const pushFreq = Math.round((handMatrix[hand]?.push || 0) * 100);
+    rangeData[hand] = {
+      push: pushFreq,
+      fold: 100 - pushFreq,
+      _optimal: pushFreq > 50 ? 'push' : 'fold',
+      _ev: 0,
+    };
+  });
+
+  return {
+    hands: allHands,
+    actions: [
+      { id: 'push', label: 'Push All-In' },
+      { id: 'fold', label: 'Fold' },
+    ],
+    data: rangeData,
+    totalHands: allHands.length,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GROK AI FALLBACK (Tier 4)
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function analyzeWithGrok(params) {
+  try {
+    const grok = getGrokClient();
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize } = params;
+
+    const boardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
+    const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
+    const heroHandStr = `${heroHand?.card1 || 'As'} ${heroHand?.card2 || 'Kd'}`;
+    const villainDesc = villains?.slice(0, 3).map(v => `${v.archetype?.name || 'Unknown'} (${v.stack}bb)`).join(', ') || 'Unknown';
+
+    const prompt = `You are a GTO poker solver. Analyze this scenario with precise frequencies.
+
+SCENARIO:
+- Hero Hand: ${heroHandStr}
+- Hero Position: ${heroPosition || 'BTN'}
+- Hero Stack: ${heroStack || 100}bb
+- Game Type: ${gameType === 'tournament' ? 'Tournament (ICM)' : 'Cash Game (ChipEV)'}
+- Pot Size: ${potSize || 6}bb
+- Board: ${boardStr}
+- Villains: ${villainDesc}
+
+Respond in EXACT JSON format (no markdown):
+{
+  "actions": [
+    {"id": "b66", "label": "Bet 66%", "frequency": 55},
+    {"id": "c", "label": "Check", "frequency": 30},
+    {"id": "b33", "label": "Bet 33%", "frequency": 15}
+  ],
+  "explanation": "On this board texture, a 66% pot bet is the highest-frequency play with this hand because...",
+  "isMixed": true,
+  "confidence": "Medium"
+}
+
+RULES:
+- Frequencies MUST sum to 100
+- Provide 2-4 actions
+- Use action IDs: f, c, b25, b33, b50, b66, b75, b100, b150, allin
+- Be precise about GTO frequencies
+- Consider stack depth, position, and board texture`;
+
+    const response = await grok.chat.completions.create({
+      model: 'grok-3',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 600,
+    });
+
+    const content = response.choices[0]?.message?.content || '';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in Grok response');
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    const grokActions = (parsed.actions || []).map((a, i) => ({
+      ...a,
+      frequency: a.frequency || 0,
+      color: getActionColor(a.label || getActionLabel(a.id)),
+      isOptimal: i === 0,
+      frequencyRaw: (a.frequency || 0) / 100,
+    }));
+
+    return {
+      heroHand: heroHandToNotation(heroHand) || `${heroHand?.card1}${heroHand?.card2}`,
+      actions: grokActions,
+      optimalAction: grokActions[0] || { id: 'c', label: 'Check', frequency: 100, color: '#6b7280' },
+      isMixed: parsed.isMixed || false,
+      ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+      explanation: parsed.explanation || 'Analysis based on GTO principles.',
+      confidence: parsed.confidence || 'Medium',
+    };
+  } catch (error) {
+    console.error('[Sandbox] Grok analysis failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Hard fallback when Grok also fails — basic rule-based
+ */
+function ruleBasedFallback(params) {
+  const { heroHand, heroPosition, heroStack, board, potSize } = params;
+  const street = getStreet(board);
+  const inPosition = ['BTN', 'CO', 'HJ'].includes(heroPosition);
+
+  let actions;
+  if (street === 'preflop') {
+    actions = [
+      { id: 'b25', label: 'Raise 2.5x', frequency: 70, color: '#3b82f6', isOptimal: true },
+      { id: 'f', label: 'Fold', frequency: 20, color: '#ef4444', isOptimal: false },
+      { id: 'c', label: 'Call', frequency: 10, color: '#f59e0b', isOptimal: false },
+    ];
+  } else if (inPosition) {
+    actions = [
+      { id: 'b33', label: 'Bet 33%', frequency: 55, color: '#3b82f6', isOptimal: true },
+      { id: 'c', label: 'Check', frequency: 35, color: '#6b7280', isOptimal: false },
+      { id: 'b66', label: 'Bet 66%', frequency: 10, color: '#3b82f6', isOptimal: false },
+    ];
+  } else {
+    actions = [
+      { id: 'c', label: 'Check', frequency: 55, color: '#6b7280', isOptimal: true },
+      { id: 'b33', label: 'Bet 33%', frequency: 30, color: '#3b82f6', isOptimal: false },
+      { id: 'b66', label: 'Bet 66%', frequency: 15, color: '#3b82f6', isOptimal: false },
+    ];
+  }
+
+  return {
+    heroHand: heroHandToNotation(heroHand) || 'Unknown',
+    actions,
+    optimalAction: actions[0],
+    isMixed: true,
+    ev: { hero: 0, heroDisplay: '—', max: 0, min: 0, avg: 0, evLoss: 0 },
+    explanation: 'Estimated frequencies based on positional heuristics. Run analysis on a supported board for solver-verified results.',
+    confidence: 'Low',
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPLANATION BUILDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildExplanation(handAnalysis, matchTier, street) {
+  const { optimalAction, isMixed, actions, ev } = handAnalysis;
+  const freq = optimalAction.frequency;
+
+  let explanation = '';
+  if (isMixed) {
+    const parts = actions
+      .filter(a => a.frequency > 1)
+      .map(a => `${a.label} ${a.frequency}%`)
+      .join(', ');
+    explanation = `GTO mixes here: ${parts}. The highest-frequency play is ${optimalAction.label} at ${freq}%.`;
+  } else {
+    explanation = `This is a pure ${optimalAction.label} (${freq}% frequency).`;
+  }
+
+  if (ev.hero !== 0) {
+    explanation += ` EV: ${ev.heroDisplay}.`;
+  }
+
+  if (matchTier >= 3) {
+    explanation += ' Note: This uses solver data from a similar spot, not an exact board match.';
+  }
+
+  return explanation;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -613,109 +679,119 @@ export default async function handler(req, res) {
     }
     const userId = authUser.id;
 
-    const {
-      heroHand,
-      heroPosition,
-      heroStack,
-      gameType,
-      villains,
-      board,
-      betSizing,
-      potSize
-    } = req.body;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory } = req.body;
 
-    // Check context authority (Masterplan Section I)
+    // Context authority check
     const contextAccess = await checkSandboxAccess(supabase, userId);
     if (!contextAccess.allowed) {
       return res.status(403).json({
-        success: false,
-        blocked: true,
+        success: false, blocked: true,
         contextState: contextAccess.contextState,
         error: contextAccess.message,
-        cooldownRemaining: contextAccess.cooldownRemaining,
       });
     }
 
-    // Check rate limit (Masterplan Section VIII)
+    // Rate limit
     const rateLimit = checkRateLimit(userId);
     if (!rateLimit.allowed) {
-      return res.status(429).json({
-        success: false,
-        error: 'Rate limit exceeded. Please slow down.',
-        retryAfter: rateLimit.retryAfter,
-      });
+      return res.status(429).json({ success: false, error: 'Rate limit exceeded.', retryAfter: rateLimit.retryAfter });
     }
 
-    // Build params for analysis
-    const analysisParams = {
-      heroHand,
-      heroPosition,
-      heroStack,
-      gameType,
-      villains,
-      board,
-      potSize: potSize || 0
+    // Check cache
+    const cacheKey = getCacheKey({ heroHand, heroPosition, heroStack, gameType, board });
+    const cached = analysisCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return res.status(200).json({ success: true, cached: true, ...cached.data });
+    }
+
+    const street = getStreet(board);
+    const heroNotation = heroHandToNotation(heroHand);
+    const calculatedPot = potSize || 6;
+
+    // ━━━ QUERY SOLVER DATA ━━━
+    let analysis = null;
+    let rangeHeatmap = null;
+    let matchTier = 4;
+    let source = 'Grok AI Analysis';
+    let explanation = '';
+
+    const solverResult = await querySolverData({
+      heroHand, heroPosition, heroStack, gameType, board,
+    });
+
+    if (solverResult) {
+      matchTier = solverResult.matchTier;
+      source = solverResult.source;
+
+      if (solverResult.isPreflop && solverResult.chart) {
+        // Preflop chart data
+        analysis = parsePreflopChart(solverResult.chart, heroNotation);
+        rangeHeatmap = buildPreflopHeatmap(solverResult.chart);
+        explanation = buildExplanation(analysis, matchTier, 'preflop');
+      } else if (solverResult.scenario?.strategy_matrix) {
+        // Postflop solver data
+        analysis = parseStrategyForHand(solverResult.scenario.strategy_matrix, heroNotation, calculatedPot);
+        rangeHeatmap = buildRangeHeatmap(solverResult.scenario.strategy_matrix);
+
+        if (analysis) {
+          explanation = buildExplanation(analysis, matchTier, street);
+        }
+      }
+    }
+
+    // ━━━ GROK FALLBACK (Tier 4) ━━━
+    if (!analysis) {
+      matchTier = 4;
+      source = 'Grok AI Analysis';
+
+      analysis = await analyzeWithGrok({
+        heroHand, heroPosition, heroStack, gameType, villains, board, potSize: calculatedPot,
+      });
+
+      if (!analysis) {
+        // Hard fallback
+        analysis = ruleBasedFallback({
+          heroHand, heroPosition, heroStack, board, potSize: calculatedPot,
+        });
+        source = 'Heuristic Estimation';
+      }
+
+      explanation = analysis.explanation || buildExplanation(analysis, matchTier, street);
+    }
+
+    // ━━━ BUILD RESPONSE ━━━
+    const responseData = {
+      // Core analysis
+      heroHand: analysis.heroHand,
+      actions: analysis.actions,
+      optimalAction: analysis.optimalAction,
+      isMixed: analysis.isMixed,
+      ev: analysis.ev,
+      explanation,
+
+      // Metadata
+      source,
+      matchTier,
+      street,
+      confidence: matchTier <= 2 ? 'High' : matchTier === 3 ? 'Medium' : 'Low',
+
+      // Range heatmap (may be null for Grok fallback)
+      rangeHeatmap,
+
+      // Context
+      context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition}`,
     };
 
-    // Check cache first (Masterplan Section VIII)
-    const cacheKey = getCacheKey(analysisParams);
-    const cachedResult = getCachedAnalysis(cacheKey);
-    if (cachedResult) {
-      return res.status(200).json({
-        success: true,
-        cached: true,
-        ...cachedResult,
-      });
+    // Cache
+    analysisCache.set(cacheKey, { data: responseData, ts: Date.now() });
+    if (analysisCache.size > 500) {
+      const keysToDelete = Array.from(analysisCache.keys()).slice(0, 50);
+      keysToDelete.forEach(k => analysisCache.delete(k));
     }
 
-    // Detect potential reverse-engineering (Masterplan Section VIII)
-    const reverseCheck = detectReverseEngineering(userId, analysisParams);
-    if (reverseCheck.suspicious) {
-      // Add warning but still allow the request
-      res.setHeader('X-Warning', reverseCheck.warning);
-    }
-
-    // Try to find solver template first (Tier 1/2)
-    const solverMatch = await findSolverTemplate(supabase, analysisParams);
-
-    let analysis;
-    let dataTier = 3;
-
-    if (solverMatch && solverMatch.template) {
-      // Use solver data
-      const parsed = parseSolverTemplate(solverMatch.template, analysisParams);
-      if (parsed) {
-        dataTier = solverMatch.tier;
-        const villainTypes = villains?.slice(0, 2).map(v => v.archetype?.name || 'Unknown').join(' & ') || 'Unknown';
-
-        analysis = {
-          ...parsed,
-          context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} - ${heroStack} BB - ${heroPosition} vs ${villainTypes}`,
-          source: solverMatch.source,
-          confidence: solverMatch.tier === 1 ? 'High' : 'Medium',
-          sensitivityFlags: heroStack < 50 ? ['stack_sensitive'] : [],
-          street: analysisParams.board?.flop?.length > 0 ?
-            (analysisParams.board?.river ? 'river' : analysisParams.board?.turn ? 'turn' : 'flop') : 'preflop',
-        };
-      }
-    }
-
-    // Fall back to AI approximation (Tier 3) if no solver match
-    if (!analysis) {
-      // Try Grok AI analysis first (Phase 3 upgrade)
-      analysis = await analyzeWithGrok(analysisParams);
-
-      // Fall back to rule-based if Grok fails
-      if (!analysis) {
-        analysis = analyzeScenario(analysisParams);
-      }
-      dataTier = 3;
-    }
-
-    // Save session to database if userId provided
-    let sessionId = null;
-    if (userId) {
-      const { data: session, error: sessionError } = await supabase
+    // Save session
+    try {
+      const { data: session } = await supabase
         .from('sandbox_sessions')
         .insert({
           user_id: userId,
@@ -729,31 +805,26 @@ export default async function handler(req, res) {
           board_river: board?.river || null,
           villain_config: villains || [],
           bet_sizing_preset: betSizing || 'standard',
-          pot_size_bb: potSize || 0
+          pot_size_bb: calculatedPot,
         })
         .select()
         .single();
 
-      if (!sessionError && session) {
-        sessionId = session.id;
-
-        // Save results
+      if (session) {
         await supabase.from('sandbox_results').insert({
-          session_id: sessionId,
-          primary_action: analysis.primaryAction,
-          primary_frequency: analysis.primaryFrequency,
-          alternative_actions: analysis.alternatives,
-          data_source: analysis.source.includes('Solver') ? 'solver_verified' : 'ai_approx',
-          confidence: analysis.confidence.toLowerCase(),
-          sensitivity_flags: analysis.sensitivityFlags,
-          why_not_check: analysis.whyNot,
+          session_id: session.id,
+          primary_action: analysis.optimalAction?.label,
+          primary_frequency: analysis.optimalAction?.frequency,
+          alternative_actions: analysis.actions?.filter(a => !a.isOptimal),
+          data_source: matchTier <= 3 ? 'solver_verified' : 'ai_approx',
+          confidence: responseData.confidence?.toLowerCase(),
+          sensitivity_flags: heroStack < 50 ? ['stack_sensitive'] : [],
+          why_not_check: explanation,
           truth_seal: {
-            source: dataTier === 1 ? 'solver_verified' : dataTier === 2 ? 'solver_approx' : 'ai_approx',
-            template_id: generateTemplateId({ heroHand, heroPosition, heroStack, gameType, villains, board }),
-            stack_format_hash: generateStackFormatHash(heroStack, gameType, villains),
+            source: matchTier <= 2 ? 'solver_verified' : matchTier === 3 ? 'solver_approx' : 'ai_approx',
+            matchTier,
             timestamp: new Date().toISOString(),
-            model_version: dataTier === 3 ? 'gto-approx-v1.0.0' : (solverMatch?.template?.solver_version || 'pio-2.0')
-          }
+          },
         });
 
         // Update user stats
@@ -763,40 +834,27 @@ export default async function handler(req, res) {
           .eq('user_id', userId)
           .maybeSingle();
 
-        const currentSandbox = existing?.sandbox_sessions_count || 0;
-        const currentSessions = existing?.total_sessions_reviewed || 0;
-        const currentHands = existing?.total_hands_analyzed || 0;
-
-        await supabase
-          .from('user_assistant_stats')
-          .upsert({
-            user_id: userId,
-            sandbox_sessions_count: currentSandbox + 1,
-            total_sessions_reviewed: currentSessions + 1,
-            total_hands_analyzed: currentHands + 1,
-            last_sandbox_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
+        await supabase.from('user_assistant_stats').upsert({
+          user_id: userId,
+          sandbox_sessions_count: (existing?.sandbox_sessions_count || 0) + 1,
+          total_sessions_reviewed: (existing?.total_sessions_reviewed || 0) + 1,
+          total_hands_analyzed: (existing?.total_hands_analyzed || 0) + 1,
+          last_sandbox_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' });
       }
+    } catch (dbErr) {
+      console.error('[Sandbox] Session save error (non-fatal):', dbErr.message);
     }
-
-    // Cache the result (Masterplan Section VIII)
-    cacheAnalysis(cacheKey, analysis);
 
     return res.status(200).json({
       success: true,
-      sessionId,
-      rateLimit: {
-        remaining: rateLimit.remaining,
-      },
-      ...analysis
+      rateLimit: { remaining: rateLimit.remaining },
+      ...responseData,
     });
 
   } catch (error) {
-    console.error('Analysis error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    console.error('[Sandbox] Analysis error:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }

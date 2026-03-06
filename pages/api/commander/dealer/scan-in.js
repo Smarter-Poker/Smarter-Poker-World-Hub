@@ -23,9 +23,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -97,6 +97,9 @@ export default async function handler(req, res) {
 
         const dealerName = `${member.first_name} ${member.last_name}`.trim();
         const tableNum = parseInt(table_number);
+        if (isNaN(tableNum)) {
+            return res.status(400).json({ success: false, error: 'table_number must be a number' });
+        }
         const venueId = venue_id || member.venue_id;
 
         // Resolve the dealer record in commander_dealers (FK target)
@@ -223,6 +226,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Dealer scan-in error:', err);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

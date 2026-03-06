@@ -91,7 +91,7 @@ async function listRates(req, res) {
     console.error('List comp rates error:', error);
     return res.status(500).json({
       success: false,
-      error: { code: 'SERVER_ERROR', message: error.message }
+      error: { code: 'SERVER_ERROR', message: 'Internal server error' }
     });
   }
 }
@@ -189,6 +189,6 @@ async function createRate(req, res) {
     return res.status(201).json({ rate });
   } catch (error) {
     console.error('Create comp rate error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

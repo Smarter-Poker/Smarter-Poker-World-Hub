@@ -60,7 +60,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('started_at', startOfDay)
       .lte('started_at', endOfDay)
-          .limit(100);
 
     // Fetch sessions for the day
     const { data: sessions } = await supabase
@@ -69,7 +68,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('check_in_time', startOfDay)
       .lte('check_in_time', endOfDay)
-          .limit(100);
 
     // Fetch comp transactions (from the actual comp log table)
     const { data: comps } = await supabase
@@ -78,7 +76,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay)
-          .limit(100);
 
     // Calculate summary
     const totalGames = games?.length || 0;

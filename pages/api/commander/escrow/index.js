@@ -36,7 +36,9 @@ export default async function handler(req, res) {
       });
     }
 
-    const { home_game_id, status, limit = 50, offset = 0 } = req.query;
+    const { home_game_id, status, limit: rawLimit = '50', offset: rawOffset = '0' } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
+    const offset = parseInt(rawOffset) || 0;
 
     if (!home_game_id) {
       return res.status(400).json({
@@ -88,8 +90,7 @@ export default async function handler(req, res) {
       .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
 
     if (status) {
-      query = query.eq('status', status)
-          .limit(100);
+      query = query.eq('status', status);
     }
 
     const { data, error, count } = await query;

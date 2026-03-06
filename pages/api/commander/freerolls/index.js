@@ -47,7 +47,7 @@ async function listFreerolls(req, res) {
             .from('commander_freerolls')
             .select('*')
             .order('scheduled_date', { ascending: false, nullsFirst: false })
-            .limit(parseInt(limit));
+            .limit(Math.min(parseInt(limit) || 50, 500));
 
         if (venueId) {
             query = query.eq('venue_id', venueId);
@@ -73,7 +73,6 @@ async function listFreerolls(req, res) {
                 .from('commander_freeroll_qualifications')
                 .select('freeroll_id, is_qualified')
                 .in('freeroll_id', freerollIds)
-                    .limit(100);
 
             (quals || []).forEach(q => {
                 if (!qualCounts[q.freeroll_id]) {
@@ -150,7 +149,7 @@ async function createFreeroll(req, res, guard) {
         console.error('Create freeroll error:', error);
         return res.status(500).json({
             success: false,
-            error: { code: 'SERVER_ERROR', message: error.message }
+            error: { code: 'SERVER_ERROR', message: 'Internal server error' }
         });
     }
 }

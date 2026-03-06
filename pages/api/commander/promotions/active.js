@@ -65,7 +65,7 @@ export default async function handler(req, res) {
       .eq('status', 'active')
       .order('is_featured', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (promotion_type) {
       query = query.eq('promotion_type', promotion_type);

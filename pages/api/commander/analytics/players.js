@@ -35,9 +35,11 @@ export default async function handler(req, res) {
       sort_by = 'total_hours',
       sort_order = 'desc',
       search,
-      limit = 50,
-      offset = 0
+      limit: rawLimit = '50',
+      offset: rawOffset = '0'
     } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
+    const offset = parseInt(rawOffset) || 0;
 
     if (!venue_id) {
       return res.status(400).json({ error: 'Venue ID required' });
@@ -65,8 +67,7 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id);
 
     if (loyalty_tier) {
-      query = query.eq('loyalty_tier', loyalty_tier)
-          .limit(100);
+      query = query.eq('loyalty_tier', loyalty_tier);
     }
 
     // Sort options
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
     const sortField = validSortFields.includes(sort_by) ? sort_by : 'total_hours';
     query = query.order(sortField, { ascending: sort_order === 'asc' });
 
-    query = query.range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+    query = query.range(offset, offset + limit - 1);
 
     const { data, error, count } = await query;
 
@@ -113,6 +114,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Get player stats error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

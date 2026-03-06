@@ -360,7 +360,17 @@ export default function UniversalHeader({
 
     // ── Diamond balance auto-refresh when rewards are earned ──
     useEffect(() => {
-        const refreshBalance = async () => {
+        const refreshBalance = async (e) => {
+            // Optimistic update (instantaneous UI feedback)
+            if (e?.detail?.newBalance !== undefined) {
+                setStats(prev => ({ ...prev, diamonds: e.detail.newBalance }));
+                return;
+            }
+            if (e?.detail?.cost !== undefined) {
+                setStats(prev => ({ ...prev, diamonds: prev.diamonds - e.detail.cost }));
+                return;
+            }
+
             if (!user?.id) return;
             try {
                 const response = await fetch('/api/user/get-header-stats', {

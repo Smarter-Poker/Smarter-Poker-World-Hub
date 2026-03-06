@@ -10,14 +10,14 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Average wait time per position (minutes) - simple initial estimate
 const AVERAGE_WAIT_PER_POSITION = 15;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -34,26 +34,28 @@ export default async function handler(req, res) {
         venue_id = _authResult.venue_id;
       }
 
+      // SECURITY: venue_id is mandatory — without it, all venues' data would leak
+      if (!venue_id) {
+        return res.status(400).json({ success: false, error: 'venue_id is required' });
+      }
+
       const query = supabase
         .from('commander_waitlist')
         .select('*')
+        .eq('venue_id', venue_id)
         .in('status', ['waiting', 'called'])
         .order('position', { ascending: true })
-            .limit(100)
-
-      if (venue_id) {
-        query.eq('venue_id', venue_id);
-      }
+        .limit(100);
 
       const { data, error } = await query;
 
       if (error) {
         console.error('Commander waitlist GET error:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
       }
 
       res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
-    return res.status(200).json({ success: true, data: data || [] });
+      return res.status(200).json({ success: true, data: data || [] });
     } catch (error) {
       captureException(error, { action: 'waitlist_get', endpoint: '/api/commander/waitlist' });
       return res.status(500).json({ success: false, error: 'Internal server error' });

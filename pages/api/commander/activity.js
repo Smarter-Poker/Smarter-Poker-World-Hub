@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       let query = supabase.from('commander_activity_log')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(parseInt(lim) || 50);
+        .limit(Math.min(parseInt(lim) || 50, 500));
 
       if (venue_id) query = query.eq('venue_id', venue_id);
       if (event_type) query = query.eq('event_type', event_type);

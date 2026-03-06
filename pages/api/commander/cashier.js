@@ -16,7 +16,7 @@ const supabase = createClient(
 const VALID_TYPES = ['buy_in', 'cash_out', 'add_on', 'time_purchase', 'membership', 'void'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -30,9 +30,10 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, staff) {
   try {
-    const { table_number, session_id, type, date, player_name, limit = 100 } = req.query;
+    const { table_number, session_id, type, date, player_name, limit: rawLimit = '100' } = req.query;
     const venue_id = req.query.venue_id || staff.venue_id;
     if (!venue_id) return res.status(400).json({ success: false, error: 'venue_id required' });
+    const limit = Math.min(parseInt(rawLimit) || 100, 500);
 
     let query = supabase
       .from('commander_cash_transactions')
@@ -127,12 +128,9 @@ async function handlePost(req, res, staff) {
         .eq('session_id', session_id);
 
       if (txns) {
-        const active = txns.filter(t => !t.voided_at && t.type !== 'void')
-            .limit(100);
-        const ins = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0)
-            .limit(100);
-        const outs = active.filter(t => ['cash_out'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0)
-            .limit(100);
+        const active = txns.filter(t => !t.voided_at && t.type !== 'void');
+        const ins = active.filter(t => ['buy_in', 'add_on', 'time_purchase', 'membership'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
+        const outs = active.filter(t => ['cash_out'].includes(t.type)).reduce((s, t) => s + parseFloat(t.amount), 0);
         playerTotals = { total_bought: ins, total_cashed: outs, net: outs - ins };
       }
     }

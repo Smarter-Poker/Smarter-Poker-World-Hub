@@ -493,7 +493,7 @@ async function handleClockAction(req, res, tournamentId) {
     console.error('[clock.js] Clock action exception:', error.message, error.stack);
     return res.status(500).json({
       success: false,
-      error: { code: 'SERVER_ERROR', message: error.message || 'Failed to perform clock action' }
+      error: { code: 'SERVER_ERROR', message: 'Internal server error' }
     });
   }
 }

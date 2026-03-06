@@ -74,13 +74,11 @@ async function getDailyAnalytics(req, res) {
 
     if (start_date && end_date) {
       query = query.gte('date', start_date).lte('date', end_date)
-          .limit(100);
     } else {
       // Default to last N days
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(days));
       query = query.gte('date', startDate.toISOString().split('T')[0])
-          .limit(100);
     }
 
     const { data, error } = await query;
@@ -117,7 +115,7 @@ async function getDailyAnalytics(req, res) {
     });
   } catch (error) {
     console.error('Get daily analytics error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -164,7 +162,6 @@ async function calculateDailyAnalytics(req, res) {
       .eq('venue_id', venue_id)
       .gte('check_in_at', `${targetDate}T00:00:00`)
       .lt('check_in_at', `${targetDate}T23:59:59`)
-          .limit(100);
 
     const { data: tournaments } = await supabase
       .from('commander_tournaments')
@@ -172,7 +169,6 @@ async function calculateDailyAnalytics(req, res) {
       .eq('venue_id', venue_id)
       .gte('scheduled_start', `${targetDate}T00:00:00`)
       .lt('scheduled_start', `${targetDate}T23:59:59`)
-          .limit(100);
 
     const { data: awards } = await supabase
       .from('commander_promotion_awards')
@@ -180,11 +176,9 @@ async function calculateDailyAnalytics(req, res) {
       .eq('venue_id', venue_id)
       .gte('created_at', `${targetDate}T00:00:00`)
       .lt('created_at', `${targetDate}T23:59:59`)
-          .limit(100);
 
     // Calculate metrics
     const uniquePlayers = new Set(sessions?.map(s => s.player_id).filter(Boolean))
-        .limit(100);
     const totalMinutes = sessions?.reduce((sum, s) => sum + (s.total_time_minutes || 0), 0) || 0;
     const totalBuyin = sessions?.reduce((sum, s) => sum + (s.total_buyin || 0), 0) || 0;
     // Note: commander_player_sessions does not have total_cashout column
@@ -221,6 +215,6 @@ async function calculateDailyAnalytics(req, res) {
     });
   } catch (error) {
     console.error('Calculate daily analytics error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

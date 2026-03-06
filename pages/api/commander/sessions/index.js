@@ -10,7 +10,7 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -50,7 +50,7 @@ async function handleGet(req, res) {
         )
       `)
       .order('check_in_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (venue_id) {
       query = query.eq('venue_id', venue_id);

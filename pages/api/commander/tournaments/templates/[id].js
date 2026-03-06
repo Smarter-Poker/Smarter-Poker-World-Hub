@@ -40,7 +40,7 @@ async function getTemplate(req, res, id) {
         if (error) throw error;
         return res.status(200).json({ success: true, data: { template: data } });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
 
@@ -65,7 +65,7 @@ async function updateTemplate(req, res, id) {
         if (error) throw error;
         return res.status(200).json({ success: true, data: { template: data } });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
 
@@ -79,6 +79,6 @@ async function deleteTemplate(req, res, id) {
         if (error) throw error;
         return res.status(200).json({ success: true });
     } catch (error) {
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }

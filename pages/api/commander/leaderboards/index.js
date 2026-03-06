@@ -48,7 +48,7 @@ async function listLeaderboards(req, res) {
         poker_venues:venue_id (id, name)
       `)
       .order('start_date', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (venue_id) {
       query = query.eq('venue_id', venue_id);

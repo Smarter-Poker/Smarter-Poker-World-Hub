@@ -60,9 +60,7 @@ export default async function handler(req, res) {
 
     // Status counts
     const seated = all.filter(e => e.status === 'seated')
-        .limit(100);
     const called = all.filter(e => e.status === 'called')
-        .limit(100);
     const noShows = all.filter(e => e.status === 'no_show' || e.status === 'passed');
     const removed = all.filter(e => e.status === 'removed' || e.status === 'cancelled');
     const waiting = all.filter(e => e.status === 'waiting');

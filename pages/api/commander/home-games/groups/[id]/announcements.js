@@ -76,7 +76,7 @@ async function listAnnouncements(req, res, groupId) {
       .eq('group_id', groupId)
       .eq('status', 'sent')
       .order('sent_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (before) {
       query = query.lt('sent_at', before);

@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // Haversine formula for distance calculation (km)
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('is_active', true)
       .order('trust_score', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     // Only filter by commander_enabled if explicitly set to 'true'
     if (commander_enabled === 'true') {

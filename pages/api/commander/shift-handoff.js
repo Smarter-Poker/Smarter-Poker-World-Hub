@@ -96,7 +96,7 @@ async function createHandoff(req, res) {
     return res.status(201).json({ success: true, data: { handoff } });
   } catch (error) {
     console.error('Create handoff error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
 
@@ -113,7 +113,7 @@ async function listHandoffs(req, res) {
       .select('*')
       .eq('venue_id', venue_id)
       .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (filterStatus) query = query.eq('status', filterStatus);
 
@@ -123,7 +123,7 @@ async function listHandoffs(req, res) {
     return res.status(200).json({ success: true, data: { handoffs: handoffs || [] } });
   } catch (error) {
     console.error('List handoffs error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
 
@@ -161,6 +161,6 @@ async function acknowledgeHandoff(req, res) {
     return res.status(200).json({ success: true, data: { handoff } });
   } catch (error) {
     console.error('Acknowledge handoff error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }

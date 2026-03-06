@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       `)
       .eq('league_id', id)
       .order('points', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (error) {
       console.error('Standings fetch error:', error);

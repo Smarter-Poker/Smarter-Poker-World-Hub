@@ -43,13 +43,14 @@ async function listExports(req, res) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
-    const { venue_id, status, limit = 20 } = req.query;
+    const { venue_id, status, limit: rawLimit = '20' } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 20, 100);
 
     let query = supabase
       .from('commander_export_jobs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(limit);
 
     if (venue_id) {
       // Check if staff
@@ -81,7 +82,7 @@ async function listExports(req, res) {
     return res.status(200).json({ exports: data });
   } catch (error) {
     console.error('List exports error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -173,7 +174,7 @@ async function createExport(req, res) {
     });
   } catch (error) {
     console.error('Create export error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -203,8 +204,7 @@ async function processExport(exportId) {
         query = supabase
           .from('commander_player_stats')
           .select('*, profiles:player_id(display_name, email)')
-          .eq('venue_id', job.venue_id)
-              .limit(100);
+          .eq('venue_id', job.venue_id);
         break;
 
       case 'sessions':
@@ -212,8 +212,7 @@ async function processExport(exportId) {
           .from('commander_player_sessions')
           .select('*, profiles:player_id(display_name)')
           .eq('venue_id', job.venue_id)
-          .eq('status', 'completed')
-              .limit(100);
+          .eq('status', 'completed');
         if (job.date_from) query = query.gte('check_in_time', job.date_from);
         if (job.date_to) query = query.lte('check_in_time', job.date_to + 'T23:59:59');
         break;
@@ -222,8 +221,7 @@ async function processExport(exportId) {
         query = supabase
           .from('commander_tournaments')
           .select('*, commander_tournament_entries(*)')
-          .eq('venue_id', job.venue_id)
-              .limit(100);
+          .eq('venue_id', job.venue_id);
         if (job.date_from) query = query.gte('scheduled_start', job.date_from);
         if (job.date_to) query = query.lte('scheduled_start', job.date_to + 'T23:59:59');
         break;
@@ -232,8 +230,7 @@ async function processExport(exportId) {
         query = supabase
           .from('commander_analytics_daily')
           .select('*')
-          .eq('venue_id', job.venue_id)
-              .limit(100);
+          .eq('venue_id', job.venue_id);
         if (job.date_from) query = query.gte('date', job.date_from);
         if (job.date_to) query = query.lte('date', job.date_to);
         break;
@@ -242,8 +239,7 @@ async function processExport(exportId) {
         query = supabase
           .from('commander_member_comp_log')
           .select('*, commander_members:member_id(first_name, last_name)')
-          .eq('venue_id', job.venue_id)
-              .limit(100);
+          .eq('venue_id', job.venue_id);
         if (job.date_from) query = query.gte('created_at', job.date_from);
         if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
         break;
@@ -252,8 +248,7 @@ async function processExport(exportId) {
         query = supabase
           .from('commander_audit_logs')
           .select('*')
-          .eq('venue_id', job.venue_id)
-              .limit(100);
+          .eq('venue_id', job.venue_id);
         if (job.date_from) query = query.gte('created_at', job.date_from);
         if (job.date_to) query = query.lte('created_at', job.date_to + 'T23:59:59');
         break;
@@ -263,7 +258,7 @@ async function processExport(exportId) {
     }
 
     const { data: exportData, error } = await query.order('created_at', { ascending: false })
-        .limit(100);
+      .limit(10000);
 
     if (error) throw error;
 

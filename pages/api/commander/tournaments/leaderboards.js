@@ -78,7 +78,7 @@ async function listLeaderboards(req, res) {
         return res.status(200).json({ success: true, data: { leaderboards: leaderboardsWithStandings } });
     } catch (error) {
         console.error('List leaderboards error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
 
@@ -123,6 +123,6 @@ async function createLeaderboard(req, res, staff) {
         return res.status(201).json({ success: true, data: { leaderboard: data } });
     } catch (error) {
         console.error('Create leaderboard error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }

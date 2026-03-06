@@ -14,7 +14,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -38,9 +38,11 @@ async function listPromotions(req, res) {
       venue_id,
       status = 'all',
       promotion_type,
-      limit = 50,
-      offset = 0
+      limit: rawLimit = '50',
+      offset: rawOffset = '0'
     } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
+    const offset = parseInt(rawOffset) || 0;
 
     // Resolve integer venue_id: prefer query param if it's a valid integer,
     // otherwise look up from the authenticated user's staff record
@@ -71,11 +73,10 @@ async function listPromotions(req, res) {
         commander_staff:created_by (id, role)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+      .range(offset, offset + limit - 1);
 
     if (resolvedVenueId) {
-      query = query.eq('venue_id', resolvedVenueId)
-          .limit(100);
+      query = query.eq('venue_id', resolvedVenueId);
     }
 
     if (status && status !== 'all') {
@@ -107,15 +108,15 @@ async function listPromotions(req, res) {
       data: {
         promotions: data,
         total: count,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit,
+        offset
       }
     });
   } catch (error) {
     console.error('List promotions error:', error);
     return res.status(500).json({
       success: false,
-      error: { code: 'SERVER_ERROR', message: error.message }
+      error: { code: 'SERVER_ERROR', message: 'Internal server error' }
     });
   }
 }
@@ -238,6 +239,6 @@ async function createPromotion(req, res) {
     return res.status(201).json({ promotion });
   } catch (error) {
     console.error('Create promotion error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

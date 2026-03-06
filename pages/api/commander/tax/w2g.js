@@ -57,7 +57,7 @@ async function listTaxEvents(req, res) {
       .gte('event_date', `${targetYear}-01-01`)
       .lte('event_date', `${targetYear}-12-31`)
       .order('event_date', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (w2g_generated === 'true') query = query.eq('w2g_generated', true);
     if (w2g_generated === 'false') query = query.eq('w2g_generated', false);

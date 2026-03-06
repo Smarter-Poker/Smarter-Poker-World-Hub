@@ -10,13 +10,13 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const VALID_ROLES = ['owner', 'manager', 'dualrate', 'floor', 'cashier', 'brush', 'dealer', 'security'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -221,8 +221,7 @@ async function handlePost(req, res) {
       const { count } = await supabase
         .from('commander_members')
         .select('id', { count: 'exact', head: true })
-        .eq('venue_id', venue_id)
-            .limit(100)
+        .eq('venue_id', venue_id);
       const memberNumber = `${prefix}-${String((count || 0) + 1).padStart(5, '0')}`;
 
       const nameParts = (display_name || '').trim().split(' ');

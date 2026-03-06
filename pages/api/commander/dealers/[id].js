@@ -23,13 +23,13 @@ export default async function handler(req, res) {
     const updates = req.body;
     delete updates.id; delete updates.venue_id;
     const { data, error } = await supabase.from('commander_dealers').update(updates).eq('id', id).select().single();
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { dealer: data } });
   }
 
   if (req.method === 'DELETE') {
     const { error } = await supabase.from('commander_dealers').delete().eq('id', id);
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true });
   }
 

@@ -51,7 +51,6 @@ export default async function handler(req, res) {
 
     if (status) {
       query = query.eq('status', status)
-          .limit(100);
     }
 
     const { data: requests, error, count } = await query;

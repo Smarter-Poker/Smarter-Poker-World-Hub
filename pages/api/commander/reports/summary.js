@@ -63,7 +63,6 @@ export default async function handler(req, res) {
         .from('commander_tournament_entries')
         .select('id', { count: 'exact', head: true })
         .in('tournament_id', tournamentIds)
-            .limit(100);
       totalEntries = count || 0;
     }
 
@@ -72,7 +71,6 @@ export default async function handler(req, res) {
       .from('commander_tables')
       .select('id')
       .eq('venue_id', staff.venue_id)
-          .limit(100);
 
     // Estimate table hours (tables * hours since start)
     const hoursSinceStart = Math.min((new Date() - new Date(start)) / 3600000, 24);

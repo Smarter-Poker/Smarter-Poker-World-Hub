@@ -26,8 +26,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('venue_id', venue_id)
       .order('name')
-          .limit(100)
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { dealers: data } });
   }
 
@@ -40,7 +39,7 @@ export default async function handler(req, res) {
       .insert({ venue_id: vid, name: dealerName, employee_id, skill_level, certified_games })
       .select()
       .single();
-    if (error) return res.status(500).json({ success: false, error: error.message });
+    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { dealer: data } });
   }
 

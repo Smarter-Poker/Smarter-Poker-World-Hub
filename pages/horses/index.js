@@ -50,6 +50,8 @@ export default function HorsesAdmin() {
     const [analyticsData, setAnalyticsData] = useState(null);
     const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
 
+
+
     // Promo Code State
     const [promoCodes, setPromoCodes] = useState([]);
     const [promoLoading, setPromoLoading] = useState(false);
@@ -328,11 +330,10 @@ export default function HorsesAdmin() {
     const updateSetting = async (key, value) => {
         const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
-        // BUG 4 FIX: Persist settings to Supabase
+        // BUG 4 + BUG 5 FIX: Persist all settings (including grinder_*) to Supabase
         try {
             const upsertPayload = { ...newSettings, updated_at: new Date().toISOString() };
             if (!upsertPayload.id) {
-                // If we don't have an ID, fetch the single row's ID first to update it
                 const { data } = await supabase.from('content_settings').select('id').single();
                 if (data?.id) upsertPayload.id = data.id;
             }
@@ -738,7 +739,7 @@ export default function HorsesAdmin() {
                                         <input
                                             type="number"
                                             value={settings.grinder_starting_chips ?? 10000}
-                                            onChange={(e) => updateSetting('grinder_starting_chips', parseInt(e.target.value))}
+                                            onChange={(e) => updateSetting('grinder_starting_chips', parseInt(e.target.value) || 10000)}
                                             min="1000"
                                             max="100000"
                                         />

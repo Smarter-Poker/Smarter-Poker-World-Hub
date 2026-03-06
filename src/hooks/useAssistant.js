@@ -242,14 +242,27 @@ export function useSandboxAnalysis() {
 
       if (data.success) {
         setResults({
-          primaryAction: data.primaryAction,
-          primaryFrequency: data.primaryFrequency,
-          alternatives: data.alternatives,
-          context: data.context,
+          // New enriched response fields
+          heroHand: data.heroHand,
+          actions: data.actions || [],
+          optimalAction: data.optimalAction,
+          isMixed: data.isMixed,
+          ev: data.ev,
+          explanation: data.explanation,
+          rangeHeatmap: data.rangeHeatmap || null,
+
+          // Metadata
           source: data.source,
+          matchTier: data.matchTier,
           confidence: data.confidence,
-          whyNot: data.whyNot,
-          sessionId: data.sessionId,
+          street: data.street,
+          context: data.context,
+
+          // Legacy compatibility
+          primaryAction: data.optimalAction?.label,
+          primaryFrequency: data.optimalAction?.frequency,
+          alternatives: data.actions?.filter(a => !a.isOptimal) || [],
+          whyNot: data.explanation,
         });
 
         // 📢 Dispatch BUS LISTENER update (Sandbox affects Stats)

@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       `)
       .eq('player_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (unread_only === 'true') {
       query = query.is('read_at', null);

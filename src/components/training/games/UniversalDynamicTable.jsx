@@ -21,6 +21,28 @@ import {
 } from '../../../hooks/useGTOWScore';
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ClassificationSVGIcon({ icon, size = 18, color = 'currentColor' }) {
+    const props = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeLinecap: 'round', strokeLinejoin: 'round' };
+    switch (icon) {
+        case 'star':
+            return <svg {...props} strokeWidth="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+        case 'check':
+            return <svg {...props} strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>;
+        case 'alert':
+            return <svg {...props} strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>;
+        case 'x':
+            return <svg {...props} strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+        case 'warning':
+            return <svg {...props} strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+        default:
+            return <span>{icon || '?'}</span>;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // F6: BOARD TEXTURE CLASSIFIER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -699,20 +721,7 @@ function UniversalDynamicTable({
         SoundEngine.play(soundMap[moveClassification] || 'wrong');
     }, [showFeedback, moveClassification]);
 
-    // Play card deal sound when board cards appear (new question)
-    const prevQuestionNum = useRef(questionNumber);
-    useEffect(() => {
-        if (questionNumber !== prevQuestionNum.current) {
-            prevQuestionNum.current = questionNumber;
-            SoundEngine.play('new_hand');
-            // Stagger card deal sounds for board cards
-            if (boardCards && boardCards.length > 0) {
-                boardCards.forEach((_, i) => {
-                    setTimeout(() => SoundEngine.play('deal'), 120 * i + 200);
-                });
-            }
-        }
-    }, [questionNumber, boardCards]);
+
 
     // F11: Streak milestone toasts
     useEffect(() => {
@@ -830,6 +839,21 @@ function UniversalDynamicTable({
         }
         return [];
     }, [board]);
+
+    // Play card deal sound when board cards appear (new question)
+    const prevQuestionNum = useRef(questionNumber);
+    useEffect(() => {
+        if (questionNumber !== prevQuestionNum.current) {
+            prevQuestionNum.current = questionNumber;
+            SoundEngine.play('new_hand');
+            // Stagger card deal sounds for board cards
+            if (boardCards && boardCards.length > 0) {
+                boardCards.forEach((_, i) => {
+                    setTimeout(() => SoundEngine.play('deal'), 120 * i + 200);
+                });
+            }
+        }
+    }, [questionNumber, boardCards]);
 
     // Determine player count based on game type
     const playerCount = useMemo(() => {
@@ -1545,7 +1569,7 @@ function UniversalDynamicTable({
                                 color: classConfig?.color || '#3b82f6',
                             }}
                         >
-                            <span style={styles.classificationIcon}>{classConfig?.icon || '?'}</span>
+                            <span style={styles.classificationIcon}><ClassificationSVGIcon icon={classConfig?.icon} size={20} color={classConfig?.color} /></span>
                             <span style={styles.classificationLabel}>{classConfig?.label || 'Unknown'}</span>
                         </motion.div>
 

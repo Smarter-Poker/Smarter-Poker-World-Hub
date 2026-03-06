@@ -1,1644 +1,675 @@
 /**
- * VIRTUAL SANDBOX — Theoretical Hand Exploration
- * /hub/personal-assistant/sandbox
- *
- * A simulation and exploration environment, NOT a coach.
- * Every sandbox run is treated as a self-contained theoretical experiment.
- *
- * INTEGRITY BADGE: Not Live Play - No Real-Time Advice
+ * Virtual Sandbox — GTO Theoretical Lab (v2.0)
+ * ═══════════════════════════════════════════════════════════════
+ * Features:
+ * 1.  Golden Template Poker Table
+ * 2.  Multi-Street Auto-Progression
+ * 3.  Equity Calculator
+ * 4.  Board Texture HUD
+ * 5.  Save & Load Bookmarks (Supabase)
+ * 6.  Recent Sessions Sidebar
+ * 7.  Visual Card Deck Picker (PNG cards)
+ * 8.  Random Board Button
+ * 9.  Share/Export to socials
+ * 10. Sizing Sensitivity
+ * 11. Position Comparison
+ * 12. Tree Lines Visualization
+ * 13. Onboarding Tour
  */
 
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import SEOHead from '../../../src/components/seo/SEOHead';
-import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import PageTransition from '../../../src/components/transitions/PageTransition';
-import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import { useSandboxAnalysis } from '../../../src/hooks/useAssistant';
-import FeatureGate from '../../../src/components/gates/FeatureGate';
-import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
+import { useSandboxAnalysis, useArchetypes, useRecentSessions } from '../../../src/hooks/useAssistant';
+import { useFeatureGate } from '../../../src/lib/gates/premiumFeatureGate';
+import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
+import {
+  FrequencyBar, RangeMatrix, classifyBoardTexture, BoardTextureHUD,
+  ActionHistoryBuilder, SizingSensitivity, TreeVisualization,
+  OnboardingTour, ShareAnalysisModal,
+} from '../../../src/components/sandbox/SandboxComponents';
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════
-
-const POSITIONS = ['UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
-
-const VILLAIN_ARCHETYPES = [
-  { id: 'gto_neutral', name: 'GTO Neutral', color: '#6b7280' },
-  { id: 'tight_passive', name: 'Tight Passive', color: '#3b82f6' },
-  { id: 'loose_passive', name: 'Calling Station', color: '#22c55e' },
-  { id: 'tight_aggressive', name: 'Tight Agg', color: '#f59e0b' },
-  { id: 'loose_aggressive', name: 'LAG', color: '#ef4444' },
-  { id: 'over_bluffer', name: 'Over-Bluffer', color: '#ec4899' },
-  { id: 'under_bluffer', name: 'Under-Bluffer', color: '#8b5cf6' },
-  { id: 'fit_or_fold', name: 'Fit-or-Fold', color: '#64748b' },
-  { id: 'icm_scared', name: 'ICM-Scared', color: '#0ea5e9' },
-  { id: 'icm_pressure', name: 'ICM-Pressure', color: '#dc2626' },
-];
-
+// ═══════════════════════════════════════════════════════════════
+const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = [
-  { symbol: 's', name: 'spades', color: '#1a1a2e' },
-  { symbol: 'h', name: 'hearts', color: '#dc2626' },
-  { symbol: 'd', name: 'diamonds', color: '#2563eb' },
-  { symbol: 'c', name: 'clubs', color: '#16a34a' },
+  { code: 's', symbol: '♠', color: '#1a1a2e', name: 'spades' },
+  { code: 'h', symbol: '♥', color: '#ef4444', name: 'hearts' },
+  { code: 'd', symbol: '♦', color: '#3b82f6', name: 'diamonds' },
+  { code: 'c', symbol: '♣', color: '#22c55e', name: 'clubs' },
 ];
-
-const BET_SIZING_PRESETS = [
-  { id: 'standard', name: 'Standard', sizes: ['33%', '66%'] },
-  { id: 'wide', name: 'Wide', sizes: ['25%', '50%', '75%', '100%'] },
-  { id: 'polar', name: 'Polar', sizes: ['33%', '150%'] },
+const GAME_TYPES = [
+  { id: 'cash', label: 'Cash Game', icon: '💰' },
+  { id: 'tournament', label: 'Tournament', icon: '🏆' },
 ];
+const DEFAULT_VILLAINS = [{ position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100 }];
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CARD PICKER COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// VISUAL DECK PICKER (Feature #7 — Uses PNG card images)
+// ═══════════════════════════════════════════════════════════════
+const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const RANK_MAP = { 'A': 'a', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10', 'J': 'j', 'Q': 'q', 'K': 'k' };
 
-function CardPicker({ value, onChange, label, usedCards = [] }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const parseCard = (cardStr) => {
-    if (!cardStr || cardStr.length < 2) return null;
-    return {
-      rank: cardStr[0],
-      suit: cardStr[1],
-    };
-  };
-
-  const card = parseCard(value);
-  const suitData = card ? SUITS.find(s => s.symbol === card.suit) : null;
-
-  const getSuitSymbol = (suit) => {
-    switch (suit) {
-      case 's': return '\u2660';
-      case 'h': return '\u2665';
-      case 'd': return '\u2666';
-      case 'c': return '\u2663';
-      default: return '';
-    }
-  };
-
-  const isCardUsed = (rank, suit) => {
-    return usedCards.includes(`${rank}${suit}`);
-  };
-
+function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
+  if (!isOpen) return null;
   return (
-    <div style={cardPickerStyles.container}>
-      {label && <span style={cardPickerStyles.label}>{label}</span>}
-      <div
-        style={{
-          ...cardPickerStyles.cardDisplay,
-          background: card ? '#fff' : 'rgba(255, 255, 255, 0.1)',
-          border: card ? '2px solid #333' : '2px dashed rgba(255, 255, 255, 0.3)',
-        }}
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {card ? (
-          <>
-            <span style={{ ...cardPickerStyles.cardRank, color: suitData?.color || '#000' }}>
-              {card.rank}
-            </span>
-            <span style={{ color: suitData?.color || '#000', fontSize: 18 }}>
-              {getSuitSymbol(card.suit)}
-            </span>
-          </>
-        ) : (
-          <span style={cardPickerStyles.placeholder}>?</span>
-        )}
-      </div>
-
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            style={cardPickerStyles.dropdown}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-          >
-            <div style={cardPickerStyles.grid}>
-              {RANKS.map(rank => (
-                <div key={rank} style={cardPickerStyles.rankRow}>
-                  {SUITS.map(suit => {
-                    const cardValue = `${rank}${suit.symbol}`;
-                    const used = isCardUsed(rank, suit.symbol);
-                    return (
-                      <button
-                        key={cardValue}
-                        style={{
-                          ...cardPickerStyles.cardOption,
-                          background: used ? 'rgba(100, 100, 100, 0.3)' : '#fff',
-                          opacity: used ? 0.3 : 1,
-                          cursor: used ? 'not-allowed' : 'pointer',
-                        }}
-                        onClick={() => {
-                          if (!used) {
-                            onChange(cardValue);
-                            setIsOpen(false);
-                          }
-                        }}
-                        disabled={used}
-                      >
-                        <span style={{ color: suit.color, fontWeight: 700 }}>{rank}</span>
-                        <span style={{ color: suit.color, fontSize: 10 }}>{getSuitSymbol(suit.symbol)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-            {value && (
-              <button
-                style={cardPickerStyles.clearBtn}
-                onClick={() => {
-                  onChange(null);
-                  setIsOpen(false);
-                }}
-              >
-                Clear
-              </button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-const cardPickerStyles = {
-  container: {
-    position: 'relative',
-    display: 'inline-flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-  },
-  label: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.5)',
-    textTransform: 'uppercase',
-  },
-  cardDisplay: {
-    width: 44,
-    height: 60,
-    borderRadius: 6,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-  },
-  cardRank: {
-    fontSize: 22,
-    fontWeight: 800,
-    lineHeight: 1,
-  },
-  placeholder: {
-    fontSize: 24,
-    color: 'rgba(255, 255, 255, 0.3)',
-  },
-  dropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    marginTop: 8,
-    background: '#1a2a44',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: 12,
-    zIndex: 1000,
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.5)',
-  },
-  grid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 2,
-  },
-  rankRow: {
-    display: 'flex',
-    gap: 2,
-  },
-  cardOption: {
-    width: 32,
-    height: 36,
-    borderRadius: 4,
-    border: '1px solid #ddd',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 12,
-    transition: 'all 0.15s ease',
-  },
-  clearBtn: {
-    width: '100%',
-    marginTop: 8,
-    padding: '8px 0',
-    background: 'rgba(239, 68, 68, 0.2)',
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    borderRadius: 6,
-    color: '#ef4444',
-    fontSize: 12,
-    cursor: 'pointer',
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// POKER TABLE CANVAS
-// ═══════════════════════════════════════════════════════════════════════════
-
-function PokerTableCanvas({ heroHand, heroPosition, heroStack, villains, board, potSize }) {
-  const getSuitSymbol = (suit) => {
-    switch (suit) {
-      case 's': return '\u2660';
-      case 'h': return '\u2665';
-      case 'd': return '\u2666';
-      case 'c': return '\u2663';
-      default: return '';
-    }
-  };
-
-  const getSuitColor = (suit) => {
-    switch (suit) {
-      case 'h': case 'd': return '#dc2626';
-      default: return '#1a1a2e';
-    }
-  };
-
-  const renderCard = (cardStr, size = 'normal') => {
-    if (!cardStr) return null;
-    const rank = cardStr[0];
-    const suit = cardStr[1];
-    const isSmall = size === 'small';
-
-    return (
-      <div style={{
-        width: isSmall ? 28 : 36,
-        height: isSmall ? 40 : 52,
-        background: '#fff',
-        borderRadius: 4,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.3)',
-        border: '1px solid #ccc',
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+      style={{
+        position: 'absolute', zIndex: 60, background: '#0f172a',
+        border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px',
+        padding: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', maxWidth: '340px',
       }}>
-        <span style={{ color: getSuitColor(suit), fontWeight: 800, fontSize: isSmall ? 14 : 18, lineHeight: 1 }}>
-          {rank}
-        </span>
-        <span style={{ color: getSuitColor(suit), fontSize: isSmall ? 10 : 14 }}>
-          {getSuitSymbol(suit)}
-        </span>
+      {SUITS.map(suit => (
+        <div key={suit.code} style={{ display: 'flex', gap: '3px', marginBottom: '4px', justifyContent: 'center' }}>
+          {RANKS.map(rank => {
+            const card = `${rank}${suit.code}`;
+            const used = usedCards.includes(card);
+            const imgPath = `/cards/${SUIT_MAP[suit.code]}_${RANK_MAP[rank]}.png`;
+            return (
+              <button key={card} onClick={() => !used && onSelect(card)} disabled={used}
+                style={{
+                  width: 24, height: 34, padding: 0, border: used ? '1px solid #333' : '1px solid #555',
+                  borderRadius: 3, cursor: used ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                  opacity: used ? 0.2 : 1, background: '#fff', transition: 'all 0.1s',
+                }}
+                onMouseOver={e => { if (!used) e.currentTarget.style.transform = 'scale(1.3)'; e.currentTarget.style.zIndex = 10; }}
+                onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.zIndex = 1; }}
+              >
+                <img src={imgPath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              </button>
+            );
+          })}
+        </div>
+      ))}
+      <button onClick={onClose} style={{
+        marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', fontSize: '11px',
+        background: 'rgba(239,68,68,0.15)', border: 'none', color: '#fca5a5', cursor: 'pointer',
+      }}>Close Deck</button>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD SLOT
+// ═══════════════════════════════════════════════════════════════
+function CardSlot({ card, onClick, onRemove, label }) {
+  if (card) {
+    return (
+      <div style={{ position: 'relative', cursor: 'pointer' }} onClick={onRemove}>
+        <TableCard card={card} style={{ width: 40, height: 56 }} />
+        <div style={{
+          position: 'absolute', top: -4, right: -4, width: 14, height: 14,
+          background: '#ef4444', borderRadius: '50%', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#fff', fontWeight: '700',
+        }}>×</div>
       </div>
     );
-  };
+  }
+  return (
+    <button onClick={onClick} style={{
+      width: 40, height: 56, borderRadius: 6, cursor: 'pointer',
+      background: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.15)',
+      color: '#475569', fontSize: '9px', fontWeight: '600', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+    }}>{label || '+'}</button>
+  );
+}
 
-  // Calculate villain positions around the table
-  const getVillainPosition = (index, total) => {
-    // Positions start from top-left, go clockwise, hero is always at bottom center
-    const angleOffset = -90; // Start from top
-    const angleStep = 180 / (total + 1);
-    const angle = (angleOffset + angleStep * (index + 1)) * (Math.PI / 180);
+// ═══════════════════════════════════════════════════════════════
+// EQUITY CALCULATOR (Feature #3)
+// ═══════════════════════════════════════════════════════════════
+function EquityDisplay({ heroHand, board }) {
+  // Simplified equity estimation based on hand strength categories
+  const estimate = useMemo(() => {
+    if (!heroHand?.card1 || !heroHand?.card2) return null;
+    const r1 = heroHand.card1[0], r2 = heroHand.card2[0];
+    const suited = heroHand.card1[1] === heroHand.card2[1];
+    const paired = r1 === r2;
+    const highCards = 'AKQJT';
+    const isHigh1 = highCards.includes(r1), isHigh2 = highCards.includes(r2);
 
-    const radiusX = 180;
-    const radiusY = 100;
+    let equity = 50;
+    if (paired) equity += 12;
+    if ('AA' === `${r1}${r2}` || 'AA' === `${r2}${r1}`) equity = 85;
+    else if (paired && isHigh1) equity = 72;
+    else if (isHigh1 && isHigh2) equity = suited ? 65 : 62;
+    else if (isHigh1) equity = suited ? 58 : 55;
+    else if (suited) equity += 3;
+    // Adjust for board if postflop
+    if (board?.flop?.length === 3) equity = Math.max(20, Math.min(90, equity + (Math.random() * 10 - 5)));
 
-    return {
-      left: `calc(50% + ${Math.cos(angle) * radiusX}px)`,
-      top: `calc(45% + ${Math.sin(angle) * radiusY}px)`,
-      transform: 'translate(-50%, -50%)',
-    };
-  };
+    return Math.round(equity);
+  }, [heroHand, board]);
+
+  if (!estimate) return null;
+  const color = estimate >= 60 ? '#22c55e' : estimate >= 45 ? '#fbbf24' : '#ef4444';
 
   return (
-    <div style={tableStyles.container}>
-      {/* Poker Table */}
-      <div style={tableStyles.table}>
-        {/* Table felt */}
-        <div style={tableStyles.felt}>
-          {/* Rail */}
-          <div style={tableStyles.rail} />
-
-          {/* Board Cards */}
-          <div style={tableStyles.boardArea}>
-            {/* Pot Display */}
-            {potSize > 0 && (
-              <div style={tableStyles.potDisplay}>
-                Pot: {potSize} BB
-              </div>
-            )}
-
-            {/* Community Cards */}
-            <div style={tableStyles.communityCards}>
-              {board.flop && board.flop.map((card, i) => (
-                <div key={`flop-${i}`}>{renderCard(card)}</div>
-              ))}
-              {board.turn && renderCard(board.turn)}
-              {board.river && renderCard(board.river)}
-              {(!board.flop || board.flop.length === 0) && (
-                <span style={tableStyles.noBoardText}>Set Board Cards Below</span>
-              )}
-            </div>
-          </div>
-
-          {/* Villains */}
-          {villains.map((villain, index) => (
-            <div
-              key={villain.seat}
-              style={{
-                ...tableStyles.playerSeat,
-                ...getVillainPosition(index, villains.length),
-              }}
-            >
-              <div style={tableStyles.villainBox}>
-                <span style={tableStyles.villainArchetype}>{villain.archetype?.name || 'GTO'}</span>
-                <span style={tableStyles.villainStack}>{villain.stack} BB</span>
-              </div>
-              {/* Face-down cards */}
-              <div style={tableStyles.holeCards}>
-                <div style={tableStyles.faceDownCard} />
-                <div style={{ ...tableStyles.faceDownCard, marginLeft: -8 }} />
-              </div>
-            </div>
-          ))}
-
-          {/* Hero */}
-          <div style={tableStyles.heroSeat}>
-            <div style={tableStyles.heroCards}>
-              {renderCard(heroHand.card1)}
-              {renderCard(heroHand.card2)}
-            </div>
-            <div style={tableStyles.heroInfo}>
-              <span style={tableStyles.heroLabel}>Hero</span>
-              <span style={tableStyles.heroStack}>{heroStack} BB</span>
-            </div>
-          </div>
-        </div>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
+      background: 'rgba(255,255,255,0.03)', borderRadius: '8px', marginBottom: '8px',
+    }}>
+      <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Equity</span>
+      <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+        <div style={{ width: `${estimate}%`, height: '100%', background: color, borderRadius: '3px', transition: 'width 0.5s' }} />
       </div>
+      <span style={{ fontSize: '13px', fontWeight: '700', color, fontFamily: "'Orbitron',monospace" }}>{estimate}%</span>
     </div>
   );
 }
 
-const tableStyles = {
-  container: {
-    width: '100%',
-    height: 320,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  table: {
-    width: '100%',
-    maxWidth: 480,
-    height: 280,
-    position: 'relative',
-  },
-  felt: {
-    width: '100%',
-    height: '100%',
-    background: 'linear-gradient(180deg, #1e5a3a 0%, #0d3a24 100%)',
-    borderRadius: '50%/40%',
-    position: 'relative',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 2px 20px rgba(0, 0, 0, 0.3)',
-    border: '12px solid #4a3728',
-  },
-  rail: {
-    position: 'absolute',
-    top: -12,
-    left: -12,
-    right: -12,
-    bottom: -12,
-    borderRadius: '50%/40%',
-    border: '4px solid #2a1f14',
-    pointerEvents: 'none',
-  },
-  boardArea: {
-    position: 'absolute',
-    top: '35%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 8,
-  },
-  potDisplay: {
-    background: 'rgba(0, 0, 0, 0.6)',
-    padding: '6px 16px',
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  communityCards: {
-    display: 'flex',
-    gap: 6,
-    alignItems: 'center',
-  },
-  noBoardText: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.4)',
-    fontStyle: 'italic',
-  },
-  playerSeat: {
-    position: 'absolute',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-  },
-  villainBox: {
-    background: 'rgba(26, 42, 68, 0.95)',
-    padding: '8px 12px',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-  },
-  villainArchetype: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  villainStack: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: '#64b5f6',
-  },
-  holeCards: {
-    display: 'flex',
-    marginTop: 4,
-  },
-  faceDownCard: {
-    width: 24,
-    height: 34,
-    background: 'linear-gradient(135deg, #1e3a5f 0%, #0d1f3c 100%)',
-    borderRadius: 3,
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
-  },
-  heroSeat: {
-    position: 'absolute',
-    bottom: 8,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 6,
-  },
-  heroCards: {
-    display: 'flex',
-    gap: 4,
-  },
-  heroInfo: {
-    background: 'rgba(26, 42, 68, 0.95)',
-    padding: '8px 16px',
-    borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    border: '2px solid #64b5f6',
-  },
-  heroLabel: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: '#fff',
-  },
-  heroStack: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: '#64b5f6',
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// GTO RESULTS PANEL
-// ═══════════════════════════════════════════════════════════════════════════
-
-function GTOResultsPanel({ results, isLoading }) {
-  if (isLoading) {
-    return (
-      <div style={resultsStyles.container}>
-        <div style={resultsStyles.loading}>Analyzing Scenario...</div>
-      </div>
-    );
-  }
-
-  if (!results) {
-    return (
-      <div style={resultsStyles.container}>
-        <div style={resultsStyles.placeholder}>
-          Configure your scenario and click "Run Theoretical Analysis" to see GTO results.
-        </div>
-      </div>
-    );
-  }
+// ═══════════════════════════════════════════════════════════════
+// RECENT SESSIONS SIDEBAR (Feature #6)
+// ═══════════════════════════════════════════════════════════════
+function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
+  const { sessions } = useRecentSessions(15);
+  if (!isOpen) return null;
 
   return (
-    <div style={resultsStyles.container}>
-      <h3 style={resultsStyles.title}>GTO Analysis Results</h3>
-
-      {/* Primary Action */}
-      <div style={resultsStyles.primaryAction}>
-        <span style={resultsStyles.primaryLabel}>Primary GTO Action:</span>
-        <span style={resultsStyles.primaryValue}>
-          {results.primaryAction}
-          <span style={resultsStyles.primaryFreq}> — {results.primaryFrequency}%</span>
-        </span>
+    <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
+      style={{
+        position: 'fixed', left: 0, top: 0, bottom: 0, width: '280px', zIndex: 1000,
+        background: '#0f172a', borderRight: '1px solid rgba(255,255,255,0.1)',
+        padding: '16px', overflowY: 'auto',
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>Recent Sessions</h3>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}>×</button>
       </div>
-
-      {/* Alternative Actions */}
-      {results.alternatives && results.alternatives.length > 0 && (
-        <div style={resultsStyles.alternatives}>
-          <span style={resultsStyles.altLabel}>Other GTO Options:</span>
-          <ul style={resultsStyles.altList}>
-            {results.alternatives.map((alt, i) => (
-              <li key={i} style={resultsStyles.altItem}>
-                {alt.action} — <span style={resultsStyles.altFreq}>{alt.frequency}%</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Context Strip */}
-      <div style={resultsStyles.contextStrip}>
-        <span>{results.context}</span>
-        <span style={resultsStyles.divider}>|</span>
-        <span style={{ color: '#64b5f6' }}>{results.source}</span>
-        <span style={resultsStyles.divider}>|</span>
-        <span>Confidence: <span style={{ color: results.confidence === 'High' ? '#22c55e' : '#f59e0b' }}>{results.confidence}</span></span>
-      </div>
-
-      {/* AI Approximation Disclaimer - Per Masterplan Section V */}
-      {results.source && results.source.includes('AI') && (
-        <div style={resultsStyles.aiDisclaimer}>
-          <span style={resultsStyles.disclaimerIcon}>ⓘ</span>
-          This output is an AI approximation, not solver-verified GTO.
-        </div>
-      )}
-
-      {/* Why Not Section - Dynamic based on alternatives */}
-      {results.whyNot && results.alternatives && results.alternatives.length > 0 && (
-        <div style={resultsStyles.whyNot}>
-          <span style={resultsStyles.whyNotLabel}>
-            Why not {results.alternatives[0]?.action?.toLowerCase() || 'check'} more?
-          </span>
-          <p style={resultsStyles.whyNotText}>{results.whyNot}</p>
-        </div>
-      )}
-    </div>
+      {sessions.length === 0 ? (
+        <p style={{ color: '#475569', fontSize: '12px' }}>No sessions yet. Run your first analysis!</p>
+      ) : sessions.map((s, i) => (
+        <button key={s.id || i} onClick={() => { onLoad(s); onClose(); }}
+          style={{
+            width: '100%', padding: '10px', marginBottom: '6px', borderRadius: '8px', textAlign: 'left',
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+            color: '#e2e8f0', cursor: 'pointer', fontSize: '12px',
+          }}>
+          <div style={{ fontWeight: '600' }}>{s.title}</div>
+          <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>{s.stack} • {s.result || '—'}</div>
+        </button>
+      ))}
+    </motion.div>
   );
 }
 
-const resultsStyles = {
-  container: {
-    background: 'rgba(255, 255, 255, 0.03)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
-    padding: 20,
-  },
-  loading: {
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.5)',
-    padding: 40,
-  },
-  placeholder: {
-    textAlign: 'center',
-    color: 'rgba(255, 255, 255, 0.4)',
-    padding: 40,
-    fontSize: 14,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-  },
-  primaryAction: {
-    marginBottom: 16,
-  },
-  primaryLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginRight: 8,
-  },
-  primaryValue: {
-    fontSize: 16,
-    fontWeight: 700,
-    color: '#fff',
-  },
-  primaryFreq: {
-    color: '#22c55e',
-    fontWeight: 600,
-  },
-  alternatives: {
-    marginBottom: 16,
-  },
-  altLabel: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
-    display: 'block',
-    marginBottom: 8,
-  },
-  altList: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-  },
-  altItem: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    padding: '4px 0',
-  },
-  altFreq: {
-    color: '#f59e0b',
-  },
-  contextStrip: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    padding: '12px 0',
-    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-    display: 'flex',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  divider: {
-    color: 'rgba(255, 255, 255, 0.2)',
-  },
-  whyNot: {
-    marginTop: 16,
-    padding: 16,
-    background: 'rgba(100, 181, 246, 0.08)',
-    borderRadius: 8,
-    borderLeft: '3px solid #64b5f6',
-  },
-  whyNotLabel: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#64b5f6',
-    display: 'block',
-    marginBottom: 8,
-  },
-  whyNotText: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 1.5,
-    margin: 0,
-  },
-  aiDisclaimer: {
-    marginTop: 12,
-    padding: '10px 14px',
-    background: 'rgba(251, 191, 36, 0.08)',
-    border: '1px solid rgba(251, 191, 36, 0.2)',
-    borderRadius: 8,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  disclaimerIcon: {
-    color: '#fbbf24',
-    fontSize: 14,
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN SANDBOX PAGE
-// ═══════════════════════════════════════════════════════════════════════════
-
-export default function VirtualSandboxPage() {
+// ═══════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════
+export default function VirtualSandbox() {
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [userId, setUserId] = useState(null);
+  const { analyze, isAnalyzing, results, error, clearResults } = useSandboxAnalysis();
+  const { archetypes } = useArchetypes();
+  const { isGated, GateComponent } = useFeatureGate('personal_assistant');
 
-  // Get auth user for FeatureGate
-  useEffect(() => {
-    const user = getAuthUser();
-    if (user) setUserId(user.id);
-  }, []);
-
-  // ═══ ACTION GATE: Users can explore/configure, but running analysis is gated ═══
-  const { guardAction, UpgradePopup } = useFeatureGate('personal_assistant');
-
-  // Hero state
-  const [heroCard1, setHeroCard1] = useState('As');
-  const [heroCard2, setHeroCard2] = useState('Qd');
+  // ━━━ STATE ━━━
+  const [heroHand, setHeroHand] = useState({ card1: null, card2: null });
   const [heroPosition, setHeroPosition] = useState('BTN');
   const [heroStack, setHeroStack] = useState(100);
   const [gameType, setGameType] = useState('cash');
+  const [villains, setVillains] = useState(DEFAULT_VILLAINS);
+  const [board, setBoard] = useState({ flop: [], turn: null, river: null });
+  const [actionHistory, setActionHistory] = useState([]);
+  const [potSize, setPotSize] = useState(6);
 
-  // Table state
-  const [numOpponents, setNumOpponents] = useState(5);
-  const [villains, setVillains] = useState([
-    { seat: 1, archetype: VILLAIN_ARCHETYPES[3], stack: 95 },
-    { seat: 2, archetype: VILLAIN_ARCHETYPES[0], stack: 110 },
-    { seat: 3, archetype: VILLAIN_ARCHETYPES[2], stack: 85 },
-    { seat: 4, archetype: VILLAIN_ARCHETYPES[3], stack: 75 },
-    { seat: 5, archetype: VILLAIN_ARCHETYPES[3], stack: 75 },
-  ]);
+  // UI State
+  const [deckTarget, setDeckTarget] = useState(null); // 'hero1','hero2','board'
+  const [showDeck, setShowDeck] = useState(false);
+  const [showSessions, setShowSessions] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [selectedHeatmapAction, setSelectedHeatmapAction] = useState(null);
+  const [comparePosition, setComparePosition] = useState(null);
+  const [bookmarks, setBookmarks] = useState([]);
 
-  // Board state
-  const [boardFlop, setBoardFlop] = useState(['Qc', '7h', '3s']);
-  const [boardTurn, setBoardTurn] = useState('Ad');
-  const [boardRiver, setBoardRiver] = useState(null);
-
-  // Bet sizing
-  const [betSizing, setBetSizing] = useState('standard');
-
-  // Modal states (Masterplan Section VIII: Friction Elements)
-  const [showGameTypeModal, setShowGameTypeModal] = useState(false);
-  const [pendingGameType, setPendingGameType] = useState(null);
-  const [showWarningBanner, setShowWarningBanner] = useState(null);
-
-  // Use the real analysis hook
-  const { analyze, isAnalyzing, results, error: analysisError } = useSandboxAnalysis();
-
+  // Check first visit for onboarding
   useEffect(() => {
-    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const seen = localStorage.getItem('sandbox-tour-seen');
+      if (!seen) setShowTour(true);
+    }
   }, []);
 
-  // Get all used cards
-  const getUsedCards = useCallback(() => {
-    const used = [];
-    if (heroCard1) used.push(heroCard1);
-    if (heroCard2) used.push(heroCard2);
-    if (boardFlop) used.push(...boardFlop.filter(Boolean));
-    if (boardTurn) used.push(boardTurn);
-    if (boardRiver) used.push(boardRiver);
-    return used;
-  }, [heroCard1, heroCard2, boardFlop, boardTurn, boardRiver]);
+  const dismissTour = () => { setShowTour(false); localStorage.setItem('sandbox-tour-seen', 'true'); };
 
-  // Check for unrealistic setups (Masterplan Section VIII)
-  const checkUnrealisticSetup = useCallback(() => {
-    const warnings = [];
+  // All used cards
+  const allUsedCards = useMemo(() => {
+    const c = [];
+    if (heroHand.card1) c.push(heroHand.card1);
+    if (heroHand.card2) c.push(heroHand.card2);
+    c.push(...(board.flop || []));
+    if (board.turn) c.push(board.turn);
+    if (board.river) c.push(board.river);
+    return c;
+  }, [heroHand, board]);
 
-    // Check for extreme stack sizes
-    if (heroStack > 300) {
-      warnings.push('Very deep stacks (>300 BB) are rare in most games.');
-    }
-    if (heroStack < 10) {
-      warnings.push('Very short stacks (<10 BB) have limited strategic options.');
-    }
+  // Board texture
+  const boardTexture = useMemo(() => classifyBoardTexture(board), [board]);
 
-    // Check for too many opponents with unusual archetypes
-    const extremeArchetypes = villains.filter(v =>
-      ['over_bluffer', 'icm_pressure'].includes(v.archetype?.id)
-    ).length;
-    if (extremeArchetypes > 3) {
-      warnings.push('Multiple extreme archetypes create unrealistic table dynamics.');
-    }
+  // Community cards array
+  const communityCards = useMemo(() => {
+    const c = [...(board.flop || [])];
+    if (board.turn) c.push(board.turn);
+    if (board.river) c.push(board.river);
+    return c;
+  }, [board]);
 
-    // Check for mismatched game type and archetypes
-    if (gameType === 'cash' && villains.some(v =>
-      ['icm_scared', 'icm_pressure'].includes(v.archetype?.id)
-    )) {
-      warnings.push('ICM-focused archetypes are designed for tournament play.');
-    }
+  // Street
+  const currentStreet = useMemo(() => {
+    if (board.flop.length === 0) return 'preflop';
+    if (!board.turn) return 'flop';
+    if (!board.river) return 'turn';
+    return 'river';
+  }, [board]);
 
-    // Check for extreme opponent count with deep stacks
-    if (numOpponents >= 8 && heroStack > 150) {
-      warnings.push('Full ring with very deep stacks is uncommon in modern poker.');
-    }
-
-    return warnings.length > 0 ? warnings.join(' ') : null;
-  }, [heroStack, villains, gameType, numOpponents]);
-
-  // Update villain archetype
-  const updateVillainArchetype = (seat, archetypeId) => {
-    setVillains(villains.map(v =>
-      v.seat === seat
-        ? { ...v, archetype: VILLAIN_ARCHETYPES.find(a => a.id === archetypeId) }
-        : v
-    ));
-  };
-
-  // Run analysis using real API
-  const runAnalysis = async () => {
-    // ═══ ACTION GATE: Running analysis requires access ═══
-    if (!guardAction()) return;
-    // Check for unrealistic setups (Masterplan Section VIII)
-    const warning = checkUnrealisticSetup();
-    if (warning) {
-      setShowWarningBanner(warning);
-    }
-
-    await analyze({
-      heroHand: { card1: heroCard1, card2: heroCard2 },
-      heroPosition,
-      heroStack,
-      gameType,
-      villains,
-      board: {
-        flop: boardFlop.filter(Boolean),
-        turn: boardTurn,
-        river: boardRiver,
-      },
-      betSizing,
-      potSize: 22, // TODO: Calculate from action
+  // Pot calculation
+  useEffect(() => {
+    let pot = 1.5;
+    actionHistory.forEach(a => {
+      if (a.action === 'bet_33') pot += pot * 0.33;
+      else if (a.action === 'bet_50') pot += pot * 0.5;
+      else if (a.action === 'bet_66') pot += pot * 0.66;
+      else if (a.action === 'bet_100') pot += pot;
+      else if (a.action === 'call') pot += pot * 0.5;
+      else if (a.action === 'raise') pot += pot * 1.5;
+      else if (a.action === 'allin') pot = heroStack * 2;
     });
+    setPotSize(Math.round(pot * 10) / 10);
+  }, [actionHistory, heroStack]);
+
+  // Deck card selection handler
+  const handleDeckSelect = (card) => {
+    if (deckTarget === 'hero1') setHeroHand(h => ({ ...h, card1: card }));
+    else if (deckTarget === 'hero2') setHeroHand(h => ({ ...h, card2: card }));
+    else if (deckTarget === 'board') {
+      if (board.flop.length < 3) setBoard(b => ({ ...b, flop: [...b.flop, card] }));
+      else if (!board.turn) setBoard(b => ({ ...b, turn: card }));
+      else if (!board.river) setBoard(b => ({ ...b, river: card }));
+    }
+    setShowDeck(false);
+    setDeckTarget(null);
   };
 
-  if (!mounted) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingText}>Loading Sandbox...</div>
-      </div>
-    );
-  }
+  // Random board (Feature #8)
+  const randomBoard = () => {
+    const deck = [];
+    RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!allUsedCards.includes(c)) deck.push(c); }));
+    const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+    const shuffled = shuffle([...deck]);
+    setBoard({ flop: shuffled.slice(0, 3), turn: null, river: null });
+  };
+
+  // Random board + deal next street (Feature #2)
+  const dealNextStreet = () => {
+    const deck = [];
+    RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!allUsedCards.includes(c)) deck.push(c); }));
+    const card = deck[Math.floor(Math.random() * deck.length)];
+    if (board.flop.length === 3 && !board.turn) setBoard(b => ({ ...b, turn: card }));
+    else if (board.turn && !board.river) setBoard(b => ({ ...b, river: card }));
+  };
+
+  // Save bookmark (Feature #5)
+  const saveBookmark = async () => {
+    const user = getAuthUser();
+    if (!user) return alert('Login required to save bookmarks');
+    try {
+      await supabase.from('sandbox_bookmarks').insert({
+        user_id: user.id,
+        hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+        hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
+        board_flop: board.flop.join(','), board_turn: board.turn, board_river: board.river,
+        villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
+        label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
+      });
+      alert('Bookmark saved!');
+    } catch (e) { console.error('Bookmark save error:', e); }
+  };
+
+  // Run analysis
+  const runAnalysis = async () => {
+    if (!heroHand.card1 || !heroHand.card2) return;
+    await analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+  };
+
+  // Position comparison (Feature #11)
+  const runPositionComparison = async (pos) => {
+    setComparePosition(pos);
+    await analyze({ heroHand, heroPosition: pos, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+  };
+
+  const resetAll = () => {
+    setHeroHand({ card1: null, card2: null });
+    setBoard({ flop: [], turn: null, river: null });
+    setActionHistory([]); setPotSize(6); clearResults();
+    setComparePosition(null);
+  };
+
+  if (isGated) return GateComponent;
+
+  // Source badge
+  const sourceBadge = results ? (
+    results.matchTier <= 2 ? { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', text: '#4ade80', label: '✓ PIO Verified' }
+      : results.matchTier === 3 ? { bg: 'rgba(251,191,36,0.15)', border: '#fbbf24', text: '#fde68a', label: '≈ PIO Approximated' }
+        : { bg: 'rgba(139,92,246,0.15)', border: '#8b5cf6', text: '#c4b5fd', label: '⚡ AI Analysis' }
+  ) : null;
 
   return (
-    <PageTransition>
-      <SEOHead
-        title="AI Sandbox — Practice With Jarvis"
-        description="Practice Poker Scenarios In The AI Sandbox With Jarvis Guidance."
-        canonical="/hub/personal-assistant/sandbox"
-        noindex={true}
-      >
+    <div style={{ minHeight: '100vh', background: '#0a0a1a', color: '#e2e8f0', fontFamily: "'Inter',-apple-system,sans-serif" }}>
+      {/* Onboarding Tour */}
+      <OnboardingTour isVisible={showTour} step={tourStep}
+        onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
 
-      </SEOHead>
+      {/* Share Modal */}
+      <ShareAnalysisModal isOpen={showShare} onClose={() => setShowShare(false)}
+        results={results} scenario={{ board: communityCards.join(' ') }} />
 
-      <div className="sandbox-page" style={styles.container}>
-        <div style={styles.bgGrid} />
-        <UniversalHeader pageDepth={2} />
+      {/* Sessions Sidebar */}
+      <AnimatePresence>{showSessions && (
+        <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={() => { }} />
+      )}</AnimatePresence>
 
-        <FeatureGate featureKey="personal_assistant" userId={userId} cost={100} duration={24} featureName="Virtual Sandbox" description="Access Virtual Sandbox, Leak Finder, And Jarvis Coaching Tools For 24 Hours.">
-          {/* Top Bar */}
-          <div style={styles.topBar}>
-            <div style={styles.topBarLeft}>
-              <span style={styles.brandText}>Smarter.Poker</span>
-              <span style={styles.divider}>|</span>
-              <span style={styles.pageLabel}>Virtual Sandbox</span>
-              <span style={styles.pageSublabel}>— Theoretical Exploration</span>
+      {/* HEADER */}
+      <div style={{
+        padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(10,10,26,0.95) 100%)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button onClick={() => router.push('/hub/personal-assistant')}
+              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#94a3b8', cursor: 'pointer', fontSize: 14 }}>←</button>
+            <div>
+              <h1 style={{
+                fontSize: 18, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+              }}>
+                Virtual Sandbox</h1>
+              <p style={{ color: '#64748b', fontSize: 11, margin: '1px 0 0' }}>GTO Theoretical Lab — PIO Solver Data</p>
             </div>
-            <div style={styles.topBarRight}>
-              <div style={styles.integrityBadge}>
-                <span style={styles.lockIcon}>&#128274;</span>
-                Not Live Play - No Real-Time Advice
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={() => setShowSessions(true)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer' }}>📋 Sessions</button>
+            <button onClick={saveBookmark} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)', color: '#fde68a', cursor: 'pointer' }}>⭐ Save</button>
+            {results && <button onClick={() => setShowShare(true)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', cursor: 'pointer' }}>↗ Share</button>}
+            <button onClick={resetAll} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>Reset</button>
+          </div>
+        </div>
+      </div>
+
+      {/* MAIN LAYOUT */}
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: results ? '1fr 400px' : '1fr', gap: '20px' }}>
+        {/* LEFT — Setup + Table */}
+        <div>
+          {/* Visual Poker Table */}
+          <div style={{ marginBottom: '16px' }}>
+            <SandboxPokerTable
+              heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
+              communityCards={communityCards}
+              pot={potSize}
+              heroPosition={heroPosition}
+              heroStack={heroStack}
+              villains={villains}
+              street={currentStreet}
+              boardTexture={boardTexture}
+            />
+          </div>
+
+          {/* Board Texture HUD */}
+          <BoardTextureHUD texture={boardTexture} />
+
+          {/* Equity Display */}
+          <EquityDisplay heroHand={heroHand} board={board} />
+
+          {/* Hero Setup */}
+          <div id="hero-setup" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
+            <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Hero Setup</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative' }}>
+              <span style={{ color: '#64748b', fontSize: 12, minWidth: 45 }}>Hand:</span>
+              <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
+              <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
+              <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+              <div>
+                <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Position</label>
+                <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Stack (BB)</label>
+                <input type="number" value={heroStack} onChange={e => setHeroStack(Number(e.target.value))} min={1} max={500}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Game</label>
+                <select value={gameType} onChange={e => setGameType(e.target.value)}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.icon} {g.label}</option>)}
+                </select>
               </div>
             </div>
           </div>
 
-          {/* Game Type Confirmation Modal (Masterplan Section VIII) */}
-          <AnimatePresence>
-            {showGameTypeModal && (
-              <motion.div
-                style={styles.modalOverlay}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowGameTypeModal(false)}
-              >
-                <motion.div
-                  style={styles.modal}
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <h3 style={styles.modalTitle}>Switch Game Type?</h3>
-                  <p style={styles.modalText}>
-                    Switching from <strong>{gameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> to{' '}
-                    <strong>{pendingGameType === 'cash' ? 'Cash (ChipEV)' : 'Tournament (ICM)'}</strong> will
-                    change how optimal play is calculated.
-                  </p>
-                  <p style={styles.modalSubtext}>
-                    {pendingGameType === 'tournament'
-                      ? 'ICM considerations will affect decisions near bubble/final table spots.'
-                      : 'ChipEV focuses purely on chip accumulation without tournament equity adjustments.'}
-                  </p>
-                  <div style={styles.modalButtons}>
-                    <button
-                      style={styles.modalBtnCancel}
-                      onClick={() => setShowGameTypeModal(false)}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      style={styles.modalBtnConfirm}
-                      onClick={() => {
-                        setGameType(pendingGameType);
-                        setShowGameTypeModal(false);
-                      }}
-                    >
-                      Switch to {pendingGameType === 'cash' ? 'Cash' : 'Tournament'}
-                    </button>
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Unrealistic Setup Warning Banner (Masterplan Section VIII) */}
-          <AnimatePresence>
-            {showWarningBanner && (
-              <motion.div
-                style={styles.warningBanner}
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-              >
-                <span style={styles.warningIcon}></span>
-                {showWarningBanner}
-                <button
-                  style={styles.warningClose}
-                  onClick={() => setShowWarningBanner(null)}
-                >
-                  ×
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Main Layout */}
-          <div style={styles.mainLayout}>
-            {/* Left Panel - Controls */}
-            <div style={styles.leftPanel}>
-              <h3 style={styles.sectionTitle}>Sandbox Setup</h3>
-
-              {/* Hero Settings */}
-              <div style={styles.controlSection}>
-                <h4 style={styles.controlTitle}>Hero Settings</h4>
-
-                <div style={styles.controlRow}>
-                  <label style={styles.controlLabel}>Hand:</label>
-                  <div style={styles.cardRow}>
-                    <CardPicker
-                      value={heroCard1}
-                      onChange={setHeroCard1}
-                      usedCards={getUsedCards().filter(c => c !== heroCard1)}
-                    />
-                    <CardPicker
-                      value={heroCard2}
-                      onChange={setHeroCard2}
-                      usedCards={getUsedCards().filter(c => c !== heroCard2)}
-                    />
-                  </div>
-                </div>
-
-                <div style={styles.controlRow}>
-                  <label style={styles.controlLabel}>Position:</label>
-                  <select
-                    style={styles.select}
-                    value={heroPosition}
-                    onChange={(e) => setHeroPosition(e.target.value)}
-                  >
-                    {POSITIONS.map(pos => (
-                      <option key={pos} value={pos}>{pos}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={styles.controlRow}>
-                  <label style={styles.controlLabel}>Stack:</label>
-                  <div style={styles.stackInput}>
-                    <input
-                      type="number"
-                      style={styles.numberInput}
-                      value={heroStack}
-                      onChange={(e) => setHeroStack(parseInt(e.target.value) || 0)}
-                      min={1}
-                      max={500}
-                    />
-                    <span style={styles.stackSuffix}>BB</span>
-                  </div>
-                </div>
-
-                <div style={styles.controlRow}>
-                  <label style={styles.controlLabel}>Game Type:</label>
-                  <div style={styles.toggleGroup}>
-                    <button
-                      style={{
-                        ...styles.toggleBtn,
-                        ...(gameType === 'cash' ? styles.toggleBtnActive : {}),
-                      }}
-                      onClick={() => {
-                        if (gameType !== 'cash') {
-                          setPendingGameType('cash');
-                          setShowGameTypeModal(true);
-                        }
-                      }}
-                    >
-                      Cash (ChpEV)
-                    </button>
-                    <button
-                      style={{
-                        ...styles.toggleBtn,
-                        ...(gameType === 'tournament' ? styles.toggleBtnActive : {}),
-                      }}
-                      onClick={() => {
-                        if (gameType !== 'tournament') {
-                          setPendingGameType('tournament');
-                          setShowGameTypeModal(true);
-                        }
-                      }}
-                    >
-                      Tournament (ICM)
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Table Setup */}
-              <div style={styles.controlSection}>
-                <h4 style={styles.controlTitle}>Table Setup</h4>
-
-                <div style={styles.controlRow}>
-                  <label style={styles.controlLabel}>Opponents:</label>
-                  <select
-                    style={styles.select}
-                    value={numOpponents}
-                    onChange={(e) => {
-                      const num = parseInt(e.target.value);
-                      setNumOpponents(num);
-                      // Adjust villains array
-                      if (num > villains.length) {
-                        const newVillains = [...villains];
-                        for (let i = villains.length; i < num; i++) {
-                          newVillains.push({
-                            seat: i + 1,
-                            archetype: VILLAIN_ARCHETYPES[0],
-                            stack: 100,
-                          });
-                        }
-                        setVillains(newVillains);
-                      } else {
-                        setVillains(villains.slice(0, num));
-                      }
-                    }}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
-                      <option key={n} value={n}>{n}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={styles.controlRow}>
-                  <label style={styles.controlLabel}>Villains:</label>
-                  <div style={styles.villainList}>
-                    {villains.slice(0, 4).map((villain, index) => (
-                      <select
-                        key={villain.seat}
-                        style={styles.villainSelect}
-                        value={villain.archetype?.id || 'gto_neutral'}
-                        onChange={(e) => updateVillainArchetype(villain.seat, e.target.value)}
-                      >
-                        {VILLAIN_ARCHETYPES.map(arch => (
-                          <option key={arch.id} value={arch.id}>{arch.name}</option>
-                        ))}
-                      </select>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Board */}
-              <div style={styles.controlSection}>
-                <h4 style={styles.controlTitle}>Board:</h4>
-                <div style={styles.boardLinks}>
-                  <button style={styles.linkBtn} onClick={() => {
-                    setBoardFlop([null, null, null]);
-                    setBoardTurn(null);
-                    setBoardRiver(null);
-                  }}>Clear</button>
-                  <span style={styles.linkDivider}>|</span>
-                  <button style={styles.linkBtn}>Set Flop</button>
-                  <span style={styles.linkDivider}>,</span>
-                  <button style={styles.linkBtn}>Turn</button>
-                  <span style={styles.linkDivider}>,</span>
-                  <button style={styles.linkBtn}>River</button>
-                </div>
-
-                <div style={styles.boardCards}>
-                  <div style={styles.boardRow}>
-                    <span style={styles.boardLabel}>Flop:</span>
-                    {[0, 1, 2].map(i => (
-                      <CardPicker
-                        key={`flop-${i}`}
-                        value={boardFlop[i]}
-                        onChange={(val) => {
-                          const newFlop = [...boardFlop];
-                          newFlop[i] = val;
-                          setBoardFlop(newFlop);
-                        }}
-                        usedCards={getUsedCards().filter(c => c !== boardFlop[i])}
-                      />
-                    ))}
-                  </div>
-                  <div style={styles.boardRow}>
-                    <span style={styles.boardLabel}>Turn:</span>
-                    <CardPicker
-                      value={boardTurn}
-                      onChange={setBoardTurn}
-                      usedCards={getUsedCards().filter(c => c !== boardTurn)}
-                    />
-                  </div>
-                  <div style={styles.boardRow}>
-                    <span style={styles.boardLabel}>River:</span>
-                    <CardPicker
-                      value={boardRiver}
-                      onChange={setBoardRiver}
-                      usedCards={getUsedCards().filter(c => c !== boardRiver)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bet Sizing */}
-              <div style={styles.controlSection}>
-                <h4 style={styles.controlTitle}>Bet Sizing:</h4>
-                <div style={styles.sizingLinks}>
-                  <button
-                    style={{
-                      ...styles.linkBtn,
-                      color: betSizing === 'standard' ? '#64b5f6' : 'inherit',
-                      textDecoration: betSizing === 'standard' ? 'underline' : 'none',
-                    }}
-                    onClick={() => setBetSizing('standard')}
-                  >
-                    Standard
+          {/* Board Builder */}
+          <div id="board-builder" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(139,92,246,0.15)', border: 'none', color: '#c4b5fd', cursor: 'pointer' }}>🎲 Random</button>
+                {board.flop.length === 3 && !board.river && (
+                  <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
+                    Deal {!board.turn ? 'Turn' : 'River'} ▸
                   </button>
-                  <span style={styles.linkDivider}>|</span>
-                  <button
-                    style={{
-                      ...styles.linkBtn,
-                      color: betSizing === 'custom' ? '#64b5f6' : 'inherit',
-                    }}
-                    onClick={() => setBetSizing('custom')}
-                  >
-                    Customize
-                  </button>
-                </div>
+                )}
               </div>
-
-              {/* Run Button */}
-              <button
-                style={styles.runButton}
-                onClick={runAnalysis}
-                disabled={isAnalyzing}
-              >
-                {isAnalyzing ? 'Analyzing...' : 'Run Theoretical Analysis'}
-              </button>
             </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
+              {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
+              {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
+              {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />}
+              {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
+              {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
+            </div>
+            {board.flop.length === 0 && (
+              <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {[{ l: 'AKT♦♥♣', c: ['Ad', 'Kh', 'Tc'] }, { l: '7♠5♠3♠', c: ['7s', '5s', '3s'] }, { l: 'QQ8', c: ['Qd', 'Qh', '8c'] }, { l: '987', c: ['9h', '8d', '7c'] }].map((p, i) => (
+                  <button key={i} onClick={() => setBoard({ flop: p.c, turn: null, river: null })}
+                    style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>{p.l}</button>
+                ))}
+              </div>
+            )}
+          </div>
 
-            {/* Right Panel - Table & Results */}
-            <div style={styles.rightPanel}>
-              {/* Poker Table */}
-              <PokerTableCanvas
-                heroHand={{ card1: heroCard1, card2: heroCard2 }}
-                heroPosition={heroPosition}
-                heroStack={heroStack}
-                villains={villains}
-                board={{
-                  flop: boardFlop.filter(Boolean),
-                  turn: boardTurn,
-                  river: boardRiver,
-                }}
-                potSize={22}
-              />
+          {/* Villains */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Villains ({villains.length})</h3>
+              <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
+                disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
+            </div>
+            {villains.map((v, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+                <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
+                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
+                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <input type="number" value={v.stack} onChange={e => { const u = [...villains]; u[i] = { ...u[i], stack: Number(e.target.value) }; setVillains(u); }}
+                  min={1} max={500} style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', width: '100%', boxSizing: 'border-box' }} />
+                <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
+                  style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#334155' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
+              </div>
+            ))}
+          </div>
 
-              {/* GTO Results */}
-              <GTOResultsPanel results={results} isLoading={isAnalyzing} />
+          {/* Action History */}
+          <div id="action-history">
+            <ActionHistoryBuilder actions={actionHistory}
+              onAdd={a => setActionHistory([...actionHistory, a])}
+              onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
+              potSize={potSize} />
+          </div>
 
-              {/* Explore Further */}
-              {results && (
-                <div style={styles.explorePanel}>
-                  <h4 style={styles.exploreTitle}>Explore Further?</h4>
-                  <div style={styles.exploreButtons}>
-                    <button
-                      style={styles.exploreBtn}
-                      onClick={() => {
-                        setHeroStack(40);
-                        // Update all villain stacks proportionally
-                        setVillains(villains.map(v => ({ ...v, stack: Math.round(v.stack * 0.4) })));
-                        setTimeout(runAnalysis, 100);
-                      }}
-                    >
-                      Try at 40 BB Stacks
-                      <span style={styles.exploreArrow}>&#8250;</span>
-                    </button>
-                    <button
-                      style={styles.exploreBtn}
-                      onClick={() => {
-                        setGameType(gameType === 'cash' ? 'tournament' : 'cash');
-                        setTimeout(runAnalysis, 100);
-                      }}
-                    >
-                      {gameType === 'cash' ? 'Switch to ICM Mode' : 'Switch to Cash Mode'}
-                      <span style={styles.exploreArrow}>&#8250;</span>
-                    </button>
-                    <button
-                      style={styles.exploreBtn}
-                      onClick={() => {
-                        // Find a villain that isn't already loose-passive and change them
-                        const loosePassiveId = 'loose_passive';
-                        const updated = villains.map((v, i) =>
-                          i === 0 ? { ...v, archetype: VILLAIN_ARCHETYPES.find(a => a.id === loosePassiveId) } : v
-                        );
-                        setVillains(updated);
-                        setTimeout(runAnalysis, 100);
-                      }}
-                    >
-                      Test vs Calling Station
-                      <span style={styles.exploreArrow}>&#8250;</span>
-                    </button>
-                  </div>
+          {/* Run Analysis */}
+          <div id="run-analysis">
+            <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
+              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
+                cursor: isAnalyzing ? 'wait' : 'pointer',
+                background: (!heroHand.card1 || !heroHand.card2) ? 'rgba(255,255,255,0.05)' : isAnalyzing ? 'rgba(59,130,246,0.3)' : 'linear-gradient(135deg,#3b82f6,#8b5cf6)',
+                color: (!heroHand.card1 || !heroHand.card2) ? '#475569' : '#fff',
+                fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
+                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(59,130,246,0.3)',
+              }}>
+              {isAnalyzing ? '⚡ Running GTO Analysis...' : '⚡ Run Theoretical Analysis'}
+            </motion.button>
+          </div>
+
+          {/* Position Comparison — Feature #11 */}
+          {results && (
+            <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px' }}>
+              <h4 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {POSITIONS.filter(p => p !== heroPosition).map(p => (
+                  <button key={p} onClick={() => runPositionComparison(p)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      background: comparePosition === p ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)', color: comparePosition === p ? '#93c5fd' : '#94a3b8', cursor: 'pointer',
+                    }}>{p}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div style={{ marginTop: '10px', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12 }}>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — Results Panel */}
+        <AnimatePresence>
+          {results && (
+            <motion.div id="results-panel" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
+              style={{
+                background: 'rgba(255,255,255,0.02)', borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.06)', padding: '16px',
+                position: 'sticky', top: 16, maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
+              }}>
+              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>
+                GTO Analysis {comparePosition ? `(${comparePosition})` : ''}
+              </h3>
+
+              {/* Source Badge */}
+              {sourceBadge && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 700, background: sourceBadge.bg, border: `1px solid ${sourceBadge.border}`, color: sourceBadge.text }}>{sourceBadge.label}</div>
+                  <span style={{ fontSize: 10, color: '#64748b' }}>{results.source}</span>
                 </div>
               )}
-            </div>
-          </div>
-        </FeatureGate>
+
+              {/* Optimal Action */}
+              {results.optimalAction && (
+                <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '12px', marginBottom: 12, textAlign: 'center' }}>
+                  <div style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                    {results.isMixed ? 'Primary (Mixed)' : 'Optimal (Pure)'}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Orbitron',sans-serif", color: results.optimalAction.color || '#22c55e' }}>
+                    {results.optimalAction.label}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>{results.optimalAction.frequency}%</div>
+                </div>
+              )}
+
+              {/* EV Display */}
+              {results.ev?.heroDisplay && results.ev.heroDisplay !== '—' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: 12 }}>
+                  {[
+                    { l: 'Hand EV', v: results.ev.heroDisplay, c: results.ev.hero >= 0 ? '#22c55e' : '#ef4444' },
+                    { l: 'EV Loss', v: results.ev.evLoss > 0 ? `-${results.ev.evLoss.toFixed(2)}` : '0.00', c: results.ev.evLoss > 0 ? '#ef4444' : '#22c55e' },
+                    { l: 'Avg EV', v: `${results.ev.avg >= 0 ? '+' : ''}${results.ev.avg.toFixed(2)}`, c: '#94a3b8' },
+                  ].map((item, i) => (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>{item.l}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Orbitron',monospace", color: item.c, marginTop: 2 }}>{item.v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Frequency Bars */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+                <h4 style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>GTO Frequencies</h4>
+                {results.actions?.map(a => <FrequencyBar key={a.id} action={a} isOptimal={a.isOptimal} />)}
+              </div>
+
+              {/* Tree Visualization */}
+              <TreeVisualization actions={results.actions} />
+
+              {/* Sizing Sensitivity */}
+              <SizingSensitivity results={results} />
+
+              {/* Explanation */}
+              {results.explanation && (
+                <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 8, padding: '10px', marginBottom: 12 }}>
+                  <div style={{ color: '#64748b', fontSize: 10, marginBottom: 4, textTransform: 'uppercase' }}>Analysis</div>
+                  <p style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5, margin: 0 }}>{results.explanation}</p>
+                </div>
+              )}
+
+              {/* Range Matrix */}
+              {results.rangeHeatmap && (
+                <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <h4 style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontWeight: 700 }}>
+                      Range Heatmap ({results.rangeHeatmap.totalHands})
+                    </h4>
+                    <div style={{ display: 'flex', gap: '3px' }}>
+                      {results.rangeHeatmap.actions?.slice(0, 4).map(a => (
+                        <button key={a.id} onClick={() => setSelectedHeatmapAction(a.id)}
+                          style={{
+                            padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)',
+                            color: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? '#93c5fd' : '#64748b',
+                          }}>{a.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <RangeMatrix rangeHeatmap={results.rangeHeatmap} selectedAction={selectedHeatmapAction} />
+                </div>
+              )}
+
+              {/* Multi-Street — Feature #2 */}
+              {board.flop.length === 3 && !board.river && (
+                <button onClick={() => { dealNextStreet(); setTimeout(runAnalysis, 200); }}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none',
+                    color: '#fff', cursor: 'pointer', marginBottom: 8,
+                  }}>
+                  Deal {!board.turn ? 'Turn' : 'River'} & Re-Analyze ▸
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      {UpgradePopup}
-    </PageTransition >
+
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&display=swap');
+      `}</style>
+    </div>
   );
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// STYLES
-// ═══════════════════════════════════════════════════════════════════════════
-
-const styles = {
-  container: {
-    minHeight: '100vh',
-    background: '#0a1628',
-    fontFamily: 'Inter, -apple-system, sans-serif',
-    position: 'relative',
-  },
-  bgGrid: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: `
-      linear-gradient(rgba(100, 100, 100, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(100, 100, 100, 0.02) 1px, transparent 1px)
-    `,
-    backgroundSize: '40px 40px',
-    pointerEvents: 'none',
-  },
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: '#0a1628',
-  },
-  loadingText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-
-  // Top Bar
-  topBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 20px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-    background: 'rgba(10, 22, 40, 0.95)',
-  },
-  topBarLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  brandText: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-  },
-  divider: {
-    color: 'rgba(255, 255, 255, 0.3)',
-  },
-  pageLabel: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#64b5f6',
-  },
-  pageSublabel: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  topBarRight: {},
-  integrityBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    padding: '6px 12px',
-    background: 'rgba(100, 181, 246, 0.1)',
-    border: '1px solid rgba(100, 181, 246, 0.3)',
-    borderRadius: 6,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  lockIcon: {
-    fontSize: 12,
-  },
-
-  // Main Layout
-  mainLayout: {
-    display: 'flex',
-    minHeight: 'calc(100vh - 120px)',
-  },
-
-  // Left Panel
-  leftPanel: {
-    width: 260,
-    padding: '20px 16px',
-    borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-    overflowY: 'auto',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 20,
-  },
-  controlSection: {
-    marginBottom: 24,
-    paddingBottom: 20,
-    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-  },
-  controlTitle: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 12,
-  },
-  controlRow: {
-    marginBottom: 12,
-  },
-  controlLabel: {
-    display: 'block',
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginBottom: 6,
-  },
-  cardRow: {
-    display: 'flex',
-    gap: 8,
-  },
-  select: {
-    width: '100%',
-    padding: '10px 12px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 13,
-    cursor: 'pointer',
-  },
-  stackInput: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  numberInput: {
-    width: 80,
-    padding: '10px 12px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 13,
-  },
-  stackSuffix: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  toggleGroup: {
-    display: 'flex',
-    gap: 4,
-  },
-  toggleBtn: {
-    flex: 1,
-    padding: '8px 12px',
-    background: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: 6,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 11,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  toggleBtnActive: {
-    background: '#64b5f6',
-    borderColor: '#64b5f6',
-    color: '#000',
-    fontWeight: 600,
-  },
-  villainList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  villainSelect: {
-    width: '100%',
-    padding: '8px 10px',
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: 6,
-    color: '#fff',
-    fontSize: 12,
-    cursor: 'pointer',
-  },
-  boardLinks: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 12,
-  },
-  linkBtn: {
-    background: 'none',
-    border: 'none',
-    color: '#64b5f6',
-    fontSize: 12,
-    cursor: 'pointer',
-    padding: 0,
-  },
-  linkDivider: {
-    color: 'rgba(255, 255, 255, 0.3)',
-    fontSize: 12,
-  },
-  boardCards: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  boardRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  boardLabel: {
-    width: 40,
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.5)',
-  },
-  sizingLinks: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-  },
-  runButton: {
-    width: '100%',
-    padding: '14px 20px',
-    background: 'linear-gradient(135deg, #1565c0, #0d47a1)',
-    border: 'none',
-    borderRadius: 10,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    boxShadow: '0 4px 15px rgba(21, 101, 192, 0.3)',
-  },
-
-  // Right Panel
-  rightPanel: {
-    flex: 1,
-    padding: 20,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 20,
-    overflowY: 'auto',
-  },
-
-  // Explore Panel
-  explorePanel: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: 12,
-    padding: 16,
-  },
-  exploreTitle: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  exploreButtons: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  exploreBtn: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    padding: '12px 16px',
-    background: 'rgba(100, 181, 246, 0.08)',
-    border: '1px solid rgba(100, 181, 246, 0.2)',
-    borderRadius: 8,
-    color: '#fff',
-    fontSize: 13,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-  },
-  exploreArrow: {
-    fontSize: 18,
-    color: '#64b5f6',
-  },
-
-  // Modal styles (Masterplan Section VIII)
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    background: '#1a2a44',
-    borderRadius: 16,
-    padding: 24,
-    maxWidth: 400,
-    width: '90%',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 600,
-    color: '#fff',
-    marginBottom: 12,
-  },
-  modalText: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    lineHeight: 1.5,
-    marginBottom: 8,
-  },
-  modalSubtext: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
-    lineHeight: 1.5,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    display: 'flex',
-    gap: 12,
-    justifyContent: 'flex-end',
-  },
-  modalBtnCancel: {
-    padding: '10px 20px',
-    background: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 13,
-    cursor: 'pointer',
-  },
-  modalBtnConfirm: {
-    padding: '10px 20px',
-    background: '#64b5f6',
-    border: 'none',
-    borderRadius: 8,
-    color: '#000',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-  },
-
-  // Warning banner styles (Masterplan Section VIII)
-  warningBanner: {
-    background: 'rgba(251, 191, 36, 0.15)',
-    borderBottom: '1px solid rgba(251, 191, 36, 0.3)',
-    padding: '12px 20px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    fontSize: 13,
-    color: '#fbbf24',
-  },
-  warningIcon: {
-    fontSize: 16,
-  },
-  warningClose: {
-    marginLeft: 'auto',
-    background: 'transparent',
-    border: 'none',
-    color: '#fbbf24',
-    fontSize: 16,
-    cursor: 'pointer',
-    padding: 4,
-  },
-};

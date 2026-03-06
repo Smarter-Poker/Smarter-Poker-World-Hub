@@ -13,7 +13,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -35,13 +35,14 @@ export default async function handler(req, res) {
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     if (req.method === 'GET') {
-      const { status = 'open', limit = '50' } = req.query;
+      const { status = 'open', limit: rawLimit = '50' } = req.query;
+      const limit = Math.min(parseInt(rawLimit) || 50, 500);
       let query = supabase
         .from('commander_incidents')
         .select('*')
         .eq('venue_id', staff.venue_id)
         .order('created_at', { ascending: false })
-        .limit(parseInt(limit));
+        .limit(limit);
 
       if (status !== 'all') query = query.eq('status', status);
 
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
 
       if (error) {
         console.error('Incident create error:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
       }
       return res.status(201).json({ success: true, data });
     }

@@ -43,7 +43,7 @@ async function listTemplates(req, res) {
         return res.status(200).json({ success: true, data: { templates: data || [] } });
     } catch (error) {
         console.error('List templates error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
 
@@ -129,6 +129,6 @@ async function createTemplate(req, res, staff) {
         return res.status(201).json({ success: true, data: { template } });
     } catch (error) {
         console.error('Create template error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }

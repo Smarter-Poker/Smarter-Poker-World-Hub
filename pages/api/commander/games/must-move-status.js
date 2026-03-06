@@ -40,7 +40,6 @@ async function handleGet(req, res) {
       .eq('venue_id', venue_id)
       .in('status', ['waiting', 'running'])
       .order('created_at', { ascending: true })
-          .limit(100);
 
     if (error) throw error;
 
@@ -66,7 +65,6 @@ async function handleGet(req, res) {
         .eq('status', 'occupied')
         .order('seated_at', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: true })
-            .limit(100);
 
       (seats || []).forEach(s => {
         if (!seatsMap[s.game_id]) seatsMap[s.game_id] = [];
@@ -82,7 +80,6 @@ async function handleGet(req, res) {
         .select('game_type, stakes')
         .eq('venue_id', venue_id)
         .in('status', ['waiting', 'called'])
-            .limit(100);
       (wlEntries || []).forEach(w => {
         const key = `${w.game_type}|${w.stakes}`;
         waitlistCounts[key] = (waitlistCounts[key] || 0) + 1;

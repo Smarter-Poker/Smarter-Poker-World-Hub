@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         .from('commander_floor_calls')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(parseInt(limit));
+        .limit(Math.min(parseInt(limit) || 50, 500));
 
       if (venue_id) query = query.eq('venue_id', venue_id);
 

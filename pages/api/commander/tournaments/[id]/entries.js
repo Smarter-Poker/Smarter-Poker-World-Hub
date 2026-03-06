@@ -55,11 +55,9 @@ async function listEntries(req, res, tournamentId) {
       `)
       .eq('tournament_id', tournamentId)
       .order('registered_at', { ascending: true })
-          .limit(100);
 
     if (status) {
       query = query.eq('status', status)
-          .limit(100);
     }
 
     const { data, error } = await query;
@@ -69,7 +67,7 @@ async function listEntries(req, res, tournamentId) {
     return res.status(200).json({ success: true, data: { entries: data } });
   } catch (error) {
     console.error('List entries error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -123,7 +121,6 @@ async function registerPlayer(req, res, tournamentId) {
         .select('id', { count: 'exact', head: true })
         .eq('tournament_id', tournamentId)
         .in('status', ['registered', 'seated', 'active'])
-            .limit(100);
 
       if (count >= tournament.max_entries) {
         return res.status(400).json({ success: false, error: 'Tournament is full' });
@@ -190,7 +187,7 @@ async function registerPlayer(req, res, tournamentId) {
     return res.status(201).json({ success: true, data: { entry } });
   } catch (error) {
     console.error('Register player error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
@@ -270,6 +267,6 @@ async function unregisterPlayer(req, res, tournamentId) {
     return res.status(200).json({ success: true, message: 'Player unregistered' });
   } catch (error) {
     console.error('Unregister player error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }

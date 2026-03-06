@@ -15,7 +15,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -36,7 +36,12 @@ export default async function handler(req, res) {
 
 async function listTournaments(req, res) {
   try {
-    const { venue_id, status, from_date, to_date, limit = 50 } = req.query;
+    const { venue_id, status, from_date, to_date, limit: rawLimit = '50' } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
+
+    if (!venue_id) {
+      return res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'venue_id is required' } });
+    }
 
     let query = supabase
       .from('commander_tournaments')
@@ -44,12 +49,9 @@ async function listTournaments(req, res) {
         *,
         poker_venues (id, name, city, state)
       `)
+      .eq('venue_id', venue_id)
       .order('scheduled_start', { ascending: true })
-      .limit(parseInt(limit));
-
-    if (venue_id) {
-      query = query.eq('venue_id', venue_id);
-    }
+      .limit(limit);
 
     if (status) {
       // Support comma-separated compound filters like 'upcoming,active'
@@ -85,7 +87,7 @@ async function listTournaments(req, res) {
     return res.status(200).json({ success: true, data: { tournaments: data } });
   } catch (error) {
     captureException(error, { action: 'list_tournaments', endpoint: '/api/commander/tournaments' });
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
 
@@ -182,6 +184,6 @@ async function createTournament(req, res, staff) {
     return res.status(201).json({ success: true, data: { tournament } });
   } catch (error) {
     captureException(error, { action: 'create_tournament', endpoint: '/api/commander/tournaments', venue_id: req.body?.venue_id });
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }

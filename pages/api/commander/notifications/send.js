@@ -13,14 +13,14 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const VALID_TYPES = ['seat_available', 'tournament_starting', 'called_for_seat', 'promotion', 'custom'];
 const VALID_CHANNELS = ['sms', 'push', 'email', 'in_app'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -431,8 +431,7 @@ async function sendPushNotification(notification) {
     .from('commander_push_subscriptions')
     .select('subscription_data, endpoint')
     .eq('user_id', notification.player_id)
-    .eq('is_active', true)
-        .limit(100);
+    .eq('is_active', true);
 
   if (!subscriptions || subscriptions.length === 0) {
     // No push subscription, try sending by external_user_id (player_id)

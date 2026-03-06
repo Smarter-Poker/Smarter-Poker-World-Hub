@@ -13,9 +13,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     // Auth guard: require staff auth for write operations
     const _authResult = await guardWriteStaff(req, res);
@@ -30,7 +30,8 @@ export default async function handler(req, res) {
 }
 
 async function handleList(req, res) {
-    const { venue_id, search, status, tier, page = 1, limit = 50 } = req.query;
+    const { venue_id, search, status, tier, page = 1, limit: rawLimit = '50' } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
 
     if (!venue_id) {
         return res.status(400).json({ success: false, error: 'venue_id is required' });
@@ -40,8 +41,7 @@ async function handleList(req, res) {
         .from('commander_members')
         .select('*', { count: 'exact' })
         .eq('venue_id', venue_id)
-        .order('created_at', { ascending: false })
-            .limit(100)
+        .order('created_at', { ascending: false });
 
     if (status) {
         query = query.eq('membership_status', status);
@@ -68,7 +68,7 @@ async function handleList(req, res) {
 
     if (error) {
         console.error('Members list error:', error);
-        return res.status(500).json({ success: false, error: error.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 
     res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
@@ -117,8 +117,7 @@ async function handleCreate(req, res) {
             .select('*')
             .eq('venue_id', venue_id)
             .ilike('first_name', first_name.trim())
-            .ilike('last_name', last_name.trim())
-                .limit(100)
+            .ilike('last_name', last_name.trim());
 
         const { data: nameMatches } = await existingQuery;
 
@@ -137,8 +136,7 @@ async function handleCreate(req, res) {
                 .from('commander_members')
                 .select('*')
                 .eq('venue_id', venue_id)
-                .ilike('email', email.trim())
-                    .limit(100)
+                .ilike('email', email.trim());
 
             if (emailMatches && emailMatches.length > 0) {
                 return res.status(200).json({
@@ -200,7 +198,7 @@ async function handleCreate(req, res) {
 
         if (error) {
             console.error('Member create error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         return res.status(201).json({ success: true, data: { member } });

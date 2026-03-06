@@ -82,7 +82,7 @@ async function getLeaderboard(req, res, id) {
         return res.status(200).json({ success: true, data: { leaderboard: lb, standings } });
     } catch (error) {
         console.error('Get leaderboard error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
 
@@ -106,7 +106,7 @@ async function updateLeaderboard(req, res, id) {
         return res.status(200).json({ success: true, data: { leaderboard: data } });
     } catch (error) {
         console.error('Update leaderboard error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }
 
@@ -124,6 +124,6 @@ async function deactivateLeaderboard(req, res, id) {
         return res.status(200).json({ success: true, data: { leaderboard: data } });
     } catch (error) {
         console.error('Deactivate leaderboard error:', error);
-        return res.status(500).json({ success: false, error: { message: error.message } });
+        return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
     }
 }

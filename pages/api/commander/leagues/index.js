@@ -50,7 +50,7 @@ async function listLeagues(req, res) {
         created_at
       `)
       .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (status) {
       query = query.eq('status', status);

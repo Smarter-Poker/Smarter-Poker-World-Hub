@@ -36,7 +36,7 @@ export default async function handler(req, res) {
             .single();
 
         if (error) {
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         return res.status(200).json({ success: true, scan: data });
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
             .limit(100);
 
         if (error) {
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
         return res.status(200).json({ success: true, scans: data, total: count });

@@ -15,7 +15,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -39,9 +39,11 @@ async function listHighHands(req, res) {
       venue_id,
       promotion_id,
       date,
-      limit = 50,
-      offset = 0
+      limit: rawLimit = '50',
+      offset: rawOffset = '0'
     } = req.query;
+    const limit = Math.min(parseInt(rawLimit) || 50, 500);
+    const offset = parseInt(rawOffset) || 0;
 
     if (!venue_id) {
       return res.status(400).json({ error: 'Venue ID required' });
@@ -57,11 +59,10 @@ async function listHighHands(req, res) {
       `, { count: 'exact' })
       .eq('venue_id', venue_id)
       .order('created_at', { ascending: false })
-      .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+      .range(offset, offset + limit - 1);
 
     if (promotion_id) {
-      query = query.eq('promotion_id', promotion_id)
-          .limit(100);
+      query = query.eq('promotion_id', promotion_id);
     }
 
     if (date) {
@@ -91,12 +92,12 @@ async function listHighHands(req, res) {
       high_hands: data,
       current_high: currentHigh || null,
       total: count,
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit,
+      offset
     });
   } catch (error) {
     console.error('List high hands error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 
@@ -185,6 +186,6 @@ async function createHighHand(req, res) {
     return res.status(201).json({ high_hand: highHand });
   } catch (error) {
     console.error('Create high hand error:', error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }

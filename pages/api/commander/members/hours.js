@@ -75,7 +75,7 @@ export default async function handler(req, res) {
             .eq('venue_id', venue_id)
             .eq('membership_status', 'active')
             .order('visit_count', { ascending: false })
-            .limit(parseInt(limit));
+            .limit(Math.min(parseInt(limit) || 50, 500));
 
         // ── 3. Build ranked list ──
         const ranked = (members || []).map(m => {
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
                 .eq('membership_status', 'active')
                 .gt('visit_count', 0)
                 .order('visit_count', { ascending: false })
-                .limit(parseInt(limit));
+                .limit(Math.min(parseInt(limit) || 50, 500));
 
             const ranked = (members || []).map((m, i) => ({
                 member_id: m.id,

@@ -13,7 +13,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -69,7 +69,7 @@ async function submitRating(req, res) {
     return res.status(201).json({ success: true, data: { rating } });
   } catch (error) {
     console.error('Submit rating error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }
 
@@ -88,8 +88,7 @@ async function getVibes(req, res) {
       .select('table_number, action_level, friendliness, pace, game_type, stakes, comment, created_at')
       .eq('venue_id', venue_id)
       .gte('created_at', since)
-      .order('created_at', { ascending: false })
-          .limit(100);
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
 
@@ -143,6 +142,6 @@ async function getVibes(req, res) {
     });
   } catch (error) {
     console.error('Get vibes error:', error);
-    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
+    return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: 'Internal server error' } });
   }
 }

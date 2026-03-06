@@ -9,7 +9,7 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 const VALID_REQUEST_TYPES = ['food', 'drink', 'chips', 'table_change', 'cashout', 'floor', 'other'];
@@ -58,7 +58,7 @@ async function handleGet(req, res) {
         )
       `)
       .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .limit(Math.min(parseInt(limit) || 50, 500));
 
     if (venue_id) {
       query = query.eq('venue_id', venue_id);

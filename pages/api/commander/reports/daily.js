@@ -37,7 +37,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay)
-          .limit(100);
 
     if (gamesError) throw gamesError;
 
@@ -48,7 +47,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('check_in_at', startOfDay)
       .lte('check_in_at', endOfDay)
-          .limit(100);
 
     if (sessionsError) throw sessionsError;
 
@@ -59,7 +57,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('scheduled_start', startOfDay)
       .lte('scheduled_start', endOfDay)
-          .limit(100);
 
     if (tournamentsError) throw tournamentsError;
 
@@ -70,7 +67,6 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .gte('created_at', startOfDay)
       .lte('created_at', endOfDay)
-          .limit(100);
 
     if (waitlistError) throw waitlistError;
 
@@ -144,6 +140,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Daily report error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
