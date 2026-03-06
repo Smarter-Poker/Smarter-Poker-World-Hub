@@ -241,6 +241,15 @@ export default function VirtualSandbox() {
     }
   }, []);
 
+  // BUS LISTENER — broadcast sandbox data changes to other pages
+  useEffect(() => {
+    if (results && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pa-sandbox-updated', {
+        detail: { heroPosition, heroHand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`, results: !!results }
+      }));
+    }
+  }, [results, heroPosition, heroHand]);
+
   const dismissTour = () => { setShowTour(false); localStorage.setItem('sandbox-tour-seen', 'true'); };
 
   // All used cards
@@ -321,11 +330,31 @@ export default function VirtualSandbox() {
   };
 
   // Save bookmark (Feature #5)
+  const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
   const saveBookmark = async () => {
     const user = getAuthUser();
-    if (!user) return alert('Login required to save bookmarks');
+    if (!user) {
+      // Fallback: save to localStorage for non-logged-in users
+      try {
+        const bookmarkData = {
+          id: Date.now(),
+          hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+          hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
+          board_flop: board.flop.join(','), board_turn: board.turn, board_river: board.river,
+          label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
+          created_at: new Date().toISOString(),
+        };
+        const existing = JSON.parse(localStorage.getItem('sandbox-bookmarks') || '[]');
+        existing.unshift(bookmarkData);
+        localStorage.setItem('sandbox-bookmarks', JSON.stringify(existing.slice(0, 50)));
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus(null), 2000);
+      } catch (e) { console.error('Local bookmark save error:', e); }
+      return;
+    }
     try {
-      await supabase.from('sandbox_bookmarks').insert({
+      setSaveStatus('saving');
+      const { error } = await supabase.from('sandbox_bookmarks').insert({
         user_id: user.id,
         hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
         hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
@@ -333,8 +362,32 @@ export default function VirtualSandbox() {
         villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
         label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
       });
-      alert('Bookmark saved!');
-    } catch (e) { console.error('Bookmark save error:', e); }
+      if (error) {
+        console.warn('[Sandbox] Bookmark save error (table may not exist yet):', error.message);
+        // Fallback to localStorage
+        const bookmarkData = {
+          id: Date.now(), hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+          hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
+          board_flop: board.flop.join(','), label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'}`,
+          created_at: new Date().toISOString(),
+        };
+        const existing = JSON.parse(localStorage.getItem('sandbox-bookmarks') || '[]');
+        existing.unshift(bookmarkData);
+        localStorage.setItem('sandbox-bookmarks', JSON.stringify(existing.slice(0, 50)));
+        setSaveStatus('saved');
+      } else {
+        setSaveStatus('saved');
+        // 📢 Dispatch BUS LISTENER update for bookmark changes
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('pa-data-updated'));
+        }
+      }
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch (e) {
+      console.error('Bookmark save error:', e);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus(null), 2000);
+    }
   };
 
   // Run analysis
