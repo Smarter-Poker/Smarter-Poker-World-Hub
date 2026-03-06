@@ -191,7 +191,7 @@ export default function UnionGames() {
       supabase.removeChannel(tableChannel);
       clearInterval(poll);
     };
-  }, [unionId, user, clubs, tab, loadTournaments, loadTables]);
+  }, [unionId, user, clubs.length, tab, loadTournaments, loadTables]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -287,7 +287,7 @@ export default function UnionGames() {
       {/* Main tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${FB.border}`, background: FB.card }}>
         {[{ id: 'tournaments', label: 'Tournaments' }, { id: 'cash', label: 'Cash Games' }].map(t => (
-          <button key={t.id} onClick={() => { setTab(t.id); }}
+          <button key={t.id} onClick={() => { setTab(t.id); setSelectedTournament(null); }}
             style={{
               flex: 1, padding: '12px 0', background: 'transparent', border: 'none',
               borderBottom: tab === t.id ? `3px solid ${FB.primary}` : '3px solid transparent',
@@ -300,7 +300,7 @@ export default function UnionGames() {
       <div style={{ display: 'flex', gap: 8, padding: '12px 16px', overflowX: 'auto' }}>
         {tab === 'tournaments' ? (
           ['upcoming', 'running', 'past'].map(f => (
-            <button key={f} onClick={() => setSubTab(f)}
+            <button key={f} onClick={() => { setSubTab(f); setSelectedTournament(null); }}
               style={{
                 padding: '6px 16px', borderRadius: 20, border: `1px solid ${subTab === f ? FB.primary : FB.border}`,
                 background: subTab === f ? FB.primary : FB.card, color: subTab === f ? '#fff' : FB.dim,

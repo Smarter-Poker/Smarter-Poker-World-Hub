@@ -176,6 +176,7 @@ export default function UnionDashboard() {
                 const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
+                if (!res.ok) return; // Skip update on error responses
                 const data = await res.json();
                 if (data.success) setDashboard(data);
             } catch (e) { console.error('[union-dashboard:poll]', e); }
