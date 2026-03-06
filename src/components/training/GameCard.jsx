@@ -226,46 +226,62 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                 {game.name}
             </h3>
 
-            {/* PROGRESS BAR — Shows Level X/10 */}
+            {/* PROGRESS RING — Circular animated progress */}
             {!isMastered && (
                 <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 12,
+                    marginTop: 8,
                     width: '100%',
-                    maxWidth: 200,
-                    marginTop: 6,
                 }}>
-                    {/* Progress Label */}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontSize: 10,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.7)',
-                        marginBottom: 4,
-                    }}>
-                        <span>Level {currentLevel}/{maxLevel}</span>
-                        <span>{Math.round(progressPercent)}%</span>
+                    {/* SVG Ring */}
+                    <div style={{ position: 'relative', width: 34, height: 34 }}>
+                        <svg width="34" height="34" viewBox="0 0 36 36" style={{ transform: 'rotate(-90deg)' }}>
+                            {/* Track */}
+                            <circle
+                                cx="18" cy="18" r="15"
+                                fill="none"
+                                stroke="rgba(255,255,255,0.1)"
+                                strokeWidth="3"
+                            />
+                            {/* Fill */}
+                            <motion.circle
+                                cx="18" cy="18" r="15"
+                                fill="none"
+                                stroke={hasPlayed ? '#4CAF50' : '#00D4FF'}
+                                strokeWidth="3"
+                                strokeDasharray="94.2" // 2 * pi * 15
+                                initial={{ strokeDashoffset: 94.2 }}
+                                animate={{ strokeDashoffset: 94.2 - (94.2 * progressPercent) / 100 }}
+                                transition={{ duration: 1, delay: index * 0.05, ease: 'easeOut' }}
+                                strokeLinecap="round"
+                            />
+                        </svg>
+                        {/* Percent text inside ring */}
+                        <div style={{
+                            position: 'absolute',
+                            top: 0, left: 0, right: 0, bottom: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 9, fontWeight: 800, color: '#fff',
+                        }}>
+                            {Math.round(progressPercent)}%
+                        </div>
                     </div>
 
-                    {/* Progress Track */}
+                    {/* Level Text */}
                     <div style={{
-                        width: '100%',
-                        height: 6,
-                        background: 'rgba(255,255,255,0.1)',
-                        borderRadius: 3,
-                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
                     }}>
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${progressPercent}%` }}
-                            transition={{ duration: 0.5, delay: index * 0.05 }}
-                            style={{
-                                height: '100%',
-                                background: hasPlayed
-                                    ? 'linear-gradient(90deg, #4CAF50, #8BC34A)'
-                                    : 'linear-gradient(90deg, #00D4FF, #0099CC)',
-                                borderRadius: 3,
-                            }}
-                        />
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+                            Progress
+                        </span>
+                        <span style={{ fontSize: 12, color: '#fff', fontWeight: 800 }}>
+                            Level {currentLevel} <span style={{ color: 'rgba(255,255,255,0.3)' }}>/ {maxLevel}</span>
+                        </span>
                     </div>
                 </div>
             )}

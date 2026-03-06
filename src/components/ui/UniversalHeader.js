@@ -174,6 +174,7 @@ export default function UniversalHeader({
                                     name: full_name || username
                                 }));
                                 setIsVip(!!is_vip);
+                                try { localStorage.setItem('sp-vip-status', String(!!is_vip)); } catch (e) { }
                                 if (typeof result.notificationCount === 'number') {
                                     setNotificationCount(result.notificationCount);
                                 }
@@ -334,6 +335,7 @@ export default function UniversalHeader({
                 if (result.success && result.profile) {
                     setStats({ diamonds: result.profile.diamonds });
                     setIsVip(!!result.profile.is_vip);
+                    try { localStorage.setItem('sp-vip-status', String(!!result.profile.is_vip)); } catch (e) { }
                     setUser(prev => ({
                         ...prev,
                         avatar: result.profile.avatar_url || prev?.avatar,

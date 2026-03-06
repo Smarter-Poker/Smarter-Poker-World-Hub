@@ -2341,55 +2341,121 @@ export default function PokerNearMePage() {
                         </div>
                     </div>
 
-                    {/* ═══ 6-TAB NAVIGATION ═══ */}
-                    <nav className="pnm-tab-nav">
-                        {[
-                            { key: 'venues', label: 'Venues', icon: '📍' },
-                            { key: 'events', label: 'Events', icon: '📅' },
-                            { key: 'live', label: 'Live', icon: '🔴', badge: liveGames.length > 0 ? liveGames.length : null },
-                            { key: 'map', label: 'Map', icon: '🗺️' },
-                            { key: 'saved', label: 'Saved', icon: '❤️', badge: Object.keys(favorites).filter(k => favorites[k]).length > 0 ? Object.keys(favorites).filter(k => favorites[k]).length : null },
-                            { key: 'more', label: 'More', icon: '⋯' },
-                        ].map(tab => (
-                            <button
-                                key={tab.key}
-                                className={'pnm-tab' + (activeTab === tab.key || (tab.key === 'more' && activeTab.startsWith('_')) ? ' active' : '')}
-                                onClick={() => setActiveTab(tab.key)}
-                            >
-                                <span className="pnm-tab-icon">{tab.icon}</span>
-                                <span className="pnm-tab-label">{tab.label}</span>
-                                {tab.badge && <span className="pnm-tab-badge">{tab.badge}</span>}
-                            </button>
-                        ))}
-                    </nav>
-
-                    {/* ═══ EVENTS SUB-TAB ROW ═══ */}
-                    {activeTab === 'events' && (
-                        <div className="pnm-sub-tabs">
-                            {[
-                                { key: 'tours', label: 'Tours' },
-                                { key: 'series', label: 'Series' },
-                                { key: 'daily', label: 'Daily' },
-                                { key: 'calendar', label: 'Calendar' },
-                            ].map(sub => (
-                                <button
-                                    key={sub.key}
-                                    className={'pnm-sub-tab' + (activeEventSub === sub.key ? ' active' : '')}
-                                    onClick={() => setActiveEventSub(sub.key)}
-                                >
-                                    {sub.label}
-                                </button>
-                            ))}
+                    {/* ═══ HIGH-FIDELITY BENTO DASHBOARD ═══ */}
+                    <div className="pnm-bento-grid">
+                        {/* VENUES (Large) */}
+                        <div className={'bento-tile bento-large' + (activeTab === 'venues' ? ' active' : '')} onClick={() => setActiveTab('venues')}>
+                            <img src="/images/pnm-redesign/pnm_tile_search_venues.png" alt="Venues" className="bento-tile-bg" />
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                                <span className="bento-label">Search Venues</span>
+                            </div>
                         </div>
-                    )}
 
-                    {/* Back to More button for sub-pages */}
-                    {activeTab.startsWith('_') && (
-                        <button className="pnm-back-btn" onClick={() => setActiveTab('more')}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
-                            Back to More
-                        </button>
-                    )}
+                        {/* NEAR ME NOW (Large) */}
+                        <div className={'bento-tile bento-large' + (activeTab === '_nearme' ? ' active' : '')} onClick={() => setActiveTab('_nearme')}>
+                            <img src="/images/pnm-redesign/pnm_tile_near_me_now.png" alt="Near Me" className="bento-tile-bg" />
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>
+                                <span className="bento-label" style={{ color: '#4ade80' }}>Near Me Now</span>
+                            </div>
+                        </div>
+
+                        {/* LIVE GAMES (Wide) */}
+                        <div className={'bento-tile bento-wide' + (activeTab === 'live' ? ' active' : '')} onClick={() => setActiveTab('live')}>
+                            <img src="/images/pnm-redesign/pnm_tile_live_games.png" alt="Live Games" className="bento-tile-bg" />
+                            <div className="bento-content">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" fill="#ef4444" /></svg>
+                                    <span className="bento-label" style={{ color: '#fca5a5' }}>Live Games</span>
+                                    {liveGames.length > 0 && <span style={{ background: '#ef4444', color: '#fff', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', fontWeight: 800 }}>{liveGames.length}</span>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* TRIP PLANNER (Wide) */}
+                        <div className={'bento-tile bento-wide' + (activeTab === '_trip' ? ' active' : '')} onClick={() => setActiveTab('_trip')}>
+                            <img src="/images/pnm-redesign/pnm_tile_trip_planner.png" alt="Trip Planner" className="bento-tile-bg" />
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+                                <span className="bento-label" style={{ color: '#d8b4fe' }}>Trip Planner</span>
+                            </div>
+                        </div>
+
+                        {/* MAP */}
+                        <div className={'bento-tile' + (activeTab === 'map' ? ' active' : '')} onClick={() => setActiveTab('map')}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /></svg>
+                                <span className="bento-label">Map</span>
+                            </div>
+                        </div>
+
+                        {/* TOURS */}
+                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'tours' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('tours'); }}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                                <span className="bento-label">Tours</span>
+                            </div>
+                        </div>
+
+                        {/* SERIES */}
+                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'series' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('series'); }}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                                <span className="bento-label">Series</span>
+                            </div>
+                        </div>
+
+                        {/* DAILY */}
+                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'daily' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('daily'); }}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                                <span className="bento-label">Daily</span>
+                            </div>
+                        </div>
+
+                        {/* CALENDAR */}
+                        <div className={'bento-tile' + (activeTab === 'events' && activeEventSub === 'calendar' ? ' active' : '')} onClick={() => { setActiveTab('events'); setActiveEventSub('calendar'); }}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" /></svg>
+                                <span className="bento-label">Calendar</span>
+                            </div>
+                        </div>
+
+                        {/* SAVED */}
+                        <div className={'bento-tile' + (activeTab === 'saved' ? ' active' : '')} onClick={() => setActiveTab('saved')}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
+                                <span className="bento-label" style={{ color: '#f472b6' }}>Saved</span>
+                            </div>
+                        </div>
+
+                        {/* ALERTS */}
+                        <div className={'bento-tile' + (activeTab === '_alerts' ? ' active' : '')} onClick={() => setActiveTab('_alerts')}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+                                <span className="bento-label" style={{ color: '#facc15' }}>Alerts</span>
+                            </div>
+                        </div>
+
+                        {/* FRIENDS */}
+                        <div className={'bento-tile' + (activeTab === '_friends' ? ' active' : '')} onClick={() => setActiveTab('_friends')}>
+                            <div className="bento-content">
+                                <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                                <span className="bento-label" style={{ color: '#60a5fa' }}>Friends</span>
+                            </div>
+                        </div>
+
+                        {/* COST CALCULATOR */}
+                        <div className={'bento-tile bento-wide' + (activeTab === '_cost' ? ' active' : '')} onClick={() => setActiveTab('_cost')}>
+                            <div className="bento-content">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <svg className="bento-icon" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                                    <span className="bento-label" style={{ color: '#34d399' }}>Cost Calculator</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Distance / Geofence notices (below HUD) */}
                     {(userLocation || nearestDistance) && (
@@ -2749,168 +2815,104 @@ export default function PokerNearMePage() {
                         color: #d4a853;
                     }
 
-                    /* ═══ 6-TAB NAVIGATION ═══ */
-                    .pnm-tab-nav {
-                        display: flex;
-                        justify-content: space-around;
-                        padding: 4px 8px;
-                        margin: 4px 16px 0;
-                        max-width: 720px;
-                        margin-left: auto;
-                        margin-right: auto;
-                        background: rgba(15, 23, 42, 0.7);
-                        border: 1px solid rgba(255,255,255,0.08);
-                        border-radius: 14px;
-                        backdrop-filter: blur(10px);
-                        -webkit-backdrop-filter: blur(10px);
-                        position: sticky;
-                        top: 48px;
-                        z-index: 50;
-                    }
-                    .pnm-tab {
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 2px;
-                        padding: 10px 4px 8px;
-                        border-radius: 10px;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        position: relative;
-                        min-width: 0;
-                    }
-                    .pnm-tab.active {
-                        background: rgba(212, 168, 83, 0.15);
-                    }
-                    .pnm-tab.active::after {
-                        content: '';
-                        position: absolute;
-                        bottom: 2px;
-                        left: 25%;
-                        right: 25%;
-                        height: 3px;
-                        background: linear-gradient(90deg, #d4a853, #f7b928);
-                        border-radius: 2px;
-                    }
-                    .pnm-tab-icon {
-                        font-size: 18px;
-                        line-height: 1;
-                    }
-                    .pnm-tab-label {
-                        font-size: 10px;
-                        font-weight: 600;
-                        color: rgba(255,255,255,0.5);
-                        text-transform: uppercase;
-                        letter-spacing: 0.3px;
-                    }
-                    .pnm-tab.active .pnm-tab-label {
-                        color: #d4a853;
-                    }
-                    .pnm-tab-badge {
-                        position: absolute;
-                        top: 3px;
-                        right: 8px;
-                        background: #ef4444;
-                        color: #fff;
-                        font-size: 9px;
-                        font-weight: 700;
-                        padding: 1px 5px;
-                        border-radius: 8px;
-                        min-width: 16px;
-                        text-align: center;
-                        animation: livePulse 2s ease-in-out infinite;
-                    }
-
-                    /* ═══ EVENTS SUB-TABS ═══ */
-                    .pnm-sub-tabs {
-                        display: flex;
-                        justify-content: center;
-                        gap: 6px;
-                        padding: 8px 16px;
-                        max-width: 720px;
+                    /* ═══ HIGH-FIDELITY BENTO DASHBOARD ═══ */
+                    .pnm-bento-grid {
+                        display: grid;
+                        grid-template-columns: repeat(4, 1fr);
+                        grid-auto-rows: 90px;
+                        gap: 12px;
+                        padding: 0 16px 24px;
+                        max-width: 800px;
                         margin: 0 auto;
                     }
-                    .pnm-sub-tab {
-                        padding: 8px 18px;
-                        border-radius: 20px;
-                        border: 1px solid rgba(255,255,255,0.12);
-                        background: rgba(15, 23, 42, 0.5);
-                        color: rgba(255,255,255,0.6);
-                        font-size: 13px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .pnm-sub-tab:hover {
-                        background: rgba(15, 23, 42, 0.7);
-                    }
-                    .pnm-sub-tab.active {
-                        background: rgba(212, 168, 83, 0.2);
-                        border-color: rgba(212, 168, 83, 0.5);
-                        color: #d4a853;
-                        font-weight: 600;
+                    @media (max-width: 600px) {
+                        .pnm-bento-grid {
+                            grid-template-columns: repeat(2, 1fr);
+                            grid-auto-rows: 100px;
+                        }
+                        .bento-large {
+                            grid-column: span 2 !important;
+                        }
                     }
 
-                    /* ═══ MORE GRID ═══ */
-                    .more-grid {
-                        display: grid;
-                        grid-template-columns: repeat(2, 1fr);
-                        gap: 12px;
-                        padding: 16px 0;
-                    }
-                    .more-item {
+                    .bento-tile {
+                        position: relative;
+                        border-radius: 16px;
+                        overflow: hidden;
+                        background: rgba(30, 41, 59, 0.6);
+                        backdrop-filter: blur(12px);
+                        -webkit-backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
                         display: flex;
                         flex-direction: column;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 24px 16px;
-                        background: rgba(15, 23, 42, 0.6);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 14px;
+                        justify-content: flex-end;
+                        padding: 12px;
                         cursor: pointer;
-                        transition: all 0.2s;
-                        text-align: center;
+                        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
                     }
-                    .more-item:hover {
-                        background: rgba(15, 23, 42, 0.8);
-                        border-color: rgba(212, 168, 83, 0.3);
-                        transform: translateY(-1px);
+                    .bento-tile:active {
+                        transform: scale(0.96);
                     }
-                    .more-icon {
-                        font-size: 28px;
+                    .bento-tile.active {
+                        border-color: rgba(212, 168, 83, 0.8);
+                        box-shadow: 0 0 20px rgba(212, 168, 83, 0.3), inset 0 0 15px rgba(212,168,83,0.1);
                     }
-                    .more-label {
-                        font-size: 14px;
-                        font-weight: 600;
-                        color: #fff;
-                    }
-                    .more-desc {
-                        font-size: 11px;
-                        color: rgba(255,255,255,0.4);
+                    .bento-tile::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(15,23,42,0.95) 100%);
+                        z-index: 1;
+                        border-radius: 16px;
                     }
 
-                    /* ═══ BACK BUTTON ═══ */
-                    .pnm-back-btn {
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 8px 16px;
-                        margin: 8px 0;
-                        background: rgba(15, 23, 42, 0.6);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        color: rgba(255,255,255,0.7);
-                        font-size: 13px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
+                    .bento-tile-bg {
+                        position: absolute;
+                        inset: 0;
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                        opacity: 0.5;
+                        transition: opacity 0.4s ease, transform 0.6s ease;
                     }
-                    .pnm-back-btn:hover {
-                        background: rgba(15, 23, 42, 0.8);
-                        color: #d4a853;
+                    .bento-tile:hover .bento-tile-bg {
+                        opacity: 0.8;
+                        transform: scale(1.08);
+                    }
+
+                    .bento-content {
+                        position: relative;
+                        z-index: 2;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 6px;
+                    }
+
+                    .bento-icon {
+                        width: 26px;
+                        height: 26px;
+                        color: rgba(255,255,255,0.8);
+                        filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
+                    }
+
+                    .bento-label {
+                        color: #fff;
+                        font-size: 13px;
+                        font-weight: 700;
+                        letter-spacing: 0.5px;
+                        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+                    }
+
+                    .bento-large { 
+                        grid-column: span 2; 
+                        grid-row: span 2; 
+                    }
+                    .bento-wide { 
+                        grid-column: span 2; 
+                    }
+                    .bento-tall { 
+                        grid-row: span 2; 
                     }
 
 

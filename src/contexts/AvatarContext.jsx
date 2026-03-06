@@ -23,7 +23,12 @@ export function AvatarProvider({ children }) {
     const [user, setUser] = useState(null);
     const [avatar, setAvatar] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [isVip, setIsVip] = useState(false);
+    const [isVip, setIsVip] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return localStorage.getItem('sp-vip-status') === 'true'; } catch (e) { return false; }
+        }
+        return false;
+    });
     // CRITICAL: Track auth initialization to prevent race condition
     // This stays true until INITIAL_SESSION event fires from Supabase
     const [initializing, setInitializing] = useState(true);
@@ -69,8 +74,13 @@ export function AvatarProvider({ children }) {
             console.error('Error fetching VIP status:', err);
             // 🛡️ BULLETPROOF: Fallback to localStorage on any error
             try {
-                const localUser = getAuthUser();
-                setIsVip(localUser?.user_metadata?.is_vip || false);
+                const cachedVip = localStorage.getItem('sp-vip-status') === 'true';
+                if (cachedVip) {
+                    setIsVip(true);
+                } else {
+                    const localUser = getAuthUser();
+                    setIsVip(localUser?.user_metadata?.is_vip || false);
+                }
             } catch {
                 setIsVip(false);
             }
@@ -158,7 +168,9 @@ export function AvatarProvider({ children }) {
                     // Use the existing session IMMEDIATELY — don't block on refresh
                     console.log('[AvatarContext] Session found, using immediately');
                     setUser(session.user);
-                    await ensureUserProfile(session.user, session);
+                    
+                    // Run initialization steps concurrently, don't wait for profile generation to check VIP
+                    ensureUserProfile(session.user, session).catch(e => console.error('[AvatarContext] ensureUserProfile error:', e));
                     await fetchVipStatus(session.user.id);
 
                     // Background refresh — non-blocking, won't affect UI if it fails

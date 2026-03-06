@@ -682,6 +682,10 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Video Library', '/hub/video-library'),
             createMenuItem.navigation('🧮 Odds Calculator', '/hub/poker-tools'),
             createMenuItem.divider(),
+            createMenuItem.section('Club Pages'),
+            createMenuItem.navigation(state.clubPageCreated ? 'My Club Page' : 'Add Club Page', state.clubPageCreated ? '/hub/social-media?view=club-pages' : '/hub/social-media?createPage=true'),
+            createMenuItem.navigation('Browse Club Pages', '/hub/social-media?view=club-pages'),
+            createMenuItem.divider(),
             { type: 'action', label: 'Invite Friends', openInviteModal: true, closeOnClick: false },
             createMenuItem.navigation('📲 Install App', '/hub/install')
         ],

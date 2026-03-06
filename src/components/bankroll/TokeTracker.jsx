@@ -301,9 +301,11 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     }, []);
 
     const fireDownNotification = useCallback((lastDown) => {
-        if (tokePrefs.downTimerAlerts === false) return; // 🛡️ Respect user preference
+        // 1. ALWAYS fire the in-app prompt regardless of system notification settings
+        handleDoubleDownPrompt(lastDown);
 
-        const downLabel = DOWN_TYPE_LABELS[lastDown.down_type] || 'dealing';
+        if (tokePrefs.downTimerAlerts === false) return; // 🛡️ Respect user preference for OS Push Alerts
+
         let message = '';
         let title = '⏰ Down Timer';
 
@@ -319,10 +321,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             message = `Still dealing the same table${tableInfo}?`;
         }
 
-        // Always fire the in-app prompt
-        handleDoubleDownPrompt(lastDown);
-
-        // Also try browser notification as a bonus (ultra-safe for watchOS/iOS WebViews)
+        // 2. Try browser notification as a bonus (ultra-safe for watchOS/iOS WebViews)
         try {
             if (typeof window !== 'undefined' && 'Notification' in window) {
                 let perm;
@@ -338,9 +337,9 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                 }
             }
         } catch (e) {
-            // Silently fail — the in-app prompt is the primary mechanism
+            // Silently fail if blocked by sandbox
         }
-    }, []);
+    }, [tokePrefs.downTimerAlerts, handleDoubleDownPrompt]);
 
     const [showDoubleDownPrompt, setShowDoubleDownPrompt] = useState(false);
     const [promptDown, setPromptDown] = useState(null);
@@ -413,7 +412,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
         } catch (err) {
             console.warn('[TokeTracker] Notification permission request blocked/unavailable:', err);
         }
-    }, []);
+    }, [tokePrefs.shiftNotifications, tokePrefs.downTimerAlerts]);
 
     // ── GIG CRUD Handlers ──
     const handleCreateGig = async (e) => {
@@ -422,12 +421,24 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             toast.error('Please select or enter a venue');
             return;
         }
-        if (!userId) {
+
+        // Bulletproof fallback: manually check session if prop is falsy
+        let actualUserId = userId;
+        if (!actualUserId) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                actualUserId = session?.user?.id;
+            } catch (err) {
+                console.warn('[TokeTracker] session fallback check failed:', err);
+            }
+        }
+
+        if (!actualUserId) {
             toast.error('You must be logged in to create an event', 5000);
             return;
         }
         try {
-            await createGig(userId, {
+            await createGig(actualUserId, {
                 ...newGig,
                 hourly_rate: parseFloat(newGig.hourly_rate) || 0,
             });
@@ -2162,7 +2173,7 @@ const styles = {
     },
     formActions: { display: 'flex', gap: 10, marginTop: 16 },
     formSubmitBtn: {
-        background: '#f59e0b', color: '#000', border: 'none',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)', color: '#fff', border: 'none',
         borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', flex: 1,
     },
     formCancelBtn: {

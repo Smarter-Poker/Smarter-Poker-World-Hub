@@ -1071,6 +1071,36 @@ export default function TrainingPage() {
                             gameCount={filteredGames.length}
                         />
 
+                        {/* F15: Session Recap & Jarvis Recommendations */}
+                        {userId && activeFilter === 'ALL' && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '0 16px 16px', '@media (max-width: 768px)': { gridTemplateColumns: '1fr' } }}>
+                                {/* Placeholder for Session Recap; can be dynamically hydrated later */}
+                                <div style={{
+                                    background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.05), transparent)',
+                                    borderRadius: 16, padding: 16, border: '1px solid rgba(34, 197, 94, 0.2)'
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                        <span style={{ fontSize: 24 }}>📊</span>
+                                        <span style={{ fontSize: 16, fontWeight: 700, color: '#4ade80' }}>Last Session Recap</span>
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 12 }}>
+                                        "Strong performance in MTTS, but work on Big Blind defense."
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12 }}>
+                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 8 }}>
+                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>Mistakes</div>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24' }}>3</div>
+                                        </div>
+                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 8 }}>
+                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>EV Loss</div>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444' }}>-1.2</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <JarvisRecommendations userId={userId} onGameClick={handleGameClick} />
+                            </div>
+                        )}
+
                         {/* Game Lanes */}
                         <div className="lanes-container-responsive" style={styles.lanesContainer}>
 

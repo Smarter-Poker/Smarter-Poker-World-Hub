@@ -2059,10 +2059,9 @@ export default function SocialMediaPage() {
         if (router.query.createPage === 'true') {
             setShowClubPages(true);
             router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true });
-            // Small delay to let state settle, then open create modal if Commander
+            // Small delay to let state settle, then open create modal
             setTimeout(() => {
-                const stored = localStorage.getItem('commander_staff');
-                if (stored) setShowCreatePage(true);
+                setShowCreatePage(true);
             }, 500);
         }
 
@@ -3024,19 +3023,54 @@ export default function SocialMediaPage() {
                         <Image src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
-                    {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
-                    <div onClick={() => { setShowClubPages(true); setSidebarOpen(false); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} style={{
+                    {/* Club Pages Dynamic Logic - Add Club Page or My Club Page */}
+                    {myClubPage ? (
+                        <div onClick={() => { setShowClubPages(true); setShowPageDashboard(true); setSidebarOpen(false); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: 'rgba(24, 119, 242, 0.05)', borderRadius: 8, textDecoration: 'none', border: '1px solid #1877F2', cursor: 'pointer'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.2" />
+                                <rect x="2" y="3" width="20" height="7" rx="2" fill="#1877F2" />
+                                <circle cx="8" cy="14" r="2" fill="#1877F2" />
+                                <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" />
+                                <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.6" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: '#1877F2' }}>My Club Page</span>
+                        </div>
+                    ) : (
+                        <div onClick={() => {
+                            setSidebarOpen(false);
+                            if (hasCommander) {
+                                setShowCreatePage(true);
+                            } else {
+                                alert("You must be an active Club Commander (Owner or Admin) to create a Club Page.");
+                            }
+                        }} style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
+                            background: '#fff', borderRadius: 8, textDecoration: 'none', border: 'dashed 2px #dadde1', cursor: 'pointer'
+                        }}>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
+                                <circle cx="12" cy="12" r="10" stroke="#65676B" strokeWidth="2" strokeDasharray="4 4" />
+                                <path d="M12 8v8M8 12h8" stroke="#65676B" strokeWidth="2" strokeLinecap="round" />
+                            </svg>
+                            <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Add Club Page</span>
+                        </div>
+                    )}
+
+                    {/* Browse Club Pages (Generic) */}
+                    <div onClick={() => { setShowClubPages(true); setShowPageDashboard(false); setSidebarOpen(false); router.replace('/hub/social-media?view=club-pages', undefined, { shallow: true }); }} style={{
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1', cursor: 'pointer'
                     }}>
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ marginBottom: 8 }}>
-                            <rect x="2" y="3" width="20" height="18" rx="2" fill="#1877F2" opacity="0.15" />
-                            <rect x="2" y="3" width="20" height="7" rx="2" fill="#1877F2" opacity="0.3" />
-                            <circle cx="8" cy="14" r="2" fill="#1877F2" />
-                            <rect x="12" y="13" width="8" height="2" rx="1" fill="#1877F2" opacity="0.6" />
-                            <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#1877F2" opacity="0.3" />
+                            <rect x="2" y="3" width="20" height="18" rx="2" fill="#65676B" opacity="0.15" />
+                            <rect x="2" y="3" width="20" height="7" rx="2" fill="#65676B" opacity="0.3" />
+                            <circle cx="8" cy="14" r="2" fill="#65676B" />
+                            <rect x="12" y="13" width="8" height="2" rx="1" fill="#65676B" opacity="0.6" />
+                            <rect x="12" y="17" width="5" height="1.5" rx="0.75" fill="#65676B" opacity="0.3" />
                         </svg>
-                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Club Pages</span>
+                        <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Browse Club Pages</span>
                     </div>
                     {/* GTO Training - Custom AI icon */}
                     <Link href="/hub/gto-trainer" onClick={() => setSidebarOpen(false)} style={{
