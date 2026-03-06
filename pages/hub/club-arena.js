@@ -258,10 +258,7 @@ export default function ClubArenaPage() {
     const [sharkClubStats, setSharkClubStats] = useState({ totalMembers: 0, clubLevel: 1, activePlayers: 0 });
 
     useEffect(() => {
-        const controller = new AbortController();
         loadUserData();
-        fetchSharkClubStats();
-        return () => controller.abort();
     }, []);
 
     // Fetch real stats from Supabase for the Shark Club card
@@ -310,33 +307,22 @@ export default function ClubArenaPage() {
     }
 
     async function loadUserData() {
-        setIsLoading(true);
         try {
-            let authUser = null;
-            if (typeof window !== 'undefined') {
-                try {
-                    const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                    if (explicitAuth) {
-                        const tokenData = JSON.parse(explicitAuth);
-                        authUser = tokenData?.user || null;
-                    }
-                    if (!authUser) {
-                        const sbKeys = Object.keys(localStorage).filter(
-                            k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                        );
-                        if (sbKeys.length > 0) {
-                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                            authUser = tokenData?.user || null;
-                        }
-                    }
-                } catch (e) {
-                }
-            }
+            // Fast auth via Supabase session (no localStorage digging)
+            const { data: { session } } = await supabase.auth.getSession();
+            const authUser = session?.user || null;
 
             if (authUser) {
                 setUser(authUser);
-                await loadClubs(authUser.id);
-                await loadUnions(authUser.id);
+                // Parallel load: clubs, unions, AND shark stats all at once
+                await Promise.all([
+                    loadClubs(authUser.id),
+                    loadUnions(authUser.id),
+                    fetchSharkClubStats(),
+                ]);
+            } else {
+                // No auth — still load shark stats for visitors
+                await fetchSharkClubStats();
             }
         } catch (e) {
             console.error('[ClubArena] Load error:', e);
@@ -430,7 +416,7 @@ export default function ClubArenaPage() {
                 description="Create And Join Private Online Poker Clubs. Real-time Gameplay, Tournaments, Hand Histories, Player Stats, And Club Management."
                 canonical="/hub/club-arena"
             >
-                
+
             </SEOHead>
 
             <div style={S.pageWrapper}>
@@ -526,7 +512,7 @@ export default function ClubArenaPage() {
                                 >
                                     <div>
                                         <div style={{ fontSize: 18, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>
-                                             {union.name}
+                                            {union.name}
                                         </div>
                                         <div style={{ fontSize: 12, color: '#B0B3B8' }}>
                                             {union.adminRole === 'union_lead' ? 'Union Lead' : 'Union Admin'}
@@ -712,7 +698,7 @@ const S = {
         textAlign: 'center',
     },
     statValue: {
-        fontFamily: "var(--font-inter), 'Roboto', sans-serif" ,
+        fontFamily: "var(--font-inter), 'Roboto', sans-serif",
         fontSize: '24px',
         fontWeight: 700,
         letterSpacing: '1px',
@@ -720,7 +706,7 @@ const S = {
         textShadow: '0 0 4px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 212, 255, 0.9), 0 0 20px rgba(0, 150, 255, 0.7)',
     },
     statValueLarge: {
-        fontFamily: "var(--font-inter), 'Roboto', sans-serif" ,
+        fontFamily: "var(--font-inter), 'Roboto', sans-serif",
         fontSize: '56px',
         fontWeight: 700,
         lineHeight: 1,
@@ -730,7 +716,7 @@ const S = {
         textShadow: '0 0 4px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 212, 255, 0.9), 0 0 20px rgba(0, 150, 255, 0.7)',
     },
     statLabel: {
-        fontFamily: "var(--font-inter), 'Roboto', sans-serif" ,
+        fontFamily: "var(--font-inter), 'Roboto', sans-serif",
         fontWeight: 600,
         fontSize: '14px',
         letterSpacing: '0.5px',
