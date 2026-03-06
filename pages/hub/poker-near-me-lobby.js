@@ -193,14 +193,16 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── Deep Link: write URL params on state change ───
+  // Using window.history directly to avoid router.replace re-render cycle
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const params = new URLSearchParams();
     if (activePod) params.set('pod', activePod);
     if (searchQuery) params.set('q', searchQuery);
     const qs = params.toString();
     const newUrl = qs ? `/hub/poker-near-me-lobby?${qs}` : '/hub/poker-near-me-lobby';
-    if (router.asPath !== newUrl) {
-      router.replace(newUrl, undefined, { shallow: true });
+    if (window.location.pathname + window.location.search !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
     }
   }, [activePod, searchQuery]);
 
