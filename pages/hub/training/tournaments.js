@@ -21,9 +21,11 @@ export default function TournamentsPage() {
     const [registering, setRegistering] = useState(null);
 
     // Load auth user once
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         getAuthUser().then(u => setUser(u)).catch(() => { });
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // SWR key includes tab + user so switching tabs is instant on revisit
     const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;

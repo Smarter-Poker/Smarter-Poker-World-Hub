@@ -67,7 +67,10 @@ export default function TDReports() {
         }
     }, [tournamentId, getToken]);
 
-    useEffect(() => { fetchReport(tab); }, [tab, fetchReport]);
+    useEffect(() => {    const _c = new AbortController();
+ fetchReport(tab);
+    return () => _c.abort();
+  }, [tab, fetchReport]);
 
     const exportCSV = () => {
         if (!reportData) return;

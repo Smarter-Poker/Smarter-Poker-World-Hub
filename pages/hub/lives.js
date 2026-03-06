@@ -35,17 +35,20 @@ export default function LivesPage() {
     const videoRefs = useRef({});
 
     // Get auth user for FeatureGate
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const user = getAuthUser();
         if (user) setUserId(user.id);
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // ═══ ACTION GATE: Users can explore/watch, but interactions are gated ═══
     const { guardAction, UpgradePopup } = useFeatureGate('lives');
 
     // Fetch all streams (active lives + recorded)
-    useEffect(() => {
-        const fetchStreams = async () => {
+    useEffect(() => {    const _c = new AbortController();
+
+        const fetchStreams = async(signal) => {
             setLoading(true);
 
             // Get active live streams
@@ -76,7 +79,8 @@ export default function LivesPage() {
         };
 
         fetchStreams();
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // Handle swipe navigation
     const handleTouchStart = (e) => {
@@ -111,7 +115,8 @@ export default function LivesPage() {
     }, [currentIndex, streams.length]);
 
     // Auto-play current video, pause others
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         Object.entries(videoRefs.current).forEach(([idx, video]) => {
             if (video) {
                 if (parseInt(idx) === currentIndex) {
@@ -121,7 +126,8 @@ export default function LivesPage() {
                 }
             }
         });
-    }, [currentIndex]);
+    return () => _c.abort();
+  }, [currentIndex]);
 
     const currentStream = streams[currentIndex];
 
@@ -201,11 +207,13 @@ export default function LivesPage() {
     };
 
     // Reset chat when switching streams
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         setShowChat(false);
         setChatMessages([]);
         setChatText('');
-    }, [currentIndex]);
+    return () => _c.abort();
+  }, [currentIndex]);
 
     return (
         <>

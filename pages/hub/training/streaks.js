@@ -31,9 +31,11 @@ export default function StreaksPage() {
     const [user, setUser] = useState(null);
     const [claiming, setClaiming] = useState(null);
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         getAuthUser().then(u => setUser(u)).catch(() => {});
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
     const { data: swrData, isLoading: loading, mutate: refreshStreak } = useSWR(swrKey, async (url) => {

@@ -26,7 +26,7 @@ export default function DisplayManagement() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async(signal) => {
     try {
       const token = getToken();
       const res = await fetch('/api/commander/tournaments', {
@@ -41,8 +41,10 @@ export default function DisplayManagement() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     fetchData();
+    return () => _c.abort();
   }, [fetchData]);
 
   // Extract venueId for cross-device Supabase sync

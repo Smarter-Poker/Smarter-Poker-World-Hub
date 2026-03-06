@@ -36,21 +36,26 @@ export default function PlayerHomeGamesHub() {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     loadGames();
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (activeTab === 'discover' && discoverGames.length === 0) {
       loadDiscoverGames();
     }
     if (activeTab === 'calendar' && calendarEvents.length === 0) {
       loadCalendarEvents();
     }
+    return () => _c.abort();
   }, [activeTab]);
 
   // Filter games when search or filters change
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     let result = games;
 
     // Search filter
@@ -84,9 +89,10 @@ export default function PlayerHomeGamesHub() {
     }
 
     setFilteredGames(result);
+    return () => _c.abort();
   }, [games, searchQuery, filters]);
 
-  const loadGames = async () => {
+  const loadGames = async(signal) => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -135,7 +141,7 @@ export default function PlayerHomeGamesHub() {
     setTimeout(() => setMessage(null), 4000);
   };
 
-  const loadDiscoverGames = async () => {
+  const loadDiscoverGames = async(signal) => {
     setDiscoverLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -153,7 +159,7 @@ export default function PlayerHomeGamesHub() {
     }
   };
 
-  const loadCalendarEvents = async () => {
+  const loadCalendarEvents = async(signal) => {
     setCalendarLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');

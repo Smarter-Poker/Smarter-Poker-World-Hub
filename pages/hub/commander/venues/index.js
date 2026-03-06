@@ -96,7 +96,8 @@ export default function VenueDiscoveryPage() {
   const [filter, setFilter] = useState('all'); // 'all', 'live', 'nearby'
   const [userLocation, setUserLocation] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (filter === 'nearby' && !userLocation) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -107,6 +108,7 @@ export default function VenueDiscoveryPage() {
       }
     }
     fetchVenues(userLocation);
+    return () => _c.abort();
   }, [filter, userLocation]);
 
   async function fetchVenues(location) {

@@ -29,7 +29,7 @@ export default function TournamentDirector() {
 
     const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
 
-    const fetchTournaments = useCallback(async () => {
+    const fetchTournaments = useCallback(async(signal) => {
         try {
             const staffSession = localStorage.getItem('commander_staff') || '';
             const res = await fetch('/api/commander/tournaments', {
@@ -45,11 +45,13 @@ export default function TournamentDirector() {
         finally { setLoading(false); }
     }, []);
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const staff = localStorage.getItem('commander_staff');
         if (!staff) { router.push('/commander/login').catch(() => { }); return; }
         fetchTournaments();
-    }, [router, fetchTournaments]);
+    return () => _c.abort();
+  }, [router, fetchTournaments]);
 
     // Commander Data Bus — sync tournaments across tabs
     const [syncVenueId] = useState(() => getVenueId());

@@ -12,7 +12,8 @@ export default function AuthCallback() {
     const [status, setStatus] = useState('Verifying email...');
     const [error, setError] = useState('');
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const handleCallback = async () => {
             try {
                 // Get the current session from the URL hash (after email verification)
@@ -341,7 +342,8 @@ export default function AuthCallback() {
         };
 
         handleCallback();
-    }, [router]);
+    return () => _c.abort();
+  }, [router]);
 
     return (
         <div style={{

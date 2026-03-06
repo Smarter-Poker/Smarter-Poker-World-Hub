@@ -24,11 +24,13 @@ export default function ShoppingCart() {
 
     const DIAMONDS_PER_DOLLAR = 100;
 
-    useEffect(() => {
-        loadCart();
-    }, []);
+    useEffect(() => {    const _c = new AbortController();
 
-    const loadCart = async () => {
+        loadCart();
+    return () => _c.abort();
+  }, []);
+
+    const loadCart = async(signal) => {
         try {
             const authUser = await getAuthUser();
             setUser(authUser);

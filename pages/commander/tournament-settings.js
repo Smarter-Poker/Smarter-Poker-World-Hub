@@ -29,7 +29,8 @@ export default function TournamentSettingsPage() {
     const [shotClockEnabled, setShotClockEnabled] = useState(false);
     const [shotClockSeconds, setShotClockSeconds] = useState(30);
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const storedStaff = localStorage.getItem('commander_staff');
         if (!storedStaff) { router.push('/commander/login').catch(() => { }); return; }
         try {
@@ -40,7 +41,8 @@ export default function TournamentSettingsPage() {
             // Fetch clock presets
             fetchClockPresets(storedStaff);
         } catch { router.push('/commander/login').catch(() => { }); }
-    }, [router]);
+    return () => _c.abort();
+  }, [router]);
 
     async function fetchClockPresets(staffSession) {
         try {

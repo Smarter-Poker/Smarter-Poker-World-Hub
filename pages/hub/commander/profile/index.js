@@ -72,9 +72,11 @@ export default function PlayerProfilePage() {
   const [recommendations, setRecommendations] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
+    return () => _c.abort();
   }, [router]);
 
   const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
@@ -106,7 +108,8 @@ export default function PlayerProfilePage() {
   const favoriteVenues = swrData?.favoriteVenues || [];
 
   // Check if user has a club page
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     (async () => {
       try {
         const { createClient } = await import('@supabase/supabase-js');
@@ -119,6 +122,7 @@ export default function PlayerProfilePage() {
         }
       } catch (e) { setHasClubPage(false); }
     })();
+    return () => _c.abort();
   }, []);
 
   const menuItems = [

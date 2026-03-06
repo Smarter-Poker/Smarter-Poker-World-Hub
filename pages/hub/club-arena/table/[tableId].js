@@ -30,14 +30,17 @@ export default function ClubArenaTable() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
       else router.push('/auth/login');
     });
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (!tableId || !user) return;
     (async () => {
       setLoading(true); setError(null);
@@ -74,6 +77,7 @@ export default function ClubArenaTable() {
       } catch (e) { setError('Connection failed'); }
       finally { setLoading(false); }
     })();
+    return () => _c.abort();
   }, [tableId, user]);
 
   const handleExit = useCallback(() => {

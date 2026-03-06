@@ -21,7 +21,8 @@ export default function ClaimPage() {
     const [error, setError] = useState(null);
 
     // Check auth on mount
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const checkAuth = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -40,7 +41,8 @@ export default function ClaimPage() {
         if (token) {
             checkAuth();
         }
-    }, [token]);
+    return () => _c.abort();
+  }, [token]);
 
     const handleClaim = async () => {
         setClaiming(true);

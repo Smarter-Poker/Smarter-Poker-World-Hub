@@ -34,7 +34,8 @@ export default function ShiftHandoff() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
@@ -42,10 +43,11 @@ export default function ShiftHandoff() {
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    return () => _c.abort();
   }, []);
 
   // fetchHandoffs declared FIRST — must precede useEffect/useCommanderSync that reference it
-  const fetchHandoffs = async () => {
+  const fetchHandoffs = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();
@@ -59,8 +61,10 @@ export default function ShiftHandoff() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (staff?.venue_id) fetchHandoffs();
+    return () => _c.abort();
   }, [staff]);
 
   // Commander Data Bus — sync handoffs across tabs

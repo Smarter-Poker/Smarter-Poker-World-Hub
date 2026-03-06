@@ -33,7 +33,7 @@ export default function TableVibes() {
 
   
   // fetchVibes declared first — must precede useEffect/useCommanderSync that reference it
-  const fetchVibes = async () => {
+  const fetchVibes = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();
@@ -49,7 +49,8 @@ export default function TableVibes() {
     finally { setLoading(false); }
   };
 
-useEffect(() => {
+useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
@@ -57,10 +58,13 @@ useEffect(() => {
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (staff?.venue_id) fetchVibes();
+    return () => _c.abort();
   }, [staff, days]);
 
   // Commander Data Bus — sync table vibes

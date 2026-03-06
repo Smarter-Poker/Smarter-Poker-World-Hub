@@ -24,7 +24,8 @@ export default function ChurnPrediction() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
@@ -32,13 +33,16 @@ export default function ChurnPrediction() {
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (staff?.venue_id) fetchPredictions();
+    return () => _c.abort();
   }, [staff]);
 
-  const fetchPredictions = async () => {
+  const fetchPredictions = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();

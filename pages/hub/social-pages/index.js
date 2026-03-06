@@ -151,10 +151,12 @@ export default function SocialPagesHub() {
     const [searchInput, setSearchInput] = useState('');
     const [followingIds, setFollowingIds] = useState(new Set());
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const u = getAuthUser();
         if (u) setUser(u);
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // SWR-backed pages fetch — cached 60s, instant on tab/filter switch
     const swrParams = new URLSearchParams({ limit: '50' });
@@ -177,15 +179,17 @@ export default function SocialPagesHub() {
     );
     const pages = swrData || [];
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const u = getAuthUser();
         if (u) setUser(u);
-    }, []);
+    return () => _c.abort();
+  }, []);
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const t = setTimeout(() => setSearch(searchInput), 300);
-        return () => clearTimeout(t);
-    }, [searchInput]);
+        return () => clearTimeout(t);}, [searchInput]);
 
     const handleFollow = async (pageId) => {
         if (!user) { router.push('/auth/login'); return; }

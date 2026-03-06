@@ -75,18 +75,21 @@ export default function ReelsPage() {
     });
 
     // Load sound preference from localStorage on mount
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         if (typeof window !== 'undefined') {
             const savedPref = localStorage.getItem('reels-sound-enabled');
             if (savedPref === 'true') {
                 setUserWantsSound(true);
             }
         }
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // Load user and preferences
-    useEffect(() => {
-        const loadUserData = async () => {
+    useEffect(() => {    const _c = new AbortController();
+
+        const loadUserData = async(signal) => {
             const authUser = await getAuthUser();
             setUser(authUser);
 
@@ -102,7 +105,8 @@ export default function ReelsPage() {
             }
         };
         loadUserData();
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // YouTube API: Send command to iframe via postMessage
     const sendYouTubeCommand = (command, args = []) => {
@@ -117,7 +121,8 @@ export default function ReelsPage() {
 
     // Auto-play immediately on load (muted videos comply with browser autoplay policy)
     // Then auto-unmute since user explicitly came here to watch videos with sound
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         if (!loading && reels.length > 0) {
             // Wait for iframe to load, then force play + unmute
             const timer = setTimeout(() => {
@@ -130,8 +135,7 @@ export default function ReelsPage() {
                 setMuted(false);
             }, 500); // Give iframe time to initialize YouTube API
             return () => clearTimeout(timer);
-        }
-    }, [currentIndex, loading, reels.length]);
+        }}, [currentIndex, loading, reels.length]);
 
     const handleUnmute = () => {
         sendYouTubeCommand('unMute');
@@ -153,11 +157,13 @@ export default function ReelsPage() {
         }
     };
 
-    useEffect(() => {
-        loadReels();
-    }, []);
+    useEffect(() => {    const _c = new AbortController();
 
-    const loadReels = async () => {
+        loadReels();
+    return () => _c.abort();
+  }, []);
+
+    const loadReels = async(signal) => {
         setLoading(true);
         try {
             // Load from social_reels (YouTube shorts posted by SmarterPokerOfficial)
@@ -328,11 +334,13 @@ export default function ReelsPage() {
     };
 
     // Reset comment panel when switching reels
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         setShowCommentPanel(false);
         setComments([]);
         setCommentText('');
-    }, [currentIndex]);
+    return () => _c.abort();
+  }, [currentIndex]);
 
     const handleSave = async () => {
         if (!currentReel || !user) return;
@@ -380,7 +388,8 @@ export default function ReelsPage() {
     });
 
     // Keyboard navigation
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const handleKey = (e) => {
             if (e.key === 'ArrowDown' || e.key === 'ArrowRight') goNext();
             if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') goPrev();
@@ -388,23 +397,27 @@ export default function ReelsPage() {
             if (e.key === 'm') setMuted(prev => !prev);
         };
         window.addEventListener('keydown', handleKey);
-        return () => window.removeEventListener('keydown', handleKey);
-    }, [currentIndex, router]);
+        return () => window.removeEventListener('keydown', handleKey);}, [currentIndex, router]);
 
     // Use refs to avoid stale closures in event handlers
     const currentIndexRef = useRef(currentIndex);
     const reelsLengthRef = useRef(reels.length);
 
-    useEffect(() => {
-        currentIndexRef.current = currentIndex;
-    }, [currentIndex]);
+    useEffect(() => {    const _c = new AbortController();
 
-    useEffect(() => {
+        currentIndexRef.current = currentIndex;
+    return () => _c.abort();
+  }, [currentIndex]);
+
+    useEffect(() => {    const _c = new AbortController();
+
         reelsLengthRef.current = reels.length;
-    }, [reels.length]);
+    return () => _c.abort();
+  }, [reels.length]);
 
     // DOCUMENT-LEVEL touch capture to intercept BEFORE YouTube iframe gets them
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const handleTouchStart = (e) => {
             touchStartY.current = e.touches[0].clientY;
         };
@@ -453,12 +466,11 @@ export default function ReelsPage() {
         document.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
         document.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
         window.addEventListener('wheel', handleWheel, { passive: true });
-        return () => {
+        return () => { _c.abort();
             document.removeEventListener('touchstart', handleTouchStart, { capture: true });
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
-        };
-    }, []); // Empty deps - uses refs for current values
+        };}, []); // Empty deps - uses refs for current values
 
 
     if (loading) {

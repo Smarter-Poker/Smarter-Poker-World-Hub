@@ -78,9 +78,11 @@ export default function PlayerRewardsPage() {
   const [showRedeemInput, setShowRedeemInput] = useState(false);
   const [redeemingId, setRedeemingId] = useState(null);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
+    return () => _c.abort();
   }, [router]);
 
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {

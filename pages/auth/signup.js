@@ -99,7 +99,8 @@ export default function SignUpPage() {
     const [isReferralCode, setIsReferralCode] = useState(false); // true if input looks like a referral code
 
     // Auto-fill promo/referral code from ?ref= or ?promo= query parameter
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         if (router.isReady) {
             const { ref, promo } = router.query;
             if (ref && !formData.promoCode) {
@@ -108,22 +109,24 @@ export default function SignUpPage() {
                 setFormData(prev => ({ ...prev, promoCode: String(promo).toUpperCase() }));
             }
         }
-    }, [router.isReady]);
+    return () => _c.abort();
+  }, [router.isReady]);
 
     // Override global html/body background for Facebook Dark theme
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const style = document.createElement('style');
         style.id = 'signup-bg-override';
         style.textContent = 'html, body { background: #18191A !important; }';
         document.head.appendChild(style);
-        return () => {
+        return () => { _c.abort();
             const el = document.getElementById('signup-bg-override');
             if (el) el.remove();
-        };
-    }, []);
+        };}, []);
 
     // Check alias availability with debounce (3-20 characters allowed)
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         // Must be 3-20 characters
         if (formData.pokerAlias.length < 3) {
             setAliasAvailable(null);
@@ -182,8 +185,7 @@ export default function SignUpPage() {
             }
         }, 500);
 
-        return () => clearTimeout(timeout);
-    }, [formData.pokerAlias]);
+        return () => clearTimeout(timeout);}, [formData.pokerAlias]);
 
     // Format phone number
     const formatPhone = (value) => {
@@ -273,17 +275,20 @@ export default function SignUpPage() {
     };
 
     // Reset phone verification if phone number changes
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         if (phoneVerified || phoneOtpSent) {
             setPhoneVerified(false);
             setPhoneOtpSent(false);
             setPhoneOtp('');
             setPhoneError('');
         }
-    }, [formData.phone]);
+    return () => _c.abort();
+  }, [formData.phone]);
 
     // Check promo or referral code validity with debounce
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         // Reset all states when input changes
         setPromoValid(null);
         setPromoError('');
@@ -348,8 +353,7 @@ export default function SignUpPage() {
             }
         }, 600);
 
-        return () => clearTimeout(timeout);
-    }, [formData.promoCode]);
+        return () => clearTimeout(timeout);}, [formData.promoCode]);
 
     // Validate email format
     const isValidEmail = (email) => {

@@ -21,7 +21,8 @@ export default function AnalyticsDailyReport() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
@@ -29,13 +30,16 @@ export default function AnalyticsDailyReport() {
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (staff?.venue_id) fetchAnalytics();
+    return () => _c.abort();
   }, [staff, range]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();

@@ -54,7 +54,7 @@ export default function TableAssignments() {
     };
   };
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async(signal) => {
     try {
       const res = await fetch('/api/commander/table-assignments', { headers: getHeaders() });
       const json = await res.json();
@@ -72,10 +72,12 @@ export default function TableAssignments() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     fetchData();
+    return () => _c.abort();
   }, [fetchData, router]);
 
   // Commander Data Bus — sync when tables are changed from other tabs

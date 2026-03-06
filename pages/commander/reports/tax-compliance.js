@@ -24,7 +24,8 @@ export default function TaxCompliance() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
@@ -32,13 +33,16 @@ export default function TaxCompliance() {
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (staff?.venue_id) fetchEvents();
+    return () => _c.abort();
   }, [staff, year, filter]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();

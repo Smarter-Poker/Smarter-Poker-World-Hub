@@ -659,7 +659,8 @@ export default function DiamondStorePage() {
     const [isVip, setIsVip] = useState(false);
 
     // Check VIP status on mount
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         (async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.id) {
@@ -671,7 +672,8 @@ export default function DiamondStorePage() {
                 setIsVip(!!profile?.is_vip);
             }
         })();
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)

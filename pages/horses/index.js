@@ -76,9 +76,11 @@ export default function HorsesAdmin() {
         voice: 'casual'
     });
 
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         checkAuth();
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     const checkAuth = async () => {
         try {
@@ -137,7 +139,7 @@ export default function HorsesAdmin() {
         setUser(null);
     };
 
-    const loadData = async () => {
+    const loadData = async(signal) => {
         try {
             const { data: personaData } = await supabase
                 .from('content_authors')
@@ -170,7 +172,7 @@ export default function HorsesAdmin() {
         await loadEconomyData();
     };
 
-    const loadPromoCodes = async () => {
+    const loadPromoCodes = async(signal) => {
         setPromoLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -190,7 +192,7 @@ export default function HorsesAdmin() {
         }
     };
 
-    const loadEconomyData = async () => {
+    const loadEconomyData = async(signal) => {
         setEconomyLoading(true);
         try {
             // BUG 2 FIX: Add auth header
@@ -228,7 +230,7 @@ export default function HorsesAdmin() {
 
     const EMPTY_ABUSE_DATA = { abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } };
 
-    const loadAntiAbuseData = async () => {
+    const loadAntiAbuseData = async(signal) => {
         setAbuseLoading(true);
         try {
             // BUG 3 companion: Send auth header to secured API

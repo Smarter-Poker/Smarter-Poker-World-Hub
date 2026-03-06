@@ -30,7 +30,8 @@ export default function PlayerReputation() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
     try {
@@ -38,13 +39,16 @@ export default function PlayerReputation() {
       if (!s.venue_id) { router.push('/commander/login').catch(() => { }); return; }
       setStaff(s);
     } catch { router.push('/commander/login').catch(() => { }); }
+    return () => _c.abort();
   }, []);
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (staff?.venue_id) fetchScores();
+    return () => _c.abort();
   }, [staff]);
 
-  const fetchScores = async () => {
+  const fetchScores = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();

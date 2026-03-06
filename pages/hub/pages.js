@@ -67,16 +67,18 @@ export default function PokerPagesPage() {
     const [userId, setUserId] = useState('');
 
     // Get authenticated user ID on mount
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const authUser = getAuthUser();
         if (authUser?.id) setUserId(authUser.id);
-    }, []);
+    return () => _c.abort();
+  }, []);
 
     // Debounce search input
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         const t = setTimeout(() => setSearch(searchInput), 300);
-        return () => clearTimeout(t);
-    }, [searchInput]);
+        return () => clearTimeout(t);}, [searchInput]);
 
     // SWR-backed pages fetch — cached 60s, instant on filter change
     const swrParams = new URLSearchParams({ category, sort, limit: '100' });
@@ -99,7 +101,8 @@ export default function PokerPagesPage() {
     const summary = swrData?.summary || {};
 
     // Handle URL search param
-    useEffect(() => {
+    useEffect(() => {    const _c = new AbortController();
+
         if (router.query.search) {
             setSearchInput(router.query.search);
             setSearch(router.query.search);
@@ -107,7 +110,8 @@ export default function PokerPagesPage() {
         if (router.query.category) {
             setCategory(router.query.category);
         }
-    }, [router.query]);
+    return () => _c.abort();
+  }, [router.query]);
 
     const handleFollow = async (pageType, pageId) => {
         const key = `${pageType}:${pageId}`;

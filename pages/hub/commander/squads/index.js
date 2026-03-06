@@ -88,9 +88,11 @@ function EmptyState({ onCreateSquad }) {
 export default function SquadsPage() {
   const router = useRouter();
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
+    return () => _c.abort();
   }, [router]);
 
   const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', (url) => {

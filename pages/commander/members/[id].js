@@ -36,15 +36,17 @@ export default function MemberProfile() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
   };
 
-  useEffect(() => {
+  useEffect(() => {    const _c = new AbortController();
+
     if (!id) return;
     fetchMember();
+    return () => _c.abort();
   }, [id]);
 
   // Commander Data Bus — sync member across tabs
   useCommanderSync(getVenueId(), fetchMember, { entities: ['members'] });
 
-  const fetchMember = async () => {
+  const fetchMember = async(signal) => {
     setLoading(true);
     try {
       const token = getToken();
