@@ -6,17 +6,10 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
-import { supabase } from '../../../../../src/lib/supabase';
-
-// Initialize Supabase
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '../../../src/lib/supabase';
 
 const GAME_MODES = [
     { key: 'range', label: 'Range Memory', icon: '🎯' },

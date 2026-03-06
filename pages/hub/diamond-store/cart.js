@@ -13,7 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import toast from '../../../src/stores/toastStore';
-import { supabase } from '../../../../../src/lib/supabase';
+import { supabase } from '../../../src/lib/supabase';
 
 export default function ShoppingCart() {
     const [user, setUser] = useState(null);

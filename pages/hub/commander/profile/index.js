@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
-import { supabase } from '../../../../../../src/lib/supabase';
+import { supabase } from '../../../../src/lib/supabase';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
