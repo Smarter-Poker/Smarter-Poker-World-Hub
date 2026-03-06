@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,15 +17,15 @@ const supabase = createClient(
 const SIMULATION_COUNT = 1000;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
-  // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
-  const _token = req.headers.authorization?.replace('Bearer ', '');
-  if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-  if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
+    // BUG #249 FIX: Require JWT auth — prevent IDOR on bankroll data
+    const _token = req.headers.authorization?.replace('Bearer ', '');
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -37,6 +38,12 @@ export default async function handler(req, res) {
     } = req.body;
     // BUG #240 FIX: Use JWT identity, not client-submitted userId
     const userId = _authUser.id;
+
+    // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
+    const access = await checkFeatureAccess(userId, 'bankroll_pro');
+    if (!access.hasAccess) {
+        return res.status(403).json({ success: false, error: 'Premium feature access required' });
+    }
 
     try {
         // Fetch historical data for variance calculation

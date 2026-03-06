@@ -168,7 +168,7 @@ export function AvatarProvider({ children }) {
                     // Use the existing session IMMEDIATELY — don't block on refresh
                     console.log('[AvatarContext] Session found, using immediately');
                     setUser(session.user);
-                    
+
                     // Run initialization steps concurrently, don't wait for profile generation to check VIP
                     ensureUserProfile(session.user, session).catch(e => console.error('[AvatarContext] ensureUserProfile error:', e));
                     await fetchVipStatus(session.user.id);
@@ -251,8 +251,40 @@ export function AvatarProvider({ children }) {
             }
         }
 
+        function handleProfileUpdate(e) {
+            console.log('[AvatarContext] 🚌 profile-updated received:', e.detail);
+            const { avatar_url, full_name, username } = e.detail;
+
+            setUser(prev => {
+                if (!prev) return prev;
+                // Create a clone of the user object to trigger React update
+                const nextUser = { ...prev };
+                if (!nextUser.user_metadata) nextUser.user_metadata = {};
+
+                if (avatar_url) nextUser.user_metadata.avatar_url = avatar_url;
+                if (full_name) nextUser.user_metadata.full_name = full_name;
+                if (username) nextUser.user_metadata.poker_alias = username;
+
+                return nextUser;
+            });
+
+            // If the user changed their basic profile pic, also update the active avatar state
+            // so contextAvatar.imageUrl reflects the new image immediately
+            if (avatar_url) {
+                setAvatar(prev => ({
+                    ...prev,
+                    type: 'profile_upload',
+                    imageUrl: avatar_url
+                }));
+            }
+        }
+
         window.addEventListener('vip-status-changed', handleVipChange);
-        return () => window.removeEventListener('vip-status-changed', handleVipChange);
+        window.addEventListener('profile-updated', handleProfileUpdate);
+        return () => {
+            window.removeEventListener('vip-status-changed', handleVipChange);
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+        };
     }, [user]);
 
     // Load user's avatar when user changes

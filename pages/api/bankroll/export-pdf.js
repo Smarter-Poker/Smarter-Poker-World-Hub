@@ -6,6 +6,7 @@
 import { supabase } from '../../../src/lib/supabase';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -24,6 +25,12 @@ export default async function handler(req, res) {
             return res.status(401).json({ error: 'Invalid token' });
         }
         const userId = user.id;
+
+        // ═══ PREMIUM GATE ═══
+        const access = await checkFeatureAccess(userId, 'bankroll_pro');
+        if (!access.hasAccess) {
+            return res.status(403).json({ error: 'Bankroll Pro or VIP required' });
+        }
 
         // Query parameters
         const { startDate, endDate, category } = req.query;

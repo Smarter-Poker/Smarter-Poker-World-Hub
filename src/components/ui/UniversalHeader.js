@@ -84,6 +84,47 @@ const OrbButton = ({ href, icon, badge = 0, onClick }) => {
     ) : content;
 };
 
+// ── Pass Countdown Timer ──
+const PassCountdown = ({ pass }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+    useEffect(() => {
+        if (!pass?.expires_at) return;
+        const update = () => {
+            const diff = new Date(pass.expires_at) - new Date();
+            if (diff <= 0) { setTimeLeft('Expired'); return; }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            // Show seconds if under 5 min to build urgency, else hours/mins
+            if (h === 0 && m < 5) {
+                setTimeLeft(`${m}m ${s}s`);
+            } else {
+                setTimeLeft(`${h}h ${m}m`);
+            }
+        };
+        update();
+        const int = setInterval(update, 1000);
+        return () => clearInterval(int);
+    }, [pass]);
+    if (!timeLeft || timeLeft === 'Expired') return null;
+    return (
+        <div className="hide-mobile" style={{
+            display: 'flex', alignItems: 'center', gap: 4,
+            padding: '4px 10px',
+            background: 'rgba(0, 245, 255, 0.1)',
+            border: '1px solid rgba(0, 245, 255, 0.4)',
+            borderRadius: 8,
+            color: '#00f5ff',
+            fontSize: 12,
+            fontWeight: 700,
+            boxShadow: '0 0 10px rgba(0, 245, 255, 0.15)',
+            whiteSpace: 'nowrap'
+        }} title="Active Pass Remaining Time">
+            ⏳ {timeLeft}
+        </div>
+    );
+};
+
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
@@ -91,13 +132,27 @@ export default function UniversalHeader({
     onMenuClick = null  // Callback for hamburger menu click
 }) {
     const router = useRouter();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cachedUser = localStorage.getItem('sp-cached-header-user');
+                if (cachedUser) return JSON.parse(cachedUser);
+            } catch (e) { }
+        }
+        return null;
+    });
     const [stats, setStats] = useState({ diamonds: 0 });
+    const [activePass, setActivePass] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
-    const [isVip, setIsVip] = useState(false);
+    const [isVip, setIsVip] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try { return localStorage.getItem('sp-vip-status') === 'true'; } catch (e) { return false; }
+        }
+        return false;
+    });
 
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
@@ -106,7 +161,7 @@ export default function UniversalHeader({
     const { unreadCount } = useUnreadCount();
 
     // Derived values to prevent "flash of missing data" on mount
-    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
+    const displayAvatar = contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url;
     const isVipDisplay = isVip || contextVip;
 
     // Live Help state
@@ -148,7 +203,7 @@ export default function UniversalHeader({
                 if (!mounted) return;
 
                 if (authUser) {
-                    setUser(authUser);
+                    setUser(prev => ({ ...prev, ...authUser }));
                     console.log('[UniversalHeader] User found in localStorage:', authUser.email);
 
                     // 🛡️ BULLETPROOF: Retry logic with exponential backoff
@@ -168,11 +223,18 @@ export default function UniversalHeader({
                             if (result.success && result.profile && mounted) {
                                 const { diamonds, full_name, username, avatar_url, is_vip } = result.profile;
                                 setStats({ diamonds });
-                                setUser(prev => ({
-                                    ...prev,
-                                    avatar: avatar_url,
-                                    name: full_name || username
-                                }));
+                                setActivePass(result.activePass || null);
+                                setUser(prev => {
+                                    const nextUser = {
+                                        ...prev,
+                                        avatar: avatar_url,
+                                        name: full_name || username
+                                    };
+                                    try {
+                                        localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: avatar_url, name: full_name || username }));
+                                    } catch (e) { }
+                                    return nextUser;
+                                });
                                 setIsVip(!!is_vip);
                                 try { localStorage.setItem('sp-vip-status', String(!!is_vip)); } catch (e) { }
                                 if (typeof result.notificationCount === 'number') {
@@ -211,7 +273,7 @@ export default function UniversalHeader({
                             } catch (e) { }
 
                             const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds`,
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip`,
                                 {
                                     headers: {
                                         'apikey': SUPABASE_ANON_KEY,
@@ -225,12 +287,20 @@ export default function UniversalHeader({
 
                             if (profile && mounted) {
                                 setStats({ diamonds: profile.diamonds || 0 });
-                                setUser(prev => ({
-                                    ...prev,
-                                    avatar: profile.avatar_url,
-                                    name: profile.full_name || profile.username
-                                }));
-                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
+                                setUser(prev => {
+                                    const nextUser = {
+                                        ...prev,
+                                        avatar: profile.avatar_url,
+                                        name: profile.full_name || profile.username
+                                    };
+                                    try {
+                                        localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: profile.avatar_url, name: profile.full_name || profile.username }));
+                                    } catch (e) { }
+                                    return nextUser;
+                                });
+                                setIsVip(!!profile.is_vip);
+                                try { localStorage.setItem('sp-vip-status', String(!!profile.is_vip)); } catch (e) { }
+                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds, is_vip: profile.is_vip });
                             }
                         } catch (e) {
                             console.error('[UniversalHeader] Direct REST fallback failed:', e);
@@ -301,6 +371,7 @@ export default function UniversalHeader({
                 const result = await response.json();
                 if (result.success && result.profile) {
                     setStats({ diamonds: result.profile.diamonds });
+                    setActivePass(result.activePass || null);
                     console.log('[UniversalHeader] 💎 Balance refreshed:', result.profile.diamonds);
                 }
             } catch (e) {
@@ -335,12 +406,19 @@ export default function UniversalHeader({
                 if (result.success && result.profile) {
                     setStats({ diamonds: result.profile.diamonds });
                     setIsVip(!!result.profile.is_vip);
+                    setActivePass(result.activePass || null);
                     try { localStorage.setItem('sp-vip-status', String(!!result.profile.is_vip)); } catch (e) { }
-                    setUser(prev => ({
-                        ...prev,
-                        avatar: result.profile.avatar_url || prev?.avatar,
-                        name: result.profile.full_name || result.profile.username || prev?.name
-                    }));
+                    setUser(prev => {
+                        const nextUser = {
+                            ...prev,
+                            avatar: result.profile.avatar_url || prev?.avatar,
+                            name: result.profile.full_name || result.profile.username || prev?.name
+                        };
+                        try {
+                            localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: nextUser.avatar, name: nextUser.name }));
+                        } catch (e) { }
+                        return nextUser;
+                    });
                     console.log('[UniversalHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {
@@ -705,6 +783,9 @@ export default function UniversalHeader({
 
                 {/* RIGHT: Orb Icons */}
                 <div className="header-right">
+                    {/* Active Pass Countdown */}
+                    {!isVipDisplay && activePass && <PassCountdown pass={activePass} />}
+
                     {/* Diamond Wallet Icon */}
                     <button
                         onClick={() => setIsWalletOpen(true)}

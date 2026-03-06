@@ -19,6 +19,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { useAvatar } from '../../contexts/AvatarContext';
+import toast from '../../stores/toastStore';
 import {
     checkFeatureAccess,
     purchaseFeatureAccess,
@@ -26,6 +27,46 @@ import {
     FEATURE_CONFIG,
     DAILY_UNLOCK_ALL_COST
 } from '../../lib/gates/premiumFeatureGate';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACTIVE PASS COUNTDOWN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+export function ActivePassCountdown({ expiresAt, label = "Pass" }) {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        if (!expiresAt) return;
+        const target = new Date(expiresAt).getTime();
+        const update = () => {
+            const now = Date.now();
+            const diff = target - now;
+            if (diff <= 0) {
+                setTimeLeft('Expired');
+                return;
+            }
+            const h = Math.floor(diff / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
+            setTimeLeft(`${h}h ${m}m ${s}s`);
+        };
+        update();
+        const int = setInterval(update, 1000);
+        return () => clearInterval(int);
+    }, [expiresAt]);
+
+    if (!expiresAt || timeLeft === 'Expired') return null;
+
+    return (
+        <div style={{
+            display: 'inline-flex', padding: '4px 8px',
+            background: 'rgba(35, 116, 225, 0.1)', border: '1px solid rgba(35, 116, 225, 0.3)',
+            borderRadius: 6, color: '#2374e1', fontSize: 11, fontWeight: 700,
+            alignItems: 'center', gap: 6, letterSpacing: '0.05em'
+        }}>
+            <span style={{ fontSize: 13 }}>⏳</span>{label} ACTIVE: {timeLeft}
+        </div>
+    );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // useFeatureGate HOOK — The action-interceptor pattern
@@ -154,11 +195,15 @@ export function useFeatureGate(featureKey) {
     return {
         hasAccess: isVipTriple || hasAccess,
         isVip: isVipTriple,
+        expiresAt: accessData?.expiresAt || null,
         loading,
         guardAction,
         showUpgradePopup: () => setShowPopup(true),
         closePopup,
         UpgradePopup,
+        ActivePassCountdown: (!isVipTriple && accessData?.expiresAt) ? (
+            <ActivePassCountdown expiresAt={accessData.expiresAt} label={FEATURE_CONFIG[featureKey]?.label || 'Feature'} />
+        ) : null,
     };
 }
 
@@ -176,27 +221,38 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
 
-    // Re-fetch balance on mount to be current
+    // Re-fetch balance on mount to be current (with 1 retry for resilience)
     useEffect(() => {
-        if (userId) {
-            checkFeatureAccess(userId, featureKey).then(result => {
+        if (!userId) return;
+        const fetchAccess = async (retries = 1) => {
+            try {
+                const result = await checkFeatureAccess(userId, featureKey);
                 setDiamonds(result.diamonds || 0);
                 if (result.hasAccess) {
                     // They already have access now (maybe purchased elsewhere)
                     onAccessGranted?.();
                 }
-            }).catch(() => { });
-        }
+            } catch (err) {
+                if (retries > 0) {
+                    setTimeout(() => fetchAccess(retries - 1), 1000); // Wait 1s and retry
+                }
+            }
+        };
+        fetchAccess();
     }, [userId, featureKey]);
 
     // 🚌 BUS LISTENER: Keep diamond balance live in the popup
     // If diamonds change on another page/component, this updates immediately
     useEffect(() => {
         if (typeof window === 'undefined' || !userId) return;
-        const refreshBalance = () => {
-            checkFeatureAccess(userId, featureKey).then(result => {
-                setDiamonds(result.diamonds || 0);
-            }).catch(() => { });
+        const refreshBalance = (e) => {
+            if (e?.detail?.newBalance !== undefined) {
+                setDiamonds(e.detail.newBalance);
+            } else {
+                checkFeatureAccess(userId, featureKey).then(result => {
+                    setDiamonds(result.diamonds || 0);
+                }).catch(() => { });
+            }
         };
         window.addEventListener('diamond-balance-refresh', refreshBalance);
         return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
@@ -219,12 +275,15 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                 if (result.newBalance !== undefined) setDiamonds(result.newBalance);
                 // 🚌 BUS: Notify other components of balance change + access grant
                 if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                    // diamond-balance-refresh is dispatched by purchaseFeatureAccess
                     window.dispatchEvent(new CustomEvent('feature-access-changed', {
                         detail: { featureKey, hasAccess: true, newBalance: result.newBalance }
                     }));
                 }
-                setTimeout(() => { onAccessGranted?.(); }, 1200);
+                setTimeout(() => {
+                    onAccessGranted?.();
+                    if (toast?.success) toast.success(`🎉 ${config.label} unlocked for ${config.durationHours} hours!`);
+                }, 1200);
             } else {
                 setError(result.error);
             }
@@ -249,12 +308,15 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                 if (result.newBalance !== undefined) setDiamonds(result.newBalance);
                 // 🚌 BUS: Notify other components of balance change + access grant
                 if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                    // diamond-balance-refresh is dispatched by purchaseDailyUnlockAll
                     window.dispatchEvent(new CustomEvent('feature-access-changed', {
                         detail: { featureKey: 'daily_unlock_all', hasAccess: true, newBalance: result.newBalance }
                     }));
                 }
-                setTimeout(() => { onAccessGranted?.(); }, 1200);
+                setTimeout(() => {
+                    onAccessGranted?.();
+                    if (toast?.success) toast.success(`🎉 All Premium Features unlocked for 24 hours!`);
+                }, 1200);
             } else {
                 setError(result.error);
             }

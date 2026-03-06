@@ -141,13 +141,59 @@ function StatCard({ title, value, change, suffix, isRisk, isLoading, onClick }) 
   );
 }
 
+function DayPassCountdown({ expiresAt }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    const target = new Date(expiresAt).getTime();
+
+    const update = () => {
+      const now = Date.now();
+      const diff = target - now;
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeLeft(`${h}h ${m}m`);
+    };
+
+    update();
+    const interval = setInterval(update, 60000); // update every minute
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  if (!expiresAt || timeLeft === 'Expired') return null;
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(35,116,225,0.2) 0%, rgba(26,91,184,0.3) 100%)',
+      border: '1px solid rgba(35,116,225,0.4)',
+      borderRadius: 8,
+      padding: '6px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      fontSize: 12,
+      fontWeight: 600,
+      color: '#fff',
+      whiteSpace: 'nowrap'
+    }}>
+      <span style={{ fontSize: 14 }}>⏱️</span>
+      Active Pass: <span style={{ color: '#00D4FF' }}>{timeLeft}</span>
+    </div>
+  );
+}
+
 export default function BankrollManagerPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const userId = user?.id;
 
   // ═══ ACTION GATE: Users can explore dashboard, but logging/pro tools are gated ═══
-  const { guardAction, UpgradePopup } = useFeatureGate('bankroll_manager');
+  const { guardAction, UpgradePopup, isVip: isGloballyVip, hasAccess: hasProAccess, expiresAt: proExpiresAt } = useFeatureGate('bankroll_pro');
 
   // UI State
   const [activeSection, setActiveSection] = useState('dashboard');
@@ -717,7 +763,7 @@ export default function BankrollManagerPage() {
         <div style={styles.bgGrid} />
         <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
 
-        <FeatureGate featureKey="bankroll_manager" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track Sessions, Analyze Leaks, And Manage Your Poker Bankroll For 24 Hours." hideBadge>
+        <FeatureGate featureKey="bankroll_pro" userId={userId} cost={25} duration={24} featureName="Bankroll Manager" description="Track Sessions, Analyze Leaks, And Manage Your Poker Bankroll For 24 Hours." hideBadge>
           {/* Hamburger Menu */}
           <HamburgerMenu
             isOpen={menuOpen}
@@ -772,6 +818,10 @@ export default function BankrollManagerPage() {
                   {activeSection === 'toke-tracker' && 'Toke Tracker'}
                 </h1>
                 <div style={styles.headerActions}>
+                  {/* Countdown Timer for day passes (only if NOT VIP but has active pass) */}
+                  {!isGloballyVip && hasProAccess && proExpiresAt && (
+                    <DayPassCountdown expiresAt={proExpiresAt} />
+                  )}
                   {activeSection === 'dashboard' && categoryFilter === 'all' && (
                     <button className="bankroll-log-btn" style={styles.logButton} onClick={handleLogClick}>
                       Add +

@@ -288,6 +288,8 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
     // 🚌 BUS EVENT: Notify header + other components of diamond balance change
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
+        // 🚌 BUS EVENT: Notify gates to immediately unblock UI
+        window.dispatchEvent(new CustomEvent('feature-access-changed', { detail: { featureKey } }));
     }
 
     return {
@@ -302,7 +304,6 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
  */
 export const FEATURE_CONFIG = {
     bankroll_pro: { cost: 25, label: 'Bankroll Manager Pro', durationHours: 24 },
-    bankroll_manager: { cost: 25, label: 'Bankroll Manager', durationHours: 24 },
     poker_near_me: { cost: 25, label: 'Poker Near Me Pro', durationHours: 24 },
     personal_assistant: { cost: 100, label: 'Personal Assistant', durationHours: 24 },
     lives: { cost: 25, label: 'Lives', durationHours: 24 },

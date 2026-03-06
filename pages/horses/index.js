@@ -46,6 +46,10 @@ export default function HorsesAdmin() {
     const [economyLoaded, setEconomyLoaded] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
+    // Analytics State
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
+
     // Promo Code State
     const [promoCodes, setPromoCodes] = useState([]);
     const [promoLoading, setPromoLoading] = useState(false);
@@ -240,6 +244,26 @@ export default function HorsesAdmin() {
         }
     };
 
+    const loadAnalytics = async (signal) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const res = await fetch('/api/horses/analytics?type=summary', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+                signal: signal
+            });
+            if (res.ok) {
+                const json = await res.json();
+                if (json.success) setAnalyticsData(json.data);
+            }
+            setAnalyticsLoaded(true);
+        } catch (e) {
+            console.error('Failed to load analytics:', e);
+            setAnalyticsLoaded(true);
+        }
+    };
+
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 3000);
@@ -373,17 +397,40 @@ export default function HorsesAdmin() {
     };
 
     const triggerPipeline = async (type) => {
-        const newRun = {
-            id: Date.now(),
-            run_type: type,
-            started_at: new Date().toISOString(),
-            text_posts_created: type === 'test' ? 3 : type === 'daily' ? settings.posts_per_day : 10,
-            videos_created: type === 'daily' ? 2 : 0,
-            errors: 0,
-            duration_seconds: Math.floor(Math.random() * 60) + 20
-        };
-        setPipelineRuns([newRun, ...pipelineRuns.slice(0, 9)]);
-        showNotification(`Pipeline ${type} triggered!`);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                showNotification('Session expired. Please re-login.', 'error');
+                return;
+            }
+
+            showNotification(`Starting pipeline: ${type}...`, 'info');
+
+            const res = await fetch('/api/horses/trigger-pipeline', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ type })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.run) {
+                    setPipelineRuns([data.run, ...pipelineRuns].slice(0, 10));
+                    showNotification(`Pipeline ${type} completed!`);
+                } else {
+                    showNotification(data.error || 'Pipeline execution failed', 'error');
+                }
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                showNotification(errData.error || `Error ${res.status}: Pipeline failed`, 'error');
+            }
+        } catch (err) {
+            console.error('Pipeline Trigger Error:', err);
+            showNotification('Network error triggering pipeline', 'error');
+        }
     };
 
     const filteredPersonas = personas.filter(p => {
@@ -505,7 +552,7 @@ export default function HorsesAdmin() {
                     <button className={activeTab === 'settings' ? styles.active : ''} onClick={() => setActiveTab('settings')}>
                         ⚙️ Settings
                     </button>
-                    <button className={activeTab === 'stats' ? styles.active : ''} onClick={() => setActiveTab('stats')}>
+                    <button className={activeTab === 'stats' ? styles.active : ''} onClick={() => { setActiveTab('stats'); if (!analyticsLoaded) loadAnalytics(); }}>
                         📊 Statistics
                     </button>
                     <button className={activeTab === 'promo' ? styles.active : ''} onClick={() => setActiveTab('promo')}>
@@ -664,7 +711,10 @@ export default function HorsesAdmin() {
                                 <div className={styles.settingsRow}>
                                     <div className={styles.settingItem}>
                                         <label>Max Tables Per Horse</label>
-                                        <select defaultValue="4">
+                                        <select
+                                            value={settings.grinder_max_tables ?? 4}
+                                            onChange={(e) => updateSetting('grinder_max_tables', parseInt(e.target.value))}
+                                        >
                                             <option value="1">1 Table</option>
                                             <option value="2">2 Tables</option>
                                             <option value="3">3 Tables</option>
@@ -673,7 +723,10 @@ export default function HorsesAdmin() {
                                     </div>
                                     <div className={styles.settingItem}>
                                         <label>Daily Play Hours</label>
-                                        <select defaultValue="16">
+                                        <select
+                                            value={settings.grinder_daily_hours ?? 16}
+                                            onChange={(e) => updateSetting('grinder_daily_hours', parseInt(e.target.value))}
+                                        >
                                             <option value="8">8 Hours</option>
                                             <option value="12">12 Hours</option>
                                             <option value="16">16 Hours</option>
@@ -682,11 +735,20 @@ export default function HorsesAdmin() {
                                     </div>
                                     <div className={styles.settingItem}>
                                         <label>Starting Chips</label>
-                                        <input type="number" defaultValue="10000" min="1000" max="100000" />
+                                        <input
+                                            type="number"
+                                            value={settings.grinder_starting_chips ?? 10000}
+                                            onChange={(e) => updateSetting('grinder_starting_chips', parseInt(e.target.value))}
+                                            min="1000"
+                                            max="100000"
+                                        />
                                     </div>
                                     <div className={styles.settingItem}>
                                         <label>AI Model</label>
-                                        <select defaultValue="gpt-4o">
+                                        <select
+                                            value={settings.grinder_ai_model ?? 'gpt-4o'}
+                                            onChange={(e) => updateSetting('grinder_ai_model', e.target.value)}
+                                        >
                                             <option value="gpt-4o">GPT-4o (Best)</option>
                                             <option value="gpt-4o-mini">GPT-4o Mini (Faster)</option>
                                         </select>
@@ -941,45 +1003,49 @@ export default function HorsesAdmin() {
                         <div className={styles.statsView}>
                             <h2>📊 Content Statistics</h2>
 
-                            <div className={styles.statsOverview}>
-                                <div className={styles.statCardLarge}>
-                                    <span className={styles.statNumber}>{personas.length}</span>
-                                    <span className={styles.statLabel}>Total Authors</span>
-                                </div>
-                                <div className={styles.statCardLarge}>
-                                    <span className={styles.statNumber}>{activeCount}</span>
-                                    <span className={styles.statLabel}>Active Authors</span>
-                                </div>
-                                <div className={styles.statCardLarge}>
-                                    <span className={styles.statNumber}>{pipelineRuns.length}</span>
-                                    <span className={styles.statLabel}>Pipeline Runs</span>
-                                </div>
-                                <div className={styles.statCardLarge}>
-                                    <span className={styles.statNumber}>
-                                        {pipelineRuns.reduce((sum, r) => sum + (r.text_posts_created || 0), 0)}
-                                    </span>
-                                    <span className={styles.statLabel}>Posts Created</span>
-                                </div>
-                            </div>
-
-                            <div className={styles.contentBreakdown}>
-                                <h3>Content Type Breakdown</h3>
-                                <div className={styles.breakdownGrid}>
-                                    {[
-                                        { type: 'Strategy Tips', count: 45, color: '#8b5cf6' },
-                                        { type: 'Hand Analysis', count: 32, color: '#22c55e' },
-                                        { type: 'Mindset Posts', count: 28, color: '#f59e0b' },
-                                        { type: 'Beginner Guides', count: 21, color: '#3b82f6' },
-                                        { type: 'Videos', count: 12, color: '#ef4444' }
-                                    ].map((item, i) => (
-                                        <div key={i} className={styles.breakdownItem}>
-                                            <div className={styles.breakdownBar} style={{ width: `${(item.count / 50) * 100}%`, backgroundColor: item.color }}></div>
-                                            <span className={styles.breakdownLabel}>{item.type}</span>
-                                            <span className={styles.breakdownCount}>{item.count}</span>
+                            {!analyticsLoaded ? (
+                                <p style={{ textAlign: 'center', padding: '20px', color: '#888' }}>Loading Analytics...</p>
+                            ) : (
+                                <>
+                                    <div className={styles.statsOverview}>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>{personas.length}</span>
+                                            <span className={styles.statLabel}>Total Authors</span>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>{analyticsData?.activeHorses || activeCount}</span>
+                                            <span className={styles.statLabel}>Active Authors (7d)</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>{pipelineRuns.length}</span>
+                                            <span className={styles.statLabel}>Pipeline Runs</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>
+                                                {analyticsData?.totalPosts || 0}
+                                            </span>
+                                            <span className={styles.statLabel}>Posts Created (7d)</span>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.contentBreakdown}>
+                                        <h3>Content Type Breakdown (Last 7 Days)</h3>
+                                        <div className={styles.breakdownGrid}>
+                                            {analyticsData && Object.keys(analyticsData.sourceDistribution || {}).length > 0 ? (
+                                                Object.entries(analyticsData.sourceDistribution).map(([source, count], i) => (
+                                                    <div key={i} className={styles.breakdownItem}>
+                                                        <div className={styles.breakdownBar} style={{ width: `${Math.min((count / 50) * 100, 100)}%`, backgroundColor: ['#8b5cf6', '#22c55e', '#f59e0b', '#3b82f6', '#ef4444'][i % 5] }}></div>
+                                                        <span className={styles.breakdownLabel}>{source}</span>
+                                                        <span className={styles.breakdownCount}>{count}</span>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className={styles.noData}>No data for the last 7 days. Once the pipeline runs, statistics will appear here.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
 

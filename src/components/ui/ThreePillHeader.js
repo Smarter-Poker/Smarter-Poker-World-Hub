@@ -33,7 +33,15 @@ export default function ThreePillHeader({
     onMenuClick = null
 }) {
     const router = useRouter();
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cachedUser = localStorage.getItem('sp-cached-header-user');
+                if (cachedUser) return JSON.parse(cachedUser);
+            } catch (e) { }
+        }
+        return null;
+    });
     const [stats, setStats] = useState({ diamonds: 0 });
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
@@ -48,7 +56,7 @@ export default function ThreePillHeader({
     const { user: contextUser, avatar: contextAvatar } = useAvatar();
 
     // Derived values to prevent "flash of missing data" on mount
-    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
+    const displayAvatar = contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url;
 
     const liveHelp = useLiveHelp();
 
@@ -89,7 +97,7 @@ export default function ThreePillHeader({
                 if (!mounted) return;
 
                 if (authUser) {
-                    setUser(authUser);
+                    setUser(prev => ({ ...prev, ...authUser }));
 
                     const response = await fetch('/api/user/get-header-stats', {
                         method: 'POST',
@@ -101,11 +109,17 @@ export default function ThreePillHeader({
                     if (result.success && result.profile && mounted) {
                         const { diamonds, avatar_url, full_name, username } = result.profile;
                         setStats({ diamonds });
-                        setUser(prev => ({
-                            ...prev,
-                            avatar: avatar_url,
-                            name: full_name || username
-                        }));
+                        setUser(prev => {
+                            const nextUser = {
+                                ...prev,
+                                avatar: avatar_url,
+                                name: full_name || username
+                            };
+                            try {
+                                localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: avatar_url, name: full_name || username }));
+                            } catch (e) { }
+                            return nextUser;
+                        });
                         if (typeof result.notificationCount === 'number') {
                             setNotificationCount(result.notificationCount);
                         }
@@ -116,9 +130,69 @@ export default function ThreePillHeader({
             }
         };
 
+        const handleProfileUpdate = (e) => {
+            console.log('[ThreePillHeader] 🚌 profile-updated received:', e.detail);
+            const { avatar_url, full_name, username } = e.detail;
+            setUser(prev => {
+                const nextUser = { ...prev };
+                if (avatar_url) nextUser.avatar = avatar_url;
+                if (full_name || username) nextUser.name = full_name || username;
+                try {
+                    localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                        avatar: nextUser.avatar,
+                        name: nextUser.name
+                    }));
+                } catch (err) { }
+                return nextUser;
+            });
+        };
+
+        const refreshBalance = async (e) => {
+            // Optimistic update if cost/newBalance is provided
+            if (e?.detail?.newBalance !== undefined) {
+                setStats(prev => ({ ...prev, diamonds: e.detail.newBalance }));
+                return;
+            }
+            if (e?.detail?.cost !== undefined) {
+                setStats(prev => ({ ...prev, diamonds: prev.diamonds - e.detail.cost }));
+                return;
+            }
+
+            // Otherwise fetch fresh from server
+            try {
+                // Determine user ID from local state
+                let currentUserId = user?.id;
+                if (!currentUserId && typeof window !== 'undefined') {
+                    try {
+                        const tokenData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                        currentUserId = tokenData?.user?.id;
+                    } catch (err) { }
+                }
+
+                if (!currentUserId) return;
+
+                const response = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId }),
+                });
+                const result = await response.json();
+                if (result.success && result.profile && mounted) {
+                    setStats({ diamonds: result.profile.diamonds });
+                }
+            } catch (err) { console.error('[ThreePillHeader] Failed to refresh balance:', err); }
+        };
+
         loadUser();
-        return () => { mounted = false; };
-    }, []);
+        window.addEventListener('profile-updated', handleProfileUpdate);
+        window.addEventListener('diamond-balance-refresh', refreshBalance);
+
+        return () => {
+            mounted = false;
+            window.removeEventListener('profile-updated', handleProfileUpdate);
+            window.removeEventListener('diamond-balance-refresh', refreshBalance);
+        };
+    }, [user?.id]);
 
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {

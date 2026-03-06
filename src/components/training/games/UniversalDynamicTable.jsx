@@ -1001,7 +1001,6 @@ function UniversalDynamicTable({
                     background: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)',
                     borderColor: '#22c55e',
                     color: '#22c55e',
-                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.2)',
                 };
             }
             if (isSelected && !isCorrect) {
@@ -1012,7 +1011,6 @@ function UniversalDynamicTable({
                     background: clsConfig.bgColor,
                     borderColor: clsConfig.borderColor,
                     color: clsConfig.color,
-                    boxShadow: `0 0 20px ${clsConfig.borderColor}40`,
                 };
             }
             // Unselected options — dim them
@@ -2259,7 +2257,7 @@ const styles = {
         color: '#e2e8f0',
         cursor: 'pointer',
         transition: 'all 0.15s ease-out',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',

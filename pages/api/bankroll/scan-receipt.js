@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -36,7 +37,7 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.ai)) return;
+    if (!applyRateLimit(req, res, LIMITS.ai)) return;
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -51,6 +52,12 @@ export default async function handler(req, res) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
         return res.status(401).json({ success: false, error: 'Invalid token' });
+    }
+
+    // SERVER-SIDE GUARD: Verify user has Bankroll Pro access
+    const access = await checkFeatureAccess(user.id, 'bankroll_pro');
+    if (!access.hasAccess) {
+        return res.status(403).json({ success: false, error: 'Premium feature access required' });
     }
 
     try {

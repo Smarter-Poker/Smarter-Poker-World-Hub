@@ -110,7 +110,17 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
             const response = await fetch(apiUrl, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {},
             });
-            const data = await response.json();
+
+            // Safe JSON parsing to prevent Unexpected Token '<' HTML crash
+            let data;
+            const textResponse = await response.text();
+            try {
+                data = JSON.parse(textResponse);
+            } catch (e) {
+                console.error('[MillionaireGame] Non-JSON response:', textResponse.substring(0, 100));
+                if (response.status === 401) throw new Error('Auth required');
+                throw new Error(`Server error (${response.status})`);
+            }
 
             if (!response.ok || !data.questions || data.questions.length === 0) {
                 console.warn('[MillionaireGame] Pre-load failed, using single-question mode');
@@ -156,7 +166,16 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
             const response = await fetch(`/api/training/batch-preload?${params}`, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {},
             });
-            const data = await response.json();
+
+            // Safe JSON parsing
+            let data;
+            const textResponse = await response.text();
+            try {
+                data = JSON.parse(textResponse);
+            } catch (e) {
+                if (response.status === 401) throw new Error('Auth required');
+                throw new Error(`Server error (${response.status})`);
+            }
 
             if (!response.ok || !data.questions || data.questions.length === 0) {
                 throw new Error(data.error || 'No solver data available');
