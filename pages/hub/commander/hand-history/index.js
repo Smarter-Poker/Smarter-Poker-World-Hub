@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Spade
 } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 function CardDisplay({ cards }) {
   if (!cards || cards.length === 0) return null;
@@ -159,7 +160,8 @@ export default function HandHistoryPage() {
   async function fetchSessions(signal) {
     setLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/hands/sessions', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -178,7 +180,8 @@ export default function HandHistoryPage() {
   async function fetchHands(gameId) {
     setHandsLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch(`/api/commander/hands/game/${gameId}?limit=50`, {
         headers: { Authorization: `Bearer ${token}` }
       });

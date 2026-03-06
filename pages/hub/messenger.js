@@ -1127,38 +1127,12 @@ export default function MessengerPage() {
     useEffect(() => {
         async function init(signal) {
             try {
-                //  BULLETPROOF: Try localStorage first for instant session (PWA/notification opens)
+                // Get authenticated user from Supabase session
                 let authUser = null;
-
-                // First, try to get user from localStorage (faster, works offline)
-                if (typeof window !== 'undefined') {
-                    try {
-                        const authData = localStorage.getItem('smarter-poker-auth');
-                        if (authData) {
-                            const tokenData = JSON.parse(authData);
-                            authUser = tokenData?.user || null;
-                        }
-                        // Fallback to legacy sb-* keys
-                        if (!authUser) {
-                            const sbKeys = Object.keys(localStorage).filter(
-                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                            );
-                            if (sbKeys.length > 0) {
-                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                                authUser = tokenData?.user || null;
-                            }
-                        }
-                    } catch (e) {
-                    }
-                }
-
-                // If not in localStorage, try Supabase API (but don't fail if it errors)
-                if (!authUser) {
-                    try {
-                        const { data } = await supabase.auth.getUser();
-                        authUser = data?.user || null;
-                    } catch (e) {
-                    }
+                try {
+                    const { data } = await supabase.auth.getUser();
+                    authUser = data?.user || null;
+                } catch (e) {
                 }
 
                 if (authUser) {

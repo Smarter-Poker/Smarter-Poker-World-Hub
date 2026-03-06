@@ -13,6 +13,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 
 const ActiveIdentityContext = createContext({
     activeIdentity: { mode: 'personal', clubPage: null },
@@ -50,25 +51,9 @@ export function ActiveIdentityProvider({ children }) {
     useEffect(() => {
         const detectClubPage = async () => {
             try {
-                // ── Step 1: Get userId from auth data (required) ──
-                let userId = null;
-                try {
-                    const authData = localStorage.getItem('smarter-poker-auth');
-                    if (authData) {
-                        const parsed = JSON.parse(authData);
-                        userId = parsed?.user?.id;
-                    }
-                    // Fallback: try legacy sb-* keys
-                    if (!userId) {
-                        const sbKeys = Object.keys(localStorage).filter(
-                            k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                        );
-                        if (sbKeys.length > 0) {
-                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                            userId = tokenData?.user?.id;
-                        }
-                    }
-                } catch (e) { /* ignore parse errors */ }
+                // ── Step 1: Get userId from Supabase session ──
+                const { data: { user: _aic_user } } = await supabase.auth.getUser();
+                const userId = _aic_user?.id || null;
 
                 if (!userId) return; // Not logged in, nothing to detect
 

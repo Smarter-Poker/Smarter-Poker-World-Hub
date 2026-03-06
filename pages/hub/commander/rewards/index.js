@@ -79,11 +79,14 @@ export default function PlayerRewardsPage() {
   const [redeemingId, setRedeemingId] = useState(null);
 
   useEffect(() => {
-    const _c = new AbortController();
-
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
-    return () => _c.abort();
+    (async () => {
+      const _c = new AbortController();
+  
+      const { data: { session: _session } } = await supabase.auth.getSession();
+      const token = _session?.access_token;
+      if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
+      return () => _c.abort();
+    })();
   }, [router]);
   // Realtime listener — live updates for rewards/index.js
   useEffect(() => {
@@ -97,7 +100,8 @@ export default function PlayerRewardsPage() {
   }, [user?.id]);
 
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [balRes, txRes, rateRes] = await Promise.all([
@@ -147,7 +151,8 @@ export default function PlayerRewardsPage() {
     const finalAmount = Math.min(parsed, balance);
 
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/comps/redeem', {
         method: 'POST',
         headers: {

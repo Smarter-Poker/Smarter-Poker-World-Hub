@@ -12,6 +12,7 @@ import Image from 'next/image';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { supabase } from '../../../src/lib/supabase';
 
 export default function JarvisDashboard() {
     const [user, setUser] = useState(null);
@@ -32,7 +33,8 @@ export default function JarvisDashboard() {
             setUser(authUser);
 
             if (authUser) {
-                const token = (JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'))?.access_token || '';
+                const { data: { session: _jSess } } = await supabase.auth.getSession();
+                const token = _jSess?.access_token || '';
                 const response = await fetch(`/api/jarvis/user-insights`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

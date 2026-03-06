@@ -7,19 +7,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
 
-// Helper to get auth token from localStorage
-function getAuthToken() {
-  if (typeof window === 'undefined') return null;
+// Helper to get auth token from Supabase session
+async function getAuthToken() {
   try {
-    const authData = localStorage.getItem('smarter-poker-auth');
-    if (authData) {
-      const parsed = JSON.parse(authData);
-      return parsed?.access_token || null;
-    }
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   } catch (e) {
     return null;
   }
-  return null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -42,7 +37,7 @@ export function useAssistantStats() {
       try {
         // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
         const user = getAuthUser();
-        const token = getAuthToken();
+        const token = await getAuthToken();
 
         const response = await fetch('/api/assistant/stats', {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -85,7 +80,7 @@ export function useLeaks(statusFilter = null) {
       setIsLoading(true);
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const user = getAuthUser();
-      const token = getAuthToken();
+      const token = await getAuthToken();
 
       let url = '/api/assistant/leaks';
       if (statusFilter) {
@@ -135,7 +130,7 @@ export function useLeaks(statusFilter = null) {
 
   const updateLeakStatus = async (leakId, newStatus) => {
     try {
-      const token = getAuthToken();
+      const token = await getAuthToken();
       const response = await fetch('/api/assistant/leaks', {
         method: 'PATCH',
         headers: {
@@ -227,7 +222,7 @@ export function useSandboxAnalysis() {
       setError(null);
 
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const token = getAuthToken();
+      const token = await getAuthToken();
 
       const response = await fetch('/api/assistant/sandbox/analyze', {
         method: 'POST',
@@ -390,7 +385,7 @@ export function useLeakDetection() {
       setError(null);
 
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
-      const token = getAuthToken();
+      const token = await getAuthToken();
       if (!token) {
         setError('Must be logged in to run leak detection');
         return { success: false, error: 'Not logged in' };

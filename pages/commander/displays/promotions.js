@@ -14,6 +14,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useClubBranding from '../../../src/lib/commander/useClubBranding';
 import useWakeLock from '../../../src/hooks/useWakeLock';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 
 const PROMO_TYPE_STYLES = {
   high_hand: { bg: 'from-yellow-900/40 to-yellow-700/20', accent: '#F59E0B', label: 'HIGH HAND' },
@@ -46,7 +47,7 @@ export default function PromotionsDisplay() {
 
   const fetchData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || '';
+      const token = getToken() || '';
       const staffSession = localStorage.getItem('commander_staff') || '';
       const url = venueId
         ? `/api/commander/promotions?venue_id=${venueId}&status=active`

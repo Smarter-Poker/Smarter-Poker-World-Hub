@@ -134,9 +134,10 @@ export default function PlayerWaitlistPage() {
   // Commander Data Bus — instant sync when waitlist/games change
   useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });
 
-  function getAuthToken() {
+  async function getAuthToken() {
     // Try direct key first
-    let raw = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _authSession } } = await supabase.auth.getSession();
+    let raw = _authSession?.access_token ? JSON.stringify({ access_token: _authSession.access_token }) : null;
     if (!raw) {
       const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
       if (sbKeys.length > 0) raw = localStorage.getItem(sbKeys[0]);

@@ -105,7 +105,9 @@ export default function PlayerHomeGamesHub() {
   const loadGames = async(signal) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+
+      const token = _session?.access_token;
       const res = await fetch('/api/commander/home-games/groups?visibility=public,friends', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -124,7 +126,9 @@ export default function PlayerHomeGamesHub() {
     if (!joinCode.trim()) return;
 
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+
+      const token = _session?.access_token;
       if (!token) {
         router.push('/auth/login?redirect=/hub/commander/home-games');
         return;
@@ -154,7 +158,9 @@ export default function PlayerHomeGamesHub() {
   const loadDiscoverGames = async(signal) => {
     setDiscoverLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+
+      const token = _session?.access_token;
       const res = await fetch('/api/commander/home-games/discover?type=groups&limit=20', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -172,7 +178,9 @@ export default function PlayerHomeGamesHub() {
   const loadCalendarEvents = async(signal) => {
     setCalendarLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+
+      const token = _session?.access_token;
       const res = await fetch('/api/commander/home-games/events?limit=100', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -187,8 +195,10 @@ export default function PlayerHomeGamesHub() {
     }
   };
 
-  const handleJoinGame = (game) => {
-    const token = localStorage.getItem('smarter-poker-auth');
+  const handleJoinGame = async (game) => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+
+    const token = _session?.access_token;
     if (!token) {
       router.push('/auth/login?redirect=/hub/commander/home-games');
       return;

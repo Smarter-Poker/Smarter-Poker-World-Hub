@@ -103,17 +103,15 @@ export default function PlayerNotificationsPage() {
   const [filter, setFilter] = useState('all'); // 'all', 'unread'
   const [notifications, setNotifications] = useState([]);
 
-  const getToken = () => {
-    let token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
-    }
-    return token;
+  const getToken = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   };
 
   useEffect(() => {
-    if (!getToken()) router.push('/auth/login?redirect=/hub/commander/notifications');
+    getToken().then(token => {
+      if (!token) router.push('/auth/login?redirect=/hub/commander/notifications');
+    });
   }, [router]);
   // Realtime listener — live updates for notifications/index.js
   useEffect(() => {
@@ -127,8 +125,8 @@ export default function PlayerNotificationsPage() {
 
   const { isLoading: loading, mutate: refreshNotifications } = useSWR(
     '/api/commander/notifications/my',
-    (url) => {
-      const token = getToken();
+    async (url) => {
+      const token = await getToken();
       if (!token) return null;
       return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => { if (d.success) setNotifications(d.data?.notifications || []); return d; });
@@ -142,11 +140,8 @@ export default function PlayerNotificationsPage() {
     );
 
     try {
-      let token = localStorage.getItem('smarter-poker-auth');
-      if (!token) {
-        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
-      }
+      const { data: { session: _authSession } } = await supabase.auth.getSession();
+      const token = _authSession?.access_token;
 
       await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'PATCH',
@@ -171,11 +166,8 @@ export default function PlayerNotificationsPage() {
     setNotifications(prev => prev.filter(n => n.id !== notification.id));
 
     try {
-      let token = localStorage.getItem('smarter-poker-auth');
-      if (!token) {
-        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
-      }
+      const { data: { session: _authSession } } = await supabase.auth.getSession();
+      const token = _authSession?.access_token;
 
       await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'DELETE',
@@ -196,11 +188,8 @@ export default function PlayerNotificationsPage() {
     );
 
     try {
-      let token = localStorage.getItem('smarter-poker-auth');
-      if (!token) {
-        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-        if (sbKeys.length > 0) token = localStorage.getItem(sbKeys[0]);
-      }
+      const { data: { session: _authSession } } = await supabase.auth.getSession();
+      const token = _authSession?.access_token;
 
       await fetch('/api/commander/notifications/mark-all-read', {
         method: 'POST',

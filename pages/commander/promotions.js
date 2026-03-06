@@ -14,6 +14,7 @@ import PromotionBuilder from '../../src/components/commander/promotions/Promotio
 import HighHandDisplay from '../../src/components/commander/promotions/HighHandDisplay';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const PROMO_TYPES = [
   { value: 'high_hand', label: 'High Hand', icon: Trophy, color: '#F59E0B' },
@@ -55,7 +56,7 @@ function RecordHighHandModal({ isOpen, onClose, onSubmit, venueId, staff }) {
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch('/api/commander/high-hands', {
         method: 'POST',
@@ -365,7 +366,7 @@ export default function PromotionsPage() {
     const { signal } = controller;
     setPromoCodesLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/promo/admin-promo-codes', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -378,7 +379,7 @@ export default function PromotionsPage() {
   const seedPremadePromos = async () => {
     setSeedingPromos(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/promo/seed-premade', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
@@ -396,7 +397,7 @@ export default function PromotionsPage() {
 
   const togglePromoCode = async (code) => {
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -409,7 +410,7 @@ export default function PromotionsPage() {
   const deletePromoCode = async (code) => {
     if (!confirm(`Deactivate promo code "${code.code}"?`)) return;
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       await fetch(`/api/promo/admin-promo-codes?id=${code.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -426,7 +427,7 @@ export default function PromotionsPage() {
   const savePromoCode = async () => {
     if (!editingPromoCode) return;
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token');
+      const token = getToken();
       const res = await fetch('/api/promo/admin-promo-codes', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -491,7 +492,7 @@ export default function PromotionsPage() {
   const clearSelection = () => setSelectedIds(new Set());
   async function bulkToggle(activate) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
         fetch(`/api/commander/promotions/${id}`, {
@@ -513,7 +514,7 @@ export default function PromotionsPage() {
   async function bulkDelete() {
     if (!confirm(`Delete ${selectedIds.size} promotion(s)?`)) return;
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const results = await Promise.allSettled([...selectedIds].map(id =>
         fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } })
@@ -574,7 +575,7 @@ export default function PromotionsPage() {
 
   async function handleVerifyHighHand(highHand) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/high-hands/${highHand.id}`, {
         method: 'PUT',
@@ -593,7 +594,7 @@ export default function PromotionsPage() {
 
   async function handleToggle(promo) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/promotions/${promo.id}`, {
         method: 'PATCH',
@@ -610,7 +611,7 @@ export default function PromotionsPage() {
   async function handleDelete(promo) {
     if (!confirm(`Delete "${promo.name}"?`)) return;
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       await fetch(`/api/commander/promotions/${promo.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
       broadcastChange('settings');
@@ -627,7 +628,7 @@ export default function PromotionsPage() {
 
   async function handleDuplicate(promo) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+      const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const cloneData = {
         venue_id: venueId,
@@ -700,7 +701,7 @@ export default function PromotionsPage() {
     setPromotions(reorderedPromos);
     setDraggedId(null); setDragOverId(null);
     // Persist in background
-    const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+    const token = getToken();
     const staffSession = localStorage.getItem('commander_staff') || '';
     try {
       await Promise.allSettled(items.map((p, idx) =>
@@ -1023,7 +1024,7 @@ export default function PromotionsPage() {
                   isStaff={true}
                   onSubmitHand={async (handData) => {
                     try {
-                      const token = localStorage.getItem('smarter-poker-auth');
+                      const token = getToken();
                       const staffSession = localStorage.getItem('commander_staff') || '';
                       await fetch('/api/commander/high-hands', {
                         method: 'POST',
@@ -1420,7 +1421,7 @@ export default function PromotionsPage() {
                   venueId={venueId}
                   onSubmit={async (data) => {
                     try {
-                      const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+                      const token = getToken();
                       const staffSession = localStorage.getItem('commander_staff') || '';
                       const res = await fetch('/api/commander/promotions', {
                         method: 'POST',
@@ -1450,7 +1451,7 @@ export default function PromotionsPage() {
               venueId={venueId}
               onSave={async (data) => {
                 try {
-                  const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+                  const token = getToken();
                   const staffSession = localStorage.getItem('commander_staff') || '';
                   const res = await fetch('/api/commander/promotions', {
                     method: 'POST',
@@ -1481,7 +1482,7 @@ export default function PromotionsPage() {
             venueId={venueId}
             onSave={async (data) => {
               try {
-                const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+                const token = getToken();
                 const staffSession = localStorage.getItem('commander_staff') || '';
                 const res = await fetch(`/api/commander/promotions/${editingPromo.id}`, {
                   method: 'PUT',
@@ -1504,7 +1505,7 @@ export default function PromotionsPage() {
             onDelete={async (id) => {
               if (!confirm('Delete this promotion?')) return;
               try {
-                const token = localStorage.getItem('smarter-poker-auth') || localStorage.getItem('sb-access-token') || localStorage.getItem('commander_token');
+                const token = getToken();
                 const staffSession = localStorage.getItem('commander_staff') || '';
                 await fetch(`/api/commander/promotions/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } });
                 fetchPromotions();

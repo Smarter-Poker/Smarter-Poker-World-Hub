@@ -496,18 +496,7 @@ export default function MyClubsPage() {
                 }
             }
 
-            // Merge with localStorage follows (only numeric venue IDs)
-            try {
-                const stored = localStorage.getItem('followed-venues');
-                if (stored) {
-                    const localIds = JSON.parse(stored);
-                    localIds.forEach(id => {
-                        const sid = String(id);
-                        // Only merge numeric IDs — social page IDs (sp-xxx) are not valid venue IDs
-                        if (/^\d+$/.test(sid) && !venueIds.includes(sid)) venueIds.push(sid);
-                    });
-                }
-            } catch (e) { console.error("[my-clubs.js]", e); }
+            // Venue follows are stored in Supabase via /api/poker/follow
 
             setFollowedIds(new Set(venueIds));
             setFollowedPageKeys(allPageKeys);
@@ -654,18 +643,6 @@ export default function MyClubsPage() {
                 setFollowedVenues(prev => [venueFromSearch, ...prev]);
             }
         }
-
-        // Update localStorage
-        try {
-            const stored = localStorage.getItem('followed-venues');
-            let ids = stored ? JSON.parse(stored) : [];
-            if (newAction === 'follow') {
-                if (!ids.includes(vid)) ids.push(vid);
-            } else {
-                ids = ids.filter(x => x !== vid);
-            }
-            localStorage.setItem('followed-venues', JSON.stringify(ids));
-        } catch (e) { console.error("[my-clubs.js]", e); }
 
         // Persist to API
         try {

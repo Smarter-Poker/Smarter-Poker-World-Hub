@@ -190,16 +190,8 @@ export default function ClubLobby() {
     async function loadClubData() {
         setIsLoading(true);
         try {
-            // Load user
-            let authUser = null;
-            if (typeof window !== 'undefined') {
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) authUser = JSON.parse(explicitAuth)?.user || null;
-                if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    if (sbKeys.length > 0) authUser = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user || null;
-                }
-            }
+            // Load user (Supabase session only)
+            const { data: { user: authUser } } = await supabase.auth.getUser();
             if (authUser) setUser(authUser);
 
             // Load club by club_id

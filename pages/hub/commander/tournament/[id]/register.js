@@ -38,7 +38,8 @@ export default function TournamentRegisterPage() {
 
   async function fetchTournament(signal) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [tournamentRes, entriesRes] = await Promise.all([
@@ -68,7 +69,8 @@ export default function TournamentRegisterPage() {
   }
 
   async function handleRegister(signal) {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;
@@ -107,7 +109,8 @@ export default function TournamentRegisterPage() {
   async function handleUnregister(signal) {
     if (!myEntry) return;
 
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;

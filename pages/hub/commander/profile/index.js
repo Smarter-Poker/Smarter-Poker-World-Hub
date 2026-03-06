@@ -75,14 +75,17 @@ export default function PlayerProfilePage() {
 
   useEffect(() => {
     const _c = new AbortController();
-
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
+    (async () => {
+      const { data: { session: _session } } = await supabase.auth.getSession();
+      const token = _session?.access_token;
+      if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
+    })();
     return () => _c.abort();
   }, [router]);
 
   const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [profileRes, statsRes] = await Promise.all([

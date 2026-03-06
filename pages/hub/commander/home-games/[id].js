@@ -146,7 +146,9 @@ export default function HomeGameDetailPage() {
 
   // Get current user ID from token on mount
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -155,6 +157,7 @@ export default function HomeGameDetailPage() {
         console.error('Failed to decode token:', e);
       }
     }
+    })();
   }, []);
 
   // Fetch group data
@@ -164,7 +167,8 @@ export default function HomeGameDetailPage() {
     if (!id) return;
 
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [groupRes, eventsRes, membersRes, postsRes] = await Promise.all([
@@ -187,7 +191,8 @@ export default function HomeGameDetailPage() {
       if (membersData.success || membersData.members) {
         setMembers(membersData.members || membersData.data?.members || []);
         // Check if current user is a member (using decoded token ID)
-        const token = localStorage.getItem('smarter-poker-auth');
+        const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
         let userId = null;
         if (token) {
           try {
@@ -263,7 +268,8 @@ export default function HomeGameDetailPage() {
 
   // Join group
   async function handleJoin() {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
       return;
@@ -292,7 +298,8 @@ export default function HomeGameDetailPage() {
 
   // RSVP to event
   async function handleRsvp(event, status) {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/home-games/${id}`);
       return;
@@ -531,7 +538,8 @@ export default function HomeGameDetailPage() {
                     onClick={async () => {
                       if (!newPost.trim()) return;
                       try {
-                        const token = localStorage.getItem('smarter-poker-auth');
+                        const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
                         await fetch(`/api/commander/home-games/${id}/posts`, {
                           method: 'POST',
                           headers: {
@@ -589,7 +597,8 @@ export default function HomeGameDetailPage() {
                   try {
                     const pastEvent = events.find(e => new Date(e.scheduled_date) < new Date());
                     if (!pastEvent) return;
-                    const token = localStorage.getItem('smarter-poker-auth');
+                    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
                     const res = await fetch(`/api/commander/home-games/events/${pastEvent.id}/reviews`, {
                       method: 'POST',
                       headers: {

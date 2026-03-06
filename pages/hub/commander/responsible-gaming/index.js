@@ -20,6 +20,7 @@ import {
   Lock,
   Calendar
 } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
@@ -87,14 +88,18 @@ export default function ResponsibleGamingPage() {
   const [riskStatus, setRiskStatus] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
+    })();
   }, [router]);
 
   const { isLoading: loading, mutate: refreshSettings } = useSWR(
     '/api/commander/responsible-gaming/limits',
     async (url) => {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       if (!token) return null;
       const h = { Authorization: `Bearer ${token}` };
       const [limRes, exRes] = await Promise.all([
@@ -117,7 +122,8 @@ export default function ResponsibleGamingPage() {
   async function handleSaveLimits(signal) {
     setSaving(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/responsible-gaming/limits', {
         method: 'PUT',
         headers: {
@@ -147,7 +153,8 @@ export default function ResponsibleGamingPage() {
 
     setSaving(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/responsible-gaming/exclusion', {
         method: 'POST',
         headers: {

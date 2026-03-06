@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
+import { supabase } from '../../../../../src/lib/supabase';
 
 export default function SquadJoinPage() {
   const router = useRouter();
@@ -17,18 +18,22 @@ export default function SquadJoinPage() {
   const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    if (!code) return;
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) {
-      router.push(`/auth/login?redirect=/hub/commander/squads/join/${code}`);
-      return;
-    }
-    fetchSquad();
+    (async () => {
+      if (!code) return;
+      const { data: { session: _session } } = await supabase.auth.getSession();
+      const token = _session?.access_token;
+      if (!token) {
+        router.push(`/auth/login?redirect=/hub/commander/squads/join/${code}`);
+        return;
+      }
+      fetchSquad();
+    })();
   }, [code, router]);
 
   async function fetchSquad(signal) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -49,7 +54,8 @@ export default function SquadJoinPage() {
   async function handleJoin(signal) {
     setJoining(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         method: 'POST',
         headers: {

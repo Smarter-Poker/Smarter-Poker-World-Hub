@@ -19,6 +19,7 @@ import { useLiveHelp } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
+import { supabase } from '../../lib/supabase';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -72,27 +73,7 @@ export default function ThreePillHeader({
 
         const loadUser = async () => {
             try {
-                let authUser = null;
-                if (typeof window !== 'undefined') {
-                    try {
-                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                        if (explicitAuth) {
-                            const tokenData = JSON.parse(explicitAuth);
-                            authUser = tokenData?.user || null;
-                        }
-                        if (!authUser) {
-                            const sbKeys = Object.keys(localStorage).filter(
-                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                            );
-                            if (sbKeys.length > 0) {
-                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                                authUser = tokenData?.user || null;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[ThreePillHeader] Error reading localStorage:', e);
-                    }
-                }
+                const { data: { user: authUser } } = await supabase.auth.getUser();
 
                 if (!mounted) return;
 
@@ -162,11 +143,9 @@ export default function ThreePillHeader({
             try {
                 // Determine user ID from local state
                 let currentUserId = user?.id;
-                if (!currentUserId && typeof window !== 'undefined') {
-                    try {
-                        const tokenData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                        currentUserId = tokenData?.user?.id;
-                    } catch (err) { }
+                if (!currentUserId) {
+                    const { data: { user: supaUser } } = await supabase.auth.getUser();
+                    currentUserId = supaUser?.id;
                 }
 
                 if (!currentUserId) return;

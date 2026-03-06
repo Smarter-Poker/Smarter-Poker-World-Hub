@@ -329,30 +329,8 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // FIXED: Check BOTH storage key formats:
-                // 1. New unified key: 'smarter-poker-auth' (from supabase.ts)
-                // 2. Legacy Supabase keys: 'sb-*-auth-token'
-                let authUser = null;
-
-                // First, try the new unified storage key
-                const unifiedToken = localStorage.getItem('smarter-poker-auth');
-                if (unifiedToken) {
-                    try {
-                        const tokenData = JSON.parse(unifiedToken);
-                        authUser = tokenData?.user || null;
-                    } catch (e) { /* ignore parse errors */ }
-                }
-
-                // Fallback: check legacy Supabase keys
-                if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    if (sbKeys.length > 0) {
-                        try {
-                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                            authUser = tokenData?.user || null;
-                        } catch (e) { /* ignore parse errors */ }
-                    }
-                }
+                // Get authenticated user from Supabase session
+                const { data: { user: authUser } } = await supabase.auth.getUser();
 
                 if (authUser) {
                     setUser(authUser);

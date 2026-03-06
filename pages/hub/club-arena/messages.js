@@ -369,34 +369,9 @@ export default function ClubMessages() {
     useEffect(() => {
         async function init(signal) {
             try {
-                let authUser = null;
-
-                // FAST PATH: Check localStorage first
-                if (typeof window !== 'undefined') {
-                    try {
-                        const authData = localStorage.getItem('smarter-poker-auth');
-                        if (authData) {
-                            const tokenData = JSON.parse(authData);
-                            authUser = tokenData?.user || null;
-                        }
-                        if (!authUser) {
-                            const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                            if (sbKeys.length > 0) {
-                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                                authUser = tokenData?.user || null;
-                            }
-                        }
-                    } catch (e) {
-                    }
-                }
-
-                if (!authUser) {
-                    try {
-                        const { data } = await supabase.auth.getUser();
-                        authUser = data?.user || null;
-                    } catch (e) {
-                    }
-                }
+                // Get authenticated user via Supabase session
+                const { data: authData } = await supabase.auth.getUser();
+                const authUser = authData?.user || null;
 
                 if (authUser) {
                     const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).single();

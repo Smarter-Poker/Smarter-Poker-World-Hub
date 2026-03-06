@@ -332,24 +332,10 @@ export default function VirtualSandbox() {
   // Save bookmark (Feature #5)
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
   const saveBookmark = async () => {
-    const user = getAuthUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      // Fallback: save to localStorage for non-logged-in users
-      try {
-        const bookmarkData = {
-          id: Date.now(),
-          hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
-          hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
-          board_flop: board.flop.join(','), board_turn: board.turn, board_river: board.river,
-          label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
-          created_at: new Date().toISOString(),
-        };
-        const existing = JSON.parse(localStorage.getItem('sandbox-bookmarks') || '[]');
-        existing.unshift(bookmarkData);
-        localStorage.setItem('sandbox-bookmarks', JSON.stringify(existing.slice(0, 50)));
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus(null), 2000);
-      } catch (e) { console.error('Local bookmark save error:', e); }
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus(null), 2000);
       return;
     }
     try {
@@ -364,17 +350,7 @@ export default function VirtualSandbox() {
       });
       if (error) {
         console.warn('[Sandbox] Bookmark save error (table may not exist yet):', error.message);
-        // Fallback to localStorage
-        const bookmarkData = {
-          id: Date.now(), hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
-          hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
-          board_flop: board.flop.join(','), label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'}`,
-          created_at: new Date().toISOString(),
-        };
-        const existing = JSON.parse(localStorage.getItem('sandbox-bookmarks') || '[]');
-        existing.unshift(bookmarkData);
-        localStorage.setItem('sandbox-bookmarks', JSON.stringify(existing.slice(0, 50)));
-        setSaveStatus('saved');
+        setSaveStatus('error');
       } else {
         setSaveStatus('saved');
         // 📢 Dispatch BUS LISTENER update for bookmark changes

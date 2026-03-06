@@ -78,7 +78,7 @@ export default function SettingsPage() {
     const router = useRouter();
     const { avatar, isVip, user: contextUser, initializing } = useAvatar();
     const [userProfile, setUserProfile] = useState(null);
-    const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
+    const [localUser, setLocalUser] = useState(null); // Fallback if context not ready
     const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
@@ -126,32 +126,12 @@ export default function SettingsPage() {
     // Menu config
     const menuConfig = getMenuConfig('settings', user, {}, {});
 
-    //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
+    // Load user from Supabase session if not available from context
     useEffect(() => {
-        if (typeof window !== 'undefined' && !contextUser) {
-            try {
-                // Check explicit storage key first
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) {
-                    const tokenData = JSON.parse(explicitAuth);
-                    if (tokenData?.user) {
-                        setLocalUser(tokenData.user);
-                    }
-                }
-                // Fallback to legacy sb-* keys
-                if (!localUser) {
-                    const sbKeys = Object.keys(localStorage).filter(
-                        k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                    );
-                    if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                        if (tokenData?.user) {
-                            setLocalUser(tokenData.user);
-                        }
-                    }
-                }
-            } catch (e) {
-            }
+        if (!contextUser) {
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user) setLocalUser(user);
+            });
         }
     }, [contextUser]);
 

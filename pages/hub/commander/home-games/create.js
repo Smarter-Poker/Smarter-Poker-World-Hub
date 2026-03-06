@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
+import { supabase } from '../../../../src/lib/supabase';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -80,7 +81,8 @@ export default function CreateHomeGamePage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       if (!token) {
         router.push('/auth/login?redirect=/hub/commander/home-games/create');
         return;
@@ -554,7 +556,8 @@ export default function CreateHomeGamePage() {
                 onSubmit={async (eventData) => {
                   setEventSubmitting(true);
                   try {
-                    const token = localStorage.getItem('smarter-poker-auth');
+                    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
                     const res = await fetch('/api/commander/home-games/events', {
                       method: 'POST',
                       headers: {

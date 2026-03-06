@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { supabase } from '../../src/lib/supabase';
 import {
   MapPin,
   Users,
@@ -224,10 +225,9 @@ export default function HomeGamePage() {
   const [isMember, setIsMember] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (token) {
-      setUser({ token });
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setUser({ token: session.access_token, id: session.user.id });
+    });
   }, []);
 
   useEffect(() => {

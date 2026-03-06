@@ -8,6 +8,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 function ToggleSetting({ label, description, value, onChange }) {
   return (
@@ -45,12 +46,16 @@ export default function ProfileSettingsPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile/settings');
+    })();
   }, [router]);
 
-  const { isLoading: loading } = useSWR('/api/commander/profile', (url) => {
-    const token = localStorage.getItem('smarter-poker-auth');
+  const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
@@ -65,7 +70,8 @@ export default function ProfileSettingsPage() {
   async function handleSave(signal) {
     setSaving(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/profile', {
         method: 'PATCH',
         headers: {

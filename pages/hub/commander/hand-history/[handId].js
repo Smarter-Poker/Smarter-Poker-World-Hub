@@ -15,6 +15,7 @@ import {
   Lightbulb,
   ChevronDown
 } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 function CardDisplay({ cards, size = 'md' }) {
   if (!cards || cards.length === 0) return null;
@@ -141,7 +142,8 @@ export default function HandDetailPage() {
   async function fetchHand(signal) {
     setLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch(`/api/commander/hands/${handId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -160,7 +162,8 @@ export default function HandDetailPage() {
   async function handleAnalyze(signal) {
     setAnalyzing(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch(`/api/commander/hands/${handId}/analyze`, {
         method: 'POST',
         headers: {

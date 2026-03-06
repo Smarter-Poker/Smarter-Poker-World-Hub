@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../../lib/supabase';
 
 const RISK_CONFIG = {
     low: { color: '#22c55e', label: 'Low Risk', bg: 'rgba(34,197,94,0.15)' },
@@ -26,11 +27,12 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
         setError(null);
 
         try {
+            const { data: { session: _jSession } } = await supabase.auth.getSession();
             const res = await fetch('/api/jarvis/bankroll-analysis', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}'))?.access_token || ''}`
+                    'Authorization': `Bearer ${_jSession?.access_token || ''}`
                 },
                 body: JSON.stringify({ userId })
             });

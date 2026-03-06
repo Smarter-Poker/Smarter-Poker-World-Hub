@@ -45,10 +45,34 @@ export default function ShoppingCart() {
             const authUser = await getAuthUser();
             setUser(authUser);
 
-            // Load cart from localStorage
-            const savedCart = localStorage.getItem('diamond-store-cart');
-            if (savedCart) {
-                setCart(JSON.parse(savedCart));
+            // Load cart - prefer Supabase for logged-in users, fallback to localStorage
+            if (authUser?.id) {
+                try {
+                    const { data: prefData } = await supabase
+                        .from('user_preferences')
+                        .select('preferences')
+                        .eq('user_id', authUser.id)
+                        .single();
+                    const savedCart = prefData?.preferences?.diamond_cart;
+                    if (savedCart && Array.isArray(savedCart)) {
+                        setCart(savedCart);
+                    } else {
+                        // Migrate localStorage cart to Supabase on first login
+                        const localCart = localStorage.getItem('diamond-store-cart');
+                        if (localCart) {
+                            const parsed = JSON.parse(localCart);
+                            setCart(parsed);
+                            localStorage.removeItem('diamond-store-cart');
+                        }
+                    }
+                } catch (e) {
+                    // Fallback to localStorage if Supabase unavailable
+                    const savedCart = localStorage.getItem('diamond-store-cart');
+                    if (savedCart) setCart(JSON.parse(savedCart));
+                }
+            } else {
+                const savedCart = localStorage.getItem('diamond-store-cart');
+                if (savedCart) setCart(JSON.parse(savedCart));
             }
 
             // Fetch diamond balance
@@ -69,28 +93,49 @@ export default function ShoppingCart() {
         }
     };
 
-    const updateQuantity = (itemId, newQuantity) => {
-        if (newQuantity < 1) {
-            removeItem(itemId);
-            return;
+    // Save cart to Supabase (if logged in) or localStorage fallback
+    const saveCart = async (cartData) => {
+        if (user?.id) {
+            try {
+                await supabase.from('user_preferences').upsert({
+                    user_id: user.id,
+                    preferences: { diamond_cart: cartData },
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id' });
+            } catch (e) {
+                localStorage.setItem('diamond-store-cart', JSON.stringify(cartData));
+            }
+        } else {
+            localStorage.setItem('diamond-store-cart', JSON.stringify(cartData));
         }
+    };
 
+    const updateQuantity = (itemId, newQuantity) => {
+        if (newQuantity < 1) { removeItem(itemId); return; }
         const updated = cart.map(item =>
             item.id === itemId ? { ...item, quantity: newQuantity } : item
         );
         setCart(updated);
-        localStorage.setItem('diamond-store-cart', JSON.stringify(updated));
+        saveCart(updated);
     };
 
     const removeItem = (itemId) => {
         const updated = cart.filter(item => item.id !== itemId);
         setCart(updated);
-        localStorage.setItem('diamond-store-cart', JSON.stringify(updated));
+        saveCart(updated);
     };
 
     const clearCart = () => {
         setCart([]);
-        localStorage.removeItem('diamond-store-cart');
+        if (user?.id) {
+            supabase.from('user_preferences').upsert({
+                user_id: user.id,
+                preferences: { diamond_cart: [] },
+                updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_id' }).catch(() => {});
+        } else {
+            localStorage.removeItem('diamond-store-cart');
+        }
     };
 
     const getSubtotal = () => {

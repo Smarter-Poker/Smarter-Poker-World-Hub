@@ -12,6 +12,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import MultiVenueDashboard from '../../../src/components/commander/admin/MultiVenueDashboard';
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import ExportManager from '../../../src/components/commander/admin/ExportManager';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 
 // API Keys Modal
 function ApiKeysModal({ isOpen, onClose, venueId }) {
@@ -32,7 +33,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const res = await fetch(`/api/commander/admin/api-keys?venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -55,7 +56,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
     setCreating(true);
     setError(null);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const res = await fetch('/api/commander/admin/api-keys', {
         method: 'POST',
         headers: {
@@ -85,7 +86,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
     if (!confirm('Are you sure you want to delete this API key?')) return;
     setError(null);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const res = await fetch(`/api/commander/admin/api-keys/${keyId}?venue_id=${venueId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -236,7 +237,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
   async function handleSave() {
     setSaving(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const res = await fetch(`/api/commander/admin/venues/${venue.id}/settings`, {
         method: 'PUT',
         headers: {
@@ -446,7 +447,7 @@ export default function AdminDashboard() {
   const loadAdminData = async (signal) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       if (!token) {
         router.push('/login');
         return;
@@ -477,7 +478,7 @@ export default function AdminDashboard() {
 
   const loadAuditLogs = async (filters = {}) => {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const params = new URLSearchParams();
       if (selectedVenue) params.set('venue_id', selectedVenue.id);
       if (filters.category) params.set('action_category', filters.category);
@@ -498,7 +499,7 @@ export default function AdminDashboard() {
 
   const handleCreateExport = async (formData) => {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const venueId = selectedVenue?.id || venues[0]?.id;
       if (!venueId) return;
 

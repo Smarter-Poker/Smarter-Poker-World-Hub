@@ -16,6 +16,7 @@ import {
   Check,
   Loader2
 } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -47,13 +48,16 @@ export default function CreateSquadPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) {
       router.push('/auth/login?redirect=/hub/commander/squads/create');
       return;
     }
     fetchVenues();
     fetchFriends();
+    })();
   }, [router]);
 
   async function fetchVenues(signal) {
@@ -71,7 +75,8 @@ export default function CreateSquadPage() {
 
   async function fetchFriends(signal) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/friends', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -108,7 +113,8 @@ export default function CreateSquadPage() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/squads', {
         method: 'POST',
         headers: {

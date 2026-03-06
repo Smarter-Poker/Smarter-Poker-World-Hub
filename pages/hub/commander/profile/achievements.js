@@ -9,18 +9,23 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 
 export default function AchievementsPage() {
   const router = useRouter();
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile/achievements');
+    })();
   }, [router]);
 
-  const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', (url) => {
-    const token = localStorage.getItem('smarter-poker-auth');
+  const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => d.success ? (d.data?.achievements || []) : []);

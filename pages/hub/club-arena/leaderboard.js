@@ -64,20 +64,8 @@ export default function Leaderboard() {
         setIsLoading(true);
 
         try {
-            // Get authenticated user
-            let authUser = null;
-            if (typeof window !== 'undefined') {
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) authUser = JSON.parse(explicitAuth)?.user || null;
-                if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    if (sbKeys.length > 0) authUser = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}')?.user || null;
-                }
-            }
-            if (!authUser) {
-                const { data: { user: supaUser } } = await supabase.auth.getUser();
-                authUser = supaUser;
-            }
+            // Get authenticated user (Supabase session only)
+            const { data: { user: authUser } } = await supabase.auth.getUser();
             setUser(authUser);
 
             // Get club data

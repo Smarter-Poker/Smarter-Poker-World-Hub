@@ -174,37 +174,13 @@ export default function UniversalHeader({
 
         const loadUser = async () => {
             try {
-                // 🛡️ BULLETPROOF: Bypass Supabase client entirely to avoid AbortError
-                // Read user directly from localStorage instead of calling getUser()
-                let authUser = null;
-                if (typeof window !== 'undefined') {
-                    try {
-                        // Check explicit storage key first
-                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                        if (explicitAuth) {
-                            const tokenData = JSON.parse(explicitAuth);
-                            authUser = tokenData?.user || null;
-                        }
-                        // Fallback to legacy sb-* keys
-                        if (!authUser) {
-                            const sbKeys = Object.keys(localStorage).filter(
-                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
-                            );
-                            if (sbKeys.length > 0) {
-                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                                authUser = tokenData?.user || null;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('[UniversalHeader] Error reading localStorage:', e);
-                    }
-                }
+                // Get authenticated user from Supabase session
+                const { data: { user: authUser } } = await supabase.auth.getUser();
 
                 if (!mounted) return;
 
                 if (authUser) {
                     setUser(prev => ({ ...prev, ...authUser }));
-                    console.log('[UniversalHeader] User found in localStorage:', authUser.email);
 
                     // 🛡️ BULLETPROOF: Retry logic with exponential backoff
                     const MAX_RETRIES = 3;
@@ -265,11 +241,11 @@ export default function UniversalHeader({
                             const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
                             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
-                            // Get access token for authenticated query
+                            // Get access token from Supabase session
                             let accessToken = SUPABASE_ANON_KEY;
                             try {
-                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                                if (authData.access_token) accessToken = authData.access_token;
+                                const { data: { session } } = await supabase.auth.getSession();
+                                if (session?.access_token) accessToken = session.access_token;
                             } catch (e) { }
 
                             const response = await fetch(

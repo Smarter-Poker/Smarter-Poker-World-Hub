@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { ArrowLeft, Save, User, Camera } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -20,12 +21,16 @@ export default function ProfileEditPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile/edit');
+    })();
   }, [router]);
 
-  const { isLoading: loading } = useSWR('/api/commander/profile', (url) => {
-    const token = localStorage.getItem('smarter-poker-auth');
+  const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
@@ -46,7 +51,8 @@ export default function ProfileEditPage() {
     setSaving(true);
     setError(null);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       const res = await fetch('/api/commander/profile', {
         method: 'PATCH',
         headers: {

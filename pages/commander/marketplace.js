@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { getToken } from '../../src/lib/commander/clientAuth';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
@@ -171,7 +172,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const token = getToken();
       const res = await fetch(`/api/commander/marketplace/dealers/${dealer.id}/book`, {
         method: 'POST',
         headers: {

@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { History, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -85,15 +86,19 @@ export default function PlayerHistoryPage() {
 
   // Auth redirect
   useEffect(() => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    (async () => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/history');
+    })();
   }, [router]);
 
   // SWR-backed session history — re-fetches when filter changes
   const { data: swrData, isLoading: loading } = useSWR(
     `/api/commander/sessions?period=${filter}`,
-    (url) => {
-      const token = localStorage.getItem('smarter-poker-auth');
+    async (url) => {
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {

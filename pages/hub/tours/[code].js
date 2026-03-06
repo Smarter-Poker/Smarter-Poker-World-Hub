@@ -114,13 +114,13 @@ export default function TourDetailPage() {
     if (typeof window !== 'undefined' && 'Notification' in window) setNotifPermission(Notification.permission);
   }, []);
 
-  // Load follow state from localStorage instantly
+  // Load follow state from Supabase API
   useEffect(() => {
     if (!code) return;
-    try {
-      const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
-      setIsFollowed(followed.includes(code));
-    } catch { setIsFollowed(false); }
+    fetch('/api/poker/follow?page_type=tour&page_id=' + encodeURIComponent(code) + '&check_user=1')
+      .then(r => r.json())
+      .then(d => { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
+      .catch(() => {});
   }, [code]);
 
   // SWR — parallel fetch all tour data
@@ -151,21 +151,7 @@ export default function TourDetailPage() {
     setIsFollowed(newState);
     setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
 
-    // Update localStorage for instant persistence
-    try {
-      const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
-      let updated;
-      if (newState) {
-        updated = followed.includes(code) ? followed : [...followed, code];
-      } else {
-        updated = followed.filter((c) => c !== code);
-      }
-      localStorage.setItem('followed-tours', JSON.stringify(updated));
-    } catch {
-      // Silently fail
-    }
-
-    // Call API for server-side persistence
+    // Persist follow state via API
     fetch('/api/poker/follow', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

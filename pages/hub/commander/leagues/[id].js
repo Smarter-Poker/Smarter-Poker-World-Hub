@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
   return (
@@ -82,18 +83,19 @@ export default function LeagueDetailPage() {
   const [joining, setJoining] = useState(false);
   const [activeTab, setActiveTab] = useState('standings');
 
-  // Decode current user ID from token
-  const currentUserId = (() => {
-    if (typeof window === 'undefined') return null;
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) return null;
-    try { return JSON.parse(atob(token.split('.')[1])).sub; } catch { return null; }
-  })();
+  // Get current user ID from Supabase session (set by useEffect below)
+  const [currentUserId, setCurrentUserId] = React.useState(null);
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) setCurrentUserId(session.user.id);
+    });
+  }, []);
 
   // SWR — parallel fetch of league details + standings
   const swrKey = id ? `/api/commander/leagues/${id}` : null;
   const { data: swrData, isLoading: loading, mutate: refreshLeague } = useSWR(swrKey, async () => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const [leagueRes, standingsRes] = await Promise.all([
       fetch(`/api/commander/leagues/${id}`, { headers }),
@@ -114,7 +116,8 @@ export default function LeagueDetailPage() {
   async function handleJoinLeague(signal) {
     setJoining(true);
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+      const token = _session?.access_token;
       if (!token) {
         router.push(`/auth/login?redirect=/hub/commander/leagues/${id}`);
         return;

@@ -90,10 +90,13 @@ export default function SquadsPage() {
   const router = useRouter();
 
   useEffect(() => {    const _c = new AbortController();
-
-    const token = localStorage.getItem('smarter-poker-auth');
-    if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
-    return () => _c.abort();
+    (async () => {
+  
+      const { data: { session: _session } } = await supabase.auth.getSession();
+      const token = _session?.access_token;
+      if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
+      return () => _c.abort();
+    })();
   }, [router]);
   // Realtime listener — live updates for squads/index.js
   useEffect(() => {
@@ -105,8 +108,9 @@ export default function SquadsPage() {
     return () => { supabase.removeChannel(ch); };
   }, [user?.id]);
 
-  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', (url) => {
-    const token = localStorage.getItem('smarter-poker-auth');
+  const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', async (url) => {
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => d.success ? d.data : { squads: [], invitations: [] });
@@ -116,7 +120,8 @@ export default function SquadsPage() {
 
   async function handleInvitation(invitationId, accept) {
     try {
-      const token = localStorage.getItem('smarter-poker-auth');
+      const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
       await fetch(`/api/commander/squads/${invitationId}/${accept ? 'join' : 'decline'}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }

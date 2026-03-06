@@ -76,7 +76,8 @@ export default function PlayerCheckInPage() {
   }
 
   async function handleCheckIn(signal) {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/check-in/${venueId}`);
       return;

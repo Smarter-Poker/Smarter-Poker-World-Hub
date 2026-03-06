@@ -86,7 +86,8 @@ export default function CommanderHub() {
     // Check if user has a club page
     (async () => {
       try {
-        const token = localStorage.getItem('smarter-poker-auth');
+        const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
         if (!token) return;
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

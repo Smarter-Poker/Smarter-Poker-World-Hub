@@ -6,6 +6,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getToken } from '../lib/commander/clientAuth';
 
 export const useCommanderStore = create(
   persist(
@@ -336,7 +337,7 @@ export const usePlayerCommanderStore = create(
         const { setMyWaitlistsLoading, setMyWaitlists } = get();
         setMyWaitlistsLoading(true);
         try {
-          const token = localStorage.getItem('smarter-poker-auth');
+          const token = getToken();
           const res = await fetch('/api/commander/waitlist/my', {
             headers: { Authorization: `Bearer ${token}` }
           });

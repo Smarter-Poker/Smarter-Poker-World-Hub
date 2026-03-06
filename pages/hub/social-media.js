@@ -4041,48 +4041,8 @@ export default function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
-                // NEW APPROACH: Read session directly from localStorage to bypass AbortError
-                let authUser = null;
-
-                // PRIMARY: Check explicit smarter-poker-auth key (new auth system)
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) {
-                    try {
-                        const tokenData = JSON.parse(explicitAuth);
-                        if (tokenData?.user) {
-                            authUser = tokenData.user;
-                        }
-                    } catch (parseError) {
-                        console.error('[Social] Failed to parse smarter-poker-auth:', parseError);
-                    }
-                }
-
-                // FALLBACK: Legacy sb-*-auth-token keys (backwards compatibility)
-                if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-
-                    if (sbKeys.length > 0) {
-                        try {
-                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
-                            if (tokenData?.user) {
-                                authUser = tokenData.user;
-                            }
-                        } catch (parseError) {
-                            console.error('[Social] Failed to parse legacy token:', parseError);
-                        }
-                    }
-                }
-
-                // Final fallback: try getSession if localStorage approach failed
-                if (!authUser) {
-                    try {
-                        const { data: sessionData } = await supabase.auth.getSession();
-                        if (sessionData?.session?.user) {
-                            authUser = sessionData.session.user;
-                        }
-                    } catch (e) {
-                    }
-                }
+                // Get authenticated user from Supabase session
+                const { data: { user: authUser } } = await supabase.auth.getUser();
 
                 if (authUser) {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
@@ -4380,24 +4340,8 @@ export default function SocialMediaPage() {
         try {
             if (append) setLoadingMore(true);
 
-            // Read user from localStorage to avoid getSession AbortError
-            let authUser = null;
-            try {
-                // PRIMARY: Check smarter-poker-auth key first  
-                const explicitAuth = localStorage.getItem('smarter-poker-auth');
-                if (explicitAuth) {
-                    const tokenData = JSON.parse(explicitAuth);
-                    authUser = tokenData?.user || null;
-                }
-                // FALLBACK: Legacy sb-* keys
-                if (!authUser) {
-                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    if (sbKeys.length > 0) {
-                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{ }');
-                        authUser = tokenData?.user || null;
-                    }
-                }
-            } catch (e) { /* ignore parse errors */ }
+            // Get authenticated user from Supabase session
+            const { data: { user: authUser } } = await supabase.auth.getUser();
 
             // Get friend IDs for prioritization
             let friendIds = [];

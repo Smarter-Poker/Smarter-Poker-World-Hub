@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {
@@ -106,7 +107,8 @@ export default function LeaguesPage() {
   const [filter, setFilter] = useState('all');
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/leagues', async () => {
-    const token = localStorage.getItem('smarter-poker-auth');
+    const { data: { session: _session } } = await supabase.auth.getSession();
+    const token = _session?.access_token;
     const [allRes, myRes] = await Promise.all([
       fetch('/api/commander/leagues'),
       token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } })
