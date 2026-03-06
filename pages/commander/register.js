@@ -227,7 +227,11 @@ export default function RegisterPage() {
       setRegistrationResult(data);
       setStep(4);
     } catch (err) {
-      setError(err.message);
+      if (err.name === 'AbortError') {
+        setError('Registration timed out. Please check your connection and try again.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -384,10 +388,14 @@ export default function RegisterPage() {
               <div className="bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-xl p-4 text-left">
                 <p className="text-sm text-[#B0B3B8] mb-1">Login Email:</p>
                 <p className="text-[#E4E6EB] font-semibold">{ownerEmail}</p>
-                <p className="text-xs text-[#8A8D91] mt-2">Use This Email And Your Password To Sign In At The Login Page.</p>
+                <p className="text-xs text-[#8A8D91] mt-2">
+                  {existingAccount
+                    ? 'Sign in using Google or your existing Smarter.Poker password.'
+                    : 'Use this email and your password to sign in at the login page.'}
+                </p>
               </div>
               {registrationResult && <div className="bg-[#3A3B3C] rounded-xl p-5 text-left"><div className="flex justify-between mb-2"><span className="text-[#8A8D91]">Venue ID:</span><span className="text-[#E4E6EB] font-mono">{registrationResult.venueId}</span></div><div className="flex justify-between"><span className="text-[#8A8D91]">Plan:</span><span className="text-[#E4E6EB]">{selectedTier} (14-day trial)</span></div></div>}
-              <button onClick={() => router.push('/commander/login')} className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg">Sign In To Dashboard</button>
+              <button onClick={() => { window.location.href = '/commander/login'; }} className="w-full py-4 bg-[#1877F2] hover:bg-[#1664d9] text-white rounded-xl font-semibold text-lg">Sign In To Dashboard</button>
             </div>
           )}
 
