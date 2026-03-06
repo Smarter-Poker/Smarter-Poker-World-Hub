@@ -37,8 +37,7 @@ const api = async (action, params) => {
 
 export default function UnionGames() {
   const router = useRouter();
-  if (!router.isReady) return null;
-  const { union: unionId } = router.query;
+  const unionId = router.query?.union || null;
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

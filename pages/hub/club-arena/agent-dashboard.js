@@ -81,8 +81,7 @@ function Toast({ message, type }) {
 
 export default function AgentDashboard() {
     const router = useRouter();
-    if (!router.isReady) return null;
-    const { club: clubIdParam } = router.query;
+    const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);
     const [dashboard, setDashboard] = useState(null);
@@ -171,7 +170,7 @@ export default function AgentDashboard() {
         apiCall('/api/club-arena/manage-agent', {
             action: 'list_sub_agents', clubId: dashboard.clubId, parentAgentUserId: user?.id,
         }).then(r => { setSubAgents(r.subAgents || []); setSubAgentsLoaded(true); })
-          .catch(() => setSubAgentsLoaded(true));
+            .catch(() => setSubAgentsLoaded(true));
     }, [activeTab, subAgentsLoaded, dashboard?.clubId, user?.id]);
 
     // ─── Distribute Chips ───────────────────────────────────────
@@ -512,7 +511,7 @@ export default function AgentDashboard() {
                     <h3 style={{ ...modalTitle, color: FB.danger }}>Clawback Chips</h3>
                     <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 12 }}>
                         This will reverse the transaction and return <strong style={{ color: FB.danger }}>
-                        {Math.abs(clawbackModal.amount).toLocaleString()} chips</strong>.
+                            {Math.abs(clawbackModal.amount).toLocaleString()} chips</strong>.
                     </p>
                     <div style={{ ...cardStyle, marginBottom: 16 }}>
                         <div style={{ fontSize: 12, color: FB.textSecondary }}>
@@ -580,7 +579,7 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
             {pendingCashouts?.length > 0 && (
                 <div style={{ ...cardStyle, marginTop: 12, borderLeft: `3px solid ${FB.orange}` }}>
                     <h4 style={{ color: FB.orange, fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-                         {pendingCashouts.length} Pending Cashout{pendingCashouts.length > 1 ? 's' : ''}
+                        {pendingCashouts.length} Pending Cashout{pendingCashouts.length > 1 ? 's' : ''}
                     </h4>
                     <p style={{ color: FB.textSecondary, fontSize: 12 }}>
                         Total: {pendingCashouts.reduce((s, c) => s + c.amount, 0).toLocaleString()} chips waiting for approval
@@ -606,7 +605,7 @@ function StatLine({ label, value }) {
 
 function PlayersTab({ players, onDistribute, onPromote }) {
     const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 300);
+    const debouncedSearch = useDebounce(search, 300);
     const filtered = (players || []).filter(p => {
         const name = (p.profile?.display_name || p.nickname || '').toLowerCase();
         return name.includes(debouncedSearch.toLowerCase());
@@ -632,7 +631,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                         border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
                     }}>
                         {p.profile?.avatar_url
-                            ? <img src={p.profile.avatar_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}  alt="User avatar" />
+                            ? <img src={p.profile.avatar_url} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} alt="User avatar" />
                             : ''}
                     </div>
 
@@ -671,7 +670,7 @@ function PlayersTab({ players, onDistribute, onPromote }) {
                             padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
                             flexShrink: 0,
                         }}>
-                            
+
                         </button>
                     )}
                 </div>
@@ -981,7 +980,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                 border: `1px solid ${FB.border}`, marginBottom: 16,
             }}>
                 <h3 style={{ color: FB.textPrimary, fontSize: 15, fontWeight: 700, marginTop: 0, marginBottom: 12 }}>
-                     Distribute Promo to Player
+                    Distribute Promo to Player
                 </h3>
 
                 <div style={{ marginBottom: 12 }}>

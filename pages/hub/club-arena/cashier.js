@@ -48,8 +48,7 @@ const apiCall = async (endpoint, body) => {
 
 export default function Cashier() {
     const router = useRouter();
-    if (!router.isReady) return null;
-    const { club: clubIdParam } = router.query;
+    const clubIdParam = router.query?.club || null;
 
     // State
     const [user, setUser] = useState(null);
@@ -367,8 +366,8 @@ export default function Cashier() {
         }
     };
 
-    const getDiamondCost = (chips) =>Math.ceil((parseInt(chips) || 0) / 100 * 38);
-    const getDiamondReturn = (chips) =>Math.floor((parseInt(chips) || 0) / 100 * 38);
+    const getDiamondCost = (chips) => Math.ceil((parseInt(chips) || 0) / 100 * 38);
+    const getDiamondReturn = (chips) => Math.floor((parseInt(chips) || 0) / 100 * 38);
 
     return (
         <>

@@ -36,8 +36,7 @@ async function api(action, params) {
 
 export default function TournamentsPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
-  const { club: clubId } = router.query;
+  const clubId = router.query?.club || null;
 
   const [user, setUser] = useState(null);
   const [clubInfo, setClubInfo] = useState(null);

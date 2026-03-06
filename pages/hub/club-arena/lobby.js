@@ -44,8 +44,7 @@ const apiGet = async (url) => {
 
 export default function ClubLobby() {
     const router = useRouter();
-    if (!router.isReady) return null;
-    const { club: clubIdParam } = router.query;
+    const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);
     const [club, setClub] = useState(null);
@@ -61,7 +60,7 @@ export default function ClubLobby() {
     const [newDescription, setNewDescription] = useState('');
     const [announcements, setAnnouncements] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [sortBy, setSortBy] = useState('players'); // players | stakes | name
     const [showBBJ, setShowBBJ] = useState(false);
 
@@ -130,7 +129,7 @@ export default function ClubLobby() {
     // Realtime subscription for table updates (player counts, status changes)
     useEffect(() => {
         if (!club?.id) return;
-        
+
         const channel = supabase
             .channel(`lobby:${club.id}`)
             .on('postgres_changes', {
@@ -167,7 +166,7 @@ export default function ClubLobby() {
                         return fresh && fresh.status !== 'deleted';
                     }));
                 }
-            } catch (_) {}
+            } catch (_) { }
         }, 15000);
 
         return () => {
@@ -233,7 +232,7 @@ export default function ClubLobby() {
                 canonical="/hub/club-arena/lobby"
                 noindex={true}
             >
-                
+
             </SEOHead>
 
             <div style={styles.page}>
@@ -321,7 +320,7 @@ export default function ClubLobby() {
                                             border: `1px solid rgba(35,116,225,0.2)`,
                                         }}>
                                             <div style={{ fontSize: '13px', fontWeight: 700, color: FB.textPrimary }}>
-                                                 {ann.title}
+                                                {ann.title}
                                             </div>
                                             {ann.content && (
                                                 <div style={{ fontSize: '12px', color: FB.textSecondary, marginTop: '2px' }}>
@@ -401,7 +400,7 @@ export default function ClubLobby() {
                                             whiteSpace: 'nowrap',
                                         }}
                                     >
-                                         New Tournament
+                                        New Tournament
                                     </button>
                                 )}
                                 {club && (
@@ -414,7 +413,7 @@ export default function ClubLobby() {
                                             whiteSpace: 'nowrap',
                                         }}
                                     >
-                                         View Tournaments
+                                        View Tournaments
                                     </button>
                                 )}
                             </div>

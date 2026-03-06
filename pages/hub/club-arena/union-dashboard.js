@@ -69,8 +69,7 @@ const TABS = [
 
 export default function UnionDashboard() {
     const router = useRouter();
-    if (!router.isReady) return null;
-    const { union: unionIdParam } = router.query;
+    const unionIdParam = router.query?.union || null;
 
     const [user, setUser] = useState(null);
     const [dashboard, setDashboard] = useState(null);

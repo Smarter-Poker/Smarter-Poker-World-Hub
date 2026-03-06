@@ -41,6 +41,9 @@ export default function ThreePillHeader({
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
 
+    // Get unread messages count
+    const { unreadCount = 0 } = useUnreadCount() || {};
+
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar } = useAvatar();
 

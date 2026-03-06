@@ -41,8 +41,7 @@ const TIME_PERIODS = [
 
 export default function Leaderboard() {
     const router = useRouter();
-    if (!router.isReady) return null;
-    const { club: clubIdParam } = router.query;
+    const clubIdParam = router.query?.club || null;
 
     // State
     const [user, setUser] = useState(null);
@@ -154,7 +153,7 @@ export default function Leaderboard() {
                             statsByUser[pid].handsPlayed++;
                             const netResult = p.netResult ?? 0;
                             statsByUser[pid].totalProfit += netResult;
-                            if (netResult > 0 || winnerIds.some(w =>String(w) === pid)) {
+                            if (netResult > 0 || winnerIds.some(w => String(w) === pid)) {
                                 statsByUser[pid].wins++;
                             }
                         }

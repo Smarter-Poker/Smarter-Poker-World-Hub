@@ -17,6 +17,7 @@ import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
 import LifetimeStatsCard from './LifetimeStatsCard';
 import SessionHistoryList from './SessionHistoryList';
+import PreflopRangeTrainer from './PreflopRangeTrainer';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import TRAINING_CONFIG from '../../config/trainingConfig';
@@ -526,6 +527,13 @@ function GodModeArena({
     onComplete,
     onExit,
 }) {
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SPECIALIZED TRAINERS (Phase 14)
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (gameId === 'cash-001') {
+        return <PreflopRangeTrainer onExit={onExit} />;
+    }
+
     const engineType = getEngineType(gameId);
 
     // Trainer config state

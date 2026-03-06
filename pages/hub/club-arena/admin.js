@@ -56,8 +56,7 @@ const apiGet = async (url) => {
 
 export default function Admin() {
     const router = useRouter();
-    if (!router.isReady) return null;
-    const { club: clubIdParam } = router.query;
+    const clubIdParam = router.query?.club || null;
 
     // Core state
     const [user, setUser] = useState(null);
@@ -198,18 +197,18 @@ export default function Admin() {
         if (activeModal === 'announcements') {
             apiGet(`/api/club-arena/announcements?clubId=${club.id}`)
                 .then(d => setAnnouncements(d.announcements || []))
-                .catch(() => {});
+                .catch(() => { });
         }
         if (activeModal === 'shop') {
             apiGet(`/api/club-arena/manage-shop?clubId=${club.id}`)
                 .then(d => setShopItems(d.items || []))
-                .catch(() => {});
+                .catch(() => { });
         }
         if (activeModal === 'rakeback') {
             setRakebackLoading(true);
             apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`)
                 .then(d => setRakebackStatus(d))
-                .catch(() => {})
+                .catch(() => { })
                 .finally(() => setRakebackLoading(false));
         }
     }, [activeModal, club]);
@@ -800,7 +799,7 @@ export default function Admin() {
  ═══════════════════════════════════════════════════════════════════════ */}
             {activeModal === 'announcements' && (
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
-                    <div style={{...S.modal, maxHeight: '80vh', overflow: 'auto'}} onClick={e => e.stopPropagation()}>
+                    <div style={{ ...S.modal, maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
                             <span style={S.modalTitle}>Club Announcements</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
@@ -869,7 +868,7 @@ export default function Admin() {
  ═══════════════════════════════════════════════════════════════════════ */}
             {activeModal === 'shop' && (
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
-                    <div style={{...S.modal, maxHeight: '80vh', overflow: 'auto'}} onClick={e => e.stopPropagation()}>
+                    <div style={{ ...S.modal, maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
                             <span style={S.modalTitle}>Shop Management</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
@@ -884,12 +883,12 @@ export default function Admin() {
                                     <div style={{ flex: 1 }}>
                                         <label style={S.formLabel}>Price (chips)</label>
                                         <input type="number" value={newItemPrice} onChange={e => setNewItemPrice(e.target.value)}
-                                            placeholder="500" style={{...S.formInput, marginBottom: 0}} />
+                                            placeholder="500" style={{ ...S.formInput, marginBottom: 0 }} />
                                     </div>
                                     <div style={{ flex: 1 }}>
                                         <label style={S.formLabel}>Category</label>
                                         <select value={newItemCategory} onChange={e => setNewItemCategory(e.target.value)}
-                                            style={{...S.formInput, marginBottom: 0}}>
+                                            style={{ ...S.formInput, marginBottom: 0 }}>
                                             <option value="general">General</option>
                                             <option value="avatar">Avatar</option>
                                             <option value="emote">Emote</option>
@@ -1071,7 +1070,7 @@ export default function Admin() {
                                 {[10000, 50000, 100000, 500000].map(v => (
                                     <button key={v} onClick={() => setMintAmount(String(v))}
                                         style={{ flex: 1, background: mintAmount === String(v) ? '#F7C52A' : FB.hover, color: mintAmount === String(v) ? '#000' : FB.textSecondary, border: 'none', borderRadius: '6px', padding: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-                                        {v >= 1000 ? `${v/1000}K` : v}
+                                        {v >= 1000 ? `${v / 1000}K` : v}
                                     </button>
                                 ))}
                             </div>
@@ -1103,7 +1102,7 @@ export default function Admin() {
  ═══════════════════════════════════════════════════════════════════════ */}
             {activeModal === 'agents' && (
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
-                    <div style={{...S.modal, maxHeight: '80vh', overflow: 'auto'}} onClick={e => e.stopPropagation()}>
+                    <div style={{ ...S.modal, maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
                             <span style={S.modalTitle}>Agent Management</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
@@ -1118,7 +1117,7 @@ export default function Admin() {
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                         <div>
                                             <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: '14px' }}>
-                                                {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0,8)}
+                                                {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0, 8)}
                                             </span>
                                             <span style={{ fontSize: '12px', color: '#F5A623', marginLeft: '8px' }}>Agent</span>
                                         </div>
@@ -1160,7 +1159,7 @@ export default function Admin() {
                                         {/* Suspend */}
                                         <button style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                                             onClick={async () => {
-                                                if (!confirm(`Suspend agent ${agent.profile?.display_name || agent.user_id.slice(0,8)}?`)) return;
+                                                if (!confirm(`Suspend agent ${agent.profile?.display_name || agent.user_id.slice(0, 8)}?`)) return;
                                                 setProcessing(true);
                                                 try {
                                                     await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'suspend' });
@@ -1176,7 +1175,7 @@ export default function Admin() {
                                             onClick={async () => {
                                                 const otherAgents = members.filter(m => m.role === 'agent' && m.user_id !== agent.user_id);
                                                 if (otherAgents.length === 0) { showToast('No other agents to assign as parent', 'error'); return; }
-                                                const names = otherAgents.map((a, i) => `${i + 1}. ${a.profile?.display_name || a.profile?.username || a.user_id.slice(0,8)}`).join('\n');
+                                                const names = otherAgents.map((a, i) => `${i + 1}. ${a.profile?.display_name || a.profile?.username || a.user_id.slice(0, 8)}`).join('\n');
                                                 const choice = prompt(`Select parent agent (enter number, or 0 to clear):\n${names}`);
                                                 if (choice === null) return;
                                                 const idx = parseInt(choice);
@@ -1188,7 +1187,7 @@ export default function Admin() {
                                                     } else if (idx >= 1 && idx <= otherAgents.length) {
                                                         const parent = otherAgents[idx - 1];
                                                         await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'set_parent_agent', parentAgentUserId: parent.user_id });
-                                                        showToast(`Set as sub-agent of ${parent.profile?.display_name || parent.user_id.slice(0,8)}`);
+                                                        showToast(`Set as sub-agent of ${parent.profile?.display_name || parent.user_id.slice(0, 8)}`);
                                                     } else { showToast('Invalid selection', 'error'); }
                                                     loadData();
                                                 } catch (e) { showToast(e.message, 'error'); }
@@ -1387,7 +1386,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                     border: `1px solid ${FB.border}`, marginBottom: 16,
                                 }}>
                                     <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                         Mint Promo Chips
+                                        Mint Promo Chips
                                     </h4>
                                     <p style={{ fontSize: 12, color: FB.textSecondary, margin: '0 0 10px' }}>
                                         Add promo chips to the club balance. These can then be distributed to agents.
@@ -1419,7 +1418,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                             <button key={amt} onClick={() => setMintAmount(String(amt))} style={{
                                                 background: FB.hover, color: FB.textSecondary, border: 'none',
                                                 borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
-                                            }}>{amt >= 1000 ? `${amt/1000}K` : amt}</button>
+                                            }}>{amt >= 1000 ? `${amt / 1000}K` : amt}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -1431,7 +1430,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                 border: `1px solid ${FB.border}`, marginBottom: 16,
                             }}>
                                 <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                     Grant Promo to Agent
+                                    Grant Promo to Agent
                                 </h4>
                                 {agents.length === 0 ? (
                                     <p style={{ fontSize: 12, color: FB.textSecondary }}>

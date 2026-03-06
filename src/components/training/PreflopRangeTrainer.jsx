@@ -1,0 +1,468 @@
+/**
+ * 🎯 PREFLOP RANGE TRAINER — GTO Wizard-Style Preflop Range Quiz
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Interactive 13x13 matrix quiz:
+ * 1. Select a position (BTN, CO, HJ, etc.)
+ * 2. Get dealt a random hand from the range
+ * 3. Choose: Raise, Call, or Fold
+ * 4. See feedback with the full range highlighted
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
+// These are simplified solver-derived open-raising ranges by position (6-max, 100bb)
+const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+// Frequency: 1.0 = always raise, 0.5 = mixed (raise 50%), 0 = fold
+const GTO_RANGES = {
+    UTG: {
+        // ~15% RFI
+        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 0.8, '88': 0.5, '77': 0.3,
+        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 0.8, 'A5s': 0.5, 'A4s': 0.3,
+        'AKo': 1, 'AQo': 0.8, 'AJo': 0.5,
+        'KQs': 1, 'KJs': 0.7, 'KTs': 0.4,
+        'QJs': 0.7, 'QTs': 0.3,
+        'JTs': 0.5, 'T9s': 0.3,
+        '98s': 0.2, '87s': 0.2, '76s': 0.15,
+    },
+    HJ: {
+        // ~19% RFI
+        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 0.7, '77': 0.5, '66': 0.3,
+        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 0.5, 'A5s': 0.7, 'A4s': 0.5, 'A3s': 0.3, 'A2s': 0.2,
+        'AKo': 1, 'AQo': 1, 'AJo': 0.7, 'ATo': 0.4,
+        'KQs': 1, 'KJs': 1, 'KTs': 0.7, 'K9s': 0.3,
+        'QJs': 1, 'QTs': 0.6, 'Q9s': 0.2,
+        'JTs': 0.8, 'J9s': 0.3,
+        'T9s': 0.6, 'T8s': 0.2,
+        '98s': 0.4, '87s': 0.3, '76s': 0.25, '65s': 0.2,
+        'KQo': 0.5, 'KJo': 0.3,
+    },
+    CO: {
+        // ~27% RFI
+        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 0.8, '66': 0.6, '55': 0.4, '44': 0.3,
+        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 0.8, 'A8s': 0.6, 'A7s': 0.5, 'A6s': 0.5, 'A5s': 1, 'A4s': 0.8, 'A3s': 0.6, 'A2s': 0.5,
+        'AKo': 1, 'AQo': 1, 'AJo': 1, 'ATo': 0.7, 'A9o': 0.3,
+        'KQs': 1, 'KJs': 1, 'KTs': 1, 'K9s': 0.6, 'K8s': 0.3,
+        'QJs': 1, 'QTs': 1, 'Q9s': 0.5, 'Q8s': 0.2,
+        'JTs': 1, 'J9s': 0.6, 'J8s': 0.2,
+        'T9s': 1, 'T8s': 0.4,
+        '98s': 0.7, '87s': 0.6, '76s': 0.5, '65s': 0.4, '54s': 0.3,
+        'KQo': 1, 'KJo': 0.7, 'KTo': 0.4,
+        'QJo': 0.5, 'QTo': 0.3,
+        'JTo': 0.3,
+    },
+    BTN: {
+        // ~45% RFI
+        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 1, '66': 1, '55': 0.8, '44': 0.7, '33': 0.5, '22': 0.4,
+        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 1, 'A8s': 1, 'A7s': 1, 'A6s': 1, 'A5s': 1, 'A4s': 1, 'A3s': 1, 'A2s': 1,
+        'AKo': 1, 'AQo': 1, 'AJo': 1, 'ATo': 1, 'A9o': 0.7, 'A8o': 0.5, 'A7o': 0.3, 'A6o': 0.2, 'A5o': 0.3, 'A4o': 0.2,
+        'KQs': 1, 'KJs': 1, 'KTs': 1, 'K9s': 1, 'K8s': 0.7, 'K7s': 0.6, 'K6s': 0.5, 'K5s': 0.4, 'K4s': 0.3, 'K3s': 0.2, 'K2s': 0.15,
+        'QJs': 1, 'QTs': 1, 'Q9s': 1, 'Q8s': 0.6, 'Q7s': 0.3, 'Q6s': 0.3, 'Q5s': 0.2, 'Q4s': 0.15,
+        'JTs': 1, 'J9s': 1, 'J8s': 0.5, 'J7s': 0.3, 'J6s': 0.15,
+        'T9s': 1, 'T8s': 0.8, 'T7s': 0.3, 'T6s': 0.15,
+        '98s': 1, '97s': 0.4, '96s': 0.15,
+        '87s': 1, '86s': 0.3, '76s': 0.8, '75s': 0.2,
+        '65s': 0.7, '64s': 0.15, '54s': 0.6, '53s': 0.1, '43s': 0.15,
+        'KQo': 1, 'KJo': 1, 'KTo': 0.8, 'K9o': 0.4, 'K8o': 0.2,
+        'QJo': 1, 'QTo': 0.7, 'Q9o': 0.3,
+        'JTo': 0.8, 'J9o': 0.3,
+        'T9o': 0.5, 'T8o': 0.15,
+        '98o': 0.3, '87o': 0.2, '76o': 0.1,
+    },
+    SB: {
+        // ~40% open-raise (limp or raise)
+        'AA': 1, 'KK': 1, 'QQ': 1, 'JJ': 1, 'TT': 1, '99': 1, '88': 1, '77': 1, '66': 0.8, '55': 0.7, '44': 0.5, '33': 0.4, '22': 0.3,
+        'AKs': 1, 'AQs': 1, 'AJs': 1, 'ATs': 1, 'A9s': 1, 'A8s': 0.8, 'A7s': 0.7, 'A6s': 0.7, 'A5s': 1, 'A4s': 0.8, 'A3s': 0.7, 'A2s': 0.6,
+        'AKo': 1, 'AQo': 1, 'AJo': 1, 'ATo': 0.8, 'A9o': 0.5, 'A8o': 0.3, 'A5o': 0.2,
+        'KQs': 1, 'KJs': 1, 'KTs': 1, 'K9s': 0.8, 'K8s': 0.5, 'K7s': 0.4, 'K6s': 0.3, 'K5s': 0.3,
+        'QJs': 1, 'QTs': 1, 'Q9s': 0.7, 'Q8s': 0.4, 'Q7s': 0.2,
+        'JTs': 1, 'J9s': 0.8, 'J8s': 0.3,
+        'T9s': 1, 'T8s': 0.5, 'T7s': 0.2,
+        '98s': 0.8, '97s': 0.3, '87s': 0.7, '76s': 0.6, '65s': 0.5, '54s': 0.4, '43s': 0.2,
+        'KQo': 1, 'KJo': 0.7, 'KTo': 0.5, 'K9o': 0.2,
+        'QJo': 0.6, 'QTo': 0.4,
+        'JTo': 0.5, 'J9o': 0.2,
+        'T9o': 0.3, '98o': 0.2, '87o': 0.15,
+    },
+};
+
+// All possible hands in the 13x13 matrix
+function getAllHands() {
+    const hands = [];
+    for (let r = 0; r < 13; r++) {
+        for (let c = 0; c < 13; c++) {
+            if (r === c) hands.push(RANKS[r] + RANKS[c]);
+            else if (r < c) hands.push(RANKS[r] + RANKS[c] + 's');
+            else hands.push(RANKS[c] + RANKS[r] + 'o');
+        }
+    }
+    return hands;
+}
+
+function getHandNotation(r, c) {
+    if (r === c) return RANKS[r] + RANKS[c];
+    if (r < c) return RANKS[r] + RANKS[c] + 's';
+    return RANKS[c] + RANKS[r] + 'o';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default function PreflopRangeTrainer({ onExit }) {
+    const [position, setPosition] = useState('BTN');
+    const [currentHand, setCurrentHand] = useState(null);
+    const [showFeedback, setShowFeedback] = useState(false);
+    const [selectedAction, setSelectedAction] = useState(null);
+    const [score, setScore] = useState({ correct: 0, total: 0 });
+    const [streak, setStreak] = useState(0);
+    const [showMatrix, setShowMatrix] = useState(false);
+    const allHands = useMemo(() => getAllHands(), []);
+
+    const range = GTO_RANGES[position] || {};
+
+    // Deal a new hand
+    const dealHand = useCallback(() => {
+        const hand = allHands[Math.floor(Math.random() * allHands.length)];
+        setCurrentHand(hand);
+        setShowFeedback(false);
+        setSelectedAction(null);
+        setShowMatrix(false);
+    }, [allHands]);
+
+    // Start on mount and position change
+    useEffect(() => { dealHand(); }, [position, dealHand]);
+
+    // Get correct action for current hand
+    const correctAction = useMemo(() => {
+        if (!currentHand) return 'fold';
+        const freq = range[currentHand] || 0;
+        if (freq >= 0.5) return 'raise';
+        if (freq > 0) return 'mixed'; // Present in range but < 50%
+        return 'fold';
+    }, [currentHand, range]);
+
+    const handFreq = useMemo(() => {
+        if (!currentHand) return 0;
+        return range[currentHand] || 0;
+    }, [currentHand, range]);
+
+    // Handle answer
+    const handleAction = useCallback((action) => {
+        if (showFeedback) return;
+        setSelectedAction(action);
+        setShowFeedback(true);
+        setShowMatrix(true);
+
+        // Determine if correct
+        let isCorrect = false;
+        if (action === 'raise' && handFreq >= 0.5) isCorrect = true;
+        if (action === 'fold' && handFreq === 0) isCorrect = true;
+        if (action === 'call' && handFreq > 0 && handFreq < 0.5) isCorrect = true;
+        // Mixed strategy tolerance: if freq > 0, raise is acceptable
+        if (action === 'raise' && handFreq > 0) isCorrect = true;
+
+        setScore(prev => ({
+            correct: prev.correct + (isCorrect ? 1 : 0),
+            total: prev.total + 1,
+        }));
+        setStreak(prev => isCorrect ? prev + 1 : 0);
+    }, [showFeedback, handFreq]);
+
+    // Build 13x13 matrix for display
+    const matrix = useMemo(() => {
+        const grid = [];
+        for (let r = 0; r < 13; r++) {
+            const row = [];
+            for (let c = 0; c < 13; c++) {
+                const hand = getHandNotation(r, c);
+                const freq = range[hand] || 0;
+                row.push({ hand, freq, isCurrentHand: hand === currentHand });
+            }
+            grid.push(row);
+        }
+        return grid;
+    }, [range, currentHand]);
+
+    const accuracy = score.total > 0 ? Math.round((score.correct / score.total) * 100) : 0;
+    const accColor = accuracy >= 80 ? '#22c55e' : accuracy >= 60 ? '#fbbf24' : '#ef4444';
+
+    return (
+        <div style={S.container}>
+            {/* HEADER */}
+            <div style={S.header}>
+                <button onClick={onExit} style={S.backBtn}>← Back</button>
+                <div style={S.headerTitle}>Preflop Range Trainer</div>
+                <div style={S.headerScore}>
+                    <span style={{ color: accColor, fontWeight: 'bold', fontFamily: "'Orbitron', monospace" }}>
+                        {accuracy}%
+                    </span>
+                    <span style={{ fontSize: 9, color: '#64748b' }}>({score.correct}/{score.total})</span>
+                </div>
+            </div>
+
+            {/* POSITION SELECTOR */}
+            <div style={S.posBar}>
+                {Object.keys(GTO_RANGES).map(pos => (
+                    <button
+                        key={pos}
+                        onClick={() => { setPosition(pos); setScore({ correct: 0, total: 0 }); setStreak(0); }}
+                        style={{
+                            ...S.posBtn,
+                            background: position === pos ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                            color: position === pos ? '#00d4ff' : '#94a3b8',
+                            borderColor: position === pos ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)',
+                        }}
+                    >
+                        {pos}
+                    </button>
+                ))}
+            </div>
+
+            {/* CURRENT HAND DISPLAY */}
+            <AnimatePresence mode="wait">
+                {currentHand && (
+                    <motion.div
+                        key={currentHand}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        style={S.handDisplay}
+                    >
+                        <div style={S.handLabel}>Your Hand ({position})</div>
+                        <div style={S.handValue}>{currentHand}</div>
+                        {streak >= 3 && (
+                            <div style={{ fontSize: 11, color: '#f97316' }}>
+                                🔥 {streak} streak
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ACTION BUTTONS */}
+            <div style={S.actionBar}>
+                {[
+                    { id: 'raise', label: 'RAISE', color: '#3b82f6', border: '#60a5fa' },
+                    { id: 'call', label: 'CALL', color: '#22c55e', border: '#4ade80' },
+                    { id: 'fold', label: 'FOLD', color: '#ef4444', border: '#f87171' },
+                ].map(action => {
+                    const isSelected = selectedAction === action.id;
+                    const isCorrectAction = showFeedback && (
+                        (action.id === 'raise' && handFreq >= 0.5) ||
+                        (action.id === 'fold' && handFreq === 0) ||
+                        (action.id === 'call' && handFreq > 0 && handFreq < 0.5)
+                    );
+
+                    return (
+                        <motion.button
+                            key={action.id}
+                            onClick={() => handleAction(action.id)}
+                            disabled={showFeedback}
+                            whileHover={!showFeedback ? { scale: 1.05, y: -2 } : {}}
+                            whileTap={!showFeedback ? { scale: 0.95 } : {}}
+                            style={{
+                                ...S.actionBtn,
+                                background: showFeedback
+                                    ? isCorrectAction ? 'rgba(34,197,94,0.2)' : isSelected ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.03)'
+                                    : `linear-gradient(180deg, rgba(${action.id === 'raise' ? '59,130,246' : action.id === 'call' ? '34,197,94' : '239,68,68'},0.15), rgba(0,0,0,0.3))`,
+                                borderColor: showFeedback
+                                    ? isCorrectAction ? '#22c55e' : isSelected ? '#ef4444' : 'rgba(255,255,255,0.1)'
+                                    : `${action.border}40`,
+                                color: showFeedback
+                                    ? isCorrectAction ? '#22c55e' : isSelected ? '#ef4444' : '#64748b'
+                                    : action.color,
+                                opacity: showFeedback && !isSelected && !isCorrectAction ? 0.3 : 1,
+                            }}
+                        >
+                            {action.label}
+                            {showFeedback && isCorrectAction && <span style={{ fontSize: 10, marginLeft: 4 }}>✓</span>}
+                        </motion.button>
+                    );
+                })}
+            </div>
+
+            {/* FEEDBACK */}
+            <AnimatePresence>
+                {showFeedback && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={S.feedback}
+                    >
+                        <div style={{
+                            fontSize: 13, fontWeight: 'bold', marginBottom: 4,
+                            color: (selectedAction === 'raise' && handFreq > 0) ||
+                                (selectedAction === 'fold' && handFreq === 0) ||
+                                (selectedAction === 'call' && handFreq > 0 && handFreq < 0.5)
+                                ? '#22c55e' : '#ef4444',
+                        }}>
+                            {(selectedAction === 'raise' && handFreq > 0) ||
+                                (selectedAction === 'fold' && handFreq === 0) ||
+                                (selectedAction === 'call' && handFreq > 0 && handFreq < 0.5)
+                                ? '✓ Correct!' : '✗ Incorrect'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                            {currentHand} at {position}:{' '}
+                            {handFreq === 0
+                                ? 'Not in range — Fold'
+                                : handFreq >= 0.5
+                                    ? `Raise (${Math.round(handFreq * 100)}% frequency)`
+                                    : `Mixed — Raise ${Math.round(handFreq * 100)}% / Fold ${Math.round((1 - handFreq) * 100)}%`}
+                        </div>
+
+                        <motion.button
+                            onClick={dealHand}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            style={S.nextBtn}
+                        >
+                            Next Hand →
+                        </motion.button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 13x13 RANGE MATRIX */}
+            <div style={S.matrixContainer}>
+                <div style={S.matrixTitle}>{position} Open-Raise Range (RFI)</div>
+                <div style={S.matrix}>
+                    {matrix.flat().map((cell, i) => {
+                        const isHighlighted = showFeedback && cell.isCurrentHand;
+                        const cellColor = cell.freq >= 0.9 ? '#22c55e'
+                            : cell.freq >= 0.7 ? '#4ade80'
+                                : cell.freq >= 0.5 ? '#86efac'
+                                    : cell.freq >= 0.3 ? '#fbbf24'
+                                        : cell.freq >= 0.1 ? '#f97316'
+                                            : cell.freq > 0 ? '#ef4444'
+                                                : 'rgba(255,255,255,0.04)';
+
+                        return (
+                            <div
+                                key={i}
+                                style={{
+                                    aspectRatio: '1',
+                                    background: cellColor,
+                                    borderRadius: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: 6.5,
+                                    fontWeight: 'bold',
+                                    color: cell.freq > 0.3 ? '#000' : cell.freq > 0 ? '#fff' : '#444',
+                                    border: isHighlighted ? '2px solid #00d4ff' : '1px solid rgba(0,0,0,0.2)',
+                                    boxShadow: isHighlighted ? '0 0 8px rgba(0,212,255,0.6)' : 'none',
+                                    position: 'relative',
+                                }}
+                                title={`${cell.hand}: ${Math.round(cell.freq * 100)}%`}
+                            >
+                                {cell.hand}
+                            </div>
+                        );
+                    })}
+                </div>
+                <div style={S.legend}>
+                    {[
+                        { label: '90%+', color: '#22c55e' },
+                        { label: '50%+', color: '#86efac' },
+                        { label: 'Mixed', color: '#fbbf24' },
+                        { label: '<10%', color: '#f97316' },
+                        { label: 'Fold', color: 'rgba(255,255,255,0.08)' },
+                    ].map(l => (
+                        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 8, color: '#94a3b8' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} />
+                            {l.label}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STYLES
+// ═══════════════════════════════════════════════════════════════════════════
+
+const S = {
+    container: {
+        width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        background: 'linear-gradient(180deg, #0a0a12 0%, #1a1a2e 100%)',
+        fontFamily: "'Inter', -apple-system, sans-serif",
+    },
+    header: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 16px',
+        background: 'linear-gradient(180deg, rgba(30,30,45,0.98), rgba(15,15,25,0.98))',
+        borderBottom: '2px solid rgba(0,212,255,0.3)',
+    },
+    backBtn: {
+        background: 'none', border: 'none', color: '#00d4ff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+        padding: '8px 0', minWidth: 60, textAlign: 'left',
+    },
+    headerTitle: {
+        fontSize: 14, fontWeight: 'bold', color: '#e2e8f0', letterSpacing: 1, textTransform: 'uppercase',
+    },
+    headerScore: {
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2,
+    },
+    posBar: {
+        display: 'flex', gap: 6, padding: '10px 16px', flexWrap: 'wrap', justifyContent: 'center',
+    },
+    posBtn: {
+        padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 'bold',
+        border: '1px solid', cursor: 'pointer', letterSpacing: 0.5, minWidth: 48,
+        fontFamily: "'Orbitron', monospace",
+    },
+    handDisplay: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '16px 0',
+    },
+    handLabel: {
+        fontSize: 11, color: '#94a3b8', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase',
+    },
+    handValue: {
+        fontSize: 36, fontWeight: 'bold', color: '#00d4ff',
+        fontFamily: "'Orbitron', monospace", letterSpacing: 3,
+        textShadow: '0 0 20px rgba(0,212,255,0.5)',
+    },
+    actionBar: {
+        display: 'flex', gap: 8, padding: '0 16px 12px', justifyContent: 'center',
+    },
+    actionBtn: {
+        flex: 1, maxWidth: 120, padding: '14px 0', borderRadius: 10,
+        border: '1px solid', fontSize: 14, fontWeight: 'bold', cursor: 'pointer',
+        letterSpacing: 1, fontFamily: "'Inter', sans-serif",
+        transition: 'all 0.15s ease',
+    },
+    feedback: {
+        padding: '12px 16px', textAlign: 'center',
+        background: 'rgba(0,0,0,0.3)', margin: '0 16px', borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.06)',
+    },
+    nextBtn: {
+        marginTop: 8, padding: '10px 28px', borderRadius: 10,
+        border: '1px solid rgba(0,212,255,0.4)',
+        background: 'linear-gradient(180deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))',
+        color: '#00d4ff', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    },
+    matrixContainer: {
+        padding: '12px 16px', flex: 1,
+    },
+    matrixTitle: {
+        fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: 1,
+        textTransform: 'uppercase', marginBottom: 6, textAlign: 'center',
+    },
+    matrix: {
+        display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: 1,
+        maxWidth: 340, margin: '0 auto',
+    },
+    legend: {
+        display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6,
+    },
+};
