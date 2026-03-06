@@ -86,13 +86,13 @@ export default function DealerTablet() {
   const getStaffSession = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
 
-  const fetchTable = useCallback(async () => {
+  const fetchTable = useCallback(async (signal) => {
     if (!tableNumber) return;
     try {
       const token = getToken();
       const headers = { Authorization: `Bearer ${token}` };
       // Fetch table by number (includes mode, tournament_id from assignment system)
-      const tableRes = await fetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, { headers });
+      const tableRes = await fetch(`/api/commander/tables/by-number?tableNumber=${tableNumber}`, { headers, signal });
       const tableJson = await tableRes.json();
 
       if (!tableJson.success) { setLoading(false); return; }
@@ -155,7 +155,15 @@ export default function DealerTablet() {
     finally { setLoading(false); }
   }, [tableNumber]);
 
-  useEffect(() => { fetchTable(); const i = setInterval(fetchTable, 30000); return () => clearInterval(i); }, [fetchTable]); // fallback — real-time sync handles instant updates
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchTable(controller.signal);
+    const i = setInterval(() => {
+      const ctrl = new AbortController();
+      fetchTable(ctrl.signal);
+    }, 30000);
+    return () => { controller.abort(); clearInterval(i); };
+  }, [fetchTable]); // fallback — real-time sync handles instant updates
 
   // Extract venueId for cross-device Supabase sync
   const [venueId] = useState(() => {

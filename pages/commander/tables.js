@@ -92,7 +92,7 @@ export default function CommanderTablesPage() {
   }, [router]);
 
   // Fetch tables + games + sessions
-  const fetchTables = useCallback(async () => {
+  const fetchTables = useCallback(async (signal) => {
     if (!venueId) return;
     const staffSession = localStorage.getItem('commander_staff') || '';
     const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -101,7 +101,7 @@ export default function CommanderTablesPage() {
     // Fetch tables
     let tablesArr = [];
     try {
-      const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+      const tablesRes = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers, signal });
       const tablesData = await tablesRes.json();
       if (tablesData.success) {
         tablesArr = Array.isArray(tablesData.data) ? tablesData.data
@@ -113,7 +113,7 @@ export default function CommanderTablesPage() {
 
     // Fetch games
     try {
-      const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers });
+      const gamesRes = await fetch(`/api/commander/games/venue/${venueId}`, { headers, signal });
       const gamesData = await gamesRes.json();
       if (gamesData.success) {
         const gamesArr = Array.isArray(gamesData.data?.games) ? gamesData.data.games
@@ -157,7 +157,12 @@ export default function CommanderTablesPage() {
     } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
   }, [venueId]);
 
-  useEffect(() => { if (venueId) fetchTables(); }, [venueId, fetchTables]);
+  useEffect(() => {
+    if (!venueId) return;
+    const controller = new AbortController();
+    fetchTables(controller.signal);
+    return () => controller.abort();
+  }, [venueId, fetchTables]);
 
   // Auto-refresh every 15s
   useEffect(() => {

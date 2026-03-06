@@ -367,12 +367,14 @@ export default function ClubPage() {
 
   useEffect(() => {
     if (!id) return;
+    const controller = new AbortController();
+    const { signal } = controller;
 
     async function fetchVenueData() {
       setLoading(true);
       try {
         // Fetch venue info (works with both UUID and slug via API fallback)
-        const res = await fetch(`/api/public/venue/${id}`);
+        const res = await fetch(`/api/public/venue/${id}`, { signal });
         const data = await res.json();
         if (data.success) {
           setVenue(data.data.venue);
@@ -382,35 +384,35 @@ export default function ClubPage() {
           // Use the resolved venue ID for subsequent calls (handles slug-based access)
           const resolvedId = data.data.venue.id || id;
 
-          // Fetch posts
-          const postsRes = await fetch(`/api/public/venue/${resolvedId}/posts?limit=10`);
-          const postsData = await postsRes.json();
-          if (postsData.success) {
-            setPosts(postsData.data?.posts || []);
-          }
+          // Parallel: fetch posts + photos + reviews simultaneously
+          const [postsRes, photosRes, reviewsRes] = await Promise.allSettled([
+            fetch(`/api/public/venue/${resolvedId}/posts?limit=10`, { signal }),
+            fetch(`/api/public/venue/${resolvedId}/photos?limit=20`, { signal }),
+            fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`, { signal }),
+          ]);
 
-          // Fetch photos
-          const photosRes = await fetch(`/api/public/venue/${resolvedId}/photos?limit=20`);
-          const photosData = await photosRes.json();
-          if (photosData.success) {
-            setPhotos(photosData.data?.photos || []);
+          if (postsRes.status === 'fulfilled') {
+            const postsData = await postsRes.value.json();
+            if (postsData.success) setPosts(postsData.data?.posts || []);
           }
-
-          // Fetch reviews
-          const reviewsRes = await fetch(`/api/public/venue/${resolvedId}/reviews?limit=10`);
-          const reviewsData = await reviewsRes.json();
-          if (reviewsData.success) {
-            setReviews(reviewsData.data?.reviews || []);
+          if (photosRes.status === 'fulfilled') {
+            const photosData = await photosRes.value.json();
+            if (photosData.success) setPhotos(photosData.data?.photos || []);
+          }
+          if (reviewsRes.status === 'fulfilled') {
+            const reviewsData = await reviewsRes.value.json();
+            if (reviewsData.success) setReviews(reviewsData.data?.reviews || []);
           }
         }
       } catch (error) {
-        console.error('Fetch venue data failed:', error);
+        if (error.name !== 'AbortError') console.error('Fetch venue data failed:', error);
       } finally {
         setLoading(false);
       }
     }
 
     fetchVenueData();
+    return () => controller.abort();
   }, [id]);
 
   async function handleFollow() {

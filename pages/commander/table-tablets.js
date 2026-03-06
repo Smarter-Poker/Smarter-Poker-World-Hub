@@ -351,7 +351,7 @@ export default function TableTabletsPage() {
         setPinLoading(false);
     };
 
-    const fetchAll = useCallback(async () => {
+    const fetchAll = useCallback(async (signal) => {
         if (!venueId) return;
         const staffSession = localStorage.getItem('commander_staff') || '';
         const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
@@ -359,7 +359,7 @@ export default function TableTabletsPage() {
 
         // Fetch tables — API already joins commander_games + commander_table_seats
         try {
-            const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
+            const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers, signal });
             const json = await res.json();
             if (json.success) {
                 let tablesArr = Array.isArray(json.data) ? json.data
@@ -482,7 +482,13 @@ export default function TableTabletsPage() {
         } catch (err) { console.error('Failed to fetch dealer rotations:', err); }
     }, [venueId]);
 
-    useEffect(() => { if (venueId) { fetchAll(); fetchDisplayStatus(); } }, [venueId, fetchAll]);
+    useEffect(() => {
+        if (!venueId) return;
+        const controller = new AbortController();
+        fetchAll(controller.signal);
+        fetchDisplayStatus();
+        return () => controller.abort();
+    }, [venueId, fetchAll]);
 
     // Fetch tablet online status from commander_table_displays
     const fetchDisplayStatus = useCallback(async () => {

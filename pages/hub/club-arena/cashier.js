@@ -78,7 +78,7 @@ export default function Cashier() {
     };
 
     // Load data
-    const loadData = useCallback(async () => {
+    const loadData = useCallback(async (signal) => {
         if (!clubIdParam) return;
         setIsLoading(true);
         try {
@@ -158,6 +158,7 @@ export default function Cashier() {
                     if (token) {
                         const histRes = await fetch(`/api/club-arena/cashout-history?clubId=${clubData.id}`, {
                             headers: { Authorization: `Bearer ${token}` },
+                            signal,
                         });
                         if (histRes.ok) {
                             const histData = await histRes.json();
@@ -171,6 +172,7 @@ export default function Cashier() {
                     const rbToken = await getAuthToken();
                     const rbRes = await fetch(`/api/club-arena/rakeback?clubId=${clubData.id}&action=status`, {
                         headers: { Authorization: `Bearer ${rbToken}` },
+                        signal,
                     });
                     if (rbRes.ok) {
                         const rbData = await rbRes.json();
@@ -185,7 +187,11 @@ export default function Cashier() {
         }
     }, [clubIdParam]);
 
-    useEffect(() => { loadData(); }, [loadData]);
+    useEffect(() => {
+        const controller = new AbortController();
+        loadData(controller.signal);
+        return () => controller.abort();
+    }, [loadData]);
 
     // BUG #233 FIX: Realtime subscriptions — chip balance and cashout changes auto-refresh
     useEffect(() => {

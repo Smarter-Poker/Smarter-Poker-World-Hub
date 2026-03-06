@@ -231,21 +231,19 @@ export default function SocialPageDetail() {
         if (u) setUser(u);
     }, []);
 
-    const fetchPage = useCallback(async () => {
+    const fetchPage = useCallback(async (signal) => {
         if (!pageId) return;
         setLoading(true);
         try {
-            // Detect if pageId is a UUID or a slug to avoid a wasted request
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pageId);
             const userParam = user?.id ? `&user_id=${user.id}` : '';
 
             let json;
             if (isUUID) {
-                const res = await fetch(`/api/social/pages?id=${pageId}${userParam}`);
+                const res = await fetch(`/api/social/pages?id=${pageId}${userParam}`, { signal });
                 json = await res.json();
             } else {
-                // Slug-based lookup directly
-                const res = await fetch(`/api/social/pages?slug=${pageId}${userParam}`);
+                const res = await fetch(`/api/social/pages?slug=${pageId}${userParam}`, { signal });
                 json = await res.json();
             }
 
@@ -255,17 +253,17 @@ export default function SocialPageDetail() {
                 if (json.data.owner_id === user?.id) setUserRole('owner');
             }
         } catch (e) {
-            console.error('Failed to fetch page:', e);
+            if (e.name !== 'AbortError') console.error('Failed to fetch page:', e);
         }
         setLoading(false);
     }, [pageId, user]);
 
-    const fetchPosts = useCallback(async () => {
+    const fetchPosts = useCallback(async (signal) => {
         if (!page?.id) return;
         try {
             const params = new URLSearchParams({ page_id: page.id, limit: '30' });
             if (user?.id) params.set('user_id', user.id);
-            const res = await fetch(`/api/social/pages/posts?${params}`);
+            const res = await fetch(`/api/social/pages/posts?${params}`, { signal });
             const json = await res.json();
             if (json.success) setPosts(json.data || []);
         } catch { }
@@ -281,8 +279,17 @@ export default function SocialPageDetail() {
         } catch { }
     }, [page, user]);
 
-    useEffect(() => { fetchPage(); }, [fetchPage]);
-    useEffect(() => { if (page) fetchPosts(); }, [fetchPosts, page]);
+    useEffect(() => {
+        const controller = new AbortController();
+        fetchPage(controller.signal);
+        return () => controller.abort();
+    }, [fetchPage]);
+    useEffect(() => {
+        if (!page) return;
+        const controller = new AbortController();
+        fetchPosts(controller.signal);
+        return () => controller.abort();
+    }, [fetchPosts, page]);
     useEffect(() => { if (page && activeTab === 'members') fetchFollowers(); }, [fetchFollowers, page, activeTab]);
 
     const handleFollow = async () => {

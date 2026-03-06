@@ -39,7 +39,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig = {
-  reactStrictMode: false, // Kept false — Supabase auth triggers double-invoke side effects in strict mode
+  reactStrictMode: true, // Re-enabled: AbortController cleanup and getAuthUser() now handle double-invoke
   eslint: { ignoreDuringBuilds: true },
   compress: true, // Enable gzip compression for all responses
 
