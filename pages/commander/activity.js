@@ -74,17 +74,20 @@ export default function ActivityFeed() {
       let checkins = { data: [] };
       let sessions = { data: [] };
       let waitlist = { data: [] };
+      let tables = { data: [] };
       try {
         const results = await Promise.allSettled([
           fetch(`/api/commander/incidents?venue_id=${venueId}`, { headers }).then(r => r.json()),
           fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, { headers }).then(r => r.json()),
           fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, { headers }).then(r => r.json()),
-          fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json())
+          fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()),
+          fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json())
         ]);
         if (results[0].status === 'fulfilled') incidents = results[0].value || { data: [] };
         if (results[1].status === 'fulfilled') checkins = results[1].value || { data: [] };
         if (results[2].status === 'fulfilled') sessions = results[2].value || { data: [] };
         if (results[3].status === 'fulfilled') waitlist = results[3].value || { data: [] };
+        if (results[4].status === 'fulfilled') tables = results[4].value || { data: [] };
       } catch { /* swallow all fetch errors */ }
 
       const allEvents = [];
@@ -137,7 +140,27 @@ export default function ActivityFeed() {
       });
 
       // Sort by timestamp descending
-      allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      // Tables (Open/Close events)
+      (tables.data || []).forEach(t => {
+        if (t.status === 'open' || t.status === 'closed') {
+          const isOpened = t.status === 'open';
+          allEvents.push({
+            id: `tbl-${t.id}`,
+            type: isOpened ? 'table_opened' : 'table_closed',
+            message: `Table ${t.table_number || ''} ${isOpened ? 'Opened' : 'Closed'}`,
+            detail: t.current_game?.game_type ? `${t.current_game.stakes || ''} ${t.current_game.game_type}` : '',
+            timestamp: t.updated_at || t.created_at || new Date().toISOString()
+          });
+        }
+      });
+
+      // Sort by timestamp descending (robust Date parsing)
+      allEvents.sort((a, b) => {
+        const tA = new Date(a.timestamp || 0).getTime();
+        const tB = new Date(b.timestamp || 0).getTime();
+        return (isNaN(tB) ? 0 : tB) - (isNaN(tA) ? 0 : tA);
+      });
       setEvents(allEvents.slice(0, 50));
     } catch (err) {
       // Explicitly swallow AbortError — these are non-critical and can crash the error boundary

@@ -5,6 +5,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, ScanLine, Camera, AlertCircle, User, Clock, Star, Loader2 } from 'lucide-react';
+import { broadcastChange } from '../../../lib/commander/useCommanderSync';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
 
@@ -60,6 +61,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || 'Member not found');
             setMember(data.data.member);
+            broadcastChange('members'); // Push check-in event dynamically
             if (onMemberFound) onMemberFound(data.data.member);
         } catch (err) { setError(err.message); }
         finally { setLoading(false); }

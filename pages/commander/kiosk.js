@@ -253,6 +253,7 @@ export default function MembershipKiosk() {
 
       setCheckinIsWaitlisted(foundOnWaitlist);
       broadcastChange('waitlist');
+      broadcastChange('members'); // Push member check-in to Activity Feed globally
       setSuccessMsg(`✅ ${titleCase(member.first_name || member.name || 'Player')} — Checked In!`);
       setMode('success');
     } catch (err) {
@@ -597,7 +598,8 @@ export default function MembershipKiosk() {
                 fontWeight: '700',
                 color: '#fff',
                 marginBottom: '16px',
-                fontFamily: "var(--font-inter), sans-serif" }}>
+                fontFamily: "var(--font-inter), sans-serif"
+              }}>
                 Welcome!
               </h2>
 
@@ -606,7 +608,8 @@ export default function MembershipKiosk() {
                 color: '#E4E6EB',
                 lineHeight: '1.5',
                 marginBottom: '32px',
-                fontFamily: "var(--font-inter), sans-serif" }}>
+                fontFamily: "var(--font-inter), sans-serif"
+              }}>
                 Please See{' '}
                 <span style={{
                   color: '#1877F2',
@@ -628,7 +631,8 @@ export default function MembershipKiosk() {
                   fontSize: '18px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  fontFamily: "var(--font-inter), sans-serif" }}
+                  fontFamily: "var(--font-inter), sans-serif"
+                }}
               >
                 Got It
               </button>
@@ -658,7 +662,8 @@ export default function MembershipKiosk() {
                 alignItems: 'center',
                 gap: '8px',
                 zIndex: 50,
-                fontFamily: "var(--font-inter), sans-serif" }}>
+                fontFamily: "var(--font-inter), sans-serif"
+              }}>
               ← Back
             </button>
 
