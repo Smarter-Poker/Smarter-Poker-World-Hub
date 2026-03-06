@@ -92,19 +92,13 @@ async function handlePost(req, res) {
   try {
     const { venue_id: bodyVenueId } = req.body;
 
-    // Verify manager authentication
-    const authResult = await verifyManagerSession(req, bodyVenueId);
-    if (authResult.error) {
-      return res.status(authResult.error.status).json({
-        success: false,
-        error: { code: authResult.error.code, message: authResult.error.message }
-      });
-    }
+    // Redundant verification removed because _middleware.ts handles `guardWriteStaff()`
 
     const {
       venue_id,
       user_id,
-      display_name,
+      display_name: _displayName,
+      name,
       email,
       phone,
       role,
@@ -117,6 +111,8 @@ async function handlePost(req, res) {
       photo_url,
       date_of_birth,
     } = req.body;
+
+    const display_name = _displayName || name;
 
     // Validation — require venue_id, role, and either user_id or display_name
     if (!venue_id || !role) {
@@ -134,7 +130,7 @@ async function handlePost(req, res) {
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Either user_id or display_name is required'
+          message: 'Either user_id or display_name (or name) is required'
         }
       });
     }

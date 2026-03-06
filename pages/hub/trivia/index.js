@@ -17,7 +17,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 
 export default function TriviaHubPage() {
-    const { user } = useAvatar();
+    const { user, loading: authLoading } = useAvatar();
     const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [isVip, setIsVip] = useState(false);
@@ -37,7 +37,7 @@ export default function TriviaHubPage() {
         if (userId) {
             getTriviaPreferences(userId).then(setPreferences);
         }
-    }, []);
+    }, [userId]);
 
     const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };
@@ -50,7 +50,7 @@ export default function TriviaHubPage() {
                 console.error('Failed to save preference:', error);
             }
         }
-    }, [preferences]);
+    }, [preferences, userId]);
 
     const menuConfig = getMenuConfig('trivia', user, preferences, {
         setSoundEffects: (val) => updatePreference('soundEffects', val),
@@ -62,7 +62,8 @@ export default function TriviaHubPage() {
     useEffect(() => {
         async function loadUserData() {
             if (!userId) {
-                // Wait for auth to populate
+                // Wait for auth to populate or fail
+                if (!authLoading) setIsLoading(false);
                 return;
             }
             try {
@@ -106,7 +107,7 @@ export default function TriviaHubPage() {
         }
 
         loadUserData();
-    }, [userId]);
+    }, [userId, authLoading]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;

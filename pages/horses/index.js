@@ -82,6 +82,10 @@ export default function HorsesAdmin() {
         voice: 'casual'
     });
 
+    // Grinder State
+    const [grinderData, setGrinderData] = useState(null);
+    const [grinderLoading, setGrinderLoading] = useState(false);
+
     useEffect(() => {
         const _c = new AbortController();
 
@@ -447,6 +451,76 @@ export default function HorsesAdmin() {
 
     const activeCount = personas.filter(p => p.is_active).length;
 
+    const loadGrinderData = async (signal) => {
+        setGrinderLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+
+            const res = await fetch('/api/horses/grinder-stats', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+                signal: signal
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setGrinderData(data.stats);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load grinder data:', err);
+        } finally {
+            setGrinderLoading(false);
+        }
+    };
+
+    const handleGrinderAction = async (action) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                showNotification('Session expired.', 'error');
+                return;
+            }
+
+            // Define chips to give if adding to club
+            const bodyPayload = { action };
+            if (action === 'add_to_club') {
+                bodyPayload.chips = settings.grinder_starting_chips || 10000;
+            }
+
+            const res = await fetch('/api/horses/grinder-stats', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify(bodyPayload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(data.message || `Action ${action} successful!`);
+                    loadGrinderData(); // Refresh UI
+                } else {
+                    showNotification(data.error || 'Action failed', 'error');
+                }
+            }
+        } catch (err) {
+            console.error('Grinder action error:', err);
+            showNotification('Network error executing action', 'error');
+        }
+    };
+
+    // Load Grinder data when Grinder tab is selected
+    useEffect(() => {
+        if (activeTab === 'grinder' && !grinderData && !grinderLoading) {
+            const _c = new AbortController();
+            loadGrinderData(_c.signal);
+            return () => _c.abort();
+        }
+    }, [activeTab]);
+
     if (loading) {
         return (
             <div className={styles.loading}>
@@ -679,15 +753,15 @@ export default function HorsesAdmin() {
                                     <span className={styles.statLabel}>Total Grinders</span>
                                 </div>
                                 <div className={`${styles.statBox} ${styles.activeBox}`}>
-                                    <span className={styles.statNumber}>0</span>
+                                    <span className={styles.statNumber}>{grinderData?.currentlyPlaying || 0}</span>
                                     <span className={styles.statLabel}>Currently Playing</span>
                                 </div>
                                 <div className={styles.statBox}>
-                                    <span className={styles.statNumber}>0</span>
+                                    <span className={styles.statNumber}>{grinderData?.activeTables || 0}</span>
                                     <span className={styles.statLabel}>Active Tables</span>
                                 </div>
                                 <div className={styles.statBox}>
-                                    <span className={styles.statNumber}>16h</span>
+                                    <span className={styles.statNumber}>{settings.grinder_daily_hours || 16}h</span>
                                     <span className={styles.statLabel}>Daily Playtime</span>
                                 </div>
                             </div>
@@ -695,13 +769,25 @@ export default function HorsesAdmin() {
                             <div className={styles.grinderControls}>
                                 <h3>🏠 Club Management</h3>
                                 <div className={styles.clubActions}>
-                                    <button className={styles.btnSuccess}>
-                                        🐴 Add All Horses to Shark Club (10,000 chips each)
+                                    <button
+                                        className={styles.btnSuccess}
+                                        onClick={() => handleGrinderAction('add_to_club')}
+                                        disabled={grinderLoading}
+                                    >
+                                        🐴 Add All Horses to Shark Club ({settings.grinder_starting_chips || 10000} chips each)
                                     </button>
-                                    <button className={styles.actionBtn}>
+                                    <button
+                                        className={styles.actionBtn}
+                                        onClick={() => handleGrinderAction('start')}
+                                        disabled={grinderLoading}
+                                    >
                                         🎮 Start Auto-Join
                                     </button>
-                                    <button className={styles.actionBtn}>
+                                    <button
+                                        className={styles.actionBtn}
+                                        onClick={() => handleGrinderAction('stop')}
+                                        disabled={grinderLoading}
+                                    >
                                         ⏹️ Stop All Horses
                                     </button>
                                 </div>
@@ -793,11 +879,15 @@ export default function HorsesAdmin() {
                                                 </td>
                                                 <td>{persona.specialty?.replace('_', ' ')}</td>
                                                 <td><span className={styles.voiceTag}>{persona.voice}</span></td>
-                                                <td>0/4</td>
-                                                <td>0</td>
-                                                <td className={styles.profitCell}>$0</td>
+                                                <td>{grinderData?.roster?.find(r => r.horse_id === persona.id)?.tables || 0}/{settings.grinder_max_tables || 4}</td>
+                                                <td>{grinderData?.roster?.find(r => r.horse_id === persona.id)?.hands || 0}</td>
+                                                <td className={styles.profitCell}>${grinderData?.roster?.find(r => r.horse_id === persona.id)?.profit || 0}</td>
                                                 <td>
-                                                    <span className={styles.statusIdle}>Idle</span>
+                                                    {grinderData?.roster?.find(r => r.horse_id === persona.id)?.status === 'playing' ? (
+                                                        <span className={styles.statusActive} style={{ color: '#22c55e', fontWeight: 'bold' }}>Playing</span>
+                                                    ) : (
+                                                        <span className={styles.statusIdle}>Idle</span>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
