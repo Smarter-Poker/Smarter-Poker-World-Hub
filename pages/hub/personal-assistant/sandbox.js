@@ -21,7 +21,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions } from '../../../src/hooks/useAssistant';
-import { useFeatureGate } from '../../../src/lib/gates/premiumFeatureGate';
+import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
