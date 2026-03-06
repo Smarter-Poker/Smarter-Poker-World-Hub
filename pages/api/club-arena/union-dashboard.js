@@ -55,6 +55,7 @@ export default async function handler(req, res) {
       .from('union_clubs')
       .select('club_id')
       .eq('union_id', unionId)
+      .limit(200);
 
     const clubIds = (unionClubs || []).map(uc => uc.club_id);
 
@@ -110,7 +111,8 @@ export default async function handler(req, res) {
     const { data: adminList } = await supabaseAdmin
       .from('union_admins')
       .select('user_id, role, permissions, created_at')
-      .eq('union_id', unionId);
+      .eq('union_id', unionId)
+      .limit(100);
 
     // Enrich admins with profile names
     let admins = adminList || [];

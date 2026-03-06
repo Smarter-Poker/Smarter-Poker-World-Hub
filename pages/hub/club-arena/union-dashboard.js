@@ -83,6 +83,7 @@ export default function UnionDashboard() {
     const [mintClubId, setMintClubId] = useState('');
     const [mintAmount, setMintAmount] = useState('');
     const [mintProcessing, setMintProcessing] = useState(false);
+    const [createProcessing, setCreateProcessing] = useState(false);
 
     // Settlement state
     const [settleClubId, setSettleClubId] = useState('');
@@ -117,7 +118,7 @@ export default function UnionDashboard() {
             if (session?.user) setUser(session.user);
             else router.push('/auth/login');
         });
-    }, []);
+    }, [router]);
 
     // Load dashboard data
     const loadDashboard = useCallback(async () => {
@@ -134,9 +135,11 @@ export default function UnionDashboard() {
                 setBbjBackupPct(String(data.union.settings?.bbj_backup_pct || 30));
                 setBbjPromoPct(String(data.union.settings?.bbj_promo_pct || 30));
             }
-            if (data.clubs?.length > 0 && !mintClubId) {
-                setMintClubId(data.clubs[0].id);
-                setSettleClubId(data.clubs[0].id);
+            // Only set default club selection on first load (when clubs were empty before)
+            // Use functional update to read current state without capturing it in deps
+            if (data.clubs?.length > 0) {
+                setMintClubId(prev => prev || data.clubs[0].id);
+                setSettleClubId(prev => prev || data.clubs[0].id);
             }
         } catch (err) {
             console.error('Union dashboard load failed:', err);
@@ -182,7 +185,7 @@ export default function UnionDashboard() {
             supabase.removeChannel(unionChannel);
             clearInterval(poll);
         };
-    }, [unionIdParam, !!dashboard]);
+    }, [unionIdParam, dashboard]);
 
     // Mint chips
     const handleMint = async () => {
@@ -292,10 +295,10 @@ export default function UnionDashboard() {
                                     style={{ width: 120, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px', fontSize: 14, boxSizing: 'border-box' }} />
                             </div>
                             <button
-                                disabled={mintProcessing || !unionName.trim()}
+                                disabled={createProcessing || !unionName.trim()}
                                 onClick={async () => {
                                     if (!unionName.trim()) { showToast('Union name required', 'error'); return; }
-                                    setMintProcessing(true);
+                                    setCreateProcessing(true);
                                     try {
                                         const r = await apiCall('/api/club-arena/manage-union', {
                                             action: 'create',
@@ -306,14 +309,14 @@ export default function UnionDashboard() {
                                         showToast('Union created!');
                                         router.push(`/hub/club-arena/union-dashboard?union=${r.union.id}`);
                                     } catch (e) { showToast(e.message, 'error'); }
-                                    finally { setMintProcessing(false); }
+                                    finally { setCreateProcessing(false); }
                                 }}
                                 style={{
                                     width: '100%', background: FB.gold, color: '#000', border: 'none',
                                     borderRadius: 10, padding: '14px', fontWeight: 800, fontSize: 16, cursor: 'pointer',
-                                    opacity: mintProcessing || !unionName.trim() ? 0.5 : 1,
+                                    opacity: createProcessing || !unionName.trim() ? 0.5 : 1,
                                 }}>
-                                {mintProcessing ? 'Creating...' : 'Create Union'}
+                                {createProcessing ? 'Creating...' : 'Create Union'}
                             </button>
                         </div>
                         <button onClick={() => router.push('/hub/club-arena')}

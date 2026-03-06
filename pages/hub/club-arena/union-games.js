@@ -74,14 +74,21 @@ export default function UnionGames() {
   // Load union info
   useEffect(() => {
     if (!unionId || !user) return;
+    const _c = new AbortController();
     (async () => {
-      const token = await getToken();
-      const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const d = await res.json();
-      if (d.union) setUnionInfo(d.union);
+      try {
+        const token = await getToken();
+        const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: _c.signal,
+        });
+        const d = await res.json();
+        if (d.union) setUnionInfo(d.union);
+      } catch (e) {
+        if (e.name !== 'AbortError') console.error('[union-games] union info load:', e);
+      }
     })();
+    return () => _c.abort();
   }, [unionId, user]);
 
   const loadTournaments = useCallback(async () => {
@@ -91,30 +98,47 @@ export default function UnionGames() {
       running: ['running', 'late_reg', 'break', 'paused', 'final_table'],
       past: ['complete', 'cancelled'],
     };
-    const res = await api('list_tournaments', { unionId, status: statusMap[subTab] });
-    if (res.success) {
-      setTournaments(res.tournaments || []);
-      if (res.clubs?.length) setClubs(res.clubs);
+    try {
+      const res = await api('list_tournaments', { unionId, status: statusMap[subTab] });
+      if (res.success) {
+        setTournaments(res.tournaments || []);
+        if (res.clubs?.length) setClubs(res.clubs);
+      } else {
+        console.error('[union-games] list_tournaments:', res.error);
+      }
+    } catch (e) {
+      console.error('[union-games] loadTournaments:', e);
     }
   }, [unionId, subTab]);
 
   const loadTables = useCallback(async () => {
     if (!unionId) return;
-    const res = await api('list_tables', { unionId });
-    if (res.success) {
-      const all = res.tables || [];
-      if (tableFilter === 'active') setTables(all.filter(t => ['waiting', 'running'].includes(t.status)));
-      else if (tableFilter === 'closed') setTables(all.filter(t => t.status === 'closed'));
-      else setTables(all);
-      if (res.clubs?.length) setClubs(res.clubs);
+    try {
+      const res = await api('list_tables', { unionId });
+      if (res.success) {
+        const all = res.tables || [];
+        if (tableFilter === 'active') setTables(all.filter(t => ['waiting', 'running'].includes(t.status)));
+        else if (tableFilter === 'closed') setTables(all.filter(t => t.status === 'closed'));
+        else setTables(all);
+        if (res.clubs?.length) setClubs(res.clubs);
+      } else {
+        console.error('[union-games] list_tables:', res.error);
+      }
+    } catch (e) {
+      console.error('[union-games] loadTables:', e);
     }
   }, [unionId, tableFilter]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    if (tab === 'tournaments') await loadTournaments();
-    else await loadTables();
-    setLoading(false);
+    try {
+      if (tab === 'tournaments') await loadTournaments();
+      else await loadTables();
+    } catch (e) {
+      console.error('[union-games] loadData:', e);
+    } finally {
+      setLoading(false);
+    }
   }, [tab, loadTournaments, loadTables]);
 
   useEffect(() => { if (user && unionId) loadData(); }, [user, unionId, loadData]);
@@ -125,6 +149,11 @@ export default function UnionGames() {
     const clubIds = clubs.map(c => c.id);
 
     // Subscribe to tournament changes across all union clubs
+    // Build a filter string for clubs in this union (PostgREST IN syntax)
+    const clubIdFilter = clubIds.length === 1
+      ? `club_id=eq.${clubIds[0]}`
+      : undefined; // Supabase realtime filter only supports eq, not in — filter in callback
+
     const tournChannel = supabase
       .channel(`union-tournaments:${unionId}`)
       .on('postgres_changes', {
@@ -353,7 +382,7 @@ export default function UnionGames() {
                   }}>{t.status?.replace('_', ' ')}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
-                  <span> {t.clubs?.name || 'Unknown Club'}</span>
+                  <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
                   <span> {t.variant?.toUpperCase()} {t.type?.toUpperCase()}</span>
                   <span> {Number(t.buy_in).toLocaleString()}</span>
                   <span> {t.registered_count}/{t.max_players}</span>
@@ -408,7 +437,7 @@ export default function UnionGames() {
                   }}>{t.status}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
-                  <span> {t.clubs?.name || 'Unknown'}</span>
+                  <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown'}</span>
                   <span> {t.game_variant?.toUpperCase() || 'NLH'}</span>
                   <span> {t.small_blind}/{t.big_blind}</span>
                   <span> {t.current_players || 0}/{t.max_players}</span>
@@ -604,7 +633,7 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
                   background: form.selectedClubs.includes(c.id) ? FB.green + '20' : 'transparent',
                 }}>
                   <span style={{ fontSize: 15 }}>{form.selectedClubs.includes(c.id) ? '' : '⬜'}</span>
-                  {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} loading="lazy" />}
+                  {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }}  loading="lazy" />}
                   <span style={{ fontSize: 13, color: FB.text }}>{c.name}</span>
                   {c.id === form.hostClubId && <span style={{ fontSize: 10, color: FB.gold, fontWeight: 700 }}>HOST</span>}
                 </div>
@@ -750,15 +779,23 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
   const [tourneyState, setTourneyState] = useState(null);
 
   useEffect(() => {
+    let active = true;
     (async () => {
-      const { data } = await supabase
-        .from('tournament_registrations')
-        .select('user_id, display_name, club_id, status, registered_at, finish_position, payout_amount')
-        .eq('tournament_id', t.id)
-        .in('status', ['registered', 'playing', 'eliminated', 'winner'])
-        .order('registered_at');
-      setRegs(data || []);
+      try {
+        const { data, error } = await supabase
+          .from('tournament_registrations')
+          .select('user_id, display_name, club_id, status, registered_at, finish_position, payout_amount')
+          .eq('tournament_id', t.id)
+          .in('status', ['registered', 'playing', 'eliminated', 'winner'])
+          .order('registered_at')
+          .limit(500);
+        if (error) console.error('[TournamentDetail] regs fetch:', error);
+        if (active) setRegs(data || []);
+      } catch (e) {
+        console.error('[TournamentDetail] regs fetch:', e);
+      }
     })();
+    return () => { active = false; };
   }, [t.id]);
 
   // Poll engine state for running tournaments
@@ -775,7 +812,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         });
         const data = await res.json();
         if (active && data.success !== false) setTourneyState(data);
-      } catch (e) { /* ignore */ }
+      } catch (e) { if (e?.name !== 'AbortError') console.error('[TournamentDetail:poll]', e); }
     };
     poll();
     const interval = setInterval(poll, 5000);

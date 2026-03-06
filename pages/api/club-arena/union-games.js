@@ -36,6 +36,7 @@ async function getUnionClubIds(unionId) {
     .from('union_clubs')
     .select('club_id')
     .eq('union_id', unionId)
+    .limit(200);
 
   return (unionClubs || []).map(uc => uc.club_id);
 }
@@ -255,6 +256,26 @@ export default async function handler(req, res) {
         .eq('id', tournamentId);
 
       if (error) throw error;
+
+      // Attempt to notify the poker engine to seat players and begin dealing
+      // Non-fatal: tournament DB status is already set — engine sync can retry
+      try {
+        const engineRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://smarter.poker'}/api/poker/engine/tournament`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: req.headers.authorization,
+          },
+          body: JSON.stringify({ action: 'start', tournamentId }),
+        });
+        if (!engineRes.ok) {
+          const engineData = await engineRes.json().catch(() => ({}));
+          console.warn('[union-games] engine start non-fatal:', engineData.error || engineRes.status);
+        }
+      } catch (engineErr) {
+        console.warn('[union-games] engine start non-fatal:', engineErr.message);
+      }
+
       return res.json({ success: true, players: playerCount || 0 });
     }
 
