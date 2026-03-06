@@ -53,19 +53,36 @@ function SceneContent({ onPodClick, activePod, liveData }) {
 
   return (
     <>
-      {/* Ambient + directional lighting */}
-      <ambientLight intensity={0.15} color="#4488aa" />
-      <directionalLight position={[5, 8, 5]} intensity={0.3} color="#6ee7ef" />
-      <directionalLight position={[-5, 3, -5]} intensity={0.15} color="#3b82f6" />
+      {/* Premium Lighting — Cyan/Blue palette, cranked for visibility */}
+      <ambientLight intensity={0.5} color="#88ccdd" />
+      <directionalLight position={[5, 10, 5]} intensity={1.2} color="#ffffff" />
+      <directionalLight position={[-5, 5, -5]} intensity={0.5} color="#6ee7ef" />
+      <pointLight position={[0, 4, 0]} intensity={2.0} color="#6ee7ef" distance={12} decay={2} />
+      <pointLight position={[0, -2, 0]} intensity={0.5} color="#3b82f6" distance={8} decay={2} />
+      <spotLight position={[0, 10, 5]} angle={0.6} penumbra={0.5} intensity={1.5} color="#ffffff" />
 
-      {/* Point lights for dramatic effect */}
-      <pointLight position={[0, 2, 0]} intensity={0.6} color="#6ee7ef" distance={8} decay={2} />
-      <pointLight position={[0, -2, 0]} intensity={0.2} color="#1a365d" distance={6} decay={2} />
+      {/* Ground disc — glowing holographic platform */}
+      <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[4.5, 64]} />
+        <meshStandardMaterial
+          color="#0a2040"
+          metalness={0.9}
+          roughness={0.2}
+          emissive="#00d4ff"
+          emissiveIntensity={0.3}
+        />
+      </mesh>
 
-      {/* Test geometry — always renders to prove Canvas works */}
-      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[3, 64]} />
-        <meshStandardMaterial color="#0a1628" metalness={0.8} roughness={0.3} emissive="#6ee7ef" emissiveIntensity={0.05} />
+      {/* Inner ring glow */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.8, 3.0, 64]} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.6} />
+      </mesh>
+
+      {/* Outer ring glow */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[4.3, 4.5, 64]} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
       </mesh>
 
       {/* Central radar disc */}
