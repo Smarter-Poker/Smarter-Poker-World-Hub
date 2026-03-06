@@ -116,14 +116,22 @@ export function useFeatureGate(featureKey) {
     }, [featureKey]);
 
     // guardAction: wraps any function - if user has access, run it, else show popup
+    // OPTIMISTIC: During loading, VIP users (triple-fallback) always pass through.
+    // Non-VIP users during loading also pass to avoid false popups on first render.
     const guardAction = useCallback((actionFn) => {
         if (isVipTriple || hasAccess) {
             if (actionFn) actionFn();
             return true;
         }
+        // While still loading, don't flash a popup — let the action through
+        // so VIP users or users with day passes aren't blocked by slow init
+        if (loading) {
+            if (actionFn) actionFn();
+            return true;
+        }
         setShowPopup(true);
         return false;
-    }, [hasAccess, isVipTriple]);
+    }, [hasAccess, isVipTriple, loading]);
 
     const closePopup = useCallback(() => setShowPopup(false), []);
 
@@ -179,6 +187,19 @@ export default function FeatureGatePopup({ userId, featureKey, diamonds: initial
                 }
             }).catch(() => { });
         }
+    }, [userId, featureKey]);
+
+    // 🚌 BUS LISTENER: Keep diamond balance live in the popup
+    // If diamonds change on another page/component, this updates immediately
+    useEffect(() => {
+        if (typeof window === 'undefined' || !userId) return;
+        const refreshBalance = () => {
+            checkFeatureAccess(userId, featureKey).then(result => {
+                setDiamonds(result.diamonds || 0);
+            }).catch(() => { });
+        };
+        window.addEventListener('diamond-balance-refresh', refreshBalance);
+        return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
     }, [userId, featureKey]);
 
     // Purchase single feature access (25💎)

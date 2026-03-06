@@ -13,6 +13,18 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+    // ── AUTH: Require valid JWT + admin role ──
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Authorization required' });
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    const { data: profile } = await supabaseAdmin
+        .from('profiles').select('role').eq('id', user.id).single();
+    if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+        return res.status(403).json({ error: 'Admin access required' });
+    }
+
     const section = req.query.section || 'all';
 
     try {

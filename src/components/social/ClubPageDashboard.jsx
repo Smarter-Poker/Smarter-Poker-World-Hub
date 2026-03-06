@@ -510,7 +510,12 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                 body: JSON.stringify(body),
             });
             const json = await res.json();
-            if (json.success && json.data) { onPageUpdated(json.data); setEditingPage(false); }
+            if (json.success && json.data) {
+                onPageUpdated(json.data);
+                setEditingPage(false);
+                // Auto-fetch QR code since save auto-publishes the page
+                if (!qrData) fetchQrCode(json.data.id);
+            }
         } catch (e) { console.error('Save error:', e); }
         setSaving(false);
     };
@@ -1106,12 +1111,12 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             {pendingFollowers.length > 0 && (
                 <div style={{ ...cardSt, marginBottom: 8 }}>
                     <div style={{ marginBottom: 0, borderRadius: 10, border: '2px solid #f59e0b', background: 'rgba(245,158,11,0.08)', padding: 12 }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>Pending Follow Requests ({pendingFollowers.length})</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#f59e0b', marginBottom: 8 }}>Pending Follow Requests ({pendingFollowers.length})</div>
                         {pendingFollowers.map(f => (
-                            <div key={f.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #fde68a' }}>
+                            <div key={f.user_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(245,158,11,0.2)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                     </div>
                                     <div>
                                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{f.profile?.full_name || f.profile?.username || 'Unknown'}</div>

@@ -15,10 +15,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
   RefreshCw, Clock, Users, Loader2, ArrowRightLeft, Coffee,
-import dynamic from 'next/dynamic';
-const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
   CheckCircle2, AlertTriangle, RotateCcw, ChevronDown, ChevronUp, History
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 

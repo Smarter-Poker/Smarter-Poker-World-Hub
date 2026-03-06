@@ -42,6 +42,8 @@ export default function HorsesAdmin() {
     const [loginError, setLoginError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState('all');
+    const [abuseLoaded, setAbuseLoaded] = useState(false);
+    const [economyLoaded, setEconomyLoaded] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
 
     // Promo Code State
@@ -82,6 +84,14 @@ export default function HorsesAdmin() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
+                // BUG 1 FIX: Verify admin/superadmin role
+                const { data: profile } = await supabase
+                    .from('profiles').select('role').eq('id', session.user.id).single();
+                if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+                    await supabase.auth.signOut();
+                    setLoading(false);
+                    return;
+                }
                 setUser(session.user);
                 loadData();
             }
@@ -103,6 +113,15 @@ export default function HorsesAdmin() {
 
             if (error) {
                 setLoginError(error.message);
+                return;
+            }
+
+            // BUG 1 FIX: Verify admin/superadmin role after login
+            const { data: profile } = await supabase
+                .from('profiles').select('role').eq('id', data.user.id).single();
+            if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+                await supabase.auth.signOut();
+                setLoginError('Access denied. Admin privileges required.');
                 return;
             }
 
@@ -174,13 +193,29 @@ export default function HorsesAdmin() {
     const loadEconomyData = async () => {
         setEconomyLoading(true);
         try {
-            const res = await fetch('/api/admin/economy-stats');
+            // BUG 2 FIX: Add auth header
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                showNotification('Session expired. Please re-login.', 'error');
+                setEconomyLoading(false);
+                return;
+            }
+            const res = await fetch('/api/admin/economy-stats', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
             if (res.ok) {
                 const data = await res.json();
-                if (data.success) setEconomyData(data);
+                if (data.success) {
+                    setEconomyData(data);
+                    setEconomyLoaded(true);
+                }
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                showNotification(errData.error || `Economy data error: ${res.status}`, 'error');
             }
         } catch (err) {
             console.error('Failed to load economy data:', err);
+            showNotification('Network error loading economy data', 'error');
         } finally {
             setEconomyLoading(false);
         }
@@ -196,11 +231,21 @@ export default function HorsesAdmin() {
     const loadAntiAbuseData = async () => {
         setAbuseLoading(true);
         try {
-            const res = await fetch('/api/horses/anti-abuse?section=all');
+            // BUG 3 companion: Send auth header to secured API
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                showNotification('Session expired. Please re-login.', 'error');
+                setAbuseLoading(false);
+                return;
+            }
+            const res = await fetch('/api/horses/anti-abuse?section=all', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
                     setAbuseData(data);
+                    setAbuseLoaded(true);
                 } else {
                     showNotification('Failed to load anti-abuse data', 'error');
                     setAbuseData(EMPTY_ABUSE_DATA);
@@ -239,7 +284,15 @@ export default function HorsesAdmin() {
     const updateSetting = async (key, value) => {
         const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
-        /* In a real app we would save this to DB */
+        // BUG 4 FIX: Persist settings to Supabase
+        try {
+            await supabase
+                .from('content_settings')
+                .upsert({ id: settings.id || 1, ...newSettings, updated_at: new Date().toISOString() });
+        } catch (err) {
+            console.error('Settings save error:', err);
+            showNotification('Failed to save setting', 'error');
+        }
     };
 
     const handleCreate = async (e) => {
@@ -332,7 +385,7 @@ export default function HorsesAdmin() {
             <>
                 <SEOHead
                     title="Poker Horses — Fantasy Poker Game"
-                    description="Play Fantasy Poker By Picking Your Horses. Follow Live Tournament Action And Compete On Leaderboards."
+                    description="Smarter.Poker Admin Panel — Content Engine, Economy, and Security Management."
                     canonical="/horses"
                 >
                     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -429,10 +482,10 @@ export default function HorsesAdmin() {
                     <button className={activeTab === 'promo' ? styles.active : ''} onClick={() => setActiveTab('promo')}>
                         🎟️ Promo Codes
                     </button>
-                    <button className={activeTab === 'economy' ? styles.active : ''} onClick={() => { setActiveTab('economy'); if (!economyData) loadEconomyData(); }}>
+                    <button className={activeTab === 'economy' ? styles.active : ''} onClick={() => { setActiveTab('economy'); if (!economyLoaded) loadEconomyData(); }}>
                         💎 Economy
                     </button>
-                    <button className={activeTab === 'antiabuse' ? styles.active : ''} onClick={() => { setActiveTab('antiabuse'); if (!abuseData || !abuseData.abuse?.log?.length) loadAntiAbuseData(); }}>
+                    <button className={activeTab === 'antiabuse' ? styles.active : ''} onClick={() => { setActiveTab('antiabuse'); if (!abuseLoaded) loadAntiAbuseData(); }}>
                         🛡️ Anti-Abuse
                     </button>
                 </nav>
@@ -1109,17 +1162,22 @@ export default function HorsesAdmin() {
                                                                 >📋</button>
                                                                 <button
                                                                     onClick={async () => {
-                                                                        const { data: { session } } = await supabase.auth.getSession();
-                                                                        await fetch('/api/promo/admin-promo-codes', {
-                                                                            method: 'PATCH',
-                                                                            headers: {
-                                                                                'Content-Type': 'application/json',
-                                                                                'Authorization': `Bearer ${session.access_token}`,
-                                                                            },
-                                                                            body: JSON.stringify({ id: code.id, is_active: !code.is_active }),
-                                                                        });
-                                                                        showNotification(`Code ${code.is_active ? 'deactivated' : 'activated'}`);
-                                                                        await loadPromoCodes();
+                                                                        try {
+                                                                            const { data: { session } } = await supabase.auth.getSession();
+                                                                            const res = await fetch('/api/promo/admin-promo-codes', {
+                                                                                method: 'PATCH',
+                                                                                headers: {
+                                                                                    'Content-Type': 'application/json',
+                                                                                    'Authorization': `Bearer ${session.access_token}`,
+                                                                                },
+                                                                                body: JSON.stringify({ id: code.id, is_active: !code.is_active }),
+                                                                            });
+                                                                            if (!res.ok) throw new Error('Toggle failed');
+                                                                            showNotification(`Code ${code.is_active ? 'deactivated' : 'activated'}`);
+                                                                            await loadPromoCodes();
+                                                                        } catch (err) {
+                                                                            showNotification('Failed to toggle promo code', 'error');
+                                                                        }
                                                                     }}
                                                                     style={{
                                                                         padding: '4px 8px',
@@ -1673,7 +1731,7 @@ export default function HorsesAdmin() {
                                 </div>
                                 <div className={styles.formActions}>
                                     <button type="button" className={styles.btnCancel} onClick={() => setShowCreateModal(false)}>Cancel</button>
-                                    <button type="submit" className={styles.btnSubmit}>Stabling Horse</button>
+                                    <button type="submit" className={styles.btnSubmit}>Stable Horse</button>
                                 </div>
                             </form>
                         </div>

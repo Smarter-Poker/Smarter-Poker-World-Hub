@@ -16,7 +16,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { Plus, Loader2, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
-const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
+const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 
 function formatCountdown(minutes) {
@@ -43,7 +43,7 @@ export default function TableSeating() {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; }
   };
 
-  
+
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
   const fetchData = async (signal) => {
     try {
@@ -66,7 +66,7 @@ export default function TableSeating() {
     finally { setLoading(false); }
   };
 
-useEffect(() => {
+  useEffect(() => {
     if (!id) return;
     const _c = new AbortController();
     fetchData(_c.signal);
