@@ -299,44 +299,47 @@ export default function VenueDetailPage() {
   const socialPageSlug = swrData?.socialPageSlug || null;
 
   // Fetch live games
-  var fetchLiveGames = async function () {
+  var fetchLiveGames = async function (signal) {
     try {
-      var res = await fetch('/api/poker/live-games?venue_id=' + id);
+      var res = await fetch('/api/poker/live-games?venue_id=' + id, signal ? { signal } : {});
       var json = await res.json();
       if (json.success) {
         var games = json.games || json.data || [];
         setLiveGames(Array.isArray(games) ? games : []);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
   };
 
   useEffect(function () {
     if (!id) return;
-    fetchLiveGames();
+    var controller = new AbortController();
+    fetchLiveGames(controller.signal);
+    return function () { controller.abort(); };
   }, [id]);
 
   // Fetch waitlist data for Bravo-style board
-  var fetchWaitlist = async function () {
+  var fetchWaitlist = async function (signal) {
     try {
-      var wlRes = await fetch('/api/commander/waitlist/venue/' + id);
+      var wlRes = await fetch('/api/commander/waitlist/venue/' + id, signal ? { signal } : {});
       var wlJson = await wlRes.json();
       if (wlJson.success && wlJson.data && wlJson.data.waitlists) {
         setWaitlistData(wlJson.data.waitlists);
       }
-    } catch (e) { /* not a Commander venue, ignore */ }
+    } catch (e) { if (e.name !== 'AbortError') { /* not a Commander venue, ignore */ } }
   };
 
   useEffect(function () {
     if (!id) return;
-    fetchWaitlist();
-    var wlInterval = setInterval(fetchWaitlist, 30000);
-    return function () { clearInterval(wlInterval); };
+    var controller = new AbortController();
+    fetchWaitlist(controller.signal);
+    var wlInterval = setInterval(function () { fetchWaitlist(controller.signal); }, 30000);
+    return function () { controller.abort(); clearInterval(wlInterval); };
   }, [id]);
 
   // Fetch check-ins
-  var fetchCheckins = async function () {
+  var fetchCheckins = async function (signal) {
     try {
-      var res = await fetch('/api/poker/checkins?venue_id=' + id);
+      var res = await fetch('/api/poker/checkins?venue_id=' + id, signal ? { signal } : {});
       var json = await res.json();
       if (json.success) {
         var data = json.checkins || json.data || [];
@@ -350,18 +353,20 @@ export default function VenueDetailPage() {
         });
         if (recent) setHasCheckedIn(true);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
   };
 
   useEffect(function () {
     if (!id) return;
-    fetchCheckins();
+    var controller = new AbortController();
+    fetchCheckins(controller.signal);
+    return function () { controller.abort(); };
   }, [id]);
 
   // Fetch reviews
-  var fetchReviews = async function () {
+  var fetchReviews = async function (signal) {
     try {
-      var res = await fetch('/api/poker/reviews?venue_id=' + id);
+      var res = await fetch('/api/poker/reviews?venue_id=' + id, signal ? { signal } : {});
       var json = await res.json();
       if (json.success) {
         var reviewData = json.reviews || json.data || [];
@@ -372,29 +377,33 @@ export default function VenueDetailPage() {
           ? reviewData.reduce(function (sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
           : 0));
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
   };
 
   useEffect(function () {
     if (!id) return;
-    fetchReviews();
+    var controller = new AbortController();
+    fetchReviews(controller.signal);
+    return function () { controller.abort(); };
   }, [id]);
 
   // Fetch activity feed
-  var fetchActivities = async function () {
+  var fetchActivities = async function (signal) {
     try {
-      var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10');
+      var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10', signal ? { signal } : {});
       var json = await res.json();
       if (json.success) {
         var items = json.activities || json.data || [];
         setActivities(Array.isArray(items) ? items : []);
       }
-    } catch (e) { /* silent */ }
+    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
   };
 
   useEffect(function () {
     if (!id) return;
-    fetchActivities();
+    var controller = new AbortController();
+    fetchActivities(controller.signal);
+    return function () { controller.abort(); };
   }, [id]);
 
   // Fetch claim status

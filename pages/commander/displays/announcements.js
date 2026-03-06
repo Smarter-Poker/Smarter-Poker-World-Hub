@@ -82,44 +82,43 @@ export default function AnnouncementsDisplay() {
   const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   // ─── Fetch active announcements (for display) ───
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
+    const hdrs = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() };
+    const fetchOpts = signal ? { headers: hdrs, signal } : { headers: hdrs };
     try {
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, fetchOpts);
       const json = await res.json();
       if (json.success) setAnnouncements(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
 
     try {
-      const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+      const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, fetchOpts);
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
-    } catch (err) { }
+    } catch (err) { if (err.name !== 'AbortError') { /* non-fatal */ } }
 
     setNow(new Date());
   }, [venueId]);
 
   // ─── Fetch ALL announcements (for management panel, includes scheduled) ───
-  const fetchAllAnnouncements = useCallback(async () => {
+  const fetchAllAnnouncements = useCallback(async (signal) => {
     if (!venueId) return;
+    const hdrs = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() };
+    const fetchOpts = signal ? { headers: hdrs, signal } : { headers: hdrs };
     try {
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
-      });
+      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, fetchOpts);
       const json = await res.json();
       if (json.success) setAllAnnouncements(json.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
   }, [venueId]);
 
   useEffect(() => {
-    fetchData();
-    const poll = setInterval(fetchData, 60000);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    const poll = setInterval(() => fetchData(controller.signal), 60000);
     const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
+    return () => { controller.abort(); clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
   useEffect(() => {

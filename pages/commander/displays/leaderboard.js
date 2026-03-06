@@ -74,11 +74,12 @@ export default function LeaderboardDisplay() {
   // ═══════════════════════════════════════════════════════════════
   // FETCH & BUILD ALL BOARDS
   // ═══════════════════════════════════════════════════════════════
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
+    const fetchOpts = signal ? { signal } : {};
     try {
       // ── Fetch members ──
-      const mRes = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`);
+      const mRes = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, fetchOpts);
       const mJson = await mRes.json();
       const members = (mJson?.data?.members || mJson?.members || []).filter(m => m.membership_status === 'active');
       setTotalMembers(members.length);
@@ -238,11 +239,11 @@ export default function LeaderboardDisplay() {
       }
 
       setBoards(built);
-    } catch (err) { console.error('[LeaderboardDisplay]', err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error('[LeaderboardDisplay]', err); }
   }, [venueId]);
 
   // ── TIMERS ──
-  useEffect(() => { fetchData(); const p = setInterval(fetchData, 30000); const c = setInterval(() => setNow(new Date()), 1000); return () => { clearInterval(p); clearInterval(c); }; }, [fetchData]);
+  useEffect(() => { const controller = new AbortController(); fetchData(controller.signal); const p = setInterval(() => fetchData(controller.signal), 30000); const c = setInterval(() => setNow(new Date()), 1000); return () => { controller.abort(); clearInterval(p); clearInterval(c); }; }, [fetchData]);
   useEffect(() => { if (boards.length <= 1) return; const r = setInterval(() => setActiveIdx(p => (p + 1) % boards.length), 12000); return () => clearInterval(r); }, [boards.length]);
   useCommanderSync(venueId, fetchData, { entities: ['members'] });
   useEffect(() => { (async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } })(); return () => { wakeLockRef.current?.release(); }; }, []);

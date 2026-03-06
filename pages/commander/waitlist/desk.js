@@ -88,19 +88,22 @@ export default function WaitlistDesk() {
     } catch { }
 
     // Fetch saved settings
+    const controller = new AbortController();
     (async () => {
       try {
         const token = getToken();
         const staffSession = getStaffSession();
         const res = await fetch('/api/commander/settings', {
-          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+          headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+          signal: controller.signal,
         });
         const json = await res.json();
         if (json.success && json.data?.desk_customization) {
           setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
         }
-      } catch { }
+      } catch (e) { if (e.name !== 'AbortError') console.error(e); }
     })();
+    return () => controller.abort();
   }, []);
 
   const saveCustomization = async (newCustom) => {
@@ -118,17 +121,18 @@ export default function WaitlistDesk() {
 
   const CALL_EXPIRY_MINUTES = 10; // Auto-delete called entries after 10 minutes
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const vid = staffData.venue_id || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const fetchOpts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes, mmRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${vid}`, { headers }),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers }),
-        fetch(`/api/commander/games/must-move-status?venue_id=${vid}`, { headers }).catch(() => ({ json: async () => ({ success: false }) }))
+        fetch(`/api/commander/tables?venue_id=${vid}`, fetchOpts),
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, fetchOpts),
+        fetch(`/api/commander/games/must-move-status?venue_id=${vid}`, fetchOpts).catch(() => ({ json: async () => ({ success: false }) }))
       ]);
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
@@ -157,14 +161,15 @@ export default function WaitlistDesk() {
           setWaitlists(entries);
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    const interval = setInterval(() => fetchData(controller.signal), 30000); // fallback — real-time sync handles instant updates
+    return () => { controller.abort(); clearInterval(interval); };
   }, [fetchData]);
 
   const [venueId] = useState(() => {
