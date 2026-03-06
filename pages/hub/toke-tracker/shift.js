@@ -89,11 +89,6 @@ export default function ShiftTrackerPage() {
                 />
 
                 <div style={s.content}>
-                    {/* Back Button */}
-                    <button onClick={() => router.push('/hub/toke-tracker')} style={s.backBtn}>
-                        ← Toke Tracker
-                    </button>
-
                     <TokeTracker userId={userId} refreshTrigger={0} standalone />
                 </div>
             </div>

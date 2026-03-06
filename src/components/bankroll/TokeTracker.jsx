@@ -198,7 +198,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
 
     // ── Load data ──
     const loadData = useCallback(async () => {
-        if (!userId) return;
+        if (!userId) { setIsLoading(false); return; }
         setIsLoading(true);
         try {
             const [active, gigs, locs] = await Promise.all([
@@ -1347,15 +1347,14 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
             {/* ── CREATE EVENT ── */}
             {!activeGig && !showCreateForm && (
                 <motion.button
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setShowCreateForm(true)}
                     style={styles.createGigBtn}
                 >
-                    <span style={{ fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.4)' }}>No Active Event</span>
-                    <div>
-                        <div style={styles.createGigTitle}>Start A New Event</div>
-                        <div style={styles.createGigSub}>Track Downs, Tokes, Income And Expenses</div>
-                    </div>
+                    <div style={styles.addEventIcon}>+</div>
+                    <div style={styles.createGigSub}>New Event</div>
                 </motion.button>
             )}
 
@@ -1824,9 +1823,6 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
                     })()}
                 </div>
             )}
-            {!monthlyGoal && !showGoalEdit && (
-                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>Set Monthly Income Goal</button>
-            )}
 
             {/* ── JARVIS DEALER REFERENCE PANEL ── */}
             <div style={styles.jarvisPanel}>
@@ -1900,6 +1896,14 @@ function TokeTracker({ userId, refreshTrigger, standalone = false }) {
                 </AnimatePresence>
             </div>
 
+            {/* ── SET MONTHLY GOAL (below Jarvis) ── */}
+            {!monthlyGoal && !showGoalEdit && (
+                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>
+                    <span style={styles.goalBtnIcon}>🎯</span>
+                    Set Monthly Income Goal
+                </button>
+            )}
+
             {/* ── DEALER VAULT (hidden in standalone mode) ── */}
             {!standalone && <DealerVault userId={userId} completedGigs={completedGigs} />}
 
@@ -1929,7 +1933,7 @@ const styles = {
     // Active Gig
     activeGigCard: {
         background: '#242526',
-        border: '1px solid #3A3B3C',
+        border: '2px solid #3A3B3C',
         borderRadius: 12, padding: 20, position: 'relative',
     },
     activeHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
@@ -2057,16 +2061,24 @@ const styles = {
 
     // Create Gig
     createGigBtn: {
-        background: '#242526', border: '1px dashed #3A3B3C',
-        borderRadius: 12, padding: '24px 20px', cursor: 'pointer',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, textAlign: 'center', width: '100%',
+        background: 'linear-gradient(135deg, #242526 0%, #1c1e21 100%)', border: '2px solid #3A3B3C',
+        borderRadius: 16, padding: '28px 20px', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', width: '100%',
+        transition: 'border-color 0.2s, box-shadow 0.2s',
     },
-    createGigTitle: { fontSize: 18, fontWeight: 700, color: '#E4E6EB' },
-    createGigSub: { fontSize: 13, color: '#B0B3B8' },
+    addEventIcon: {
+        width: 56, height: 56, borderRadius: '50%',
+        background: 'linear-gradient(135deg, #2374e1, #1a5bb5)',
+        border: '2px solid rgba(35,116,225,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 32, fontWeight: 300, color: '#fff',
+        boxShadow: '0 0 20px rgba(35,116,225,0.3)',
+    },
+    createGigSub: { fontSize: 14, fontWeight: 600, color: '#B0B3B8', letterSpacing: '0.03em' },
 
     // Form
     createForm: {
-        background: '#242526', border: '1px solid #3A3B3C',
+        background: '#242526', border: '2px solid #3A3B3C',
         borderRadius: 12, padding: 20, overflow: 'hidden',
     },
     formTitle: { fontSize: 18, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' },
@@ -2216,7 +2228,7 @@ const styles = {
 
     // Jarvis Panel
     jarvisPanel: {
-        background: '#242526', border: '1px solid rgba(245,158,11,0.2)',
+        background: '#242526', border: '2px solid rgba(35,116,225,0.25)',
         borderRadius: 12, padding: '14px 16px', marginTop: 8,
     },
     jarvisPanelHeader: {
@@ -2244,10 +2256,10 @@ const styles = {
         color: '#fff', fontSize: 14, outline: 'none',
     },
     jarvisAskBtn: {
-        background: '#f59e0b', color: '#000', border: 'none',
+        background: '#2374e1', color: '#fff', border: '2px solid rgba(35,116,225,0.5)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 700,
         cursor: 'pointer', flexShrink: 0,
-        opacity: 1, transition: 'opacity 0.15s',
+        opacity: 1, transition: 'opacity 0.15s, background 0.15s',
     },
     jarvisLoading: {
         display: 'flex', alignItems: 'center', gap: 8,
@@ -2305,11 +2317,13 @@ const styles = {
         borderRadius: 8, color: '#B0B3B8', fontSize: 16, cursor: 'pointer',
     },
     setGoalBtn: {
-        width: '100%', padding: '13px', background: 'rgba(74,144,217,0.1)',
-        border: '1px dashed rgba(74,144,217,0.4)', borderRadius: 10,
-        color: '#4A90D9', fontSize: 14, fontWeight: 600, cursor: 'pointer',
-        textAlign: 'center',
+        width: '100%', padding: '14px 20px', background: 'linear-gradient(135deg, rgba(35,116,225,0.12), rgba(35,116,225,0.06))',
+        border: '2px solid rgba(35,116,225,0.35)', borderRadius: 12,
+        color: '#60a5fa', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+        textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        transition: 'background 0.2s, border-color 0.2s', marginTop: 10,
     },
+    goalBtnIcon: { fontSize: 16 },
 
     // Calendar wrapper
     calendarWrapper: {
