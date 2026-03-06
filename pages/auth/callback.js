@@ -102,14 +102,14 @@ export default function AuthCallback() {
                                 setTimeout(() => router.replace('/commander/dashboard'), 1000);
                                 return;
                             } else {
-                                // If no subscription, redirect to commander lobby anyway
-                                // (They might just be a staff member with a row in commander_staff instead of an owner)
-                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                                // No subscription found — send to login with message
+                                // (prevents redirect loop: dashboard → login → dashboard)
+                                setTimeout(() => router.replace('/commander/login?no_sub=1'), 1000);
                                 return;
                             }
                         } catch (err) {
                             console.error('Failed to init commander session:', err);
-                            setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                            setTimeout(() => router.replace('/commander/login'), 1000);
                             return;
                         }
                     }
@@ -284,6 +284,46 @@ export default function AuthCallback() {
                 const isCommanderOrigin = localStorage.getItem('commander_login_origin') === 'true';
                 if (isCommanderOrigin) {
                     localStorage.removeItem('commander_login_origin');
+
+                    // NEW PROFILE + COMMANDER ORIGIN: Must set up commander session
+                    // (same logic as the existing-profile path above)
+                    try {
+                        const accessToken = session?.access_token;
+                        const subRes = await fetch('/api/commander/check-subscription', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                            },
+                            body: JSON.stringify({ userId: user.id }),
+                        });
+                        const subData = await subRes.json();
+
+                        if (subRes.ok && subData.subscription) {
+                            const subscription = subData.subscription;
+                            localStorage.setItem('commander_venue', JSON.stringify(subscription.venue));
+                            localStorage.setItem('commander_subscription', JSON.stringify(subscription));
+
+                            const staffSession = {
+                                user_id: user.id,
+                                email: user.email,
+                                display_name: subscription.billing_name || fullName || user.email,
+                                role: 'owner',
+                                venue_id: subscription.venue_id,
+                                venue_name: subscription.venue?.name || 'My Venue',
+                                permissions: {
+                                    manage_games: true, manage_waitlist: true, manage_staff: true,
+                                    manage_tables: true, manage_tournaments: true, manage_settings: true,
+                                    view_analytics: true, view_reports: true, send_announcements: true,
+                                }
+                            };
+                            localStorage.setItem('commander_staff', JSON.stringify(staffSession));
+                            localStorage.setItem('commander_remember', 'true');
+                        }
+                    } catch (cmdErr) {
+                        console.error('[Auth Callback] Commander session init error (non-blocking):', cmdErr);
+                    }
+
                     sessionStorage.setItem('needs_phone_verify', user.id);
                     setTimeout(() => router.replace('/commander/dashboard'), 1500);
                 } else {
