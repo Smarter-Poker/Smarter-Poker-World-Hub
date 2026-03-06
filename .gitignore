@@ -38,3 +38,10 @@ node_modules
 
 # Agent credentials - NEVER COMMIT
 .agent/skills/credentials/.env
+
+# Auto-generated service worker files (next-pwa / workbox)
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+
