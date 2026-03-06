@@ -625,6 +625,58 @@ class GameController {
       await this.lobby.createTable(config);
       this._wireHorseAI(clubTableId);
 
+      // ─── MID-HAND RECOVERY ──────────────────────────────────────────
+      // If this table has a serialized live_state, restore it now.
+      // This covers the ensureTable() path (individual on-demand cold-start).
+      // _recoverTables() at startup handles batch recovery, but any table
+      // created after startup or missed in the batch query hits this path instead.
+      if (row.live_state && row.live_state.savedAt) {
+        const { StateSerializer } = require('./StateSerializer');
+        const entry = this.lobby.tables.get(clubTableId);
+        if (entry) {
+          try {
+            const fullState = await StateSerializer.loadFromDB(clubTableId, this.supabase);
+            const recovered = fullState ? StateSerializer.restore(entry.table, fullState) : false;
+            if (recovered) {
+              console.log(`[GameController] connectToClubTable: mid-hand state restored for ${clubTableId}`);
+              // Resume Horse AI if it was their turn when server crashed
+              const game = entry.table.game;
+              if (game?.bettingRound) {
+                const currPlayer = game.bettingRound.getCurrentPlayer();
+                if (currPlayer) {
+                  HorsePokerBrain.isHorse(String(currPlayer.id)).then(isAI => {
+                    if (isAI) this._triggerHorseAction(clubTableId, currPlayer.id);
+                  }).catch(() => {});
+                }
+              }
+            }
+          } catch (err) {
+            console.warn(`[GameController] Mid-hand restore failed for ${clubTableId}:`, err.message);
+          }
+        }
+      } else if (row.settings?.snapshot?.seats?.length > 0) {
+        // ─── BETWEEN-HAND RECOVERY ────────────────────────────────────
+        // No live_state (between hands) but we have a seat snapshot.
+        // Restore seated players so they don't lose their spots.
+        const snapshot = row.settings.snapshot;
+        const entry = this.lobby.tables.get(clubTableId);
+        if (entry) {
+          for (const seatData of snapshot.seats) {
+            if (seatData.player && seatData.status !== 'empty' && seatData.stack > 0) {
+              try {
+                entry.table.sitDown(
+                  seatData.player.id,
+                  seatData.seatIndex,
+                  seatData.stack,
+                  { displayName: seatData.player.displayName, avatarUrl: seatData.player.avatarUrl }
+                );
+              } catch (_) { /* seat may already be taken — non-fatal */ }
+            }
+          }
+          console.log(`[GameController] connectToClubTable: restored ${snapshot.seats.length} seats from snapshot for ${clubTableId}`);
+        }
+      }
+
       // Update Club Arena table status
       await this.supabase
         .from('tables')

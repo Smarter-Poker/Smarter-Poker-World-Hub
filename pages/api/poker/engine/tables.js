@@ -29,6 +29,8 @@ export default async function handler(req, res) {
       const { id } = req.query;
 
       if (id) {
+        // Cold-start guard: if this specific table isn't in memory, recover it first
+        await controller.ensureTable(id);
         const info = controller.getTableInfo(id);
         if (!info) return res.status(404).json({ error: 'Table not found' });
         return res.json(info);
@@ -61,6 +63,9 @@ export default async function handler(req, res) {
 
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'Table id required' });
+
+      // Cold-start guard: ensure table is loaded so config (clubId) is available for auth check
+      await controller.ensureTable(id);
 
       // Verify caller is staff or table creator
       const entry = controller.lobby?.tables?.get(id);

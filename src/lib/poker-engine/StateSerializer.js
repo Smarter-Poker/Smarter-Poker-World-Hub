@@ -63,8 +63,16 @@ class StateSerializer {
     table.on('payout', () => this._immediateFlush());
     table.on('all_in_showdown', () => this._immediateFlush());
 
-    // Clear on hand complete
-    table.on('hand_complete', () => this._clearState());
+    // Clear live_state on hand complete, then write seat snapshot.
+    // Between-hand snapshot keeps seated player stacks in DB so a
+    // cold-start crash between hands can still restore seats.
+    table.on('hand_complete', () => this._clearStateAndSnapshot());
+
+    // Keep seat snapshot current whenever players join/leave.
+    // No need to await — fire-and-forget is fine for snapshots.
+    table.on('player_seated', () => this._writeSeatSnapshot().catch(() => {}));
+    table.on('player_left', () => this._writeSeatSnapshot().catch(() => {}));
+    table.on('chips_added', () => this._writeSeatSnapshot().catch(() => {}));
   }
 
   /**
@@ -336,6 +344,69 @@ class StateSerializer {
         .eq('table_id', this.tableId);
     } catch (err) {
       // Non-critical
+    }
+  }
+
+  /**
+   * Called on hand_complete: clear live_state then immediately write seat
+   * snapshot so between-hand crashes can restore seated players.
+   * @private
+   */
+  async _clearStateAndSnapshot() {
+    await this._clearState();
+    await this._writeSeatSnapshot().catch(() => {});
+  }
+
+  /**
+   * Write a lightweight snapshot of currently-seated players to
+   * tables.settings.snapshot.  Used as fallback during cold-start
+   * recovery when live_state is null (between hands).
+   *
+   * Format: { seats: [{ seatIndex, player: { id, displayName, avatarUrl }, stack, status }] }
+   * @private
+   */
+  async _writeSeatSnapshot() {
+    if (!this.supabase || !this.table) return;
+
+    // Build snapshot from live seat array
+    const seats = [];
+    for (let i = 0; i < this.table.seats.length; i++) {
+      const seat = this.table.seats[i];
+      if (seat && seat.player && seat.status !== 'empty') {
+        seats.push({
+          seatIndex: i,
+          player: {
+            id: seat.player.id,
+            displayName: seat.player.displayName || seat.player.name || '',
+            avatarUrl: seat.player.avatarUrl || seat.player.avatar || null,
+          },
+          stack: seat.stack || 0,
+          status: seat.status,
+        });
+      }
+    }
+
+    try {
+      // Read current settings, merge snapshot sub-key, write back.
+      // Best-effort: failures are logged but not thrown.
+      const { data: row } = await this.supabase
+        .from('tables')
+        .select('settings')
+        .eq('id', this.tableId)
+        .single();
+
+      const currentSettings = row?.settings || {};
+      await this.supabase
+        .from('tables')
+        .update({
+          settings: {
+            ...currentSettings,
+            snapshot: { seats, savedAt: Date.now() },
+          },
+        })
+        .eq('id', this.tableId);
+    } catch (_err) {
+      // Snapshot writes are best-effort — not critical
     }
   }
 

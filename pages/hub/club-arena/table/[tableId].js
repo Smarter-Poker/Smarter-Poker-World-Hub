@@ -150,7 +150,7 @@ export default function ClubArenaTable() {
 
       setLoading(false);
     })();
-  }, [tableId, user]);
+  }, [tableId, user, initialTable]);
 
   // Realtime: re-run engine connect if table status changes (e.g., table restarted)
   useEffect(() => {
@@ -162,10 +162,16 @@ export default function ClubArenaTable() {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` },
         (payload) => {
-          // If table was reset/restarted by admin, force a reconnect
+          // If table was reset/restarted by admin, force a full reconnect.
+          // Clear initialTable state and reset retryRef — the connect useEffect
+          // depends on [tableId, user] and won't re-run on its own, so we also
+          // clear initialTable which the engine connect effect checks on entry.
           if (payload.new?.status === 'waiting' && initialTable) {
             console.log('[ClubArenaTable] Table reset detected — reconnecting engine');
-            retryRef.current = false; // Allow re-connect
+            retryRef.current = false;
+            setInitialTable(null); // Triggers re-render; connect effect sees retryRef=false + user set
+            setError(null);
+            setLoading(true);
           }
         }
       )

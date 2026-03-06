@@ -59,13 +59,13 @@ export default async function handler(req, res) {
     // can observe for up to 30 minutes before being booted.
     // Staff (owner/admin/manager/agent) and seated players bypass.
     if (userId) {
-      const entry = controller.lobby?.getEntry?.(tableId);
+      const entry = controller.lobby?.getTable?.(tableId);  // getTable(), not getEntry()
       const settings = entry?.config?.clubSettings || {};
       const clubId = entry?.config?.clubId;
 
       if (settings.restrict_observers && clubId) {
-        const seatedPlayers = entry?.state?.seats || [];
-        const isSeated = seatedPlayers.some(s => s && s.playerId === userId);
+        // entry.table.seats is the live seat array — each seat has { player: { id, ... }, status }
+        const isSeated = entry?.table?.seats?.some(s => s?.player?.id === userId) ?? false;
 
         if (!isSeated) {
           // Check if user is club staff
