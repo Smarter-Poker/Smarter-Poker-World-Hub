@@ -4,6 +4,9 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
+// Opt out of static generation — this is a dev test page only
+export const dynamic = 'force-dynamic';
+
 import React, { useState } from 'react';
 import ThreePillHeader from '../../src/components/ui/ThreePillHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
