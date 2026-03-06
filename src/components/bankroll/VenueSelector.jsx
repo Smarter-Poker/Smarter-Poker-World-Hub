@@ -211,8 +211,8 @@ export default function VenueSelector({ value, venueType, onChange, userId }) {
                     }}
                     placeholder={
                         selectedType === 'home_game'
-                            ? 'Name this location...'
-                            : 'Search venues...'
+                            ? 'Name This Location...'
+                            : 'Search Venues...'
                     }
                     style={styles.input}
                 />
