@@ -7,12 +7,13 @@
  * Real-time sync via Supabase + Commander Data Bus
  */
 import Image from 'next/image';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useClubBranding from '../../../src/lib/commander/useClubBranding';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 const PROMO_TYPE_STYLES = {
   high_hand: { bg: 'from-yellow-900/40 to-yellow-700/20', accent: '#F59E0B', label: 'HIGH HAND' },
@@ -33,7 +34,7 @@ export default function PromotionsDisplay() {
   const [promotions, setPromotions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [now, setNow] = useState(new Date());
-  const wakeLockRef = useRef(null);
+  useWakeLock();
 
   // Extract venue info for API calls and cross-device sync
   const [venueId] = useState(() => {
@@ -107,21 +108,7 @@ export default function PromotionsDisplay() {
     return () => clearInterval(rotate);
   }, [promotions.length]);
 
-  // Wake lock — properly clean up the visibilitychange listener
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) { }
-    };
-    requestWakeLock();
-    const onVisChange = () => { if (document.visibilityState === 'visible') requestWakeLock(); };
-    document.addEventListener('visibilitychange', onVisChange);
-    return () => {
-      wakeLockRef.current?.release();
-      document.removeEventListener('visibilitychange', onVisChange);
-    };
-  }, []);
+
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
   const current = promotions[currentIndex];
@@ -189,7 +176,7 @@ export default function PromotionsDisplay() {
               ) : (
                 <span style={{
                   fontSize: 28, fontWeight: 900, color: '#fff',
-                  fontFamily: "var(--font-orbitron), sans-serif" , textTransform: 'uppercase',
+                  fontFamily: "var(--font-orbitron), sans-serif", textTransform: 'uppercase',
                 }}>
                   {clubName.charAt(0)}
                 </span>
@@ -198,7 +185,7 @@ export default function PromotionsDisplay() {
             <div>
               <h1 style={{
                 fontSize: 28, fontWeight: 900, color: '#fff', margin: 0,
-                fontFamily: "var(--font-orbitron), sans-serif" ,
+                fontFamily: "var(--font-orbitron), sans-serif",
                 letterSpacing: '2px', textTransform: 'uppercase',
                 textShadow: '0 2px 8px rgba(0,0,0,0.3)',
               }}>
@@ -215,7 +202,7 @@ export default function PromotionsDisplay() {
           <div style={{ textAlign: 'right' }}>
             <p style={{
               fontSize: 42, fontWeight: 700, color: '#fff', margin: 0,
-              fontFamily: "var(--font-orbitron), monospace" ,
+              fontFamily: "var(--font-orbitron), monospace",
               letterSpacing: '2px',
               textShadow: '0 2px 8px rgba(0,0,0,0.3)',
             }}>

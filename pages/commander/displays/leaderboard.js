@@ -22,10 +22,11 @@
  * Auto-rotates 12s. Wake lock. Real-time via Commander Data Bus.
  * ═══════════════════════════════════════════════════════════════════════════════
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const MEDAL_E = ['1st', '2nd', '3rd'];
@@ -36,7 +37,7 @@ export default function LeaderboardDisplay() {
   const [now, setNow] = useState(new Date());
   const [venueName, setVenueName] = useState('');
   const [totalMembers, setTotalMembers] = useState(0);
-  const wakeLockRef = useRef(null);
+  useWakeLock();
 
   const [venueId] = useState(() => {
     try { const s = JSON.parse(localStorage.getItem('commander_staff') || '{}'); return s.venue_id || null; } catch { return null; }
@@ -246,7 +247,6 @@ export default function LeaderboardDisplay() {
   useEffect(() => { const controller = new AbortController(); fetchData(controller.signal); const p = setInterval(() => fetchData(controller.signal), 30000); const c = setInterval(() => setNow(new Date()), 1000); return () => { controller.abort(); clearInterval(p); clearInterval(c); }; }, [fetchData]);
   useEffect(() => { if (boards.length <= 1) return; const r = setInterval(() => setActiveIdx(p => (p + 1) % boards.length), 12000); return () => clearInterval(r); }, [boards.length]);
   useCommanderSync(venueId, fetchData, { entities: ['members'] });
-  useEffect(() => { (async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } })(); return () => { wakeLockRef.current?.release(); }; }, []);
 
   const goFS = () => document.documentElement.requestFullscreen?.();
   const board = boards[activeIdx] || boards[0];
