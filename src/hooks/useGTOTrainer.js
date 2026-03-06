@@ -450,6 +450,12 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
             };
 
             // Save basic progress (training_progress + training_level_history)
+            // Calculate diamond rewards based on performance
+            const diamondsForPassing = passed ? 5 : 0;
+            const accuracyBonus = accuracy >= 100 ? 10 : accuracy >= 90 ? 5 : accuracy >= 80 ? 3 : 0;
+            const levelMultiplier = Math.ceil(level / 3); // Levels 1-3 = 1x, 4-6 = 2x, 7-9 = 3x, 10 = 4x
+            const diamondsEarned = (diamondsForPassing + accuracyBonus) * levelMultiplier;
+
             await fetch('/api/training/save-progress', {
                 method: 'POST', headers,
                 body: JSON.stringify({
@@ -459,7 +465,7 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                     accuracy, passed,
                     streak: bestStreak,
                     xpEarned: totalXP,
-                    diamondsEarned: 0,
+                    diamondsEarned,
                     timeSpentSeconds: 0,
                 }),
             });

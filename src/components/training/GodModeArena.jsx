@@ -674,7 +674,7 @@ function GodModeArena({
                     const pos = h.handData?.heroPosition || 'UNK';
                     if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
                     posStats[pos].total++;
-                    if (h.isCorrect) posStats[pos].correct++;
+                    if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
                     posStats[pos].evLoss += (h.evLoss || 0);
                     if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
                 });

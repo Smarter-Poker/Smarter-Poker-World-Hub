@@ -69,8 +69,7 @@ async function listPromotions(req, res) {
       .from('commander_promotions')
       .select(`
         *,
-        poker_venues:venue_id (id, name, city, state),
-        commander_staff:created_by (id, role)
+        poker_venues:venue_id (id, name, city, state)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
