@@ -14,6 +14,11 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeDashboard from '../../../src/components/bankroll/TokeDashboard';
 import { createClient } from '@supabase/supabase-js';
 
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
+
 export default function TokeAnalyticsPage() {
     const router = useRouter();
     const { user } = useAvatar();

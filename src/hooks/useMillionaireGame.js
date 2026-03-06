@@ -88,6 +88,12 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 if (trainerConfig.position && trainerConfig.position !== 'any') {
                     params.set('position', trainerConfig.position);
                 }
+                if (trainerConfig.villainPosition) {
+                    params.set('villainPosition', trainerConfig.villainPosition);
+                }
+                if (trainerConfig.actionScenario) {
+                    params.set('actionScenario', trainerConfig.actionScenario);
+                }
                 if (trainerConfig.street) {
                     params.set('street', trainerConfig.street);
                 }

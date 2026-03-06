@@ -43,6 +43,8 @@ export default async function handler(req, res) {
     const {
         gameType = 'cash',
         position,
+        villainPosition,
+        actionScenario,
         stackDepth = '100',
         street,
         handClass,
@@ -54,7 +56,7 @@ export default async function handler(req, res) {
     const pioGameTypes = GAME_TYPE_TO_PIO[gameType] || GAME_TYPE_TO_PIO.cash;
 
     try {
-        console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
+        console.log(`[CustomTrain] Config: ${gameType} | ${position || 'any'} | vs ${villainPosition || 'any'} | ${actionScenario || 'any'} | ${parsedStack}BB | ${street || 'all'} | ${handClass || 'any'} | ${parsedCount} hands`);
 
         // Build query filters
         let query = supabase
@@ -71,6 +73,20 @@ export default async function handler(req, res) {
         // Filter by position if specified (position is in scenario_hash)
         if (position && position !== 'any') {
             query = query.ilike('scenario_hash', `%_${position}_%`);
+        }
+
+        // Filter by villain position if specified
+        if (villainPosition && villainPosition !== 'any') {
+            query = query.ilike('scenario_hash', `%_${villainPosition}_%`);
+        }
+
+        // Filter by action scenario if specified (SRP, 3BP, 4BP are in scenario_hash)
+        if (actionScenario && actionScenario !== 'any') {
+            const scenarioMap = { 'SRP': 'srp', '3BP': '3bet', '4BP': '4bet' };
+            const tag = scenarioMap[actionScenario];
+            if (tag) {
+                query = query.ilike('scenario_hash', `%${tag}%`);
+            }
         }
 
         // Fetch pool

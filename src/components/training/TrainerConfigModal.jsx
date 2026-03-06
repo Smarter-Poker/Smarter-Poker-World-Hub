@@ -60,6 +60,8 @@ const STREETS = [
 export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGameId }) {
     const [gameType, setGameType] = useState('cash');
     const [position, setPosition] = useState('BTN');
+    const [villainPosition, setVillainPosition] = useState('any');
+    const [actionScenario, setActionScenario] = useState('any');
     const [stackDepth, setStackDepth] = useState(100);
     const [street, setStreet] = useState('all');
     const [handClass, setHandClass] = useState('all');
@@ -69,31 +71,54 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
     const availablePositions = useMemo(() => POSITIONS[gameType] || POSITIONS.cash, [gameType]);
     const availableStacks = useMemo(() => STACK_DEPTHS[gameType] || STACK_DEPTHS.cash, [gameType]);
 
+    // Available Villain Positions (exclude Hero Position)
+    const availableVillainPositions = useMemo(() => {
+        return ['any', ...availablePositions.filter(p => p !== position)];
+    }, [availablePositions, position]);
+
     // Reset position/stack when game type changes
     const handleGameTypeChange = useCallback((type) => {
         setGameType(type);
         const validPositions = POSITIONS[type] || POSITIONS.cash;
         if (!validPositions.includes(position)) setPosition(validPositions[0]);
+        setVillainPosition('any');
+        setActionScenario('any');
         const validStacks = STACK_DEPTHS[type] || STACK_DEPTHS.cash;
         if (!validStacks.find(s => s.value === stackDepth)) setStackDepth(validStacks[0].value);
     }, [position, stackDepth]);
 
+    // Reset Villain Position if user selects it as Hero
+    const handleHeroPositionChange = useCallback((pos) => {
+        setPosition(pos);
+        if (villainPosition === pos) setVillainPosition('any');
+    }, [villainPosition]);
+
     const handleStart = useCallback(() => {
         const gameTypeConfig = GAME_TYPES.find(g => g.id === gameType);
+        const filters = [
+            gameTypeConfig?.label,
+            position,
+            villainPosition !== 'any' ? `vs ${villainPosition}` : null,
+            actionScenario !== 'any' ? actionScenario : null,
+            `${stackDepth}BB`,
+            street === 'all' ? 'All Streets' : street.charAt(0).toUpperCase() + street.slice(1),
+            handClass === 'all' ? null : handClass
+        ].filter(Boolean).join(' | ');
+
         onStart({
             gameType,
             position,
+            villainPosition: villainPosition === 'any' ? null : villainPosition,
+            actionScenario: actionScenario === 'any' ? null : actionScenario,
             stackDepth,
             street: street === 'all' ? null : street,
             handClass: handClass === 'all' ? null : handClass,
             questionsCount,
-            // PIO solver config
             pioGameTypes: gameTypeConfig?.pioTypes || ['hu_cash'],
             pioStackDepth: stackDepth,
-            // Display info
-            label: `${gameTypeConfig?.label} | ${position} | ${stackDepth}BB | ${street === 'all' ? 'All Streets' : street.charAt(0).toUpperCase() + street.slice(1)} | ${handClass === 'all' ? 'Any Hand' : handClass}`,
+            label: filters,
         });
-    }, [gameType, position, stackDepth, street, handClass, questionsCount, onStart]);
+    }, [gameType, position, villainPosition, actionScenario, stackDepth, street, handClass, questionsCount, onStart]);
 
     if (!isOpen) return null;
 
@@ -143,46 +168,99 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                             </div>
                         </div>
 
-                        {/* SECTION 2: Position */}
-                        <div style={styles.section}>
-                            <div style={styles.sectionLabel}>HERO POSITION</div>
-                            <div style={styles.chipRow}>
-                                {availablePositions.map(pos => (
-                                    <motion.button
-                                        key={pos}
-                                        whileHover={{ scale: 1.08 }}
-                                        whileTap={{ scale: 0.92 }}
-                                        onClick={() => setPosition(pos)}
-                                        style={{
-                                            ...styles.chip,
-                                            ...(position === pos ? styles.chipActive : {}),
-                                        }}
-                                    >
-                                        {pos}
-                                    </motion.button>
-                                ))}
+                        {/* ROW: Hero & Villain Position */}
+                        <div style={{ display: 'flex', gap: 20 }}>
+                            {/* SECTION 2: Hero Position */}
+                            <div style={{ ...styles.section, flex: 1 }}>
+                                <div style={styles.sectionLabel}>HERO POSITION</div>
+                                <div style={styles.chipRow}>
+                                    {availablePositions.map(pos => (
+                                        <motion.button
+                                            key={pos}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => handleHeroPositionChange(pos)}
+                                            style={{
+                                                ...styles.chip,
+                                                ...(position === pos ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            {pos}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* SECTION 2B: Villain Position */}
+                            <div style={{ ...styles.section, flex: 1 }}>
+                                <div style={styles.sectionLabel}>VS VILLAIN</div>
+                                <div style={styles.chipRow}>
+                                    {availableVillainPositions.map(pos => (
+                                        <motion.button
+                                            key={pos}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setVillainPosition(pos)}
+                                            style={{
+                                                ...styles.chip,
+                                                ...(villainPosition === pos ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            {pos === 'any' ? 'Any' : pos}
+                                        </motion.button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
-                        {/* SECTION 3: Stack Depth */}
-                        <div style={styles.section}>
-                            <div style={styles.sectionLabel}>STACK DEPTH</div>
-                            <div style={styles.chipRow}>
-                                {availableStacks.map(s => (
-                                    <motion.button
-                                        key={s.value}
-                                        whileHover={{ scale: 1.08 }}
-                                        whileTap={{ scale: 0.92 }}
-                                        onClick={() => setStackDepth(s.value)}
-                                        style={{
-                                            ...styles.stackChip,
-                                            ...(stackDepth === s.value ? styles.chipActive : {}),
-                                        }}
-                                    >
-                                        <div style={styles.stackValue}>{s.label}</div>
-                                        <div style={styles.stackDesc}>{s.desc}</div>
-                                    </motion.button>
-                                ))}
+                        {/* ROW: Preflop Action & Stack Depth */}
+                        <div style={{ display: 'flex', gap: 20 }}>
+                            {/* SECTION 2C: Preflop Action Scenario */}
+                            <div style={{ ...styles.section, flex: 1 }}>
+                                <div style={styles.sectionLabel}>ACTION SCENARIO</div>
+                                <div style={styles.chipRow}>
+                                    {[
+                                        { id: 'any', label: 'Any Scenario' },
+                                        { id: 'SRP', label: 'Single Raised Pot (SRP)' },
+                                        { id: '3BP', label: '3-Bet Pot' },
+                                        { id: '4BP', label: '4-Bet+ Pot' },
+                                    ].map(act => (
+                                        <motion.button
+                                            key={act.id}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setActionScenario(act.id)}
+                                            style={{
+                                                ...styles.chip,
+                                                ...(actionScenario === act.id ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            {act.label}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* SECTION 3: Stack Depth */}
+                            <div style={{ ...styles.section, flex: 1 }}>
+                                <div style={styles.sectionLabel}>STACK DEPTH</div>
+                                <div style={styles.chipRow}>
+                                    {availableStacks.map(s => (
+                                        <motion.button
+                                            key={s.value}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            onClick={() => setStackDepth(s.value)}
+                                            style={{
+                                                ...styles.stackChip,
+                                                ...(stackDepth === s.value ? styles.chipActive : {}),
+                                            }}
+                                        >
+                                            <div style={styles.stackValue}>{s.label}</div>
+                                            <div style={styles.stackDesc}>{s.desc}</div>
+                                        </motion.button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
@@ -261,8 +339,11 @@ export default function TrainerConfigModal({ isOpen, onClose, onStart, currentGa
                     <div style={styles.footer}>
                         <div style={styles.configSummary}>
                             <span style={styles.summaryBadge}>
-                                {GAME_TYPES.find(g => g.id === gameType)?.icon} {position}
+                                {GAME_TYPES.find(g => g.id === gameType)?.icon} {position} {villainPosition !== 'any' ? `vs ${villainPosition}` : ''}
                             </span>
+                            {actionScenario !== 'any' && (
+                                <span style={styles.summaryBadge}>{actionScenario}</span>
+                            )}
                             <span style={styles.summaryBadge}>
                                 {stackDepth} BB
                             </span>
