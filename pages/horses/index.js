@@ -439,7 +439,7 @@ export default function HorsesAdmin() {
                     <button className={activeTab === 'economy' ? styles.active : ''} onClick={() => { setActiveTab('economy'); if (!economyData) loadEconomyData(); }}>
                         💎 Economy
                     </button>
-                    <button className={activeTab === 'antiabuse' ? styles.active : ''} onClick={() => { setActiveTab('antiabuse'); if (!abuseData) loadAntiAbuseData(); }}>
+                    <button className={activeTab === 'antiabuse' ? styles.active : ''} onClick={() => { setActiveTab('antiabuse'); if (!abuseData || !abuseData.abuse?.log?.length) loadAntiAbuseData(); }}>
                         🛡️ Anti-Abuse
                     </button>
                 </nav>
@@ -1432,7 +1432,7 @@ export default function HorsesAdmin() {
                                                             background: entry.deleted_account_count > 0 ? 'rgba(239,68,68,0.05)' : 'transparent',
                                                         }}>
                                                             <td style={{ fontSize: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                                {entry.raw_email || entry.email_hash?.slice(0, 12) + '...'}
+                                                                {entry.raw_email || (entry.email_hash ? entry.email_hash.slice(0, 12) + '...' : 'Unknown')}
                                                             </td>
                                                             <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{entry.ip_address || '—'}</td>
                                                             <td style={{ textAlign: 'center' }}>{entry.signup_count || 1}</td>
@@ -1579,7 +1579,7 @@ export default function HorsesAdmin() {
                                                                         color: '#a78bfa',
                                                                     }}>{entry.action}</span>
                                                                 </td>
-                                                                <td style={{ fontSize: '12px' }}>{entry.target_type} {entry.target_id?.slice(0, 8)}</td>
+                                                                <td style={{ fontSize: '12px' }}>{entry.target_type} {entry.target_id ? String(entry.target_id).slice(0, 8) : '—'}</td>
                                                                 <td style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                                                     {JSON.stringify(entry.details || {}).slice(0, 60)}
                                                                 </td>

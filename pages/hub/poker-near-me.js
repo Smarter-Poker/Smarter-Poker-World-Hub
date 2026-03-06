@@ -828,7 +828,7 @@ export default function PokerNearMePage() {
         } catch (e) { /* ignore */ }
         // Fetch fresh and update cache
         fetch('/data/all-venues.json')
-            .then(function (r, { signal }) { return r.json(); })
+            .then(function (r) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
                 var arr = Array.isArray(v) ? v : [];

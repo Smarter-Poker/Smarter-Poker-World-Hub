@@ -161,56 +161,65 @@ export function initAntiGravitySync() {
  * Called in background after provider already renders children.
  */
 export async function initAntiGravity() {
-    // Prevent double initialization
-    if (bootState.initialized) {
+    // If sync init already ran, we still need the health check.
+    // Only skip if the full async boot (including health check) already completed.
+    if (bootState.initialized && bootState._healthCheckDone) {
         return bootState;
     }
 
-    console.log('═══════════════════════════════════════════════════════════════');
-    console.log('🚀 ANTI-GRAVITY BOOT SEQUENCE INITIATED');
-    console.log('═══════════════════════════════════════════════════════════════');
+    // If sync init already ran env+singleton, skip to health check only
+    const alreadySyncBooted = bootState.initialized;
 
-    bootState.timestamp = new Date().toISOString();
-    bootState.errors = [];
+    if (!alreadySyncBooted) {
+        console.log('═══════════════════════════════════════════════════════════════');
+        console.log('🚀 ANTI-GRAVITY BOOT SEQUENCE INITIATED');
+        console.log('═══════════════════════════════════════════════════════════════');
 
-    // Step 1: Check if Anti-Gravity is enabled via env var
-    const antigravityEnabled = process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED !== 'false';
-    bootState.antigravityEnabled = antigravityEnabled;
+        bootState.timestamp = new Date().toISOString();
+        bootState.errors = [];
 
-    if (!antigravityEnabled) {
-        console.log('⚠️  ANTIGRAVITY_ENABLED=false - System running in degraded mode');
-        bootState.initialized = true;
-        printBootProof();
-        return bootState;
+        // Step 1: Check if Anti-Gravity is enabled via env var
+        const antigravityEnabled = process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED !== 'false';
+        bootState.antigravityEnabled = antigravityEnabled;
+
+        if (!antigravityEnabled) {
+            console.log('⚠️  ANTIGRAVITY_ENABLED=false - System running in degraded mode');
+            bootState.initialized = true;
+            bootState._healthCheckDone = true;
+            printBootProof();
+            return bootState;
+        }
+
+        // Step 2: Verify environment variables
+        console.log('📋 Verifying environment variables...');
+        const envCheck = verifyEnvVars();
+
+        if (!envCheck.success) {
+            console.error('❌ ENV CHECK FAILED:', envCheck.error);
+            bootState.errors.push({ stage: 'ENV_VARS', error: envCheck.error });
+            bootState.initialized = true;
+            bootState._healthCheckDone = true;
+            printBootProof();
+            return bootState;
+        }
+        console.log('✅ Environment variables verified');
+
+        // Step 3: Initialize Supabase
+        console.log('🔌 Initializing Supabase connection...');
+        const supabaseInit = initializeSupabase();
+
+        if (!supabaseInit.success) {
+            console.error('❌ SUPABASE INIT FAILED:', supabaseInit.error);
+            bootState.errors.push({ stage: 'SUPABASE_INIT', error: supabaseInit.error });
+            bootState.initialized = true;
+            bootState._healthCheckDone = true;
+            printBootProof();
+            return bootState;
+        }
+        console.log('✅ Supabase client initialized');
     }
 
-    // Step 2: Verify environment variables
-    console.log('📋 Verifying environment variables...');
-    const envCheck = verifyEnvVars();
-
-    if (!envCheck.success) {
-        console.error('❌ ENV CHECK FAILED:', envCheck.error);
-        bootState.errors.push({ stage: 'ENV_VARS', error: envCheck.error });
-        bootState.initialized = true;
-        printBootProof();
-        return bootState;
-    }
-    console.log('✅ Environment variables verified');
-
-    // Step 3: Initialize Supabase
-    console.log('🔌 Initializing Supabase connection...');
-    const supabaseInit = initializeSupabase();
-
-    if (!supabaseInit.success) {
-        console.error('❌ SUPABASE INIT FAILED:', supabaseInit.error);
-        bootState.errors.push({ stage: 'SUPABASE_INIT', error: supabaseInit.error });
-        bootState.initialized = true;
-        printBootProof();
-        return bootState;
-    }
-    console.log('✅ Supabase client initialized');
-
-    // Step 4: Supabase health check (deterministic proof)
+    // Step 4: Supabase health check (deterministic proof) — ALWAYS runs
     console.log('🏥 Running Supabase health check...');
     const healthCheck = await supabaseHealthCheck();
 
@@ -223,8 +232,9 @@ export async function initAntiGravity() {
         bootState.supabaseConnected = true;
     }
 
-    // Mark as initialized
+    // Mark as fully initialized (including health check)
     bootState.initialized = true;
+    bootState._healthCheckDone = true;
 
     // Print final proof
     printBootProof();
