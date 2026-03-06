@@ -184,7 +184,7 @@ export default function TriviaGame({
                 particleCount: isFireMode ? 30 : 12,
                 spread: 50,
                 origin: { y: 0.7 },
-                colors: isFireMode ? ['#f97316', '#ef4444', '#fbbf24'] : ['#22c55e', '#06b6d4'],
+                colors: isFireMode ? ['#f97316', '#f02849', '#fbbf24'] : ['#31a24c', '#2374e1'],
                 disableForReducedMotion: true,
             });
 
@@ -261,7 +261,7 @@ export default function TriviaGame({
 
         confetti({
             particleCount: 100, spread: 70, origin: { y: 0.5 },
-            colors: ['#fbbf24', '#f59e0b', '#06b6d4']
+            colors: ['#fbbf24', '#2374e1', '#31a24c']
         });
 
         const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);

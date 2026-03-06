@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase';
+import { withRetry } from './retryUtils';
 
 export interface LedgerEntry {
   id: string;
@@ -104,59 +105,61 @@ export async function fetchLedgerEntries(
   userId: string,
   filters: LedgerFilters = {}
 ): Promise<LedgerEntry[]> {
-  let query = supabase
-    .from('bankroll_ledger')
-    .select(
-      `
+  return withRetry(async () => {
+    let query = supabase
+      .from('bankroll_ledger')
+      .select(
+        `
       *,
       bankroll_locations(name)
     `
-    )
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .order('entry_date', { ascending: false })
-    .order('created_at', { ascending: false });
+      )
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .order('entry_date', { ascending: false })
+      .order('created_at', { ascending: false });
 
-  if (filters.category && filters.category !== 'all') {
-    query = query.eq('category', filters.category);
-  } else if (!filters.includeExpenses) {
-    query = query.neq('category', 'expense');
-  }
+    if (filters.category && filters.category !== 'all') {
+      query = query.eq('category', filters.category);
+    } else if (!filters.includeExpenses) {
+      query = query.neq('category', 'expense');
+    }
 
-  if (filters.locationId) {
-    query = query.eq('location_id', filters.locationId);
-  }
+    if (filters.locationId) {
+      query = query.eq('location_id', filters.locationId);
+    }
 
-  if (filters.tripId) {
-    query = query.eq('trip_id', filters.tripId);
-  }
+    if (filters.tripId) {
+      query = query.eq('trip_id', filters.tripId);
+    }
 
-  if (filters.startDate) {
-    query = query.gte('entry_date', filters.startDate);
-  }
+    if (filters.startDate) {
+      query = query.gte('entry_date', filters.startDate);
+    }
 
-  if (filters.endDate) {
-    query = query.lte('entry_date', filters.endDate);
-  }
+    if (filters.endDate) {
+      query = query.lte('entry_date', filters.endDate);
+    }
 
-  if (filters.limit) {
-    query = query.limit(filters.limit);
-  }
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
 
-  if (filters.offset) {
-    query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
-  }
+    if (filters.offset) {
+      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+    }
 
-  const { data, error } = await query;
+    const { data, error } = await query;
 
-  if (error) throw error;
+    if (error) throw error;
 
-  return (
-    data?.map((entry) => ({
-      ...entry,
-      location_name: entry.bankroll_locations?.name || null,
-    })) || []
-  );
+    return (
+      data?.map((entry) => ({
+        ...entry,
+        location_name: entry.bankroll_locations?.name || null,
+      })) || []
+    );
+  });
 }
 
 /**
@@ -414,103 +417,107 @@ export async function deleteLedgerEntry(
  * Fetch user's trips (excludes deleted)
  */
 export async function fetchTrips(userId: string): Promise<Trip[]> {
-  const { data, error } = await supabase
-    .from('bankroll_trips')
-    .select(
-      `
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('bankroll_trips')
+      .select(
+        `
       *,
       bankroll_locations(name)
     `
-    )
-    .eq('user_id', userId)
-    .neq('status', 'deleted')
-    .neq('trip_type', 'series')
-    .order('start_date', { ascending: false });
-
-  if (error) throw error;
-
-  // Calculate totals for each trip
-  const trips: Trip[] = [];
-  for (const trip of data || []) {
-    const { data: entries } = await supabase
-      .from('bankroll_ledger')
-      .select('net_result, category')
+      )
       .eq('user_id', userId)
-      .eq('trip_id', trip.id)
-      .eq('is_revision', false);
+      .neq('status', 'deleted')
+      .neq('trip_type', 'series')
+      .order('start_date', { ascending: false });
 
-    let totalNet = 0;
-    let totalExpenses = 0;
+    if (error) throw error;
 
-    entries?.forEach((e) => {
-      if (e.category === 'expense') {
-        totalExpenses += Math.abs(e.net_result || 0);
-      } else {
-        totalNet += e.net_result || 0;
-      }
-    });
+    // Calculate totals for each trip
+    const trips: Trip[] = [];
+    for (const trip of data || []) {
+      const { data: entries } = await supabase
+        .from('bankroll_ledger')
+        .select('net_result, category')
+        .eq('user_id', userId)
+        .eq('trip_id', trip.id)
+        .eq('is_revision', false);
 
-    trips.push({
-      ...trip,
-      location_name: trip.bankroll_locations?.name || null,
-      totalNet: totalNet - totalExpenses,
-      totalExpenses,
-      entryCount: entries?.length || 0,
-    });
-  }
+      let totalNet = 0;
+      let totalExpenses = 0;
 
-  return trips;
+      entries?.forEach((e) => {
+        if (e.category === 'expense') {
+          totalExpenses += Math.abs(e.net_result || 0);
+        } else {
+          totalNet += e.net_result || 0;
+        }
+      });
+
+      trips.push({
+        ...trip,
+        location_name: trip.bankroll_locations?.name || null,
+        totalNet: totalNet - totalExpenses,
+        totalExpenses,
+        entryCount: entries?.length || 0,
+      });
+    }
+
+    return trips;
+  });
 }
 
 /**
  * Get the user's currently active trip (only one allowed at a time)
  */
 export async function getActiveTrip(userId: string): Promise<Trip | null> {
-  const { data, error } = await supabase
-    .from('bankroll_trips')
-    .select(`*, bankroll_locations(name)`)
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .neq('trip_type', 'series')
-    .limit(1)
-    .maybeSingle();
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('bankroll_trips')
+      .select(`*, bankroll_locations(name)`)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .neq('trip_type', 'series')
+      .limit(1)
+      .maybeSingle();
 
-  if (error) throw error;
-  if (!data) return null;
+    if (error) throw error;
+    if (!data) return null;
 
-  // Get entries for running totals
-  const { data: entries } = await supabase
-    .from('bankroll_ledger')
-    .select('net_result, category')
-    .eq('user_id', userId)
-    .eq('trip_id', data.id)
-    .eq('is_revision', false);
+    // Get entries for running totals
+    const { data: entries } = await supabase
+      .from('bankroll_ledger')
+      .select('net_result, category')
+      .eq('user_id', userId)
+      .eq('trip_id', data.id)
+      .eq('is_revision', false);
 
-  let totalNet = 0;
-  let totalExpenses = 0;
-  const categoryBreakdown: Record<string, { count: number; net: number }> = {};
+    let totalNet = 0;
+    let totalExpenses = 0;
+    const categoryBreakdown: Record<string, { count: number; net: number }> = {};
 
-  entries?.forEach((e) => {
-    const cat = e.category || 'other';
-    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
-    categoryBreakdown[cat].count++;
-    if (cat === 'expense') {
-      totalExpenses += Math.abs(e.net_result || 0);
-      categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
-    } else {
-      totalNet += e.net_result || 0;
-      categoryBreakdown[cat].net += e.net_result || 0;
-    }
+    entries?.forEach((e) => {
+      const cat = e.category || 'other';
+      if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
+      categoryBreakdown[cat].count++;
+      if (cat === 'expense') {
+        totalExpenses += Math.abs(e.net_result || 0);
+        categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
+      } else {
+        totalNet += e.net_result || 0;
+        categoryBreakdown[cat].net += e.net_result || 0;
+      }
+    });
+
+    return {
+      ...data,
+      location_name: data.bankroll_locations?.name || null,
+      totalNet: totalNet - totalExpenses,
+      totalExpenses,
+      entryCount: entries?.length || 0,
+      categoryBreakdown,
+    };
   });
-
-  return {
-    ...data,
-    location_name: data.bankroll_locations?.name || null,
-    totalNet: totalNet - totalExpenses,
-    totalExpenses,
-    entryCount: entries?.length || 0,
-    categoryBreakdown,
-  };
 }
 
 /**
@@ -744,50 +751,52 @@ export async function fetchSeries(userId: string): Promise<Trip[]> {
 }
 
 export async function getActiveSeries(userId: string): Promise<Trip | null> {
-  const { data, error } = await supabase
-    .from('bankroll_trips')
-    .select(`*, bankroll_locations(name)`)
-    .eq('user_id', userId)
-    .eq('trip_type', 'series')
-    .eq('status', 'active')
-    .limit(1)
-    .maybeSingle();
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('bankroll_trips')
+      .select(`*, bankroll_locations(name)`)
+      .eq('user_id', userId)
+      .eq('trip_type', 'series')
+      .eq('status', 'active')
+      .limit(1)
+      .maybeSingle();
 
-  if (error) throw error;
-  if (!data) return null;
+    if (error) throw error;
+    if (!data) return null;
 
-  const { data: entries } = await supabase
-    .from('bankroll_ledger')
-    .select('net_result, category')
-    .eq('user_id', userId)
-    .eq('trip_id', data.id)
-    .eq('is_revision', false);
+    const { data: entries } = await supabase
+      .from('bankroll_ledger')
+      .select('net_result, category')
+      .eq('user_id', userId)
+      .eq('trip_id', data.id)
+      .eq('is_revision', false);
 
-  let totalNet = 0;
-  let totalExpenses = 0;
-  const categoryBreakdown: Record<string, { count: number; net: number }> = {};
+    let totalNet = 0;
+    let totalExpenses = 0;
+    const categoryBreakdown: Record<string, { count: number; net: number }> = {};
 
-  entries?.forEach((e) => {
-    const cat = e.category || 'other';
-    if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
-    categoryBreakdown[cat].count++;
-    if (cat === 'expense') {
-      totalExpenses += Math.abs(e.net_result || 0);
-      categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
-    } else {
-      totalNet += e.net_result || 0;
-      categoryBreakdown[cat].net += e.net_result || 0;
-    }
+    entries?.forEach((e) => {
+      const cat = e.category || 'other';
+      if (!categoryBreakdown[cat]) categoryBreakdown[cat] = { count: 0, net: 0 };
+      categoryBreakdown[cat].count++;
+      if (cat === 'expense') {
+        totalExpenses += Math.abs(e.net_result || 0);
+        categoryBreakdown[cat].net -= Math.abs(e.net_result || 0);
+      } else {
+        totalNet += e.net_result || 0;
+        categoryBreakdown[cat].net += e.net_result || 0;
+      }
+    });
+
+    return {
+      ...data,
+      location_name: data.bankroll_locations?.name || null,
+      totalNet: totalNet - totalExpenses,
+      totalExpenses,
+      entryCount: entries?.length || 0,
+      categoryBreakdown,
+    };
   });
-
-  return {
-    ...data,
-    location_name: data.bankroll_locations?.name || null,
-    totalNet: totalNet - totalExpenses,
-    totalExpenses,
-    entryCount: entries?.length || 0,
-    categoryBreakdown,
-  };
 }
 
 export async function createSeries(
@@ -883,14 +892,16 @@ export async function getSeriesReport(userId: string, seriesId: string) {
  * Fetch user's bankroll rules
  */
 export async function fetchBankrollRules(userId: string): Promise<BankrollRule[]> {
-  const { data, error } = await supabase
-    .from('bankroll_rules')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('is_active', true);
+  return withRetry(async () => {
+    const { data, error } = await supabase
+      .from('bankroll_rules')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true);
 
-  if (error) throw error;
-  return data || [];
+    if (error) throw error;
+    return data || [];
+  });
 }
 
 /**

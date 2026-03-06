@@ -30,7 +30,7 @@ const HINTS = [
         description: 'Add 30 Seconds',
         icon: Clock,
         cost: 15,
-        color: '#22c55e'
+        color: '#31a24c'
     }
 ];
 
@@ -150,7 +150,7 @@ function HintButtons({
                     border-radius: 6px;
                     font-size: 12px;
                     font-weight: 700;
-                    color: #00d4ff;
+                    color: #2374e1;
                 }
 
                 .hint-buttons.compact .hint-cost {

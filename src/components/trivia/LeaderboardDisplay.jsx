@@ -53,7 +53,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                             <div
                                 key={entry.id || index}
                                 className={`leaderboard-entry ${isCurrentUser ? 'current-user' : ''}`}
-                                style={{ background: isCurrentUser ? 'rgba(14, 165, 233, 0.1)' : style.bg }}
+                                style={{ background: isCurrentUser ? 'rgba(35, 116, 225, 0.1)' : style.bg }}
                             >
                                 <div className="rank" style={{ color: style.color }}>
                                     {rank <= 3 ? <Crown size={16} /> : rank}
@@ -88,8 +88,8 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
 
             <style jsx>{`
                 .leaderboard {
-                    background: rgba(0, 0, 0, 0.2);
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: #18191a;
+                    border: 1px solid #4e4f50;
                     border-radius: 12px;
                     overflow: hidden;
                 }
@@ -99,7 +99,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                     justify-content: space-between;
                     align-items: center;
                     padding: 16px 20px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    border-bottom: 1px solid #4e4f50;
                 }
 
                 .leaderboard-header h3 {
@@ -122,7 +122,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                     background: transparent;
                     border: none;
                     border-radius: 6px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: #65676b;
                     font-size: 12px;
                     font-weight: 500;
                     cursor: pointer;
@@ -134,7 +134,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                 }
 
                 .filter-tab.active {
-                    background: rgba(255, 255, 255, 0.1);
+                    background: #3a3b3c;
                     color: #ffffff;
                 }
 
@@ -145,7 +145,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                 .empty-state {
                     padding: 40px 20px;
                     text-align: center;
-                    color: rgba(255, 255, 255, 0.4);
+                    color: #65676b;
                 }
 
                 .leaderboard-entry {
@@ -163,7 +163,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                 }
 
                 .leaderboard-entry.current-user {
-                    border: 1px solid rgba(14, 165, 233, 0.3);
+                    border: 1px solid rgba(35, 116, 225, 0.3);
                 }
 
                 .rank {
@@ -183,12 +183,12 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                 .avatar {
                     width: 32px;
                     height: 32px;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: #3a3b3c;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: #65676b;
                 }
 
                 .username {
@@ -202,8 +202,8 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                 .you-badge {
                     font-size: 10px;
                     font-weight: 700;
-                    color: #0ea5e9;
-                    background: rgba(14, 165, 233, 0.2);
+                    color: #2374e1;
+                    background: rgba(35, 116, 225, 0.2);
                     padding: 2px 6px;
                     border-radius: 4px;
                 }
@@ -219,7 +219,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                     align-items: center;
                     gap: 4px;
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: #65676b;
                 }
 
                 .diamonds {
@@ -227,7 +227,7 @@ export default function LeaderboardDisplay({ entries = [], currentUserId, filter
                     align-items: center;
                     gap: 4px;
                     font-size: 12px;
-                    color: #06b6d4;
+                    color: #2374e1;
                 }
             `}</style>
         </div>

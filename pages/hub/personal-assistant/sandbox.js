@@ -49,6 +49,126 @@ const GAME_TYPES = [
 const DEFAULT_VILLAINS = [{ position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100 }];
 
 // ═══════════════════════════════════════════════════════════════
+// QUICK SCENARIO PRESETS (Improvement #2)
+// ═══════════════════════════════════════════════════════════════
+const QUICK_PRESETS = [
+  { label: 'AK On Wet Board', hand: { card1: 'As', card2: 'Kh' }, position: 'BTN', stack: 100, board: { flop: ['Jh', '9h', '7d'], turn: null, river: null }, gameType: 'cash' },
+  { label: 'QQ Preflop', hand: { card1: 'Qd', card2: 'Qc' }, position: 'CO', stack: 100, board: { flop: [], turn: null, river: null }, gameType: 'cash' },
+  { label: 'Flush Draw Turn', hand: { card1: 'Ah', card2: '5h' }, position: 'BTN', stack: 100, board: { flop: ['Kh', '8h', '3c'], turn: '2d', river: null }, gameType: 'cash' },
+  { label: 'Top Pair Dry Board', hand: { card1: 'Ad', card2: 'Tc' }, position: 'MP', stack: 100, board: { flop: ['As', '7d', '2c'], turn: null, river: null }, gameType: 'cash' },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// HAND STRENGTH CLASSIFIER (Improvement #3)
+// ═══════════════════════════════════════════════════════════════
+function getHandStrength(hand) {
+  if (!hand.card1 || !hand.card2) return null;
+  const r1 = hand.card1[0], r2 = hand.card2[0];
+  const s1 = hand.card1[1], s2 = hand.card2[1];
+  const suited = s1 === s2;
+  const ranks = 'AKQJT98765432';
+  const i1 = ranks.indexOf(r1), i2 = ranks.indexOf(r2);
+  const gap = Math.abs(i1 - i2);
+  const highCards = 'AKQJ';
+
+  if (r1 === r2) {
+    if ('AA KK QQ'.includes(`${r1}${r2}`)) return { label: 'Premium Pair', color: '#22c55e', strength: 5 };
+    if ('JJ TT'.includes(`${r1}${r2}`)) return { label: 'Strong Pair', color: '#4ade80', strength: 4 };
+    if (i1 <= 4) return { label: 'Medium Pair', color: '#fbbf24', strength: 3 };
+    return { label: 'Small Pair', color: '#f97316', strength: 2 };
+  }
+  if (highCards.includes(r1) && highCards.includes(r2)) {
+    return { label: suited ? 'Suited Broadway' : 'Broadway', color: suited ? '#3b82f6' : '#93c5fd', strength: suited ? 4 : 3 };
+  }
+  if (suited && gap === 1 && i1 >= 3) return { label: 'Suited Connectors', color: '#8b5cf6', strength: 3 };
+  if (suited && gap <= 2) return { label: 'Suited Gapper', color: '#a78bfa', strength: 2 };
+  if (suited && (r1 === 'A' || r2 === 'A')) return { label: 'Suited Ace', color: '#60a5fa', strength: 3 };
+  if (suited) return { label: 'Suited', color: '#6366f1', strength: 2 };
+  if (gap === 1 && i1 <= 5) return { label: 'Connectors', color: '#94a3b8', strength: 2 };
+  if (r1 === 'A' || r2 === 'A') return { label: 'Ace High', color: '#cbd5e1', strength: 2 };
+  return { label: 'Offsuit', color: '#64748b', strength: 1 };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STEP INDICATOR (Improvement #1)
+// ═══════════════════════════════════════════════════════════════
+function StepIndicator({ hasCards, hasBoard, hasResults, isAnalyzing }) {
+  const steps = [
+    { label: 'Pick Cards', done: hasCards },
+    { label: 'Set Board', done: hasBoard },
+    { label: 'Analyze', done: hasResults, active: isAnalyzing },
+  ];
+  return (
+    <div className="sandbox-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '10px 16px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      {steps.map((s, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: 20,
+            background: s.done ? 'rgba(34,197,94,0.15)' : s.active ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
+            border: `1px solid ${s.done ? 'rgba(34,197,94,0.3)' : s.active ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
+            transition: 'all 0.3s',
+          }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 700,
+              background: s.done ? '#22c55e' : s.active ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+              color: s.done || s.active ? '#fff' : '#64748b',
+            }}>{s.done ? '' : i + 1}</div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: s.done ? '#4ade80' : s.active ? '#93c5fd' : '#64748b' }}>{s.label}</span>
+          </div>
+          {i < 2 && <div style={{ width: 20, height: 1, background: s.done ? '#22c55e' : 'rgba(255,255,255,0.1)' }} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELP TOOLTIP (Improvement #7)
+// ═══════════════════════════════════════════════════════════════
+function HelpTip({ text }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', marginLeft: 4 }}>
+      <span onClick={() => setShow(!show)} style={{ cursor: 'pointer', color: '#475569', fontSize: 10, width: 14, height: 14, borderRadius: '50%', border: '1px solid #334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>?</span>
+      {show && (
+        <div onClick={() => setShow(false)} style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, padding: '8px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11, color: '#cbd5e1', whiteSpace: 'nowrap', zIndex: 50, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', textTransform: 'none', maxWidth: 220, lineHeight: 1.4 }}>{text}</div>
+      )}
+    </span>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOADING SKELETON (Improvement #5)
+// ═══════════════════════════════════════════════════════════════
+function LoadingSkeleton() {
+  return (
+    <div style={{ padding: '16px' }}>
+      {[100, 80, 60, 90, 70].map((w, i) => (
+        <div key={i} className="skeleton-pulse" style={{ height: i === 0 ? 60 : 16, width: `${w}%`, background: 'rgba(255,255,255,0.05)', borderRadius: 8, marginBottom: 12 }} />
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PLAIN-ENGLISH RESULTS SUMMARY (Improvement #6)
+// ═══════════════════════════════════════════════════════════════
+function getResultsSummary(results) {
+  if (!results?.optimalAction) return null;
+  const action = results.optimalAction.label || '';
+  const freq = results.optimalAction.frequency || 0;
+  const isMixed = results.isMixed;
+  let advice = '';
+  if (freq >= 90) advice = `You should ${action.toLowerCase()} here almost always.`;
+  else if (freq >= 70) advice = `You should mostly ${action.toLowerCase()} here (${freq}% of the time).`;
+  else if (freq >= 50) advice = `${action} is slightly preferred here, but this is a close spot.`;
+  else advice = `This is a mixed spot. ${action} is most common at ${freq}%.`;
+  if (isMixed) advice += ' Multiple actions are viable.';
+  return advice;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // VISUAL DECK PICKER (Feature #7 — Uses PNG card images)
 // ═══════════════════════════════════════════════════════════════
 const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
@@ -516,6 +636,14 @@ export default function VirtualSandbox() {
         </div>
       </div>
 
+      {/* STEP INDICATOR (Improvement #1) */}
+      <StepIndicator
+        hasCards={!!heroHand.card1 && !!heroHand.card2}
+        hasBoard={board.flop.length === 3}
+        hasResults={!!results}
+        isAnalyzing={isAnalyzing}
+      />
+
       {/* MAIN LAYOUT — Mobile-first responsive */}
       <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: results ? '1fr 400px' : '1fr', gap: '20px' }}>
         {/* LEFT — Setup + Table */}
@@ -540,25 +668,31 @@ export default function VirtualSandbox() {
           {/* Equity Display */}
           <EquityDisplay heroHand={heroHand} board={board} />
 
-          {/* Hero Setup */}
+          {/* Your Hand */}
           <div id="hero-setup" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
             <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
               <span style={{ color: '#64748b', fontSize: 12, minWidth: 45 }}>Hand:</span>
               <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
               <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
               <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
+              {/* Hand Strength Badge (Improvement #3) */}
+              {getHandStrength(heroHand) && (
+                <span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: `${getHandStrength(heroHand).color}20`, border: `1px solid ${getHandStrength(heroHand).color}40`, color: getHandStrength(heroHand).color, marginLeft: 'auto' }}>
+                  {getHandStrength(heroHand).label}
+                </span>
+              )}
             </div>
             <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
               <div>
-                <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Position</label>
+                <label style={{ color: '#64748b', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
                 <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
                   style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
                   {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Stack (BB)</label>
+                <label style={{ color: '#64748b', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
                 <input type="text" inputMode="numeric" pattern="[0-9]*"
                   value={heroStack}
                   onChange={e => {
@@ -569,7 +703,7 @@ export default function VirtualSandbox() {
                   style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Game</label>
+                <label style={{ color: '#64748b', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
                 <select value={gameType} onChange={e => setGameType(e.target.value)}
                   style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
                   {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
@@ -599,14 +733,35 @@ export default function VirtualSandbox() {
               {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
             </div>
             {board.flop.length === 0 && (
-              <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {[{ l: 'AKT♦♥♣', c: ['Ad', 'Kh', 'Tc'] }, { l: '7♠5♠3♠', c: ['7s', '5s', '3s'] }, { l: 'QQ8', c: ['Qd', 'Qh', '8c'] }, { l: '987', c: ['9h', '8d', '7c'] }].map((p, i) => (
-                  <button key={i} onClick={() => setBoard({ flop: p.c, turn: null, river: null })}
-                    style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>{p.l}</button>
-                ))}
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  {[{ l: 'AKT', c: ['Ad', 'Kh', 'Tc'] }, { l: '7-5-3', c: ['7s', '5s', '3s'] }, { l: 'QQ8', c: ['Qd', 'Qh', '8c'] }, { l: '987', c: ['9h', '8d', '7c'] }].map((p, i) => (
+                    <button key={i} onClick={() => setBoard({ flop: p.c, turn: null, river: null })}
+                      style={{ padding: '4px 10px', borderRadius: 6, fontSize: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', cursor: 'pointer' }}>{p.l}</button>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
+
+            {/* Quick Scenario Presets (Improvement #2) */}
+            {!heroHand.card1 && board.flop.length === 0 && (
+              <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 10, border: '1px solid rgba(59,130,246,0.1)', padding: '12px', marginBottom: '12px' }}>
+                <div style={{ color: '#93c5fd', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                  {QUICK_PRESETS.map((preset, i) => (
+                    <button key={i} onClick={() => {
+                      setHeroHand(preset.hand); setHeroPosition(preset.position);
+                      setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
+                      setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
+                    }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#cbd5e1', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(59,130,246,0.1)'}
+                      onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}>
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}</div>
 
           {/* Villains */}
           <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
@@ -716,8 +871,15 @@ export default function VirtualSandbox() {
                 position: 'sticky', top: 16, maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
               }}>
               <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>
-                GTO Analysis {comparePosition ? `(${comparePosition})` : ''}
+                Analysis Results {comparePosition ? `(${comparePosition})` : ''}
               </h3>
+
+              {/* Plain-English Summary (Improvement #6) */}
+              {getResultsSummary(results) && (
+                <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: '#cbd5e1', textTransform: 'none' }}>
+                  {getResultsSummary(results)}
+                </div>
+              )}
 
               {/* Source Badge */}
               {sourceBadge && (
@@ -889,6 +1051,34 @@ export default function VirtualSandbox() {
             position: static !important;
             max-height: none !important;
           }
+          /* Bigger card picker on mobile (Improvement #4) */
+          .sandbox-page .deck-picker-card {
+            width: 36px !important;
+            height: 50px !important;
+          }
+          .sandbox-steps {
+            gap: 2px !important;
+            padding: 8px 10px !important;
+          }
+          .sandbox-steps span {
+            font-size: 9px !important;
+          }
+        }
+
+        /* Pulsing animation for loading (Improvement #5) */
+        @keyframes skeleton-pulse {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.6; }
+        }
+        .skeleton-pulse {
+          animation: skeleton-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes analyze-pulse {
+          0%, 100% { box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
+          50% { box-shadow: 0 4px 30px rgba(59,130,246,0.6); }
+        }
+        .analyzing-pulse {
+          animation: analyze-pulse 1.5s ease-in-out infinite;
         }
       `}</style>
     </div>

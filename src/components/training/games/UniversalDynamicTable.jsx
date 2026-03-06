@@ -680,6 +680,100 @@ function FrequencyBar({ frequency, color, show }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// CLASSIFICATION FLASH BANNER — GTO Wizard-style instant feedback overlay
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ClassificationFlashBanner({ classification, evLoss, show }) {
+    if (!show || !classification) return null;
+
+    const config = CLASSIFICATION_CONFIG[classification];
+    if (!config) return null;
+
+    return (
+        <AnimatePresence>
+            <motion.div
+                key={classification}
+                initial={{ opacity: 0, y: -30, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                style={{
+                    width: '100%',
+                    padding: '8px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    background: config.bgColor || 'rgba(0,0,0,0.3)',
+                    borderBottom: `2px solid ${config.borderColor || 'transparent'}`,
+                    zIndex: 100,
+                }}
+            >
+                <ClassificationSVGIcon icon={config.icon} size={18} color={config.color} />
+                <span style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: config.color,
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                    fontFamily: "'Orbitron', monospace",
+                }}>
+                    {config.label}
+                </span>
+                {evLoss > 0 && (
+                    <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#ef4444',
+                        background: 'rgba(0,0,0,0.4)',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                    }}>
+                        -{evLoss.toFixed(2)} EV
+                    </span>
+                )}
+            </motion.div>
+        </AnimatePresence>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EV LOSS TICKER — Running session EV loss counter
+// ═══════════════════════════════════════════════════════════════════════════
+
+function EVLossTicker({ totalEVLoss, show }) {
+    if (!show) return null;
+
+    const evColor = totalEVLoss <= 0 ? '#22c55e' : totalEVLoss < 5 ? '#fbbf24' : '#ef4444';
+
+    return (
+        <motion.div
+            key={totalEVLoss}
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            style={{
+                position: 'absolute',
+                top: 8,
+                right: 12,
+                fontSize: 11,
+                fontWeight: 700,
+                fontFamily: "'Orbitron', monospace",
+                color: evColor,
+                background: 'rgba(0,0,0,0.5)',
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: `1px solid ${evColor}33`,
+                zIndex: 50,
+                letterSpacing: 0.5,
+            }}
+        >
+            EV: -{(totalEVLoss || 0).toFixed(2)} BB
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 

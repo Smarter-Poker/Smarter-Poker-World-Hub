@@ -175,7 +175,7 @@ export default function GhostOpponent({
                 }
 
                 .score-side.leading .score-num {
-                    color: #22c55e;
+                    color: #31a24c;
                     text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
                 }
 
@@ -202,7 +202,7 @@ export default function GhostOpponent({
                 }
 
                 .score-avatar.you {
-                    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
                     color: #fff;
                     font-size: 10px;
                     letter-spacing: 0.5px;
@@ -254,11 +254,11 @@ export default function GhostOpponent({
                 }
 
                 .opp-reaction.correct {
-                    color: #22c55e;
+                    color: #31a24c;
                 }
 
                 .opp-reaction.wrong {
-                    color: #ef4444;
+                    color: #f02849;
                 }
 
                 .opp-thinking {

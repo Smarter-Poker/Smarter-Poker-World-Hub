@@ -13,6 +13,7 @@ import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 import FeatureGate from '../../src/components/gates/FeatureGate';
 import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -191,6 +192,14 @@ export default function BankrollManagerPage() {
   const router = useRouter();
   const { user } = useAvatar();
   const userId = user?.id;
+
+  // ─── Hardening: mounted ref + debounce timer ────────
+  const isMountedRef = useRef(true);
+  const rtTimerRef = useRef(null);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   // ═══ ACTION GATE: Users can explore dashboard, but logging/pro tools are gated ═══
   const { guardAction, UpgradePopup, isVip: isGloballyVip, hasAccess: hasProAccess, expiresAt: proExpiresAt } = useFeatureGate('bankroll_pro');
@@ -477,7 +486,7 @@ export default function BankrollManagerPage() {
     } catch (error) {
       console.error('Error loading bankroll data:', error);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
   }, [userId, locationFilter, timeFilter]);
 
@@ -609,6 +618,7 @@ export default function BankrollManagerPage() {
   };
 
   const handleDeleteEntry = async (entryId) => {
+    if (!userId) { toast.error('You must be logged in'); return; }
     // Optimistic removal — entry disappears immediately
     setEntries(prev => prev.filter(e => e.id !== entryId));
     try {
@@ -696,15 +706,34 @@ export default function BankrollManagerPage() {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
-  // Realtime subscription — live updates
+  // Realtime subscription — live updates with debounce
   useEffect(() => {
     if (!userId) return;
+    const debouncedReload = () => {
+      if (rtTimerRef.current) clearTimeout(rtTimerRef.current);
+      rtTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) loadData();
+      }, 500);
+    };
     const _ch = supabase
       .channel(`bankroll:${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bankroll_ledger', filter: `user_id=eq.${userId}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bankroll_ledger', filter: `user_id=eq.${userId}` }, debouncedReload)
       .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+    return () => {
+      if (rtTimerRef.current) clearTimeout(rtTimerRef.current);
+      supabase.removeChannel(_ch);
+    };
+  }, [userId, loadData]);
+
+  // Auth state listener — re-load on session refresh
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && isMountedRef.current) {
+        loadData();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [loadData]);
 
   return (
     <PageTransition>
@@ -841,14 +870,16 @@ export default function BankrollManagerPage() {
 
               {/* Category Overview View (Cash Games, Tournaments, etc.) */}
               {activeSection === 'dashboard' && categoryFilter !== 'all' && (
-                <CategoryOverview
-                  userId={userId}
-                  categoryFilter={categoryFilter}
-                  onBack={() => {
-                    setCategoryFilter('all');
-                    router.push('/hub/bankroll-manager', undefined, { shallow: true });
-                  }}
-                />
+                <HubErrorBoundary name="Category Overview">
+                  <CategoryOverview
+                    userId={userId}
+                    categoryFilter={categoryFilter}
+                    onBack={() => {
+                      setCategoryFilter('all');
+                      router.push('/hub/bankroll-manager', undefined, { shallow: true });
+                    }}
+                  />
+                </HubErrorBoundary>
               )}
 
               {/* Dashboard View */}
@@ -1206,13 +1237,19 @@ export default function BankrollManagerPage() {
                     )}
                     <div className="bankroll-analytics-slider" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16, gridTemplateRows: '300px', filter: isVip ? 'none' : 'blur(3px)', pointerEvents: isVip ? 'auto' : 'none' }}>
                       <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                        <LocationAnalytics entries={filteredAnalyticsEntries} isLoading={isLoading} />
+                        <HubErrorBoundary name="Location Analytics">
+                          <LocationAnalytics entries={filteredAnalyticsEntries} isLoading={isLoading} />
+                        </HubErrorBoundary>
                       </div>
                       <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                        <VarianceCalculator entries={filteredAnalyticsEntries} />
+                        <HubErrorBoundary name="Variance Calculator">
+                          <VarianceCalculator entries={filteredAnalyticsEntries} />
+                        </HubErrorBoundary>
                       </div>
                       <div style={{ height: 300, minHeight: 300, maxHeight: 300, overflow: 'auto' }}>
-                        <HistoricalComparison entries={filteredAnalyticsEntries} />
+                        <HubErrorBoundary name="Historical Comparison">
+                          <HistoricalComparison entries={filteredAnalyticsEntries} />
+                        </HubErrorBoundary>
                       </div>
                     </div>
                   </div>
@@ -1331,24 +1368,28 @@ export default function BankrollManagerPage() {
 
               {/* Trip Tracker View */}
               {activeSection === 'trips' && (
-                <TripTracker
-                  userId={userId}
-                  onOpenLog={handleLogClick}
-                  onEditEntry={handleEditEntry}
-                  onDeleteEntry={handleDeleteEntry}
-                  refreshTrigger={refreshTrigger}
-                />
+                <HubErrorBoundary name="Trip Tracker">
+                  <TripTracker
+                    userId={userId}
+                    onOpenLog={handleLogClick}
+                    onEditEntry={handleEditEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    refreshTrigger={refreshTrigger}
+                  />
+                </HubErrorBoundary>
               )}
 
               {/* Series Tracker View */}
               {activeSection === 'series' && (
-                <SeriesTracker
-                  userId={userId}
-                  onOpenLog={handleLogClick}
-                  onEditEntry={handleEditEntry}
-                  onDeleteEntry={handleDeleteEntry}
-                  refreshTrigger={refreshTrigger}
-                />
+                <HubErrorBoundary name="Series Tracker">
+                  <SeriesTracker
+                    userId={userId}
+                    onOpenLog={handleLogClick}
+                    onEditEntry={handleEditEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    refreshTrigger={refreshTrigger}
+                  />
+                </HubErrorBoundary>
               )}
 
               {/* Leaks View */}
@@ -1621,7 +1662,9 @@ export default function BankrollManagerPage() {
                   </div>
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>
-                      <TaxReportPanel userId={userId} />
+                      <HubErrorBoundary name="Tax Reports">
+                        <TaxReportPanel userId={userId} />
+                      </HubErrorBoundary>
                     </div>
                   </BankrollProGate>
                 </div>
@@ -1631,7 +1674,9 @@ export default function BankrollManagerPage() {
               {activeSection === 'staking' && (
                 <div style={styles.activitySection}>
                   <BankrollProGate userId={userId}>
-                    <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
+                    <HubErrorBoundary name="Staking Tracker">
+                      <StakingTracker userId={userId} refreshTrigger={refreshTrigger} />
+                    </HubErrorBoundary>
                   </BankrollProGate>
                 </div>
               )}

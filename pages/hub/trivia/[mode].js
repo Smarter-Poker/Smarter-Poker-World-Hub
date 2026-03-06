@@ -425,18 +425,20 @@ export default function TriviaModePage() {
     }
 
     const startGame = async () => {
-        // Free modes: daily trivia is always free
-        const isFreeMode = mode === 'daily';
+        // Check mode config for diamond cost — only modes with diamondCost > 0 charge
+        const modeConfig = TRIVIA_MODES[mode];
+        const modeCost = modeConfig?.diamondCost || 0;
+        const isFreeMode = modeCost === 0;
 
-        // Per-game diamond deduction for non-VIP, non-free modes
+        // Per-game diamond deduction for paid modes (e.g., arcade=10💎)
         if (!isFreeMode && userId && !isVIP) {
             const de = new DiamondEngine(supabase, userId);
-            const result = await de.deduct(10, `trivia_${mode}`);
+            const result = await de.deduct(modeCost, `trivia_${mode}`);
             if (!result.success) {
                 setShowOutOfDiamonds(true);
                 return;
             }
-            setUserDiamonds(prev => prev - 10);
+            setUserDiamonds(prev => prev - modeCost);
         }
 
         setGameState('playing');

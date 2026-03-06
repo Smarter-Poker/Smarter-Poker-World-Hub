@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../supabase';
+import { withRetry } from './retryUtils';
 
 // All gambling categories that count as "sessions" — excludes accounting-only entries
 const SESSION_CATEGORIES = ['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports'];
@@ -375,97 +376,99 @@ export async function getBankrollStats(
   endDate?: string,
   locationId?: string
 ): Promise<BankrollStats> {
-  const [
-    totalBankroll,
-    allInNet,
-    pokerNet,
-    nonPokerNet,
-    expenseTotal,
-    hourlyRate,
-  ] = await Promise.all([
-    calculateTotalBankroll(userId),
-    calculateAllInNet(userId, startDate, endDate, locationId),
-    calculatePokerNet(userId, startDate, endDate, locationId),
-    calculateNonPokerNet(userId, startDate, endDate, locationId),
-    calculateExpenseTotal(userId, undefined, locationId),
-    calculateHourlyRate(userId, undefined, undefined, locationId),
-  ]);
+  return withRetry(async () => {
+    const [
+      totalBankroll,
+      allInNet,
+      pokerNet,
+      nonPokerNet,
+      expenseTotal,
+      hourlyRate,
+    ] = await Promise.all([
+      calculateTotalBankroll(userId),
+      calculateAllInNet(userId, startDate, endDate, locationId),
+      calculatePokerNet(userId, startDate, endDate, locationId),
+      calculateNonPokerNet(userId, startDate, endDate, locationId),
+      calculateExpenseTotal(userId, undefined, locationId),
+      calculateHourlyRate(userId, undefined, undefined, locationId),
+    ]);
 
-  // Calculate leak risk based on non-poker losses vs poker wins
-  let leakRisk: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
-  if (pokerNet > 0 && nonPokerNet < 0) {
-    const leakRatio = Math.abs(nonPokerNet) / pokerNet;
-    if (leakRatio > 0.5) leakRisk = 'HIGH';
-    else if (leakRatio > 0.25) leakRisk = 'MEDIUM';
-  } else if (nonPokerNet < -1000) {
-    leakRisk = 'HIGH';
-  } else if (nonPokerNet < -500) {
-    leakRisk = 'MEDIUM';
-  }
-
-  // Get session counts — ALL gambling categories count as sessions
-  const { count } = await supabase
-    .from('bankroll_ledger')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .in('category', SESSION_CATEGORIES);
-
-  // Get total hours
-  const { data: sessions } = await supabase
-    .from('bankroll_ledger')
-    .select('start_time, end_time')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .not('start_time', 'is', null)
-    .not('end_time', 'is', null);
-
-  let totalHours = 0;
-  sessions?.forEach((s) => {
-    if (s.start_time && s.end_time) {
-      totalHours += (new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / (1000 * 60 * 60);
+    // Calculate leak risk based on non-poker losses vs poker wins
+    let leakRisk: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+    if (pokerNet > 0 && nonPokerNet < 0) {
+      const leakRatio = Math.abs(nonPokerNet) / pokerNet;
+      if (leakRatio > 0.5) leakRisk = 'HIGH';
+      else if (leakRatio > 0.25) leakRisk = 'MEDIUM';
+    } else if (nonPokerNet < -1000) {
+      leakRisk = 'HIGH';
+    } else if (nonPokerNet < -500) {
+      leakRisk = 'MEDIUM';
     }
+
+    // Get session counts — ALL gambling categories count as sessions
+    const { count } = await supabase
+      .from('bankroll_ledger')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('category', SESSION_CATEGORIES);
+
+    // Get total hours
+    const { data: sessions } = await supabase
+      .from('bankroll_ledger')
+      .select('start_time, end_time')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .not('start_time', 'is', null)
+      .not('end_time', 'is', null);
+
+    let totalHours = 0;
+    sessions?.forEach((s) => {
+      if (s.start_time && s.end_time) {
+        totalHours += (new Date(s.end_time).getTime() - new Date(s.start_time).getTime()) / (1000 * 60 * 60);
+      }
+    });
+
+    // Get travel ROI from most recent trip
+    const { data: recentTrip } = await supabase
+      .from('bankroll_trips')
+      .select('id')
+      .eq('user_id', userId)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let travelROI = 0;
+    if (recentTrip) {
+      const tripStats = await calculateTravelROI(userId, recentTrip.id);
+      travelROI = tripStats.net;
+    }
+
+    // Win rate calculation — ALL gambling categories
+    const { data: winLoss } = await supabase
+      .from('bankroll_ledger')
+      .select('net_result')
+      .eq('user_id', userId)
+      .eq('is_revision', false)
+      .in('category', SESSION_CATEGORIES);
+
+    const wins = winLoss?.filter((e) => e.net_result > 0).length || 0;
+    const winRate = winLoss && winLoss.length > 0 ? (wins / winLoss.length) * 100 : 0;
+
+    return {
+      totalBankroll,
+      allInNet,
+      pokerNet,
+      nonPokerNet,
+      expenseTotal,
+      leakRisk,
+      travelROI,
+      hourlyRate,
+      totalHours,
+      winRate,
+      sessionCount: count || 0,
+    };
   });
-
-  // Get travel ROI from most recent trip
-  const { data: recentTrip } = await supabase
-    .from('bankroll_trips')
-    .select('id')
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let travelROI = 0;
-  if (recentTrip) {
-    const tripStats = await calculateTravelROI(userId, recentTrip.id);
-    travelROI = tripStats.net;
-  }
-
-  // Win rate calculation — ALL gambling categories
-  const { data: winLoss } = await supabase
-    .from('bankroll_ledger')
-    .select('net_result')
-    .eq('user_id', userId)
-    .eq('is_revision', false)
-    .in('category', SESSION_CATEGORIES);
-
-  const wins = winLoss?.filter((e) => e.net_result > 0).length || 0;
-  const winRate = winLoss && winLoss.length > 0 ? (wins / winLoss.length) * 100 : 0;
-
-  return {
-    totalBankroll,
-    allInNet,
-    pokerNet,
-    nonPokerNet,
-    expenseTotal,
-    leakRisk,
-    travelROI,
-    hourlyRate,
-    totalHours,
-    winRate,
-    sessionCount: count || 0,
-  };
 }
 
 /**

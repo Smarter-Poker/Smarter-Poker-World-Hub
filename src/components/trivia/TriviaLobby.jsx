@@ -44,8 +44,8 @@ const MODE_CARDS = [
         name: 'Cash Game',
         description: 'Deep Stack Scenarios, Implied Odds, Table Dynamics',
         icon: Banknote,
-        color: '#22c55e',
-        glowColor: '#22c55e',
+        color: '#31a24c',
+        glowColor: '#31a24c',
         diamondReward: 5,
         perfectBonus: 10,
         image: '/images/trivia/cash-game.png?v=rembg1'
@@ -55,8 +55,8 @@ const MODE_CARDS = [
         name: 'ICM & Chip EV',
         description: 'Tournament Equity, Chip Value vs $EV Decisions',
         icon: Calculator,
-        color: '#06b6d4',
-        glowColor: '#06b6d4',
+        color: '#2374e1',
+        glowColor: '#2374e1',
         diamondReward: 5,
         perfectBonus: 10,
         image: '/images/trivia/icm-chip-ev.png?v=rembg1'
@@ -101,8 +101,8 @@ const MODE_CARDS = [
         name: 'Survival Mode',
         description: '10 Levels, 20 Questions Each. All Categories Combined!',
         icon: Heart,
-        color: '#ef4444',
-        glowColor: '#ef4444',
+        color: '#f02849',
+        glowColor: '#f02849',
         diamondReward: '10+',
         perfectBonus: null,
         image: '/images/trivia/survival-mode.png?v=rembg1'
@@ -135,8 +135,8 @@ const MODE_CARDS = [
         name: '1v1 Battle',
         description: 'Challenge Real Players for Diamonds!',
         icon: Swords,
-        color: '#ef4444',
-        glowColor: '#ef4444',
+        color: '#f02849',
+        glowColor: '#f02849',
         diamondReward: '2x stake',
         perfectBonus: null,
         image: '/images/trivia/pvp-battle.png?v=rembg1'
@@ -452,12 +452,12 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .suit {
                     position: absolute;
                     bottom: -30px;
-                    color: rgba(255, 255, 255, 0.04);
+                    color: rgba(255, 255, 255, 0.03);
                     animation: suitFloat linear infinite;
                     opacity: 0;
                 }
                 .suit.red {
-                    color: rgba(239, 68, 68, 0.04);
+                    color: rgba(240, 40, 73, 0.04);
                 }
                 @keyframes suitFloat {
                     0% { transform: translateY(0) rotate(0deg); opacity: 0; }
@@ -479,7 +479,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                 .daily-trivia-banner:hover {
                     transform: scale(1.01);
-                    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+                    box-shadow: 0 0 30px rgba(35, 116, 225, 0.3);
                 }
 
                 .daily-trivia-banner__image {
@@ -502,7 +502,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 }
 
                 .daily-trivia-banner__button:hover:not(:disabled) {
-                    background: rgba(0, 212, 255, 0.1);
+                    background: rgba(35, 116, 225, 0.1);
                     border-radius: 8px;
                 }
 
@@ -527,8 +527,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     font-family: 'Orbitron', sans-serif;
                     font-size: 28px;
                     font-weight: 700;
-                    color: #22c55e;
-                    text-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+                    color: #31a24c;
+                    text-shadow: 0 0 20px rgba(49, 162, 76, 0.8);
                     letter-spacing: 0.1em;
                 }
 
@@ -608,7 +608,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                 .mode-description {
                     font-size: 13px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: #65676b;
                     margin: 0 0 auto 0;
                     line-height: 1.4;
                 }
@@ -630,7 +630,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 }
                 .mode-image-card:hover {
                     transform: translateY(-4px) scale(1.02);
-                    box-shadow: 0 8px 30px rgba(0, 212, 255, 0.2);
+                    box-shadow: 0 8px 30px rgba(35, 116, 225, 0.2);
                 }
                 .mode-image-card:nth-child(1) { animation-delay: 0s; }
                 .mode-image-card:nth-child(2) { animation-delay: 0.06s; }
@@ -678,7 +678,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
 
                 .quick-stakes-banner:hover {
                     transform: scale(1.02);
-                    box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+                    box-shadow: 0 0 30px rgba(35, 116, 225, 0.3);
                 }
 
                 .quick-stakes-banner__img {
@@ -755,14 +755,14 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     to { opacity: 1; }
                 }
                 .gate-card {
-                    background: linear-gradient(145deg, #1a1f2e, #0d1117);
-                    border: 1px solid rgba(0, 212, 255, 0.3);
+                    background: #242526;
+                    border: 1px solid #4e4f50;
                     border-radius: 16px;
                     padding: 32px 28px;
                     max-width: 360px;
                     width: 90%;
                     text-align: center;
-                    box-shadow: 0 0 40px rgba(0, 212, 255, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
+                    box-shadow: 0 0 40px rgba(35, 116, 225, 0.15), inset 0 1px 0 rgba(255,255,255,0.05);
                 }
                 .gate-icon {
                     font-size: 48px;
@@ -776,7 +776,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 }
                 .gate-desc {
                     font-size: 14px;
-                    color: rgba(255,255,255,0.65);
+                    color: #65676b;
                     line-height: 1.5;
                     margin-bottom: 24px;
                 }
@@ -784,14 +784,14 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     display: inline-flex;
                     align-items: center;
                     gap: 8px;
-                    background: rgba(0, 212, 255, 0.1);
-                    border: 1px solid rgba(0, 212, 255, 0.25);
+                    background: rgba(35, 116, 225, 0.1);
+                    border: 1px solid rgba(35, 116, 225, 0.25);
                     border-radius: 12px;
                     padding: 10px 20px;
                     margin-bottom: 24px;
                     font-size: 22px;
                     font-weight: 700;
-                    color: #00d4ff;
+                    color: #2374e1;
                 }
                 .gate-cost svg {
                     width: 22px;
@@ -814,24 +814,24 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                     font-family: inherit;
                 }
                 .gate-btn--accept {
-                    background: linear-gradient(135deg, #00d4ff, #0099cc);
-                    color: #000;
+                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
+                    color: #fff;
                 }
                 .gate-btn--accept:hover {
                     transform: scale(1.03);
-                    box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+                    box-shadow: 0 0 20px rgba(35, 116, 225, 0.4);
                 }
                 .gate-btn--accept:disabled {
                     opacity: 0.6;
                     cursor: wait;
                 }
                 .gate-btn--cancel {
-                    background: rgba(255, 255, 255, 0.08);
+                    background: #3a3b3c;
                     color: rgba(255, 255, 255, 0.7);
-                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border: 1px solid #4e4f50;
                 }
                 .gate-btn--cancel:hover {
-                    background: rgba(255, 255, 255, 0.12);
+                    background: #4e4f50;
                 }
                 .gate-btn--store {
                     background: linear-gradient(135deg, #f97316, #ea580c);
@@ -846,7 +846,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .gate-balance {
                     margin-top: 12px;
                     font-size: 13px;
-                    color: rgba(255,255,255,0.4);
+                    color: #65676b;
                 }
 
                 /* Deducting overlay */
@@ -863,8 +863,8 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .deducting-spinner {
                     width: 36px;
                     height: 36px;
-                    border: 3px solid rgba(0,212,255,0.2);
-                    border-top-color: #00d4ff;
+                    border: 3px solid rgba(35, 116, 225, 0.2);
+                    border-top-color: #2374e1;
                     border-radius: 50%;
                     animation: spin 0.8s linear infinite;
                 }
@@ -920,7 +920,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                                 You need at least <strong>{GAME_COST} 💎</strong> to play this mode.
                                 Visit the Diamond Store to top up your balance.
                             </div>
-                            <div className="gate-cost" style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.1)' }}>
+                            <div className="gate-cost" style={{ color: '#f02849', borderColor: 'rgba(240,40,73,0.25)', background: 'rgba(240,40,73,0.1)' }}>
                                 <Gem size={22} /> Balance: {userDiamonds} 💎
                             </div>
                             <div className="gate-buttons">

@@ -25,7 +25,10 @@ export default async function handler(req, res) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-    // Verify user is owner or manager at a venue
+    // Verify user is owner/manager at a venue OR a platform admin/superadmin
+    let isAuthorized = false;
+
+    // Check commander_staff first (venue owners/managers)
     const { data: staff } = await supabaseAdmin
         .from('commander_staff')
         .select('id, role, venue_id')
@@ -35,8 +38,23 @@ export default async function handler(req, res) {
         .limit(1)
         .single();
 
-    if (!staff) {
-        return res.status(403).json({ success: false, error: 'Only owners and managers can manage promo codes' });
+    if (staff) {
+        isAuthorized = true;
+    } else {
+        // Fallback: check profiles table for admin/superadmin role
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profile && ['admin', 'superadmin'].includes(profile.role)) {
+            isAuthorized = true;
+        }
+    }
+
+    if (!isAuthorized) {
+        return res.status(403).json({ success: false, error: 'Only owners, managers, or platform admins can manage promo codes' });
     }
 
     // GET — List all promo codes

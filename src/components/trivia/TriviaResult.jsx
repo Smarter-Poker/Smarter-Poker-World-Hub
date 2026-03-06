@@ -61,7 +61,7 @@ export default function TriviaResult({
                 particleCount: isPerfect ? 200 : 80,
                 spread: 70,
                 origin: { y: 0.6 },
-                colors: isPerfect ? ['#fbbf24', '#f59e0b', '#ef4444', '#22c55e'] : undefined,
+                colors: isPerfect ? ['#fbbf24', '#f59e0b', '#f02849', '#31a24c'] : undefined,
             });
         }
         if (isPerfect) {
@@ -112,11 +112,11 @@ export default function TriviaResult({
 
     const getGrade = () => {
         if (accuracy >= 100) return { letter: 'S', color: '#fbbf24', label: 'PERFECT!' };
-        if (accuracy >= 90) return { letter: 'A', color: '#22c55e', label: 'Excellent!' };
-        if (accuracy >= 80) return { letter: 'B', color: '#0ea5e9', label: 'Great Job!' };
+        if (accuracy >= 90) return { letter: 'A', color: '#31a24c', label: 'Excellent!' };
+        if (accuracy >= 80) return { letter: 'B', color: '#2374e1', label: 'Great Job!' };
         if (accuracy >= 70) return { letter: 'C', color: '#8b5cf6', label: 'Good Work!' };
         if (accuracy >= 60) return { letter: 'D', color: '#f97316', label: 'Keep Trying!' };
-        return { letter: 'F', color: '#ef4444', label: 'Study Up!' };
+        return { letter: 'F', color: '#f02849', label: 'Study Up!' };
     };
 
     const grade = getGrade();

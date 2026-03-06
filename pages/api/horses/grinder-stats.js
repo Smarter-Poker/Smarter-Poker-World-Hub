@@ -1,18 +1,24 @@
-import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export default async function handler(req, res) {
-    const supabase = createServerSupabaseClient({ req, res });
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Verify user is authenticated via Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
-    if (sessionError || !session) {
-        return res.status(401).json({ success: false, error: 'Unauthorized' });
-    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
     // Verify Admin Role
-    const { data: profile } = await supabase
+    const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
     if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
@@ -22,16 +28,12 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
         try {
             // Fetch all active personas
-            const { data: personas } = await supabase
+            const { data: personas } = await supabaseAdmin
                 .from('content_authors')
                 .select('id, name, is_active')
                 .eq('is_active', true);
 
-            // To simulate the 'Grinder' state without an active game server, 
-            // we will build a roster pulling from the authors list.
-            // Ideally, this pulls from a dedicated `grinder_sessions` table.
-
-            // Temporary Mock Stats based on actual active personas
+            // Build roster from active personas
             const mockStats = {
                 totalGrinders: personas?.length || 0,
                 currentlyPlaying: 0,
@@ -60,7 +62,7 @@ export default async function handler(req, res) {
         try {
             if (action === 'add_to_club') {
                 // Fetch all active personas to give them chips
-                const { data: personas, error: personaErr } = await supabase
+                const { data: personas, error: personaErr } = await supabaseAdmin
                     .from('content_authors')
                     .select('id')
                     .eq('is_active', true);
@@ -91,4 +93,3 @@ export default async function handler(req, res) {
     res.setHeader('Allow', ['GET', 'POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
 }
-
