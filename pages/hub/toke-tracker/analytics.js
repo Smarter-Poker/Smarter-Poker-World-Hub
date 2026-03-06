@@ -64,9 +64,11 @@ export default function TokeAnalyticsPage() {
         const handler = (e) => { if (e.detail) setTokePrefs(e.detail); };
         window.addEventListener('toke-settings-sync', handler);
         window.addEventListener('toke-gig-completed', refreshData);
+        window.addEventListener('toke-data-updated', refreshData);
         return () => {
             window.removeEventListener('toke-settings-sync', handler);
             window.removeEventListener('toke-gig-completed', refreshData);
+            window.removeEventListener('toke-data-updated', refreshData);
         };
     }, [refreshData]);
 

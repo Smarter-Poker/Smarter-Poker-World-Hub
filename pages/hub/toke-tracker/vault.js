@@ -63,7 +63,11 @@ export default function DealerVaultPage() {
 
     useEffect(() => {
         window.addEventListener('toke-gig-completed', loadGigs);
-        return () => window.removeEventListener('toke-gig-completed', loadGigs);
+        window.addEventListener('toke-data-updated', loadGigs);
+        return () => {
+            window.removeEventListener('toke-gig-completed', loadGigs);
+            window.removeEventListener('toke-data-updated', loadGigs);
+        };
     }, [loadGigs]);
 
     // Debounced refresh for realtime — prevents flooding during multi-row ops

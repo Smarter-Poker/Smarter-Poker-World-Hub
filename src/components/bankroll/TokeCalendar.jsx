@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     fetchCalendarEvents,
