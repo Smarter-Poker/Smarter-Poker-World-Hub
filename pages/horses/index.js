@@ -195,6 +195,7 @@ export default function HorsesAdmin() {
 
             const res = await fetch('/api/promo/admin-promo-codes', {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
+                signal: signal
             });
             if (res.ok) {
                 const data = await res.json();
@@ -219,6 +220,7 @@ export default function HorsesAdmin() {
             }
             const res = await fetch('/api/horses/economy-stats', {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
+                signal: signal
             });
             if (res.ok) {
                 const data = await res.json();
@@ -257,6 +259,7 @@ export default function HorsesAdmin() {
             }
             const res = await fetch('/api/horses/anti-abuse?section=all', {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
+                signal: signal
             });
             if (res.ok) {
                 const data = await res.json();
