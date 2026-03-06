@@ -76,24 +76,34 @@ export default function HorsesAdmin() {
         voice: 'casual'
     });
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         checkAuth();
-    return () => _c.abort();
-  }, []);
+        return () => _c.abort();
+    }, []);
 
     const checkAuth = async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                // BUG 1 FIX: Verify admin/superadmin role
-                const { data: profile } = await supabase
+                // BUG 1 FIX: Verify admin/superadmin role safely
+                const { data: profile, error } = await supabase
                     .from('profiles').select('role').eq('id', session.user.id).single();
-                if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
-                    await supabase.auth.signOut();
+
+                if (error) {
+                    console.error('Failed to verify admin role:', error);
+                    setLoginError('Network error checking admin status. Try again.');
                     setLoading(false);
                     return;
                 }
+
+                if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
+                    setLoginError('Access denied. Administrator privileges required.');
+                    setLoading(false);
+                    return;
+                }
+
                 setUser(session.user);
                 loadData();
             }
@@ -119,10 +129,15 @@ export default function HorsesAdmin() {
             }
 
             // BUG 1 FIX: Verify admin/superadmin role after login
-            const { data: profile } = await supabase
+            const { data: profile, error: profileErr } = await supabase
                 .from('profiles').select('role').eq('id', data.user.id).single();
+
+            if (profileErr) {
+                setLoginError('Network error checking admin status.');
+                return;
+            }
+
             if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
-                await supabase.auth.signOut();
                 setLoginError('Access denied. Admin privileges required.');
                 return;
             }
@@ -139,7 +154,7 @@ export default function HorsesAdmin() {
         setUser(null);
     };
 
-    const loadData = async(signal) => {
+    const loadData = async (signal) => {
         try {
             const { data: personaData } = await supabase
                 .from('content_authors')
@@ -172,7 +187,7 @@ export default function HorsesAdmin() {
         await loadEconomyData();
     };
 
-    const loadPromoCodes = async(signal) => {
+    const loadPromoCodes = async (signal) => {
         setPromoLoading(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -192,7 +207,7 @@ export default function HorsesAdmin() {
         }
     };
 
-    const loadEconomyData = async(signal) => {
+    const loadEconomyData = async (signal) => {
         setEconomyLoading(true);
         try {
             // BUG 2 FIX: Add auth header
@@ -202,7 +217,7 @@ export default function HorsesAdmin() {
                 setEconomyLoading(false);
                 return;
             }
-            const res = await fetch('/api/admin/economy-stats', {
+            const res = await fetch('/api/horses/economy-stats', {
                 headers: { 'Authorization': `Bearer ${session.access_token}` },
             });
             if (res.ok) {
@@ -230,7 +245,7 @@ export default function HorsesAdmin() {
 
     const EMPTY_ABUSE_DATA = { abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } };
 
-    const loadAntiAbuseData = async(signal) => {
+    const loadAntiAbuseData = async (signal) => {
         setAbuseLoading(true);
         try {
             // BUG 3 companion: Send auth header to secured API
@@ -288,9 +303,18 @@ export default function HorsesAdmin() {
         setSettings(newSettings);
         // BUG 4 FIX: Persist settings to Supabase
         try {
-            await supabase
+            const upsertPayload = { ...newSettings, updated_at: new Date().toISOString() };
+            if (!upsertPayload.id) {
+                // If we don't have an ID, fetch the single row's ID first to update it
+                const { data } = await supabase.from('content_settings').select('id').single();
+                if (data?.id) upsertPayload.id = data.id;
+            }
+
+            const { error } = await supabase
                 .from('content_settings')
-                .upsert({ id: settings.id || 1, ...newSettings, updated_at: new Date().toISOString() });
+                .upsert(upsertPayload);
+
+            if (error) throw error;
         } catch (err) {
             console.error('Settings save error:', err);
             showNotification('Failed to save setting', 'error');

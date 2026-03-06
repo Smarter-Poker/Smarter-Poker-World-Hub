@@ -80,7 +80,7 @@ export default async function handler(req, res) {
             .select('id, name, metadata, location_city, location_state')
             .eq('page_type', 'charity')
             .eq('is_public', true)
-                .limit(100);
+            .limit(100);
 
         if (error) {
             console.error('Failed to fetch charity pages:', error);
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
                             existingGeo[locStr] = {
                                 lat: parseFloat(geoData[0].lat),
                                 lng: parseFloat(geoData[0].lon),
-                            });
+                            };
                             await supabase.from('social_pages').update({
                                 metadata: { ...page.metadata, geocoded_locations: existingGeo },
                             }).eq('id', page.id);

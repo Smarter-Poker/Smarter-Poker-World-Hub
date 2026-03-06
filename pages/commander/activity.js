@@ -80,9 +80,7 @@ export default function ActivityFeed() {
     };
   }, []);
 
-  // Commander Data Bus — sync activity feed across tabs
-  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
-  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
+  // Commander Data Bus config will be below fetchEvents
 
   const fetchEvents = async () => {
     try {
@@ -155,6 +153,10 @@ export default function ActivityFeed() {
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
+
+  // Commander Data Bus — sync activity feed across tabs
+  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
+  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
 
   const filteredEvents = events.filter(e => {
     if (filter === 'all') return true;

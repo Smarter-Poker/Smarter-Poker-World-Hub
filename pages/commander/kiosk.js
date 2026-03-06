@@ -53,6 +53,7 @@ export default function MembershipKiosk() {
   const [showNewMemberPopup, setShowNewMemberPopup] = useState(false);
   const [venueName, setVenueName] = useState('');
   const [venueId, setVenueId] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   // Join waitlist fields
   const [joinName, setJoinName] = useState('');
@@ -472,7 +473,7 @@ export default function MembershipKiosk() {
                   display: 'block'
                 }}
                 draggable={false}
-               loading="lazy" />
+                loading="lazy" />
 
               {/* Invisible Hitboxes — positioned relative to the image */}
               {/* Percentages are relative to image dimensions (829x946 after trim) */}
