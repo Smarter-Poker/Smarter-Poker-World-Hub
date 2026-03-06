@@ -150,6 +150,7 @@ function TokeCalendar({ userId }) {
             toast.success('Event added to calendar!');
             setShowAddModal(false);
             await loadEvents();
+            window.dispatchEvent(new CustomEvent('toke-calendar-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to add event');
         } finally {
@@ -164,6 +165,7 @@ function TokeCalendar({ userId }) {
             toast.success('Event deleted');
             setShowEventDetail(null);
             await loadEvents();
+            window.dispatchEvent(new CustomEvent('toke-calendar-updated'));
         } catch (err) {
             toast.error(err.message || 'Failed to delete event');
         }

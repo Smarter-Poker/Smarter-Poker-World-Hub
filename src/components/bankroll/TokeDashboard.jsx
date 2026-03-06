@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════
  */
 
-import { memo,  useState, useEffect, useMemo, useCallback } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { getTokeAnalytics } from '../../lib/bankroll/tokeSelectors';
 
@@ -93,6 +93,19 @@ function TokeDashboard({ userId, refreshTrigger }) {
     }, [userId]);
 
     useEffect(() => { load(); }, [load, refreshTrigger]);
+
+    // ── Bus listener: auto-refresh when toke data changes in other components ──
+    useEffect(() => {
+        const handleUpdate = () => load();
+        window.addEventListener('toke-data-updated', handleUpdate);
+        window.addEventListener('toke-gig-completed', handleUpdate);
+        window.addEventListener('bankroll-updated', handleUpdate);
+        return () => {
+            window.removeEventListener('toke-data-updated', handleUpdate);
+            window.removeEventListener('toke-gig-completed', handleUpdate);
+            window.removeEventListener('bankroll-updated', handleUpdate);
+        };
+    }, [load]);
 
     // ── Chart data prep ──────────────────────────────────────
     const trendData = useMemo(() => {

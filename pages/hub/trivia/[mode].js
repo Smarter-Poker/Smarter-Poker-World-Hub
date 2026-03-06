@@ -145,7 +145,7 @@ export default function TriviaModePage() {
 
                 // Check arcade diamonds
                 if (mode === 'arcade') {
-                    const diamonds = userDiamonds || (await getUserDiamonds(user?.id));
+                    const diamonds = userDiamonds || (await getUserDiamonds(currentUserId));
                     if (diamonds < 10) {
                         setError('Not enough diamonds. You need 10 diamonds to play Diamond Arcade.');
                         setGameState('error');
@@ -154,12 +154,12 @@ export default function TriviaModePage() {
                 }
 
                 // Check if daily diamonds already claimed today
-                if (mode === 'daily' && user) {
+                if (mode === 'daily' && currentUserId) {
                     const today = getTodayCST();
                     const { data: existingPlay } = await supabase
                         .from('daily_trivia_plays')
                         .select('id')
-                        .eq('user_id', user.id)
+                        .eq('user_id', currentUserId)
                         .eq('played_date', today)
                         .limit(1);
                     if (existingPlay && existingPlay.length > 0) {

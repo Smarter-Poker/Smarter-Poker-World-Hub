@@ -105,7 +105,6 @@ export default function TimeAttackPage() {
         const { data } = await supabase
             .from('trivia_scores')
             .select(`
-            .limit(50) // time attack scores
                 correct_count,
                 user_id,
                 profiles!inner(username)
