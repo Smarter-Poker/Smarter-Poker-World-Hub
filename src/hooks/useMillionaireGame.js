@@ -359,30 +359,50 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
 
         try {
             const token = getSessionToken();
+            const headers = {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            };
+
+            // 1. Save basic progress (existing)
             await fetch('/api/training/save-progress', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-                },
+                method: 'POST', headers,
                 body: JSON.stringify({
-                    userId,
-                    gameId,
-                    level,
+                    userId, gameId, level,
                     questionsAnswered: effectiveQuestionsPerLevel,
                     questionsCorrect: correctCount,
-                    accuracy,
-                    passed,
+                    accuracy, passed,
                     streak: bestStreak,
                     xpEarned: totalXP,
-                    diamondsEarned: 0, // TODO: Calculate diamond rewards
-                    timeSpentSeconds: 0, // TODO: Track time
+                    diamondsEarned: 0,
+                    timeSpentSeconds: 0,
                 }),
             });
+
+            // 2. Save detailed session (new — Phase 10)
+            await fetch('/api/training/save-session', {
+                method: 'POST', headers,
+                body: JSON.stringify({
+                    gameId,
+                    gameName: gameId,
+                    gtowScore: gtowScoring.gtowScore,
+                    totalEVLoss: gtowScoring.totalEVLoss,
+                    handsPlayed: gtowScoring.handsPlayed,
+                    mistakeCount: gtowScoring.mistakeCount,
+                    avgEVLossPerHand: gtowScoring.avgEVLossPerHand,
+                    avgEVLossPerMistake: gtowScoring.avgEVLossPerMistake,
+                    avgFrequencyDiff: gtowScoring.avgFrequencyDiff,
+                    accuracy, correctCount, bestStreak,
+                    levelPassed: passed, level,
+                    handHistory: gtowScoring.handHistory,
+                    trainerConfig,
+                }),
+            }).catch(err => console.warn('[MillionaireGame] Save session error:', err));
+
         } catch (err) {
             console.warn('[MillionaireGame] Save progress error:', err);
         }
-    }, [userId, gameId, level, correctCount, bestStreak, totalXP]);
+    }, [userId, gameId, level, correctCount, bestStreak, totalXP, gtowScoring, trainerConfig]);
 
     /**
      * Advance to next question or complete level
