@@ -703,18 +703,82 @@ export default function PokerNearMeLobby() {
           activePod={activePod}
           onPodSelect={handlePodClick}
           onSearch={handleSearch}
-          onPanelClose={handlePanelClose}
-          panelContent={panelContent}
           searchQuery={searchQuery}
           onSearchChange={handleSearchChange}
           liveData={liveData}
           gpsActive={gpsActive}
           onGpsClick={handleGpsClick}
-          showPanel={showPanel}
           citySuggestions={citySuggestions}
           onCitySelect={handleCitySelect}
           onVoiceClick={() => setShowVoiceSearch(true)}
         />
+
+
+        {/* Layer 3 — Feature Panel (page level to escape overlay z-index stacking context) */}
+        {showPanel && panelContent && (
+          <>
+            {/* Backdrop */}
+            <div
+              onClick={handlePanelClose}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 50,
+                background: 'rgba(3, 4, 8, 0.6)',
+                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+              }}
+            />
+            {/* Panel */}
+            <div
+              className="lobby-panel-page"
+              style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0,
+                maxHeight: '82vh', zIndex: 51,
+                background: 'linear-gradient(160deg, rgba(18, 24, 40, 0.97), rgba(8, 12, 22, 0.98))',
+                borderTop: '1px solid rgba(110, 231, 239, 0.15)',
+                borderRadius: '20px 20px 0 0',
+                boxShadow: '0 -8px 60px rgba(0, 0, 0, 0.5), 0 0 30px rgba(110, 231, 239, 0.04)',
+                display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                animation: 'lobby-panelSlideUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              }}
+            >
+              {/* Drag handle */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+                <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(200, 214, 229, 0.2)' }} />
+              </div>
+              {/* Header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '8px 20px 12px',
+                borderBottom: '1px solid rgba(110, 231, 239, 0.08)',
+              }}>
+                <h2 style={{
+                  fontFamily: 'var(--font-premium-display)',
+                  fontSize: 20, fontWeight: 700, margin: 0,
+                  background: 'linear-gradient(90deg, #e0e8f0, #6ee7ef)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}>{panelContent.title}</h2>
+                <button
+                  onClick={handlePanelClose}
+                  aria-label="Close panel"
+                  style={{
+                    background: 'none', border: 'none',
+                    color: 'rgba(200, 214, 229, 0.5)',
+                    cursor: 'pointer', padding: 4, borderRadius: 8,
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+              {/* Content */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 24px', WebkitOverflowScrolling: 'touch' }}>
+                {panelContent.component}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Voice Search Modal */}
         {showVoiceSearch && (
