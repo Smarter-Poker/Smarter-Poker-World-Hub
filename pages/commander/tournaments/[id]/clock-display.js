@@ -195,12 +195,13 @@ export default function ClockDisplay() {
   }, []);
 
   // Fetch floor-view data
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!id) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/tournaments/${id}/floor-view`, {
         headers: { 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) {
@@ -243,14 +244,15 @@ export default function ClockDisplay() {
           fetchPreset(json.data.tournament.clock_preset_id);
         }
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
   }, [id, preset, fetchPreset]);
 
   // Initial fetch and polling fallback
   useEffect(() => {
-    fetchData();
-    const poll = setInterval(fetchData, 3000);
-    return () => clearInterval(poll);
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    const poll = setInterval(() => fetchData(controller.signal), 3000);
+    return () => { controller.abort(); clearInterval(poll); };
   }, [fetchData]);
 
   // Instant Real-Time Synchronization

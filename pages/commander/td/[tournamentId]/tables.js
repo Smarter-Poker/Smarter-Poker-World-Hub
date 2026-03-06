@@ -68,13 +68,14 @@ export default function TDTablesMap() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
 
-  const fetchFloor = useCallback(async () => {
+  const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
       const headers = { 'x-staff-session': getToken() };
+      const fetchOpts = signal ? { headers, signal } : { headers };
       const [floorRes, breakRes] = await Promise.all([
-        fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, { headers }),
-        fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, { headers }).catch(() => null)
+        fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, fetchOpts),
+        fetch(`/api/commander/tournaments/${tournamentId}/auto-break`, fetchOpts).catch(() => null)
       ]);
       const json = await floorRes.json();
       if (json.success) setFloor(json.data);
@@ -82,15 +83,16 @@ export default function TDTablesMap() {
         const breakJson = await breakRes.json();
         if (breakJson.success) setAutoBreak(breakJson.data);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
 
   useTournamentRealtime(tournamentId, fetchFloor);
   useEffect(() => {
-    fetchFloor();
-    const interval = setInterval(fetchFloor, 30000); // 30s fallback safety poll
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    fetchFloor(controller.signal);
+    const interval = setInterval(() => fetchFloor(controller.signal), 30000); // 30s fallback safety poll
+    return () => { controller.abort(); clearInterval(interval); };
   }, [fetchFloor]);
 
   // ── Seat Change Card — matches tournament buy-in receipt format ──

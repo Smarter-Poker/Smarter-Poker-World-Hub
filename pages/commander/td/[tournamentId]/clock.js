@@ -38,11 +38,12 @@ export default function TDClock() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_staff') || '' : '';
 
-  const fetchFloor = useCallback(async () => {
+  const fetchFloor = useCallback(async (signal) => {
     if (!tournamentId) return;
     try {
       const res = await fetch(`/api/commander/tournaments/${tournamentId}/floor-view`, {
-        headers: { 'x-staff-session': getToken() }
+        headers: { 'x-staff-session': getToken() },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) {
@@ -50,12 +51,12 @@ export default function TDClock() {
         const cs = json.data.clock?.clock_state;
         if (cs?.remaining_seconds !== undefined) setClockSeconds(cs.remaining_seconds);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLoading(false); }
   }, [tournamentId]);
 
   useTournamentRealtime(tournamentId, fetchFloor);
-  useEffect(() => { fetchFloor(); const i = setInterval(fetchFloor, 30000); return () => clearInterval(i); }, [fetchFloor]); // 30s fallback
+  useEffect(() => { const controller = new AbortController(); fetchFloor(controller.signal); const i = setInterval(() => fetchFloor(controller.signal), 30000); return () => { controller.abort(); clearInterval(i); }; }, [fetchFloor]); // 30s fallback
 
   // Client-side countdown — only restart interval when clock status changes (not on every tick)
   useEffect(() => {

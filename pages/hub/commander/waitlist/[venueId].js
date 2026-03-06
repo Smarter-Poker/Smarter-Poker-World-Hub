@@ -37,11 +37,12 @@ export default function PlayerWaitlistPage() {
 
   
   // fetchData declared first — must precede useEffect/useCommanderSync that reference it
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
+      const fetchOpts = signal ? { signal } : {};
       const [publicRes, waitlistRes] = await Promise.all([
-        fetch(`/api/public/venue/${venueId}`),
-        fetch(`/api/commander/waitlist/venue/${venueId}`)
+        fetch(`/api/public/venue/${venueId}`, fetchOpts),
+        fetch(`/api/commander/waitlist/venue/${venueId}`, fetchOpts)
       ]);
 
       const [publicData, waitlistData] = await Promise.all([
@@ -89,7 +90,8 @@ export default function PlayerWaitlistPage() {
       const token = getAuthToken();
       if (token) {
         const myRes = await fetch('/api/commander/waitlist/my', {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          ...(signal ? { signal } : {}),
         });
         const myData = await myRes.json();
         if (myData.success) {
@@ -104,7 +106,7 @@ export default function PlayerWaitlistPage() {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch data:', err);
+      if (err.name !== 'AbortError') console.error('Failed to fetch data:', err);
     } finally {
       setLoading(false);
     }
@@ -112,9 +114,10 @@ export default function PlayerWaitlistPage() {
 
   useEffect(() => {
     if (venueId) {
-      fetchData();
-      const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-      return () => clearInterval(interval);
+      const controller = new AbortController();
+      fetchData(controller.signal);
+      const interval = setInterval(() => fetchData(controller.signal), 30000); // fallback — real-time sync handles instant updates
+      return () => { controller.abort(); clearInterval(interval); };
     }
   }, [venueId]);
 
