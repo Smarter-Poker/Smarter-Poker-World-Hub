@@ -1,6 +1,6 @@
 /**
  * 🛡️ ANTI-ABUSE ADMIN API
- * GET /api/admin/anti-abuse — Returns abuse log, audit log, alerts, and economy data
+ * GET /api/horses/anti-abuse — Returns abuse log, audit log, alerts, and economy data
  * Used by the /horses Anti-Abuse dashboard tab
  */
 import { createClient } from '@supabase/supabase-js';
@@ -100,15 +100,28 @@ export default async function handler(req, res) {
 
         // ── RECENT ALERTS (abuse events in last 24h) ──
         if (section === 'all' || section === 'alerts') {
-            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).getTime();
 
-            const { data: recentAbuse } = await supabaseAdmin
-                .from('signup_abuse_log')
-                .select('*')
-                .gt('last_signup_at', twentyFourHoursAgo)
-                .order('last_signup_at', { ascending: false });
+            // Optimization: reuse abuse log data if already fetched, avoid duplicate DB query
+            const sourceData = result.abuse?.log || [];
+            let alertSource = sourceData;
 
-            const alerts = (recentAbuse || [])
+            if (sourceData.length === 0) {
+                // Only query DB if abuse section wasn't already fetched
+                const { data: recentAbuse } = await supabaseAdmin
+                    .from('signup_abuse_log')
+                    .select('*')
+                    .gt('last_signup_at', new Date(twentyFourHoursAgo).toISOString())
+                    .order('last_signup_at', { ascending: false });
+                alertSource = recentAbuse || [];
+            } else {
+                // Filter already-fetched data by 24h window
+                alertSource = sourceData.filter(a =>
+                    a.last_signup_at && new Date(a.last_signup_at).getTime() > twentyFourHoursAgo
+                );
+            }
+
+            const alerts = alertSource
                 .filter(a => a.abuse_flags && a.abuse_flags.length > 0)
                 .map(a => ({
                     id: a.id,

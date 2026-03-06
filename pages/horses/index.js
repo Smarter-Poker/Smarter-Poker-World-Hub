@@ -191,6 +191,8 @@ export default function HorsesAdmin() {
         setTimeout(() => setNotification(null), 3000);
     };
 
+    const EMPTY_ABUSE_DATA = { abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } };
+
     const loadAntiAbuseData = async () => {
         setAbuseLoading(true);
         try {
@@ -201,17 +203,17 @@ export default function HorsesAdmin() {
                     setAbuseData(data);
                 } else {
                     showNotification('Failed to load anti-abuse data', 'error');
-                    setAbuseData({ abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } });
+                    setAbuseData(EMPTY_ABUSE_DATA);
                 }
             } else {
                 const errData = await res.json().catch(() => ({}));
                 showNotification(errData.error || `Error ${res.status}: Failed to load data`, 'error');
-                setAbuseData({ abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } });
+                setAbuseData(EMPTY_ABUSE_DATA);
             }
         } catch (err) {
             console.error('Failed to load anti-abuse data:', err);
             showNotification('Network error loading anti-abuse data', 'error');
-            setAbuseData({ abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } });
+            setAbuseData(EMPTY_ABUSE_DATA);
         } finally {
             setAbuseLoading(false);
         }

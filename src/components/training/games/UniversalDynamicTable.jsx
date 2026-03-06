@@ -452,6 +452,74 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// COUNTDOWN TIMER — GTO Wizard-style time pressure ring
+// ═══════════════════════════════════════════════════════════════════════════
+
+function CountdownTimer({ seconds = 15, questionNumber, showFeedback, onTimeout, active = true }) {
+    const [timeLeft, setTimeLeft] = React.useState(seconds);
+    const radius = 18;
+    const circumference = 2 * Math.PI * radius;
+
+    // Reset timer on new question
+    React.useEffect(() => {
+        setTimeLeft(seconds);
+    }, [questionNumber, seconds]);
+
+    // Countdown tick
+    React.useEffect(() => {
+        if (!active || showFeedback || timeLeft <= 0) return;
+        const timer = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    if (onTimeout) onTimeout();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [active, showFeedback, timeLeft, onTimeout]);
+
+    if (!active || showFeedback) return null;
+
+    const progress = timeLeft / seconds;
+    const dashOffset = circumference * (1 - progress);
+    const color = timeLeft > 10 ? '#22c55e' : timeLeft > 5 ? '#fbbf24' : '#ef4444';
+    const pulseClass = timeLeft <= 5 ? { animation: 'pulse 0.5s infinite' } : {};
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', ...pulseClass }}
+        >
+            <svg width={44} height={44} viewBox="0 0 44 44">
+                {/* Background ring */}
+                <circle cx="22" cy="22" r={radius} fill="none"
+                    stroke="rgba(255,255,255,0.08)" strokeWidth="3" />
+                {/* Progress ring */}
+                <circle cx="22" cy="22" r={radius} fill="none"
+                    stroke={color} strokeWidth="3"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    strokeLinecap="round"
+                    transform="rotate(-90 22 22)"
+                    style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.3s' }}
+                />
+                {/* Timer text */}
+                <text x="22" y="22" textAnchor="middle" dominantBaseline="central"
+                    fill={color} fontSize="13" fontWeight="bold"
+                    fontFamily="'Orbitron', monospace"
+                >
+                    {timeLeft}
+                </text>
+            </svg>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // DETECT ACTION TYPE — Parse option text to determine poker action type
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -461,7 +529,7 @@ function detectActionType(text) {
     if (/check/i.test(lower)) return 'check';
     if (/call/i.test(lower)) return 'call';
     if (/raise|bet|3[- ]?bet|4[- ]?bet|all[- ]?in|shove|push|jam/i.test(lower)) return 'raise';
-    return 'neutral'; // Fallback for non-poker actions
+    return 'neutral';
 }
 
 // Action-type color mapping (GTO Wizard style)
@@ -1313,7 +1381,20 @@ function UniversalDynamicTable({
             </div>
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
-            <div style={styles.actionBar}>
+            <div style={{ ...styles.actionBar, position: 'relative' }}>
+                {/* Countdown Timer */}
+                <CountdownTimer
+                    seconds={15}
+                    questionNumber={questionNumber}
+                    showFeedback={showFeedback}
+                    onTimeout={() => {
+                        // Auto-select first option (fold) on timeout
+                        const firstOpt = options[0];
+                        if (firstOpt && !showFeedback) {
+                            handleAnswer(firstOpt.id || 'a');
+                        }
+                    }}
+                />
                 {options.slice(0, 4).map((option, index) => {
                     const optionId = option.id || String.fromCharCode(97 + index);
                     const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');
