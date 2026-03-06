@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 
-// Shared color theme (Facebook-style light)
+// Shared color theme (Facebook Dark)
 const C = {
     bg: '#18191A', card: '#242526', text: '#E4E6EB', textSec: '#B0B3B8',
     border: '#3A3B3C', blue: '#2D88FF', blueHover: '#1A7AFF', green: '#42B72A', red: '#FA383E',
@@ -91,7 +91,7 @@ const CATEGORY_LABELS = { poker_room: 'Poker Room', casino: 'Casino', card_club:
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
 
-export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive }) {
+export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated, onGoLive }) {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('posts');
     const [posts, setPosts] = useState([]);
@@ -566,7 +566,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
         } catch (e) { console.error('Pin error:', e); }
     };
 
-    const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' };
+    const inputSt = { width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' };
     const labelSt = { display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 };
     const btnPrimary = { padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
     const btnSec = { padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C', color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' };
@@ -645,7 +645,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 </div>
 
                 {/* ═══ DRAFT BANNER with Setup Completion Tracker ═══ */}
-                {isDraft && (
+                {isDraft && !showPreview && (
                     <div style={{
                         padding: '16px', background: 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.06) 100%)',
                         borderBottom: '2px solid rgba(245,158,11,0.3)'
@@ -701,9 +701,10 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                         padding: '8px 16px', borderRadius: 8, border: 'none',
                         background: editingPage ? C.blue : '#3A3B3C',
                         color: editingPage ? '#fff' : C.text,
-                        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                        display: showPreview ? 'none' : undefined
                     }}>Edit Page</button>
-                    {onGoLive && <button onClick={onGoLive} style={{
+                    {onGoLive && !showPreview && <button onClick={onGoLive} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3A3B3C',
                         color: '#E53935', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 6
@@ -734,43 +735,43 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
             </div>
 
             {/* Edit Page Panel */}
-            {editingPage && (
+            {editingPage && !showPreview && (
                 <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 }}>
                     <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: C.text }}>Edit Page Info</h3>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Name</label>
                     <input value={editName} onChange={e => setEditName(e.target.value)}
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Description</label>
                     <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={3}
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, resize: 'vertical', marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, resize: 'vertical', marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                     <div style={{ display: 'flex', gap: 10 }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Website</label>
                             <input value={editWebsite} onChange={e => setEditWebsite(e.target.value)} placeholder="https://..."
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Phone</label>
                             <input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="(555) 555-5555"
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                         </div>
                     </div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4, marginTop: 10 }}>Profile Image URL</label>
                     <input value={editAvatarUrl} onChange={e => setEditAvatarUrl(e.target.value)} placeholder="https://your-image-url.com/logo.png"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>Street Address</label>
                     <input value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="123 Main St"
-                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, marginBottom: 10, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                     <div style={{ display: 'flex', gap: 10 }}>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>City</label>
                             <input value={editCity} onChange={e => setEditCity(e.target.value)} placeholder="Las Vegas"
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                         </div>
                         <div style={{ flex: 1 }}>
                             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 4 }}>State</label>
                             <input value={editState} onChange={e => setEditState(e.target.value)} placeholder="NV"
-                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                                style={{ width: '100%', padding: '8px 12px', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', background: '#18191A', color: '#E4E6EB' }} />
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
@@ -786,8 +787,8 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
             {/* Posts Tab */}
             {activeTab === 'posts' && (
                 <>
-                    {/* Post Composer */}
-                    <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 }}>
+                    {/* Post Composer — hidden in preview mode */}
+                    {!showPreview && <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                             <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
                                 {(page.name || 'C')[0].toUpperCase()}
@@ -847,7 +848,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                                 opacity: (posting || postUploading || (!postContent.trim() && postMedia.length === 0)) ? 0.5 : 1
                             }}>{posting ? 'Posting...' : 'Post'}</button>
                         </div>
-                    </div>
+                    </div>}
 
                     {/* Posts Feed */}
                     {loadingPosts ? (
@@ -877,8 +878,10 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                                             </div>
                                             <div style={{ display: 'flex', gap: 6 }}>
                                                 {post.is_pinned && <span style={{ fontSize: 10, background: '#FFB800', color: '#000', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>PINNED</span>}
-                                                <button onClick={() => handleTogglePin(post)} title={post.is_pinned ? 'Unpin' : 'Pin'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 13, fontWeight: 600 }}>{post.is_pinned ? 'Unpin' : 'Pin'}</button>
-                                                <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>x</button>
+                                                {!showPreview && <>
+                                                    <button onClick={() => handleTogglePin(post)} title={post.is_pinned ? 'Unpin' : 'Pin'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 13, fontWeight: 600 }}>{post.is_pinned ? 'Unpin' : 'Pin'}</button>
+                                                    <button onClick={() => handleDeletePost(post.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSec, fontSize: 14 }}>x</button>
+                                                </>}
                                             </div>
                                         </div>
                                         <p style={{ margin: 0, fontSize: 15, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{post.content}</p>

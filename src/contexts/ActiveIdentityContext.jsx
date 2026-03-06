@@ -141,7 +141,7 @@ export function ActiveIdentityProvider({ children }) {
             console.warn('[ActiveIdentity] No club page available to switch to');
             return;
         }
-        // 500ms debounce
+        // 100ms debounce to prevent rapid switching race conditions
         if (switchDebounceRef.current) clearTimeout(switchDebounceRef.current);
         switchDebounceRef.current = setTimeout(() => {
             console.log('[ActiveIdentity] Switching to club:', page.name);
