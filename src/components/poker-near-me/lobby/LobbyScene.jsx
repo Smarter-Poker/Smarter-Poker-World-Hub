@@ -183,4 +183,5 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
         </Canvas>
       </R3FErrorBoundary>
     </div>
-  (ý
+  );
+}
