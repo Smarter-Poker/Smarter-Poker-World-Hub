@@ -84,12 +84,32 @@ const EXPENSE_CATEGORIES = [
 // ── Helper: detect harmless AbortError (browser fetch cancellation) ──
 const isAbortError = (err) => err?.name === 'AbortError' || (err?.message || '').includes('aborted');
 
-function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {} }) {
+function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, tokePrefs = {} }) {
     const [activeGig, setActiveGig] = useState(null);
     const [completedGigs, setCompletedGigs] = useState([]);
     const [locations, setLocations] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState(null);
+
+    // ── Bulletproof userId: prop → localStorage Supabase key → custom auth key ──
+    const [localUserId, setLocalUserId] = useState(null);
+    useEffect(() => {
+        if (userIdProp) { setLocalUserId(userIdProp); return; }
+        // Fallback: read from localStorage
+        try {
+            const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+            if (storageKey) {
+                const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
+                const uid = stored?.user?.id;
+                if (uid) { setLocalUserId(uid); return; }
+            }
+        } catch (e) { /* ignore */ }
+        try {
+            const custom = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+            if (custom?.user?.id) setLocalUserId(custom.user.id);
+        } catch (e) { /* ignore */ }
+    }, [userIdProp]);
+    const userId = userIdProp || localUserId;
 
     // ── Hardening: mounted ref prevents state updates after unmount ──
     const isMountedRef = useRef(true);
