@@ -11,6 +11,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+/** Escape SQL LIKE wildcards */
+function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 // Format phone to 555-555-5555
 function formatPhone(raw) {
@@ -76,7 +78,7 @@ export default async function handler(req, res) {
             .limit(100)
 
       if (searchQuery.length >= 2) {
-        staffQ = staffQ.ilike('display_name', `%${searchQuery}%`);
+        staffQ = staffQ.ilike('display_name', `%${escapeIlike(searchQuery)}%`);
       }
 
       const { data: staffMembers } = await staffQ.order('role', { ascending: true });
@@ -188,7 +190,7 @@ export default async function handler(req, res) {
 
       if (isPhone) {
         const digits = searchQuery.replace(/\D/g, '');
-        query = query.ilike('phone', `%${digits}%`);
+        query = query.ilike('phone', `%${escapeIlike(digits)}%`);
       } else {
         // BUG #270 FIX: Sanitize to prevent PostgREST filter injection
         const safeTerm = searchQuery.replace(/[,().]/g, ' ').trim();
@@ -244,9 +246,9 @@ export default async function handler(req, res) {
         const isPhone = /^\d+$/.test(searchQuery.replace(/[\s\-\(\)]/g, ''));
         if (isPhone) {
           const digits = searchQuery.replace(/\D/g, '');
-          wlQuery = wlQuery.ilike('player_phone', `%${digits}%`);
+          wlQuery = wlQuery.ilike('player_phone', `%${escapeIlike(digits)}%`);
         } else {
-          wlQuery = wlQuery.ilike('player_name', `%${searchQuery}%`);
+          wlQuery = wlQuery.ilike('player_name', `%${escapeIlike(searchQuery)}%`);
         }
 
         const { data: wlMatches } = await wlQuery.order('created_at', { ascending: false });

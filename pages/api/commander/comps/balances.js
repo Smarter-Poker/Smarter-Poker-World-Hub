@@ -253,12 +253,19 @@ async function awardComp(req, res, staffAuth) {
       updateFields.comp_lifetime_redeemed = (member.comp_lifetime_redeemed || 0) + Math.abs(parsedAmount);
     }
 
-    const { error: updateErr } = await supabase
+    // Optimistic locking: ensure balance hasn't changed since we read it
+    const { data: updated, error: updateErr } = await supabase
       .from('commander_members')
       .update(updateFields)
-      .eq('id', member.id);
+      .eq('id', member.id)
+      .eq('comp_balance', member.comp_balance || 0)
+      .select('id')
+      .maybeSingle();
 
     if (updateErr) throw updateErr;
+    if (!updated) {
+      return res.status(409).json({ success: false, error: 'Balance changed concurrently — please retry' });
+    }
 
     const { error: logErr3 } = await supabase.from('commander_member_comp_log').insert({
       venue_id: member.venue_id, member_id: member.id, amount: parsedAmount,
@@ -555,12 +562,19 @@ async function voidComp(req, res, staffAuth) {
 
     // 6. Update the member record
     if (Object.keys(updateFields).length > 0) {
-      const { error: updateErr } = await supabase
+      // Optimistic locking: ensure balance hasn't changed since we read it
+      const { data: updated, error: updateErr } = await supabase
         .from('commander_members')
         .update(updateFields)
-        .eq('id', member.id);
+        .eq('id', member.id)
+        .eq('comp_balance', member.comp_balance || 0)
+        .select('id')
+        .maybeSingle();
 
       if (updateErr) throw updateErr;
+      if (!updated) {
+        return res.status(409).json({ success: false, error: 'Balance changed concurrently — please retry' });
+      }
     }
 
     // 7. Log the void with full audit trail

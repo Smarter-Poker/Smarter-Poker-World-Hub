@@ -10,6 +10,7 @@
  * No auth required — tablet is unauthenticated.
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,6 +18,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -34,8 +37,7 @@ export default async function handler(req, res) {
         let tableQuery = supabase
             .from('commander_tables')
             .select('id, venue_id, table_number, table_name, max_seats, status, mode, game_type, stakes')
-            .eq('table_number', tableNum)
-                .limit(100)
+            .eq('table_number', tableNum);
 
         if (venue_id) {
             tableQuery = tableQuery.eq('venue_id', venue_id);
@@ -70,12 +72,10 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('table_number', tableNum)
                 .eq('status', 'active')
-                .order('seat_number', { ascending: true })
-                    .limit(100);
+                .order('seat_number', { ascending: true });
 
             if (resolvedVenueId) {
-                sessionsQuery = sessionsQuery.eq('venue_id', resolvedVenueId)
-                    .limit(100);
+                sessionsQuery = sessionsQuery.eq('venue_id', resolvedVenueId);
             }
 
             const { data, error } = await sessionsQuery;
@@ -87,12 +87,10 @@ export default async function handler(req, res) {
                         .select('*')
                         .eq('table_number', tableNum)
                         .eq('status', 'active')
-                        .order('seat_number', { ascending: true })
-                            .limit(100);
+                        .order('seat_number', { ascending: true });
 
                     if (resolvedVenueId) {
-                        fallbackQuery = fallbackQuery.eq('venue_id', resolvedVenueId)
-                            .limit(100);
+                        fallbackQuery = fallbackQuery.eq('venue_id', resolvedVenueId);
                     }
 
                     const { data: fbData } = await fallbackQuery;
@@ -264,8 +262,7 @@ export default async function handler(req, res) {
                     .eq('tournament_id', tableData.tournament_id)
                     .eq('table_number', tableNum)
                     .in('status', ['active', 'seated'])
-                    .order('seat_number', { ascending: true })
-                        .limit(100);
+                    .order('seat_number', { ascending: true });
 
                 tournamentPlayers = (tEntries || []).map(e => ({
                     session_id: `tournament-${e.id}`,
@@ -315,6 +312,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Tablet data error:', err);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

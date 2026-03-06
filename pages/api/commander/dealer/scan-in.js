@@ -21,6 +21,8 @@ const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+/** Escape SQL LIKE wildcards */
+function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 export default async function handler(req, res) {
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {

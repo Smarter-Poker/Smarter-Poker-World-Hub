@@ -9,6 +9,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+/** Escape SQL LIKE wildcards */
+function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 // Haversine formula for distance calculation (km)
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -59,7 +61,7 @@ export default async function handler(req, res) {
     }
 
     if (city) {
-      query = query.ilike('city', `%${city}%`);
+      query = query.ilike('city', `%${escapeIlike(city)}%`);
     }
 
     const { data, error } = await query;

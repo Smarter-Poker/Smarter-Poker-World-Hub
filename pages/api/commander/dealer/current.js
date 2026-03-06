@@ -8,6 +8,7 @@
  * No auth required — tablet is unauthenticated.
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,6 +16,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
@@ -77,6 +80,6 @@ export default async function handler(req, res) {
         });
     } catch (err) {
         console.error('Get current dealer error:', err);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

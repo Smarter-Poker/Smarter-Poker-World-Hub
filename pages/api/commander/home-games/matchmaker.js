@@ -14,6 +14,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+/** Escape SQL LIKE wildcards */
+function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 export default async function handler(req, res) {
   if (!applyRateLimit(req, res, LIMITS.ai)) return;
@@ -164,7 +166,7 @@ async function fetchAvailableGroups({ city, state, game_type }) {
     .order('member_count', { ascending: false })
     .limit(30);
 
-  if (city) query = query.ilike('city', `%${city}%`);
+  if (city) query = query.ilike('city', `%${escapeIlike(city)}%`);
   if (state) query = query.eq('state', state);
   if (game_type) query = query.eq('default_game_type', game_type);
 

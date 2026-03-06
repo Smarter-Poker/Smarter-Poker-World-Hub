@@ -9,6 +9,7 @@
  * Response: { success: true, data: { "1": [...sessions], "2": [...sessions] } }
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,14 +17,16 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+    if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     if (req.method !== 'GET') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const { tables, venue_id } = req.query;
 
-    if (!tables) {
-        return res.status(400).json({ success: false, error: 'tables parameter is required (comma-separated)' });
+    if (!tables || !venue_id) {
+        return res.status(400).json({ success: false, error: 'tables and venue_id parameters are required' });
     }
 
     const tableNumbers = tables.split(',').map(t => parseInt(t.trim())).filter(n => !isNaN(n));
@@ -39,12 +42,9 @@ export default async function handler(req, res) {
             .in('table_number', tableNumbers)
             .in('status', ['active', 'paused', 'meal_break'])
             .order('seat_number', { ascending: true })
-                .limit(100);
+            .eq('venue_id', venue_id);
 
-        if (venue_id) {
-            query = query.eq('venue_id', parseInt(venue_id))
-                .limit(100);
-        }
+
 
         const { data: sessions, error } = await query;
         if (error) throw error;
@@ -58,8 +58,7 @@ export default async function handler(req, res) {
             const { data: members } = await supabase
                 .from('commander_members')
                 .select('id, time_balance_minutes, membership_tier, membership_status, membership_expires')
-                .in('id', memberIds)
-                    .limit(100)
+                .in('id', memberIds);
             if (members) {
                 memberMap = Object.fromEntries(members.map(m => [m.id, m]));
             }
@@ -122,6 +121,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, data: result });
     } catch (err) {
         console.error('Batch dealer sessions error:', err);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }

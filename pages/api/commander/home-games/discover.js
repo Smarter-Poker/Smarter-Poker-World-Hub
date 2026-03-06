@@ -9,6 +9,8 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+/** Escape SQL LIKE wildcards */
+function escapeIlike(s) { return (s || '').replace(/[%_\\]/g, c => '\\' + c); }
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -106,7 +108,7 @@ async function discoverGroups(req, res, options) {
 
   // Location filters
   if (city) {
-    query = query.ilike('city', `%${city}%`);
+    query = query.ilike('city', `%${escapeIlike(city)}%`);
   }
 
   if (state) {
