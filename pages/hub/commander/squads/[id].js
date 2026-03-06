@@ -95,14 +95,16 @@ export default function SquadDetailPage() {
     }
 
     if (id) {
-      fetchSquad();
+      const _c = new AbortController();
+      fetchSquad(_c.signal);
+      return () => _c.abort();
     }
   }, [id, router]);
 
-  async function fetchSquad() {
+  async function fetchSquad(signal) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/squads/${id}`);
+      const res = await fetch(`/api/commander/squads/${id}`, signal ? { signal } : {});
       const data = await res.json();
 
       if (data.success) {

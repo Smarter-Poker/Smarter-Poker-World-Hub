@@ -43,7 +43,7 @@ export default function ManageSocialPage() {
         setUser(u);
     }, [router]);
 
-    const fetchPage = useCallback(async () => {
+    const fetchPage = useCallback(async (signal) => {
         if (!pageId || !user) return;
         setLoading(true);
         try {
@@ -75,7 +75,7 @@ export default function ManageSocialPage() {
         setLoading(false);
     }, [pageId, user, router]);
 
-    useEffect(() => { fetchPage(); }, [fetchPage]);
+    useEffect(() => { const _c = new AbortController(); fetchPage(_c.signal); return () => _c.abort(); }, [fetchPage]);
 
     useEffect(() => {
         if (!page) return;

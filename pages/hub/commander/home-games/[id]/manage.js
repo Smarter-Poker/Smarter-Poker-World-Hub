@@ -231,18 +231,19 @@ export default function ManageHomeGamePage() {
   const [eventRsvps, setEventRsvps] = useState([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!id) return;
 
     try {
       const token = localStorage.getItem('smarter-poker-auth');
       const headers = { Authorization: `Bearer ${token}` };
 
+      const fo = signal ? { headers, signal } : { headers };
       const [groupRes, membersRes, eventsRes, escrowRes] = await Promise.all([
-        fetch(`/api/commander/home-games/groups/${id}`, { headers }),
-        fetch(`/api/commander/home-games/groups/${id}/members`, { headers }),
-        fetch(`/api/commander/home-games/events?group_id=${id}`, { headers }),
-        fetch(`/api/commander/escrow?group_id=${id}`, { headers }).catch(() => ({ ok: false }))
+        fetch(`/api/commander/home-games/groups/${id}`, fo),
+        fetch(`/api/commander/home-games/groups/${id}/members`, fo),
+        fetch(`/api/commander/home-games/events?group_id=${id}`, fo),
+        fetch(`/api/commander/escrow?group_id=${id}`, fo).catch(() => ({ ok: false }))
       ]);
 
       const groupData = await groupRes.json();
@@ -279,7 +280,9 @@ export default function ManageHomeGamePage() {
       router.push('/auth/login');
       return;
     }
-    fetchData();
+    const _c = new AbortController();
+    fetchData(_c.signal);
+    return () => _c.abort();
   }, [fetchData, router]);
 
   async function handleApproveMember(member) {

@@ -79,6 +79,7 @@ export default function MembershipKiosk() {
 
   // Load venue info from staff session
   useEffect(() => {
+    const _ctrl = new AbortController();
     try {
       const staffStr = localStorage.getItem('commander_staff');
       if (staffStr) {
@@ -88,6 +89,7 @@ export default function MembershipKiosk() {
         setStaffHeader(staffStr);
       }
     } catch { /* */ }
+    return () => _ctrl.abort();
   }, []);
 
   // Keep screen awake — this is a player-facing kiosk

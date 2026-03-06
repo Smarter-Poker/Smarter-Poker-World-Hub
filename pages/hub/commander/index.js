@@ -77,6 +77,7 @@ export default function CommanderHub() {
   }
 
   useEffect(() => {
+    const _ctrl = new AbortController();
     fetchVenues();
     fetchMyWaitlists();
     fetchLiveGames();
@@ -99,6 +100,7 @@ export default function CommanderHub() {
         }
       } catch (e) { setHasClubPage(false); }
     })();
+    return () => _ctrl.abort();
   }, [userLocation]);
 
   async function handleLeaveWaitlist(entryId) {
