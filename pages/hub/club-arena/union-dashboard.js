@@ -167,6 +167,14 @@ export default function UnionDashboard() {
             }, (payload) => {
                 setDashboard(prev => prev ? { ...prev, union: { ...prev.union, ...payload.new } } : prev);
             })
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'union_clubs',
+                filter: `union_id=eq.${unionIdParam}`,
+            }, () => { loadDashboard(); })
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'union_admins',
+                filter: `union_id=eq.${unionIdParam}`,
+            }, () => { loadDashboard(); })
             .subscribe();
 
         // Silent poll every 30s — does NOT set isLoading to avoid loading flash

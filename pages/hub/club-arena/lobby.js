@@ -146,6 +146,12 @@ export default function ClubLobby() {
                     setTables(prev => prev.filter(t => t.id !== payload.old.id));
                 }
             })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'club_tournaments',
+                filter: `club_id=eq.${club.id}`,
+            }, () => { loadData(); })
             .subscribe();
 
         const _c = new AbortController();

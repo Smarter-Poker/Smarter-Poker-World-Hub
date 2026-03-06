@@ -226,9 +226,25 @@ export default function Cashier() {
             })
             .subscribe();
 
+        // Subscribe to chip_transactions (live transaction history)
+        const txnChannel = supabase
+            .channel(`cashier-txns-${club.id}-${user.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'chip_transactions',
+                filter: `club_id=eq.${club.id}`,
+            }, (payload) => {
+                if (payload.new?.user_id === user.id) {
+                    loadData();
+                }
+            })
+            .subscribe();
+
         return () => {
             supabase.removeChannel(memberChannel);
             supabase.removeChannel(cashoutChannel);
+            supabase.removeChannel(txnChannel);
         };
     }, [club?.id, user?.id]);
 
