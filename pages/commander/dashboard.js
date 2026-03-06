@@ -145,6 +145,8 @@ export default function CommanderDashboard() {
   const [currentTier, setCurrentTier] = useState('home_game');
   const [showUpgradeModal, setShowUpgradeModal] = useState(null);
   const [hardStop, setHardStop] = useState(null); // { enabled, time, minutesLeft }
+  const [clubPageStatus, setClubPageStatus] = useState(null); // null = loading, 'none' | 'draft' | 'published'
+  const [creatingClubPage, setCreatingClubPage] = useState(false);
 
   // Auto-open card from ?card= query param (for back navigation)
   useEffect(() => {
@@ -257,6 +259,73 @@ export default function CommanderDashboard() {
     const interval = setInterval(fetchHardStop, 60000); // refresh every minute (fallback)
     return () => clearInterval(interval);
   }, [fetchHardStop]);
+
+  // ── Club Page Status Detection ──
+  useEffect(() => {
+    if (!staff?.venue_id) return;
+    const checkClubPage = async () => {
+      try {
+        const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);
+        const json = await res.json();
+        if (json.success && json.data && json.data.length > 0) {
+          const page = json.data[0];
+          setClubPageStatus(page.is_public ? 'published' : 'draft');
+        } else {
+          // Also try by owner_id
+          const authData = localStorage.getItem('smarter-poker-auth');
+          if (authData) {
+            const userId = JSON.parse(authData)?.user?.id;
+            if (userId) {
+              const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
+              const json2 = await res2.json();
+              if (json2.success && json2.data && json2.data.length > 0) {
+                setClubPageStatus(json2.data[0].is_public ? 'published' : 'draft');
+              } else {
+                setClubPageStatus('none');
+              }
+            } else {
+              setClubPageStatus('none');
+            }
+          } else {
+            setClubPageStatus('none');
+          }
+        }
+      } catch (e) { setClubPageStatus('none'); }
+    };
+    checkClubPage();
+  }, [staff?.venue_id]);
+
+  // ── Feature 4: Registration Failure Recovery — Create Club Page manually ──
+  const handleCreateClubPage = async () => {
+    if (!staff?.venue_id) return;
+    setCreatingClubPage(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { alert('Please sign in to create a page.'); setCreatingClubPage(false); return; }
+      const venueName = staff.venue_name || 'My Poker Room';
+      const res = await fetch('/api/social/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          name: venueName,
+          page_type: 'club',
+          category: 'poker',
+          linked_venue_id: String(staff.venue_id),
+          is_public: false,
+          metadata: { source: 'commander_manual', needs_setup: true }
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setClubPageStatus('draft');
+        // Navigate to edit the page
+        window.location.href = `/hub/social-media?viewPage=${json.data.id}`;
+      } else {
+        alert('Failed to create page: ' + (json.error || 'Unknown error'));
+      }
+    } catch (e) { alert('Error: ' + e.message); }
+    setCreatingClubPage(false);
+  };
 
   // Unified Real-Time Sync via Singleton WebSocket
   useCommanderSync(staff?.venue_id || null, fetchHardStop, { entities: ['settings'] });
@@ -574,6 +643,54 @@ export default function CommanderDashboard() {
               }}>
                 Hard Stop in {hardStop.minutesLeft} min — All games close at {hardStop.timeFormatted}
               </span>
+            </div>
+          )}
+
+          {/* ── Club Page CTA Banner ── */}
+          {!activeCard && (clubPageStatus === 'none' || clubPageStatus === 'draft') && (
+            <div style={{
+              margin: '0 20px 0', padding: '14px 20px',
+              background: clubPageStatus === 'none'
+                ? 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.06) 100%)'
+                : 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.06) 100%)',
+              border: `1px solid ${clubPageStatus === 'none' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`,
+              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 12, flexWrap: 'wrap',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: clubPageStatus === 'none' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 20
+                }}>{clubPageStatus === 'none' ? '📢' : '⚡'}</div>
+                <div>
+                  <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
+                    {clubPageStatus === 'none' ? 'Set Up Your Club Page' : 'Your Club Page is Ready to Customize!'}
+                  </div>
+                  <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2 }}>
+                    {clubPageStatus === 'none'
+                      ? 'Create your club\'s social media page to connect with players and post updates.'
+                      : 'Edit your page, add photos, and publish it to reach your players.'}
+                  </div>
+                </div>
+              </div>
+              {clubPageStatus === 'none' ? (
+                <button onClick={handleCreateClubPage} disabled={creatingClubPage} style={{
+                  padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #1877F2 0%, #1565C0 100%)',
+                  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 8px rgba(24,119,242,0.3)', whiteSpace: 'nowrap',
+                  opacity: creatingClubPage ? 0.6 : 1,
+                }}>{creatingClubPage ? 'Creating...' : '+ Create Club Page'}</button>
+              ) : (
+                <button onClick={() => router.push('/hub/social-media')} style={{
+                  padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
+                  boxShadow: '0 2px 8px rgba(245,158,11,0.3)', whiteSpace: 'nowrap',
+                }}>Customize Your Page →</button>
+              )}
             </div>
           )}
 

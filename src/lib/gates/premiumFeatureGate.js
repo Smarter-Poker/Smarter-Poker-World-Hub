@@ -301,6 +301,7 @@ export const FEATURE_CONFIG = {
     poker_near_me: { cost: 25, label: 'Poker Near Me Pro', durationHours: 24 },
     personal_assistant: { cost: 100, label: 'Personal Assistant', durationHours: 24 },
     lives: { cost: 25, label: 'Lives', durationHours: 24 },
+    custom_avatar: { cost: 25, label: 'Custom Avatar Builder', durationHours: 24 },
     daily_unlock_all: { cost: 150, label: 'Daily All-Access Pass', durationHours: 24 },
 };
 

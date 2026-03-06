@@ -16,6 +16,7 @@ import Image from 'next/image';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -69,7 +70,7 @@ export default function TablesDisplay() {
   const [tables, setTables] = useState([]);
   const [now, setNow] = useState(new Date());
   const [dealerMap, setDealerMap] = useState({});
-  const wakeLockRef = useRef(null);
+  useWakeLock();
   const lastFetchAt = useRef(Date.now());
 
   // Lock mode state
@@ -216,23 +217,7 @@ export default function TablesDisplay() {
   // Commander Data Bus — instant sync
   useCommanderSync(venueId, () => { fetchData(); fetchDealers(); }, { entities: ['tables', 'games', 'dealers'] });
 
-  // Wake lock
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch { }
-    };
-    requestWakeLock();
-    const handleVisChange = () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+
 
   /* ─── Lock / Unlock ──────────────────────────────── */
 

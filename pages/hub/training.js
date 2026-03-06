@@ -640,6 +640,7 @@ export default function TrainingPage() {
 
     // 🔔 User ID for authenticated features
     const [userId, setUserId] = useState(null);
+    const [sessionHistory, setSessionHistory] = useState([]);
 
     // 🔔 Real-time notifications for achievements/leaderboard changes
     const {
@@ -708,6 +709,32 @@ export default function TrainingPage() {
             }
         };
         initializeDiamondEngine();
+
+        // Fetch past training sessions for SmartPractice weakness analysis
+        const fetchSessionHistory = async () => {
+            try {
+                const authUser = getAuthUser();
+                if (!authUser?.session?.access_token) return;
+                const { createClient } = await import('@supabase/supabase-js');
+                const sb = createClient(
+                    process.env.NEXT_PUBLIC_SUPABASE_URL,
+                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+                );
+                const { data } = await sb
+                    .from('training_sessions')
+                    .select('hand_history')
+                    .eq('user_id', authUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                if (data) {
+                    const combined = data.flatMap(s => s.hand_history || []);
+                    setSessionHistory(combined);
+                }
+            } catch (e) {
+                console.warn('[Training] Session history fetch failed:', e.message);
+            }
+        };
+        fetchSessionHistory();
     }, []);
 
     const {
@@ -840,7 +867,10 @@ export default function TrainingPage() {
                     questionsAnswered: results.questionsAnswered || 0,
                     questionsCorrect: results.questionsCorrect || 0,
                     bestStreak: results.bestStreak || 0,
-                    levelPassed: results.levelPassed || false
+                    levelPassed: results.levelPassed || false,
+                    gtowScore: results.gtowScore || 100,
+                    totalEVLoss: results.totalEVLoss || 0,
+                    sessionMistakes: results.sessionMistakes || 0,
                 });
 
                 // Show achievement toast if any unlocked
@@ -1018,7 +1048,7 @@ export default function TrainingPage() {
 
                         {/* Phase 23: Smart Practice Card */}
                         <SmartPracticeCard
-                            handHistory={[]}
+                            handHistory={sessionHistory}
                             onStartPractice={(config) => {
                                 const game = TRAINING_LIBRARY[0];
                                 if (game) {

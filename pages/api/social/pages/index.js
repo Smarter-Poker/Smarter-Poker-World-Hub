@@ -29,14 +29,14 @@ function generateSlug(name) {
 }
 
 export default async function handler(req, res) {
-  // CDN cache: fresh for 60s, serve stale up to 300s
-  if (req.method === 'GET') {
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-  }
+    // CDN cache: fresh for 60s, serve stale up to 300s
+    if (req.method === 'GET') {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    }
 
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     const supabase = getSupabase();
     if (!supabase) {
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
                 .from('social_page_followers')
                 .select('page_id')
                 .eq('user_id', user_id)
-                    .limit(100);
+                .limit(100);
 
             const ids = (followedIds || []).map(f => f.page_id);
             if (ids.length === 0) {
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
                 .select('page_id')
                 .eq('user_id', user_id)
                 .in('page_id', pageIds)
-                    .limit(100);
+                .limit(100);
 
             const followSet = new Set((follows || []).map(f => f.page_id));
             enriched = enriched.map(p => ({
@@ -367,6 +367,25 @@ export default async function handler(req, res) {
             const state = updates.location_state || existing.location_state || '';
             const newLoc = city + (state ? ', ' + state : '');
             createAutoPost('location_update', null, newLoc.trim());
+        }
+
+        // ── Venue Auto-Sync: push Club Page changes back to poker_venues ──
+        if (data.linked_venue_id) {
+            const venueUpdates = {};
+            if (updates.name && updates.name !== existing.name) venueUpdates.name = updates.name;
+            if (updates.phone !== undefined) venueUpdates.phone = updates.phone;
+            if (updates.metadata?.address) venueUpdates.address = updates.metadata.address;
+            if (updates.location_city) venueUpdates.city = updates.location_city;
+            if (updates.location_state) venueUpdates.state = updates.location_state;
+            if (Object.keys(venueUpdates).length > 0) {
+                supabase.from('poker_venues')
+                    .update(venueUpdates)
+                    .eq('id', data.linked_venue_id)
+                    .then(({ error: venueErr }) => {
+                        if (venueErr) console.error('[VenueSync] Failed to sync:', venueErr.message);
+                        else console.log('[VenueSync] Synced venue', data.linked_venue_id, ':', Object.keys(venueUpdates).join(', '));
+                    });
+            }
         }
 
         return res.status(200).json({ success: true, data });

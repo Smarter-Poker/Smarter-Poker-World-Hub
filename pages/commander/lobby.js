@@ -16,6 +16,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import DealerTicker from '../../src/components/commander/shared/DealerTicker';
+import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 
 export default function LobbyDisplay() {
@@ -24,22 +26,22 @@ export default function LobbyDisplay() {
   const [waitlists, setWaitlists] = useState({});
   const [tournaments, setTournaments] = useState([]);
   const [now, setNow] = useState(new Date());
-  const wakeLockRef = useRef(null);
+  useWakeLock();
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
   });
 
-  // fetchData declared FIRST — must precede useEffect/useCommanderSync that reference it
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     if (!venueId) return;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const opts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, tournamentsRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/tournaments?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+        fetch(`/api/commander/tables?venue_id=${venueId}`, opts).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, opts).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/tournaments?venue_id=${venueId}`, opts).then(r => r.json()).catch(() => ({ data: [] }))
       ]);
 
       // Tables: data may be {tables: []} or array directly
@@ -60,31 +62,22 @@ export default function LobbyDisplay() {
       setTournaments(tournamentsArr.filter(t =>
         ['scheduled', 'registering', 'registration', 'running', 'break', 'final_table'].includes(t.status)
       ).slice(0, 4));
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     setNow(new Date());
   }, [venueId]);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
     const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
+    return () => { controller.abort(); clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
   // Cross-tab + cross-device real-time sync
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'games', 'tournaments'] });
 
-  // Wake lock
-  useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
-    req();
-    const handleVisChange = () => { if (document.visibilityState === 'visible') req(); };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

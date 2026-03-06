@@ -35,7 +35,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Script from 'next/script';
-import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -313,7 +314,7 @@ export default function PlayerTableDisplay() {
   const [targetSeat, setTargetSeat] = useState(null); // seat number for player scan
   const [scanStatus, setScanStatus] = useState(null); // { type: 'success'|'error'|'loading', message }
   const [selectedPlayer, setSelectedPlayer] = useState(null); // for player info modal
-  const wakeLockRef = useRef(null);
+  useWakeLock();
 
   const isTexas = venueType === 'texas';
 
@@ -361,23 +362,7 @@ export default function PlayerTableDisplay() {
   });
   useCommanderSync(syncVenueId || table?.venue_id || '', fetchData, { entities: ['tables', 'dealers'] });
 
-  // Wake lock
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) { }
-    };
-    requestWakeLock();
-    const handleVisChange = () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+
 
   // Handle dealer QR scan
   const handleDealerScan = useCallback(async (qrData) => {

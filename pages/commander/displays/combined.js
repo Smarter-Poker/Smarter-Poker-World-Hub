@@ -9,12 +9,13 @@
  *   4-panel: clock+waitlist+promotions+tables
  * Auto-refreshes all panels, no interaction needed
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 function formatClockTime(seconds) {
   if (!seconds || seconds <= 0) return '0:00';
@@ -34,51 +35,53 @@ export default function CombinedDisplay() {
   const [promotions, setPromotions] = useState([]);
   const [now, setNow] = useState(new Date());
   const [clockSeconds, setClockSeconds] = useState(null);
-  const wakeLockRef = useRef(null);
+  useWakeLock();
 
   const panels = layout.split('+').filter(Boolean);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
       const fetches = [];
+      const opts = signal ? { signal } : {};
 
       if (panels.includes('clock') && tournament) {
         fetches.push(
-          fetch(`/api/commander/tournaments/${tournament}/clock`).then(r => r.json())
+          fetch(`/api/commander/tournaments/${tournament}/clock`, opts).then(r => r.json())
             .then(json => { if (json.success) { setClockData(json.data); setClockSeconds(json.data?.remaining_seconds); } })
         );
       }
       if (panels.includes('waitlist')) {
         fetches.push(
-          fetch('/api/commander/waitlist').then(r => r.json())
+          fetch('/api/commander/waitlist', opts).then(r => r.json())
             .then(json => { if (json.success) setWaitlists((json.data || []).filter(w => ['waiting', 'called'].includes(w.status))); })
         );
       }
       if (panels.includes('tables')) {
         fetches.push(
-          fetch('/api/commander/tables').then(r => r.json())
+          fetch('/api/commander/tables', opts).then(r => r.json())
             .then(json => { if (json.success) setTables(json.data || []); })
         );
       }
       if (panels.includes('promotions')) {
         fetches.push(
-          fetch('/api/commander/promotions').then(r => r.json())
+          fetch('/api/commander/promotions', opts).then(r => r.json())
             .then(json => { if (json.success) setPromotions((json.data || []).filter(p => p.is_active !== false)); })
         );
       }
       await Promise.allSettled(fetches);
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     setNow(new Date());
   }, [panels, tournament]);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
     const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => {
       setNow(new Date());
       setClockSeconds(s => s !== null && s > 0 ? s - 1 : s);
     }, 1000);
-    return () => { clearInterval(poll); clearInterval(clock); };
+    return () => { controller.abort(); clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
   // Extract venueId for cross-device Supabase sync
@@ -89,23 +92,7 @@ export default function CombinedDisplay() {
   // Commander Data Bus — instant sync for TV display
   useCommanderSync(venueId, fetchData, { entities: ['tables', 'waitlist', 'tournaments', 'settings'] });
 
-  // Wake lock
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
-      } catch (err) { }
-    };
-    requestWakeLock();
-    const handleVisChange = () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

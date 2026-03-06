@@ -110,6 +110,21 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
     const [saving, setSaving] = useState(false);
     const [publishing, setPublishing] = useState(false);
     const isDraft = !page.is_public || page.metadata?.needs_setup;
+    const [showPreview, setShowPreview] = useState(false);
+    const [qrData, setQrData] = useState(null);
+    const [qrLoading, setQrLoading] = useState(false);
+
+    // ── Setup Completion Tracker ──
+    const meta = page.metadata || {};
+    const completionChecks = [
+        { key: 'logo', label: 'Upload a logo', done: !!(meta.logo_url || page.avatar_url) },
+        { key: 'cover', label: 'Add a cover photo', done: !!(meta.cover_photo_url || page.cover_url) },
+        { key: 'description', label: 'Write a description', done: !!(page.description && page.description.length > 10) },
+        { key: 'schedule', label: 'Set your schedule', done: !!meta.run_schedule && Object.values(meta.run_schedule).some(d => d && d.open) },
+        { key: 'post', label: 'Create your first post', done: posts.length > 0 },
+    ];
+    const completedCount = completionChecks.filter(c => c.done).length;
+    const completionPct = Math.round((completedCount / completionChecks.length) * 100);
 
     // ── JWT Auth Helper: ensures all mutation calls include the Bearer token ──
     const getAuthHeaders = async () => {
@@ -124,7 +139,7 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
     };
 
     // Enhanced state — Photos, Schedule, Tournaments, Amenities
-    const meta = page.metadata || {};
+    // (meta is already declared above in completion tracker)
     const [photos, setPhotos] = useState(meta.photos || []);
     const [newPhotoUrl, setNewPhotoUrl] = useState('');
     const [newPhotoCaption, setNewPhotoCaption] = useState('');
@@ -519,10 +534,30 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                 }),
             });
             const json = await res.json();
-            if (json.success && json.data) { onPageUpdated(json.data); }
+            if (json.success && json.data) {
+                onPageUpdated(json.data);
+                // Auto-fetch QR code after publishing
+                fetchQrCode(json.data.id);
+            }
         } catch (e) { console.error('Publish error:', e); }
         setPublishing(false);
     };
+
+    // Fetch QR code for published pages
+    const fetchQrCode = async (pageId) => {
+        setQrLoading(true);
+        try {
+            const res = await fetch(`/api/social/pages/qrcode?page_id=${pageId || page.id}`);
+            const json = await res.json();
+            if (json.success && json.data) setQrData(json.data);
+        } catch (e) { console.error('QR code fetch error:', e); }
+        setQrLoading(false);
+    };
+
+    // Load QR code on mount if page is already published
+    useEffect(() => {
+        if (page.is_public && !page.metadata?.needs_setup) fetchQrCode();
+    }, [page.is_public]);
 
     const handleTogglePin = async (post) => {
         try {
@@ -609,36 +644,55 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                     </div>
                 </div>
 
-                {/* ═══ DRAFT BANNER — shown when page is not yet published ═══ */}
+                {/* ═══ DRAFT BANNER with Setup Completion Tracker ═══ */}
                 {isDraft && (
                     <div style={{
-                        padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        background: 'linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%)',
-                        borderBottom: '2px solid #F0C040', gap: 12, flexWrap: 'wrap'
+                        padding: '16px', background: 'linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%)',
+                        borderBottom: '2px solid #F0C040'
                     }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{
-                                width: 32, height: 32, borderRadius: '50%', background: '#F0C040',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 16, fontWeight: 700, color: '#473D00'
-                            }}>⚠</div>
-                            <div>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: '#473D00' }}>Draft — Not Published Yet</div>
-                                <div style={{ fontSize: 12, color: '#7A6B00' }}>Customize your page, then publish it to make it visible to the public.</div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{
+                                    width: 36, height: 36, borderRadius: '50%', background: '#F0C040',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 18, fontWeight: 700, color: '#473D00'
+                                }}>⚠</div>
+                                <div>
+                                    <div style={{ fontSize: 15, fontWeight: 700, color: '#473D00' }}>Draft — Not Published Yet</div>
+                                    <div style={{ fontSize: 12, color: '#7A6B00' }}>{completionPct}% complete — {completedCount}/{completionChecks.length} steps done</div>
+                                </div>
                             </div>
+                            <button onClick={publishPage} disabled={publishing} style={{
+                                padding: '10px 24px', borderRadius: 8, border: 'none',
+                                background: completionPct === 100 ? '#42B72A' : '#888',
+                                color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                fontFamily: 'inherit', boxShadow: completionPct === 100 ? '0 2px 8px rgba(66,183,42,0.4)' : 'none',
+                                opacity: publishing ? 0.6 : 1, whiteSpace: 'nowrap'
+                            }}>{publishing ? 'Publishing...' : '🚀 Publish Page'}</button>
                         </div>
-                        <button onClick={publishPage} disabled={publishing} style={{
-                            padding: '10px 24px', borderRadius: 8, border: 'none',
-                            background: '#42B72A', color: '#fff', fontSize: 14,
-                            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-                            boxShadow: '0 2px 8px rgba(66,183,42,0.4)',
-                            opacity: publishing ? 0.6 : 1, whiteSpace: 'nowrap'
-                        }}>{publishing ? 'Publishing...' : '🚀 Publish Page'}</button>
+                        {/* Progress Bar */}
+                        <div style={{ height: 6, borderRadius: 3, background: 'rgba(0,0,0,0.1)', overflow: 'hidden', marginBottom: 10 }}>
+                            <div style={{ height: '100%', width: `${completionPct}%`, borderRadius: 3, background: completionPct === 100 ? '#42B72A' : '#F0C040', transition: 'width 0.5s ease' }} />
+                        </div>
+                        {/* Checklist */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {completionChecks.map(item => (
+                                <div key={item.key} style={{
+                                    display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
+                                    padding: '4px 10px', borderRadius: 6,
+                                    background: item.done ? 'rgba(66,183,42,0.15)' : 'rgba(0,0,0,0.06)',
+                                    color: item.done ? '#2D8A1E' : '#7A6B00', fontWeight: 600
+                                }}>
+                                    <span>{item.done ? '✓' : '○'}</span>
+                                    <span style={{ textDecoration: item.done ? 'line-through' : 'none', opacity: item.done ? 0.7 : 1 }}>{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
                 {/* Action Bar */}
-                <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => { if (window.history.length > 1) router.back(); else onBack(); }} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
@@ -654,6 +708,12 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                         color: '#E53935', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 6
                     }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#E53935', display: 'inline-block' }}></span>Go Live</button>}
+                    <button onClick={() => setShowPreview(!showPreview)} style={{
+                        padding: '8px 16px', borderRadius: 8, border: 'none',
+                        background: showPreview ? '#7C3AED' : '#E4E6EB',
+                        color: showPreview ? '#fff' : C.text,
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                    }}>{showPreview ? '✕ Exit Preview' : '👁 Preview as Visitor'}</button>
                     <button onClick={() => router.push(`/club/${page.id}`)} style={{
                         padding: '8px 16px', borderRadius: 8, border: 'none', background: '#E4E6EB',
                         color: C.text, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', marginLeft: 'auto'
@@ -1365,6 +1425,51 @@ export default function ClubPageDashboard({ C, page, userId, onBack, onPageUpdat
                         <div style={{ marginTop: 16, padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
                             <span style={{ fontSize: 13, color: C.textSec }}>Page created {page.created_at ? new Date(page.created_at).toLocaleDateString() : 'recently'}</span>
                         </div>
+
+                        {/* QR Code & Referral Section */}
+                        {!isDraft && (
+                            <div style={{ marginTop: 12, padding: 16, border: `1px solid ${C.border}`, borderRadius: 12, background: '#FAFBFC' }}>
+                                <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: C.text }}>QR Code & Referral Link</h4>
+                                <p style={{ margin: '0 0 12px', fontSize: 12, color: C.textSec, lineHeight: 1.4 }}>
+                                    Print this QR code and place it on your tables, at the front desk, or in promotions. Players who scan it will auto-follow your page.
+                                </p>
+                                {qrLoading ? (
+                                    <div style={{ textAlign: 'center', padding: 20, color: C.textSec, fontSize: 13 }}>Loading QR code...</div>
+                                ) : qrData ? (
+                                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <img src={qrData.qr_code_url} alt="Club Page QR Code" style={{ width: 180, height: 180, borderRadius: 8, border: '1px solid #E4E6EB' }} />
+                                            <div style={{ marginTop: 6 }}>
+                                                <a href={qrData.qr_code_url} download={`${page.name}-qr-code.svg`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: C.blue, fontWeight: 600, textDecoration: 'none' }}>
+                                                    Download QR Code
+                                                </a>
+                                            </div>
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 200 }}>
+                                            <label style={{ fontSize: 11, fontWeight: 600, color: C.textSec, display: 'block', marginBottom: 4 }}>Referral URL</label>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <input readOnly value={qrData.follow_url} style={{
+                                                    flex: 1, padding: '6px 10px', border: '1px solid #CCD0D5', borderRadius: 6,
+                                                    fontSize: 12, fontFamily: 'monospace', background: '#fff', color: C.text
+                                                }} onClick={e => { e.target.select(); navigator.clipboard?.writeText(qrData.follow_url); }} />
+                                                <button onClick={() => { navigator.clipboard?.writeText(qrData.follow_url); }} style={{
+                                                    padding: '6px 12px', borderRadius: 6, border: 'none', background: C.blue,
+                                                    color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap'
+                                                }}>Copy</button>
+                                            </div>
+                                            <div style={{ fontSize: 11, color: C.textSec, marginTop: 6 }}>
+                                                Referral Code: <strong>{qrData.referral_code}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button onClick={() => fetchQrCode()} style={{
+                                        padding: '8px 20px', borderRadius: 8, border: 'none', background: C.blue,
+                                        color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
+                                    }}>Generate QR Code</button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )
             }

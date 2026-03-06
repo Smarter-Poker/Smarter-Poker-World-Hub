@@ -5,13 +5,14 @@
  * but fully read-only — no action buttons, no modals, no editing.
  * Auto-refreshes every 5 seconds. Designed for TV / player-facing display.
  */
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 
 import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import { Loader2, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -44,27 +45,7 @@ export default function WaitlistDisplay() {
   const [venueName, setVenueName] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
   const [custom, setCustom] = useState(DEFAULT_CUSTOM);
-  const wakeLockRef = useRef(null);
-
-  // Keep screen awake — this is a TV/player-facing display
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLockRef.current = await navigator.wakeLock.request('screen');
-        }
-      } catch { /* not supported or permission denied */ }
-    };
-    requestWakeLock();
-    const handleVisChange = () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+  useWakeLock();
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -81,18 +62,18 @@ export default function WaitlistDisplay() {
   }, []);
 
   // Fetch customization settings — periodic re-fetch so desk changes sync
-  const fetchSettings = useCallback(async () => {
+  const fetchSettings = useCallback(async (signal) => {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
-      const res = await fetch('/api/commander/settings', {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
-      });
+      const opts = signal ? { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }, signal }
+        : { headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession } };
+      const res = await fetch('/api/commander/settings', opts);
       const json = await res.json();
       if (json.success && json.data?.desk_customization) {
         setCustom(prev => ({ ...prev, ...json.data.desk_customization }));
       }
-    } catch { }
+    } catch (err) { if (err.name !== 'AbortError') { /* non-fatal */ } }
   }, []);
 
   useEffect(() => {
@@ -102,16 +83,17 @@ export default function WaitlistDisplay() {
   }, [fetchSettings]);
 
   // fetchData — EXACT copy of desk.js logic (desk is source of truth)
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (signal) => {
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const vid = staffData.venue_id || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const opts = signal ? { headers, signal } : { headers };
       const [tabRes, wlRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${vid}`, { headers }),
-        fetch(`/api/commander/waitlist?venue_id=${vid}`, { headers })
+        fetch(`/api/commander/tables?venue_id=${vid}`, opts),
+        fetch(`/api/commander/waitlist?venue_id=${vid}`, opts)
       ]);
       const tabJson = await tabRes.json();
       const wlJson = await wlRes.json();
@@ -120,14 +102,15 @@ export default function WaitlistDisplay() {
         const entries = wlJson.data || [];
         setWaitlists(entries);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
-    fetchData();
+    const controller = new AbortController();
+    fetchData(controller.signal);
     const interval = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
-    return () => clearInterval(interval);
+    return () => { controller.abort(); clearInterval(interval); };
   }, [fetchData]);
 
   // Real-time Supabase subscription — same as desk.js

@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import useWakeLock from '../../../../src/hooks/useWakeLock';
 
 export default function SeatingDisplay() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function SeatingDisplay() {
   const [tournament, setTournament] = useState(null);
   const [entries, setEntries] = useState([]);
   const [now, setNow] = useState(new Date());
-  const wakeLockRef = useRef(null);
+  useWakeLock();
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -45,17 +46,7 @@ export default function SeatingDisplay() {
     return () => { clearInterval(poll); clearInterval(clock); };
   }, [id, fetchData]);
 
-  // Wake lock
-  useEffect(() => {
-    const req = async () => { try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { } };
-    req();
-    const handleVisChange = () => { if (document.visibilityState === 'visible') req(); };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

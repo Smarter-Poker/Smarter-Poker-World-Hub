@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import useWakeLock from '../../../../src/hooks/useWakeLock';
 
 export default function StructureDisplay() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function StructureDisplay() {
   const [tournament, setTournament] = useState(null);
   const [clockData, setClockData] = useState(null);
   const [now, setNow] = useState(new Date());
-  const wakeLockRef = useRef(null);
+  useWakeLock();
   const currentRef = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -51,19 +52,7 @@ export default function StructureDisplay() {
     currentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, [clockData?.current_level]);
 
-  // Wake lock
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { }
-    };
-    requestWakeLock();
-    const handleVisChange = () => { if (document.visibilityState === 'visible') requestWakeLock(); };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
   const levels = tournament?.blind_structure || clockData?.levels || [];

@@ -8,6 +8,7 @@
 import React, { memo, useEffect, useState } from 'react';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { getCustomAvatarGallery, deleteCustomAvatar } from '../../services/avatar-service';
+import { useFeatureGate } from '../gates/FeatureGatePopup';
 import supabase from '../../lib/supabase.ts';
 import toast from '../../stores/toastStore';
 
@@ -16,6 +17,9 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
   // Use prop user as fallback when context is still initializing
   const user = contextUser || propUser;
   const effectiveVip = isVip || contextIsVip;
+
+  // ═══ ACTION GATE: Users can explore the builder UI, but generating is gated ═══
+  const { guardAction, UpgradePopup } = useFeatureGate('custom_avatar');
 
   const [prompt, setPrompt] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -110,6 +114,8 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
 
 
   async function handleGenerate() {
+    // ═══ ACTION GATE: Generation requires access ═══
+    if (!guardAction()) return;
     if (!prompt.trim()) {
       toast.warning('Please enter a description for your avatar');
       return;
@@ -196,8 +202,9 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
     setEditPrompt('');
   }
 
-  // Edit avatar using Grok image editing
   async function handleEditAvatar() {
+    // ═══ ACTION GATE: Editing requires access ═══
+    if (!guardAction()) return;
     if (!editPrompt.trim()) {
       toast.warning('Please describe what you want to change');
       return;
@@ -318,8 +325,9 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
   }
 
   return (
-    <div className="custom-avatar-builder">
-      <style jsx>{`
+    <>
+      <div className="custom-avatar-builder">
+        <style jsx>{`
         .custom-avatar-builder {
           width: 100%;
           max-width: 800px;
@@ -855,166 +863,168 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
         }
       `}</style>
 
-      {/* Matrix Loading Overlay */}
-      {generating && (
-        <div className="matrix-overlay">
-          {matrixColumns.map((col) => (
-            <div
-              key={col.id}
-              className="matrix-column"
-              style={{
-                left: `${col.x}%`,
-                animationDuration: `${col.speed}s`,
-                animationDelay: `${col.startDelay}s`
-              }}
-            >
-              {col.chars.map((char, idx) => (
-                <span key={idx}>{char}</span>
-              ))}
+        {/* Matrix Loading Overlay */}
+        {generating && (
+          <div className="matrix-overlay">
+            {matrixColumns.map((col) => (
+              <div
+                key={col.id}
+                className="matrix-column"
+                style={{
+                  left: `${col.x}%`,
+                  animationDuration: `${col.speed}s`,
+                  animationDelay: `${col.startDelay}s`
+                }}
+              >
+                {col.chars.map((char, idx) => (
+                  <span key={idx}>{char}</span>
+                ))}
+              </div>
+            ))}
+            <div className="loading-content">
+              <div className="loading-spinner" />
+              <div className="loading-text">BUILDING YOUR AVATAR</div>
+              <div className="loading-subtext">AI Is Crafting Your Unique Character...</div>
             </div>
-          ))}
-          <div className="loading-content">
-            <div className="loading-spinner" />
-            <div className="loading-text">BUILDING YOUR AVATAR</div>
-            <div className="loading-subtext">AI Is Crafting Your Unique Character...</div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Result Overlay with Accept/Regenerate */}
-      {showResult && generatedImage && (
-        <div className="result-overlay">
-          <div className="result-title">✨ YOUR AVATAR IS READY ✨</div>
-          <img
-            src={generatedImage}
-            alt="Generated Avatar"
-            className="result-image"
-          />
+        {/* Result Overlay with Accept/Regenerate */}
+        {showResult && generatedImage && (
+          <div className="result-overlay">
+            <div className="result-title">✨ YOUR AVATAR IS READY ✨</div>
+            <img
+              src={generatedImage}
+              alt="Generated Avatar"
+              className="result-image"
+            />
 
-          <div className="result-buttons">
-            <button className="result-btn accept-btn" onClick={handleAccept}>
-              ✓ Accept Avatar
-            </button>
+            <div className="result-buttons">
+              <button className="result-btn accept-btn" onClick={handleAccept}>
+                ✓ Accept Avatar
+              </button>
+              {effectiveVip && (
+                <button className="result-btn regenerate-btn" onClick={handleRegenerate}>
+                  🔄 Regenerate
+                </button>
+              )}
+
+            </div>
             {effectiveVip && (
-              <button className="result-btn regenerate-btn" onClick={handleRegenerate}>
-                🔄 Regenerate
+              <div className="vip-note">VIP: Unlimited Regenerations</div>
+            )}
+          </div>
+        )}
+
+        {/* Main Form */}
+        <h2 className="builder-title">
+          AI Avatar Generator
+          {effectiveVip && <span className="vip-badge">VIP</span>}
+        </h2>
+        <p className="builder-subtitle">
+          Create a unique custom avatar using AI
+        </p>
+
+        {/* VIP Slot Counter */}
+        {effectiveVip && (
+          <div className="vip-slots">
+            Custom Avatars: {currentCount}/5 slots used
+            {!canCreate && (
+              <button
+                className="manage-gallery-btn"
+                onClick={() => setShowDeleteModal(true)}
+              >
+                Manage Gallery
               </button>
             )}
-
           </div>
-          {effectiveVip && (
-            <div className="vip-note">VIP: Unlimited Regenerations</div>
-          )}
+        )}
+
+        {/* Limit Warnings */}
+        {!effectiveVip && currentCount >= 1 && (
+          <div className="limit-warning limit-reached">
+            You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
+          </div>
+        )}
+        {!effectiveVip && currentCount === 0 && (
+          <div className="limit-warning">
+            FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
+          </div>
+        )}
+        {effectiveVip && !canCreate && (
+          <div className="limit-warning limit-reached">
+            VIP limit reached! Delete an avatar below to create a new one.
+          </div>
+        )}
+
+
+
+        <div className="prompt-section">
+          <div className="prompt-label">Describe Your Avatar</div>
+          <textarea
+            className="prompt-input"
+            placeholder="Describe Your Avatar In Detail... (e.g., 'A Fierce Dragon Warrior With Glowing Red Eyes And Golden Armor')"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            disabled={generating}
+          />
         </div>
-      )}
 
-      {/* Main Form */}
-      <h2 className="builder-title">
-        AI Avatar Generator
-        {effectiveVip && <span className="vip-badge">VIP</span>}
-      </h2>
-      <p className="builder-subtitle">
-        Create a unique custom avatar using AI
-      </p>
-
-      {/* VIP Slot Counter */}
-      {effectiveVip && (
-        <div className="vip-slots">
-          Custom Avatars: {currentCount}/5 slots used
-          {!canCreate && (
-            <button
-              className="manage-gallery-btn"
-              onClick={() => setShowDeleteModal(true)}
-            >
-              Manage Gallery
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Limit Warnings */}
-      {!effectiveVip && currentCount >= 1 && (
-        <div className="limit-warning limit-reached">
-          You've used your 1 free custom avatar. Upgrade to VIP for up to 5 avatars!
-        </div>
-      )}
-      {!effectiveVip && currentCount === 0 && (
-        <div className="limit-warning">
-          FREE users get 1 custom avatar (one time only). Upgrade to VIP for up to 5!
-        </div>
-      )}
-      {effectiveVip && !canCreate && (
-        <div className="limit-warning limit-reached">
-          VIP limit reached! Delete an avatar below to create a new one.
-        </div>
-      )}
-
-
-
-      <div className="prompt-section">
-        <div className="prompt-label">Describe Your Avatar</div>
-        <textarea
-          className="prompt-input"
-          placeholder="Describe Your Avatar In Detail... (e.g., 'A Fierce Dragon Warrior With Glowing Red Eyes And Golden Armor')"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          disabled={generating}
-        />
-      </div>
-
-      <div className="examples-section">
-        <div className="examples-label">Example Prompts</div>
-        <div className="examples-grid">
-          {examplePrompts.map((ex, idx) => (
-            <div
-              key={idx}
-              className="example-chip"
-              onClick={() => setPrompt(ex)}
-            >
-              {ex}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <button
-        className="generate-btn"
-        onClick={handleGenerate}
-        disabled={generating || !prompt.trim() || !canCreate}
-      >
-        {canCreate ? '⚡ Generate Avatar' : '🔒 Slot Limit Reached'}
-      </button>
-
-      <div className="powered-by">
-        Powered by AI Image Generation
-      </div>
-
-      {/* VIP Gallery Management Modal */}
-      {showDeleteModal && effectiveVip && (
-        <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="delete-modal" onClick={e => e.stopPropagation()}>
-            <h3>Manage Your Avatars</h3>
-            <p>Delete An Avatar To Free Up A Slot For A New Creation.</p>
-            <div className="avatar-gallery-grid">
-              {customAvatars.map(avatar => (
-                <div key={avatar.id} className="gallery-avatar-item">
-                  <img src={avatar.image_url} alt="Custom Avatar" />
-                  <button
-                    className="delete-avatar-btn"
-                    onClick={() => handleDeleteAvatar(avatar.id)}
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button className="close-modal-btn" onClick={() => setShowDeleteModal(false)}>
-              Close
-            </button>
+        <div className="examples-section">
+          <div className="examples-label">Example Prompts</div>
+          <div className="examples-grid">
+            {examplePrompts.map((ex, idx) => (
+              <div
+                key={idx}
+                className="example-chip"
+                onClick={() => setPrompt(ex)}
+              >
+                {ex}
+              </div>
+            ))}
           </div>
         </div>
-      )}
-    </div>
+
+        <button
+          className="generate-btn"
+          onClick={handleGenerate}
+          disabled={generating || !prompt.trim() || !canCreate}
+        >
+          {canCreate ? '⚡ Generate Avatar' : '🔒 Slot Limit Reached'}
+        </button>
+
+        <div className="powered-by">
+          Powered by AI Image Generation
+        </div>
+
+        {/* VIP Gallery Management Modal */}
+        {showDeleteModal && effectiveVip && (
+          <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+            <div className="delete-modal" onClick={e => e.stopPropagation()}>
+              <h3>Manage Your Avatars</h3>
+              <p>Delete An Avatar To Free Up A Slot For A New Creation.</p>
+              <div className="avatar-gallery-grid">
+                {customAvatars.map(avatar => (
+                  <div key={avatar.id} className="gallery-avatar-item">
+                    <img src={avatar.image_url} alt="Custom Avatar" />
+                    <button
+                      className="delete-avatar-btn"
+                      onClick={() => handleDeleteAvatar(avatar.id)}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button className="close-modal-btn" onClick={() => setShowDeleteModal(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {UpgradePopup}
+    </>
   );
 }
 

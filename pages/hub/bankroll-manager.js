@@ -549,7 +549,7 @@ export default function BankrollManagerPage() {
       if (!has) { setShowStartingBankroll(true); return; }
     }
     setShowLogModal(true);
-  }, [userId, bankrollInitialized]);
+  }, [userId, bankrollInitialized, guardAction]);
 
   // Check starting bankroll on mount
   useEffect(() => {

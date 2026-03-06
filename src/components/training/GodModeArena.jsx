@@ -613,6 +613,76 @@ function GodModeArena({
         }
     }, [gameComplete, gamePhase]);
 
+    // Session timer
+    const sessionStartRef = useRef(Date.now());
+    const [sessionElapsed, setSessionElapsed] = useState(0);
+
+    // Update elapsed time when review screen shows
+    useEffect(() => {
+        if (gameComplete) {
+            setSessionElapsed(Math.round((Date.now() - sessionStartRef.current) / 1000));
+        }
+    }, [gameComplete]);
+
+    // Gap 2 Fix: Auto-save rich session data when game completes
+    const sessionSavedRef = useRef(false);
+    useEffect(() => {
+        if (!gameComplete || sessionSavedRef.current) return;
+        sessionSavedRef.current = true;
+
+        const saveSession = async () => {
+            try {
+                const { getAuthUser } = await import('../../lib/authUtils');
+                const user = getAuthUser();
+                if (!user?.session?.access_token) return;
+
+                // Build position stats from hand history
+                const posStats = {};
+                const classCounts = {};
+                handHistory.forEach(h => {
+                    const pos = h.handData?.heroPosition || 'UNK';
+                    if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
+                    posStats[pos].total++;
+                    if (h.isCorrect) posStats[pos].correct++;
+                    posStats[pos].evLoss += (h.evLoss || 0);
+                    if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
+                });
+
+                await fetch('/api/training/save-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.session.access_token}`,
+                    },
+                    body: JSON.stringify({
+                        gameId,
+                        gameName,
+                        gtowScore,
+                        totalEVLoss,
+                        handsPlayed: totalQuestions,
+                        mistakeCount: sessionMistakes,
+                        avgEVLossPerHand,
+                        avgEVLossPerMistake,
+                        avgFrequencyDiff,
+                        accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
+                        correctCount,
+                        bestStreak,
+                        levelPassed,
+                        level: currentLevel,
+                        handHistory: handHistory.slice(0, 100),
+                        positionStats: posStats,
+                        classificationCounts: classCounts,
+                        trainerConfig,
+                    }),
+                });
+                console.log('[GodModeArena] Session saved to database');
+            } catch (e) {
+                console.warn('[GodModeArena] save-session failed:', e.message);
+            }
+        };
+        saveSession();
+    }, [gameComplete, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, levelPassed, currentLevel, handHistory, avgEVLossPerHand, avgEVLossPerMistake, avgFrequencyDiff, trainerConfig]);
+
     // Wrapped nextQuestion with transition guard
     const handleNextQuestion = useCallback(() => {
         if (isTransitioning) return;
@@ -674,7 +744,9 @@ function GodModeArena({
                 <div style={styles.reviewHeader}>
                     <button onClick={onExit} style={styles.reviewBackBtn}>← Back</button>
                     <div style={styles.reviewTitle}>Session Review</div>
-                    <div style={{ width: 60 }} /> {/* Spacer */}
+                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, fontFamily: "'Orbitron', monospace" }}>
+                        {Math.floor(sessionElapsed / 60)}:{String(sessionElapsed % 60).padStart(2, '0')}
+                    </div>
                 </div>
 
                 <div style={styles.reviewScrollArea}>

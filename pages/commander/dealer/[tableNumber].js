@@ -18,6 +18,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { AlertTriangle, Coffee, Hash, Loader2, RefreshCw, UserX, Bell, RotateCcw, ScanLine, Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign, AlertCircle, User, Power, Lock, Unlock } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import useWakeLock from '../../../src/hooks/useWakeLock';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
 
@@ -174,25 +175,7 @@ export default function DealerTablet() {
   useCommanderSync(venueId, fetchTable, { entities: ['tables', 'games', 'dealers'] });
 
   // Keep screen awake — this is a dealer tablet mounted at the table
-  const wakeLockRef = useRef(null);
-  useEffect(() => {
-    const requestWakeLock = async () => {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLockRef.current = await navigator.wakeLock.request('screen');
-        }
-      } catch { /* not supported or permission denied */ }
-    };
-    requestWakeLock();
-    const handleVisChange = () => {
-      if (document.visibilityState === 'visible') requestWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisChange);
-      wakeLockRef.current?.release();
-    };
-  }, []);
+  useWakeLock();
 
   // Store last sync timestamp for drift-free countdown
   const lastSyncRef = useRef(Date.now());

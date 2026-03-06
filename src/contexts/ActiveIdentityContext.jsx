@@ -12,7 +12,7 @@
  *   const { activeIdentity, switchToPersonal, switchToClub, isClubMode } = useActiveIdentity();
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 const ActiveIdentityContext = createContext({
     activeIdentity: { mode: 'personal', clubPage: null },
@@ -132,15 +132,40 @@ export function ActiveIdentityProvider({ children }) {
         setActiveIdentity({ mode: 'personal', clubPage: null });
     }, []);
 
+    // Debounce ref to prevent race conditions from rapid switching
+    const switchDebounceRef = useRef(null);
+
     const switchToClub = useCallback((clubPage = null) => {
         const page = clubPage || availableClubPage;
         if (!page) {
             console.warn('[ActiveIdentity] No club page available to switch to');
             return;
         }
-        console.log('[ActiveIdentity] Switching to club:', page.name);
-        setActiveIdentity({ mode: 'club', clubPage: page });
+        // 500ms debounce
+        if (switchDebounceRef.current) clearTimeout(switchDebounceRef.current);
+        switchDebounceRef.current = setTimeout(() => {
+            console.log('[ActiveIdentity] Switching to club:', page.name);
+            setActiveIdentity({ mode: 'club', clubPage: page });
+        }, 100);
     }, [availableClubPage]);
+
+    // ── Stale Identity Guard ──
+    // If the stored club page was deleted (admin action, etc.), auto-reset to personal
+    useEffect(() => {
+        if (activeIdentity.mode !== 'club' || !activeIdentity.clubPage?.id) return;
+        const validateClubPage = async () => {
+            try {
+                const res = await fetch(`/api/social/pages?id=${activeIdentity.clubPage.id}`);
+                const json = await res.json();
+                if (!json.success || !json.data || (Array.isArray(json.data) && json.data.length === 0)) {
+                    console.warn('[ActiveIdentity] Stale club page detected, resetting to personal');
+                    setActiveIdentity({ mode: 'personal', clubPage: null });
+                    setAvailableClubPage(null);
+                }
+            } catch (e) { /* network error — keep existing identity */ }
+        };
+        validateClubPage();
+    }, []); // Only on mount
 
     const value = {
         activeIdentity,
