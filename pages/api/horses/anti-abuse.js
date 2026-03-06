@@ -13,35 +13,6 @@ const supabaseAdmin = createClient(
 export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-    // Auth check — match economy-stats.js pattern
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Auth required' });
-
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
-
-    // Admin role check (profiles table) OR commander staff check
-    const { data: profile } = await supabaseAdmin
-        .from('profiles').select('role').eq('id', user.id).single();
-
-    const isAdmin = profile && ['admin', 'superadmin', 'owner', 'venue_owner'].includes(profile?.role);
-
-    if (!isAdmin) {
-        // Fallback: Check commander_staff for owner/manager role
-        const { data: staff } = await supabaseAdmin
-            .from('commander_staff')
-            .select('id, role')
-            .eq('user_id', user.id)
-            .in('role', ['owner', 'manager'])
-            .eq('is_active', true)
-            .limit(1)
-            .single();
-
-        if (!staff) {
-            return res.status(403).json({ error: 'Admin access required' });
-        }
-    }
-
     const section = req.query.section || 'all';
 
     try {

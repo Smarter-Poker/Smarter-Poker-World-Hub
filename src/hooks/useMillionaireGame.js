@@ -249,6 +249,7 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                 correctAction: correctText,
                 question: currentQuestion.question || currentQuestion.text,
                 source: currentQuestion.source || 'UNKNOWN',
+                gtoFrequencies: frequencies || {},
             },
         });
 
@@ -398,6 +399,13 @@ export default function useMillionaireGame(gameId, engineType = 'PIO', initialLe
                     trainerConfig,
                 }),
             }).catch(err => console.warn('[MillionaireGame] Save session error:', err));
+
+            // 3. Dispatch event bus for real-time updates across pages
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('trainingSessionSaved', {
+                    detail: { gameId, gtowScore: gtowScoring.gtowScore, handsPlayed: gtowScoring.handsPlayed },
+                }));
+            }
 
         } catch (err) {
             console.warn('[MillionaireGame] Save progress error:', err);

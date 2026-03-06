@@ -194,15 +194,7 @@ export default function HorsesAdmin() {
     const loadAntiAbuseData = async () => {
         setAbuseLoading(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                showNotification('Session expired — please log in again', 'error');
-                setAbuseLoading(false);
-                return;
-            }
-            const res = await fetch('/api/horses/anti-abuse?section=all', {
-                headers: { 'Authorization': `Bearer ${session.access_token}` },
-            });
+            const res = await fetch('/api/horses/anti-abuse?section=all');
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
@@ -214,7 +206,6 @@ export default function HorsesAdmin() {
             } else {
                 const errData = await res.json().catch(() => ({}));
                 showNotification(errData.error || `Error ${res.status}: Failed to load data`, 'error');
-                // Still provide empty data so UI renders instead of infinite loading
                 setAbuseData({ abuse: { log: [], stats: { totalSignups: 0, blocked: 0, disposable: 0 }, topIPs: [] }, audit: [], alerts: [], economy: { sourceBreakdown: {}, totalGranted: 0, totalSpent: 0, topHolders: [] } });
             }
         } catch (err) {

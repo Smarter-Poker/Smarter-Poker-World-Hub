@@ -12,7 +12,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
@@ -60,28 +60,8 @@ export default async function handler(req, res) {
         const userId = user.id;
         const now = new Date().toISOString();
 
-        // 1. Save to training_level_history (existing table — extended with GTOW data)
-        const sessionRecord = {
-            user_id: userId,
-            game_id: gameId,
-            level: level || 1,
-            questions_answered: handsPlayed || 0,
-            questions_correct: correctCount || 0,
-            accuracy_percentage: accuracy || 0,
-            passed: levelPassed || false,
-            best_streak: bestStreak || 0,
-            time_spent_seconds: 0,
-            diamonds_earned: 0,
-            // Extended GTOW fields (stored as JSONB in metadata column if available)
-        };
-
-        const { error: histErr } = await supabase
-            .from('training_level_history')
-            .insert(sessionRecord);
-
-        if (histErr) {
-            console.warn('[SaveSession] training_level_history insert failed:', histErr.message);
-        }
+        // NOTE: training_level_history is already inserted by save-progress.js
+        // which is called first. We skip it here to avoid duplicate rows.
 
         // 2. Update training_progress with GTOW lifetime stats
         const { data: existing } = await supabase
@@ -134,11 +114,11 @@ export default async function handler(req, res) {
             best_streak: bestStreak || 0,
             level_passed: levelPassed || false,
             level: level || 1,
-            // JSONB fields
-            hand_history: handHistory ? JSON.stringify(handHistory.slice(0, 100)) : '[]',
-            position_stats: positionStats ? JSON.stringify(positionStats) : '{}',
-            classification_counts: classificationCounts ? JSON.stringify(classificationCounts) : '{}',
-            trainer_config: trainerConfig ? JSON.stringify(trainerConfig) : null,
+            // JSONB fields — Supabase client handles objects natively, DO NOT stringify
+            hand_history: handHistory ? handHistory.slice(0, 100) : [],
+            position_stats: positionStats || {},
+            classification_counts: classificationCounts || {},
+            trainer_config: trainerConfig || null,
             avg_ev_loss_per_hand: avgEVLossPerHand || 0,
             avg_frequency_diff: avgFrequencyDiff || 0,
             created_at: now,
