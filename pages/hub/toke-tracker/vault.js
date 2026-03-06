@@ -12,6 +12,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import DealerVault from '../../../src/components/bankroll/DealerVault';
+import TaxSummaryModal from '../../../src/components/bankroll/TaxSummaryModal';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
 import { createClient } from '@supabase/supabase-js';
@@ -29,6 +30,14 @@ export default function DealerVaultPage() {
     const [completedGigs, setCompletedGigs] = useState([]);
     const [menuOpen, setMenuOpen] = useState(false);
     const [tokePrefs, setTokePrefs] = useState({});
+    const [showTaxSummary, setShowTaxSummary] = useState(false);
+
+    // Handle ?tab=tax query param — auto-open Tax Summary modal
+    useEffect(() => {
+        if (router.query.tab === 'tax' && completedGigs.length > 0) {
+            setShowTaxSummary(true);
+        }
+    }, [router.query.tab, completedGigs]);
 
     // SSR-safe: hydrate prefs + mount flag on client only
     useEffect(() => {
@@ -142,6 +151,21 @@ export default function DealerVaultPage() {
                     <HubErrorBoundary name="Dealer Vault">
                         <DealerVault userId={userId} completedGigs={completedGigs} />
                     </HubErrorBoundary>
+
+                    {/* Tax Summary Button */}
+                    {completedGigs.length > 0 && (
+                        <button style={s.taxBtn} onClick={() => setShowTaxSummary(true)}>
+                            📄 Annual Tax Summary & PDF Export
+                        </button>
+                    )}
+
+                    {/* Tax Summary Modal */}
+                    {showTaxSummary && (
+                        <TaxSummaryModal
+                            completedGigs={completedGigs}
+                            onClose={() => setShowTaxSummary(false)}
+                        />
+                    )}
                 </div>
             </div>
         </PageTransition>
@@ -202,5 +226,19 @@ const s = {
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
         margin: '0 0 20px',
+    },
+    taxBtn: {
+        width: '100%',
+        padding: '14px',
+        marginTop: 20,
+        background: 'rgba(54,187,106,0.08)',
+        border: '1px dashed rgba(54,187,106,0.4)',
+        borderRadius: 10,
+        color: '#36bb6a',
+        fontSize: 15,
+        fontWeight: 700,
+        cursor: 'pointer',
+        textAlign: 'center',
+        transition: 'background 0.2s',
     },
 };

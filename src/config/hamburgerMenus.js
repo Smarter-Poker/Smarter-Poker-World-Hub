@@ -781,6 +781,7 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('⏱️ Shift Tracker', '/hub/toke-tracker/shift'),
             createMenuItem.navigation('📊 Analytics', '/hub/toke-tracker/analytics'),
             createMenuItem.navigation('🔒 Dealer Vault', '/hub/toke-tracker/vault'),
+            createMenuItem.navigation('📄 Tax Summary & Export', '/hub/toke-tracker/vault?tab=tax'),
             createMenuItem.navigation('📍 Venue Intel', '/hub/toke-tracker/venues'),
             createMenuItem.divider(),
             createMenuItem.section('Settings'),

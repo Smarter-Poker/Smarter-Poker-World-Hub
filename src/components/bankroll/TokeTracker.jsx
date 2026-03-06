@@ -864,6 +864,52 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
         }
     };
 
+    // ── Delete a completed event ──
+    const handleDeleteCompletedGig = async (e, gigId) => {
+        e.stopPropagation();
+        if (!userId) { toast.error('You must be logged in'); return; }
+        if (!confirm('Delete this completed event? This cannot be undone.')) return;
+        try {
+            await deleteGig(userId, gigId);
+            toast.success('Event deleted');
+            await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete event');
+        }
+    };
+
+    // ── Edit a completed event (open in-place editor) ──
+    const [editingCompletedGig, setEditingCompletedGig] = useState(null);
+    const [completedEditForm, setCompletedEditForm] = useState({ venue_name: '', hourly_rate: '', notes: '' });
+
+    const handleEditCompletedGig = (e, gig) => {
+        e.stopPropagation();
+        setEditingCompletedGig(gig.id);
+        setCompletedEditForm({
+            venue_name: gig.venue_name || '',
+            hourly_rate: gig.hourly_rate || '',
+            notes: gig.notes || '',
+        });
+    };
+
+    const handleSaveCompletedEdit = async (gigId) => {
+        if (!userId) { toast.error('You must be logged in'); return; }
+        if (!completedEditForm.venue_name.trim()) { toast.error('Venue name is required'); return; }
+        try {
+            await updateGig(userId, gigId, {
+                ...completedEditForm,
+                hourly_rate: parseFloat(completedEditForm.hourly_rate) || 0,
+            });
+            toast.success('Event updated!');
+            setEditingCompletedGig(null);
+            await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
+        } catch (err) {
+            toast.error(err.message || 'Failed to update event');
+        }
+    };
+
     // ── Format helpers ──
     const formatDuration = (ms) => {
         const totalMinutes = Math.floor(ms / 60000);
@@ -1143,12 +1189,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
             {/* ── VENUE INTELLIGENCE (hidden in standalone mode) ── */}
             {!standalone && <VenueIntelligence gigs={completedGigs} />}
 
-            {/* ── TAX SUMMARY BUTTON ── */}
-            {completedGigs.length > 0 && (
-                <button style={styles.taxSummaryBtn} onClick={() => setShowTaxSummary(true)}>
-                    📄 Annual Tax Summary &amp; PDF Export
-                </button>
-            )}
+            {/* Tax Summary moved to Vault & Hamburger Menu */}
 
             {/* ── ACTIVE GIG VIEW ── */}
             {activeGig && (
@@ -1898,23 +1939,65 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
                             <motion.div
                                 key={gig.id}
                                 whileHover={{ scale: 1.02 }}
-                                onClick={() => handleViewReport(gig.id)}
                                 style={styles.gigCard}
                             >
-                                <div style={styles.gigCardHeader}>
-                                    <h4 style={styles.gigCardName}>{gig.venue_name}</h4>
-                                    <span style={{ ...styles.gigCardTokes, color: '#f59e0b' }}>
-                                        {formatCurrency(gig.totalTokes || 0)}
-                                    </span>
-                                </div>
-                                <div style={styles.gigCardMeta}>
-                                    <span>{new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}</span>
-                                    {gig.end_date && <span> — {new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}</span>}
-                                </div>
-                                <div style={styles.gigCardFooter}>
-                                    <span>{gig.totalDowns || 0} downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
-                                    <span style={styles.viewReportLink}>View Report →</span>
-                                </div>
+                                {/* Inline edit mode */}
+                                {editingCompletedGig === gig.id ? (
+                                    <div style={{ padding: '12px 14px' }}>
+                                        <input
+                                            type="text"
+                                            value={completedEditForm.venue_name}
+                                            onChange={e => setCompletedEditForm(f => ({ ...f, venue_name: e.target.value }))}
+                                            placeholder="Venue Name"
+                                            style={styles.editInlineInput}
+                                            autoFocus
+                                        />
+                                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                            <input
+                                                type="number"
+                                                value={completedEditForm.hourly_rate}
+                                                onChange={e => setCompletedEditForm(f => ({ ...f, hourly_rate: e.target.value }))}
+                                                placeholder="Hourly Rate"
+                                                style={{ ...styles.editInlineInput, flex: 1 }}
+                                            />
+                                            <input
+                                                type="text"
+                                                value={completedEditForm.notes}
+                                                onChange={e => setCompletedEditForm(f => ({ ...f, notes: e.target.value }))}
+                                                placeholder="Notes"
+                                                style={{ ...styles.editInlineInput, flex: 2 }}
+                                            />
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                                            <button onClick={() => handleSaveCompletedEdit(gig.id)} style={styles.eventSaveBtn}>Save</button>
+                                            <button onClick={() => setEditingCompletedGig(null)} style={styles.eventCancelBtn}>Cancel</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div onClick={() => handleViewReport(gig.id)} style={{ cursor: 'pointer' }}>
+                                        <div style={styles.gigCardHeader}>
+                                            <h4 style={styles.gigCardName}>{gig.venue_name}</h4>
+                                            <span style={{ ...styles.gigCardTokes, color: '#f59e0b' }}>
+                                                {formatCurrency(gig.totalTokes || 0)}
+                                            </span>
+                                        </div>
+                                        <div style={styles.gigCardMeta}>
+                                            <span>{new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}</span>
+                                            {gig.end_date && <span> — {new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}</span>}
+                                        </div>
+                                        <div style={styles.gigCardFooter}>
+                                            <span>{gig.totalDowns || 0} downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
+                                            <span style={styles.viewReportLink}>View Report →</span>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Edit / Delete action row */}
+                                {editingCompletedGig !== gig.id && (
+                                    <div style={styles.eventActionRow}>
+                                        <button onClick={(e) => handleEditCompletedGig(e, gig)} style={styles.eventEditBtn} title="Edit Event">✏️ Edit</button>
+                                        <button onClick={(e) => handleDeleteCompletedGig(e, gig.id)} style={styles.eventDeleteBtn} title="Delete Event">🗑️ Remove</button>
+                                    </div>
+                                )}
                             </motion.div>
                         ))}
                     </div>
@@ -2425,6 +2508,38 @@ const styles = {
         border: '1px dashed rgba(54,187,106,0.4)', borderRadius: 10,
         color: '#36bb6a', fontSize: 14, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
+    },
+    // Event action row (edit/delete for completed events)
+    eventActionRow: {
+        display: 'flex', gap: 8, padding: '6px 14px 10px',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+    },
+    eventEditBtn: {
+        flex: 1, padding: '6px 0', background: 'rgba(74,144,217,0.1)',
+        border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6,
+        color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        textAlign: 'center',
+    },
+    eventDeleteBtn: {
+        flex: 1, padding: '6px 0', background: 'rgba(240,40,73,0.08)',
+        border: '1px solid rgba(240,40,73,0.3)', borderRadius: 6,
+        color: '#F02849', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        textAlign: 'center',
+    },
+    eventSaveBtn: {
+        flex: 1, padding: '8px 0', background: 'rgba(54,187,106,0.15)',
+        border: '1px solid rgba(54,187,106,0.4)', borderRadius: 6,
+        color: '#36bb6a', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    },
+    eventCancelBtn: {
+        padding: '8px 16px', background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6,
+        color: '#B0B3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    },
+    editInlineInput: {
+        width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.3)',
+        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6,
+        color: '#E4E6EB', fontSize: 13, outline: 'none', boxSizing: 'border-box',
     },
     jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
     jarvisHistoryA: { fontSize: 12, color: '#B0B3B8', lineHeight: 1.55, whiteSpace: 'pre-wrap' },
