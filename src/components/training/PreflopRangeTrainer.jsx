@@ -11,6 +11,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
 
 // ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
 // These are simplified solver-derived open-raising ranges by position (6-max, 100bb)
@@ -150,6 +151,8 @@ export default function PreflopRangeTrainer({ onExit }) {
         return range[currentHand] || 0;
     }, [currentHand, range]);
 
+    const [feedbackResult, setFeedbackResult] = useState(null);
+
     // Handle answer
     const handleAction = useCallback((action) => {
         if (showFeedback) return;
@@ -157,20 +160,38 @@ export default function PreflopRangeTrainer({ onExit }) {
         setShowFeedback(true);
         setShowMatrix(true);
 
-        // Determine if correct
-        let isCorrect = false;
-        if (action === 'raise' && handFreq >= 0.5) isCorrect = true;
-        if (action === 'fold' && handFreq === 0) isCorrect = true;
-        if (action === 'call' && handFreq > 0 && handFreq < 0.5) isCorrect = true;
-        // Mixed strategy tolerance: if freq > 0, raise is acceptable
-        if (action === 'raise' && handFreq > 0) isCorrect = true;
+        // Convert the current hand frequency (0 to 1 scale) to 0-100 scale for classifyMove
+        const gtoFreqs = {
+            'raise': Math.round(handFreq * 100),
+            'fold': Math.round((1 - handFreq) * 100),
+            // Call is not explicitly defined in the simplified preflop GTO_RANGES matrix,
+            // we assume Raise vs Fold mostly, but allow Call if freq is > 0 and < 0.5
+            'call': handFreq > 0 && handFreq < 0.5 ? Math.round(handFreq * 100) : 0
+        };
+
+        // Classify move using the central engine
+        const classification = classifyMove(
+            action,
+            correctAction,
+            gtoFreqs,
+            1,     // level
+            null,  // evData
+            null,  // rawFrequencies
+            currentHand,
+            10     // pot size
+        );
+
+        setFeedbackResult(classification);
+
+        // Score logic: anything better than WRONG is technically a "pass" for streaks in preflop trainer
+        const isPass = classification.classification === 'best' || classification.classification === 'correct' || classification.classification === 'inaccuracy';
 
         setScore(prev => ({
-            correct: prev.correct + (isCorrect ? 1 : 0),
+            correct: prev.correct + (isPass ? 1 : 0),
             total: prev.total + 1,
         }));
-        setStreak(prev => isCorrect ? prev + 1 : 0);
-    }, [showFeedback, handFreq]);
+        setStreak(prev => isPass ? prev + 1 : 0);
+    }, [showFeedback, handFreq, correctAction, currentHand]);
 
     // Build 13x13 matrix for display
     const matrix = useMemo(() => {
@@ -251,11 +272,17 @@ export default function PreflopRangeTrainer({ onExit }) {
                     { id: 'fold', label: 'FOLD', color: '#ef4444', border: '#f87171' },
                 ].map(action => {
                     const isSelected = selectedAction === action.id;
-                    const isCorrectAction = showFeedback && (
-                        (action.id === 'raise' && handFreq >= 0.5) ||
-                        (action.id === 'fold' && handFreq === 0) ||
-                        (action.id === 'call' && handFreq > 0 && handFreq < 0.5)
-                    );
+                    let isCorrectAction = false;
+
+                    if (showFeedback && feedbackResult) {
+                        // If selected, check if it was a good classification
+                        if (isSelected) {
+                            isCorrectAction = ['best', 'correct', 'inaccuracy'].includes(feedbackResult.classification);
+                        } else {
+                            // If not selected, highlight it if it was the optimal action
+                            isCorrectAction = action.id === correctAction;
+                        }
+                    }
 
                     return (
                         <motion.button
@@ -267,19 +294,31 @@ export default function PreflopRangeTrainer({ onExit }) {
                             style={{
                                 ...S.actionBtn,
                                 background: showFeedback
-                                    ? isCorrectAction ? 'rgba(34,197,94,0.2)' : isSelected ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.03)'
+                                    ? isSelected
+                                        ? CLASSIFICATION_CONFIG[feedbackResult.classification]?.bgColor || 'rgba(255,255,255,0.03)'
+                                        : isCorrectAction
+                                            ? CLASSIFICATION_CONFIG['best'].bgColor
+                                            : 'rgba(255,255,255,0.03)'
                                     : `linear-gradient(180deg, rgba(${action.id === 'raise' ? '59,130,246' : action.id === 'call' ? '34,197,94' : '239,68,68'},0.15), rgba(0,0,0,0.3))`,
                                 borderColor: showFeedback
-                                    ? isCorrectAction ? '#22c55e' : isSelected ? '#ef4444' : 'rgba(255,255,255,0.1)'
+                                    ? isSelected
+                                        ? CLASSIFICATION_CONFIG[feedbackResult.classification]?.borderColor || 'rgba(255,255,255,0.1)'
+                                        : isCorrectAction
+                                            ? CLASSIFICATION_CONFIG['best'].borderColor
+                                            : 'rgba(255,255,255,0.1)'
                                     : `${action.border}40`,
                                 color: showFeedback
-                                    ? isCorrectAction ? '#22c55e' : isSelected ? '#ef4444' : '#64748b'
+                                    ? isSelected
+                                        ? CLASSIFICATION_CONFIG[feedbackResult.classification]?.color || '#64748b'
+                                        : isCorrectAction
+                                            ? CLASSIFICATION_CONFIG['best'].color
+                                            : '#64748b'
                                     : action.color,
                                 opacity: showFeedback && !isSelected && !isCorrectAction ? 0.3 : 1,
                             }}
                         >
                             {action.label}
-                            {showFeedback && isCorrectAction && <span style={{ fontSize: 10, marginLeft: 4 }}>✓</span>}
+                            {showFeedback && isSelected && <span style={{ fontSize: 10, marginLeft: 4 }}>{CLASSIFICATION_CONFIG[feedbackResult.classification]?.icon === 'check' ? '✓' : '✗'}</span>}
                         </motion.button>
                     );
                 })}
@@ -287,25 +326,25 @@ export default function PreflopRangeTrainer({ onExit }) {
 
             {/* FEEDBACK */}
             <AnimatePresence>
-                {showFeedback && (
+                {showFeedback && feedbackResult && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         style={S.feedback}
                     >
                         <div style={{
-                            fontSize: 13, fontWeight: 'bold', marginBottom: 4,
-                            color: (selectedAction === 'raise' && handFreq > 0) ||
-                                (selectedAction === 'fold' && handFreq === 0) ||
-                                (selectedAction === 'call' && handFreq > 0 && handFreq < 0.5)
-                                ? '#22c55e' : '#ef4444',
+                            fontSize: 14, fontWeight: 'bold', marginBottom: 4,
+                            color: CLASSIFICATION_CONFIG[feedbackResult.classification]?.color || '#ef4444',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
                         }}>
-                            {(selectedAction === 'raise' && handFreq > 0) ||
-                                (selectedAction === 'fold' && handFreq === 0) ||
-                                (selectedAction === 'call' && handFreq > 0 && handFreq < 0.5)
-                                ? '✓ Correct!' : '✗ Incorrect'}
+                            {CLASSIFICATION_CONFIG[feedbackResult.classification]?.label.toUpperCase()}
+                            {feedbackResult.evLoss > 0 && (
+                                <span style={{ fontSize: 11, background: 'rgba(0,0,0,0.5)', padding: '2px 6px', borderRadius: 4 }}>
+                                    -{feedbackResult.evLoss} EV
+                                </span>
+                            )}
                         </div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                             {currentHand} at {position}:{' '}
                             {handFreq === 0
                                 ? 'Not in range — Fold'

@@ -13,7 +13,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -69,6 +69,26 @@ export default async function handler(req, res) {
               .eq('is_active', true)
               .single();
             if (staffCheck) authorized = true;
+          } else if (sessionData.user_id && sessionData.venue_id) {
+            const { data: staffCheck } = await supabase
+              .from('commander_staff')
+              .select('id')
+              .eq('user_id', sessionData.user_id)
+              .eq('venue_id', sessionData.venue_id)
+              .eq('is_active', true)
+              .single();
+            if (staffCheck) authorized = true;
+            // Owner fallback
+            if (!authorized && sessionData.role === 'owner') {
+              const { data: sub } = await supabase
+                .from('commander_subscriptions')
+                .select('id')
+                .eq('owner_id', sessionData.user_id)
+                .eq('venue_id', sessionData.venue_id)
+                .in('status', ['active', 'trialing'])
+                .single();
+              if (sub) authorized = true;
+            }
           }
         } catch { /* invalid session */ }
       }

@@ -118,7 +118,7 @@ export default async function handler(req, res) {
       .insert({
         venue_id,
         table_id: table_id || null,
-        game_type,
+        game_type: game_type.toLowerCase(),
         stakes,
         min_buyin: min_buyin || null,
         max_buyin: max_buyin || null,

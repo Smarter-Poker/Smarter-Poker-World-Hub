@@ -33,19 +33,19 @@ export default function StreaksPage() {
 
     useEffect(() => {
         const _c = new AbortController();
-
-        getAuthUser().then(u => setUser(u)).catch(() => { });
+        const u = getAuthUser();
+        if (u) setUser(u);
         return () => _c.abort();
     }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`train-streaks:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`train-streaks:${user?.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
     const { data: swrData, isLoading: loading, mutate: refreshStreak } = useSWR(swrKey, async (url) => {

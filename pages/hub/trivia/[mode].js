@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
 
@@ -71,6 +72,7 @@ export default function TriviaModePage() {
     const router = useRouter();
     if (!router.isReady) return null;
     const { mode } = router.query;
+    const { user: avatarUser } = useAvatar();
 
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
     const [questions, setQuestions] = useState([]);
@@ -108,37 +110,37 @@ export default function TriviaModePage() {
             setError(null);
 
             try {
-                //  BULLETPROOF: Use authUtils to avoid AbortError
-                const user = getAuthUser();
-                if (user) {
-                    setUserId(user.id);
+                // Wait for reactive auth 
+                if (!avatarUser?.id) return;
 
-                    // Check VIP status
-                    await DiamondEngine.init(user.id);
-                    const vipStatus = await DiamondEngine.isVIP();
-                    setIsVIP(vipStatus);
+                const currentUserId = avatarUser.id;
+                setUserId(currentUserId);
 
-                    // Get diamonds
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds')
-                        .eq('id', user.id)
-                        .single();
+                // Check VIP status
+                await DiamondEngine.init(currentUserId);
+                const vipStatus = await DiamondEngine.isVIP();
+                setIsVIP(vipStatus);
 
-                    if (profile) {
-                        setUserDiamonds(profile.diamonds || 0);
-                    }
+                // Get diamonds
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds')
+                    .eq('id', currentUserId)
+                    .single();
 
-                    // Get streak
-                    const { data: streakData } = await supabase
-                        .from('trivia_streaks')
-                        .select('current_streak')
-                        .eq('user_id', user.id)
-                        .single();
+                if (profile) {
+                    setUserDiamonds(profile.diamonds || 0);
+                }
 
-                    if (streakData) {
-                        setUserStreak(streakData.current_streak || 0);
-                    }
+                // Get streak
+                const { data: streakData } = await supabase
+                    .from('trivia_streaks')
+                    .select('current_streak')
+                    .eq('user_id', currentUserId)
+                    .single();
+
+                if (streakData) {
+                    setUserStreak(streakData.current_streak || 0);
                 }
 
                 // Check arcade diamonds
@@ -191,7 +193,7 @@ export default function TriviaModePage() {
         }
 
         initialize();
-    }, [mode, modeConfig]);
+    }, [mode, modeConfig, avatarUser?.id]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!userId) return;

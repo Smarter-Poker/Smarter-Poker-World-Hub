@@ -321,6 +321,10 @@ export function useRecentSessions(limit = 10) {
           hero_position,
           hero_stack_bb,
           game_type,
+          board_flop,
+          board_turn,
+          board_river,
+          villain_config,
           created_at,
           sandbox_results (
             primary_action,
@@ -343,6 +347,11 @@ export function useRecentSessions(limit = 10) {
           type: 'sandbox',
           date: s.created_at,
           result: s.sandbox_results?.[0]?.primary_action,
+          // Newly added fields for full restoration
+          board_flop: s.board_flop,
+          board_turn: s.board_turn,
+          board_river: s.board_river,
+          villain_config: s.villain_config,
         }));
         setSessions(formatted);
       }

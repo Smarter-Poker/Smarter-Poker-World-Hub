@@ -116,11 +116,11 @@ import { chromium } from '/tmp/node_modules/playwright/index.mjs';
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, 'x-staff-session': staffSession },
                 body: JSON.stringify({
                     venue_id: staff.venue_id,
-                    name: 'E2E Test Dealer',
+                    display_name: 'E2E Test Dealer',
                     role: 'dealer',
                     email: 'e2e-test-dealer@test.com',
                     phone: '5559876543',
-                    pin: '9999'
+                    pin_code: '9999'
                 })
             });
             return await res.json();

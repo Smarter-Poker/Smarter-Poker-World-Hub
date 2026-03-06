@@ -21,7 +21,8 @@ export default function TrainingLeaderboard() {
 
     // Load auth user once
     useEffect(() => {
-        getAuthUser().then(u => setUser(u)).catch(() => { });
+        const u = getAuthUser();
+        if (u) setUser(u);
     }, []);
 
     // Map timeframe to API period format
@@ -160,7 +161,7 @@ function LeaderboardEntry({ rank, username, avatarUrl, totalQuestions, correctAn
 
             <div style={styles.userSection}>
                 {avatarUrl && (
-                    <img src={avatarUrl} alt={username} style={styles.avatar}  loading="lazy" />
+                    <img src={avatarUrl} alt={username} style={styles.avatar} loading="lazy" />
                 )}
                 <div>
                     <div style={styles.username}>

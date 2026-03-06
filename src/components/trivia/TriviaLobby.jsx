@@ -159,6 +159,11 @@ const MODE_CARDS = [
 export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyCompleted = false, currentStreak = 0, onDiamondsChange }) {
     const router = useRouter();
     const [hoveredCard, setHoveredCard] = useState(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // VIP Gating state
     const [showChargePopup, setShowChargePopup] = useState(false);
@@ -271,16 +276,18 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
         <div className="trivia-lobby">
 
             {/* ════ Floating Card Suit Particles ════ */}
-            <div className="suit-particles" aria-hidden>
-                {['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'].map((s, i) => (
-                    <span key={i} className={`suit ${s === '♥' || s === '♦' ? 'red' : ''}`} style={{
-                        left: `${(i / 16) * 100 + Math.random() * 6}%`,
-                        animationDelay: `${i * 1.2 + Math.random() * 2}s`,
-                        animationDuration: `${8 + Math.random() * 6}s`,
-                        fontSize: `${14 + Math.random() * 12}px`,
-                    }}>{s}</span>
-                ))}
-            </div>
+            {mounted && (
+                <div className="suit-particles" aria-hidden>
+                    {['♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣', '♠', '♥', '♦', '♣'].map((s, i) => (
+                        <span key={i} className={`suit ${s === '♥' || s === '♦' ? 'red' : ''}`} style={{
+                            left: `${(i / 16) * 100 + Math.random() * 6}%`,
+                            animationDelay: `${i * 1.2 + Math.random() * 2}s`,
+                            animationDuration: `${8 + Math.random() * 6}s`,
+                            fontSize: `${14 + Math.random() * 12}px`,
+                        }}>{s}</span>
+                    ))}
+                </div>
+            )}
 
             {/* Daily Trivia Hero Card - Image Based */}
             <div

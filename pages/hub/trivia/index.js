@@ -61,44 +61,43 @@ export default function TriviaHubPage() {
 
     useEffect(() => {
         async function loadUserData() {
+            if (!userId) {
+                // Wait for auth to populate
+                return;
+            }
             try {
-                //  BULLETPROOF: Use authUtils to avoid AbortError
-                const user = getAuthUser();
+                // Get user profile for diamonds
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('diamonds, is_vip')
+                    .eq('id', userId)
+                    .single();
 
-                if (user) {
-                    // Get user profile for diamonds
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('diamonds, is_vip')
-                        .eq('id', user.id)
-                        .single();
+                if (profile) {
+                    setUserDiamonds(profile.diamonds || 0);
+                    setIsVip(profile.is_vip === true);
+                }
 
-                    if (profile) {
-                        setUserDiamonds(profile.diamonds || 0);
-                        setIsVip(profile.is_vip === true);
-                    }
+                // Check if daily trivia completed today
+                const today = getTodayCST();
+                const { data: dailyPlay } = await supabase
+                    .from('daily_trivia_plays')
+                    .select('id')
+                    .eq('user_id', userId)
+                    .eq('played_date', today)
+                    .single();
 
-                    // Check if daily trivia completed today
-                    const today = getTodayCST();
-                    const { data: dailyPlay } = await supabase
-                        .from('daily_trivia_plays')
-                        .select('id')
-                        .eq('user_id', user.id)
-                        .eq('played_date', today)
-                        .single();
+                setDailyCompleted(!!dailyPlay);
 
-                    setDailyCompleted(!!dailyPlay);
+                // Get streak
+                const { data: streakData } = await supabase
+                    .from('trivia_streaks')
+                    .select('current_streak')
+                    .eq('user_id', userId)
+                    .single();
 
-                    // Get streak
-                    const { data: streakData } = await supabase
-                        .from('trivia_streaks')
-                        .select('current_streak')
-                        .eq('user_id', user.id)
-                        .single();
-
-                    if (streakData) {
-                        setCurrentStreak(streakData.current_streak || 0);
-                    }
+                if (streakData) {
+                    setCurrentStreak(streakData.current_streak || 0);
                 }
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -107,17 +106,17 @@ export default function TriviaHubPage() {
         }
 
         loadUserData();
-    }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`trivia-hub:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => {})
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    }, [userId]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`trivia-hub:${user?.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => { })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     function getTodayCST() {
         const now = new Date();
@@ -135,7 +134,7 @@ export default function TriviaHubPage() {
                 description="Put Your Poker Knowledge To The Test With Multiple Game Modes: Endless, Survival, Time Attack, Mixed, PvP, And Tournaments."
                 canonical="/hub/trivia"
             >
-                
+
             </SEOHead>
 
             <div className="trivia-page">

@@ -438,6 +438,27 @@ export default function VirtualSandbox() {
           if (session.hero_position) setHeroPosition(session.hero_position);
           if (session.hero_stack) setHeroStack(session.hero_stack);
           if (session.game_type) setGameType(session.game_type);
+
+          // Restore Board
+          const newBoard = { flop: [], turn: null, river: null };
+          if (session.board_flop) {
+            // board_flop is a string like "AsKdJh", split into 2-char chunks:
+            newBoard.flop = session.board_flop.match(/.{1,2}/g) || [];
+          }
+          if (session.board_turn) newBoard.turn = session.board_turn;
+          if (session.board_river) newBoard.river = session.board_river;
+          setBoard(newBoard);
+
+          // Restore Villains
+          if (session.villain_config && Array.isArray(session.villain_config) && session.villain_config.length > 0) {
+            setVillains(session.villain_config);
+          } else {
+            // Default villain if missing
+            setVillains([{ position: session.hero_position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: session.hero_stack || 100 }]);
+          }
+
+          // Note: actionHistory isn't saved in sandbox_sessions currently, so we clear it.
+          setActionHistory([]);
           clearResults();
         }} />
       )}</AnimatePresence>
@@ -512,7 +533,13 @@ export default function VirtualSandbox() {
               </div>
               <div>
                 <label style={{ color: '#64748b', fontSize: 10, display: 'block', marginBottom: 4 }}>Stack (BB)</label>
-                <input type="number" value={heroStack} onChange={e => setHeroStack(Number(e.target.value))} min={1} max={500}
+                <input type="text" inputMode="numeric" pattern="[0-9]*"
+                  value={heroStack}
+                  onChange={e => {
+                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                    setHeroStack(val === 0 ? '' : val);
+                  }}
+                  onBlur={() => setHeroStack(h => h || 100)}
                   style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', boxSizing: 'border-box' }} />
               </div>
               <div>
@@ -572,8 +599,20 @@ export default function VirtualSandbox() {
                   style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
                   {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
-                <input type="number" value={v.stack} onChange={e => { const u = [...villains]; u[i] = { ...u[i], stack: Number(e.target.value) }; setVillains(u); }}
-                  min={1} max={500} style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', width: '100%', boxSizing: 'border-box' }} />
+                <input type="text" inputMode="numeric" pattern="[0-9]*"
+                  value={v.stack}
+                  onChange={e => {
+                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                    const u = [...villains];
+                    u[i] = { ...u[i], stack: val === 0 ? '' : val };
+                    setVillains(u);
+                  }}
+                  onBlur={() => {
+                    const u = [...villains];
+                    u[i] = { ...u[i], stack: v.stack || 100 };
+                    setVillains(u);
+                  }}
+                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', width: '100%', boxSizing: 'border-box' }} />
                 <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
                   style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#334155' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
               </div>
@@ -609,14 +648,25 @@ export default function VirtualSandbox() {
             <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px' }}>
               <h4 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                {POSITIONS.filter(p => p !== heroPosition).map(p => (
-                  <button key={p} onClick={() => runPositionComparison(p)}
-                    style={{
-                      padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                      background: comparePosition === p ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)', color: comparePosition === p ? '#93c5fd' : '#94a3b8', cursor: 'pointer',
-                    }}>{p}</button>
-                ))}
+                {POSITIONS.map(p => {
+                  const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
+                  return (
+                    <button key={p}
+                      onClick={() => {
+                        if (p === heroPosition) {
+                          setComparePosition(null);
+                          analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+                        } else {
+                          runPositionComparison(p);
+                        }
+                      }}
+                      style={{
+                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                        background: isCurrentTarget ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)', color: isCurrentTarget ? '#93c5fd' : '#94a3b8', cursor: 'pointer',
+                      }}>{p}</button>
+                  );
+                })}
               </div>
             </div>
           )}

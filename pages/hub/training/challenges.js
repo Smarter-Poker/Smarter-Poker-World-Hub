@@ -21,11 +21,12 @@ export default function ChallengesPage() {
     const [claiming, setClaiming] = useState(null);
 
     // Load auth user once
-    useEffect(() => {    const _c = new AbortController();
-
-        getAuthUser().then(u => setUser(u)).catch(() => {});
-    return () => _c.abort();
-  }, []);
+    useEffect(() => {
+        const _c = new AbortController();
+        const u = getAuthUser();
+        if (u) setUser(u);
+        return () => _c.abort();
+    }, []);
 
     // SWR-backed challenges fetch — only fires when user is known
     const swrKey = user ? `/api/training/challenges?userId=${user.id}` : null;

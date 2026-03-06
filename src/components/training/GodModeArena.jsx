@@ -15,9 +15,7 @@ import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
-import LifetimeStatsCard from './LifetimeStatsCard';
-import SessionHistoryList from './SessionHistoryList';
-import PreflopRangeTrainer from './PreflopRangeTrainer';
+// Components defined locally within this file or in other imports
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import dynamic from 'next/dynamic';

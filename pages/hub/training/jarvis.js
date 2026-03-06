@@ -18,16 +18,17 @@ export default function JarvisDashboard() {
     const [loading, setLoading] = useState(true);
     const [insights, setInsights] = useState(null);
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         loadInsights();
-    return () => _c.abort();
-  }, []);
+        return () => _c.abort();
+    }, []);
 
-    const loadInsights = async(signal) => {
+    const loadInsights = async (signal) => {
         try {
             setLoading(true);
-            const authUser = await getAuthUser();
+            const authUser = getAuthUser();
             setUser(authUser);
 
             if (authUser) {

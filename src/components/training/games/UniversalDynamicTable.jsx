@@ -1617,12 +1617,16 @@ function UniversalDynamicTable({
                         )}
 
                         {/* EV Loss */}
-                        {evLoss > 0 && (
-                            <div style={styles.evLossDisplay}>
-                                <span style={styles.evLossLabel}>EV Loss:</span>
-                                <span style={styles.evLossValue}>-{evLoss.toFixed(2)} BB</span>
-                            </div>
-                        )}
+                        <div style={styles.evLossDisplay}>
+                            <span style={styles.evLossLabel}>EV Loss:</span>
+                            <span style={{
+                                ...styles.evLossValue,
+                                color: evLoss > 0 ? '#ef4444' : '#22c55e'
+                            }}>
+                                {evLoss > 0 ? `-${evLoss.toFixed(2)}` : '0.00'} BB
+                                {evLoss === 0 && <span style={{ fontSize: 9, marginLeft: 6, fontWeight: 'normal', opacity: 0.8 }}>(Optimal)</span>}
+                            </span>
+                        </div>
 
                         {/* Per-Action EV Comparison — GTO Wizard-style */}
                         {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 0 && (
@@ -1713,11 +1717,13 @@ function UniversalDynamicTable({
                         )}
 
                         {/* F1: Range Matrix Viewer */}
-                        <RangeMatrixViewer
-                            rawFrequencies={question?.rawFrequencies}
-                            correctAnswer={correctAnswer}
-                            show={!!question?.rawFrequencies}
-                        />
+                        {question?.rawFrequencies && (
+                            <RangeMatrixViewer
+                                rawFrequencies={question.rawFrequencies}
+                                correctAnswer={correctAnswer}
+                                show={true}
+                            />
+                        )}
 
                         {/* UI-2: Next Hand / Continue Hand button */}
                         {onNextHand ? (
