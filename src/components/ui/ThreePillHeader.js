@@ -51,7 +51,6 @@ export default function ThreePillHeader({
     const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
 
     const liveHelp = useLiveHelp();
-    const { unreadCount } = useUnreadCount();
 
     // Measure image height when loaded
     const handleImageLoad = () => {
