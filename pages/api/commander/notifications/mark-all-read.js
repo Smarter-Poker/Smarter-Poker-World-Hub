@@ -12,6 +12,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  try {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -56,4 +57,8 @@ export default async function handler(req, res) {
       updated_count: data?.length || 0
     }
   });
+  } catch (err) {
+    console.error('[pages/api/commander/notifications/mark-all-read.js]', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 }

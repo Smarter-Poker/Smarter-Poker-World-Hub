@@ -23,7 +23,7 @@ import '../src/styles/worlds/bankroll.css';
 import '../src/styles/worlds/trivia.css';
 import '../src/styles/commander-futuristic.css';
 import '../styles/landing.css';
-import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk } from 'next/font/google';
+import { Orbitron, Inter, Plus_Jakarta_Sans, Space_Grotesk, Rajdhani } from 'next/font/google';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -53,6 +53,14 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-space-grotesk',
+  display: 'swap',
+  preload: false,
+});
+
+const rajdhani = Rajdhani({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-rajdhani',
   display: 'swap',
   preload: false,
 });
@@ -393,7 +401,7 @@ export default function App({ Component, pageProps }) {
 
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
-    <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable}`} style={{ minHeight: '100vh' }}>
+    <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable}`} style={{ minHeight: '100vh' }}>
     <>
       {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
       <Head>

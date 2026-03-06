@@ -170,7 +170,7 @@ export default async function handler(req, res) {
       // Get current membership
       const { data: member } = await supabaseAdmin
         .from('club_members')
-        .select('*')
+        .select('id')
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
         .single();

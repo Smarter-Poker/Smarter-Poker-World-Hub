@@ -24,7 +24,7 @@ export default async function handler(req, res) {
         // Check our queue entry status
         const { data: entry, error } = await supabase
             .from('arcade_duel_queue')
-            .select('*')
+            .select('id')
             .eq('id', queue_id)
             .single();
 

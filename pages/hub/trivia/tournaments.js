@@ -464,7 +464,7 @@ export default function TournamentsPage() {
                 description="Enter Poker Trivia Tournaments. Compete Against The Community For Diamonds, XP, And Leaderboard Glory."
                 canonical="/hub/trivia/tournaments"
             >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div className="tournaments-page">

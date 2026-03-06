@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     // ═════════════════════════════════════════════════════════════
     const { data: cashout, error: coErr } = await supabaseAdmin
       .from('cashout_requests')
-      .select('*')
+      .select('id')
       .eq('id', cashoutId)
       .single();
 

@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       // Single transaction receipt
       const { data: tx } = await supabase
         .from('commander_cash_transactions')
-        .select('*')
+        .select('id')
         .eq('id', transaction_id)
         .single();
 
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       // Full session summary receipt (cash-out receipt with all transactions)
       const { data: session } = await supabase
         .from('commander_table_sessions')
-        .select('*')
+        .select('id')
         .eq('id', session_id)
         .single();
 
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
 
       const { data: txns } = await supabase
         .from('commander_cash_transactions')
-        .select('*')
+        .select('id')
         .eq('session_id', session_id)
         .order('created_at', { ascending: true });
 

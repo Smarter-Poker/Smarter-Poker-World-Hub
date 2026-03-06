@@ -49,7 +49,8 @@ async function listRates(req, res) {
 
       const ratePerHour = defaultRates?.[0]?.comp_value || 1;
 
-      return res.status(200).json({
+      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+    return res.status(200).json({
         success: true,
         data: {
           rates: [],

@@ -303,9 +303,8 @@ export default function SeriesDetailPage() {
         <title>{series.name + ' | Smarter.Poker'}</title>
         <meta name="description" content={series.name + ' - ' + formatDateRange(series.start_date, series.end_date) + ' at ' + (venueName || location.city)} />
         {/* Industrial Fonts */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        
+                
       </Head>
       <UniversalHeader pageDepth={2} />
 

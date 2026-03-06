@@ -702,7 +702,7 @@ export default function BankrollManagerPage() {
         description="Professional Bankroll Tracking For Poker Players. Monitor Sessions, Analyze Leaks, Track ROI, And Visualize Trends With Detailed Analytics And Variance Analysis."
         canonical="/hub/bankroll-manager"
       >
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        
       </SEOHead>
 
       <div className="bankroll-page" style={styles.container}>
@@ -721,7 +721,6 @@ export default function BankrollManagerPage() {
             menuItems={menuConfig.menuItems}
             bottomLinks={menuConfig.bottomLinks}
           />
-
 
           {/* Main Layout */}
           <div className="bankroll-main-layout" style={styles.mainLayout}>
@@ -1259,9 +1258,6 @@ export default function BankrollManagerPage() {
                       </div>
                     </div>
                   )}
-
-
-
 
                 </>
               )}

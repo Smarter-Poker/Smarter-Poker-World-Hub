@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     // Get player preferences if they exist
     const { data: preferences } = await supabase
       .from('commander_player_preferences')
-      .select('*')
+      .select('id')
       .eq('player_id', playerId)
       .single();
 

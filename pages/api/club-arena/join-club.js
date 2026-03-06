@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         // Find club
         const { data: club, error: findErr } = await supabaseAdmin
             .from('clubs')
-            .select('*')
+            .select('id')
             .eq('club_id', parseInt(clubCode))
             .single();
 

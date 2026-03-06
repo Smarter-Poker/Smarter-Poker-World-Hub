@@ -75,6 +75,7 @@ async function getPromotion(req, res, id) {
       .order('created_at', { ascending: false })
       .limit(10);
 
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
     return res.status(200).json({
       promotion,
       recent_awards: recentAwards || []

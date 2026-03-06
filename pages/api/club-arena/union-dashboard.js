@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     // 2. Get union info
     const { data: union } = await supabaseAdmin
       .from('unions')
-      .select('*')
+      .select('id')
       .eq('id', unionId)
       .single();
 

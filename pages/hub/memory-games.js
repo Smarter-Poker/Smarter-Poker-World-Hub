@@ -2664,7 +2664,7 @@ export default function MemoryGamesPage() {
                 description="Sharpen Your Poker Cognitive Skills With Memory Matrix Games. Train Pattern Recognition, Recall Speed, And Mental Agility."
                 canonical="/hub/memory-games"
             >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div className="memory-games-page"

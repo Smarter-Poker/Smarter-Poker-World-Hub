@@ -1,11 +1,16 @@
 /**
  * SWR CACHE PROVIDER — Persistent cross-navigation cache
  * ═══════════════════════════════════════════════════════
- * Wraps the SWR in-memory cache with localStorage persistence so that
+ * Wraps the SWR in-memory cache with storage persistence so that
  * display-only data (leaderboards, news, friends, venue lists, etc.)
  * survives Next.js page navigation without re-fetching.
  *
- * SAFETY RULES — keys containing these strings are NEVER cached to localStorage:
+ * Storage strategy:
+ *   1. Try localStorage (persists across sessions)
+ *   2. Fall back to sessionStorage (survives navigation, works in incognito)
+ *   3. Fall back to in-memory only (always works)
+ *
+ * SAFETY RULES — keys containing these strings are NEVER cached to storage:
  *   balance, cashout, game-state, session, auth, transaction, payout, chip
  *
  * Usage: wrap <SWRConfig value={{ provider: swrLocalStorageProvider }}> in _app.js
@@ -27,40 +32,71 @@ function isSafeToCache(key) {
   return !UNSAFE_KEY_PATTERNS.some(p => lower.includes(p));
 }
 
+/** Returns the best available storage backend, or null if none available */
+function getBestStorage() {
+  if (typeof window === 'undefined') return null;
+  
+  // Try localStorage first (persists across browser sessions)
+  try {
+    localStorage.setItem('_sp_test', '1');
+    localStorage.removeItem('_sp_test');
+    return localStorage;
+  } catch {
+    // localStorage blocked (incognito strict mode, quota, security policy)
+  }
+  
+  // Fall back to sessionStorage (works in incognito, survives page nav)
+  try {
+    sessionStorage.setItem('_sp_test', '1');
+    sessionStorage.removeItem('_sp_test');
+    return sessionStorage;
+  } catch {
+    // sessionStorage also blocked — in-memory only
+  }
+  
+  return null;
+}
+
 export function swrLocalStorageProvider() {
   if (typeof window === 'undefined') {
     // SSR: return empty in-memory map
     return new Map();
   }
 
-  // ── Hydrate from localStorage ──────────────────────────────────────────
+  const storage = getBestStorage();
+
+  // ── Hydrate from storage ───────────────────────────────────────────────
   let initialEntries = [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const now = Date.now();
-      // Only restore entries that are still fresh
-      initialEntries = parsed.filter(
-        ([, v]) => v && v._cachedAt && (now - v._cachedAt) < MAX_AGE_MS
-      );
+  if (storage) {
+    try {
+      const raw = storage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const now = Date.now();
+        // Only restore entries that are still fresh
+        initialEntries = parsed.filter(
+          ([, v]) => v && v._cachedAt && (now - v._cachedAt) < MAX_AGE_MS
+        );
+      }
+    } catch {
+      // Corrupt storage — start fresh
+      try { storage.removeItem(STORAGE_KEY); } catch { /* noop */ }
     }
-  } catch {
-    // Corrupt storage — start fresh
-    try { localStorage.removeItem(STORAGE_KEY); } catch { /* noop */ }
   }
 
   const map = new Map(initialEntries);
 
-  // ── Persist to localStorage on page unload ────────────────────────────
-  window.addEventListener('beforeunload', () => {
-    try {
-      const safeEntries = [...map.entries()].filter(([key]) => isSafeToCache(key));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(safeEntries));
-    } catch {
-      // Quota exceeded or security error — silently skip
-    }
-  });
+  // ── Persist to storage on page unload ────────────────────────────────
+  if (storage) {
+    window.addEventListener('beforeunload', () => {
+      try {
+        const safeEntries = [...map.entries()].filter(([key]) => isSafeToCache(key));
+        storage.setItem(STORAGE_KEY, JSON.stringify(safeEntries));
+      } catch {
+        // Quota exceeded or security error — silently skip
+      }
+    });
+  }
 
   return map;
 }

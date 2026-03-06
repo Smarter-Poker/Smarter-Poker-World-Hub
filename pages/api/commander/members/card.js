@@ -11,6 +11,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  try {
   // Auth guard: require staff auth for write operations
   const _authResult = await guardWriteStaff(req, res);
   if (!_authResult) return;
@@ -45,4 +46,8 @@ export default async function handler(req, res) {
             qrCodeUrl,
         },
     });
+  } catch (err) {
+    console.error('[pages/api/commander/members/card.js]', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 }

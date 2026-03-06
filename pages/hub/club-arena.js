@@ -430,7 +430,7 @@ export default function ClubArenaPage() {
                 description="Create And Join Private Online Poker Clubs. Real-time Gameplay, Tournaments, Hand Histories, Player Stats, And Club Management."
                 canonical="/hub/club-arena"
             >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div style={S.pageWrapper}>

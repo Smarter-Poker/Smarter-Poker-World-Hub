@@ -202,33 +202,20 @@ export default function ClubLobby() {
             if (clubData) {
                 setClub(clubData);
 
-                // Load club tables
-                const { data: tableData } = await supabase
-                    .from('tables')
-                    .select('*')
-                    .eq('club_id', clubData.id)
-                    .neq('status', 'deleted')
-                    .limit(100) // lobby tables
-                setTables(tableData || []);
+                // Parallelize: tables + announcements + membership all fire at once
+                const [tableResult, annResult, memberResult] = await Promise.allSettled([
+                    supabase.from('tables').select('*').eq('club_id', clubData.id).neq('status', 'deleted').limit(100),
+                    apiGet(`/api/club-arena/announcements?clubId=${clubData.id}`).catch(() => ({})),
+                    authUser
+                        ? supabase.from('club_members').select('chip_balance, role').eq('club_id', clubData.id).eq('user_id', authUser.id).maybeSingle()
+                        : Promise.resolve(null),
+                ]);
 
-                // Load club announcements
-                try {
-                    const annRes = await apiGet(`/api/club-arena/announcements?clubId=${clubData.id}`);
-                    setAnnouncements(annRes.announcements || []);
-                } catch (e) { /* announcements table may not exist yet */ }
-
-                // Load membership & chip balance
-                if (authUser) {
-                    const { data: memberData } = await supabase
-                        .from('club_members')
-                        .select('chip_balance, role')
-                        .eq('club_id', clubData.id)
-                        .eq('user_id', authUser.id)
-                        .maybeSingle();
-                    if (memberData) {
-                        setMembership(memberData);
-                        setChipBalance(memberData.chip_balance || 0);
-                    }
+                if (tableResult.status === 'fulfilled') setTables(tableResult.value?.data || []);
+                if (annResult.status === 'fulfilled') setAnnouncements(annResult.value?.announcements || []);
+                if (memberResult.status === 'fulfilled' && memberResult.value?.data) {
+                    setMembership(memberResult.value.data);
+                    setChipBalance(memberResult.value.data.chip_balance || 0);
                 }
             }
         } catch (e) {
@@ -246,7 +233,7 @@ export default function ClubLobby() {
                 canonical="/hub/club-arena/lobby"
                 noindex={true}
             >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div style={styles.page}>

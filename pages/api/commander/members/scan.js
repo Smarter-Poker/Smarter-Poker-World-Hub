@@ -13,6 +13,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  try {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
@@ -74,4 +75,8 @@ export default async function handler(req, res) {
             },
         },
     });
+  } catch (err) {
+    console.error('[pages/api/commander/members/scan.js]', err);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 }

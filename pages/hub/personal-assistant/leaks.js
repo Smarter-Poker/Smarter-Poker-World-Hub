@@ -586,7 +586,7 @@ export default function LeakFinderPage() {
         description="Identify And Fix Leaks In Your Poker Game With AI-powered Analysis From Jarvis."
         canonical="/hub/personal-assistant/leaks"
       >
-        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        
       </SEOHead>
 
       <div className="leaks-page" style={styles.container}>

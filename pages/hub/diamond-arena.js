@@ -116,7 +116,7 @@ export default function DiamondArenaPage() {
                 description="Compete In High-stakes Diamond Arena Poker Games. Earn Diamonds, Climb Rankings, And Prove Your Skills."
                 canonical="/hub/diamond-arena"
             >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div className="diamond-arena-page" style={styles.container}>

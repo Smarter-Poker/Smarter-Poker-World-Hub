@@ -678,7 +678,7 @@ export default function PvPPage() {
                 description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
                 canonical="/hub/trivia/pvp"
             >
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div className="pvp-page">

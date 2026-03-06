@@ -156,7 +156,6 @@ export default function CommanderDashboard() {
     }
   }, [router.isReady, router.query.card]);
 
-
   // Auth guard — validate localStorage AND Supabase session
   useEffect(() => {
     const controller = new AbortController();
@@ -316,7 +315,6 @@ export default function CommanderDashboard() {
         />
 
         <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
         .cmd-dashboard {
           min-height: 100vh;
@@ -346,7 +344,6 @@ export default function CommanderDashboard() {
           color: #888;
           margin-top: 2px;
         }
-
 
         /* ── 6-CARD GRID ── */
         .cmd-grid {

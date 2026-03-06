@@ -377,7 +377,8 @@ async function getBalances(req, res) {
 
       const totalHours = sessions?.reduce((sum, s) => sum + ((s.total_time_minutes || 0) / 60), 0) || 0;
 
-      return res.status(200).json({
+      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+    return res.status(200).json({
         success: true,
         data: {
           balances,

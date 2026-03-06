@@ -52,7 +52,8 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: error.message });
       }
 
-      return res.status(200).json({ success: true, data: data || [] });
+      res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+    return res.status(200).json({ success: true, data: data || [] });
     } catch (error) {
       captureException(error, { action: 'waitlist_get', endpoint: '/api/commander/waitlist' });
       return res.status(500).json({ success: false, error: 'Internal server error' });

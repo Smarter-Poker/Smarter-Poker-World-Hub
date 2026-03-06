@@ -220,7 +220,6 @@ export default function TabletDisplay() {
             }, () => fetchData())
             .subscribe();
 
-
         return () => { supabase.removeChannel(channel); };
     }, [tableNumber, venueId, fetchData]);
 
@@ -454,7 +453,6 @@ export default function TabletDisplay() {
             <style jsx global>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { overflow: hidden; background: #0A0A0A; }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse-border {
           0%, 100% { border-color: rgba(239,68,68,0.5); box-shadow: 0 0 0 0 rgba(239,68,68,0); }

@@ -71,6 +71,7 @@ async function handleList(req, res) {
         return res.status(500).json({ success: false, error: error.message });
     }
 
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
     return res.status(200).json({
         success: true,
         data: {

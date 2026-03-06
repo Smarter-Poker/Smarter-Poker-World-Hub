@@ -23,5 +23,6 @@ export default async function handler(req, res) {
         sourceUrl: a.source_url?.substring(0, 60)
     }));
 
-    return res.status(200).json({ articles: summary });
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+  return res.status(200).json({ articles: summary });
 }

@@ -564,7 +564,7 @@ export default function AdminDashboard() {
         description="Club Commander Admin Dashboard."
         noindex={true}
       >
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        
       </SEOHead>
 
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>

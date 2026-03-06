@@ -105,6 +105,7 @@ async function getDailyAnalytics(req, res) {
       promotions_awarded: 0
     });
 
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
     return res.status(200).json({
       analytics: data,
       summary,

@@ -101,6 +101,7 @@ async function listPromotions(req, res) {
       data.forEach(p => { if (expiredIds.includes(p.id)) p.status = 'expired'; });
     }
 
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
     return res.status(200).json({
       success: true,
       data: {

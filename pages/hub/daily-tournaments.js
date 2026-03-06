@@ -117,9 +117,9 @@ export default function DailyTournaments() {
                 description="Join Daily Poker Tournaments On Smarter.Poker. Compete Against Players Worldwide With Daily Challenges And Prize Pools."
                 canonical="/hub/daily-tournaments"
             >
-                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+                
             </SEOHead>
 
             <div className="dt-page">

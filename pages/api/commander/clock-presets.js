@@ -50,7 +50,8 @@ export default async function handler(req, res) {
             const { data, error } = await query;
             if (error) throw error;
 
-            return res.status(200).json({ success: true, data: data || [] });
+            res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
+    return res.status(200).json({ success: true, data: data || [] });
         } catch (err) {
             return res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } });
         }

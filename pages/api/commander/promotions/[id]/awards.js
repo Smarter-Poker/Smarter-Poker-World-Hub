@@ -63,6 +63,7 @@ async function listAwards(req, res, promotionId) {
 
     if (error) throw error;
 
+    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=60');
     return res.status(200).json({
       awards: data,
       total: count,

@@ -70,7 +70,7 @@ export default async function handler(req, res) {
       // Get pool
       const { data: pool } = await supabaseAdmin
         .from('bbj_pools')
-        .select('*')
+        .select('id')
         .eq('club_id', clubId)
         .single();
 

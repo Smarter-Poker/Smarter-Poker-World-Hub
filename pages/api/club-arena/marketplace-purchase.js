@@ -42,7 +42,7 @@ export default async function handler(req, res) {
         // Get item (scoped to this club)
         const { data: item, error: itemErr } = await supabaseAdmin
             .from('club_shop_items')
-            .select('*')
+            .select('id')
             .eq('id', itemId)
             .eq('club_id', clubId)
             .single();
