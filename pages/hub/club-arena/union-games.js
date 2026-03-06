@@ -6,7 +6,8 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import SkeletonLight from '../../../src/components/ui/SkeletonLight';
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -33,8 +34,12 @@ const api = async (action, params) => {
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ action, ...params }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed (${res.status})`);
+  }
   return res.json();
-});
+};
 
 export default function UnionGames() {
   const router = useRouter();
@@ -52,6 +57,7 @@ export default function UnionGames() {
   const [clubs, setClubs] = useState([]);
   const [unionInfo, setUnionInfo] = useState(null);
   const [toast, setToast] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null); // { key, fn } two-tap confirm
 
   // Modals
   const [showCreateTournament, setShowCreateTournament] = useState(false);
@@ -79,8 +85,6 @@ export default function UnionGames() {
   }, [unionId, user]);
 
   const loadTournaments = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
     if (!unionId) return;
     const statusMap = {
       upcoming: ['scheduled', 'registering', 'late_reg'],
@@ -95,8 +99,6 @@ export default function UnionGames() {
   }, [unionId, subTab]);
 
   const loadTables = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
     if (!unionId) return;
     const res = await api('list_tables', { unionId });
     if (res.success) {
@@ -109,8 +111,6 @@ export default function UnionGames() {
   }, [unionId, tableFilter]);
 
   const loadData = useCallback(async () => {
-    const controller = new AbortController();
-    const { signal } = controller;
     setLoading(true);
     if (tab === 'tournaments') await loadTournaments();
     else await loadTables();
@@ -168,31 +168,52 @@ export default function UnionGames() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const handleStartTournament = async (id) => {
-    if (!confirm('Start this tournament? All registered players will be seated.')) return;
-    const res = await api('start_tournament', { unionId, tournamentId: id });
-    if (res.success) { showToast(`Tournament started with ${res.players} players`); loadData(); }
-    else showToast(res.error || 'Failed', 'error');
+  const twoTap = (key, fn) => {
+    if (confirmAction?.key !== key) {
+      setConfirmAction({ key, fn });
+      setTimeout(() => setConfirmAction(c => c?.key === key ? null : c), 4000);
+    } else {
+      setConfirmAction(null);
+      fn();
+    }
   };
 
-  const handleCancelTournament = async (id) => {
-    if (!confirm('Cancel this tournament? All players will be refunded.')) return;
-    const res = await api('cancel_tournament', { unionId, tournamentId: id });
-    if (res.success) { showToast(`Cancelled — ${res.refunded} players refunded`); loadData(); }
-    else showToast(res.error || 'Failed', 'error');
+  const handleStartTournament = (id) => {
+    twoTap(`start-${id}`, async () => {
+      try {
+        const res = await api('start_tournament', { unionId, tournamentId: id });
+        showToast(`Tournament started with ${res.players || 0} players`);
+        loadData();
+      } catch (e) { showToast(e.message || 'Failed to start tournament', 'error'); }
+    });
+  };
+
+  const handleCancelTournament = (id) => {
+    twoTap(`cancel-${id}`, async () => {
+      try {
+        const res = await api('cancel_tournament', { unionId, tournamentId: id });
+        showToast(`Cancelled — ${res.refunded || 0} players refunded`);
+        loadData();
+      } catch (e) { showToast(e.message || 'Failed to cancel tournament', 'error'); }
+    });
   };
 
   const handleOpenRegistration = async (id) => {
-    const res = await api('open_registration', { unionId, tournamentId: id });
-    if (res.success) { showToast('Registration opened'); loadData(); }
-    else showToast(res.error || 'Failed', 'error');
+    try {
+      await api('open_registration', { unionId, tournamentId: id });
+      showToast('Registration opened');
+      loadData();
+    } catch (e) { showToast(e.message || 'Failed to open registration', 'error'); }
   };
 
-  const handleCloseTable = async (id) => {
-    if (!confirm('Close this table?')) return;
-    const res = await api('close_table', { unionId, tableId: id });
-    if (res.success) { showToast('Table closed'); loadData(); }
-    else showToast(res.error || 'Failed', 'error');
+  const handleCloseTable = (id) => {
+    twoTap(`close-table-${id}`, async () => {
+      try {
+        await api('close_table', { unionId, tableId: id });
+        showToast('Table closed');
+        loadData();
+      } catch (e) { showToast(e.message || 'Failed to close table', 'error'); }
+    });
   };
 
   if (!user) return null;
@@ -306,7 +327,7 @@ export default function UnionGames() {
       {/* Content */}
       <div style={{ padding: '0 16px 100px' }}>
         {loading ? (
-          <SkeletonLight variant="list" rows={5} />
+          <SkeletonDark variant="table-rows" rows={5} />
         ) : tab === 'tournaments' ? (
           /* ═══ TOURNAMENTS LIST ═══ */
           tournaments.length === 0 ? (
@@ -349,14 +370,14 @@ export default function UnionGames() {
                     )}
                     {t.status === 'registering' && t.registered_count >= 2 && (
                       <button onClick={() => handleStartTournament(t.id)} style={{
-                        padding: '6px 14px', background: FB.orange, color: '#fff', border: 'none',
+                        padding: '6px 14px', background: confirmAction?.key === `start-${t.id}` ? '#c2410c' : FB.orange, color: '#fff', border: 'none',
                         borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                      }}>Start Now</button>
+                      }}>{confirmAction?.key === `start-${t.id}` ? 'Confirm Start?' : 'Start Now'}</button>
                     )}
                     <button onClick={() => handleCancelTournament(t.id)} style={{
-                      padding: '6px 14px', background: FB.red, color: '#fff', border: 'none',
+                      padding: '6px 14px', background: confirmAction?.key === `cancel-${t.id}` ? '#991b1b' : FB.red, color: '#fff', border: 'none',
                       borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                    }}>Cancel</button>
+                    }}>{confirmAction?.key === `cancel-${t.id}` ? 'Confirm Cancel?' : 'Cancel'}</button>
                   </div>
                 )}
               </div>
@@ -400,9 +421,9 @@ export default function UnionGames() {
                   }}>Go to Club Lobby</button>
                   {['waiting', 'running'].includes(t.status) && (t.current_players || 0) === 0 && (
                     <button onClick={() => handleCloseTable(t.id)} style={{
-                      padding: '6px 14px', background: FB.red, color: '#fff', border: 'none',
+                      padding: '6px 14px', background: confirmAction?.key === `close-table-${t.id}` ? '#991b1b' : FB.red, color: '#fff', border: 'none',
                       borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                    }}>Close Table</button>
+                    }}>{confirmAction?.key === `close-table-${t.id}` ? 'Confirm Close?' : 'Close Table'}</button>
                   )}
                 </div>
               </div>
@@ -461,30 +482,37 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
     }
   }, [form.hostClubId]);
 
+  const [saveError, setSaveError] = useState(null);
+
   const handleSave = async () => {
-    if (!form.name.trim()) return alert('Tournament name required');
-    if (!form.hostClubId) return alert('Select a host club');
+    if (!form.name.trim()) { setSaveError('Tournament name required'); return; }
+    if (!form.hostClubId) { setSaveError('Select a host club'); return; }
+    setSaveError(null);
     setSaving(true);
-    const res = await api('create_tournament', {
-      unionId,
-      hostClubId: form.hostClubId,
-      name: form.name,
-      type: form.type,
-      variant: form.variant,
-      buyIn: form.buyIn,
-      startingChips: form.startingChips,
-      maxPlayers: form.maxPlayers,
-      lateRegLevels: form.lateRegLevels,
-      rebuyEnabled: form.rebuyEnabled,
-      rebuyLevels: form.rebuyLevels,
-      addonEnabled: form.addonEnabled,
-      guaranteedPrize: form.guaranteedPrize,
-      scheduledStart: form.scheduledStart || null,
-      participatingClubIds: form.selectedClubs,
-    });
-    setSaving(false);
-    if (res.success) onCreated();
-    else alert(res.error || 'Failed');
+    try {
+      await api('create_tournament', {
+        unionId,
+        hostClubId: form.hostClubId,
+        name: form.name,
+        type: form.type,
+        variant: form.variant,
+        buyIn: form.buyIn,
+        startingChips: form.startingChips,
+        maxPlayers: form.maxPlayers,
+        lateRegLevels: form.lateRegLevels,
+        rebuyEnabled: form.rebuyEnabled,
+        rebuyLevels: form.rebuyLevels,
+        addonEnabled: form.addonEnabled,
+        guaranteedPrize: form.guaranteedPrize,
+        scheduledStart: form.scheduledStart || null,
+        participatingClubIds: form.selectedClubs,
+      });
+      onCreated();
+    } catch (e) {
+      setSaveError(e.message || 'Failed to create tournament');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleClub = (id) => {
@@ -585,6 +613,11 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
           </div>
         )}
 
+        {saveError && (
+          <div style={{ background: 'rgba(250,56,62,0.12)', border: '1px solid rgba(250,56,62,0.3)', borderRadius: 8, padding: '8px 12px', marginTop: 8, fontSize: 12, color: '#FA383E' }}>
+            {saveError}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 10, background: FB.border, color: FB.text, border: 'none', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{
@@ -620,13 +653,20 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
     }));
   }, [form.bigBlind]);
 
+  const [saveError, setSaveError] = useState(null);
+
   const handleSave = async () => {
-    if (!form.clubId) return alert('Select a club');
+    if (!form.clubId) { setSaveError('Select a club'); return; }
+    setSaveError(null);
     setSaving(true);
-    const res = await api('create_table', { unionId, ...form });
-    setSaving(false);
-    if (res.success) onCreated();
-    else alert(res.error || 'Failed');
+    try {
+      await api('create_table', { unionId, ...form });
+      onCreated();
+    } catch (e) {
+      setSaveError(e.message || 'Failed to create table');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const F = (label, key, type = 'text', opts = {}) => (
@@ -685,6 +725,11 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
           {F('Rake Cap (BB)', 'rakeCap', 'number')}
         </div>
 
+        {saveError && (
+          <div style={{ background: 'rgba(250,56,62,0.12)', border: '1px solid rgba(250,56,62,0.3)', borderRadius: 8, padding: '8px 12px', marginTop: 8, fontSize: 12, color: '#FA383E' }}>
+            {saveError}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 10, background: FB.border, color: FB.text, border: 'none', borderRadius: 8, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{
@@ -721,8 +766,6 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     if (!['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status)) return;
     let active = true;
     const poll = async () => {
-      const controller = new AbortController();
-      const { signal } = controller;
       try {
         const token = await getToken();
         const res = await fetch('/api/poker/engine/tournament', {

@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -32,7 +34,7 @@ const apiCall = async (endpoint, body) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 
 const apiGet = async (url) => {
     const token = await getAuthToken();
@@ -41,7 +43,7 @@ const apiGet = async (url) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 
 const StatCard = ({ label, value, color, sub }) => (
     <div style={{
@@ -100,6 +102,9 @@ export default function UnionDashboard() {
     const [bbjMainPct, setBbjMainPct] = useState('40');
     const [bbjBackupPct, setBbjBackupPct] = useState('30');
     const [bbjPromoPct, setBbjPromoPct] = useState('30');
+    // Two-tap confirm state
+    const [confirmRemoveClub, setConfirmRemoveClub] = useState(null);
+    const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState(null);
 
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
@@ -170,7 +175,7 @@ export default function UnionDashboard() {
                 });
                 const data = await res.json();
                 if (data.success) setDashboard(data);
-            } catch (_) { /* silent fail */ }
+            } catch (e) { console.error('[union-dashboard:poll]', e); }
         }, 30000);
 
         return () => {
@@ -241,9 +246,15 @@ export default function UnionDashboard() {
     // Loading
     if (isLoading || !user) {
         return (
-            <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: FB.background, minHeight: '100vh' }}>
                 <SEOHead title="Union Dashboard | Club Arena" />
-                <div style={{ color: FB.textSecondary }}>Loading union dashboard...</div>
+                <UniversalHeader />
+                <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+                    <SkeletonDark variant="stat-cards" count={4} />
+                    <div style={{ marginTop: 16 }}>
+                        <SkeletonDark variant="table-rows" rows={5} />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -689,13 +700,20 @@ export default function UnionDashboard() {
                                     <div style={{ fontSize: 12, color: FB.textSecondary }}> {club.member_count || 0} ·  {(club.chip_treasury || 0).toLocaleString()}</div>
                                 </div>
                                 <button onClick={async () => {
-                                    if (!confirm(`Remove ${club.name} from union?`)) return;
+                                    if (confirmRemoveClub !== club.id) {
+                                        setConfirmRemoveClub(club.id);
+                                        setTimeout(() => setConfirmRemoveClub(null), 4000);
+                                        return;
+                                    }
+                                    setConfirmRemoveClub(null);
                                     try {
                                         await apiCall('/api/club-arena/manage-union', { action: 'remove_club', unionId: unionIdParam, clubId: club.id });
                                         showToast(`Removed ${club.name}`);
                                         loadDashboard();
                                     } catch (e) { showToast(e.message, 'error'); }
-                                }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Remove</button>
+                                }} style={{ background: confirmRemoveClub === club.id ? '#b91c1c' : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                    {confirmRemoveClub === club.id ? 'Confirm?' : 'Remove'}
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -739,13 +757,20 @@ export default function UnionDashboard() {
                                 </div>
                                 {admin.role !== 'union_lead' && (
                                     <button onClick={async () => {
-                                        if (!confirm(`Remove ${admin.profile?.display_name || admin.profile?.username || 'this admin'}?`)) return;
+                                        if (confirmRemoveAdmin !== admin.user_id) {
+                                            setConfirmRemoveAdmin(admin.user_id);
+                                            setTimeout(() => setConfirmRemoveAdmin(null), 4000);
+                                            return;
+                                        }
+                                        setConfirmRemoveAdmin(null);
                                         try {
                                             await apiCall('/api/club-arena/manage-union', { action: 'remove_admin', unionId: unionIdParam, adminUserId: admin.user_id });
                                             showToast('Admin removed');
                                             loadDashboard();
                                         } catch (e) { showToast(e.message, 'error'); }
-                                    }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Remove</button>
+                                    }} style={{ background: confirmRemoveAdmin === admin.user_id ? '#b91c1c' : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                        {confirmRemoveAdmin === admin.user_id ? 'Confirm?' : 'Remove'}
+                                    </button>
                                 )}
                             </div>
                         ))}

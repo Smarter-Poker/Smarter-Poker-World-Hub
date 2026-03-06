@@ -134,12 +134,17 @@ export default async function handler(req, res) {
       }
       if (!name?.trim()) return res.status(400).json({ success: false, error: 'Tournament name required' });
 
+      const tournamentType = type || 'mtt'; // xmtt | mtt | sng
+      const clubParticipants = (participatingClubIds?.length > 0)
+        ? participatingClubIds.filter(id => clubIds.includes(id))
+        : [resolvedClubId];
+
       const { data: tournament, error } = await supabaseAdmin
         .from('club_tournaments')
         .insert({
           club_id: resolvedClubId,
           name: name.trim(),
-          game_type: variant || game_type || type || 'nlhe',
+          game_type: variant || game_type || 'nlhe',
           buy_in: parseInt(buyIn || buy_in) || 1000,
           starting_chips: parseInt(startingChips || starting_chips) || 5000,
           max_players: parseInt(maxPlayers || max_players) || 100,
@@ -154,6 +159,13 @@ export default async function handler(req, res) {
           prize_pool: 0,
           registered_count: 0,
           created_by: auth.user.id,
+          settings: {
+            tournamentType,
+            isUnionTournament: true,
+            unionId,
+            clubIds: clubParticipants,
+            isXMTT: tournamentType === 'xmtt',
+          },
         })
         .select()
         .single();
@@ -230,13 +242,20 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: `Cannot start tournament in ${tourn.status} status` });
       }
 
+      // Fetch registered player count before starting
+      const { count: playerCount } = await supabaseAdmin
+        .from('tournament_registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+        .in('status', ['registered', 'playing']);
+
       const { error } = await supabaseAdmin
         .from('club_tournaments')
         .update({ status: 'running', started_at: new Date().toISOString() })
         .eq('id', tournamentId);
 
       if (error) throw error;
-      return res.json({ success: true });
+      return res.json({ success: true, players: playerCount || 0 });
     }
 
     // ════════════════════════════════════════════════════════════
@@ -259,13 +278,20 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'Tournament already finished' });
       }
 
+      // Count registrants to refund before cancelling
+      const { count: refundCount } = await supabaseAdmin
+        .from('tournament_registrations')
+        .select('*', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+        .in('status', ['registered', 'playing']);
+
       const { error } = await supabaseAdmin
         .from('club_tournaments')
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
         .eq('id', tournamentId);
 
       if (error) throw error;
-      return res.json({ success: true });
+      return res.json({ success: true, refunded: refundCount || 0 });
     }
 
     // ════════════════════════════════════════════════════════════
