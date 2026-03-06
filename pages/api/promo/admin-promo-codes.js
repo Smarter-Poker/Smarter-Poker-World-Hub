@@ -1,5 +1,6 @@
 // Admin CRUD for promo codes — GET (list), POST (create), DELETE (deactivate)
 import { createClient } from '@supabase/supabase-js';
+const { logAdminAction, extractClientIP } = require('../../../src/lib/antiAbuse');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
                     promo_code_redemptions(count)
                 `)
                 .order('created_at', { ascending: false })
-                    .limit(100);
+                .limit(100);
 
             if (error) throw error;
 
@@ -86,6 +87,16 @@ export default async function handler(req, res) {
                 throw error;
             }
 
+            // Audit log
+            await logAdminAction(supabaseAdmin, {
+                admin_user_id: user.id,
+                action: 'promo_code_created',
+                target_type: 'promo_code',
+                target_id: data.id,
+                details: { code: promoCode, type, value, maxUses, expiresAt },
+                ip_address: extractClientIP(req),
+            });
+
             return res.status(201).json({ code: data });
         } catch (err) {
             console.error('Create promo code error:', err);
@@ -105,6 +116,15 @@ export default async function handler(req, res) {
                 .eq('id', id);
 
             if (error) throw error;
+
+            // Audit log
+            await logAdminAction(supabaseAdmin, {
+                admin_user_id: user.id,
+                action: 'promo_code_deactivated',
+                target_type: 'promo_code',
+                target_id: id,
+                ip_address: extractClientIP(req),
+            });
 
             return res.status(200).json({ success: true });
         } catch (err) {

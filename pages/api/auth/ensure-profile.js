@@ -12,7 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { hashEmail, extractClientIP } from '../../../src/lib/antiAbuse';
+const { hashEmail, extractClientIP, isDisposableEmail } = require('../../../src/lib/antiAbuse');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -63,7 +63,109 @@ export default async function handler(req, res) {
             .single();
 
         if (existingProfile) {
-            // Profile exists - optionally update last_login
+            // ═══════════════════════════════════════════════════════════
+            // 🛡️ ANTI-ABUSE: Also check on EXISTS for freshly-created profiles
+            // (Supabase Auth trigger may have created the profile before
+            //  ensure-profile runs, bypassing the CREATED path abuse check)
+            // ═══════════════════════════════════════════════════════════
+            const profileAge = Date.now() - new Date(existingProfile.created_at).getTime();
+            const isNewlyCreated = profileAge < 60000; // Profile created within 60 seconds
+
+            if (isNewlyCreated) {
+                const userEmail = existingProfile.email || email || authUser.email || '';
+                const emailHash = hashEmail(userEmail);
+                const clientIP = extractClientIP(req);
+                let shouldStripWelcome = false;
+                let abuseReason = null;
+
+                // Disposable email check
+                if (isDisposableEmail(userEmail)) {
+                    shouldStripWelcome = true;
+                    abuseReason = `Disposable email domain detected: ${userEmail.split('@')[1]}`;
+                }
+
+                if (emailHash) {
+                    try {
+                        // Check if this email hash has previous abuse history
+                        const { data: emailMatch } = await supabase
+                            .from('signup_abuse_log')
+                            .select('id, signup_count, deleted_account_count, welcome_package_granted')
+                            .eq('email_hash', emailHash)
+                            .single();
+
+                        if (emailMatch) {
+                            if (emailMatch.deleted_account_count > 0) {
+                                shouldStripWelcome = true;
+                                abuseReason = `Re-signup after ${emailMatch.deleted_account_count} account deletion(s)`;
+                            } else if (emailMatch.welcome_package_granted) {
+                                shouldStripWelcome = true;
+                                abuseReason = 'Welcome package already granted to this email';
+                            }
+                        }
+
+                        // IP proximity check
+                        if (!shouldStripWelcome && clientIP && clientIP !== 'unknown') {
+                            const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                            const { data: ipMatches } = await supabase
+                                .from('signup_abuse_log')
+                                .select('id')
+                                .eq('ip_address', clientIP)
+                                .gt('last_signup_at', twentyFourHoursAgo)
+                                .neq('email_hash', emailHash);
+
+                            if (ipMatches && ipMatches.length > 0) {
+                                shouldStripWelcome = true;
+                                abuseReason = `Same IP (${clientIP}) used for other signup(s) in 24h`;
+                            }
+                        }
+
+                        if (shouldStripWelcome) {
+                            // Strip welcome package from the profile the auth trigger created
+                            console.warn(`[ANTI-ABUSE] Stripping welcome package for ${userEmail}: ${abuseReason}`);
+                            await supabase
+                                .from('profiles')
+                                .update({
+                                    diamonds: 0,
+                                    is_vip: false,
+                                    vip_tier: null,
+                                    vip_expires_at: null,
+                                })
+                                .eq('id', user_id);
+
+                            // Remove welcome diamond transaction if any
+                            await supabase
+                                .from('diamond_transactions')
+                                .delete()
+                                .eq('user_id', user_id)
+                                .eq('transaction_type', 'signup_bonus');
+
+                            // Remove welcome VIP subscription
+                            await supabase
+                                .from('vip_subscriptions')
+                                .delete()
+                                .eq('user_id', user_id)
+                                .eq('tier', 'welcome');
+                        }
+
+                        // Log this signup in abuse log
+                        await supabase.from('signup_abuse_log').upsert({
+                            email_hash: emailHash,
+                            ip_address: clientIP,
+                            raw_email: userEmail,
+                            user_id: user_id,
+                            welcome_package_granted: !shouldStripWelcome,
+                            last_signup_at: new Date().toISOString(),
+                            abuse_flags: abuseReason ? [{ reason: abuseReason, at: new Date().toISOString() }] : [],
+                        }, { onConflict: 'email_hash', ignoreDuplicates: false }).catch(() => { });
+
+                    } catch (abuseErr) {
+                        console.warn('[ANTI-ABUSE] EXISTS path check failed:', abuseErr.message);
+                    }
+                }
+            }
+            // ═══════════════════════════════════════════════════════════
+
+            // Update last_login
             await supabase
                 .from('profiles')
                 .update({

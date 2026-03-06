@@ -770,6 +770,46 @@ export const MENU_CONFIGS = {
         ]
     }),
 
+    'toke-tracker': (user, state, handlers) => ({
+        menuItems: [
+            createMenuItem.section('Toke Tracker'),
+            createMenuItem.navigation('🏠 Dashboard', '/hub/toke-tracker'),
+            createMenuItem.navigation('⏱️ Shift Tracker', '/hub/toke-tracker/shift'),
+            createMenuItem.navigation('📊 Analytics', '/hub/toke-tracker/analytics'),
+            createMenuItem.navigation('🔒 Dealer Vault', '/hub/toke-tracker/vault'),
+            createMenuItem.navigation('📍 Venue Intel', '/hub/toke-tracker/venues'),
+            createMenuItem.divider(),
+            createMenuItem.section('Settings'),
+            createMenuItem.toggle(
+                'Shift Notifications',
+                state.shiftNotifications !== false,
+                handlers.setShiftNotifications,
+                'Get alerts when shifts start/end'
+            ),
+            createMenuItem.toggle(
+                'Auto-Save Shifts',
+                state.autoSaveShifts !== false,
+                handlers.setAutoSaveShifts,
+                'Automatically save shift data'
+            ),
+            createMenuItem.toggle(
+                'Down Timer Alerts',
+                state.downTimerAlerts !== false,
+                handlers.setDownTimerAlerts,
+                '35-min down timer notifications'
+            ),
+            createMenuItem.divider(),
+            createMenuItem.section('Quick Links'),
+            createMenuItem.navigation('💰 Bankroll Manager', '/hub/bankroll-manager'),
+            createMenuItem.navigation('🎯 Poker Near Me', '/hub/poker-near-me'),
+            createMenuItem.navigation('🏠 World Hub', '/hub')
+        ],
+        bottomLinks: [
+            { label: 'Help & Support', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Settings', href: '/hub/settings', icon: MenuIcons.settings }
+        ]
+    }),
+
 
 
     'help': (user, state, handlers) => ({

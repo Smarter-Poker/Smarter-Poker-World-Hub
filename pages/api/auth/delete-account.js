@@ -10,7 +10,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { hashEmail } from '../../../src/lib/antiAbuse';
+const { hashEmail } = require('../../../src/lib/antiAbuse');
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -116,7 +116,58 @@ export default async function handler(req, res) {
             .delete()
             .eq('user_id', userId);
 
-        // ── 1. Delete user profile data ──
+        // ═══════════════════════════════════════════════════════════════
+        // 🛡️ ANTI-ABUSE: Record deletion fingerprint before wiping data
+        // This record survives account deletion and prevents re-signup
+        // farming of Welcome Package diamonds and VIP.
+        // ═══════════════════════════════════════════════════════════════
+        try {
+            const emailHash = hashEmail(user.email);
+            if (emailHash) {
+                // Upsert: create if first time, update if re-deleting
+                const { data: existing } = await supabaseAdmin
+                    .from('signup_abuse_log')
+                    .select('id, deleted_account_count, abuse_flags')
+                    .eq('email_hash', emailHash)
+                    .single();
+
+                if (existing) {
+                    const currentFlags = existing.abuse_flags || [];
+                    currentFlags.push({
+                        reason: 'account_deleted',
+                        at: new Date().toISOString(),
+                        user_id: userId,
+                    });
+
+                    await supabaseAdmin
+                        .from('signup_abuse_log')
+                        .update({
+                            deleted_account_count: (existing.deleted_account_count || 0) + 1,
+                            last_deleted_at: new Date().toISOString(),
+                            user_id: null, // Clear user_id since account is being deleted
+                            abuse_flags: currentFlags,
+                        })
+                        .eq('id', existing.id);
+                } else {
+                    // No existing record — create one (e.g., account created before anti-abuse was deployed)
+                    await supabaseAdmin
+                        .from('signup_abuse_log')
+                        .insert({
+                            email_hash: emailHash,
+                            raw_email: user.email,
+                            user_id: null,
+                            deleted_account_count: 1,
+                            last_deleted_at: new Date().toISOString(),
+                            welcome_package_granted: true, // Assume they got it
+                            abuse_flags: [{ reason: 'account_deleted', at: new Date().toISOString(), user_id: userId }],
+                        });
+                }
+            }
+            console.log(`[ANTI-ABUSE] Recorded deletion fingerprint for ${user.email}`);
+        } catch (abuseErr) {
+            console.warn('[ANTI-ABUSE] Failed to record deletion (table may not exist yet):', abuseErr.message);
+        }
+        // ═══════════════════════════════════════════════════════════════
         // Remove diamond balance
         await supabaseAdmin
             .from('user_diamond_balance')

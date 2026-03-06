@@ -3,21 +3,66 @@
  * Core gig/down/timer/expense tracking
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeTracker from '../../../src/components/bankroll/TokeTracker';
+import { createClient } from '@supabase/supabase-js';
 
 export default function ShiftTrackerPage() {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
     const [mounted, setMounted] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [tokePrefs, setTokePrefs] = useState({});
 
-    useEffect(() => { setMounted(true); }, []);
+    // SSR-safe: hydrate prefs + mount flag on client only
+    useEffect(() => {
+        setMounted(true);
+        try {
+            const stored = localStorage.getItem('toke-tracker-prefs');
+            if (stored) setTokePrefs(JSON.parse(stored));
+        } catch { }
+    }, []);
+
+    const updatePref = useCallback(async (key, value) => {
+        let newPrefs;
+        setTokePrefs(prev => {
+            newPrefs = { ...prev, [key]: value };
+            return newPrefs;
+        });
+        // Wait for state to settle
+        await new Promise(r => setTimeout(r, 0));
+        if (!newPrefs) return;
+        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
+        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
+        if (!userId) return;
+        try {
+            const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
+            const settings = profile?.settings || {};
+            settings.tokeTracker = newPrefs;
+            await supabase.from('profiles').update({ settings }).eq('id', userId);
+        } catch (err) { console.error('[TokeTracker] Pref save error:', err); }
+    }, [userId]);
+
+    useEffect(() => {
+        const handler = (e) => { if (e.detail) setTokePrefs(e.detail); };
+        window.addEventListener('toke-settings-sync', handler);
+        return () => window.removeEventListener('toke-settings-sync', handler);
+    }, []);
+
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
+        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
+        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
+        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
+    });
 
     if (!mounted) return null;
 
@@ -30,7 +75,18 @@ export default function ShiftTrackerPage() {
             />
             <div style={s.page}>
                 <div style={s.bgGrid} />
-                <UniversalHeader pageDepth={3} />
+                <UniversalHeader pageDepth={3} onMenuClick={() => setMenuOpen(true)} />
+
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 <div style={s.content}>
                     {/* Back Button */}

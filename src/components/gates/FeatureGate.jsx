@@ -47,9 +47,6 @@ const ANIM = `
  * @param {React.ReactNode} props.children - Content to show when access granted
  */
 export default function FeatureGate({ userId: userIdProp, featureKey, title, subtitle, description, features = [], cost: costOverride, hideBadge, children }) {
-    // TEMP BYPASS
-    return <>{children}</>;
-    // END TEMP
     // ═══════════════════════════════════════════════════════════════════
     // HARDENED: Source user + VIP status from AvatarContext (server-verified)
     // Falls back to userIdProp for backward compatibility

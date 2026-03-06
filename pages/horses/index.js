@@ -60,6 +60,10 @@ export default function HorsesAdmin() {
     const [economyData, setEconomyData] = useState(null);
     const [economyLoading, setEconomyLoading] = useState(false);
     const [promoCreating, setPromoCreating] = useState(false);
+
+    // Anti-Abuse State
+    const [abuseData, setAbuseData] = useState(null);
+    const [abuseLoading, setAbuseLoading] = useState(false);
     const [newPersona, setNewPersona] = useState({
         name: '',
         gender: 'male',
@@ -185,6 +189,25 @@ export default function HorsesAdmin() {
     const showNotification = (message, type = 'success') => {
         setNotification({ message, type });
         setTimeout(() => setNotification(null), 3000);
+    };
+
+    const loadAntiAbuseData = async () => {
+        setAbuseLoading(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) return;
+            const res = await fetch('/api/admin/anti-abuse?section=all', {
+                headers: { 'Authorization': `Bearer ${session.access_token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) setAbuseData(data);
+            }
+        } catch (err) {
+            console.error('Failed to load anti-abuse data:', err);
+        } finally {
+            setAbuseLoading(false);
+        }
     };
 
     const togglePersona = async (id, currentStatus) => {
@@ -399,6 +422,9 @@ export default function HorsesAdmin() {
                     </button>
                     <button className={activeTab === 'economy' ? styles.active : ''} onClick={() => { setActiveTab('economy'); if (!economyData) loadEconomyData(); }}>
                         💎 Economy
+                    </button>
+                    <button className={activeTab === 'antiabuse' ? styles.active : ''} onClick={() => { setActiveTab('antiabuse'); if (!abuseData) loadAntiAbuseData(); }}>
+                        🛡️ Anti-Abuse
                     </button>
                 </nav>
 
@@ -1303,6 +1329,257 @@ export default function HorsesAdmin() {
                                             disabled={economyLoading}
                                         >
                                             🔄 Refresh Economy Data
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    {/* ANTI-ABUSE TAB */}
+                    {activeTab === 'antiabuse' && (
+                        <div className={styles.statsView}>
+                            <h2>🛡️ Anti-Abuse Command Center</h2>
+
+                            {abuseLoading ? (
+                                <div className={styles.loadingSpinner}>Loading Anti-Abuse Data...</div>
+                            ) : !abuseData ? (
+                                <div className={styles.loadingSpinner}>No Data Available</div>
+                            ) : (
+                                <>
+                                    {/* Stats Overview */}
+                                    <div className={styles.statsOverview}>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber}>{abuseData.abuse?.stats?.totalSignups || 0}</span>
+                                            <span className={styles.statLabel}>Tracked Signups</span>
+                                        </div>
+                                        <div className={`${styles.statCardLarge}`} style={{ borderColor: '#ef4444' }}>
+                                            <span className={styles.statNumber} style={{ color: '#ef4444' }}>{abuseData.abuse?.stats?.blocked || 0}</span>
+                                            <span className={styles.statLabel}>Blocked/Flagged</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#f59e0b' }}>{abuseData.abuse?.stats?.disposable || 0}</span>
+                                            <span className={styles.statLabel}>Disposable Emails</span>
+                                        </div>
+                                        <div className={styles.statCardLarge}>
+                                            <span className={styles.statNumber} style={{ color: '#8b5cf6' }}>{abuseData.alerts?.length || 0}</span>
+                                            <span className={styles.statLabel}>Alerts (24h)</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Real-Time Alerts Feed */}
+                                    {abuseData.alerts?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem', borderLeft: '3px solid #ef4444' }}>
+                                            <h3>🚨 Real-Time Alerts (Last 24h)</h3>
+                                            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                                {abuseData.alerts.map((alert, i) => (
+                                                    <div key={i} style={{
+                                                        padding: '10px 14px',
+                                                        borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                    }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 600, color: '#ef4444', fontSize: '13px' }}>⚠️ {alert.reason}</div>
+                                                            <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                                                                {alert.email} — IP: {alert.ip} — Deletions: {alert.deletions}
+                                                            </div>
+                                                        </div>
+                                                        <span style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap' }}>
+                                                            {new Date(alert.at).toLocaleString()}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Signup Abuse Log */}
+                                    <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                        <h3>📋 Signup Abuse Log</h3>
+                                        <div style={{ maxHeight: '400px', overflowY: 'auto', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+                                            <table className={styles.runsTable}>
+                                                <thead style={{ position: 'sticky', top: 0, background: '#1a1a2e', zIndex: 1 }}>
+                                                    <tr>
+                                                        <th>Email</th>
+                                                        <th>IP</th>
+                                                        <th>Signups</th>
+                                                        <th>Deletions</th>
+                                                        <th>Welcome Pkg</th>
+                                                        <th>Flags</th>
+                                                        <th>Last Signup</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(abuseData.abuse?.log || []).map((entry, i) => (
+                                                        <tr key={entry.id || i} style={{
+                                                            background: entry.deleted_account_count > 0 ? 'rgba(239,68,68,0.05)' : 'transparent',
+                                                        }}>
+                                                            <td style={{ fontSize: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                {entry.raw_email || entry.email_hash?.slice(0, 12) + '...'}
+                                                            </td>
+                                                            <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{entry.ip_address || '—'}</td>
+                                                            <td style={{ textAlign: 'center' }}>{entry.signup_count || 1}</td>
+                                                            <td style={{
+                                                                textAlign: 'center',
+                                                                color: entry.deleted_account_count > 0 ? '#ef4444' : '#888',
+                                                                fontWeight: entry.deleted_account_count > 0 ? 700 : 400,
+                                                            }}>{entry.deleted_account_count || 0}</td>
+                                                            <td style={{ textAlign: 'center' }}>
+                                                                {entry.welcome_package_granted ? '✅' : '❌'}
+                                                            </td>
+                                                            <td style={{ fontSize: '11px', maxWidth: '200px' }}>
+                                                                {(entry.abuse_flags || []).map((f, j) => (
+                                                                    <span key={j} style={{
+                                                                        display: 'inline-block',
+                                                                        padding: '2px 6px',
+                                                                        borderRadius: '3px',
+                                                                        background: 'rgba(239,68,68,0.15)',
+                                                                        color: '#f87171',
+                                                                        fontSize: '10px',
+                                                                        margin: '1px 2px',
+                                                                    }}>{f.reason || 'flagged'}</span>
+                                                                ))}
+                                                            </td>
+                                                            <td style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
+                                                                {entry.last_signup_at ? new Date(entry.last_signup_at).toLocaleString() : '—'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Top IPs */}
+                                    {abuseData.abuse?.topIPs?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>🌐 Top IPs by Signup Volume</h3>
+                                            <div className={styles.breakdownGrid}>
+                                                {abuseData.abuse.topIPs.map((ip, i) => (
+                                                    <div key={i} className={styles.breakdownItem}>
+                                                        <div className={styles.breakdownBar}
+                                                            style={{
+                                                                width: `${Math.min((ip.count / Math.max(...abuseData.abuse.topIPs.map(x => x.count))) * 100, 100)}%`,
+                                                                backgroundColor: ip.count > 3 ? '#ef4444' : ip.count > 1 ? '#f59e0b' : '#22c55e'
+                                                            }}
+                                                        ></div>
+                                                        <span className={styles.breakdownLabel} style={{ fontFamily: 'monospace' }}>{ip.ip}</span>
+                                                        <span className={styles.breakdownCount}>{ip.count} signups</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Diamond Source Breakdown */}
+                                    {abuseData.economy?.sourceBreakdown && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>💎 Diamond Source Breakdown</h3>
+                                            <div className={styles.statsOverview}>
+                                                <div className={styles.statCardLarge}>
+                                                    <span className={styles.statNumber} style={{ color: '#22c55e' }}>+{(abuseData.economy.totalGranted || 0).toLocaleString()}</span>
+                                                    <span className={styles.statLabel}>Total Granted</span>
+                                                </div>
+                                                <div className={styles.statCardLarge}>
+                                                    <span className={styles.statNumber} style={{ color: '#ef4444' }}>-{(abuseData.economy.totalSpent || 0).toLocaleString()}</span>
+                                                    <span className={styles.statLabel}>Total Spent</span>
+                                                </div>
+                                            </div>
+                                            <div className={styles.breakdownGrid} style={{ marginTop: '12px' }}>
+                                                {Object.entries(abuseData.economy.sourceBreakdown).sort((a, b) => b[1] - a[1]).map(([source, amount], i) => (
+                                                    <div key={i} className={styles.breakdownItem}>
+                                                        <div className={styles.breakdownBar}
+                                                            style={{
+                                                                width: `${Math.min((amount / Math.max(...Object.values(abuseData.economy.sourceBreakdown))) * 100, 100)}%`,
+                                                                backgroundColor: ['#8b5cf6', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4'][i % 6]
+                                                            }}
+                                                        ></div>
+                                                        <span className={styles.breakdownLabel}>{source}</span>
+                                                        <span className={styles.breakdownCount}>{amount.toLocaleString()}💎</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Top Diamond Holders */}
+                                    {abuseData.economy?.topHolders?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>🏆 Top Diamond Holders</h3>
+                                            <table className={styles.runsTable}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Username</th>
+                                                        <th>Email</th>
+                                                        <th>Diamonds</th>
+                                                        <th>VIP</th>
+                                                        <th>Phone ✓</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {abuseData.economy.topHolders.map((user, i) => (
+                                                        <tr key={user.id}>
+                                                            <td style={{ fontWeight: 700, color: i < 3 ? '#f59e0b' : '#888' }}>{i + 1}</td>
+                                                            <td>{user.username || '—'}</td>
+                                                            <td style={{ fontSize: '12px', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email || '—'}</td>
+                                                            <td style={{ fontWeight: 700, color: '#00E0FF' }}>{(user.diamonds || 0).toLocaleString()}💎</td>
+                                                            <td>{user.is_vip ? `👑 ${user.vip_tier || 'VIP'}` : '—'}</td>
+                                                            <td>{user.phone_verified ? '✅' : '❌'}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
+                                    {/* Admin Audit Log */}
+                                    {abuseData.audit?.length > 0 && (
+                                        <div className={styles.contentBreakdown} style={{ marginTop: '1.5rem' }}>
+                                            <h3>📝 Admin Audit Log</h3>
+                                            <div style={{ maxHeight: '300px', overflowY: 'auto', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }}>
+                                                <table className={styles.runsTable}>
+                                                    <thead style={{ position: 'sticky', top: 0, background: '#1a1a2e', zIndex: 1 }}>
+                                                        <tr>
+                                                            <th>Time</th>
+                                                            <th>Action</th>
+                                                            <th>Target</th>
+                                                            <th>Details</th>
+                                                            <th>IP</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {abuseData.audit.map((entry, i) => (
+                                                            <tr key={entry.id || i}>
+                                                                <td style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>{new Date(entry.created_at).toLocaleString()}</td>
+                                                                <td>
+                                                                    <span style={{
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: 4,
+                                                                        fontSize: '11px',
+                                                                        fontWeight: 600,
+                                                                        background: 'rgba(139,92,246,0.2)',
+                                                                        color: '#a78bfa',
+                                                                    }}>{entry.action}</span>
+                                                                </td>
+                                                                <td style={{ fontSize: '12px' }}>{entry.target_type} {entry.target_id?.slice(0, 8)}</td>
+                                                                <td style={{ fontSize: '11px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                    {JSON.stringify(entry.details || {}).slice(0, 60)}
+                                                                </td>
+                                                                <td style={{ fontSize: '11px', fontFamily: 'monospace' }}>{entry.ip_address || '—'}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Refresh */}
+                                    <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                                        <button onClick={loadAntiAbuseData} className={styles.actionBtn} disabled={abuseLoading}>
+                                            🔄 Refresh Anti-Abuse Data
                                         </button>
                                     </div>
                                 </>

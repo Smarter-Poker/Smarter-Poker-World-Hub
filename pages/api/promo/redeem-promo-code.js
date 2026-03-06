@@ -55,6 +55,23 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'You have already used this promo code' });
         }
 
+        // 2b. Phone verification gate for diamond promo codes
+        if (['signup_bonus', 'diamonds'].includes(promo.reward_type) && promo.reward_value >= 500) {
+            const { data: userProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('phone_verified')
+                .eq('id', userId)
+                .single();
+
+            if (!userProfile?.phone_verified) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'Phone verification required to redeem diamond promo codes. Please verify your phone number in Settings.',
+                    requiresPhoneVerification: true,
+                });
+            }
+        }
+
         // BUG #261 FIX: Atomic redemption insert to prevent TOCTOU double-redeem.
         // Two concurrent requests could both pass the check above and both redeem.
         // Use insert with unique constraint — second request will fail with conflict.

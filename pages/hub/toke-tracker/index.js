@@ -4,12 +4,15 @@
  */
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { createClient } from '@supabase/supabase-js';
 
 const CARDS = [
     {
@@ -45,9 +48,76 @@ const CARDS = [
 export default function TokeTrackerLanding() {
     const router = useRouter();
     const { user } = useAvatar();
+    const userId = user?.id;
     const [mounted, setMounted] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [tokePrefs, setTokePrefs] = useState({
+        shiftNotifications: true,
+        autoSaveShifts: true,
+        downTimerAlerts: true
+    });
 
     useEffect(() => { setMounted(true); }, []);
+
+    // Load preferences from Supabase
+    useEffect(() => {
+        if (!userId) return;
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        supabase.from('profiles').select('settings').eq('id', userId).single()
+            .then(({ data }) => {
+                if (data?.settings?.tokeTracker) {
+                    setTokePrefs(prev => ({ ...prev, ...data.settings.tokeTracker }));
+                }
+            })
+            .catch(() => { });
+    }, [userId]);
+
+    // Save preference to Supabase + emit bus event
+    const updatePref = useCallback(async (key, value) => {
+        let newPrefs;
+        setTokePrefs(prev => {
+            newPrefs = { ...prev, [key]: value };
+            return newPrefs;
+        });
+        await new Promise(r => setTimeout(r, 0));
+        if (!newPrefs) return;
+        // Cross-tab sync
+        window.dispatchEvent(new CustomEvent('toke-settings-sync', { detail: newPrefs }));
+        // Persist to localStorage
+        try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
+        // Persist to Supabase
+        if (!userId) return;
+        try {
+            const supabase = createClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+            );
+            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
+            const settings = profile?.settings || {};
+            settings.tokeTracker = newPrefs;
+            await supabase.from('profiles').update({ settings }).eq('id', userId);
+        } catch (err) {
+            console.error('[TokeTracker] Failed to save preference:', err);
+        }
+    }, [userId]);
+
+    // Listen for cross-tab sync
+    useEffect(() => {
+        const handler = (e) => {
+            if (e.detail) setTokePrefs(e.detail);
+        };
+        window.addEventListener('toke-settings-sync', handler);
+        return () => window.removeEventListener('toke-settings-sync', handler);
+    }, []);
+
+    const menuConfig = getMenuConfig('toke-tracker', user, tokePrefs, {
+        setShiftNotifications: (v) => updatePref('shiftNotifications', v),
+        setAutoSaveShifts: (v) => updatePref('autoSaveShifts', v),
+        setDownTimerAlerts: (v) => updatePref('downTimerAlerts', v)
+    });
 
     if (!mounted) return null;
 
@@ -60,7 +130,18 @@ export default function TokeTrackerLanding() {
             />
             <div style={s.page}>
                 <div style={s.bgGrid} />
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    menuItems={menuConfig.menuItems}
+                    bottomLinks={menuConfig.bottomLinks}
+                />
 
                 <div style={s.content}>
                     <h1 style={s.pageTitle}>Toke Tracker</h1>
@@ -135,7 +216,7 @@ const s = {
         padding: '20px 16px 40px',
     },
     pageTitle: {
-        fontFamily: "var(--font-orbitron), 'Inter', sans-serif" ,
+        fontFamily: "var(--font-orbitron), 'Inter', sans-serif",
         fontSize: 28,
         fontWeight: 800,
         letterSpacing: '0.08em',
@@ -202,7 +283,7 @@ const s = {
         textTransform: 'uppercase',
     },
     cardSubtitle: {
-        fontFamily: "var(--font-inter), sans-serif" ,
+        fontFamily: "var(--font-inter), sans-serif",
         fontSize: 12,
         color: '#b0b3b8',
         margin: 0,
