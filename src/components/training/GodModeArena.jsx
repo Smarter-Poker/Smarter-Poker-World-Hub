@@ -15,6 +15,8 @@ import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
 import HandReplayViewer from './HandReplayViewer';
 import PositionStatsPanel from './PositionStatsPanel';
+import LifetimeStatsCard from './LifetimeStatsCard';
+import SessionHistoryList from './SessionHistoryList';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import TRAINING_CONFIG from '../../config/trainingConfig';
@@ -590,8 +592,24 @@ function GodModeArena({
                     {/* HAND HISTORY — Enhanced Replay Viewer */}
                     <HandReplayViewer handHistory={handHistory} />
 
-                    {/* POSITION STATS — Per-position breakdown */}
+                    {/* POSITION STATS -- Per-position breakdown */}
                     <PositionStatsPanel handHistory={handHistory} />
+
+                    {/* LIFETIME STATS -- Aggregated metrics */}
+                    <LifetimeStatsCard
+                        totalHands={totalQuestions}
+                        totalSessions={1}
+                        avgGTOWScore={gtowScore}
+                        bestGTOWScore={gtowScore}
+                        totalEVLoss={totalEVLoss}
+                        avgEVPerHand={avgEVLossPerHand}
+                        longestStreak={bestStreak}
+                        totalMistakes={sessionMistakes}
+                        gamesCompleted={1}
+                    />
+
+                    {/* SESSION HISTORY -- Past sessions */}
+                    <SessionHistoryList gameId={gameId} userId={userId} limit={5} />
 
                     {/* ACTION BUTTONS */}
                     <div style={styles.reviewActions}>
