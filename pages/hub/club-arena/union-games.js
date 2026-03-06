@@ -69,7 +69,7 @@ export default function UnionGames() {
       if (session?.user) setUser(session.user);
       else router.push('/auth/login');
     });
-  }, []);
+  }, [router]);
 
   // Load union info
   useEffect(() => {
@@ -384,7 +384,7 @@ export default function UnionGames() {
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
                   <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
-                  <span> {t.variant?.toUpperCase()} {t.type?.toUpperCase()}</span>
+                  <span> {(t.game_type || 'NLHE').toUpperCase()} {(t.settings?.tournamentType || 'MTT').toUpperCase()}</span>
                   <span> {Number(t.buy_in).toLocaleString()}</span>
                   <span> {t.registered_count}/{t.max_players}</span>
                   <span> {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
@@ -506,10 +506,13 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
   const [saving, setSaving] = useState(false);
 
   // Auto-add host club to participating clubs when host changes
+  // Use fully functional update so we don't need form.selectedClubs in deps
   useEffect(() => {
-    if (form.hostClubId && !form.selectedClubs.includes(form.hostClubId)) {
-      setForm(p => ({ ...p, selectedClubs: [...p.selectedClubs, p.hostClubId] }));
-    }
+    if (!form.hostClubId) return;
+    setForm(p => {
+      if (p.selectedClubs.includes(p.hostClubId)) return p;
+      return { ...p, selectedClubs: [...p.selectedClubs, p.hostClubId] };
+    });
   }, [form.hostClubId]);
 
   const [saveError, setSaveError] = useState(null);
@@ -821,7 +824,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
   }, [t.id, t.status]);
 
   const rows = [
-    ['Type', `${t.variant?.toUpperCase()} ${t.type?.toUpperCase()}`],
+    ['Type', `${(t.game_type || 'nlhe').toUpperCase()} / ${(t.settings?.tournamentType || 'MTT').toUpperCase()}`],
     ['Buy-in', Number(t.buy_in).toLocaleString()],
     ['Starting Chips', Number(t.starting_chips).toLocaleString()],
     ['Players', `${t.registered_count}/${t.max_players}`],
