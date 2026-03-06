@@ -100,7 +100,7 @@ export async function checkFeatureAccess(userId, featureKey) {
                 const vipData = await resp.json();
                 if (vipData.isVip) {
                     console.log('[FeatureGate] Server-side fallback confirmed VIP for userId:', userId);
-                    return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 });
+                    return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 };
                 }
             }
         } catch (fallbackErr) {

@@ -38,7 +38,7 @@ const apiCall = async (endpoint, body) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 
 const apiGet = async (url) => {
     const token = await getAuthToken();
@@ -49,7 +49,7 @@ const apiGet = async (url) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 
 function timeAgo(dateStr) {
     if (!dateStr) return 'never';

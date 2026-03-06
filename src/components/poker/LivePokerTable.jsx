@@ -1021,7 +1021,7 @@ function AdminTablePanel({ tableId, clubId, tableState, seats, userId, userRole,
       });
       return await res.json();
     } catch (e) { return { error: e.message }; }
-  });
+  };
 
   const doAction = async (action, extra = {}) => {
     setLoading(action); setMessage(null);
@@ -1592,7 +1592,7 @@ function TournamentHUD({ tournamentId, userId }) {
           if (d.levelTimeRemaining > 0) setCountdown(d.levelTimeRemaining);
         }
       } catch (_) { }
-    });
+    };
     poll();
     const iv = setInterval(poll, 5000);
     return () => { active = false; clearInterval(iv); };

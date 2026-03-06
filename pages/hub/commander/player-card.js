@@ -52,7 +52,7 @@ export default function PlayerCard() {
       pid: player?.id,
       ts,
       exp: ts + 30000, // 30 second expiry
-      v: 1)
+      v: 1
     });
     // Base64 encode for QR
     const encoded = btoa(payload);
@@ -82,10 +82,10 @@ export default function PlayerCard() {
   return (
     <>
       <SEOHead
-                title="Player Card"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Player Card"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
       <div style={{ minHeight: '100vh', background: '#111827', fontFamily: 'Inter, system-ui, sans-serif' }}>
         {/* Header */}
         <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>

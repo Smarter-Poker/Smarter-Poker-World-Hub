@@ -202,7 +202,7 @@ export default function TournamentsPage() {
               <span>Players: <strong style={{ color: FB.text }}>{t.registered_count}/{t.max_players}</strong></span>
               <span>Prize Pool: <strong style={{ color: FB.gold }}>
                 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}
-                {Number(t.guaranteed_prize) >Number(t.prize_pool) ? ' GTD' : ''}
+                {Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}
               </strong></span>
             </div>
 
@@ -466,7 +466,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           const d = await res.json();
           if (d.success) setTourneyState(d);
         } catch (_) { }
-      });
+      };
       poll();
       const iv = setInterval(poll, 5000);
       return () => clearInterval(iv);
@@ -488,7 +488,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
       if (d.success && d.tables) {
         // Search all tables for the user's seat
         for (const tbl of d.tables) {
-          const seated = tbl.players?.find(p =>String(p.playerId) === String(userId));
+          const seated = tbl.players?.find(p => String(p.playerId) === String(userId));
           if (seated) {
             router.push(`/hub/club-arena/table/${tbl.tableId}?tournament=${t.id}`);
             return;

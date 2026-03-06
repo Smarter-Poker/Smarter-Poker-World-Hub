@@ -33,7 +33,7 @@ async function apiPost(endpoint, body, token) {
     return await res.json();
   } catch (err) {
     console.error(`[API] ${endpoint} failed:`, err);
-    return { success: false, error: err.message });
+    return { success: false, error: err.message };
   }
 }
 
@@ -450,9 +450,9 @@ export function useTableConnection({ supabase, tableId, userId }) {
               tableId, playerId: userId, type: 'heartbeat',
               latitude: gps?.lat || null,
               longitude: gps?.lng || null,
-            }).catch(() => {});
+            }).catch(() => { });
           }).catch(() => {
-            _post('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => {});
+            _post('connect', { tableId, playerId: userId, type: 'heartbeat' }).catch(() => { });
           });
         }, HEARTBEAT_MS);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {

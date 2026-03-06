@@ -75,7 +75,7 @@ export default function DailyTournaments() {
     const handleSearch = (e) => {
         e.preventDefault();
         refreshTournaments();
-    });
+    };
 
     const clearFilters = () => {
         setSelectedState(null);
@@ -117,9 +117,9 @@ export default function DailyTournaments() {
                 description="Join Daily Poker Tournaments On Smarter.Poker. Compete Against Players Worldwide With Daily Challenges And Prize Pools."
                 canonical="/hub/daily-tournaments"
             >
-                
+
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-                
+
             </SEOHead>
 
             <div className="dt-page">

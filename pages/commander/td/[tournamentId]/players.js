@@ -111,7 +111,7 @@ export default function TDPlayers() {
       body: JSON.stringify(body)
     });
     return res.json();
-  });
+  };
 
   const confirmEliminate = (player) => {
     setConfirmAction({

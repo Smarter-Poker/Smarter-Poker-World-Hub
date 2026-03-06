@@ -110,7 +110,7 @@ export default function TDPayouts() {
 
     const navigateTo = (path) => {
         router.push(`/commander/td/${tournamentId}${path}`);
-    });
+    };
 
     const totalOverridden = Object.values(overrides).reduce((sum, v) => sum + (v || 0), 0);
     const totalCalc = calcData?.calculated_payouts?.reduce((sum, p) => sum + p.amount, 0) || 0;
@@ -193,9 +193,9 @@ export default function TDPayouts() {
                                     <div key={slot.position} className="px-4 py-3 flex items-center gap-3">
                                         {/* Position */}
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${slot.position === 1 ? 'bg-[#F59E0B]/20 text-[#F59E0B]' :
-                                                slot.position === 2 ? 'bg-[#B0B3B8]/20 text-[#B0B3B8]' :
-                                                    slot.position === 3 ? 'bg-[#CD7F32]/20 text-[#CD7F32]' :
-                                                        'bg-[#3A3B3C] text-[#B0B3B8]'
+                                            slot.position === 2 ? 'bg-[#B0B3B8]/20 text-[#B0B3B8]' :
+                                                slot.position === 3 ? 'bg-[#CD7F32]/20 text-[#CD7F32]' :
+                                                    'bg-[#3A3B3C] text-[#B0B3B8]'
                                             }`}>
                                             {slot.position}
                                         </div>
@@ -220,8 +220,8 @@ export default function TDPayouts() {
                                                 value={overrideAmount !== undefined ? overrideAmount : slot.amount}
                                                 onChange={e => handleOverride(slot.position, e.target.value)}
                                                 className={`w-full px-2 py-1.5 rounded-lg text-sm text-right font-medium ${isOverridden
-                                                        ? 'bg-[#1877F2]/20 border border-[#1877F2]/40 text-[#1877F2]'
-                                                        : 'bg-[#3A3B3C] border border-[#4A4B4C] text-[#E4E6EB]'
+                                                    ? 'bg-[#1877F2]/20 border border-[#1877F2]/40 text-[#1877F2]'
+                                                    : 'bg-[#3A3B3C] border border-[#4A4B4C] text-[#E4E6EB]'
                                                     }`}
                                             />
                                         </div>

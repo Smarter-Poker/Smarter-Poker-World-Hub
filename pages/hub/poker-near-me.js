@@ -741,7 +741,7 @@ export default function PokerNearMePage() {
             try { return JSON.parse(localStorage.getItem('sp-favorites') || '{}'); } catch { return {}; }
         }
         return {};
-    };
+    });
     const [sortBy, setSortBy] = useState('default');
     const [displayCount, setDisplayCount] = useState({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
     const [searchHistory, setSearchHistory] = useState(() => {
@@ -749,7 +749,7 @@ export default function PokerNearMePage() {
             try { return JSON.parse(localStorage.getItem('sp-search-history') || '[]'); } catch { return []; }
         }
         return [];
-    };
+    });
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
@@ -897,7 +897,7 @@ export default function PokerNearMePage() {
                     }
                 }).catch(function () {
                     setGeofenceStatus('denied');
-                };
+                });
 
                 gfService.start(allVenuesForMap, function (venue) {
                     // Try browser notification first
@@ -911,7 +911,7 @@ export default function PokerNearMePage() {
                 // Fallback: just in-app alerts (push not available)
                 gfService.start(allVenuesForMap, function (venue) {
                     setGeofenceAlert(venue);
-                };
+                });
                 setGeofenceStatus('active');
             });
 

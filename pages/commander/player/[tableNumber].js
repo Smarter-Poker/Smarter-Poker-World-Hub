@@ -370,7 +370,7 @@ export default function PlayerTableDisplay() {
     requestWakeLock();
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') requestWakeLock();
-    };
+    });
     return () => { wakeLockRef.current?.release(); };
   }, []);
 

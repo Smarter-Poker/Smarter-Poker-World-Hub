@@ -290,7 +290,7 @@ export default function VenueDetailPage() {
       venue: venueData,
       followerCount: fj.success ? (fj.follower_count || 0) : 0,
       socialPageSlug: sj.success && sj.data && sj.data.length > 0 ? (sj.data[0].slug || sj.data[0].id) : null
-    });
+    };
   });
   const venue = swrData?.venue || null;
   const [localFollowerCount, setFollowerCount] = useState(null);
@@ -307,7 +307,7 @@ export default function VenueDetailPage() {
         setLiveGames(Array.isArray(games) ? games : []);
       }
     } catch (e) { /* silent */ }
-  });
+  };
 
   useEffect(function () {
     if (!id) return;
@@ -323,7 +323,7 @@ export default function VenueDetailPage() {
         setWaitlistData(wlJson.data.waitlists);
       }
     } catch (e) { /* not a Commander venue, ignore */ }
-  });
+  };
 
   useEffect(function () {
     if (!id) return;
@@ -389,7 +389,7 @@ export default function VenueDetailPage() {
         setActivities(Array.isArray(items) ? items : []);
       }
     } catch (e) { /* silent */ }
-  });
+  };
 
   useEffect(function () {
     if (!id) return;
@@ -409,7 +409,7 @@ export default function VenueDetailPage() {
         }
       }
     } catch (e) { /* silent */ }
-  });
+  };
 
   useEffect(function () {
     if (!id) return;
@@ -562,7 +562,7 @@ export default function VenueDetailPage() {
         user_id: getAnonymousUserId(),
       }),
     }).catch(function () { });
-  });
+  };
 
   var handleShare = async function () {
     try {
@@ -607,7 +607,7 @@ export default function VenueDetailPage() {
       }
     } catch (err) { /* silent */ }
     finally { setReportSubmitting(false); }
-  });
+  };
 
   var handleCheckin = async function (e) {
     e.preventDefault();
@@ -635,7 +635,7 @@ export default function VenueDetailPage() {
       }
     } catch (err) { /* silent */ }
     finally { setCheckinSubmitting(false); }
-  });
+  };
 
   var handleSubmitReview = async function (e) {
     e.preventDefault();
@@ -707,7 +707,7 @@ export default function VenueDetailPage() {
       }
     } catch (err) { /* silent */ }
     finally { setPostSubmitting(false); }
-  });
+  };
 
   var handleClaimSubmit = async function (e) {
     e.preventDefault();

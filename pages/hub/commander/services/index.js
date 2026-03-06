@@ -193,8 +193,8 @@ function RequestModal({ type, session, onSubmit, onClose }) {
                     key={amt}
                     onClick={() => setChipAmount(amt)}
                     className={`py-3 rounded-lg border-2 text-sm font-medium transition-colors ${chipAmount === amt
-                        ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
-                        : 'border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE]'
+                      ? 'border-[#22D3EE] bg-[#22D3EE]/5 text-[#22D3EE]'
+                      : 'border-[#4A5E78] text-[#64748B] hover:border-[#22D3EE]'
                       }`}
                   >
                     ${amt}
@@ -304,7 +304,7 @@ export default function ServicesPage() {
     return {
       session: sd.success ? sd.data?.session : null,
       requests: rd.success ? (rd.data?.requests || []) : []
-    });
+    };
   });
   const session = swrData?.session || null;
   const requests = swrData?.requests || [];

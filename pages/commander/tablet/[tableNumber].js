@@ -179,7 +179,7 @@ export default function TabletDisplay() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }),
             }).catch(() => { });
-        });
+        };
         sendHeartbeat();
         const hb = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
         return () => clearInterval(hb);

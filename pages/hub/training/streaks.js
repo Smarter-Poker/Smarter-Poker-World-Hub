@@ -31,11 +31,12 @@ export default function StreaksPage() {
     const [user, setUser] = useState(null);
     const [claiming, setClaiming] = useState(null);
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
-        getAuthUser().then(u => setUser(u)).catch(() => {});
-    return () => _c.abort();
-  }, []);
+        getAuthUser().then(u => setUser(u)).catch(() => { });
+        return () => _c.abort();
+    }, []);
 
     const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
     const { data: swrData, isLoading: loading, mutate: refreshStreak } = useSWR(swrKey, async (url) => {
@@ -50,7 +51,7 @@ export default function StreaksPage() {
         return {
             streak: streakRes.success && streakRes.streak ? streakRes.streak : { currentStreak: 0, longestStreak: 0, lastTrainingDate: null, streakStartDate: null, allMilestones: [], claimableMilestones: [] },
             trainingDays: uniqueDays
-        });
+        };
     });
     const streak = swrData?.streak || { currentStreak: 0, longestStreak: 0, lastTrainingDate: null, streakStartDate: null, allMilestones: [], claimableMilestones: [] };
     const trainingDays = swrData?.trainingDays || [];

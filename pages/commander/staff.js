@@ -228,7 +228,7 @@ export default function CommanderStaffPage() {
         fetchStaff();
         broadcastChange('staff');
         setEditingStaff(null);
-        return { success: true });
+        return { success: true };
       }
       return { success: false, error: data.error?.message || 'Failed to update staff' };
     } catch (err) {

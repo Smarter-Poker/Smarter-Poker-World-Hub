@@ -403,7 +403,7 @@ export default function PokerLobby({ supabase, userId, onJoinTable }) {
       } catch (err) {
         console.warn('[Lobby] HTTP fetch failed:', err.message);
       }
-    });
+    };
 
     fetchTables();
     pollTimer = setInterval(fetchTables, 8000); // Poll every 8s as fallback

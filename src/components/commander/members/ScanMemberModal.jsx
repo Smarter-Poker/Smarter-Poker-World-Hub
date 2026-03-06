@@ -65,7 +65,7 @@ export default function ScanMemberModal({ isOpen, onClose, venueId, onMemberFoun
             if (onMemberFound) onMemberFound(data.data.member);
         } catch (err) { setError(err.message); }
         finally { setLoading(false); }
-    });
+    };
 
     useEffect(() => () => stopScanning(), [stopScanning]);
 

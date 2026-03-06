@@ -110,13 +110,13 @@ export default function LeaguesPage() {
     const [allRes, myRes] = await Promise.all([
       fetch('/api/commander/leagues'),
       token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } })
-            : Promise.resolve({ json: () => ({ success: false }) })
+        : Promise.resolve({ json: () => ({ success: false }) })
     ]);
     const [all, my] = await Promise.all([allRes.json(), myRes.json()]);
     return {
       leagues: all.success ? (all.data?.leagues || []) : [],
       myLeagues: my.success ? (my.data?.leagues || []) : []
-    });
+    };
   });
   const leagues = swrData?.leagues || [];
   const myLeagues = swrData?.myLeagues || [];
@@ -139,10 +139,10 @@ export default function LeaguesPage() {
   return (
     <>
       <SEOHead
-                title="Poker Leagues"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Poker Leagues"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}
@@ -206,11 +206,10 @@ export default function LeaguesPage() {
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    filter === f.value
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${filter === f.value
                       ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
                       : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
-                  }`}
+                    }`}
                 >
                   {f.label}
                 </button>

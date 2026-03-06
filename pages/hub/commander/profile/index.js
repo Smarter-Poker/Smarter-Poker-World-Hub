@@ -72,7 +72,8 @@ export default function PlayerProfilePage() {
   const [recommendations, setRecommendations] = useState([]);
   const [hasClubPage, setHasClubPage] = useState(null);
 
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
@@ -93,14 +94,14 @@ export default function PlayerProfilePage() {
       fetch(`/api/commander/ai/recommendations/${profileData.data.profile.id}`, { headers: h })
         .then(r => r.json())
         .then(rec => { if (rec.success) setRecommendations(rec.data?.recommendations || []); })
-        .catch(() => {});
+        .catch(() => { });
     }
     return {
       profile: profileData.success ? profileData.data?.profile : null,
       achievements: profileData.success ? (profileData.data?.achievements || []) : [],
       stats: statsData.success ? statsData.data?.stats : null,
       favoriteVenues: statsData.success ? (statsData.data?.favoriteVenues || []) : []
-    });
+    };
   });
   const profile = swrData?.profile || null;
   const achievements = swrData?.achievements || [];
@@ -108,7 +109,8 @@ export default function PlayerProfilePage() {
   const favoriteVenues = swrData?.favoriteVenues || [];
 
   // Check if user has a club page
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     (async () => {
       try {
@@ -141,10 +143,10 @@ export default function PlayerProfilePage() {
   return (
     <>
       <SEOHead
-                title="Player Profile"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Player Profile"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}

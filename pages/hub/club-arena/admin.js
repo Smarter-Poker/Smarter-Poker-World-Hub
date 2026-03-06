@@ -43,7 +43,7 @@ const apiCall = async (endpoint, body) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 
 const apiGet = async (url) => {
     const token = await getAuthToken();
@@ -52,7 +52,7 @@ const apiGet = async (url) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 
 export default function Admin() {
     const router = useRouter();
@@ -576,7 +576,7 @@ export default function Admin() {
                                         <div key={member.user_id} style={S.memberRow}>
                                             <div style={S.memberAvatar}>
                                                 {member.profiles?.avatar_url ? (
-                                                    <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" />
+                                                    <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                                 ) : ''}
                                             </div>
                                             <div style={S.memberInfo}>

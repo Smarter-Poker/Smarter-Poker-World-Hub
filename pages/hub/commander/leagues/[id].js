@@ -16,9 +16,9 @@ function StandingRow({ entry, rank, isCurrentUser }) {
     <div className={`flex items-center justify-between p-3 ${isCurrentUser ? 'bg-[#22D3EE]/10 rounded-lg' : ''}`}>
       <div className="flex items-center gap-3">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${rank === 1 ? 'bg-[#F59E0B] text-white' :
-            rank === 2 ? 'bg-[#9CA3AF] text-white' :
-              rank === 3 ? 'bg-[#CD7F32] text-white' :
-                'bg-[#0D192E] text-[#64748B]'
+          rank === 2 ? 'bg-[#9CA3AF] text-white' :
+            rank === 3 ? 'bg-[#CD7F32] text-white' :
+              'bg-[#0D192E] text-[#64748B]'
           }`}>
           {rank}
         </div>
@@ -105,7 +105,7 @@ export default function LeagueDetailPage() {
       league: leagueData.success ? leagueData.data?.league : null,
       events: leagueData.success ? (leagueData.data?.events || []) : [],
       standings: standingsData.success ? (standingsData.data?.standings || []) : []
-    });
+    };
   });
   const league = swrData?.league || null;
   const standings = swrData?.standings || [];
@@ -248,8 +248,8 @@ export default function LeagueDetailPage() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key
-                    ? 'border-[#22D3EE] text-[#22D3EE]'
-                    : 'border-transparent text-[#64748B]'
+                  ? 'border-[#22D3EE] text-[#22D3EE]'
+                  : 'border-transparent text-[#64748B]'
                   }`}
               >
                 {tab.label}

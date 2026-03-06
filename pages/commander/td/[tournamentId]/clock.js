@@ -244,7 +244,7 @@ ${receipts.map(r => `<div class="card">
     });
     setMessageText('');
     setShowMessage(false);
-  });
+  };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {

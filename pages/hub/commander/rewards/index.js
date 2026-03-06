@@ -46,9 +46,8 @@ function TransactionRow({ transaction }) {
   return (
     <div className="flex items-center justify-between p-4 border-b border-[#4A5E78] last:border-b-0">
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-          isEarn ? 'bg-[#10B981]/10 border-[#10B981]/30' : 'bg-[#22D3EE]/10 border-[#22D3EE]/30'
-        }`}>
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${isEarn ? 'bg-[#10B981]/10 border-[#10B981]/30' : 'bg-[#22D3EE]/10 border-[#22D3EE]/30'
+          }`}>
           {isEarn ? (
             <TrendingUp className="w-5 h-5 text-[#10B981]" />
           ) : (
@@ -78,7 +77,8 @@ export default function PlayerRewardsPage() {
   const [showRedeemInput, setShowRedeemInput] = useState(false);
   const [redeemingId, setRedeemingId] = useState(null);
 
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
@@ -101,7 +101,7 @@ export default function PlayerRewardsPage() {
       hoursPlayed: bal.success ? (bal.data?.total_hours || 0) : 0,
       transactions: tx.success ? (tx.data?.transactions || []) : [],
       earnRate: rates.success ? (rates.data?.rate_per_hour || 1) : 1
-    });
+    };
   });
   const balance = swrData?.balance || 0;
   const lifetimeEarned = swrData?.lifetimeEarned || 0;
@@ -170,10 +170,10 @@ export default function PlayerRewardsPage() {
   return (
     <>
       <SEOHead
-                title="Rewards"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Rewards"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Coming Soon Banner */}

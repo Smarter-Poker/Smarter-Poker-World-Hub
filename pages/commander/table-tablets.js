@@ -402,7 +402,7 @@ export default function TableTabletsPage() {
                                         tournament: fJson.data.tournament,
                                         stats: fJson.data.stats,
                                         players: ft.players || [],
-                                    });
+                                    };
                                 });
                             }
                         } catch (e) { console.error("[table-tablets.js]", e); }
@@ -504,7 +504,7 @@ export default function TableTabletsPage() {
                 const map = {};
                 json.data.forEach(d => {
                     const tNum = d.device_id?.match(/table-(\d+)/)?.[1];
-                    if (tNum) map[parseInt(tNum)] = { is_online: d.is_online, last_heartbeat: d.last_heartbeat });
+                    if (tNum) map[parseInt(tNum)] = { is_online: d.is_online, last_heartbeat: d.last_heartbeat };
                 });
                 setDisplayStatus(map);
             }
@@ -918,7 +918,7 @@ export default function TableTabletsPage() {
                         style={{
                             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                             objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                        }}  loading="lazy" />
+                        }} loading="lazy" />
 
                     {/* Game info in center */}
                     <div style={{
@@ -1518,7 +1518,7 @@ export default function TableTabletsPage() {
                                 <button disabled={callFloorSending} onClick={!isA ? async () => { haptic('heavy'); setCallFloorSending(true); try { const n = fullscreenTable.table_number || fullscreenTable.number; const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ venue_id: venueId, table_number: n, table_name: fullscreenTable.table_name || `Table ${n}` }) }); const j = await r.json(); if (j.success) { setCallFloorSent(true); setCallFloorId(j.data?.id || null); setToast({ type: 'success', text: `Floor called — Table ${n}` }); broadcastChange('floor_calls'); } else { setToast({ type: 'error', text: j.error || 'Floor call failed' }); } } catch { setToast({ type: 'error', text: 'Network error' }); } setCallFloorSending(false); } : async () => { haptic(); if (callFloorId) { try { const r = await fetch('/api/commander/floor-call', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cancel', call_id: callFloorId }) }); const j = await r.json(); if (j.success) { setToast({ type: 'success', text: 'Floor call cancelled' }); broadcastChange('floor_calls'); } } catch (e) { console.error("[table-tablets.js]", e); } } setCallFloorSent(false); setCallFloorId(null); }}
                                     style={{ position: 'fixed', bottom: 4, left: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, opacity: callFloorSending ? 0.5 : 1, transition: 'opacity 0.2s, transform 0.1s', filter: isA ? 'hue-rotate(320deg) saturate(1.5)' : 'none' }}>
 
-                                    <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}  loading="lazy" />
+                                    <img src='/assets/tablet-buttons/call-floor.png' alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
                                     {isA && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', fontSize: 13, fontWeight: 900, textShadow: '0 0 8px rgba(0,0,0,0.9)', letterSpacing: 0.5 }}>Cancel Floor</div>}
                                 </button>);
                         })()}
@@ -1529,7 +1529,7 @@ export default function TableTabletsPage() {
                                 <button onClick={() => { if (a) { haptic('light'); clearInterval(callClockRef.current); setCallClockSeconds(null); } else { haptic(); setCallClockSeconds(60); if (callClockRef.current) clearInterval(callClockRef.current); callClockRef.current = setInterval(() => { setCallClockSeconds(p => { if (p <= 1) { clearInterval(callClockRef.current); callClockRef.current = null; return 0; } return p - 1; }); }, 1000); } }}
                                     style={{ position: 'fixed', bottom: 4, right: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
 
-                                    <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }}  loading="lazy" />
+                                    <img src="/assets/tablet-buttons/call-clock.png" alt="" style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none', filter: a ? (d ? 'hue-rotate(320deg) saturate(1.8)' : 'hue-rotate(200deg) saturate(1.3)') : 'none' }} loading="lazy" />
                                 </button>);
                         })()}
 
@@ -1538,7 +1538,7 @@ export default function TableTabletsPage() {
                             <button onClick={() => { haptic(); const t = fullscreenTable.tournament_id; const U = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i; if (!t || !U.test(t)) { console.error('[SAFEGUARD] Invalid tournament_id:', t); return; } if (!isTournamentTable(fullscreenTable)) { console.error('[SAFEGUARD] Not tournament table'); return; } setLockedTournamentId(t); setShowTournamentClock(true); }}
                                 style={{ position: 'fixed', top: 4, left: 4, zIndex: 60, height: '20.25vh', width: '27vh', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, transition: 'opacity 0.2s, transform 0.1s' }}>
 
-                                <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}  loading="lazy" />
+                                <img src='/assets/tablet-buttons/tournament-clock.png' alt='' style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
                             </button>
                         )}
 
@@ -1621,7 +1621,7 @@ export default function TableTabletsPage() {
                                         width: 102, height: 76, border: 'none', background: 'transparent',
                                         cursor: 'pointer', padding: 0,
                                     }}>
-                                    <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}  loading="lazy" />
+                                    <img src='/assets/tablet-buttons/tournament-table.png' alt='' style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} loading="lazy" />
                                 </button>
                                 <iframe
                                     src={'/commander/tournaments/' + lockedTournamentId + '/clock-display'}

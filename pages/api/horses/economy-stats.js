@@ -21,9 +21,11 @@ export default async function handler(req, res) {
 
     // Auth: require valid JWT session
     const token = req.headers.authorization?.replace('Bearer ', '');
+    console.log('[EconomyStats] Token received:', !!token);
     if (!token) return res.status(401).json({ error: 'Authorization required' });
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
+    console.log('[EconomyStats] Auth result:', { user: !!user, error: authError });
+    if (authError || !user) return res.status(401).json({ error: 'Invalid token', details: authError });
 
     // BUG #240 FIX: Require admin/superadmin role — economy data is sensitive
     const { data: profile } = await supabase

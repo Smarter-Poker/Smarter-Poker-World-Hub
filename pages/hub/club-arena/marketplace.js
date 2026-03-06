@@ -23,7 +23,7 @@ const apiCall = async (endpoint, body) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-});
+};
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 

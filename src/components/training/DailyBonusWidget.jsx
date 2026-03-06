@@ -40,7 +40,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
         } finally {
             setLoading(false);
         }
-    });
+    };
 
     const animateCounter = (targetAmount) => {
         setCountingUp(true);

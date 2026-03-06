@@ -412,7 +412,7 @@ export default function WaitlistDesk() {
     }
     setNewGameType(''); setNewGameStakes(''); setNewGameTable(''); setShowAddGame(false);
     broadcastChange('waitlist');
-  });
+  };
 
   // ── REMOVE GAME: Delete all waitlist entries for a game + remove from custom ──
   const handleRemoveGame = async (gameLabel) => {
@@ -572,7 +572,7 @@ export default function WaitlistDesk() {
             <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}>
               <ArrowLeft size={16} color={c.accentColor} />
             </button>
-            {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }}  loading="lazy" />}
+            {c.logoUrl && <img src={c.logoUrl} alt="" style={{ height: '64px', width: 'auto', borderRadius: '6px', objectFit: 'contain' }} loading="lazy" />}
             <span style={{ fontSize: '22px', fontWeight: 700, color: c.accentColor, letterSpacing: '0.5px', textTransform: 'uppercase', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {venueName || 'Poker Room'}
             </span>
@@ -1480,7 +1480,7 @@ function DeskSettingsModal({ custom, onSave, onClose, onUpdate }) {
                 </div>
                 {draft.logoUrl && (
                   <div style={{ marginTop: '12px', padding: '16px', background: '#0a0a0a', borderRadius: '8px', border: '1px solid #333', textAlign: 'center' }}>
-                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e = loading="lazy"> { e.target.style.display = 'none'; }} />
+                    <img src={draft.logoUrl} alt="Logo Preview" style={{ maxHeight: '80px', maxWidth: '240px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                   </div>
                 )}
               </div>

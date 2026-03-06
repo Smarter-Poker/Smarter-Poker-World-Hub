@@ -604,7 +604,7 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
                   background: form.selectedClubs.includes(c.id) ? FB.green + '20' : 'transparent',
                 }}>
                   <span style={{ fontSize: 15 }}>{form.selectedClubs.includes(c.id) ? '' : '⬜'}</span>
-                  {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }}  loading="lazy" />}
+                  {c.logo_url && <img src={c.logo_url} alt="" style={{ width: 18, height: 18, borderRadius: '50%' }} loading="lazy" />}
                   <span style={{ fontSize: 13, color: FB.text }}>{c.name}</span>
                   {c.id === form.hostClubId && <span style={{ fontSize: 10, color: FB.gold, fontWeight: 700 }}>HOST</span>}
                 </div>
@@ -776,7 +776,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         const data = await res.json();
         if (active && data.success !== false) setTourneyState(data);
       } catch (e) { /* ignore */ }
-    });
+    };
     poll();
     const interval = setInterval(poll, 5000);
     return () => { active = false; clearInterval(interval); };
