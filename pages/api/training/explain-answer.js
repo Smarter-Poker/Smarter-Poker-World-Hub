@@ -24,7 +24,7 @@ function generateCacheKey(question, correctAnswer) {
         board: scenario.board,
         action: scenario.action,
         villainPos: scenario.villainPosition,
-        correctAnswer
+        correctAnswer)
     });
     return crypto.createHash('md5').update(keyData).digest('hex');
 }

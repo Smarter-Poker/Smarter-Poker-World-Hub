@@ -22,16 +22,16 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+  if (!token) return res.status(401).json({ error: 'No auth token' });
 
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+  if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
   const { action, clubId, ...params } = req.body;
-  if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+  if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
   // Verify caller is agent (or admin/owner for status/history)
   const { data: member } = await supabaseAdmin
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     .eq('user_id', user.id)
     .single();
 
-  if (!member) return res.status(403).json({ success: false, error: 'Not a member of this club' });
+  if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 
   try {
     switch (action) {
@@ -50,19 +50,19 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'send': {
         if (!['agent', 'owner', 'admin'].includes(member.role)) {
-          return res.status(403).json({ success: false, error: 'Only agents can distribute promo chips' });
+          return res.status(403).json({ error: 'Only agents can distribute promo chips' });
         }
 
         const { targetUserId, amount, note } = params;
         const amt = parseFloat(amount);
 
-        if (!targetUserId) return res.status(400).json({ success: false, error: 'targetUserId required' });
-        if (!amt || amt <= 0) return res.status(400).json({ success: false, error: 'Positive amount required' });
+        if (!targetUserId) return res.status(400).json({ error: 'targetUserId required' });
+        if (!amt || amt <= 0) return res.status(400).json({ error: 'Positive amount required' });
 
         // ── RULE 1: Self-send block (enforced both API + DB level) ──
         if (targetUserId === user.id) {
           return res.status(400).json({
-            success: false, error: 'You cannot send promo chips to your own account',
+            error: 'You cannot send promo chips to your own account',
             rule: 'no_self_send',
           });
         }
@@ -74,13 +74,13 @@ export default async function handler(req, res) {
         });
 
         if (playerStatus && !playerStatus.success) {
-          return res.status(400).json({ success: false, error: playerStatus.error || 'Player not found' });
+          return res.status(400).json({ error: playerStatus.error || 'Player not found' });
         }
 
         // ── RULE 2: New account cap (pre-check for better UX) ──
         if (playerStatus?.is_new_account && amt > 25) {
           return res.status(400).json({
-            success: false, error: `New accounts (< 14 days) can receive max 25 promo per distribution. This account is ${playerStatus.account_age_days} days old.`,
+            error: `New accounts (< 14 days) can receive max 25 promo per distribution. This account is ${playerStatus.account_age_days} days old.`,
             rule: 'new_account_limit',
             account_age_days: playerStatus.account_age_days,
             max_per_send: 25,
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
         // ── RULE 3: Lifetime cap (pre-check for better UX) ──
         if (playerStatus?.remaining_promo_cap !== undefined && amt > playerStatus.remaining_promo_cap) {
           return res.status(400).json({
-            success: false, error: `Player can only receive ${playerStatus.remaining_promo_cap} more promo chips (100 lifetime cap). Already received: ${playerStatus.promo_received_total}.`,
+            error: `Player can only receive ${playerStatus.remaining_promo_cap} more promo chips (100 lifetime cap). Already received: ${playerStatus.promo_received_total}.`,
             rule: 'lifetime_cap',
             remaining_cap: playerStatus.remaining_promo_cap,
             lifetime_received: playerStatus.promo_received_total,
@@ -107,11 +107,11 @@ export default async function handler(req, res) {
         });
 
         if (rpcErr) {
-          return res.status(500).json({ success: false, error: 'Distribution failed', details: rpcErr.message });
+          return res.status(500).json({ error: 'Distribution failed', details: rpcErr.message });
         }
 
         if (!result?.success) {
-          return res.status(400).json({ success: false, error: result?.error || 'Distribution failed', details: result });
+          return res.status(400).json({ error: result?.error || 'Distribution failed', details: result });
         }
 
         return res.status(200).json({
@@ -133,15 +133,15 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════
       case 'status': {
         const { targetUserId: statusTarget } = params;
-        if (!statusTarget) return res.status(400).json({ success: false, error: 'targetUserId required' });
+        if (!statusTarget) return res.status(400).json({ error: 'targetUserId required' });
 
         const { data: status, error: statusErr } = await supabaseAdmin.rpc('get_promo_status', {
           p_club_id: clubId,
           p_player_user_id: statusTarget,
         });
 
-        if (statusErr) return res.status(500).json({ success: false, error: statusErr.message });
-        if (!status?.success) return res.status(400).json({ success: false, error: status?.error || 'Not found' });
+        if (statusErr) return res.status(500).json({ error: statusErr.message });
+        if (!status?.success) return res.status(400).json({ error: status?.error || 'Not found' });
 
         return res.status(200).json({ success: true, ...status });
       }
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (histErr) return res.status(500).json({ success: false, error: histErr.message });
+        if (histErr) return res.status(500).json({ error: histErr.message });
 
         // Enrich with player names
         const playerIds = [...new Set((distributions || []).map(d => d.player_user_id))];
@@ -168,6 +168,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, display_name, username')
             .in('id', playerIds)
+            .limit(100);
           (profs || []).forEach(p => { profiles[p.id] = p.display_name || p.username || p.id.slice(0, 8); });
         }
 
@@ -181,10 +182,10 @@ export default async function handler(req, res) {
       }
 
       default:
-        return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
+        return res.status(400).json({ error: `Unknown action: ${action}` });
     }
   } catch (err) {
     console.error('[distribute-promo]', err);
-    return res.status(500).json({ success: false, error: 'Internal error', details: err.message });
+    return res.status(500).json({ error: 'Internal error', details: err.message });
   }
 }

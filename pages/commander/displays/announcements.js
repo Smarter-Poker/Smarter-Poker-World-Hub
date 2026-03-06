@@ -4,14 +4,13 @@
  * Dual-purpose: TV display mode + staff management panel
  * Facebook Dark theme • Supabase Realtime • Templates • Scheduling
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { Plus, Edit3, Trash2, X, Send, Loader2, ChevronDown, Settings, Megaphone, RefreshCw } from 'lucide-react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
-import useWakeLock from '../../../src/hooks/useWakeLock';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -58,7 +57,7 @@ export default function AnnouncementsDisplay() {
   const [roomOpen, setRoomOpen] = useState(true);
   const [now, setNow] = useState(new Date());
   const [currentPage, setCurrentPage] = useState(0);
-  useWakeLock();
+  const wakeLockRef = useRef(null);
 
   // ─── Management state ───
   const [showPanel, setShowPanel] = useState(true);
@@ -83,43 +82,44 @@ export default function AnnouncementsDisplay() {
   const getStaffSession = () => localStorage.getItem('commander_staff') || '';
 
   // ─── Fetch active announcements (for display) ───
-  const fetchData = useCallback(async (signal) => {
+  const fetchData = useCallback(async () => {
     if (!venueId) return;
-    const hdrs = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() };
-    const fetchOpts = signal ? { headers: hdrs, signal } : { headers: hdrs };
     try {
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, fetchOpts);
+      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+      });
       const json = await res.json();
       if (json.success) setAnnouncements(json.data || []);
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { console.error(err); }
 
     try {
-      const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, fetchOpts);
+      const settingsRes = await fetch(`/api/commander/settings?venue_id=${venueId}`, {
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+      };
       const sj = await settingsRes.json();
       if (sj.success) setRoomOpen(sj.data?.room_open ?? true);
-    } catch (err) { if (err.name !== 'AbortError') { /* non-fatal */ } }
+    } catch (err) { }
 
     setNow(new Date());
   }, [venueId]);
 
   // ─── Fetch ALL announcements (for management panel, includes scheduled) ───
-  const fetchAllAnnouncements = useCallback(async (signal) => {
+  const fetchAllAnnouncements = useCallback(async () => {
     if (!venueId) return;
-    const hdrs = { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() };
-    const fetchOpts = signal ? { headers: hdrs, signal } : { headers: hdrs };
     try {
-      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, fetchOpts);
+      const res = await fetch(`/api/commander/announcements?venue_id=${venueId}&include_scheduled=1`, {
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+      });
       const json = await res.json();
       if (json.success) setAllAnnouncements(json.data || []);
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { console.error(err); }
   }, [venueId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    const poll = setInterval(() => fetchData(controller.signal), 60000);
+    fetchData();
+    const poll = setInterval(fetchData, 60000);
     const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { controller.abort(); clearInterval(poll); clearInterval(clock); };
+    return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
   useEffect(() => {
@@ -150,7 +150,16 @@ export default function AnnouncementsDisplay() {
     return () => clearInterval(t);
   }, [totalPages]);
 
-
+  // ─── Wake lock ───
+  useEffect(() => {
+    const req = async () => {
+      try { if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen'); } catch { }
+    };
+    req();
+    const handleVis = () => { if (document.visibilityState === 'visible') req(); };
+    document.addEventListener('visibilitychange', handleVis);
+    return () => { wakeLockRef.current?.release(); document.removeEventListener('visibilitychange', handleVis); };
+  }, []);
 
   // ─── CRUD operations ───
   const openCreate = () => {
@@ -239,7 +248,7 @@ export default function AnnouncementsDisplay() {
       <div onClick={goFullscreen}
         style={{
           height: '100vh', background: '#18191A', color: '#E4E6EB',
-          fontFamily: "var(--font-inter), sans-serif", userSelect: 'none',
+          fontFamily: "var(--font-inter), sans-serif" , userSelect: 'none',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}>
 

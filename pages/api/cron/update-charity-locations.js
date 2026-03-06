@@ -144,7 +144,7 @@ export default async function handler(req, res) {
                             existingGeo[locStr] = {
                                 lat: parseFloat(geoData[0].lat),
                                 lng: parseFloat(geoData[0].lon),
-                            };
+                            });
                             await supabase.from('social_pages').update({
                                 metadata: { ...page.metadata, geocoded_locations: existingGeo },
                             }).eq('id', page.id);

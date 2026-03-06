@@ -304,7 +304,7 @@ export default function ServicesPage() {
     return {
       session: sd.success ? sd.data?.session : null,
       requests: rd.success ? (rd.data?.requests || []) : []
-    };
+    });
   });
   const session = swrData?.session || null;
   const requests = swrData?.requests || [];

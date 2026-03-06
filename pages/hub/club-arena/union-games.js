@@ -34,7 +34,7 @@ const api = async (action, params) => {
     body: JSON.stringify({ action, ...params }),
   });
   return res.json();
-};
+});
 
 export default function UnionGames() {
   const router = useRouter();
@@ -733,7 +733,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         const data = await res.json();
         if (active && data.success !== false) setTourneyState(data);
       } catch (e) { /* ignore */ }
-    };
+    });
     poll();
     const interval = setInterval(poll, 5000);
     return () => { active = false; clearInterval(interval); };

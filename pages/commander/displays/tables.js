@@ -16,7 +16,6 @@ import Image from 'next/image';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import useWakeLock from '../../../src/hooks/useWakeLock';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -70,7 +69,7 @@ export default function TablesDisplay() {
   const [tables, setTables] = useState([]);
   const [now, setNow] = useState(new Date());
   const [dealerMap, setDealerMap] = useState({});
-  useWakeLock();
+  const wakeLockRef = useRef(null);
   const lastFetchAt = useRef(Date.now());
 
   // Lock mode state
@@ -125,15 +124,14 @@ export default function TablesDisplay() {
 
   /* ─── Data Fetching ──────────────────────────────── */
 
-  const fetchData = useCallback(async (signal) => {
+  const fetchData = useCallback(async () => {
     if (!venueId) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const headers = { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` };
-      const fetchOpts = signal ? { headers, signal } : { headers };
 
-      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts);
+      const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, { headers });
       const json = await res.json();
       if (json.success) {
         let tablesArr = Array.isArray(json.data) ? json.data
@@ -146,7 +144,7 @@ export default function TablesDisplay() {
           await Promise.all(activeTbls.map(async (t) => {
             const tNum = t.table_number || t.number;
             try {
-              const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, fetchOpts);
+              const sRes = await fetch(`/api/commander/dealer/sessions?table=${tNum}`, { headers });
               const sJson = await sRes.json();
               if (sJson.success) sessionsByTable[tNum] = sJson.data || [];
             } catch { /* non-fatal */ }
@@ -177,20 +175,19 @@ export default function TablesDisplay() {
         setTables(tablesArr);
         lastFetchAt.current = Date.now();
       }
-    } catch (err) { if (err.name !== 'AbortError') console.error('Display fetch error:', err); }
+    } catch (err) { console.error('Display fetch error:', err); }
     setNow(new Date());
   }, [venueId]);
 
   // Fetch dealer rotations
-  const fetchDealers = useCallback(async (signal) => {
+  const fetchDealers = useCallback(async () => {
     if (!venueId) return;
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
-      const fetchOpts = signal
-        ? { headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` }, signal }
-        : { headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` } };
-      const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, fetchOpts);
+      const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}`, {
+        headers: { 'x-staff-session': staffSession, Authorization: `Bearer ${token}` },
+      });
       const json = await res.json();
       if (json.success) {
         const rots = json.data?.rotations || json.data || [];
@@ -202,22 +199,33 @@ export default function TablesDisplay() {
         });
         setDealerMap(map);
       }
-    } catch (e) { if (e.name !== 'AbortError') { /* non-fatal */ } }
+    } catch { /* non-fatal */ }
   }, [venueId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
-    fetchDealers(controller.signal);
-    const poll = setInterval(() => { fetchData(controller.signal); fetchDealers(controller.signal); }, 30000);
+    fetchData();
+    fetchDealers();
+    const poll = setInterval(() => { fetchData(); fetchDealers(); }, 30000);
     const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { controller.abort(); clearInterval(poll); clearInterval(clock); };
+    return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData, fetchDealers]);
 
   // Commander Data Bus — instant sync
   useCommanderSync(venueId, () => { fetchData(); fetchDealers(); }, { entities: ['tables', 'games', 'dealers'] });
 
-
+  // Wake lock
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
+      } catch { }
+    };
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    return () => { wakeLockRef.current?.release(); };
+  }, []);
 
   /* ─── Lock / Unlock ──────────────────────────────── */
 

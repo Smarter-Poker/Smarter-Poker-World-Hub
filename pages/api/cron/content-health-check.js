@@ -84,9 +84,9 @@ async function checkSource(url) {
         });
         clearTimeout(timeout);
 
-        return { ok: res.status === 200, status: res.status };
+        return { ok: res.status === 200, status: res.status });
     } catch (e) {
-        return { ok: false, status: 0, error: e.message };
+        return { ok: false, status: 0, error: e.message });
     }
 }
 

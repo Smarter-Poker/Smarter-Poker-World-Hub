@@ -138,7 +138,7 @@ export default function TourDetailPage() {
       activities: aj.success ? (Array.isArray(aj.activities || aj.data) ? (aj.activities || aj.data) : []) : [],
       results: rj.success && Array.isArray(rj.data) ? rj.data : [],
       followerCount: fj.success ? (fj.follower_count || 0) : 0
-    };
+    });
   });
   const tour = swrData?.tour || null;
   const activities = swrData?.activities || [];

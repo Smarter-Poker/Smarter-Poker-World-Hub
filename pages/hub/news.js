@@ -1145,10 +1145,9 @@ export default function NewsHub() {
 
         try {
             const res = await fetch('/api/news/subscribe', {
-                signal,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
+                body: JSON.stringify({ email })
             });
 
             const { success, error } = await res.json();
@@ -1172,10 +1171,9 @@ export default function NewsHub() {
     const openArticle = async (article) => {
         try {
             await fetch('/api/news/articles', {
-                signal,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: article.id }),
+                body: JSON.stringify({ id: article.id })
             });
         } catch (e) { }
 
@@ -1468,7 +1466,7 @@ export default function NewsHub() {
                                                                 src={article.image_url || FALLBACK_IMAGES[article.category] || FALLBACK_IMAGES.news}
                                                                 alt=""
                                                                 className="list-thumb"
-                                                                onError={(e) = loading="lazy"> { e.target.src = FALLBACK_IMAGES.news; }}
+                                                                onError={(e) => { e.target.src = FALLBACK_IMAGES.news; }}
                                                             />
                                                             <div className="list-content">
                                                                 <h4>{article.title}</h4>

@@ -402,7 +402,7 @@ export default function TableTabletsPage() {
                                         tournament: fJson.data.tournament,
                                         stats: fJson.data.stats,
                                         players: ft.players || [],
-                                    };
+                                    });
                                 });
                             }
                         } catch { /* non-fatal */ }
@@ -504,7 +504,7 @@ export default function TableTabletsPage() {
                 const map = {};
                 json.data.forEach(d => {
                     const tNum = d.device_id?.match(/table-(\d+)/)?.[1];
-                    if (tNum) map[parseInt(tNum)] = { is_online: d.is_online, last_heartbeat: d.last_heartbeat };
+                    if (tNum) map[parseInt(tNum)] = { is_online: d.is_online, last_heartbeat: d.last_heartbeat });
                 });
                 setDisplayStatus(map);
             }

@@ -16,16 +16,16 @@ const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_dec
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'No auth token' });
+    if (!token) return res.status(401).json({ error: 'No auth token' });
 
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { clubId, name, variant, gameType, smallBlind, bigBlind, maxPlayers, minBuyIn, maxBuyIn, ante, actionTime, settings } = req.body;
-    if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+    if (!clubId) return res.status(400).json({ error: 'clubId required' });
 
     try {
         // Verify role
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
                 unionAuth = !!ua;
             }
             if (!unionAuth) {
-                return res.status(403).json({ success: false, error: 'Only owners, admins, or union admins can create tables' });
+                return res.status(403).json({ error: 'Only owners, admins, or union admins can create tables' });
             }
         }
 
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
             if (!scheduleMatch) {
                 const allowed = getAllowedStakes().map(s => s.label).join(', ');
                 return res.status(400).json({
-                    success: false, error: `Invalid stakes ${sb}/${bb}. Allowed cash game stakes: ${allowed}`,
+                    error: `Invalid stakes ${sb}/${bb}. Allowed cash game stakes: ${allowed}`,
                 });
             }
         }
@@ -183,6 +183,7 @@ export default async function handler(req, res) {
                 .eq('id', clubId)
                 .eq('table_count', oldCount)
                 .select('id')
+                .limit(200);
 
             if (!upd?.length) {
                 const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).single();
@@ -195,6 +196,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, table });
     } catch (err) {
         console.error('[create-table]', err);
-        return res.status(500).json({ success: false, error: err.message || 'Failed to create table' });
+        return res.status(500).json({ error: err.message || 'Failed to create table' });
     }
 }

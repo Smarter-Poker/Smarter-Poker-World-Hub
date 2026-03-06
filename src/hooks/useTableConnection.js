@@ -33,7 +33,7 @@ async function apiPost(endpoint, body, token) {
     return await res.json();
   } catch (err) {
     console.error(`[API] ${endpoint} failed:`, err);
-    return { success: false, error: err.message };
+    return { success: false, error: err.message });
   }
 }
 

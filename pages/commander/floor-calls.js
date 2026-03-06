@@ -107,7 +107,7 @@ export default function FloorCalls() {
 
   const [venueId] = useState(() => {
     try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id; } catch { return null; }
-  });
+  };
 
   /* ─── API ──────────────────────────────────────────────────── */
 

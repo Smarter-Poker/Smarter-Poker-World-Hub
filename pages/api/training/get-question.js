@@ -609,7 +609,15 @@ IMPORTANT:
 
         if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            return parsed;
+            // ═══ SANITIZE GROK RESPONSE — Clamp to realistic push/fold BB ranges ═══
+            // Grok sometimes returns pot in absolute chips (e.g., 1350) instead of BB
+            if (parsed.scenario) {
+                parsed.scenario.pot = Math.min(Math.max(parsed.scenario.pot || 2.5, 1), 4);
+                parsed.scenario.heroStack = Math.min(Math.max(parsed.scenario.heroStack || 12, 3), 25);
+                parsed.scenario.villainStack = Math.min(Math.max(parsed.scenario.villainStack || 15, 3), 30);
+            }
+            // Enrich with full GTO Wizard-level fields (heroCards, boardCards, etc.)
+            return enrichGrokQuestion(parsed, gameConfig, level, 'tournament');
         }
     } catch (error) {
         console.error('[Training] ❌ Grok chart question failed:', error.message);
@@ -1018,12 +1026,17 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
         };
     }
 
-    // 5. Ensure scenario has all required fields
+    // 5. Ensure scenario has all required fields + SANITIZE values
     if (!scenario.heroPosition) scenario.heroPosition = 'BTN';
     if (!scenario.villainPosition) scenario.villainPosition = 'BB';
     if (!scenario.pot) scenario.pot = gameType === 'tournament' ? 8 : 12;
     if (!scenario.heroStack) scenario.heroStack = gameType === 'tournament' ? 25 : 100;
     if (!scenario.villainStack) scenario.villainStack = scenario.heroStack;
+    // ═══ SANITIZE: Clamp pot/stacks to sane BB ranges ═══
+    // Grok sometimes returns absolute chip values instead of BB
+    scenario.pot = Math.min(Math.max(scenario.pot, 0), 50);
+    scenario.heroStack = Math.min(Math.max(scenario.heroStack, 1), 300);
+    scenario.villainStack = Math.min(Math.max(scenario.villainStack, 1), 300);
     if (!scenario.street) {
         scenario.street = q.boardCards?.length === 3 ? 'flop'
             : q.boardCards?.length === 4 ? 'turn' : 'river';

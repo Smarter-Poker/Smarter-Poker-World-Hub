@@ -145,8 +145,6 @@ export default function CommanderDashboard() {
   const [currentTier, setCurrentTier] = useState('home_game');
   const [showUpgradeModal, setShowUpgradeModal] = useState(null);
   const [hardStop, setHardStop] = useState(null); // { enabled, time, minutesLeft }
-  const [clubPageStatus, setClubPageStatus] = useState(null); // null = loading, 'none' | 'draft' | 'published'
-  const [creatingClubPage, setCreatingClubPage] = useState(false);
 
   // Auto-open card from ?card= query param (for back navigation)
   useEffect(() => {
@@ -157,6 +155,7 @@ export default function CommanderDashboard() {
       }
     }
   }, [router.isReady, router.query.card]);
+
 
   // Auth guard — validate localStorage AND Supabase session
   useEffect(() => {
@@ -215,17 +214,13 @@ export default function CommanderDashboard() {
   }, [router]);
 
   // Hard Stop countdown logic
-  const fetchHardStop = useCallback(async () => {
+  const fetchHardStop = useCallback(() => {
     if (!staff) return;
     try {
-      // Settings API uses guardManager → verifyStaffSession which reads x-staff-session header
-      // NOT the Authorization header. Send the staff session JSON.
-      const staffSessionJson = localStorage.getItem('commander_staff');
-      if (!staffSessionJson) return;
-
-      fetch('/api/commander/settings', {
-        headers: { 'x-staff-session': staffSessionJson }
-      })
+      const stored = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+      const token = stored.token || stored.access_token;
+      if (!token) return;
+      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {
           if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {
@@ -250,7 +245,7 @@ export default function CommanderDashboard() {
             localStorage.setItem('commander_security_gate', data.data.security_gate_enabled === false ? 'off' : 'on');
           }
         })
-        .catch(() => { });
+        .catch(() => { })
     } catch { }
   }, [staff]);
 
@@ -260,88 +255,15 @@ export default function CommanderDashboard() {
     return () => clearInterval(interval);
   }, [fetchHardStop]);
 
-  // ── Club Page Status Detection ──
-  useEffect(() => {
-    if (!staff?.venue_id) return;
-    const checkClubPage = async () => {
-      try {
-        const res = await fetch(`/api/social/pages?linked_venue_id=${staff.venue_id}`);
-        const json = await res.json();
-        if (json.success && json.data && json.data.length > 0) {
-          const page = json.data[0];
-          setClubPageStatus(page.is_public ? 'published' : 'draft');
-        } else {
-          // Also try by owner_id
-          const authData = localStorage.getItem('smarter-poker-auth');
-          if (authData) {
-            const userId = JSON.parse(authData)?.user?.id;
-            if (userId) {
-              const res2 = await fetch(`/api/social/pages?owner_id=${userId}`);
-              const json2 = await res2.json();
-              if (json2.success && json2.data && json2.data.length > 0) {
-                setClubPageStatus(json2.data[0].is_public ? 'published' : 'draft');
-              } else {
-                setClubPageStatus('none');
-              }
-            } else {
-              setClubPageStatus('none');
-            }
-          } else {
-            setClubPageStatus('none');
-          }
-        }
-      } catch (e) { setClubPageStatus('none'); }
-    };
-    checkClubPage();
-  }, [staff?.venue_id]);
-
-  // ── Feature 4: Registration Failure Recovery — Create Club Page manually ──
-  const handleCreateClubPage = async () => {
-    if (!staff?.venue_id) return;
-    setCreatingClubPage(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { alert('Please sign in to create a page.'); setCreatingClubPage(false); return; }
-      const venueName = staff.venue_name || 'My Poker Room';
-      const res = await fetch('/api/social/pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({
-          name: venueName,
-          page_type: 'club',
-          category: 'poker',
-          linked_venue_id: String(staff.venue_id),
-          is_public: false,
-          metadata: { source: 'commander_manual', needs_setup: true }
-        })
-      });
-      const json = await res.json();
-      if (json.success) {
-        setClubPageStatus('draft');
-        // Navigate to edit the page
-        window.location.href = `/hub/social-media?viewPage=${json.data.id}`;
-      } else {
-        alert('Failed to create page: ' + (json.error || 'Unknown error'));
-      }
-    } catch (e) { alert('Error: ' + e.message); }
-    setCreatingClubPage(false);
-  };
-
   // Unified Real-Time Sync via Singleton WebSocket
   useCommanderSync(staff?.venue_id || null, fetchHardStop, { entities: ['settings'] });
 
-  const handleLogout = async () => {
-    // HARDENED: Sign out of Supabase first to kill the auth session cookie
-    try { await supabase.auth.signOut(); } catch { /* non-critical */ }
-    // Clear ALL commander-related localStorage keys
+  const handleLogout = () => {
     localStorage.removeItem('commander_staff');
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    localStorage.removeItem('commander_security_gate');
-    localStorage.removeItem('commander_login_origin');
-    // Bulletproof redirect
-    window.location.href = '/commander/login';
+    if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
   };
 
   const handleFeatureClick = (feat) => {
@@ -384,6 +306,7 @@ export default function CommanderDashboard() {
         />
 
         <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
         .cmd-dashboard {
           min-height: 100vh;
@@ -413,6 +336,7 @@ export default function CommanderDashboard() {
           color: #888;
           margin-top: 2px;
         }
+
 
         /* ── 6-CARD GRID ── */
         .cmd-grid {
@@ -643,54 +567,6 @@ export default function CommanderDashboard() {
               }}>
                 Hard Stop in {hardStop.minutesLeft} min — All games close at {hardStop.timeFormatted}
               </span>
-            </div>
-          )}
-
-          {/* ── Club Page CTA Banner ── */}
-          {!activeCard && (clubPageStatus === 'none' || clubPageStatus === 'draft') && (
-            <div style={{
-              margin: '0 20px 0', padding: '14px 20px',
-              background: clubPageStatus === 'none'
-                ? 'linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0.06) 100%)'
-                : 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(245,158,11,0.06) 100%)',
-              border: `1px solid ${clubPageStatus === 'none' ? 'rgba(239,68,68,0.25)' : 'rgba(245,158,11,0.25)'}`,
-              borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: 12, flexWrap: 'wrap',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
-                  background: clubPageStatus === 'none' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 20
-                }}>{clubPageStatus === 'none' ? '📢' : '⚡'}</div>
-                <div>
-                  <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
-                    {clubPageStatus === 'none' ? 'Set Up Your Club Page' : 'Your Club Page is Ready to Customize!'}
-                  </div>
-                  <div style={{ color: '#94A3B8', fontSize: 12, marginTop: 2 }}>
-                    {clubPageStatus === 'none'
-                      ? 'Create your club\'s social media page to connect with players and post updates.'
-                      : 'Edit your page, add photos, and publish it to reach your players.'}
-                  </div>
-                </div>
-              </div>
-              {clubPageStatus === 'none' ? (
-                <button onClick={handleCreateClubPage} disabled={creatingClubPage} style={{
-                  padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #1877F2 0%, #1565C0 100%)',
-                  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
-                  boxShadow: '0 2px 8px rgba(24,119,242,0.3)', whiteSpace: 'nowrap',
-                  opacity: creatingClubPage ? 0.6 : 1,
-                }}>{creatingClubPage ? 'Creating...' : '+ Create Club Page'}</button>
-              ) : (
-                <button onClick={() => router.push('/hub/social-media')} style={{
-                  padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                  color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'Inter, sans-serif',
-                  boxShadow: '0 2px 8px rgba(245,158,11,0.3)', whiteSpace: 'nowrap',
-                }}>Customize Your Page →</button>
-              )}
             </div>
           )}
 

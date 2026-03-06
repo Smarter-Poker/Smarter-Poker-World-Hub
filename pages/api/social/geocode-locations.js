@@ -69,7 +69,7 @@ async function geocodeWithGoogle(locationStr) {
         const data = await res.json();
         if (data.status === 'OK' && data.results && data.results.length > 0) {
             const loc = data.results[0].geometry.location;
-            return { lat: loc.lat, lng: loc.lng };
+            return { lat: loc.lat, lng: loc.lng });
         }
         return null;
     } catch {

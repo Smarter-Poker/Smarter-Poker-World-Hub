@@ -287,10 +287,13 @@ export default function useGTOWScore() {
     // Derived metrics
     const gtowScore = useMemo(() => {
         if (movesMade === 0) return 100;
-        // GTOW Score = (totalScore / maxPossibleScore) * 100, clamped to -100..+100
-        const raw = maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 100;
-        return Math.round(Math.max(-100, Math.min(100, raw)));
-    }, [totalScore, maxPossibleScore, movesMade]);
+        // ═══ IMPROVED SCORING: Additive approach — more forgiving early game ═══
+        // Average score impact per hand, scaled to visible 0-100 range
+        // A single blunder on hand 1 → ~70% instead of 22%
+        const avgImpact = totalScore / movesMade;
+        const raw = 100 + (avgImpact * 8); // Scale factor of 8 for visible movement
+        return Math.round(Math.max(0, Math.min(100, raw)));
+    }, [totalScore, movesMade]);
 
     const avgEVLossPerHand = useMemo(() => {
         if (handsPlayed === 0) return 0;

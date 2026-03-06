@@ -110,7 +110,7 @@ export default function TDPayouts() {
 
     const navigateTo = (path) => {
         router.push(`/commander/td/${tournamentId}${path}`);
-    };
+    });
 
     const totalOverridden = Object.values(overrides).reduce((sum, v) => sum + (v || 0), 0);
     const totalCalc = calcData?.calculated_payouts?.reduce((sum, p) => sum + p.amount, 0) || 0;

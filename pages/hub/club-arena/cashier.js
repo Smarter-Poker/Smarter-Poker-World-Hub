@@ -44,7 +44,7 @@ const apiCall = async (endpoint, body) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-};
+});
 
 export default function Cashier() {
     const router = useRouter();

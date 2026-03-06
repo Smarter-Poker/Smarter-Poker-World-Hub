@@ -35,8 +35,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Script from 'next/script';
-import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
-import useWakeLock from '../../../src/hooks/useWakeLock';
+import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -302,7 +301,6 @@ function PlayerInfoModal({ player, venueType, onRemove, onClose }) {
 
 export default function PlayerTableDisplay() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { tableNumber } = router.query;
   const [players, setPlayers] = useState([]);
   const [table, setTable] = useState(null);
@@ -314,16 +312,16 @@ export default function PlayerTableDisplay() {
   const [targetSeat, setTargetSeat] = useState(null); // seat number for player scan
   const [scanStatus, setScanStatus] = useState(null); // { type: 'success'|'error'|'loading', message }
   const [selectedPlayer, setSelectedPlayer] = useState(null); // for player info modal
-  useWakeLock();
+  const wakeLockRef = useRef(null);
 
   const isTexas = venueType === 'texas';
 
   // Fetch all tablet data (table info, sessions, dealer) in one call
-  const fetchData = useCallback(async (signal) => {
+  const fetchData = useCallback(async () => {
     if (!tableNumber) return;
     try {
       const venueParam = table?.venue_id ? `&venue_id=${table.venue_id}` : '';
-      const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`, signal ? { signal } : {});
+      const res = await fetch(`/api/commander/dealer/tablet-data?table=${tableNumber}${venueParam}`);
       const json = await res.json();
       if (json.success) {
         setPlayers(json.data.players || []);
@@ -336,10 +334,9 @@ export default function PlayerTableDisplay() {
 
   useEffect(() => {
     if (!tableNumber) return;
-    const _c = new AbortController();
-    fetchData(_c.signal);
-    const poll = setInterval(() => fetchData(_c.signal), 15000); // fallback — real-time sync handles instant updates
-    return () => { _c.abort(); clearInterval(poll); };
+    fetchData();
+    const poll = setInterval(fetchData, 15000); // fallback — real-time sync handles instant updates
+    return () => clearInterval(poll);
   }, [tableNumber, fetchData]);
 
   // Local ticker (countdown for Texas, re-render for elapsed display)
@@ -363,7 +360,19 @@ export default function PlayerTableDisplay() {
   });
   useCommanderSync(syncVenueId || table?.venue_id || '', fetchData, { entities: ['tables', 'dealers'] });
 
-
+  // Wake lock
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
+      } catch (err) { }
+    };
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    return () => { wakeLockRef.current?.release(); };
+  }, []);
 
   // Handle dealer QR scan
   const handleDealerScan = useCallback(async (qrData) => {
@@ -547,7 +556,7 @@ export default function PlayerTableDisplay() {
               overflow: 'hidden'
             }}>
               {dealer?.photo_url ? (
-                <img src={dealer.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" />
+                <img src={dealer.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dealer ? '#31A24C' : '#22D3EE'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />

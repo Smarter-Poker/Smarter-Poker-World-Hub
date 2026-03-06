@@ -231,7 +231,7 @@ export default function HomeGameDetailPage() {
         // Fetch reviews for up to 5 most recent past events
         const recentPast = pastEvents.slice(0, 5);
         for (const event of recentPast) {
-          const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`, { signal });
+          const res = await fetch(`/api/commander/home-games/events/${event.id}/reviews`);
           const data = await res.json();
           if (data.success && data.data?.reviews) {
             allReviews.push(...data.data.reviews);

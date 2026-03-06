@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { supabase } from '../../src/lib/supabase';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getPokerNearMePreferences, updatePokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
@@ -17,7 +16,6 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FeatureGate from '../../src/components/gates/FeatureGate';
-import { useFeatureGate } from '../../src/components/gates/FeatureGatePopup';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
@@ -41,8 +39,8 @@ const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 
-// Tab order for swipe navigation (consolidated 6-tab layout)
-const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
+// Tab order for swipe navigation
+const TAB_ORDER = ['venues', 'tours', 'series', 'daily', 'live', 'map', 'favorites', 'roadtrip', 'social', 'alerts', 'nearnow', 'calculator', 'calendar'];
 
 // API response cache with TTL
 const apiCache = {};
@@ -611,16 +609,8 @@ export default function PokerNearMePage() {
     const { user } = useAvatar();
     const userId = user?.id;
 
-    // ═══════════════════════════════════════════════════════════════
-    // ACTION-INTERCEPTOR: Users can see the page but interacting
-    // (search, filter, etc.) triggers the upgrade popup for non-VIP.
-    // ═══════════════════════════════════════════════════════════════
-    const { hasAccess, guardAction, UpgradePopup } = useFeatureGate('poker_near_me');
-
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
-    const [activeEventSub, setActiveEventSub] = useState('tours');
-    const [showMoreSheet, setShowMoreSheet] = useState(false);
 
 
     // Data states
@@ -648,18 +638,6 @@ export default function PokerNearMePage() {
 
     // Review panel state (Feature #9)
     const [reviewVenue, setReviewVenue] = useState(null);
-
-    // Auth token from Supabase session (for authenticated API calls)
-    const [authToken, setAuthToken] = useState(null);
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data }) => {
-            setAuthToken(data?.session?.access_token || null);
-        });
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setAuthToken(session?.access_token || null);
-        });
-        return () => subscription?.unsubscribe();
-    }, []);
 
     // Swipe gesture state
     const touchStartRef = useRef(null);
@@ -763,7 +741,7 @@ export default function PokerNearMePage() {
             try { return JSON.parse(localStorage.getItem('sp-favorites') || '{}'); } catch { return {}; }
         }
         return {};
-    });
+    };
     const [sortBy, setSortBy] = useState('default');
     const [displayCount, setDisplayCount] = useState({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
     const [searchHistory, setSearchHistory] = useState(() => {
@@ -771,7 +749,7 @@ export default function PokerNearMePage() {
             try { return JSON.parse(localStorage.getItem('sp-search-history') || '[]'); } catch { return []; }
         }
         return [];
-    });
+    };
     const [showSearchHistory, setShowSearchHistory] = useState(false);
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
@@ -837,7 +815,7 @@ export default function PokerNearMePage() {
         } catch (e) { /* ignore */ }
         // Fetch fresh and update cache
         fetch('/data/all-venues.json')
-            .then(function (r) { return r.json(); })
+            .then(function (r, { signal }) { return r.json(); })
             .then(function (json) {
                 var v = json.venues || json.data || json || [];
                 var arr = Array.isArray(v) ? v : [];
@@ -919,7 +897,7 @@ export default function PokerNearMePage() {
                     }
                 }).catch(function () {
                     setGeofenceStatus('denied');
-                });
+                };
 
                 gfService.start(allVenuesForMap, function (venue) {
                     // Try browser notification first
@@ -933,7 +911,7 @@ export default function PokerNearMePage() {
                 // Fallback: just in-app alerts (push not available)
                 gfService.start(allVenuesForMap, function (venue) {
                     setGeofenceAlert(venue);
-                });
+                };
                 setGeofenceStatus('active');
             });
 
@@ -1090,8 +1068,6 @@ export default function PokerNearMePage() {
     };
 
     const requestGpsLocation = () => {
-        // ═══ ACTION GATE: Non-VIP users see upgrade popup on GPS ═══
-        if (!guardAction()) return;
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser');
             return;
@@ -1321,8 +1297,6 @@ export default function PokerNearMePage() {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        // ═══ ACTION GATE: Non-VIP users see upgrade popup on search ═══
-        if (!guardAction()) return;
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         addToSearchHistory(searchQuery);
         setShowSearchHistory(false);
@@ -1364,8 +1338,6 @@ export default function PokerNearMePage() {
 
     // City suggestion click handler
     const handleCitySuggestionClick = (city) => {
-        // ═══ ACTION GATE: Non-VIP users see upgrade popup on city search ═══
-        if (!guardAction()) return;
         // Clear any pending search debounce to prevent double-fetch
         if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
         setSearchQuery(city.name + ', ' + city.state);
@@ -1586,7 +1558,7 @@ export default function PokerNearMePage() {
         </div>
     );
 
-    // Render content based on active tab (consolidated 6-tab layout)
+    // Render content based on active tab
     const renderContent = () => {
         if (activeTab === 'map') {
             return renderMap();
@@ -1594,7 +1566,7 @@ export default function PokerNearMePage() {
         if (activeTab === 'live') {
             return renderLiveGames();
         }
-        if (activeTab === 'saved') {
+        if (activeTab === 'favorites') {
             return renderFavorites();
         }
 
@@ -1608,63 +1580,33 @@ export default function PokerNearMePage() {
             return renderSkeletons(8);
         }
 
-        if (loading && activeTab !== 'venues' && activeTab !== 'more') {
+        if (loading) {
             return renderSkeletons(8);
         }
 
-        // Events tab — dispatch to sub-tab
-        if (activeTab === 'events') {
-            switch (activeEventSub) {
-                case 'tours': return renderTours();
-                case 'series': return renderSeries();
-                case 'daily': return renderDailyTournaments();
-                case 'calendar': return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
-                default: return renderTours();
-            }
-        }
-
-        // More tab — render based on which item was selected
-        if (activeTab === 'more') {
-            return (
-                <div className="more-grid">
-                    <button className="more-item" onClick={() => { setActiveTab('_roadtrip'); setShowMoreSheet(false); }}>
-                        <span className="more-icon">🚗</span>
-                        <span className="more-label">Trip Planner</span>
-                        <span className="more-desc">Plan your poker road trip</span>
-                    </button>
-                    <button className="more-item" onClick={() => { setActiveTab('_social'); setShowMoreSheet(false); }}>
-                        <span className="more-icon">👥</span>
-                        <span className="more-label">Friends</span>
-                        <span className="more-desc">See friends nearby</span>
-                    </button>
-                    <button className="more-item" onClick={() => { setActiveTab('_alerts'); setShowMoreSheet(false); }}>
-                        <span className="more-icon">🔔</span>
-                        <span className="more-label">Alerts</span>
-                        <span className="more-desc">Tournament notifications</span>
-                    </button>
-                    <button className="more-item" onClick={() => { setActiveTab('_nearnow'); setShowMoreSheet(false); }}>
-                        <span className="more-icon">📡</span>
-                        <span className="more-label">Near Me Now</span>
-                        <span className="more-desc">Live activity nearby</span>
-                    </button>
-                    <button className="more-item" onClick={() => { setActiveTab('_calculator'); setShowMoreSheet(false); }}>
-                        <span className="more-icon">💰</span>
-                        <span className="more-label">Cost Calculator</span>
-                        <span className="more-desc">Estimate trip costs</span>
-                    </button>
-                </div>
-            );
-        }
-
-        // Sub-pages accessed from More
         switch (activeTab) {
-            case 'venues': return renderVenues();
-            case '_roadtrip': return <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />;
-            case '_social': return <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={authToken} />;
-            case '_alerts': return <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={authToken} />;
-            case '_nearnow': return <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />;
-            case '_calculator': return <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />;
-            default: return renderVenues();
+            case 'venues':
+                return renderVenues();
+            case 'tours':
+                return renderTours();
+            case 'series':
+                return renderSeries();
+            case 'daily':
+                return renderDailyTournaments();
+            case 'roadtrip':
+                return <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />;
+            case 'social':
+                return <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={user?.access_token} />;
+            case 'alerts':
+                return <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={user?.access_token} />;
+            case 'nearnow':
+                return <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />;
+            case 'calculator':
+                return <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />;
+            case 'calendar':
+                return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
+            default:
+                return renderVenues();
         }
     };
 
@@ -2326,71 +2268,66 @@ export default function PokerNearMePage() {
                     description="Access 483+ Live Poker Venues, Tournament Schedules, And Daily Events Worldwide."
                 >
 
-                    {/* ═══ SEARCH BAR ═══ */}
-                    <div className="pnm-search-section">
-                        <form className="pnm-search-form" onSubmit={handleSearch}>
-                            <svg className="pnm-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-                            <input
-                                type="text"
-                                className="pnm-search-input"
-                                placeholder="Search city, venue, or zip..."
-                                value={searchQuery}
-                                onChange={handleSearchInputChange}
-                                autoComplete="off"
-                            />
-                            <button type="submit" className="pnm-search-submit" aria-label="Search">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
-                            </button>
-                        </form>
-                        <div className="pnm-search-actions">
-                            <button className={'pnm-action-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
-                                <span>{gpsLoading ? 'Locating...' : 'GPS'}</span>
-                            </button>
-                            <button className={'pnm-action-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" /></svg>
-                                <span>Filters</span>
-                            </button>
+                    {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
+                    <div className="pnm-hud-panel">
+                        <Image src="/images/poker-near-me-hud-frame-clean.png" alt="" width={1024} height={367} className="hud-bg-frame" />
+
+                        <div className="hud-content-overlay">
+                            {/* SEARCH BAR & BUTTON */}
+                            <form className="hud-abs-search-form" onSubmit={handleSearch}>
+                                <input
+                                    type="text"
+                                    className="hud-abs-search-input"
+                                    placeholder=""
+                                    value={searchQuery}
+                                    onChange={handleSearchInputChange}
+                                    autoComplete="off"
+                                />
+                                <button type="submit" className="hud-abs-search-btn" aria-label="Search"></button>
+                            </form>
+
+                            {/* GPS & FILTERS */}
+                            <button className={'hud-abs-gps-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS"></button>
+                            <button className={'hud-abs-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters"></button>
+
+                            {/* TABS */}
+                            <button className="hud-abs-tab hud-abs-tab-venues" onClick={() => setActiveTab('venues')} aria-label="Venues"></button>
+                            <button className="hud-abs-tab hud-abs-tab-tours" onClick={() => setActiveTab('tours')} aria-label="Tours"></button>
+                            <button className="hud-abs-tab hud-abs-tab-series" onClick={() => setActiveTab('series')} aria-label="Series"></button>
+                            <button className="hud-abs-tab hud-abs-tab-daily" onClick={() => setActiveTab('daily')} aria-label="Daily"></button>
+                            <button className="hud-abs-tab hud-abs-tab-live" onClick={() => setActiveTab('live')} aria-label="Live"></button>
+                            <button className="hud-abs-tab hud-abs-tab-map" onClick={() => setActiveTab('map')} aria-label="Map"></button>
                         </div>
                     </div>
 
-                    {/* ═══ CUSTOM ICON DASHBOARD — NO BACKGROUNDS ═══ */}
-                    <div className="pnm-icon-grid">
+                    {/* ═══ MOBILE TAB BAR — visible, accessible tab navigation ═══ */}
+                    <div className="mobile-tab-bar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         {[
-                            { key: 'venues', tab: 'venues', label: 'Search Venues', icon: '/images/pnm-redesign/icon_search_venues.png' },
-                            { key: 'nearme', tab: '_nearme', label: 'Near Me Now', icon: '/images/pnm-redesign/icon_near_me_now.png' },
-                            { key: 'live', tab: 'live', label: 'Live Games', icon: '/images/pnm-redesign/icon_live_games.png', badge: liveGames.length > 0 ? liveGames.length : null },
-                            { key: 'map', tab: 'map', label: 'Map View', icon: '/images/pnm-redesign/icon_map_view.png' },
-                            { key: 'tours', tab: 'events', sub: 'tours', label: 'Tours', icon: '/images/pnm-redesign/icon_tours.png' },
-                            { key: 'series', tab: 'events', sub: 'series', label: 'Series', icon: '/images/pnm-redesign/icon_series.png' },
-                            { key: 'daily', tab: 'events', sub: 'daily', label: 'Daily', icon: '/images/pnm-redesign/icon_daily.png' },
-                            { key: 'calendar', tab: 'events', sub: 'calendar', label: 'Calendar', icon: '/images/pnm-redesign/icon_calendar.png' },
-                            { key: 'trip', tab: '_trip', label: 'Trip Planner', icon: '/images/pnm-redesign/icon_trip_planner.png' },
-                            { key: 'saved', tab: 'saved', label: 'Saved', icon: '/images/pnm-redesign/icon_saved.png' },
-                            { key: 'friends', tab: '_friends', label: 'Friends', icon: '/images/pnm-redesign/icon_friends.png' },
-                            { key: 'alerts', tab: '_alerts', label: 'Alerts', icon: '/images/pnm-redesign/icon_alerts.png' },
-                            { key: 'cost', tab: '_cost', label: 'Cost Calculator', icon: '/images/pnm-redesign/icon_cost_calculator.png' },
-                        ].map(item => {
-                            const isActive = item.sub
-                                ? (activeTab === item.tab && activeEventSub === item.sub)
-                                : (activeTab === item.tab);
-                            return (
-                                <div
-                                    key={item.key}
-                                    className={'pnm-icon-item' + (isActive ? ' active' : '')}
-                                    onClick={() => {
-                                        setActiveTab(item.tab);
-                                        if (item.sub) setActiveEventSub(item.sub);
-                                    }}
-                                >
-                                    <div className="pnm-icon-img-wrap">
-                                        <img src={item.icon} alt={item.label} className="pnm-icon-img" draggable={false}  loading="lazy" />
-                                        {item.badge && <span className="pnm-icon-badge">{item.badge}</span>}
-                                    </div>
-                                    <span className="pnm-icon-label">{item.label}</span>
-                                </div>
-                            );
-                        })}
+                            { key: 'venues', label: 'Venues', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" /><circle cx="12" cy="11" r="2" fill="currentColor" stroke="none" /></svg> },
+                            { key: 'tours', label: 'Tours', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg> },
+                            { key: 'series', label: 'Series', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
+                            { key: 'daily', label: 'Daily', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" /></svg> },
+                            { key: 'live', label: 'Live', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg> },
+                            { key: 'map', label: 'Map', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
+                            { key: 'favorites', label: 'Saved', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg> },
+                            { key: 'roadtrip', label: 'Trip', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 17h2l2-8h4l-1 4h3l5-6" /><circle cx="6.5" cy="17.5" r="2.5" fill="none" /><circle cx="16.5" cy="17.5" r="2.5" fill="none" /></svg> },
+                            { key: 'social', label: 'Friends', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg> },
+                            { key: 'alerts', label: 'Alerts', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /><circle cx="18" cy="4" r="2.5" fill="#ef4444" stroke="none" /></svg> },
+                            { key: 'nearnow', label: 'Near Me', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#d4a853" /><circle cx="12" cy="12" r="7" stroke="#d4a853" strokeWidth="1" opacity="0.4" /><circle cx="12" cy="12" r="10.5" stroke="#d4a853" strokeWidth="0.8" opacity="0.2" /></svg> },
+                            { key: 'calculator', label: 'Cost', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="10" x2="16" y2="10" /><line x1="8" y1="14" x2="12" y2="14" /></svg> },
+                            { key: 'calendar', label: 'Calendar', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><circle cx="8" cy="14" r="1" fill="#22c55e" stroke="none" /><circle cx="12" cy="14" r="1" fill="#3b82f6" stroke="none" /><circle cx="16" cy="14" r="1" fill="#d4a853" stroke="none" /></svg> },
+                        ].map(tab => (
+                            <button
+                                key={tab.key}
+                                className={'mtab' + (activeTab === tab.key ? ' active' : '')}
+                                onClick={() => setActiveTab(tab.key)}
+                            >
+                                <span className="mtab-icon">{tab.icon}</span>
+                                <span className="mtab-label">{tab.label}</span>
+                                {tab.key === 'live' && liveGames.length > 0 && <span className="mtab-badge">{liveGames.length}</span>}
+                                {tab.key === 'favorites' && Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="mtab-badge fav">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Distance / Geofence notices (below HUD) */}
@@ -2614,7 +2551,7 @@ export default function PokerNearMePage() {
                         venueName={reviewVenue?.name}
                         userId={userId}
                         userName={user?.display_name || user?.email}
-                        authToken={authToken}
+                        authToken={user?.access_token}
                         isOpen={!!reviewVenue}
                         onClose={() => setReviewVenue(null)}
                     />
@@ -2665,194 +2602,84 @@ export default function PokerNearMePage() {
                         z-index: -1;
                     }
 
-                    /* ═══ SEARCH BAR ═══ */
-                    .pnm-search-section {
-                        padding: 12px 16px 8px;
-                        max-width: 720px;
-                        margin: 0 auto;
+                    /* ═══ HUD PANEL ═══ */
+                    .pnm-hud-panel {
+                        position: relative;
+                        width: 100%;
+                        max-width: 1400px; /* Constrain ultra-wide stretching */
+                        margin: 0 auto 0;
+                        padding: 0;
+                        overflow: hidden;
                     }
-                    .pnm-search-form {
-                        display: flex;
-                        align-items: center;
-                        background: rgba(15, 23, 42, 0.8);
-                        border: 1px solid rgba(212, 168, 83, 0.25);
-                        border-radius: 12px;
-                        padding: 0 4px 0 14px;
-                        backdrop-filter: blur(12px);
-                        -webkit-backdrop-filter: blur(12px);
-                        transition: border-color 0.2s;
+                    .hud-bg-frame {
+                        width: 100%;
+                        height: auto;
+                        display: block;
+                        pointer-events: none;
+                        user-select: none;
                     }
-                    .pnm-search-form:focus-within {
-                        border-color: rgba(212, 168, 83, 0.6);
-                        box-shadow: 0 0 16px rgba(212, 168, 83, 0.1);
+                    .hud-content-overlay {
+                        position: absolute;
+                        inset: 0;
+                        z-index: 2;
+                        pointer-events: none; /* Let clicks pass through except where defined */
                     }
-                    .pnm-search-icon {
-                        color: rgba(255,255,255,0.4);
-                        flex-shrink: 0;
+
+                    /* Interactive overlays via absolute positioning */
+                    .hud-abs-search-form {
+                        position: absolute;
+                        top: 38%;
+                        left: 18.5%;
+                        width: 63%;
+                        height: 12%;
+                        pointer-events: none;
                     }
-                    .pnm-search-input {
-                        flex: 1;
+                    .hud-abs-search-input {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 84%;
+                        height: 100%;
                         background: transparent;
-                        border: none;
-                        outline: none;
+                        border: none !important;
+                        outline: none !important;
+                        box-shadow: none !important;
                         color: #fff;
-                        font-size: 15px;
-                        padding: 14px 12px;
+                        font-size: clamp(14px, 2.5vw, 20px);
+                        padding: 0 16px 0 12%; /* Added padding to clear magnifying glass */
                         font-family: inherit;
                         caret-color: #d4a853;
-                        min-width: 0;
+                        pointer-events: auto;
+                        cursor: text;
                     }
-                    .pnm-search-input::placeholder {
-                        color: rgba(255,255,255,0.35);
+                    .hud-abs-search-input:focus {
+                        outline: none !important;
+                        box-shadow: none !important;
                     }
-                    .pnm-search-submit {
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        width: 36px;
-                        height: 36px;
-                        border-radius: 8px;
-                        border: none;
-                        background: linear-gradient(135deg, #d4a853, #b8860b);
-                        color: #000;
-                        cursor: pointer;
-                        flex-shrink: 0;
-                        transition: transform 0.15s;
-                    }
-                    .pnm-search-submit:active {
-                        transform: scale(0.93);
-                    }
-                    .pnm-search-actions {
-                        display: flex;
-                        gap: 8px;
-                        margin-top: 8px;
-                    }
-                    .pnm-action-btn {
-                        display: flex;
-                        align-items: center;
-                        gap: 6px;
-                        padding: 8px 14px;
-                        background: rgba(15, 23, 42, 0.6);
-                        border: 1px solid rgba(255,255,255,0.1);
-                        border-radius: 8px;
-                        color: rgba(255,255,255,0.6);
-                        font-size: 13px;
-                        font-weight: 500;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                    }
-                    .pnm-action-btn:hover {
-                        background: rgba(15, 23, 42, 0.8);
-                        border-color: rgba(255,255,255,0.2);
-                    }
-                    .pnm-action-btn.active {
-                        background: rgba(212, 168, 83, 0.15);
-                        border-color: rgba(212, 168, 83, 0.4);
-                        color: #d4a853;
-                    }
-
-                    /* ═══ CUSTOM ICON DASHBOARD — NO BACKGROUNDS ═══ */
-                    .pnm-icon-grid {
-                        display: grid;
-                        grid-template-columns: repeat(4, 1fr);
-                        gap: 16px 12px;
-                        padding: 8px 16px 28px;
-                        max-width: 800px;
-                        margin: 0 auto;
-                    }
-                    @media (max-width: 600px) {
-                        .pnm-icon-grid {
-                            grid-template-columns: repeat(3, 1fr);
-                            gap: 18px 10px;
-                        }
-                    }
-                    @media (max-width: 360px) {
-                        .pnm-icon-grid {
-                            grid-template-columns: repeat(2, 1fr);
-                        }
-                    }
-
-                    .pnm-icon-item {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 8px;
-                        cursor: pointer;
-                        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-                        -webkit-tap-highlight-color: transparent;
-                    }
-                    .pnm-icon-item:active {
-                        transform: scale(0.90);
-                    }
-
-                    .pnm-icon-img-wrap {
-                        position: relative;
-                        width: 80px;
-                        height: 80px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        border-radius: 20px;
-                        transition: all 0.3s ease;
-                    }
-                    @media (max-width: 600px) {
-                        .pnm-icon-img-wrap {
-                            width: 72px;
-                            height: 72px;
-                        }
-                    }
-
-                    .pnm-icon-item.active .pnm-icon-img-wrap {
-                        box-shadow: 0 0 18px rgba(212, 168, 83, 0.5), 0 0 40px rgba(212, 168, 83, 0.2);
-                        border-radius: 22px;
-                        background: rgba(212, 168, 83, 0.08);
-                    }
-
-                    .pnm-icon-img {
-                        width: 100%;
-                        height: 100%;
-                        object-fit: contain;
-                        filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
-                        transition: transform 0.3s ease, filter 0.3s ease;
-                    }
-                    .pnm-icon-item:hover .pnm-icon-img {
-                        transform: scale(1.12);
-                        filter: drop-shadow(0 6px 20px rgba(212,168,83,0.4));
-                    }
-                    .pnm-icon-item.active .pnm-icon-img {
-                        filter: drop-shadow(0 0 16px rgba(212, 168, 83, 0.6));
-                    }
-
-                    .pnm-icon-label {
-                        color: rgba(255,255,255,0.75);
-                        font-size: 11px;
-                        font-weight: 600;
-                        letter-spacing: 0.3px;
-                        text-align: center;
-                        text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-                        line-height: 1.2;
-                        max-width: 90px;
-                    }
-                    .pnm-icon-item.active .pnm-icon-label {
-                        color: #d4a853;
-                        text-shadow: 0 0 8px rgba(212, 168, 83, 0.4);
-                    }
-
-                    .pnm-icon-badge {
+                    .hud-abs-search-input::placeholder { color: transparent; }
+                    .hud-abs-search-btn {
                         position: absolute;
-                        top: -4px;
-                        right: -4px;
-                        background: #ef4444;
-                        color: #fff;
-                        font-size: 10px;
-                        font-weight: 800;
-                        padding: 2px 6px;
-                        border-radius: 10px;
-                        min-width: 18px;
-                        text-align: center;
-                        box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
-                        animation: livePulse 2s ease-in-out infinite;
+                        top: 0;
+                        right: 0;
+                        width: 14%;
+                        height: 100%;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        pointer-events: auto;
+                        outline: none !important;
                     }
+
+                    .hud-abs-gps-btn { position: absolute; top: 54%; left: 29%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    .hud-abs-filter-btn { position: absolute; top: 54%; left: 60%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+
+                    .hud-abs-tab { position: absolute; top: 68%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    .hud-abs-tab-venues { left: 23%; width: 9%; }
+                    .hud-abs-tab-tours { left: 33%; width: 8%; }
+                    .hud-abs-tab-series { left: 42%; width: 8.5%; }
+                    .hud-abs-tab-daily { left: 51.5%; width: 7.5%; }
+                    .hud-abs-tab-live { left: 60%; width: 8%; }
+                    .hud-abs-tab-map { left: 69%; width: 8%; }
 
 
                     /* Main Content */
@@ -3739,7 +3566,73 @@ export default function PokerNearMePage() {
                         }
                     }
 
-
+                    /* ═══ MOBILE TAB BAR ═══ */
+                    .mobile-tab-bar {
+                        display: none;
+                    }
+                    @media (max-width: 768px) {
+                        .mobile-tab-bar {
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 2px;
+                            padding: 6px 8px;
+                            margin: -8px 4px 8px;
+                            background: rgba(15,23,42,0.8);
+                            border: 1px solid rgba(255,255,255,0.08);
+                            border-radius: 12px;
+                            backdrop-filter: blur(10px);
+                            -webkit-backdrop-filter: blur(10px);
+                            overflow-x: auto;
+                            -webkit-overflow-scrolling: touch;
+                        }
+                    }
+                    .mtab {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                        padding: 8px 4px;
+                        border-radius: 8px;
+                        background: transparent;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        position: relative;
+                        min-width: 0;
+                    }
+                    .mtab.active {
+                        background: rgba(212,168,83,0.15);
+                        box-shadow: inset 0 -2px 0 #d4a853;
+                    }
+                    .mtab-icon {
+                        font-size: 16px;
+                        line-height: 1;
+                    }
+                    .mtab-label {
+                        font-size: 9px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.5);
+                        text-transform: uppercase;
+                        letter-spacing: 0.3px;
+                    }
+                    .mtab.active .mtab-label {
+                        color: #d4a853;
+                    }
+                    .mtab-badge {
+                        position: absolute;
+                        top: 2px;
+                        right: 4px;
+                        background: #ef4444;
+                        color: #fff;
+                        font-size: 8px;
+                        font-weight: 700;
+                        padding: 1px 4px;
+                        border-radius: 8px;
+                        min-width: 14px;
+                        text-align: center;
+                        animation: livePulse 2s ease-in-out infinite;
+                    }
 
                     /* ═══ MAP RECENTER BUTTON ═══ */
                     .map-recenter-btn {
@@ -4337,8 +4230,6 @@ export default function PokerNearMePage() {
                     }
                 `}</style>
                 </FeatureGate>
-                {/* Action-interceptor upgrade popup (rendered when non-VIP tries gated action) */}
-                {UpgradePopup}
             </div>
         </>
     );

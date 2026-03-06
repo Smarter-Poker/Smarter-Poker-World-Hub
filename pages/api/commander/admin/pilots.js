@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     captureException(error, {
       action: 'admin_pilots_list',
       endpoint: '/api/commander/admin/pilots'
-    });
+    };
     return res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message: 'Internal server error' }

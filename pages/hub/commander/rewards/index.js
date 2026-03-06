@@ -99,7 +99,7 @@ export default function PlayerRewardsPage() {
       hoursPlayed: bal.success ? (bal.data?.total_hours || 0) : 0,
       transactions: tx.success ? (tx.data?.transactions || []) : [],
       earnRate: rates.success ? (rates.data?.rate_per_hour || 1) : 1
-    };
+    });
   });
   const balance = swrData?.balance || 0;
   const lifetimeEarned = swrData?.lifetimeEarned || 0;

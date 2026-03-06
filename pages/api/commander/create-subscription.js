@@ -94,31 +94,31 @@ async function findUserByEmail(email) {
 }
 
 export default async function handler(req, res) {
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   // Rate limit: 3 subscription attempts per minute per IP
   const fwd = req.headers['x-forwarded-for'];
   const ip = fwd ? fwd.split(',')[0].trim() : req.socket?.remoteAddress || '0';
   const rl = checkMemoryRateLimit(`sub:${ip}`, 3, 60000);
-  if (!rl.allowed) { return res.status(429).json({ success: false, error: 'Too many requests. Please try again shortly.' }); }
+  if (!rl.allowed) { return res.status(429).json({ error: 'Too many requests. Please try again shortly.' }); }
 
   const { paymentMethodId, selectedTier, clubInfo, ownerInfo, existingAccount, skipPayment } = req.body;
   const tier = selectedTier || req.body.tier;
 
   if (!tier || !TIER_PRICES[tier]) {
-    return res.status(400).json({ success: false, error: 'Invalid subscription tier' });
+    return res.status(400).json({ error: 'Invalid subscription tier' });
   }
 
   try {
     const email = ownerInfo.email?.toLowerCase().trim();
     if (!email) {
-      return res.status(400).json({ success: false, error: 'Email is required' });
+      return res.status(400).json({ error: 'Email is required' });
     }
 
     // ─── Duplicate prevention: check if this email already has an active Commander subscription ──
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     if (existingEmailSub && existingEmailSub.length > 0) {
       const venueName = existingEmailSub[0].venue?.name || 'a venue';
       return res.status(400).json({
-        success: false, error: `An active Club Commander account already exists for ${email} (${venueName}). Please sign in instead.`
+        error: `An active Club Commander account already exists for ${email} (${venueName}). Please sign in instead.`
       });
     }
 
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
 
       if (existingAddrVenue && existingAddrVenue.length > 0) {
         return res.status(400).json({
-          success: false, error: `A Club Commander venue already exists at this address (${existingAddrVenue[0].name}). If this is your venue, please sign in instead.`
+          error: `A Club Commander venue already exists at this address (${existingAddrVenue[0].name}). If this is your venue, please sign in instead.`
         });
       }
     }
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
         } catch (e) { console.log('Metadata update non-critical error:', e.message); }
       } else {
         return res.status(400).json({
-          success: false, error: 'No Smarter.Poker account found with this email. Please uncheck "I already have a Smarter.Poker account" and create a new account instead.'
+          error: 'No Smarter.Poker account found with this email. Please uncheck "I already have a Smarter.Poker account" and create a new account instead.'
         });
       }
     } else {
@@ -200,30 +200,24 @@ export default async function handler(req, res) {
         if (existingUser) {
           userId = existingUser.id;
           try {
-            // Set metadata + password (if provided) — enables email/password login
-            // for users who originally signed up via Google OAuth
-            const updatePayload = {
+            await supabase.auth.admin.updateUserById(userId, {
               user_metadata: {
                 full_name: ownerInfo.name,
                 phone: ownerInfo.phone,
                 role: 'venue_owner',
               }
-            };
-            if (ownerInfo.password) {
-              updatePayload.password = ownerInfo.password;
-            }
-            await supabase.auth.admin.updateUserById(userId, updatePayload);
+            });
           } catch (e) { /* non-critical */ }
         } else {
           return res.status(400).json({
-            success: false, error: 'An account with this email already exists. Please check "I already have a Smarter.Poker account" and try again.'
+            error: 'An account with this email already exists. Please check "I already have a Smarter.Poker account" and try again.'
           });
         }
       } else {
         // Unexpected error
         console.error('createUser error:', authError?.message);
         return res.status(400).json({
-          success: false, error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker.`
+          error: `Registration issue: ${authError?.message || 'Unknown error'}. Please contact support at admin@smarter.poker.`
         });
       }
     }
@@ -304,7 +298,7 @@ export default async function handler(req, res) {
 
       if (venueError) {
         console.error('Venue creation error:', venueError);
-        return res.status(400).json({ success: false, error: 'Failed to create venue: ' + venueError.message });
+        return res.status(400).json({ error: 'Failed to create venue: ' + venueError.message });
       }
 
       venueId = newVenue.id;
@@ -322,7 +316,7 @@ export default async function handler(req, res) {
 
     if (hasRealStripeConfig) {
       if (!paymentMethodId) {
-        return res.status(400).json({ success: false, error: 'Payment method is required' });
+        return res.status(400).json({ error: 'Payment method is required' });
       }
       const customer = await stripe.customers.create({
         email,
@@ -429,7 +423,7 @@ export default async function handler(req, res) {
           .from('commander_tables')
           .select('table_number')
           .eq('venue_id', venueId)
-          .limit(100);
+              .limit(100)
         const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
 
         // Create missing tables (default 9-max, available status)
@@ -453,61 +447,22 @@ export default async function handler(req, res) {
       }
     }
 
-    // ─── 6. Auto-create Social Club Page (direct DB insert) ──────────
-    // Pages start as DRAFTS (is_public: false) — user must edit and publish.
-    // Includes duplicate guard to prevent creating a second page for the same venue.
+    // ─── 6. Social Hub page (best-effort) ────────────────────────────
     try {
-      // Duplicate guard: skip if a social page already exists for this venue
-      const { data: existingPage } = await supabase
-        .from('social_pages')
-        .select('id')
-        .eq('linked_venue_id', String(venueId))
-        .limit(1);
-
-      if (existingPage && existingPage.length > 0) {
-        console.log(`[Registration] Club page already exists for venue ${venueId}, skipping auto-create.`);
-      } else {
-        const pageSlug = clubInfo.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 60) + '-' + Date.now().toString(36);
-        const referralCode = pageSlug.substring(0, 20) + '-' + Math.random().toString(36).substring(2, 6);
-
-        const { data: newPage, error: pageError } = await supabase
-          .from('social_pages')
-          .insert({
-            owner_id: userId,
-            name: clubInfo.name,
-            slug: pageSlug,
-            page_type: 'club',
-            description: `${clubInfo.name}${venueCity && venueState ? ` — Poker in ${venueCity}, ${venueState}` : ''}`,
-            category: 'poker',
-            linked_venue_id: String(venueId),
-            location_city: venueCity || '',
-            location_state: venueState || '',
-            is_public: false, // ← DRAFT MODE — not visible in public listings until user publishes
-            allow_member_posts: true,
-            metadata: {
-              source: 'commander_registration',
-              referral_code: referralCode,
-              status: 'draft',
-              needs_setup: true
-            }
-          })
-          .select('id')
-          .single();
-
-        if (!pageError && newPage) {
-          // Auto-follow as owner
-          await supabase.from('social_page_followers').insert({
-            page_id: newPage.id,
-            user_id: userId,
-            role: 'owner',
-            status: 'approved'
-          });
-          console.log(`[Registration] ✅ Club page auto-created (DRAFT): ${clubInfo.name} (ID: ${newPage.id})`);
-        } else {
-          console.error('[Registration] Club page auto-create failed:', pageError?.message);
-        }
-      }
-    } catch (e) { console.error('[Registration] Club page auto-create error (non-critical):', e.message); }
+      await fetch(`${process.env.SOCIAL_HUB_API_URL}/api/create-club-page`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.SOCIAL_HUB_API_KEY}`
+        },
+        body: JSON.stringify({
+          venue_id: venueId, name: clubInfo.name,
+          description: `${clubInfo.name}${venueCity && venueState ? ` - Poker Room in ${venueCity}, ${venueState}` : ''}`,
+          address: venueAddress || null, city: venueCity || null, state: venueState || null,
+          website: clubInfo.website || null, owner_id: userId
+        })
+      });
+    } catch (e) { /* non-critical */ }
 
     // ─── 7. Welcome email (best-effort) ──────────────────────────────
     try {
@@ -537,6 +492,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Registration error:', error);
-    return res.status(500).json({ success: false, error: error.message || 'Registration failed' });
+    return res.status(500).json({ error: error.message || 'Registration failed' });
   }
 }

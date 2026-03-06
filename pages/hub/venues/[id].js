@@ -175,7 +175,6 @@ function StarRating({ rating, size, interactive, onRate }) {
 
 export default function VenueDetailPage() {
   const router = useRouter();
-  if (!router.isReady) return null;
   const { id, action } = router.query;
 
   const [isFollowed, setIsFollowed] = useState(false);
@@ -291,7 +290,7 @@ export default function VenueDetailPage() {
       venue: venueData,
       followerCount: fj.success ? (fj.follower_count || 0) : 0,
       socialPageSlug: sj.success && sj.data && sj.data.length > 0 ? (sj.data[0].slug || sj.data[0].id) : null
-    };
+    });
   });
   const venue = swrData?.venue || null;
   const [localFollowerCount, setFollowerCount] = useState(null);
@@ -299,47 +298,44 @@ export default function VenueDetailPage() {
   const socialPageSlug = swrData?.socialPageSlug || null;
 
   // Fetch live games
-  var fetchLiveGames = async function (signal) {
+  var fetchLiveGames = async function () {
     try {
-      var res = await fetch('/api/poker/live-games?venue_id=' + id, signal ? { signal } : {});
+      var res = await fetch('/api/poker/live-games?venue_id=' + id);
       var json = await res.json();
       if (json.success) {
         var games = json.games || json.data || [];
         setLiveGames(Array.isArray(games) ? games : []);
       }
-    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
-  };
+    } catch (e) { /* silent */ }
+  });
 
   useEffect(function () {
     if (!id) return;
-    var controller = new AbortController();
-    fetchLiveGames(controller.signal);
-    return function () { controller.abort(); };
+    fetchLiveGames();
   }, [id]);
 
   // Fetch waitlist data for Bravo-style board
-  var fetchWaitlist = async function (signal) {
+  var fetchWaitlist = async function () {
     try {
-      var wlRes = await fetch('/api/commander/waitlist/venue/' + id, signal ? { signal } : {});
+      var wlRes = await fetch('/api/commander/waitlist/venue/' + id);
       var wlJson = await wlRes.json();
       if (wlJson.success && wlJson.data && wlJson.data.waitlists) {
         setWaitlistData(wlJson.data.waitlists);
       }
-    } catch (e) { if (e.name !== 'AbortError') { /* not a Commander venue, ignore */ } }
-  };
+    } catch (e) { /* not a Commander venue, ignore */ }
+  });
 
   useEffect(function () {
     if (!id) return;
-    var controller = new AbortController();
-    fetchWaitlist(controller.signal);
-    var wlInterval = setInterval(function () { fetchWaitlist(controller.signal); }, 30000);
-    return function () { controller.abort(); clearInterval(wlInterval); };
+    fetchWaitlist();
+    var wlInterval = setInterval(fetchWaitlist, 30000);
+    return function () { clearInterval(wlInterval); };
   }, [id]);
 
   // Fetch check-ins
-  var fetchCheckins = async function (signal) {
+  var fetchCheckins = async function () {
     try {
-      var res = await fetch('/api/poker/checkins?venue_id=' + id, signal ? { signal } : {});
+      var res = await fetch('/api/poker/checkins?venue_id=' + id);
       var json = await res.json();
       if (json.success) {
         var data = json.checkins || json.data || [];
@@ -353,20 +349,18 @@ export default function VenueDetailPage() {
         });
         if (recent) setHasCheckedIn(true);
       }
-    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
+    } catch (e) { /* silent */ }
   };
 
   useEffect(function () {
     if (!id) return;
-    var controller = new AbortController();
-    fetchCheckins(controller.signal);
-    return function () { controller.abort(); };
+    fetchCheckins();
   }, [id]);
 
   // Fetch reviews
-  var fetchReviews = async function (signal) {
+  var fetchReviews = async function () {
     try {
-      var res = await fetch('/api/poker/reviews?venue_id=' + id, signal ? { signal } : {});
+      var res = await fetch('/api/poker/reviews?venue_id=' + id);
       var json = await res.json();
       if (json.success) {
         var reviewData = json.reviews || json.data || [];
@@ -377,33 +371,29 @@ export default function VenueDetailPage() {
           ? reviewData.reduce(function (sum, r) { return sum + (r.rating || 0); }, 0) / reviewData.length
           : 0));
       }
-    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
+    } catch (e) { /* silent */ }
   };
 
   useEffect(function () {
     if (!id) return;
-    var controller = new AbortController();
-    fetchReviews(controller.signal);
-    return function () { controller.abort(); };
+    fetchReviews();
   }, [id]);
 
   // Fetch activity feed
-  var fetchActivities = async function (signal) {
+  var fetchActivities = async function () {
     try {
-      var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10', signal ? { signal } : {});
+      var res = await fetch('/api/poker/activity?page_type=venue&page_id=' + id + '&limit=10');
       var json = await res.json();
       if (json.success) {
         var items = json.activities || json.data || [];
         setActivities(Array.isArray(items) ? items : []);
       }
-    } catch (e) { if (e.name !== 'AbortError') { /* silent */ } }
-  };
+    } catch (e) { /* silent */ }
+  });
 
   useEffect(function () {
     if (!id) return;
-    var controller = new AbortController();
-    fetchActivities(controller.signal);
-    return function () { controller.abort(); };
+    fetchActivities();
   }, [id]);
 
   // Fetch claim status
@@ -419,7 +409,7 @@ export default function VenueDetailPage() {
         }
       }
     } catch (e) { /* silent */ }
-  };
+  });
 
   useEffect(function () {
     if (!id) return;
@@ -572,7 +562,7 @@ export default function VenueDetailPage() {
         user_id: getAnonymousUserId(),
       }),
     }).catch(function () { });
-  };
+  });
 
   var handleShare = async function () {
     try {
@@ -617,7 +607,7 @@ export default function VenueDetailPage() {
       }
     } catch (err) { /* silent */ }
     finally { setReportSubmitting(false); }
-  };
+  });
 
   var handleCheckin = async function (e) {
     e.preventDefault();
@@ -645,7 +635,7 @@ export default function VenueDetailPage() {
       }
     } catch (err) { /* silent */ }
     finally { setCheckinSubmitting(false); }
-  };
+  });
 
   var handleSubmitReview = async function (e) {
     e.preventDefault();
@@ -717,7 +707,7 @@ export default function VenueDetailPage() {
       }
     } catch (err) { /* silent */ }
     finally { setPostSubmitting(false); }
-  };
+  });
 
   var handleClaimSubmit = async function (e) {
     e.preventDefault();
@@ -822,8 +812,9 @@ export default function VenueDetailPage() {
         description="View Detailed Information About This Poker Venue Including Games, Tournaments, And Hours."
         noindex={true}
       >
-        
-                
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </SEOHead>
 
       <UniversalHeader pageDepth={2} />

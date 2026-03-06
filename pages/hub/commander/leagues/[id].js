@@ -105,7 +105,7 @@ export default function LeagueDetailPage() {
       league: leagueData.success ? leagueData.data?.league : null,
       events: leagueData.success ? (leagueData.data?.events || []) : [],
       standings: standingsData.success ? (standingsData.data?.standings || []) : []
-    };
+    });
   });
   const league = swrData?.league || null;
   const standings = swrData?.standings || [];

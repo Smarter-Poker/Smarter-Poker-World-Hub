@@ -45,7 +45,7 @@ export async function checkBankrollProAccess(userId) {
                     const vipData = await resp.json();
                     if (vipData.isVip) {
                         console.log('[BankrollProGate] Server-side fallback confirmed VIP for userId:', userId);
-                        return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 };
+                        return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 });
                     }
                 }
             } catch (fallbackErr) {
@@ -189,6 +189,11 @@ export async function purchaseBankrollProAccess(userId) {
             .update({ diamonds: currentBalance })
             .eq('id', userId);
         return { success: false, error: 'Failed to grant access' };
+    }
+
+    // 🚌 BUS EVENT: Notify header + other components of diamond balance change
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance: currentBalance - cost } }));
     }
 
     return {

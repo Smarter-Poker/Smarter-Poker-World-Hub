@@ -228,7 +228,7 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
         setShowComments(!showComments);
         if (!showComments && comments.length === 0) {
             try {
-                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment', { signal });
+                const res = await fetch('/api/social/interactions?post_id=' + post.id + '&type=comment');
                 const json = await res.json();
                 setComments(json.comments || []);
             } catch (e) { console.error('Load comments error:', e); }
@@ -618,11 +618,11 @@ export default function UserProfilePage() {
                 try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
                 var pokerUid = data.id || anonUid;
                 if (pokerUid) {
-                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid, { signal }))
+                    fetch('/api/poker/checkins?user_id=' + encodeURIComponent(pokerUid))
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerCheckins(j.checkins || j.data || []); })
                         .catch(function () { });
-                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid, { signal }))
+                    fetch('/api/poker/follow?user_id=' + encodeURIComponent(pokerUid))
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
                         .catch(function () { });
@@ -632,7 +632,7 @@ export default function UserProfilePage() {
                 console.error('Error fetching profile:', e);
             }
             setLoading(false);
-        };
+        });
 
         fetchProfile();
     }, [username]);

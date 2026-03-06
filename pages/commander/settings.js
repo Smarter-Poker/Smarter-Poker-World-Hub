@@ -73,7 +73,6 @@ export default function CommanderSettingsPage() {
     const { signal } = controller;
     try {
       fetch('/api/commander/settings', {
-        signal,
         headers: { 'x-staff-session': storedStaffData }
       })
         .then(r => r.json())

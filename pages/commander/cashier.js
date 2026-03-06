@@ -227,17 +227,17 @@ export default function Cashier() {
         const staffSession = localStorage.getItem('commander_staff') || '';
         const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
-        // Time billing settings + membership plans — fetch in parallel
-        const [settingsRes, plansRes] = await Promise.all([
-          fetch('/api/commander/settings', { headers }),
-          fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers }),
-        ]);
-        const [settingsJson, plansJson] = await Promise.all([settingsRes.json(), plansRes.json()]);
-
+        // Time billing settings
+        const settingsRes = await fetch('/api/commander/settings', { headers });
+        const settingsJson = await settingsRes.json();
         if (settingsJson.success && settingsJson.data) {
           setTimeBillingRate(settingsJson.data.time_billing_rate || 0);
           setBulkTimePackages(settingsJson.data.bulk_time_packages || []);
         }
+
+        // Membership plans
+        const plansRes = await fetch(`/api/commander/membership-plans?venue_id=${venueId}`, { headers });
+        const plansJson = await plansRes.json();
         if (plansJson.success && plansJson.data?.plans) {
           setMembershipPlans(plansJson.data.plans.filter(p => p.is_active !== false));
         }
@@ -1754,7 +1754,7 @@ export default function Cashier() {
     <div class="tier">${tier} Member</div>
     <div class="id">ID: ${memberId}</div>
   </div>
-  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR"  loading="lazy" /></div>
+  <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}" alt="QR" /></div>
 </div>
 </body></html>`);
                       w.document.close();

@@ -7,7 +7,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { supabase } from '../../../src/lib/supabase';
-import SkeletonLight from '../../../src/components/ui/SkeletonLight';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -37,7 +36,7 @@ async function api(action, params) {
 
 export default function TournamentsPage() {
   const router = useRouter();
-  const clubId = router.query?.club || null;
+  const { club: clubId } = router.query;
 
   const [user, setUser] = useState(null);
   const [clubInfo, setClubInfo] = useState(null);
@@ -132,11 +131,7 @@ export default function TournamentsPage() {
     else alert(res.error);
   };
 
-  if (!user) return (
-    <div style={{ background: FB.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: FB.dim }}>
-      Loading Tournaments...
-    </div>
-  );
+  if (!user) return null;
 
   return (
     <div style={{ background: FB.bg, minHeight: '100vh', color: FB.text }}>
@@ -173,7 +168,7 @@ export default function TournamentsPage() {
 
       {/* Tournament List */}
       <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
-        {loading && <SkeletonLight variant="list" rows={5} />}
+        {loading && <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>Loading...</div>}
 
         {!loading && tournaments.length === 0 && (
           <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>
@@ -207,7 +202,7 @@ export default function TournamentsPage() {
               <span>Players: <strong style={{ color: FB.text }}>{t.registered_count}/{t.max_players}</strong></span>
               <span>Prize Pool: <strong style={{ color: FB.gold }}>
                 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}
-                {Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}
+                {Number(t.guaranteed_prize) >Number(t.prize_pool) ? ' GTD' : ''}
               </strong></span>
             </div>
 
@@ -394,7 +389,7 @@ function CreateTournamentModal({ clubId, onClose, onCreated }) {
                   <span style={{ fontSize: 16 }}>
                     {form.xmttClubIds.includes(sc.id) ? '' : '⬜'}
                   </span>
-                  {sc.logo && <img src={sc.logo} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }}  loading="lazy" />}
+                  {sc.logo && <img src={sc.logo} alt="" style={{ width: 20, height: 20, borderRadius: '50%' }} />}
                   <span style={{ fontSize: 13, color: FB.text }}>{sc.name}</span>
                 </div>
               ))}
@@ -471,11 +466,10 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           const d = await res.json();
           if (d.success) setTourneyState(d);
         } catch (_) { }
-      };
-      const _c = new AbortController();
+      });
       poll();
       const iv = setInterval(poll, 5000);
-      return () => { _c.abort(); clearInterval(iv); };
+      return () => clearInterval(iv);
     }
   }, [t.id, userId, t.status]);
 
@@ -494,7 +488,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
       if (d.success && d.tables) {
         // Search all tables for the user's seat
         for (const tbl of d.tables) {
-          const seated = tbl.players?.find(p => String(p.playerId) === String(userId));
+          const seated = tbl.players?.find(p =>String(p.playerId) === String(userId));
           if (seated) {
             router.push(`/hub/club-arena/table/${tbl.tableId}?tournament=${t.id}`);
             return;

@@ -96,8 +96,7 @@ export default async function handler(req, res) {
 
             targetUserIds = (entries || [])
                 .map(e => e.player_id)
-                .filter(Boolean)
-                .limit(100);
+                .filter(Boolean);
         }
 
         if (targetUserIds.length === 0) {

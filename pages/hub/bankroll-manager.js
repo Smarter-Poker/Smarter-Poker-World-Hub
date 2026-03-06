@@ -448,7 +448,7 @@ export default function BankrollManagerPage() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`, { signal });
+        const res = await fetch(`/api/bankroll/linked-venues?userId=${userId}`);
         const data = await res.json();
         if (data.success && data.venues?.length > 0) {
           gf.start(data.venues, async (venue) => {
@@ -1437,7 +1437,7 @@ export default function BankrollManagerPage() {
                           });
                           const data = await res.json();
                           if (data.success && data.data) {
-                            const exportPayload = { entries: data.data, summary: data.summary };
+                            const exportPayload = { entries: data.data, summary: data.summary });
                             const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');

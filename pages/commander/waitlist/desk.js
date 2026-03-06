@@ -412,7 +412,7 @@ export default function WaitlistDesk() {
     }
     setNewGameType(''); setNewGameStakes(''); setNewGameTable(''); setShowAddGame(false);
     broadcastChange('waitlist');
-  };
+  });
 
   // ── REMOVE GAME: Delete all waitlist entries for a game + remove from custom ──
   const handleRemoveGame = async (gameLabel) => {

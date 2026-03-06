@@ -52,7 +52,7 @@ export default function PlayerCard() {
       pid: player?.id,
       ts,
       exp: ts + 30000, // 30 second expiry
-      v: 1
+      v: 1)
     });
     // Base64 encode for QR
     const encoded = btoa(payload);

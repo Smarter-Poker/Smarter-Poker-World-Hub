@@ -239,7 +239,7 @@ export default function ClockSetup() {
                                 <p style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 3, marginBottom: 2, color: formTheme.accent }}>
                                     Level 8
                                 </p>
-                                <p style={{ fontSize: 56, fontWeight: 800, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif" , fontFeatureSettings: "'zero' 0", margin: 0, lineHeight: 1, color: formTheme.text }}>
+                                <p style={{ fontSize: 56, fontWeight: 800, fontFamily: "var(--font-inter), 'Segoe UI', sans-serif", fontFeatureSettings: "'zero' 0", margin: 0, lineHeight: 1, color: formTheme.text }}>
                                     12:00
                                 </p>
                                 <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 8, padding: '8px 16px', margin: '8px 0', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -578,18 +578,18 @@ const labelStyle = { fontSize: 12, fontWeight: 600, color: '#94A3B8', marginBott
 const sectionTitle = { fontSize: 11, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginTop: 0 };
 const inputStyle = {
     width: '100%', padding: '10px 12px', borderRadius: 8, border: '2px solid #1E3A5F',
-    background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 14, fontFamily: "var(--font-inter), sans-serif" ,
+    background: 'rgba(0,0,0,0.3)', color: '#fff', fontSize: 14, fontFamily: "var(--font-inter), sans-serif",
     outline: 'none', boxSizing: 'border-box',
 };
 const btnPrimary = {
     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
     border: 'none', background: '#1877F2', color: '#fff', fontSize: 13, fontWeight: 600,
-    cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif" ,
+    cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif",
 };
 const btnSecondary = {
     display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8,
     border: '2px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#94A3B8',
-    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif" ,
+    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: "var(--font-inter), sans-serif",
 };
 const iconBtn = {
     padding: 6, borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)',

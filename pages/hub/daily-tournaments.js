@@ -75,7 +75,7 @@ export default function DailyTournaments() {
     const handleSearch = (e) => {
         e.preventDefault();
         refreshTournaments();
-    };
+    });
 
     const clearFilters = () => {
         setSelectedState(null);

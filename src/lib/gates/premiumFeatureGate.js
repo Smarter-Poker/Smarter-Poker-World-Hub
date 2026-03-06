@@ -100,7 +100,7 @@ export async function checkFeatureAccess(userId, featureKey) {
                 const vipData = await resp.json();
                 if (vipData.isVip) {
                     console.log('[FeatureGate] Server-side fallback confirmed VIP for userId:', userId);
-                    return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 };
+                    return { hasAccess: true, isVip: true, expiresAt: null, diamonds: vipData.diamonds || 0 });
                 }
             }
         } catch (fallbackErr) {
@@ -285,6 +285,11 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
         return { success: false, error: 'Failed to grant access' };
     }
 
+    // 🚌 BUS EVENT: Notify header + other components of diamond balance change
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
+    }
+
     return {
         success: true,
         expiresAt,
@@ -418,6 +423,10 @@ export async function purchaseVipWithDiamonds(userId) {
     // Update localStorage for instant UI feedback
     if (typeof window !== 'undefined') {
         localStorage.setItem('sp-vip-tier', 'monthly');
+        // 🚌 BUS EVENT: Notify header + other components of diamond balance change
+        window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
+        // 🚌 BUS EVENT: Notify gates to re-check VIP status
+        window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
     }
 
     return {

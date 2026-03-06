@@ -5,40 +5,37 @@
  * Shows: current table assignments, on-break dealers, next rotation time
  * Auto-refreshes every 10 seconds
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
-import useWakeLock from '../../../src/hooks/useWakeLock';
 
 export default function DealerRotationDisplay() {
   const [dealers, setDealers] = useState([]);
   const [rotations, setRotations] = useState([]);
   const [now, setNow] = useState(new Date());
-  useWakeLock();
+  const wakeLockRef = useRef(null);
 
-  const fetchData = useCallback(async (signal) => {
+  const fetchData = useCallback(async () => {
     try {
-      const opts = signal ? { signal } : {};
       const [dealerRes, rotRes] = await Promise.all([
-        fetch('/api/commander/dealers', opts),
-        fetch('/api/commander/dealers/rotations', opts)
+        fetch('/api/commander/dealers'),
+        fetch('/api/commander/dealers/rotations')
       ]);
       const dealerJson = await dealerRes.json();
       const rotJson = await rotRes.json();
       if (dealerJson.success) setDealers(dealerJson.data || []);
       if (rotJson.success) setRotations(rotJson.data || []);
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
+    } catch (err) { console.error(err); }
     setNow(new Date());
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
-    fetchData(controller.signal);
+    fetchData();
     const poll = setInterval(fetchData, 30000); // fallback — real-time sync handles instant updates
     const clock = setInterval(() => setNow(new Date()), 1000);
-    return () => { controller.abort(); clearInterval(poll); clearInterval(clock); };
+    return () => { clearInterval(poll); clearInterval(clock); };
   }, [fetchData]);
 
   // Extract venueId for cross-device Supabase sync
@@ -49,7 +46,19 @@ export default function DealerRotationDisplay() {
   // Commander Data Bus — instant sync when dealers change
   useCommanderSync(venueId, fetchData, { entities: ['dealers'] });
 
-
+  // Wake lock
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) wakeLockRef.current = await navigator.wakeLock.request('screen');
+      } catch (err) { }
+    };
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+    return () => { wakeLockRef.current?.release(); };
+  }, []);
 
   const goFullscreen = () => document.documentElement.requestFullscreen?.();
 

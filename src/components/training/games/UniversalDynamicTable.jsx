@@ -289,38 +289,38 @@ function StreakToast({ message, show }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEAT_CONFIGS = {
-    // 9-Max positions - All seats INSIDE THE FELT OVAL
-    // The table felt spans roughly 30%-70% X and 20%-80% Y
+    // 9-Max positions — SPREAD WIDE to prevent overlap
+    // Seats hug the outer edge of the felt oval
     9: [
-        { id: 0, name: 'BTN', x: 50, y: 78 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 35, y: 72 },    // Bottom-left
-        { id: 2, name: 'BB', x: 32, y: 52 },    // Mid-left
-        { id: 3, name: 'UTG', x: 35, y: 32 },   // Upper-mid-left
-        { id: 4, name: 'UTG+1', x: 42, y: 22 }, // Top-left
-        { id: 5, name: 'MP', x: 58, y: 22 },    // Top-right
-        { id: 6, name: 'MP+1', x: 65, y: 32 },  // Upper-mid-right
-        { id: 7, name: 'HJ', x: 68, y: 52 },    // Mid-right
-        { id: 8, name: 'CO', x: 65, y: 72 },    // Bottom-right
+        { id: 0, name: 'BTN', x: 50, y: 82 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 24, y: 74 },    // Bottom-left (wider)
+        { id: 2, name: 'BB', x: 16, y: 52 },    // Mid-left (wider)
+        { id: 3, name: 'UTG', x: 22, y: 30 },   // Upper-mid-left
+        { id: 4, name: 'UTG+1', x: 38, y: 18 }, // Top-left (higher)
+        { id: 5, name: 'MP', x: 62, y: 18 },    // Top-right (higher)
+        { id: 6, name: 'MP+1', x: 78, y: 30 },  // Upper-mid-right (wider)
+        { id: 7, name: 'HJ', x: 84, y: 52 },    // Mid-right (wider)
+        { id: 8, name: 'CO', x: 76, y: 74 },    // Bottom-right (wider)
     ],
-    // 6-Max positions - All inside felt
+    // 6-Max positions — Wider spread
     6: [
-        { id: 0, name: 'BTN', x: 50, y: 78 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 35, y: 58 },    // Mid-left
-        { id: 2, name: 'BB', x: 35, y: 35 },    // Upper-left
-        { id: 3, name: 'UTG', x: 50, y: 22 },   // Top center
-        { id: 4, name: 'HJ', x: 65, y: 35 },    // Upper-right
-        { id: 5, name: 'CO', x: 65, y: 58 },    // Mid-right
+        { id: 0, name: 'BTN', x: 50, y: 80 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 22, y: 58 },    // Mid-left
+        { id: 2, name: 'BB', x: 25, y: 30 },    // Upper-left
+        { id: 3, name: 'UTG', x: 50, y: 18 },   // Top center
+        { id: 4, name: 'HJ', x: 75, y: 30 },    // Upper-right
+        { id: 5, name: 'CO', x: 78, y: 58 },    // Mid-right
     ],
-    // 3-Max (Spins) - Inside felt
+    // 3-Max (Spins) — Spread
     3: [
-        { id: 0, name: 'BTN', x: 50, y: 75 },   // Hero: Center bottom
-        { id: 1, name: 'SB', x: 38, y: 32 },    // Top-left
-        { id: 2, name: 'BB', x: 62, y: 32 },    // Top-right
+        { id: 0, name: 'BTN', x: 50, y: 78 },   // Hero: Center bottom
+        { id: 1, name: 'SB', x: 30, y: 28 },    // Top-left (wider)
+        { id: 2, name: 'BB', x: 70, y: 28 },    // Top-right (wider)
     ],
-    // Heads-Up - Inside felt
+    // Heads-Up
     2: [
-        { id: 0, name: 'BTN/SB', x: 50, y: 75 }, // Hero: Center bottom
-        { id: 1, name: 'BB', x: 50, y: 25 },     // Villain: Top center
+        { id: 0, name: 'BTN/SB', x: 50, y: 78 }, // Hero: Center bottom
+        { id: 1, name: 'BB', x: 50, y: 22 },     // Villain: Top center
     ],
 };
 
@@ -635,10 +635,10 @@ function FrequencyBar({ frequency, color, show }) {
             animate={{ scaleX: 1, opacity: 1 }}
             transition={{ duration: 0.4, ease: 'easeOut' }}
             style={{
-                height: 4,
-                borderRadius: 2,
-                background: 'rgba(255,255,255,0.1)',
-                marginTop: 6,
+                height: 6,
+                borderRadius: 3,
+                background: 'rgba(255,255,255,0.08)',
+                marginTop: 4,
                 overflow: 'hidden',
                 transformOrigin: 'left',
             }}
@@ -650,7 +650,7 @@ function FrequencyBar({ frequency, color, show }) {
                 style={{
                     height: '100%',
                     background: color,
-                    borderRadius: 2,
+                    borderRadius: 3,
                 }}
             />
         </motion.div>
@@ -800,6 +800,17 @@ function UniversalDynamicTable({
         if (typeof rawHeroCards === 'string' && rawHeroCards.length >= 4) {
             return [rawHeroCards.substring(0, 2), rawHeroCards.substring(2, 4)];
         }
+        // Handle 3-char abstract notation: "K8s" (suited), "ATo" (offsuit)
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 3) {
+            const r1 = rawHeroCards[0], r2 = rawHeroCards[1], suitFlag = rawHeroCards[2];
+            if (suitFlag === 's') return [`${r1}s`, `${r2}s`]; // Both spades for suited
+            if (suitFlag === 'o') return [`${r1}h`, `${r2}d`]; // Mixed suits for offsuit
+            return [`${r1}h`, `${r2}s`]; // Default
+        }
+        // Handle 2-char pairs: "AA", "KK"
+        if (typeof rawHeroCards === 'string' && rawHeroCards.length === 2) {
+            return [`${rawHeroCards[0]}h`, `${rawHeroCards[1]}s`];
+        }
         return ['As', 'Ks']; // Fallback
     }, [rawHeroCards]);
 
@@ -837,13 +848,14 @@ function UniversalDynamicTable({
     // Button is always at seat 0
     const getButtonSeatIndex = 0;
 
-    // Generate STABLE villain stacks using seat index as seed (not random())
+    // Generate STABLE villain stacks — relative to heroStack with ±variance
     const generateVillainStack = useMemo(() => {
         return (seatIndex) => {
             const seed = (questionNumber || 1) * 13 + seatIndex * 7;
-            return 30 + (seed % 120);
+            const variance = (seed % 40) - 20; // ±20 BB variance around hero stack
+            return Math.max(5, Math.round((heroStack || 100) + variance));
         };
-    }, [questionNumber]);
+    }, [questionNumber, heroStack]);
 
     // GAP-6: Effective stack (smallest of hero and all active villains)
     const effectiveStack = useMemo(() => {
@@ -2132,19 +2144,18 @@ const styles = {
 
     villainActionBubble: {
         position: 'absolute',
-        top: '15%',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        top: '5%',
+        right: '8%',
         background: 'linear-gradient(135deg, #ef4444, #dc2626)',
         color: '#fff',
-        padding: '8px 16px',
-        borderRadius: 14,
-        fontSize: 13,
+        padding: '5px 12px',
+        borderRadius: 10,
+        fontSize: 11,
         fontWeight: 'bold',
         zIndex: 10,
-        boxShadow: '0 4px 20px rgba(239, 68, 68, 0.5)',
+        boxShadow: '0 2px 12px rgba(239, 68, 68, 0.4)',
         textAlign: 'center',
-        minWidth: 100,
+        minWidth: 70,
     },
 
     villainActionHeader: {
@@ -2285,11 +2296,12 @@ const styles = {
     },
 
     feedbackCard: {
-        background: 'linear-gradient(135deg, #1a2744, #0f1a2e)',
-        padding: '28px 32px',
-        borderRadius: 16,
-        maxWidth: 420,
-        margin: '0 20px',
+        background: 'rgba(15, 26, 46, 0.95)',
+        backdropFilter: 'blur(8px)',
+        padding: '16px 20px',
+        borderRadius: 14,
+        maxWidth: 340,
+        margin: '0 16px',
         border: '2px solid #3b82f6',
         textAlign: 'center',
     },

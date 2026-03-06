@@ -27,7 +27,7 @@ const apiCall = async (endpoint, body) => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
-};
+});
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import ClubArenaBottomNav from '../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';

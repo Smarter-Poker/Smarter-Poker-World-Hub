@@ -98,7 +98,7 @@ export default function PlayerProfilePage() {
       achievements: profileData.success ? (profileData.data?.achievements || []) : [],
       stats: statsData.success ? statsData.data?.stats : null,
       favoriteVenues: statsData.success ? (statsData.data?.favoriteVenues || []) : []
-    };
+    });
   });
   const profile = swrData?.profile || null;
   const achievements = swrData?.achievements || [];

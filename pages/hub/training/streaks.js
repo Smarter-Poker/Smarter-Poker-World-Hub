@@ -48,7 +48,7 @@ export default function StreaksPage() {
         return {
             streak: streakRes.success && streakRes.streak ? streakRes.streak : { currentStreak: 0, longestStreak: 0, lastTrainingDate: null, streakStartDate: null, allMilestones: [], claimableMilestones: [] },
             trainingDays: uniqueDays
-        };
+        });
     });
     const streak = swrData?.streak || { currentStreak: 0, longestStreak: 0, lastTrainingDate: null, streakStartDate: null, allMilestones: [], claimableMilestones: [] };
     const trainingDays = swrData?.trainingDays || [];

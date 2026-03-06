@@ -13,7 +13,7 @@
  * 
  * Auto-refreshes, filterable by category.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Users, DollarSign, Bell, Play, Pause, Timer, XCircle } from 'lucide-react';
@@ -58,10 +58,33 @@ export default function ActivityFeed() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  // FIXED: Wrapped in useCallback to prevent infinite re-render loop.
-  // Previously, fetchEvents was recreated every render which caused
-  // useCommanderSync to retrigger its useEffect endlessly.
-  const fetchEvents = useCallback(async (signal) => {
+  useEffect(() => {
+    let isMounted = true;
+    let pollTimeout;
+
+    const runPoll = async () => {
+      if (!isMounted) return;
+      await fetchEvents();
+      if (isMounted) {
+        pollTimeout = setTimeout(runPoll, 5000);
+      }
+    });
+
+    runPoll();
+    const clock = setInterval(() => setNow(new Date()), 30000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(pollTimeout);
+      clearInterval(clock);
+    };
+  }, []);
+
+  // Commander Data Bus — sync activity feed across tabs
+  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
+  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
+
+  const fetchEvents = async () => {
     try {
       const token = getToken();
       const staffSession = localStorage.getItem('commander_staff') || '';
@@ -69,27 +92,13 @@ export default function ActivityFeed() {
       try { venueId = JSON.parse(staffSession).venue_id || ''; } catch { }
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
 
-      // Fetch each source separately with individual error handling
-      let incidents = { data: [] };
-      let checkins = { data: [] };
-      let sessions = { data: [] };
-      let waitlist = { data: [] };
-      let tables = { data: [] };
-      try {
-        const fo = signal ? { headers, signal } : { headers };
-        const results = await Promise.allSettled([
-          fetch(`/api/commander/incidents?venue_id=${venueId}`, fo).then(r => r.json()),
-          fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, fo).then(r => r.json()),
-          fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, fo).then(r => r.json()),
-          fetch(`/api/commander/waitlist?venue_id=${venueId}`, fo).then(r => r.json()),
-          fetch(`/api/commander/tables?venue_id=${venueId}`, fo).then(r => r.json())
-        ]);
-        if (results[0].status === 'fulfilled') incidents = results[0].value || { data: [] };
-        if (results[1].status === 'fulfilled') checkins = results[1].value || { data: [] };
-        if (results[2].status === 'fulfilled') sessions = results[2].value || { data: [] };
-        if (results[3].status === 'fulfilled') waitlist = results[3].value || { data: [] };
-        if (results[4].status === 'fulfilled') tables = results[4].value || { data: [] };
-      } catch { /* swallow all fetch errors */ }
+      // Aggregate from multiple sources for the activity feed
+      const [incidents, checkins, sessions, waitlist] = await Promise.all([
+        fetch(`/api/commander/incidents?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/members?venue_id=${venueId}&limit=20&sort=last_visit`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/time-billing/sessions?venue_id=${venueId}&limit=20`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] }))
+      ]);
 
       const allEvents = [];
 
@@ -141,65 +150,11 @@ export default function ActivityFeed() {
       });
 
       // Sort by timestamp descending
-
-      // Tables (Open/Close events)
-      (tables.data || []).forEach(t => {
-        if (t.status === 'open' || t.status === 'closed') {
-          const isOpened = t.status === 'open';
-          allEvents.push({
-            id: `tbl-${t.id}`,
-            type: isOpened ? 'table_opened' : 'table_closed',
-            message: `Table ${t.table_number || ''} ${isOpened ? 'Opened' : 'Closed'}`,
-            detail: t.current_game?.game_type ? `${t.current_game.stakes || ''} ${t.current_game.game_type}` : '',
-            timestamp: t.updated_at || t.created_at || new Date().toISOString()
-          });
-        }
-      });
-
-      // Sort by timestamp descending (robust Date parsing)
-      allEvents.sort((a, b) => {
-        const tA = new Date(a.timestamp || 0).getTime();
-        const tB = new Date(b.timestamp || 0).getTime();
-        return (isNaN(tB) ? 0 : tB) - (isNaN(tA) ? 0 : tA);
-      });
+      allEvents.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       setEvents(allEvents.slice(0, 50));
-    } catch (err) {
-      // Explicitly swallow AbortError — these are non-critical and can crash the error boundary
-      if (err?.name === 'AbortError') return;
-      console.error('[Activity] fetch error:', err);
-    }
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    let pollTimeout;
-    const _c = new AbortController();
-
-    const runPoll = async () => {
-      if (!isMounted) return;
-      await fetchEvents(_c.signal);
-      if (isMounted) {
-        pollTimeout = setTimeout(runPoll, 5000);
-      }
-    };
-
-    runPoll();
-    const clock = setInterval(() => setNow(new Date()), 30000);
-
-    return () => {
-      isMounted = false;
-      _c.abort();
-      clearTimeout(pollTimeout);
-      clearInterval(clock);
-    };
-  }, [fetchEvents]);
-
-  // Commander Data Bus — sync activity feed across tabs
-  const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
-  useCommanderSync(getVenueId(), fetchEvents, { entities: ['members', 'tables', 'waitlist', 'incidents'] });
-
-  // fetchEvents is now defined above via useCallback
+  };
 
   const filteredEvents = events.filter(e => {
     if (filter === 'all') return true;

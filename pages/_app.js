@@ -285,7 +285,7 @@ function NavigationGuard({ children }) {
       });
       document.querySelectorAll('iframe').forEach(iframe => {
         try { iframe.src = 'about:blank'; } catch (e) { }
-      });
+      };
 
       // Also set React state (for components that check it)
       setIsNavigating(true);

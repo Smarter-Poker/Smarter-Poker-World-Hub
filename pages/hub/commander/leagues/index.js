@@ -116,7 +116,7 @@ export default function LeaguesPage() {
     return {
       leagues: all.success ? (all.data?.leagues || []) : [],
       myLeagues: my.success ? (my.data?.leagues || []) : []
-    };
+    });
   });
   const leagues = swrData?.leagues || [];
   const myLeagues = swrData?.myLeagues || [];

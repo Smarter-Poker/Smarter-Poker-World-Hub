@@ -75,7 +75,7 @@ export default function LeaderboardPage() {
       promotions: pr.success ? (pr.data?.promotions || []) : [],
       venue: vn.success || vn.venue ? (vn.venue || vn.data?.venue) : null,
       leaderboardsList: ls.leaderboards || []
-    };
+    });
   });
   const leaderboard = swrData?.leaderboard || [];
   const promotions = swrData?.promotions || [];

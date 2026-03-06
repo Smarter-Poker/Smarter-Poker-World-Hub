@@ -4,7 +4,7 @@
  * 
  * Usage:
  *   useAbortEffect((signal) => {
- *     fetch('/api/data', { signal }).then(...);
+ *     fetch('/api/data').then(...);
  *   }, [deps]);
  */
 import { useEffect } from 'react';

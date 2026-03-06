@@ -36,7 +36,7 @@ function buildFetcher(fetchOptions = {}) {
       throw err;
     }
     return res.json();
-  };
+  });
 }
 
 export function useCachedFetch(url, options = {}) {

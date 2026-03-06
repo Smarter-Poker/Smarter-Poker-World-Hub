@@ -17,7 +17,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
-import useWakeLock from '../../../src/hooks/useWakeLock';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
@@ -81,7 +80,6 @@ function computeSeatPositions(maxSeats) {
 
 export default function TabletDisplay() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { tableNumber, venue } = router.query;
 
     const [data, setData] = useState(null);
@@ -93,7 +91,6 @@ export default function TabletDisplay() {
     const [now, setNow] = useState(Date.now());
     const lastFetchAt = useRef(Date.now());
     const [tickerOffset, setTickerOffset] = useState(0);
-    useWakeLock();
 
     // Resolve venue_id from query or localStorage
     const venueId = venue || (() => {
@@ -102,12 +99,13 @@ export default function TabletDisplay() {
 
     /* ─── Data Fetching ─────────────────────────────────────────── */
 
-    const fetchData = useCallback(async (signal) => {
+    const fetchData = useCallback(async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
         if (!tableNumber) return;
         try {
             const url = `/api/commander/dealer/tablet-data?table=${tableNumber}${venueId ? `&venue_id=${venueId}` : ''}`;
-            const opts = signal ? { signal } : {};
-            const res = await fetch(url, opts);
+            const res = await fetch(url);
             const json = await res.json();
             if (json.success) {
                 setData(json.data);
@@ -120,20 +118,18 @@ export default function TabletDisplay() {
                 setError(json.error || 'Failed to load table data');
             }
         } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error('Tablet fetch error:', err);
-                setError('Connection lost — retrying...');
-            }
+            console.error('Tablet fetch error:', err);
+            setError('Connection lost — retrying...');
         }
         setLoading(false);
     }, [tableNumber, venueId]);
 
+    // Initial fetch + polling
     useEffect(() => {
         if (!tableNumber) return;
-        const controller = new AbortController();
-        fetchData(controller.signal);
+        fetchData();
         const poll = setInterval(fetchData, POLL_INTERVAL);
-        return () => { controller.abort(); clearInterval(poll); };
+        return () => clearInterval(poll);
     }, [tableNumber, fetchData]);
 
     // 1-second clock for live countdowns
@@ -148,6 +144,30 @@ export default function TabletDisplay() {
         return () => clearInterval(ticker);
     }, []);
 
+    /* ─── Screen Wake Lock ─────────────────────────────────────── */
+
+    useEffect(() => {
+        let wakeLock = null;
+        const requestWakeLock = async () => {
+            const controller = new AbortController();
+            const { signal } = controller;
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch { /* Not supported or permission denied */ }
+        };
+        requestWakeLock();
+        // Re-acquire on visibility change
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') requestWakeLock();
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibility);
+            if (wakeLock) wakeLock.release().catch(() => { });
+        };
+    }, []);
 
     /* ─── Heartbeat ────────────────────────────────────────────── */
 
@@ -159,7 +179,7 @@ export default function TabletDisplay() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ table_number: parseInt(tableNumber), venue_id: venueId, device_type: 'tablet' }),
             }).catch(() => { });
-        };
+        });
         sendHeartbeat();
         const hb = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
         return () => clearInterval(hb);
@@ -198,6 +218,7 @@ export default function TabletDisplay() {
                 filter: `table_number=eq.${tableNumber}`,
             }, () => fetchData())
             .subscribe();
+
 
         return () => { supabase.removeChannel(channel); };
     }, [tableNumber, venueId, fetchData]);
@@ -275,7 +296,7 @@ export default function TabletDisplay() {
                                     style={{
                                         position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                         objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                    }}  loading="lazy" />
+                                    }} />
 
                                 {/* Center info */}
                                 <div style={{
@@ -312,7 +333,7 @@ export default function TabletDisplay() {
                                         overflow: 'hidden',
                                     }}>
                                         {dealer?.photo_url ? (
-                                            <img src={dealer.photo_url} alt={dealer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }}  loading="lazy" />
+                                            <img src={dealer.photo_url} alt={dealer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         ) : (
                                             <span style={{ fontSize: 34, fontWeight: 900, color: '#fff' }}>D</span>
                                         )}
@@ -432,6 +453,7 @@ export default function TabletDisplay() {
             <style jsx global>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { overflow: hidden; background: #0A0A0A; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse-border {
           0%, 100% { border-color: rgba(239,68,68,0.5); box-shadow: 0 0 0 0 rgba(239,68,68,0); }
