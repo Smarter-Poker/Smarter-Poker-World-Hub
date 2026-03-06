@@ -40,8 +40,8 @@ const SEARCH_DEBOUNCE_MS = 400;
 const SEARCH_HISTORY_MAX = 8;
 const DEFAULT_RADIUS_MILES = 50;
 
-// Tab order for swipe navigation
-const TAB_ORDER = ['venues', 'tours', 'series', 'daily', 'live', 'map', 'favorites', 'roadtrip', 'social', 'alerts', 'nearnow', 'calculator', 'calendar'];
+// Tab order for swipe navigation (consolidated 6-tab layout)
+const TAB_ORDER = ['venues', 'events', 'live', 'map', 'saved', 'more'];
 
 // API response cache with TTL
 const apiCache = {};
@@ -612,6 +612,8 @@ export default function PokerNearMePage() {
 
     // Active tab state
     const [activeTab, setActiveTab] = useState('venues');
+    const [activeEventSub, setActiveEventSub] = useState('tours');
+    const [showMoreSheet, setShowMoreSheet] = useState(false);
 
 
     // Data states
@@ -1571,7 +1573,7 @@ export default function PokerNearMePage() {
         </div>
     );
 
-    // Render content based on active tab
+    // Render content based on active tab (consolidated 6-tab layout)
     const renderContent = () => {
         if (activeTab === 'map') {
             return renderMap();
@@ -1579,7 +1581,7 @@ export default function PokerNearMePage() {
         if (activeTab === 'live') {
             return renderLiveGames();
         }
-        if (activeTab === 'favorites') {
+        if (activeTab === 'saved') {
             return renderFavorites();
         }
 
@@ -1593,33 +1595,63 @@ export default function PokerNearMePage() {
             return renderSkeletons(8);
         }
 
-        if (loading) {
+        if (loading && activeTab !== 'venues' && activeTab !== 'more') {
             return renderSkeletons(8);
         }
 
+        // Events tab — dispatch to sub-tab
+        if (activeTab === 'events') {
+            switch (activeEventSub) {
+                case 'tours': return renderTours();
+                case 'series': return renderSeries();
+                case 'daily': return renderDailyTournaments();
+                case 'calendar': return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
+                default: return renderTours();
+            }
+        }
+
+        // More tab — render based on which item was selected
+        if (activeTab === 'more') {
+            return (
+                <div className="more-grid">
+                    <button className="more-item" onClick={() => { setActiveTab('_roadtrip'); setShowMoreSheet(false); }}>
+                        <span className="more-icon">🚗</span>
+                        <span className="more-label">Trip Planner</span>
+                        <span className="more-desc">Plan your poker road trip</span>
+                    </button>
+                    <button className="more-item" onClick={() => { setActiveTab('_social'); setShowMoreSheet(false); }}>
+                        <span className="more-icon">👥</span>
+                        <span className="more-label">Friends</span>
+                        <span className="more-desc">See friends nearby</span>
+                    </button>
+                    <button className="more-item" onClick={() => { setActiveTab('_alerts'); setShowMoreSheet(false); }}>
+                        <span className="more-icon">🔔</span>
+                        <span className="more-label">Alerts</span>
+                        <span className="more-desc">Tournament notifications</span>
+                    </button>
+                    <button className="more-item" onClick={() => { setActiveTab('_nearnow'); setShowMoreSheet(false); }}>
+                        <span className="more-icon">📡</span>
+                        <span className="more-label">Near Me Now</span>
+                        <span className="more-desc">Live activity nearby</span>
+                    </button>
+                    <button className="more-item" onClick={() => { setActiveTab('_calculator'); setShowMoreSheet(false); }}>
+                        <span className="more-icon">💰</span>
+                        <span className="more-label">Cost Calculator</span>
+                        <span className="more-desc">Estimate trip costs</span>
+                    </button>
+                </div>
+            );
+        }
+
+        // Sub-pages accessed from More
         switch (activeTab) {
-            case 'venues':
-                return renderVenues();
-            case 'tours':
-                return renderTours();
-            case 'series':
-                return renderSeries();
-            case 'daily':
-                return renderDailyTournaments();
-            case 'roadtrip':
-                return <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />;
-            case 'social':
-                return <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={authToken} />;
-            case 'alerts':
-                return <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={authToken} />;
-            case 'nearnow':
-                return <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />;
-            case 'calculator':
-                return <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />;
-            case 'calendar':
-                return <SeasonalCalendar series={series} tours={tours} dailyTournaments={dailyTournaments} />;
-            default:
-                return renderVenues();
+            case 'venues': return renderVenues();
+            case '_roadtrip': return <RoadTripPlanner venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} dailyTournaments={dailyTournaments} series={series} />;
+            case '_social': return <SocialLayer userId={userId} userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} authToken={authToken} />;
+            case '_alerts': return <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} authToken={authToken} />;
+            case '_nearnow': return <NearMeNowFeed userLocation={userLocation} venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} />;
+            case '_calculator': return <TripCostCalculator venues={allVenuesForMap.length > 0 ? allVenuesForMap : venues} userLocation={userLocation} />;
+            default: return renderVenues();
         }
     };
 
@@ -2281,67 +2313,83 @@ export default function PokerNearMePage() {
                     description="Access 483+ Live Poker Venues, Tournament Schedules, And Daily Events Worldwide."
                 >
 
-                    {/* ═══ FUTURISTIC METAL HUD PANEL ═══ */}
-                    <div className="pnm-hud-panel">
-                        <Image src="/images/poker-near-me-hud-frame-clean.png" alt="" width={1024} height={367} className="hud-bg-frame" />
-
-                        <div className="hud-content-overlay">
-                            {/* SEARCH BAR & BUTTON */}
-                            <form className="hud-abs-search-form" onSubmit={handleSearch}>
-                                <input
-                                    type="text"
-                                    className="hud-abs-search-input"
-                                    placeholder=""
-                                    value={searchQuery}
-                                    onChange={handleSearchInputChange}
-                                    autoComplete="off"
-                                />
-                                <button type="submit" className="hud-abs-search-btn" aria-label="Search"></button>
-                            </form>
-
-                            {/* GPS & FILTERS */}
-                            <button className={'hud-abs-gps-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading} aria-label="Use GPS"></button>
-                            <button className={'hud-abs-filter-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)} aria-label="Filters"></button>
-
-                            {/* TABS */}
-                            <button className="hud-abs-tab hud-abs-tab-venues" onClick={() => setActiveTab('venues')} aria-label="Venues"></button>
-                            <button className="hud-abs-tab hud-abs-tab-tours" onClick={() => setActiveTab('tours')} aria-label="Tours"></button>
-                            <button className="hud-abs-tab hud-abs-tab-series" onClick={() => setActiveTab('series')} aria-label="Series"></button>
-                            <button className="hud-abs-tab hud-abs-tab-daily" onClick={() => setActiveTab('daily')} aria-label="Daily"></button>
-                            <button className="hud-abs-tab hud-abs-tab-live" onClick={() => setActiveTab('live')} aria-label="Live"></button>
-                            <button className="hud-abs-tab hud-abs-tab-map" onClick={() => setActiveTab('map')} aria-label="Map"></button>
+                    {/* ═══ SEARCH BAR ═══ */}
+                    <div className="pnm-search-section">
+                        <form className="pnm-search-form" onSubmit={handleSearch}>
+                            <svg className="pnm-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+                            <input
+                                type="text"
+                                className="pnm-search-input"
+                                placeholder="Search city, venue, or zip..."
+                                value={searchQuery}
+                                onChange={handleSearchInputChange}
+                                autoComplete="off"
+                            />
+                            <button type="submit" className="pnm-search-submit" aria-label="Search">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6" /></svg>
+                            </button>
+                        </form>
+                        <div className="pnm-search-actions">
+                            <button className={'pnm-action-btn' + (userLocation ? ' active' : '')} onClick={requestGpsLocation} disabled={gpsLoading}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11" /></svg>
+                                <span>{gpsLoading ? 'Locating...' : 'GPS'}</span>
+                            </button>
+                            <button className={'pnm-action-btn' + (showFilters ? ' active' : '')} onClick={() => setShowFilters(!showFilters)}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" /></svg>
+                                <span>Filters</span>
+                            </button>
                         </div>
                     </div>
 
-                    {/* ═══ MOBILE TAB BAR — visible, accessible tab navigation ═══ */}
-                    <div className="mobile-tab-bar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    {/* ═══ 6-TAB NAVIGATION ═══ */}
+                    <nav className="pnm-tab-nav">
                         {[
-                            { key: 'venues', label: 'Venues', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" /><circle cx="12" cy="11" r="2" fill="currentColor" stroke="none" /></svg> },
-                            { key: 'tours', label: 'Tours', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" /></svg> },
-                            { key: 'series', label: 'Series', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg> },
-                            { key: 'daily', label: 'Daily', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" /></svg> },
-                            { key: 'live', label: 'Live', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#ef4444" /><circle cx="12" cy="12" r="7" stroke="#ef4444" strokeWidth="1.5" opacity="0.5" /><circle cx="12" cy="12" r="10" stroke="#ef4444" strokeWidth="1" opacity="0.25" /></svg> },
-                            { key: 'map', label: 'Map', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" /><line x1="8" y1="2" x2="8" y2="18" /><line x1="16" y1="6" x2="16" y2="22" /></svg> },
-                            { key: 'favorites', label: 'Saved', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.8"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg> },
-                            { key: 'roadtrip', label: 'Trip', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 17h2l2-8h4l-1 4h3l5-6" /><circle cx="6.5" cy="17.5" r="2.5" fill="none" /><circle cx="16.5" cy="17.5" r="2.5" fill="none" /></svg> },
-                            { key: 'social', label: 'Friends', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg> },
-                            { key: 'alerts', label: 'Alerts', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /><circle cx="18" cy="4" r="2.5" fill="#ef4444" stroke="none" /></svg> },
-                            { key: 'nearnow', label: 'Near Me', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="#d4a853" /><circle cx="12" cy="12" r="7" stroke="#d4a853" strokeWidth="1" opacity="0.4" /><circle cx="12" cy="12" r="10.5" stroke="#d4a853" strokeWidth="0.8" opacity="0.2" /></svg> },
-                            { key: 'calculator', label: 'Cost', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="4" y="2" width="16" height="20" rx="2" /><line x1="8" y1="6" x2="16" y2="6" /><line x1="8" y1="10" x2="16" y2="10" /><line x1="8" y1="14" x2="12" y2="14" /></svg> },
-                            { key: 'calendar', label: 'Calendar', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /><circle cx="8" cy="14" r="1" fill="#22c55e" stroke="none" /><circle cx="12" cy="14" r="1" fill="#3b82f6" stroke="none" /><circle cx="16" cy="14" r="1" fill="#d4a853" stroke="none" /></svg> },
+                            { key: 'venues', label: 'Venues', icon: '📍' },
+                            { key: 'events', label: 'Events', icon: '📅' },
+                            { key: 'live', label: 'Live', icon: '🔴', badge: liveGames.length > 0 ? liveGames.length : null },
+                            { key: 'map', label: 'Map', icon: '🗺️' },
+                            { key: 'saved', label: 'Saved', icon: '❤️', badge: Object.keys(favorites).filter(k => favorites[k]).length > 0 ? Object.keys(favorites).filter(k => favorites[k]).length : null },
+                            { key: 'more', label: 'More', icon: '⋯' },
                         ].map(tab => (
                             <button
                                 key={tab.key}
-                                className={'mtab' + (activeTab === tab.key ? ' active' : '')}
+                                className={'pnm-tab' + (activeTab === tab.key || (tab.key === 'more' && activeTab.startsWith('_')) ? ' active' : '')}
                                 onClick={() => setActiveTab(tab.key)}
                             >
-                                <span className="mtab-icon">{tab.icon}</span>
-                                <span className="mtab-label">{tab.label}</span>
-                                {tab.key === 'live' && liveGames.length > 0 && <span className="mtab-badge">{liveGames.length}</span>}
-                                {tab.key === 'favorites' && Object.keys(favorites).filter(k => favorites[k]).length > 0 && <span className="mtab-badge fav">{Object.keys(favorites).filter(k => favorites[k]).length}</span>}
+                                <span className="pnm-tab-icon">{tab.icon}</span>
+                                <span className="pnm-tab-label">{tab.label}</span>
+                                {tab.badge && <span className="pnm-tab-badge">{tab.badge}</span>}
                             </button>
                         ))}
-                    </div>
+                    </nav>
+
+                    {/* ═══ EVENTS SUB-TAB ROW ═══ */}
+                    {activeTab === 'events' && (
+                        <div className="pnm-sub-tabs">
+                            {[
+                                { key: 'tours', label: 'Tours' },
+                                { key: 'series', label: 'Series' },
+                                { key: 'daily', label: 'Daily' },
+                                { key: 'calendar', label: 'Calendar' },
+                            ].map(sub => (
+                                <button
+                                    key={sub.key}
+                                    className={'pnm-sub-tab' + (activeEventSub === sub.key ? ' active' : '')}
+                                    onClick={() => setActiveEventSub(sub.key)}
+                                >
+                                    {sub.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Back to More button for sub-pages */}
+                    {activeTab.startsWith('_') && (
+                        <button className="pnm-back-btn" onClick={() => setActiveTab('more')}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6" /></svg>
+                            Back to More
+                        </button>
+                    )}
 
                     {/* Distance / Geofence notices (below HUD) */}
                     {(userLocation || nearestDistance) && (
@@ -2615,84 +2663,255 @@ export default function PokerNearMePage() {
                         z-index: -1;
                     }
 
-                    /* ═══ HUD PANEL ═══ */
-                    .pnm-hud-panel {
-                        position: relative;
-                        width: 100%;
-                        max-width: 1400px; /* Constrain ultra-wide stretching */
-                        margin: 0 auto 0;
-                        padding: 0;
-                        overflow: hidden;
+                    /* ═══ SEARCH BAR ═══ */
+                    .pnm-search-section {
+                        padding: 12px 16px 8px;
+                        max-width: 720px;
+                        margin: 0 auto;
                     }
-                    .hud-bg-frame {
-                        width: 100%;
-                        height: auto;
-                        display: block;
-                        pointer-events: none;
-                        user-select: none;
+                    .pnm-search-form {
+                        display: flex;
+                        align-items: center;
+                        background: rgba(15, 23, 42, 0.8);
+                        border: 1px solid rgba(212, 168, 83, 0.25);
+                        border-radius: 12px;
+                        padding: 0 4px 0 14px;
+                        backdrop-filter: blur(12px);
+                        -webkit-backdrop-filter: blur(12px);
+                        transition: border-color 0.2s;
                     }
-                    .hud-content-overlay {
-                        position: absolute;
-                        inset: 0;
-                        z-index: 2;
-                        pointer-events: none; /* Let clicks pass through except where defined */
+                    .pnm-search-form:focus-within {
+                        border-color: rgba(212, 168, 83, 0.6);
+                        box-shadow: 0 0 16px rgba(212, 168, 83, 0.1);
                     }
-
-                    /* Interactive overlays via absolute positioning */
-                    .hud-abs-search-form {
-                        position: absolute;
-                        top: 38%;
-                        left: 18.5%;
-                        width: 63%;
-                        height: 12%;
-                        pointer-events: none;
+                    .pnm-search-icon {
+                        color: rgba(255,255,255,0.4);
+                        flex-shrink: 0;
                     }
-                    .hud-abs-search-input {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 84%;
-                        height: 100%;
+                    .pnm-search-input {
+                        flex: 1;
                         background: transparent;
-                        border: none !important;
-                        outline: none !important;
-                        box-shadow: none !important;
+                        border: none;
+                        outline: none;
                         color: #fff;
-                        font-size: clamp(14px, 2.5vw, 20px);
-                        padding: 0 16px 0 12%; /* Added padding to clear magnifying glass */
+                        font-size: 15px;
+                        padding: 14px 12px;
                         font-family: inherit;
                         caret-color: #d4a853;
-                        pointer-events: auto;
-                        cursor: text;
+                        min-width: 0;
                     }
-                    .hud-abs-search-input:focus {
-                        outline: none !important;
-                        box-shadow: none !important;
+                    .pnm-search-input::placeholder {
+                        color: rgba(255,255,255,0.35);
                     }
-                    .hud-abs-search-input::placeholder { color: transparent; }
-                    .hud-abs-search-btn {
-                        position: absolute;
-                        top: 0;
-                        right: 0;
-                        width: 14%;
-                        height: 100%;
+                    .pnm-search-submit {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 8px;
+                        border: none;
+                        background: linear-gradient(135deg, #d4a853, #b8860b);
+                        color: #000;
+                        cursor: pointer;
+                        flex-shrink: 0;
+                        transition: transform 0.15s;
+                    }
+                    .pnm-search-submit:active {
+                        transform: scale(0.93);
+                    }
+                    .pnm-search-actions {
+                        display: flex;
+                        gap: 8px;
+                        margin-top: 8px;
+                    }
+                    .pnm-action-btn {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 8px 14px;
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: rgba(255,255,255,0.6);
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .pnm-action-btn:hover {
+                        background: rgba(15, 23, 42, 0.8);
+                        border-color: rgba(255,255,255,0.2);
+                    }
+                    .pnm-action-btn.active {
+                        background: rgba(212, 168, 83, 0.15);
+                        border-color: rgba(212, 168, 83, 0.4);
+                        color: #d4a853;
+                    }
+
+                    /* ═══ 6-TAB NAVIGATION ═══ */
+                    .pnm-tab-nav {
+                        display: flex;
+                        justify-content: space-around;
+                        padding: 4px 8px;
+                        margin: 4px 16px 0;
+                        max-width: 720px;
+                        margin-left: auto;
+                        margin-right: auto;
+                        background: rgba(15, 23, 42, 0.7);
+                        border: 1px solid rgba(255,255,255,0.08);
+                        border-radius: 14px;
+                        backdrop-filter: blur(10px);
+                        -webkit-backdrop-filter: blur(10px);
+                        position: sticky;
+                        top: 48px;
+                        z-index: 50;
+                    }
+                    .pnm-tab {
+                        flex: 1;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 2px;
+                        padding: 10px 4px 8px;
+                        border-radius: 10px;
                         background: transparent;
                         border: none;
                         cursor: pointer;
-                        pointer-events: auto;
-                        outline: none !important;
+                        transition: all 0.2s;
+                        position: relative;
+                        min-width: 0;
+                    }
+                    .pnm-tab.active {
+                        background: rgba(212, 168, 83, 0.15);
+                    }
+                    .pnm-tab.active::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 2px;
+                        left: 25%;
+                        right: 25%;
+                        height: 3px;
+                        background: linear-gradient(90deg, #d4a853, #f7b928);
+                        border-radius: 2px;
+                    }
+                    .pnm-tab-icon {
+                        font-size: 18px;
+                        line-height: 1;
+                    }
+                    .pnm-tab-label {
+                        font-size: 10px;
+                        font-weight: 600;
+                        color: rgba(255,255,255,0.5);
+                        text-transform: uppercase;
+                        letter-spacing: 0.3px;
+                    }
+                    .pnm-tab.active .pnm-tab-label {
+                        color: #d4a853;
+                    }
+                    .pnm-tab-badge {
+                        position: absolute;
+                        top: 3px;
+                        right: 8px;
+                        background: #ef4444;
+                        color: #fff;
+                        font-size: 9px;
+                        font-weight: 700;
+                        padding: 1px 5px;
+                        border-radius: 8px;
+                        min-width: 16px;
+                        text-align: center;
+                        animation: livePulse 2s ease-in-out infinite;
                     }
 
-                    .hud-abs-gps-btn { position: absolute; top: 54%; left: 29%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-                    .hud-abs-filter-btn { position: absolute; top: 54%; left: 60%; width: 11%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
+                    /* ═══ EVENTS SUB-TABS ═══ */
+                    .pnm-sub-tabs {
+                        display: flex;
+                        justify-content: center;
+                        gap: 6px;
+                        padding: 8px 16px;
+                        max-width: 720px;
+                        margin: 0 auto;
+                    }
+                    .pnm-sub-tab {
+                        padding: 8px 18px;
+                        border-radius: 20px;
+                        border: 1px solid rgba(255,255,255,0.12);
+                        background: rgba(15, 23, 42, 0.5);
+                        color: rgba(255,255,255,0.6);
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .pnm-sub-tab:hover {
+                        background: rgba(15, 23, 42, 0.7);
+                    }
+                    .pnm-sub-tab.active {
+                        background: rgba(212, 168, 83, 0.2);
+                        border-color: rgba(212, 168, 83, 0.5);
+                        color: #d4a853;
+                        font-weight: 600;
+                    }
 
-                    .hud-abs-tab { position: absolute; top: 68%; height: 10%; background: transparent; border: none; cursor: pointer; pointer-events: auto; }
-                    .hud-abs-tab-venues { left: 23%; width: 9%; }
-                    .hud-abs-tab-tours { left: 33%; width: 8%; }
-                    .hud-abs-tab-series { left: 42%; width: 8.5%; }
-                    .hud-abs-tab-daily { left: 51.5%; width: 7.5%; }
-                    .hud-abs-tab-live { left: 60%; width: 8%; }
-                    .hud-abs-tab-map { left: 69%; width: 8%; }
+                    /* ═══ MORE GRID ═══ */
+                    .more-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 12px;
+                        padding: 16px 0;
+                    }
+                    .more-item {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 24px 16px;
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 14px;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        text-align: center;
+                    }
+                    .more-item:hover {
+                        background: rgba(15, 23, 42, 0.8);
+                        border-color: rgba(212, 168, 83, 0.3);
+                        transform: translateY(-1px);
+                    }
+                    .more-icon {
+                        font-size: 28px;
+                    }
+                    .more-label {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #fff;
+                    }
+                    .more-desc {
+                        font-size: 11px;
+                        color: rgba(255,255,255,0.4);
+                    }
+
+                    /* ═══ BACK BUTTON ═══ */
+                    .pnm-back-btn {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        padding: 8px 16px;
+                        margin: 8px 0;
+                        background: rgba(15, 23, 42, 0.6);
+                        border: 1px solid rgba(255,255,255,0.1);
+                        border-radius: 8px;
+                        color: rgba(255,255,255,0.7);
+                        font-size: 13px;
+                        font-weight: 500;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                    }
+                    .pnm-back-btn:hover {
+                        background: rgba(15, 23, 42, 0.8);
+                        color: #d4a853;
+                    }
 
 
                     /* Main Content */
@@ -3579,73 +3798,7 @@ export default function PokerNearMePage() {
                         }
                     }
 
-                    /* ═══ MOBILE TAB BAR ═══ */
-                    .mobile-tab-bar {
-                        display: none;
-                    }
-                    @media (max-width: 768px) {
-                        .mobile-tab-bar {
-                            display: flex;
-                            justify-content: space-between;
-                            gap: 2px;
-                            padding: 6px 8px;
-                            margin: -8px 4px 8px;
-                            background: rgba(15,23,42,0.8);
-                            border: 1px solid rgba(255,255,255,0.08);
-                            border-radius: 12px;
-                            backdrop-filter: blur(10px);
-                            -webkit-backdrop-filter: blur(10px);
-                            overflow-x: auto;
-                            -webkit-overflow-scrolling: touch;
-                        }
-                    }
-                    .mtab {
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: center;
-                        gap: 2px;
-                        padding: 8px 4px;
-                        border-radius: 8px;
-                        background: transparent;
-                        border: none;
-                        cursor: pointer;
-                        transition: all 0.2s;
-                        position: relative;
-                        min-width: 0;
-                    }
-                    .mtab.active {
-                        background: rgba(212,168,83,0.15);
-                        box-shadow: inset 0 -2px 0 #d4a853;
-                    }
-                    .mtab-icon {
-                        font-size: 16px;
-                        line-height: 1;
-                    }
-                    .mtab-label {
-                        font-size: 9px;
-                        font-weight: 600;
-                        color: rgba(255,255,255,0.5);
-                        text-transform: uppercase;
-                        letter-spacing: 0.3px;
-                    }
-                    .mtab.active .mtab-label {
-                        color: #d4a853;
-                    }
-                    .mtab-badge {
-                        position: absolute;
-                        top: 2px;
-                        right: 4px;
-                        background: #ef4444;
-                        color: #fff;
-                        font-size: 8px;
-                        font-weight: 700;
-                        padding: 1px 4px;
-                        border-radius: 8px;
-                        min-width: 14px;
-                        text-align: center;
-                        animation: livePulse 2s ease-in-out infinite;
-                    }
+
 
                     /* ═══ MAP RECENTER BUTTON ═══ */
                     .map-recenter-btn {
