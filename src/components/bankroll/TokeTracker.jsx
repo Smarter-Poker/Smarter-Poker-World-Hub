@@ -478,6 +478,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     };
 
     const handleCompleteGig = async (mileageCount = 0) => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig) return;
         try {
             await completeGig(userId, activeGig.id, parseFloat(mileageCount) || 0);
@@ -497,6 +498,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     };
 
     const handleDeleteGig = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig) return;
         try {
             await deleteGig(userId, activeGig.id);
@@ -523,6 +525,7 @@ function TokeTracker({ userId, refreshTrigger, standalone = false, tokePrefs = {
     };
 
     const handleSaveEdit = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig) return;
         if (!editForm.venue_name.trim()) {
             toast.error('Venue name is required');

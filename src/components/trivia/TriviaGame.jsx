@@ -572,20 +572,21 @@ export default function TriviaGame({
                     padding: 20px;
                     position: relative;
                     transition: background 0.5s ease;
+                    background: #18191a;
                 }
 
                 /* ═══ FIRE MODE ═══ */
                 .trivia-game.fire-mode {
-                    background: radial-gradient(ellipse at center bottom, rgba(239, 68, 68, 0.08), transparent 70%);
+                    background: radial-gradient(ellipse at center bottom, rgba(240, 40, 73, 0.1), #18191a 70%);
                 }
 
                 .trivia-game.fire-mode .question-card {
-                    border-color: rgba(249, 115, 22, 0.4);
-                    box-shadow: 0 0 30px rgba(249, 115, 22, 0.15), inset 0 0 30px rgba(249, 115, 22, 0.05);
+                    border-color: rgba(240, 40, 73, 0.4);
+                    box-shadow: 0 0 30px rgba(240, 40, 73, 0.15), inset 0 0 30px rgba(240, 40, 73, 0.05);
                 }
 
                 .trivia-game.fire-mode .progress-fill {
-                    background: linear-gradient(90deg, #f97316, #ef4444) !important;
+                    background: linear-gradient(90deg, #f97316, #f02849) !important;
                 }
 
                 /* ═══ SCREEN SHAKE ═══ */
@@ -606,9 +607,9 @@ export default function TriviaGame({
                     animation: correctPulse 0.5s ease;
                 }
                 @keyframes correctPulse {
-                    0% { box-shadow: 0 0 0 rgba(34, 197, 94, 0); }
-                    50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.3), inset 0 0 40px rgba(34, 197, 94, 0.1); }
-                    100% { box-shadow: 0 0 0 rgba(34, 197, 94, 0); }
+                    0% { box-shadow: 0 0 0 rgba(49, 162, 76, 0); }
+                    50% { box-shadow: 0 0 40px rgba(49, 162, 76, 0.3), inset 0 0 40px rgba(49, 162, 76, 0.1); }
+                    100% { box-shadow: 0 0 0 rgba(49, 162, 76, 0); }
                 }
 
                 /* ═══ FIRE PARTICLES ═══ */
@@ -663,30 +664,30 @@ export default function TriviaGame({
                     gap: 12px;
                     padding: 10px 16px;
                     margin-bottom: 16px;
-                    background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(14, 165, 233, 0.05));
-                    border: 1px solid rgba(6, 182, 212, 0.25);
+                    background: linear-gradient(135deg, rgba(35, 116, 225, 0.1), rgba(35, 116, 225, 0.05));
+                    border: 1px solid rgba(35, 116, 225, 0.25);
                     border-radius: 12px;
                     transition: all 0.3s;
                 }
                 .stakes-bar.busted {
-                    border-color: rgba(239, 68, 68, 0.5);
-                    background: rgba(239, 68, 68, 0.1);
+                    border-color: rgba(240, 40, 73, 0.5);
+                    background: rgba(240, 40, 73, 0.1);
                 }
                 .stakes-pot {
                     display: flex;
                     align-items: center;
                     gap: 6px;
                 }
-                .stake-gem { color: #06b6d4; }
+                .stake-gem { color: #2374e1; }
                 .stake-value {
                     font-size: 22px;
                     font-weight: 900;
-                    color: #06b6d4;
+                    color: #2374e1;
                     font-family: 'Orbitron', monospace;
                 }
                 .stake-label {
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.4);
+                    color: #65676b;
                 }
                 .multiplier-badge {
                     display: flex;
@@ -706,7 +707,7 @@ export default function TriviaGame({
                     align-items: center;
                     gap: 6px;
                     padding: 8px 16px;
-                    background: linear-gradient(135deg, #22c55e, #16a34a);
+                    background: linear-gradient(135deg, #31a24c, #28883f);
                     border: none;
                     border-radius: 8px;
                     color: #fff;
@@ -720,8 +721,8 @@ export default function TriviaGame({
                     transform: scale(1.05);
                 }
                 @keyframes cashPulse {
-                    0%, 100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.4); }
-                    50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); }
+                    0%, 100% { box-shadow: 0 0 8px rgba(49, 162, 76, 0.4); }
+                    50% { box-shadow: 0 0 20px rgba(49, 162, 76, 0.6); }
                 }
 
                 /* ═══ COMBO POPUP ═══ */
@@ -798,12 +799,12 @@ export default function TriviaGame({
                     display: flex;
                     align-items: center;
                     gap: 4px;
-                    color: #06b6d4;
+                    color: #2374e1;
                     font-weight: 800;
                     font-size: 18px;
                     pointer-events: none;
                     z-index: 15;
-                    text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+                    text-shadow: 0 0 10px rgba(35, 116, 225, 0.5);
                 }
 
                 /* ═══ HEADER & PROGRESS ═══ */
@@ -820,19 +821,19 @@ export default function TriviaGame({
                 .progress-info { flex: 1; }
                 .question-count {
                     font-size: 13px;
-                    color: rgba(255, 255, 255, 0.6);
+                    color: #65676b;
                     display: block;
                     margin-bottom: 8px;
                 }
                 .progress-bar {
                     height: 6px;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: #3a3b3c;
                     border-radius: 3px;
                     overflow: hidden;
                 }
                 .progress-fill {
                     height: 100%;
-                    background: linear-gradient(90deg, #0ea5e9, #06b6d4);
+                    background: linear-gradient(90deg, #2374e1, #1a5cc4);
                     transition: width 0.3s ease;
                 }
 
@@ -857,7 +858,7 @@ export default function TriviaGame({
                 }
                 .timer-ring-bg {
                     fill: none;
-                    stroke: rgba(255, 255, 255, 0.08);
+                    stroke: #3a3b3c;
                     stroke-width: 4;
                 }
                 .timer-ring-fill {
@@ -878,7 +879,7 @@ export default function TriviaGame({
                     font-family: 'Orbitron', monospace;
                 }
                 .timer-text.critical {
-                    color: #ef4444;
+                    color: #f02849;
                     animation: timerPulse 0.5s ease infinite alternate;
                 }
                 @keyframes timerPulse {
@@ -888,8 +889,8 @@ export default function TriviaGame({
 
                 /* ═══ QUESTION CARD ═══ */
                 .question-card {
-                    background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: #242526;
+                    border: 1px solid #4e4f50;
                     border-radius: 16px;
                     padding: 32px;
                     position: relative;
@@ -905,7 +906,7 @@ export default function TriviaGame({
                 }
                 .category {
                     font-size: 12px;
-                    color: rgba(255, 255, 255, 0.5);
+                    color: #65676b;
                     text-transform: uppercase;
                     letter-spacing: 1px;
                 }
@@ -914,7 +915,7 @@ export default function TriviaGame({
                     font-weight: 700;
                     letter-spacing: 1px;
                     padding: 4px 10px;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: #3a3b3c;
                     border-radius: 4px;
                 }
                 .question-stake {
@@ -924,7 +925,7 @@ export default function TriviaGame({
                     gap: 4px;
                     font-size: 13px;
                     font-weight: 700;
-                    color: #06b6d4;
+                    color: #2374e1;
                 }
                 .question-text {
                     font-size: 22px;
@@ -945,8 +946,8 @@ export default function TriviaGame({
                     align-items: center;
                     gap: 16px;
                     padding: 16px 20px;
-                    background: rgba(255, 255, 255, 0.05);
-                    border: 2px solid rgba(255, 255, 255, 0.1);
+                    background: #3a3b3c;
+                    border: 2px solid #4e4f50;
                     border-radius: 10px;
                     color: rgba(255, 255, 255, 0.9);
                     font-size: 16px;
@@ -955,19 +956,19 @@ export default function TriviaGame({
                     transition: all 0.15s ease;
                 }
                 .option:hover:not(:disabled) {
-                    background: rgba(255, 255, 255, 0.1);
-                    border-color: rgba(14, 165, 233, 0.5);
-                    box-shadow: 0 0 15px rgba(14, 165, 233, 0.1);
+                    background: #4e4f50;
+                    border-color: rgba(35, 116, 225, 0.5);
+                    box-shadow: 0 0 15px rgba(35, 116, 225, 0.1);
                 }
                 .option:disabled { cursor: default; }
                 .option.correct {
-                    background: rgba(34, 197, 94, 0.15);
-                    border-color: #22c55e;
-                    box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+                    background: rgba(49, 162, 76, 0.15);
+                    border-color: #31a24c;
+                    box-shadow: 0 0 20px rgba(49, 162, 76, 0.2);
                 }
                 .option.incorrect {
-                    background: rgba(239, 68, 68, 0.15);
-                    border-color: #ef4444;
+                    background: rgba(240, 40, 73, 0.15);
+                    border-color: #f02849;
                 }
                 .option-letter {
                     width: 32px;
@@ -975,7 +976,7 @@ export default function TriviaGame({
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: rgba(255, 255, 255, 0.1);
+                    background: #4e4f50;
                     border-radius: 6px;
                     font-weight: 700;
                     font-size: 14px;
@@ -983,8 +984,8 @@ export default function TriviaGame({
                 }
                 .option-text { flex: 1; }
                 .result-icon { flex-shrink: 0; }
-                .result-icon.correct { color: #22c55e; }
-                .result-icon.incorrect { color: #ef4444; }
+                .result-icon.correct { color: #31a24c; }
+                .result-icon.incorrect { color: #f02849; }
 
                 .option.eliminated {
                     opacity: 0.4;
@@ -1000,12 +1001,12 @@ export default function TriviaGame({
                 .hints-section {
                     margin-top: 20px;
                     padding-top: 16px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.08);
+                    border-top: 1px solid #4e4f50;
                 }
                 .explanation-section {
                     margin-top: 24px;
                     padding-top: 24px;
-                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                    border-top: 1px solid #4e4f50;
                 }
                 .explanation-toggle {
                     display: flex;
@@ -1013,7 +1014,7 @@ export default function TriviaGame({
                     gap: 8px;
                     background: none;
                     border: none;
-                    color: rgba(255, 255, 255, 0.6);
+                    color: #65676b;
                     font-size: 14px;
                     cursor: pointer;
                     padding: 0;
@@ -1023,7 +1024,7 @@ export default function TriviaGame({
                 .explanation-content {
                     margin-top: 16px;
                     padding: 16px;
-                    background: rgba(0, 0, 0, 0.2);
+                    background: #18191a;
                     border-radius: 8px;
                     overflow: hidden;
                 }
@@ -1041,7 +1042,7 @@ export default function TriviaGame({
                     width: 100%;
                     margin-top: 24px;
                     padding: 16px 24px;
-                    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+                    background: linear-gradient(135deg, #2374e1, #1a5cc4);
                     border: none;
                     border-radius: 10px;
                     color: #ffffff;
@@ -1051,7 +1052,7 @@ export default function TriviaGame({
                     transition: all 0.2s ease;
                 }
                 .next-button:hover {
-                    box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+                    box-shadow: 0 4px 20px rgba(35, 116, 225, 0.4);
                 }
             `}</style>
         </div>
