@@ -200,13 +200,19 @@ export default async function handler(req, res) {
         if (existingUser) {
           userId = existingUser.id;
           try {
-            await supabase.auth.admin.updateUserById(userId, {
+            // Set metadata + password (if provided) — enables email/password login
+            // for users who originally signed up via Google OAuth
+            const updatePayload = {
               user_metadata: {
                 full_name: ownerInfo.name,
                 phone: ownerInfo.phone,
                 role: 'venue_owner',
               }
-            });
+            };
+            if (ownerInfo.password) {
+              updatePayload.password = ownerInfo.password;
+            }
+            await supabase.auth.admin.updateUserById(userId, updatePayload);
           } catch (e) { /* non-critical */ }
         } else {
           return res.status(400).json({
