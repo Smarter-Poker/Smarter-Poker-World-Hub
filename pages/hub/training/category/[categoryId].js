@@ -9,6 +9,7 @@
  */
 
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useState } from 'react';
 import confetti from 'canvas-confetti';
