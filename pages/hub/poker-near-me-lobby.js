@@ -28,7 +28,7 @@ import { getPokerNearMePreferences } from '../../src/services/pokerNearMePrefere
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 
-// Dynamic imports — 3D scene (client-only, no SSR)
+// Dynamic imports — scene (client-only, no SSR)
 // Uses .catch() pattern matching the working WorldHub import in pages/hub/index.js
 const LobbyScene = dynamic(
   () => import('../../src/components/poker-near-me/lobby/LobbyScene').catch(err => {
@@ -42,8 +42,7 @@ const LobbyScene = dynamic(
       )
     };
   }),
-  {
-    ssr: false,
+  { ssr: false,
     loading: () => (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 16 }}>
         Initializing 3D Lobby...
@@ -59,22 +58,9 @@ const LobbyOverlay = dynamic(
   { ssr: false }
 );
 
-// Feature modules — loaded into the panel when a pod is clicked
-const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
-const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
-const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
-const LiveGamesFeed = dynamic(() => import('../../src/components/poker-near-me/LiveGamesFeed'), { ssr: false });
-const NearMeNowFeed = dynamic(() => import('../../src/components/poker-near-me/NearMeNowFeed'), { ssr: false });
-const RoadTripPlanner = dynamic(() => import('../../src/components/poker-near-me/RoadTripPlanner'), { ssr: false });
-const SocialLayer = dynamic(() => import('../../src/components/poker-near-me/SocialLayer'), { ssr: false });
-const TournamentAlerts = dynamic(() => import('../../src/components/poker-near-me/TournamentAlerts'), { ssr: false });
-const SeasonalCalendar = dynamic(() => import('../../src/components/poker-near-me/SeasonalCalendar'), { ssr: false });
-const TripCostCalculator = dynamic(() => import('../../src/components/poker-near-me/TripCostCalculator'), { ssr: false });
-const FilterPanel = dynamic(() => import('../../src/components/poker-near-me/FilterPanel'), { ssr: false });
-
 // ─── Constants ───
 const SEARCH_DEBOUNCE_MS = 400;
-const API_CACHE_TT = 60000;
+const API_CACHE_TTL = 60000;
 const LIVE_REFRESH_MS = 120000;
 const PAGE_SIZE = 24;
 
@@ -85,7 +71,7 @@ function cachedFetch(url, ttl = API_CACHE_TTL) {
   if (apiCache[url] && (now - apiCache[url].time) < ttl) {
     return Promise.resolve(apiCache[url].data);
   }
-  return fetch(url).then(r => r.json()).then(data => {
+  teturn fetch(url).then(r => r.json()).then(data => {
     apiCache[url] = { data, time: now };
     return data;
   });
@@ -109,10 +95,10 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
   throw lastError;
 }
 
-// ─── Pod → Feature mapping ───
+// ─── Pod ↑ Feature mapping ───
 const POD_FEATURES = {
   search:    { title: 'Search Venues',   tab: 'venues' },
-  nearme:    { title: 'Near Me',         tab: 'nearnow' },
+  nearme:    { title: 'Near Me',          tab: 'nearnow' },
   livegames: { title: 'Live Games',      tab: 'live' },
   mapview:   { title: 'Map View',        tab: 'map' },
   tours:     { title: 'Tours',           tab: 'tours' },
@@ -307,7 +293,7 @@ export default function PokerNearMeLobby() {
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No venues found</p>
                 <p style={{ fontSize: 13 }}>Try searching a city or use GPS to find nearby rooms.</p>
-              </diw>
+              </div>
             )}
           </div>
         );
@@ -401,21 +387,21 @@ export default function PokerNearMeLobby() {
       case 'favorites':
         component = (
           <div style={{ display: 'grid', gap: 12 }}>
-            {venues.filter(v => favorites[v.id]).map(v => (
-              <VenueCard
-                key={v.id}
-                venue={v}
-                isFavorited={true}
-                onToggleFavorite={() => handleToggleFavorite(v.id, v)}
-              />
-            ))}
-            {venues.filter(v => favorites[v.id]).length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No saved venues yet</p>
-                <p style={{ fontSize: 13 }}>Tap the heart on any venue to save it here.</p>
-              </div>
-            )}
-          </div>
+             {venues.filter(v => favorites[v.id]).map(v => (
+                <VenueCard
+                  key={v.id}
+                  venue={v}
+                  isFavorited={true}
+                  onToggleFavorite={() => handleToggleFavorite(v.id, v)}
+                />
+              ))}
+             {venues.filter(v => favorites[v.id]).length === 0 && (
+                <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+                  <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No saved venues yet</p>
+                  <p style={{ fontSize: 13 }}>Tap the heart on any venue to save it here.</p>
+                </div>
+              )}
+            </div>
         );
         break;
 
@@ -439,7 +425,7 @@ export default function PokerNearMeLobby() {
     return { title: feature.title, component };
   }, [activePod, venues, tours, series, dailyTournaments, liveGames, favorites, loading, userLocation, userId, router, handleToggleFavorite]);
 
-  // ─── Live data for the 3D scene (drives visual behavior) ───
+  // ─── Live data for the 3D scene (drives visual behavior ───
   const liveData = useMemo(() => ({
     venueCount: venues.length,
     liveGameCount: liveGames.length,
@@ -454,7 +440,7 @@ export default function PokerNearMeLobby() {
         title="Poker Near Me — Find Live Poker Rooms & Casinos"
         description="Discover Live Poker Rooms, Casinos, And Card Rooms Near You. Real-time Game Info, Tournament Schedules, And Interactive Maps."
         canonical="/hub/poker-near-me-lobby"
-      />
+       />
 
       <div className="pnm-lobby-page">
         {/* Universal header */}
@@ -472,7 +458,7 @@ export default function PokerNearMeLobby() {
           showProfile={false}
           menuItems={menuConfig.menuItems}
           bottomLinks={menuConfig.bottomLinks}
-        />
+         />
 
         {/* Layer 1 — 3D Scene */}
         <LobbyScene
@@ -494,7 +480,7 @@ export default function PokerNearMeLobby() {
           gpsActive={gpsActive}
           onGpsClick={handleGpsClick}
           showPanel={showPanel}
-        />
+         />
       </div>
     </>
   );
