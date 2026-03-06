@@ -466,7 +466,7 @@ export default function MyClubsPage() {
     // LOAD FOLLOWED VENUES
     // ═══════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        const loadData = async () => {
+        const loadData = async (signal) => {
             setLoading(true);
 
             // Get auth user
@@ -484,7 +484,7 @@ export default function MyClubsPage() {
             const allPageKeys = new Set();
             if (userId) {
                 try {
-                    const res = await fetch(`/api/poker/follow?user_id=${userId}`);
+                    const res = await fetch(`/api/poker/follow?user_id=${userId}`, signal ? { signal } : {});
                     const json = await res.json();
                     if (json.success && json.data) {
                         json.data.forEach(f => {
@@ -518,7 +518,7 @@ export default function MyClubsPage() {
                     const venues = [];
                     const results = await Promise.allSettled(
                         venueIds.slice(0, 30).map(async (vid) => {
-                            const res = await fetch(`/api/poker/venues?id=${vid}`);
+                            const res = await fetch(`/api/poker/venues?id=${vid}`, signal ? { signal } : {});
                             const json = await res.json();
                             if (json.success && json.data) {
                                 return Array.isArray(json.data) ? json.data[0] : json.data;
@@ -539,7 +539,7 @@ export default function MyClubsPage() {
                 const wlMap = {};
                 await Promise.allSettled(venueIds.map(async (vid) => {
                     try {
-                        const res = await fetch(`/api/poker/live-games?venue_id=${vid}`);
+                        const res = await fetch(`/api/poker/live-games?venue_id=${vid}`, signal ? { signal } : {});
                         const json = await res.json();
                         if (json.success) {
                             const games = json.games || json.data || [];
@@ -547,7 +547,7 @@ export default function MyClubsPage() {
                         }
                     } catch { }
                     try {
-                        const res = await fetch(`/api/commander/waitlist/venue/${vid}`);
+                        const res = await fetch(`/api/commander/waitlist/venue/${vid}`, signal ? { signal } : {});
                         const json = await res.json();
                         if (json.success && json.data && json.data.waitlists) {
                             const totalPlayers = json.data.waitlists.reduce((sum, wl) =>
@@ -584,7 +584,9 @@ export default function MyClubsPage() {
             setLoading(false);
         };
 
-        loadData();
+        const controller = new AbortController();
+        loadData(controller.signal);
+        return () => controller.abort();
     }, []);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -598,20 +600,21 @@ export default function MyClubsPage() {
         }
 
         setIsSearching(true);
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(searchQuery)}&limit=20`);
+                const res = await fetch(`/api/poker/venues?search=${encodeURIComponent(searchQuery)}&limit=20`, { signal: controller.signal });
                 const json = await res.json();
                 if (json.success && json.data) {
                     setSearchResults(Array.isArray(json.data) ? json.data : [json.data]);
                 }
             } catch (e) {
-                console.error('[MyClubs] Search error:', e);
+                if (e.name !== 'AbortError') console.error('[MyClubs] Search error:', e);
             }
             setIsSearching(false);
         }, 350);
 
-        return () => clearTimeout(timer);
+        return () => { clearTimeout(timer); controller.abort(); };
     }, [searchQuery]);
 
     // ═══════════════════════════════════════════════════════════════════════

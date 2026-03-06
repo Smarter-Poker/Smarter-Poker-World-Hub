@@ -96,7 +96,7 @@ export default function LeaguesAndFreerollsManagement() {
   }, []);
 
   /* ── Fetch leagues ── */
-  const fetchLeagues = useCallback(async () => {
+  const fetchLeagues = useCallback(async (signal) => {
     setLeaguesLoading(true);
     try {
       const res = await fetch('/api/commander/leagues?limit=50', {
@@ -109,7 +109,7 @@ export default function LeaguesAndFreerollsManagement() {
   }, []);
 
   /* ── Fetch freerolls ── */
-  const fetchFreerolls = useCallback(async () => {
+  const fetchFreerolls = useCallback(async (signal) => {
     setFreerollsLoading(true);
     try {
       const res = await fetch('/api/commander/freerolls?limit=50', {
@@ -123,8 +123,10 @@ export default function LeaguesAndFreerollsManagement() {
 
   useEffect(() => {
     if (staff) {
-      fetchLeagues();
-      fetchFreerolls();
+      const c = new AbortController();
+      fetchLeagues(c.signal);
+      fetchFreerolls(c.signal);
+      return () => c.abort();
     }
   }, [staff, fetchLeagues, fetchFreerolls]);
 
@@ -132,6 +134,7 @@ export default function LeaguesAndFreerollsManagement() {
   const fetchStandings = async (leagueId) => {
     try {
       const res = await fetch(`/api/commander/leagues/${leagueId}/standings`, {
+        ...(signal ? { signal } : {}),
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       const json = await res.json();

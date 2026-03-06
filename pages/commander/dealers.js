@@ -334,22 +334,25 @@ export default function DealersPage() {
 
   useEffect(() => {
     if (venueId) {
-      fetchDealers();
-      fetchTables();
-      fetchRotations();
+      const controller = new AbortController();
+      fetchDealers(controller.signal);
+      fetchTables(controller.signal);
+      fetchRotations(controller.signal);
+      return () => controller.abort();
     }
   }, [venueId]);
 
   // Commander Data Bus — sync dealers and tables across tabs
   useCommanderSync(venueId, () => { fetchDealers(); fetchTables(); fetchRotations(); }, { entities: ['dealers', 'tables'] });
 
-  async function fetchDealers() {
+  async function fetchDealers(signal) {
     setLoading(true);
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/dealers?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const data = await res.json();
       if (data.success) {
@@ -363,12 +366,13 @@ export default function DealersPage() {
     }
   }
 
-  async function fetchTables() {
+  async function fetchTables(signal) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/tables?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const data = await res.json();
       if (data.success) {
@@ -380,12 +384,13 @@ export default function DealersPage() {
     }
   }
 
-  async function fetchRotations() {
+  async function fetchRotations(signal) {
     try {
       const staffSession = localStorage.getItem('commander_staff') || '';
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const res = await fetch(`/api/commander/dealers/rotations?venue_id=${venueId}&limit=50`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const data = await res.json();
       if (data.success) {

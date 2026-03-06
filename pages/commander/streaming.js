@@ -290,17 +290,20 @@ export default function StreamingPage() {
 
   useEffect(() => {
     if (venueId) {
-      fetchStreams();
+      const ctrl = new AbortController();
+      fetchStreams(ctrl.signal);
+      return () => ctrl.abort();
     }
   }, [venueId]);
 
-  async function fetchStreams() {
+  async function fetchStreams(signal) {
     setLoading(true);
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/streaming?venue_id=${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const data = await res.json();
       if (data.success) {

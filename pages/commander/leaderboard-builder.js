@@ -70,10 +70,11 @@ export default function LeaderboardBuilder() {
     const getStaffSession = () => { try { return localStorage.getItem('commander_staff') || ''; } catch { return ''; } };
 
     // ── Fetch boards ──
-    const fetchBoards = useCallback(async () => {
+    const fetchBoards = useCallback(async (signal) => {
         try {
             const res = await fetch('/api/commander/leaderboards?status=all', {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+                ...(signal ? { signal } : {}),
             });
             const json = await res.json();
             setBoards(json?.leaderboards || json?.data || []);
@@ -82,11 +83,12 @@ export default function LeaderboardBuilder() {
     }, []);
 
     // ── Fetch members for dropdown ──
-    const fetchMembers = useCallback(async () => {
+    const fetchMembers = useCallback(async (signal) => {
         if (!venueId) return;
         try {
             const res = await fetch(`/api/commander/members?venue_id=${venueId}&limit=200`, {
-                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+                headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+                ...(signal ? { signal } : {}),
             });
             const json = await res.json();
             setMembers(json?.data?.members || json?.members || []);
@@ -104,7 +106,7 @@ export default function LeaderboardBuilder() {
         } catch { }
     };
 
-    useEffect(() => { fetchBoards(); fetchMembers(); }, [fetchBoards, fetchMembers]);
+    useEffect(() => { const c = new AbortController(); fetchBoards(c.signal); fetchMembers(c.signal); return () => c.abort(); }, [fetchBoards, fetchMembers]);
 
     // ── Create board ──
     const handleCreate = async () => {

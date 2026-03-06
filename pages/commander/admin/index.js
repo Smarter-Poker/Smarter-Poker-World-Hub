@@ -438,10 +438,12 @@ export default function AdminDashboard() {
   const [settingsVenue, setSettingsVenue] = useState(null);
 
   useEffect(() => {
-    loadAdminData();
+    const ctrl = new AbortController();
+    loadAdminData(ctrl.signal);
+    return () => ctrl.abort();
   }, []);
 
-  const loadAdminData = async () => {
+  const loadAdminData = async (signal) => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('smarter-poker-auth');
@@ -451,9 +453,8 @@ export default function AdminDashboard() {
       }
 
       // Load venues with summary
-      const venuesRes = await fetch('/api/commander/admin/venues?summary=true', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const fetchOpts = (h) => signal ? { headers: h, signal } : { headers: h };
+      const venuesRes = await fetch('/api/commander/admin/venues?summary=true', fetchOpts({ Authorization: `Bearer ${token}` }));
       const venuesData = await venuesRes.json();
       if (venuesData.venues) {
         setVenues(venuesData.venues);
@@ -461,9 +462,7 @@ export default function AdminDashboard() {
       }
 
       // Load exports
-      const exportsRes = await fetch('/api/commander/exports', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const exportsRes = await fetch('/api/commander/exports', fetchOpts({ Authorization: `Bearer ${token}` }));
       const exportsData = await exportsRes.json();
       if (exportsData.exports) {
         setExports(exportsData.exports);

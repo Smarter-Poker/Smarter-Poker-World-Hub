@@ -74,13 +74,14 @@ export default function CommanderStaffPage() {
   }, [router]);
 
   // Fetch staff
-  const fetchStaff = useCallback(async () => {
+  const fetchStaff = useCallback(async (signal) => {
     if (!venueId) return;
     try {
       const token = localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token');
       const staffSession = localStorage.getItem('commander_staff') || '';
       const res = await fetch(`/api/commander/staff/venue/${venueId}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        ...(signal ? { signal } : {}),
       });
       const data = await res.json();
       if (data.success) {
@@ -94,7 +95,7 @@ export default function CommanderStaffPage() {
   }, [venueId]);
 
   useEffect(() => {
-    if (venueId) fetchStaff();
+    if (venueId) { const ctrl = new AbortController(); fetchStaff(ctrl.signal); return () => ctrl.abort(); }
   }, [venueId, fetchStaff]);
 
   // Commander Data Bus — sync staff changes across tabs

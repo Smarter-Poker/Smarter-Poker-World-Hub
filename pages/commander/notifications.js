@@ -77,24 +77,25 @@ export default function NotificationCenter() {
   };
 
   // ─── Notifications ───
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (signal) => {
     setLoading(true);
     try {
       const params = filter === 'unread' ? '&unread_only=true' : '';
       const res = await fetch(`/api/commander/notifications/my?limit=100${params}`, {
-        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
+        headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() },
+        ...(signal ? { signal } : {}),
       });
       const json = await res.json();
       if (json.success) {
         setNotifications(json.data?.notifications || []);
         setUnreadCount(json.data?.unread_count || 0);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); }
     finally { setLoading(false); }
   }, [filter]);
 
   useEffect(() => {
-    if (activeTab === 'notifications') fetchNotifications();
+    if (activeTab === 'notifications') { const c = new AbortController(); fetchNotifications(c.signal); return () => c.abort(); }
   }, [fetchNotifications, activeTab]);
 
   const markAsRead = async (id) => {

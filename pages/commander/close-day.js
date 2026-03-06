@@ -36,21 +36,24 @@ export default function CloseDay() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    const ctrl = new AbortController();
+    fetchStatus(ctrl.signal);
+    return () => ctrl.abort();
   }, []);
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (signal) => {
     setLoading(true);
     try {
       const token = getToken();
       const venueId = getVenueId();
       const staffSession = localStorage.getItem('commander_staff') || '';
       const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const fetchOpts = signal ? { headers, signal } : { headers };
       const [tablesRes, waitlistRes, sessionsRes, reportRes] = await Promise.all([
-        fetch(`/api/commander/tables?venue_id=${venueId}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/waitlist?venue_id=${venueId}`, { headers }).then(r => r.json()),
-        fetch(`/api/commander/time-billing/sessions?status=active&venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: [] })),
-        fetch(`/api/commander/reports/daily?venue_id=${venueId}`, { headers }).then(r => r.json()).catch(() => ({ data: {} }))
+        fetch(`/api/commander/tables?venue_id=${venueId}`, fetchOpts).then(r => r.json()),
+        fetch(`/api/commander/waitlist?venue_id=${venueId}`, fetchOpts).then(r => r.json()),
+        fetch(`/api/commander/time-billing/sessions?status=active&venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch(`/api/commander/reports/daily?venue_id=${venueId}`, fetchOpts).then(r => r.json()).catch(() => ({ data: {} }))
       ]);
 
       // Tables: data may be {tables: []} or array directly
