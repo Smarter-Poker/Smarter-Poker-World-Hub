@@ -1,14 +1,11 @@
-// Permanent redirect
-// This eliminates the server-side function call on every request
-export function getServerSideProps() {
-    return {
-        redirect: {
-            destination: '/hub/training',
-            permanent: true,
-        },
-    };
-}
+// Client-side permanent redirect — avoids getStaticProps prerender error on Vercel
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function RedirectPage() {
+    const router = useRouter();
+    useEffect(() => {
+        router.replace('/hub/training');
+    }, [router]);
     return null;
 }
