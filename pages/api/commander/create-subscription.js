@@ -94,7 +94,7 @@ async function findUserByEmail(email) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -423,7 +423,7 @@ export default async function handler(req, res) {
           .from('commander_tables')
           .select('table_number')
           .eq('venue_id', venueId)
-              .limit(100)
+          .limit(100);
         const existingNumbers = new Set((existingTables || []).map(t => t.table_number));
 
         // Create missing tables (default 9-max, available status)
