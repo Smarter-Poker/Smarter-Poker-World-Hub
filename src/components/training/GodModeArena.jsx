@@ -13,6 +13,8 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GameUIRouter from './GameUIRouter';
 import TrainerConfigModal from './TrainerConfigModal';
+import HandReplayViewer from './HandReplayViewer';
+import PositionStatsPanel from './PositionStatsPanel';
 import useMillionaireGame from '../../hooks/useMillionaireGame';
 import { CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../hooks/useGTOWScore';
 import TRAINING_CONFIG from '../../config/trainingConfig';
@@ -585,21 +587,11 @@ function GodModeArena({
                         </div>
                     )}
 
-                    {/* HAND HISTORY — Scrollable list (F3: Click to expand) */}
-                    <div style={styles.historySection}>
-                        <div style={styles.sectionTitle}>Hand History</div>
-                        <div style={styles.historyList}>
-                            {handHistory.length > 0 ? (
-                                handHistory.map((entry, i) => (
-                                    <HandHistoryRow key={i} entry={entry} index={i} />
-                                ))
-                            ) : (
-                                <div style={{ color: '#64748b', textAlign: 'center', padding: 20 }}>
-                                    No hands recorded
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    {/* HAND HISTORY — Enhanced Replay Viewer */}
+                    <HandReplayViewer handHistory={handHistory} />
+
+                    {/* POSITION STATS — Per-position breakdown */}
+                    <PositionStatsPanel handHistory={handHistory} />
 
                     {/* ACTION BUTTONS */}
                     <div style={styles.reviewActions}>

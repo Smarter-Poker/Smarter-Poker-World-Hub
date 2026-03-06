@@ -8,7 +8,7 @@
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initAntiGravity, getBootState, isSystemHealthy } from '../lib/AntiGravityBoot';
+import { initAntiGravity, initAntiGravitySync, getBootState, isSystemHealthy } from '../lib/AntiGravityBoot';
 import SystemOffline from '../components/SystemOffline';
 
 // Context
@@ -18,50 +18,25 @@ const AntiGravityContext = createContext(null);
  * Provider component - wraps entire app
  */
 export function AntiGravityProvider({ children }) {
-    const [bootState, setBootState] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [bootState, setBootState] = useState(() => {
+        // Synchronous init — env check + Supabase singleton (instant, no network)
+        const syncState = initAntiGravitySync();
+        return syncState;
+    });
+    const [loading, setLoading] = useState(false); // No gate — render immediately
 
     useEffect(() => {
-        async function boot() {
+        // Background async health check — does NOT block rendering
+        async function backgroundHealthCheck() {
             try {
                 const state = await initAntiGravity();
                 setBootState(state);
             } catch (error) {
-                console.error('Anti-Gravity boot failed catastrophically:', error);
-                setBootState({
-                    initialized: true,
-                    antigravityEnabled: false,
-                    supabaseConnected: false,
-                    errors: [{ stage: 'CATASTROPHIC', error: error.message }],
-                    timestamp: new Date().toISOString(),
-                });
-            } finally {
-                setLoading(false);
+                console.error('Anti-Gravity background health check failed:', error);
             }
         }
-
-        boot();
+        backgroundHealthCheck();
     }, []);
-
-    // Loading state - Clean branded loading (no internal system names)
-    if (loading) {
-        return (
-            <div style={{
-                minHeight: '100vh',
-                background: '#0a0a12',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#00D4FF',
-                fontFamily: 'Inter, sans-serif',
-            }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>♦️</div>
-                    <div style={{ fontSize: 18, fontWeight: 600 }}>Loading...</div>
-                </div>
-            </div>
-        );
-    }
 
     // FAIL-CLOSED: If boot failed, show offline screen
     if (bootState && bootState.errors && bootState.errors.length > 0) {

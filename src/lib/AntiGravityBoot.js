@@ -96,7 +96,7 @@ async function supabaseHealthCheck() {
             .limit(1);
 
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Health check timeout')), 3000)
+            setTimeout(() => reject(new Error('Health check timeout')), 1500)
         );
 
         const { data, error } = await Promise.race([healthPromise, timeoutPromise]);
@@ -131,6 +131,34 @@ async function supabaseHealthCheck() {
 /**
  * Main initialization function - runs automatically at app startup
  * Returns boot state with proof of system health
+ */
+/**
+ * Synchronous init — env vars + Supabase singleton only (NO network calls).
+ * Used by AntiGravityProvider for instant boot without blocking rendering.
+ */
+export function initAntiGravitySync() {
+    if (bootState.initialized) return bootState;
+
+    bootState.timestamp = new Date().toISOString();
+    bootState.errors = [];
+
+    const antigravityEnabled = process.env.NEXT_PUBLIC_ANTIGRAVITY_ENABLED !== 'false';
+    bootState.antigravityEnabled = antigravityEnabled;
+
+    // Synchronous steps only — no await
+    verifyEnvVars();
+    initializeSupabase();
+
+    // Mark as initialized so the provider can render immediately
+    bootState.initialized = true;
+    bootState.supabaseConnected = true; // Optimistic — health check will update later
+
+    return { ...bootState };
+}
+
+/**
+ * Full async initialization — runs health check (may take up to 1.5s on timeout).
+ * Called in background after provider already renders children.
  */
 export async function initAntiGravity() {
     // Prevent double initialization
@@ -271,6 +299,7 @@ export function isSupabaseHealthy() {
 
 export default {
     init: initAntiGravity,
+    initSync: initAntiGravitySync,
     getState: getBootState,
     getClient: getSupabaseClient,
     isHealthy: isSystemHealthy,
