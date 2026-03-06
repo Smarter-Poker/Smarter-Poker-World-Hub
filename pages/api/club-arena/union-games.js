@@ -156,6 +156,16 @@ export default async function handler(req, res) {
       if (resolvedMaxPlayers < 2) return res.status(400).json({ success: false, error: 'max_players must be at least 2' });
       if (resolvedGuarantee < 0) return res.status(400).json({ success: false, error: 'guaranteed_prize cannot be negative' });
 
+      // Validate scheduled start time — must be in the future, within 1 year
+      const resolvedStartTime = scheduledStart || start_time;
+      if (resolvedStartTime) {
+        const startMs = new Date(resolvedStartTime).getTime();
+        const nowMs = Date.now();
+        if (isNaN(startMs)) return res.status(400).json({ success: false, error: 'Invalid start_time format' });
+        if (startMs < nowMs - 60_000) return res.status(400).json({ success: false, error: 'start_time cannot be in the past' });
+        if (startMs > nowMs + 365 * 24 * 3600_000) return res.status(400).json({ success: false, error: 'start_time cannot be more than 1 year in the future' });
+      }
+
       const tournamentType = type || 'mtt'; // xmtt | mtt | sng
       const clubParticipants = (participatingClubIds?.length > 0)
         ? participatingClubIds.filter(id => clubIds.includes(id))

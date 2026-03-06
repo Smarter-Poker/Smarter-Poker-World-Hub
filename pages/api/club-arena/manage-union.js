@@ -202,10 +202,13 @@ export default async function handler(req, res) {
         .eq('union_id', unionId)
         .eq('club_id', clubId);
 
+      // BUG-IDOR FIX: Only update clubs that actually belong to this union
+      // Prevents a union_lead from clearing another union's club.union_id
       await supabaseAdmin
         .from('clubs')
         .update({ union_id: null, auto_settlement_enabled: false, club_commission_rate: 0 })
-        .eq('id', clubId);
+        .eq('id', clubId)
+        .eq('union_id', unionId);
 
       return res.status(200).json({ success: true });
     }

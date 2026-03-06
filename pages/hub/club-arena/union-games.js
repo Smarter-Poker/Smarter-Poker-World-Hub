@@ -101,8 +101,14 @@ export default function UnionGames() {
     try {
       const res = await api('list_tournaments', { unionId, status: statusMap[subTab] });
       if (res.success) {
-        setTournaments(res.tournaments || []);
+        const fresh = res.tournaments || [];
+        setTournaments(fresh);
         if (res.clubs?.length) setClubs(res.clubs);
+        // Sync selectedTournament to the fresh version (prevents stale modal data)
+        setSelectedTournament(prev => prev
+          ? fresh.find(t => t.id === prev.id) || null
+          : null
+        );
       } else {
         console.error('[union-games] list_tournaments:', res.error);
       }

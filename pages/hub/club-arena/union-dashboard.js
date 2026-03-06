@@ -128,8 +128,9 @@ export default function UnionDashboard() {
             const data = await apiGet(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`);
             setDashboard(data);
             if (data.union) {
-                setUnionName(data.union.name || '');
-                setUnionDesc(data.union.description || '');
+                // Only pre-fill name/desc on first load — don't overwrite unsaved user edits
+            setUnionName(prev => prev || (data.union.name || ''));
+            setUnionDesc(prev => prev || (data.union.description || ''));
                 setUnionHoldRate(String(((data.union.settings?.union_rake_hold || 0.10) * 100).toFixed(0)));
                 setBbjMainPct(String(data.union.settings?.bbj_main_pct || 40));
                 setBbjBackupPct(String(data.union.settings?.bbj_backup_pct || 30));
