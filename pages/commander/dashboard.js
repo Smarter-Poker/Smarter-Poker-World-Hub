@@ -262,12 +262,18 @@ export default function CommanderDashboard() {
   // Unified Real-Time Sync via Singleton WebSocket
   useCommanderSync(staff?.venue_id || null, fetchHardStop, { entities: ['settings'] });
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // HARDENED: Sign out of Supabase first to kill the auth session cookie
+    try { await supabase.auth.signOut(); } catch { /* non-critical */ }
+    // Clear ALL commander-related localStorage keys
     localStorage.removeItem('commander_staff');
     localStorage.removeItem('commander_venue');
     localStorage.removeItem('commander_subscription');
     localStorage.removeItem('commander_remember');
-    if (router.asPath !== '/commander/login') router.push('/commander/login').catch(() => { });
+    localStorage.removeItem('commander_security_gate');
+    localStorage.removeItem('commander_login_origin');
+    // Bulletproof redirect
+    window.location.href = '/commander/login';
   };
 
   const handleFeatureClick = (feat) => {
