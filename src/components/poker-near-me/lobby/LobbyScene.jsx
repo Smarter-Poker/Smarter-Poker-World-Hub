@@ -15,16 +15,17 @@ import React, { Suspense, useState, useEffect, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 
 // Feature pod definitions — each maps to a real tab/feature
+// Icons use short text labels that render reliably in WebGL (emojis don't work in drei Text)
 const FEATURE_PODS = [
-  { id: 'search',    label: 'Search\nVenues', icon: '🔍', angle: 0,   color: '#6ee7ef' },
-  { id: 'nearme',    label: 'Near\nMe',       icon: '📍', angle: 40,  color: '#00d2ff' },
-  { id: 'livegames', label: 'Live\nGames',    icon: '🃏', angle: 80,  color: '#ff4444' },
-  { id: 'mapview',   label: 'Map\nView',      icon: '🌐', angle: 120, color: '#3b82f6' },
-  { id: 'tours',     label: 'Tours',          icon: '🏆', angle: 160, color: '#c9a227' },
-  { id: 'calendar',  label: 'Calendar',       icon: '📅', angle: 200, color: '#8b5cf6' },
-  { id: 'daily',     label: 'Daily',          icon: '⏱',  angle: 240, color: '#22c55e' },
-  { id: 'series',    label: 'Series',         icon: '🏅', angle: 280, color: '#f59e0b' },
-  { id: 'wallet',    label: 'Rewards',        icon: '💰', angle: 320, color: '#ffd700' },
+  { id: 'search',    label: 'SEARCH',    icon: 'S',  angle: 0,   color: '#6ee7ef' },
+  { id: 'nearme',    label: 'NEAR ME',   icon: 'N',  angle: 40,  color: '#00d2ff' },
+  { id: 'livegames', label: 'LIVE',      icon: 'L',  angle: 80,  color: '#ff4444' },
+  { id: 'mapview',   label: 'MAP',       icon: 'M',  angle: 120, color: '#3b82f6' },
+  { id: 'tours',     label: 'TOURS',     icon: 'T',  angle: 160, color: '#c9a227' },
+  { id: 'calendar',  label: 'CALENDAR',  icon: 'C',  angle: 200, color: '#8b5cf6' },
+  { id: 'daily',     label: 'DAILY',     icon: 'D',  angle: 240, color: '#22c55e' },
+  { id: 'series',    label: 'SERIES',    icon: 'X',  angle: 280, color: '#f59e0b' },
+  { id: 'wallet',    label: 'REWARDS',   icon: 'R',  angle: 320, color: '#ffd700' },
 ];
 
 // Orbit radius for pods (in Three.js world units)
@@ -53,36 +54,50 @@ function SceneContent({ onPodClick, activePod, liveData }) {
 
   return (
     <>
-      {/* Premium Lighting — Cyan/Blue palette, cranked for visibility */}
-      <ambientLight intensity={0.5} color="#88ccdd" />
-      <directionalLight position={[5, 10, 5]} intensity={1.2} color="#ffffff" />
-      <directionalLight position={[-5, 5, -5]} intensity={0.5} color="#6ee7ef" />
-      <pointLight position={[0, 4, 0]} intensity={2.0} color="#6ee7ef" distance={12} decay={2} />
-      <pointLight position={[0, -2, 0]} intensity={0.5} color="#3b82f6" distance={8} decay={2} />
-      <spotLight position={[0, 10, 5]} angle={0.6} penumbra={0.5} intensity={1.5} color="#ffffff" />
+      {/* Premium Lighting — Cinematic cyan/blue palette */}
+      <ambientLight intensity={0.6} color="#88ccdd" />
+      <directionalLight position={[5, 10, 5]} intensity={1.4} color="#ffffff" />
+      <directionalLight position={[-5, 8, -3]} intensity={0.6} color="#6ee7ef" />
+      <pointLight position={[0, 5, 0]} intensity={2.5} color="#6ee7ef" distance={15} decay={2} />
+      <pointLight position={[0, -2, 0]} intensity={0.8} color="#3b82f6" distance={10} decay={2} />
+      <pointLight position={[4, 2, 4]} intensity={1.0} color="#00d2ff" distance={8} decay={2} />
+      <pointLight position={[-4, 2, -4]} intensity={0.8} color="#8b5cf6" distance={8} decay={2} />
+      <spotLight position={[0, 12, 6]} angle={0.5} penumbra={0.6} intensity={2.0} color="#ffffff" />
 
       {/* Ground disc — glowing holographic platform */}
       <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[4.5, 64]} />
+        <circleGeometry args={[5.0, 64]} />
         <meshStandardMaterial
-          color="#0a2040"
-          metalness={0.9}
-          roughness={0.2}
+          color="#061525"
+          metalness={0.95}
+          roughness={0.15}
           emissive="#00d4ff"
-          emissiveIntensity={0.3}
+          emissiveIntensity={0.25}
         />
       </mesh>
 
-      {/* Inner ring glow */}
+      {/* Inner ring glow — pod orbit indicator */}
       <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[2.8, 3.0, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.6} />
+        <ringGeometry args={[3.5, 3.55, 64]} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.3} />
       </mesh>
 
-      {/* Outer ring glow */}
+      {/* Mid ring */}
       <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[4.3, 4.5, 64]} />
-        <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
+        <ringGeometry args={[2.8, 3.0, 64]} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.5} />
+      </mesh>
+
+      {/* Outer ring glow — platform edge */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[4.8, 5.0, 64]} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.5} />
+      </mesh>
+
+      {/* Outer haze ring — soft glow beyond platform */}
+      <mesh position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[5.0, 6.0, 64]} />
+        <meshBasicMaterial color="#00d4ff" transparent opacity={0.06} depthWrite={false} />
       </mesh>
 
       {/* Central radar disc */}
@@ -100,8 +115,8 @@ function SceneContent({ onPodClick, activePod, liveData }) {
         />
       ))}
 
-      {/* Ambient particle field */}
-      {ParticleField && <ParticleField count={200} />}
+      {/* Ambient particle field — denser for atmosphere */}
+      {ParticleField && <ParticleField count={350} />}
 
       {/* Parallax camera controller */}
       {ParallaxCamera && <ParallaxCamera />}

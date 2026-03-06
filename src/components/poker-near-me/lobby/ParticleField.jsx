@@ -69,7 +69,7 @@ export function ParticleField({ count = 200, spread = 12 }) {
   // Material
   const material = useMemo(() => {
     return new PointsMaterial({
-      size: 0.04,
+      size: 0.06,
       vertexColors: true,
       transparent: true,
       opacity: 0.6,
