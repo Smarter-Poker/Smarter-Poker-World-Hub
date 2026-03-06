@@ -217,12 +217,14 @@ export default function CommanderDashboard() {
   const fetchHardStop = useCallback(async () => {
     if (!staff) return;
     try {
-      // Get auth token from Supabase session (staff localStorage never has token field)
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) return;
+      // Settings API uses guardManager → verifyStaffSession which reads x-staff-session header
+      // NOT the Authorization header. Send the staff session JSON.
+      const staffSessionJson = localStorage.getItem('commander_staff');
+      if (!staffSessionJson) return;
 
-      fetch('/api/commander/settings', { headers: { Authorization: `Bearer ${token}` } })
+      fetch('/api/commander/settings', {
+        headers: { 'x-staff-session': staffSessionJson }
+      })
         .then(r => r.json())
         .then(data => {
           if (data?.data?.hard_stop_enabled && data.data.hard_stop_time) {
