@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { supabase } from '../../../../../src/lib/supabase';
 
 export default function TournamentRegisterPage() {
   const router = useRouter();
@@ -23,6 +24,16 @@ export default function TournamentRegisterPage() {
   // Fetch tournament
   useEffect(() => {
     if (id) fetchTournament();
+  }, [id]);
+  // Realtime listener — live updates for tournament/[id]/register.js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`td-register:${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_tournaments', filter: `id=eq.${id}` }, () => { fetchTournament(); })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries', filter: `tournament_id=eq.${id}` }, () => { fetchTournament(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [id]);
 
   async function fetchTournament(signal) {

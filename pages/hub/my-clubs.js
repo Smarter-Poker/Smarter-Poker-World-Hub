@@ -616,6 +616,15 @@ export default function MyClubsPage() {
 
         return () => { clearTimeout(timer); controller.abort(); };
     }, [searchQuery]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`my-clubs:${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${userId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // FOLLOW / UNFOLLOW HANDLER

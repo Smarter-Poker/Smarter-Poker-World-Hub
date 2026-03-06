@@ -214,6 +214,15 @@ export default function LivesPage() {
         setChatText('');
     return () => _c.abort();
   }, [currentIndex]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`lives:${user?.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     return (
         <>

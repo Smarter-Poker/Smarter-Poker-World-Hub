@@ -16,6 +16,7 @@ import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import FeatureGate from '../../src/components/gates/FeatureGate';
+import { supabase } from '../../../../src/lib/supabase';
 const VenueCard = dynamic(() => import('../../src/components/poker-near-me/VenueCard'), { ssr: false });
 const TourCard = dynamic(() => import('../../src/components/poker-near-me/TourCard'), { ssr: false });
 const SeriesCard = dynamic(() => import('../../src/components/poker-near-me/SeriesCard'), { ssr: false });
@@ -1451,6 +1452,15 @@ export default function PokerNearMePage() {
             setPushPermission(Notification.permission);
         }
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`pnm:${user?.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     const requestPushPermission = useCallback(async () => {
         const controller = new AbortController();

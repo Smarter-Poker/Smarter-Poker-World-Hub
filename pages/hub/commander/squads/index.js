@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, Plus, Clock, UserPlus, Check, X } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -94,6 +95,15 @@ export default function SquadsPage() {
     if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
     return () => _c.abort();
   }, [router]);
+  // Realtime listener — live updates for squads/index.js
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`squads-list:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
 
   const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', (url) => {
     const token = localStorage.getItem('smarter-poker-auth');

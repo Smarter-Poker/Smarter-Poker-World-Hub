@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { supabase } from '../../../../src/lib/supabase';
 import {
   CheckCircle,
   MapPin,
@@ -33,6 +34,16 @@ export default function PlayerCheckInPage() {
     if (venueId) {
       fetchVenueData();
     }
+  }, [venueId]);
+  // Realtime listener — live updates for check-in/[venueId].js
+  useEffect(() => {
+    if (!venueId) return;
+    const ch = supabase
+      .channel(`checkin:${venueId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_games', filter: `venue_id=eq.${venueId}` }, () => { fetchVenueData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_checkins', filter: `venue_id=eq.${venueId}` }, () => { fetchVenueData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [venueId]);
 
   async function fetchVenueData(signal) {

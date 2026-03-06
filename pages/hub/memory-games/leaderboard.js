@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import { supabase } from '../../../../../src/lib/supabase';
 
 // Initialize Supabase
 const supabase = createClient(
@@ -35,6 +36,15 @@ export default function MemoryGamesLeaderboard() {
     useEffect(() => {
         fetchLeaderboard();
     }, [selectedMode]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`mem-lb`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_leaderboards' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     const fetchLeaderboard = async () => {
         setLoading(true);

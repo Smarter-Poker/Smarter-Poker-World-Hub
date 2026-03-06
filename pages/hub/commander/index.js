@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, Radio, Users, Clock, CreditCard, Globe } from 'lucide-react';
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
+import { supabase } from '../../../src/lib/supabase';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
@@ -103,6 +104,16 @@ export default function CommanderHub() {
     })();
     return () => _ctrl.abort();
   }, [userLocation]);
+  // Realtime listener — live updates for index.js
+  useEffect(() => {
+    if (!user.id) return;
+    const ch = supabase
+      .channel(`cmd-home:${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist' }, () => { fetchVenues(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user.id]);
 
   async function handleLeaveWaitlist(entryId) {
     if (confirmLeaveId !== entryId) {

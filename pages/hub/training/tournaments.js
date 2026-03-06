@@ -14,6 +14,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
+import { supabase } from '../../../../../src/lib/supabase';
 
 export default function TournamentsPage() {
     const [user, setUser] = useState(null);
@@ -26,6 +27,15 @@ export default function TournamentsPage() {
         getAuthUser().then(u => setUser(u)).catch(() => { });
     return () => _c.abort();
   }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`train-tourn:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries', filter: `user_id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     // SWR key includes tab + user so switching tabs is instant on revisit
     const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;

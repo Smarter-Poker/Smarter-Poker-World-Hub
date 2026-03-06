@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Bell, MapPin, Clock, Users, Gift, Trophy, AlertCircle, Check, Trash2 } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -114,6 +115,15 @@ export default function PlayerNotificationsPage() {
   useEffect(() => {
     if (!getToken()) router.push('/auth/login?redirect=/hub/commander/notifications');
   }, [router]);
+  // Realtime listener — live updates for notifications/index.js
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`notifications:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_notifications' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
 
   const { isLoading: loading, mutate: refreshNotifications } = useSWR(
     '/api/commander/notifications/my',

@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
+import { supabase } from '../../../../../src/lib/supabase';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -285,6 +286,16 @@ export default function ManageHomeGamePage() {
     fetchData(_c.signal);
     return () => _c.abort();
   }, [fetchData, router]);
+  // Realtime listener — live updates for home-games/[id]/manage.js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`hg-manage:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_games', filter: `group_id=eq.${id}` }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_members', filter: `group_id=eq.${id}` }, () => { fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id]);
 
   async function handleApproveMember(member) {
     try {

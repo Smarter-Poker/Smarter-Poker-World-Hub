@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
+import { supabase } from '../../../../src/lib/supabase';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -119,6 +120,15 @@ export default function PlayerWaitlistPage() {
       const interval = setInterval(() => fetchData(controller.signal), 30000); // fallback — real-time sync handles instant updates
       return () => { controller.abort(); clearInterval(interval); };
     }
+  }, [venueId]);
+  // Realtime listener — live updates for waitlist/[venueId].js
+  useEffect(() => {
+    if (!venueId) return;
+    const ch = supabase
+      .channel(`waitlist:${venueId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `venue_id=eq.${venueId}` }, () => { fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [venueId]);
 
   // Commander Data Bus — instant sync when waitlist/games change

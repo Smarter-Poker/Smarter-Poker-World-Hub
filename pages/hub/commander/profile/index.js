@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
+import { supabase } from '../../../../../../src/lib/supabase';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -126,6 +127,16 @@ export default function PlayerProfilePage() {
     })();
     return () => _c.abort();
   }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`cmd-profile:${user?.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_members', filter: `user_id=eq.${user?.id}` }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_player_stats', filter: `user_id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
   const menuItems = [
     { href: hasClubPage ? `/hub/social-media?viewPage=${hasClubPage}` : '/hub/social-media?createPage=true', label: hasClubPage ? 'Club Page' : 'Create Club Page', icon: Globe },

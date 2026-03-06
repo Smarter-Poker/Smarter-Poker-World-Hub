@@ -13,6 +13,7 @@ import {
   Play, CheckCircle
 } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 
 function TournamentCard({ tournament, onRegister, isRegistered }) {
   const router = useRouter();
@@ -176,6 +177,16 @@ export default function PlayerTournamentsHub() {
     if (filter === 'registered') return myRegistrations.includes(t.id);
     return true;
   });
+
+  // Realtime listener — live updates for tournaments/index.js
+  useEffect(() => {
+    const ch = supabase
+      .channel(`my-tournaments-list`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_tournament_entries' }, () => { refreshTournaments(); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_tournaments' }, () => { refreshTournaments(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [refreshTournaments]);
 
   return (
     <>

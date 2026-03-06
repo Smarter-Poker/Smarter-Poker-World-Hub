@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Trophy, Clock, DollarSign } from 'lucide-react';
 import { useCommanderSync } from '../../../../../src/lib/commander/useCommanderSync';
+import { supabase } from '../../../../../src/lib/supabase';
 
 export default function TournamentClockDisplay() {
   const router = useRouter();
@@ -48,6 +49,15 @@ export default function TournamentClockDisplay() {
     const interval = setInterval(() => fetchTournament(_c.signal), 30000); // fallback — real-time sync handles instant updates
     return () => { _c.abort(); clearInterval(interval); };
   }, [fetchTournament]);
+  // Realtime listener — live updates for tournament/[id]/clock.js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`td-clock:${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_tournaments', filter: `id=eq.${id}` }, () => { fetchTournament(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id]);
 
   // Commander Data Bus — instant sync when tournament state changes (clock, entries, etc.)
   const [venueId] = useState(() => {

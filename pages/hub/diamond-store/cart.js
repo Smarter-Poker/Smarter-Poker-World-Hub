@@ -13,6 +13,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import toast from '../../../src/stores/toastStore';
+import { supabase } from '../../../../../src/lib/supabase';
 
 export default function ShoppingCart() {
     const [user, setUser] = useState(null);
@@ -29,6 +30,15 @@ export default function ShoppingCart() {
         loadCart();
     return () => _c.abort();
   }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`dcart:${user?.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     const loadCart = async(signal) => {
         try {

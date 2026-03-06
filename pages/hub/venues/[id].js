@@ -13,6 +13,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { supabase } from '../../../../../src/lib/supabase';
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
@@ -535,6 +536,15 @@ export default function VenueDetailPage() {
       }
     };
   }, [mapReady, venue]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!id) return;
+    const _ch = supabase
+      .channel(`venue-pub:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `venue_id=eq.${id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [id]);
 
   // Handlers
   var handleFollow = function () {

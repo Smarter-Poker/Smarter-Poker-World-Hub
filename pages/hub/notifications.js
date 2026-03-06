@@ -156,6 +156,15 @@ export default function NotificationsPage() {
         fetchNotifications();
         return () => controller.abort();
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`notifs:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
     const markAsRead = async (id) => {
         await supabase.from('notifications').update({ read: true }).eq('id', id);

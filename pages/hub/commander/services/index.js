@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
+import { supabase } from '../../../../src/lib/supabase';
 import {
   Coffee,
   Coins,
@@ -291,6 +292,15 @@ export default function ServicesPage() {
     const token = localStorage.getItem('smarter-poker-auth');
     if (!token) router.push('/auth/login?redirect=/hub/commander/services');
   }, [router]);
+  // Realtime listener — live updates for services/index.js
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`services:${user?.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_service_requests' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
 
   const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR('/api/commander/sessions/current', async () => {
     const token = localStorage.getItem('smarter-poker-auth');

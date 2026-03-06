@@ -18,6 +18,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
+import { supabase } from '../../../../src/lib/supabase';
 
 export default function VenueDetail() {
   const router = useRouter();
@@ -76,6 +77,16 @@ export default function VenueDetail() {
     // Auto-refresh every minute
     const interval = setInterval(() => fetchData(_c.signal), 60000);
     return () => { _c.abort(); clearInterval(interval); };
+  }, [id]);
+  // Realtime listener — live updates for venue/[id].js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`venue-live:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_games', filter: `venue_id=eq.${id}` }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `venue_id=eq.${id}` }, () => { fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [id]);
 
   // Handle join waitlist

@@ -696,6 +696,15 @@ export default function BankrollManagerPage() {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`bankroll:${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bankroll_ledger', filter: `user_id=eq.${userId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
   return (
     <PageTransition>

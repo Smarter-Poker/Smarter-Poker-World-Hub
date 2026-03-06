@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Gift, Clock, TrendingUp, History, Star, ChevronRight, Utensils, CreditCard } from 'lucide-react';
 import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
+import { supabase } from '../../../../src/lib/supabase';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -84,6 +85,16 @@ export default function PlayerRewardsPage() {
     if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
     return () => _c.abort();
   }, [router]);
+  // Realtime listener — live updates for rewards/index.js
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`rewards:${user?.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_comp_balances' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_comp_transactions' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
 
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
     const token = localStorage.getItem('smarter-poker-auth');

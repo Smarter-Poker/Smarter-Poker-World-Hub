@@ -105,6 +105,16 @@ export default function MyTournamentStatus() {
     }, [id, router]);
 
     useEffect(() => { let active = true; fetchData(); return () => { active = false; }; }, [fetchData]);
+  // Realtime listener — live updates for tournament/[id]/my-status.js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`td-mystatus:${id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_tournaments', filter: `id=eq.${id}` }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_tournament_entries', filter: `tournament_id=eq.${id}` }, () => { fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id]);
 
     // Supabase Realtime — instant sync when tournament/player data changes
     useTournamentRealtime(id, fetchData);

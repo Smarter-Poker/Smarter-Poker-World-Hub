@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, MapPin, Clock, Users, Phone, Star, Gift, Loader2, MessageSquare, Zap } from 'lucide-react';
+import { supabase } from '../../../../src/lib/supabase';
 
 function GameRow({ game, onJoinWaitlist }) {
   const isFull = (game.player_count || 0) >= (game.max_players || 9);
@@ -101,6 +102,15 @@ export default function VenueDetailPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  // Realtime listener — live updates for venues/[id].js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`venue-detail:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_games', filter: `venue_id=eq.${id}` }, () => { fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id]);
 
   function handleJoinWaitlist(game) {
     router.push(`/hub/commander/waitlist/${id}?game=${game.id}`);

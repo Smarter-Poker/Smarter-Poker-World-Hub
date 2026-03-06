@@ -606,6 +606,16 @@ export default function FriendsPage() {
 
         return () => clearTimeout(timer);
     }, [searchQuery, user?.id]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`friends:${userId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `user_id=eq.${userId}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${userId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // HANDLERS

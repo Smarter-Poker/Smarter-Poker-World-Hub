@@ -4623,6 +4623,16 @@ export default function SocialMediaPage() {
     useEffect(() => { feedOffsetRef.current = feedOffset; }, [feedOffset]);
     useEffect(() => { hasMorePostsRef.current = hasMorePosts; }, [hasMorePosts]);
     useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`social:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {

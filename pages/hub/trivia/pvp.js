@@ -80,12 +80,8 @@ export default function PvPPage() {
 
         return () => {
             // Cleanup subscriptions
-            if (queueSubscription.current) {
-                supabase.removeChannel(queueSubscription.current);
-            }
-            if (matchSubscription.current) {
-                supabase.removeChannel(matchSubscription.current);
-            }
+            if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
+            if (matchSubscription.current) { matchSubscription.current(); matchSubscription.current = null; }
             if (searchTimeout.current) {
                 clearTimeout(searchTimeout.current);
             }
@@ -259,9 +255,7 @@ export default function PvPPage() {
 
     // Horse Match - Select random AI horse as opponent
     async function handleHorseMatch(stake) {
-        if (queueSubscription.current) {
-            supabase.removeChannel(queueSubscription.current);
-        }
+        if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
 
         // Get random AI horse from profiles
         const { data: horses } = await supabase
@@ -364,9 +358,7 @@ export default function PvPPage() {
     }
 
     function handleMatchFound(matchData) {
-        if (queueSubscription.current) {
-            supabase.removeChannel(queueSubscription.current);
-        }
+        if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current);
         }
@@ -406,9 +398,7 @@ export default function PvPPage() {
     }
 
     async function handleCancelSearch() {
-        if (queueSubscription.current) {
-            supabase.removeChannel(queueSubscription.current);
-        }
+        if (queueSubscription.current) { queueSubscription.current(); queueSubscription.current = null; }
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current);
         }
@@ -591,9 +581,7 @@ export default function PvPPage() {
     }
 
     async function handleBattleComplete(match) {
-        if (matchSubscription.current) {
-            supabase.removeChannel(matchSubscription.current);
-        }
+        if (matchSubscription.current) { matchSubscription.current(); matchSubscription.current = null; }
 
         const won = match.winner_id === userId;
         const myScore = isPlayer1 ? match.player1_score : match.player2_score;

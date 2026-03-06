@@ -22,6 +22,15 @@ export default function MessageRequests() {
     useEffect(() => {
         loadRequests();
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`msg-req:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
     const loadRequests = async () => {
         try {

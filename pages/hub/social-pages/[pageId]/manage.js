@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import SkeletonLight from '../../../../src/components/ui/SkeletonLight';
+import { supabase } from '../../../../../../src/lib/supabase';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -82,6 +83,16 @@ export default function ManageSocialPage() {
         if (tab === 'members') fetchMembers();
         if (tab === 'posts') fetchPosts();
     }, [tab, page]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!pageId) return;
+    const _ch = supabase
+      .channel(`social-page-mgr:${pageId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_pages', filter: `id=eq.${pageId}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [pageId]);
 
     const fetchMembers = async () => {
         try {

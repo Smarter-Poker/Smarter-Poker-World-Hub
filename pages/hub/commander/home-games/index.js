@@ -11,6 +11,7 @@ import { Home, Calendar, Globe, UserPlus, Search, Filter, QrCode } from 'lucide-
 import EventCard from '../../../../src/components/commander/home-games/EventCard';
 import GroupCard from '../../../../src/components/commander/home-games/GroupCard';
 import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';
+import { supabase } from '../../../../src/lib/supabase';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -41,6 +42,15 @@ export default function PlayerHomeGamesHub() {
     loadGames();
     return () => _c.abort();
   }, []);
+  // Realtime listener — live updates for home-games/index.js
+  useEffect(() => {
+    if (!user?.id) return;
+    const ch = supabase
+      .channel(`hg-list:${user?.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_groups' }, () => { loadGames(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user?.id]);
 
   useEffect(() => {    const _c = new AbortController();
 

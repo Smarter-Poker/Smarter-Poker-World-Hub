@@ -32,6 +32,16 @@ export default function TrainingProgress() {
     useEffect(() => {
         loadProgress();
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`train-progress:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'training_streaks', filter: `user_id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     const loadProgress = async () => {
         try {

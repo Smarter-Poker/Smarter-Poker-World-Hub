@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { supabase } from '../../../../src/lib/supabase';
 import {
   ChevronLeft,
   Users,
@@ -97,6 +98,15 @@ export default function SquadDetailPage() {
       return () => _c.abort();
     }
   }, [id, router]);
+  // Realtime listener — live updates for squads/[id].js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`squad:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_tournament_entries', filter: `tournament_id=eq.${id}` }, () => { fetchSquad(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id]);
 
   async function fetchSquad(signal) {
     setLoading(true);

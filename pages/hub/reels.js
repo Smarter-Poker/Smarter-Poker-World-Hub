@@ -470,7 +470,17 @@ export default function ReelsPage() {
             document.removeEventListener('touchstart', handleTouchStart, { capture: true });
             document.removeEventListener('touchend', handleTouchEnd, { capture: true });
             window.removeEventListener('wheel', handleWheel);
-        };}, []); // Empty deps - uses refs for current values
+        };}, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`reels:${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]); // Empty deps - uses refs for current values
 
 
     if (loading) {

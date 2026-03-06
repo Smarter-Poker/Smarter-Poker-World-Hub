@@ -260,6 +260,16 @@ export default function ClubArenaPage() {
     useEffect(() => {
         loadUserData();
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`club-arena-hub:${user?.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clubs' }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     // Fetch real stats from Supabase for the Shark Club card
     async function fetchSharkClubStats(signal) {

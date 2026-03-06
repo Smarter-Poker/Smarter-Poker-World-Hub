@@ -79,6 +79,15 @@ export default function ClubArenaTable() {
     })();
     return () => _c.abort();
   }, [tableId, user]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!tableId) return;
+    const _ch = supabase
+      .channel(`ca-table:${tableId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables', filter: `id=eq.${tableId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [tableId]);
 
   const handleExit = useCallback(() => {
     const cid = initialTable?.clubId;

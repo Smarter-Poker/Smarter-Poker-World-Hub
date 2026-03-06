@@ -636,6 +636,16 @@ export default function UserProfilePage() {
 
         fetchProfile();
     }, [username]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!profileUserId) return;
+    const _ch = supabase
+      .channel(`user-profile:${profileUserId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `user_id=eq.${profileUserId}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [profileUserId]);
 
     const handleAddFriend = async () => {
         if (!currentUser || !profile) return;

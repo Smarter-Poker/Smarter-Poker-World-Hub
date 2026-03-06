@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Settings, UserPlus, Check, X, Copy, Loader2, MessageSquare, Star } from 'lucide-react';
 import RsvpForm, { RsvpList } from '../../../../src/components/commander/home-games/RsvpForm';
 import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
+import { supabase } from '../../../../src/lib/supabase';
 
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);
@@ -215,6 +216,16 @@ export default function HomeGameDetailPage() {
   useEffect(() => {
     fetchGroup();
   }, [fetchGroup]);
+  // Realtime listener — live updates for home-games/[id].js
+  useEffect(() => {
+    if (!id) return;
+    const ch = supabase
+      .channel(`hg-detail:${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_games', filter: `group_id=eq.${id}` }, () => { fetchGroup(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_home_rsvps' }, () => { fetchGroup(); })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [id]);
 
   // Fetch reviews for past events
   useEffect(() => {

@@ -51,6 +51,15 @@ export default function SurvivalModePage() {
         Promise.all([loadUserData(), loadLeaderboard()])
           .finally(() => setPageLoading(false));
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`trivia-surv:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_survival_runs', filter: `user_id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     async function loadUserData() {
         const user = getAuthUser();

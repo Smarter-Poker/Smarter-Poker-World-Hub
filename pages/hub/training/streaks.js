@@ -37,6 +37,15 @@ export default function StreaksPage() {
         getAuthUser().then(u => setUser(u)).catch(() => { });
         return () => _c.abort();
     }, []);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`train-streaks:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     const swrKey = user ? `/api/training/streak?userId=${user.id}` : null;
     const { data: swrData, isLoading: loading, mutate: refreshStreak } = useSWR(swrKey, async (url) => {

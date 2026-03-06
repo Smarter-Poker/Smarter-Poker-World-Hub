@@ -202,6 +202,15 @@ export default function TrainingArenaPage() {
         }, 1000);
         return () => clearInterval(interval);
     }, [loading]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!gameId) return;
+    const _ch = supabase
+      .channel(`train-arena:${gameId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_registry', filter: `id=eq.${gameId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [gameId]);
 
     const handleAction = async (action) => {
         setHandNumber(prev => Math.min(prev + 1, totalHands));

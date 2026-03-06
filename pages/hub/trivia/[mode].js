@@ -192,6 +192,15 @@ export default function TriviaModePage() {
 
         initialize();
     }, [mode, modeConfig]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!user?.id) return;
+    const _ch = supabase
+      .channel(`trivia-mode:${user?.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [user?.id]);
 
     async function getUserDiamonds(userId) {
         if (!userId) return 0;

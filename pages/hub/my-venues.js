@@ -566,6 +566,15 @@ export default function MyVenuesPage() {
         }, 60000);
         return () => clearInterval(interval);
     }, [user, reloadVenues]);
+  // Realtime subscription — live updates
+  useEffect(() => {
+    if (!userId) return;
+    const _ch = supabase
+      .channel(`my-venues:${userId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_staff_shifts', filter: `staff_id=eq.${userId}` }, () => {})
+      .subscribe();
+    return () => { supabase.removeChannel(_ch); };
+  }, [userId]);
 
     const handleLinked = () => {
         // Clear the linked venue from emailMatches and refresh venues
