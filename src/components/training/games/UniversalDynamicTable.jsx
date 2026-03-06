@@ -701,6 +701,48 @@ function UniversalDynamicTable({
         };
     }, [questionNumber]);
 
+    // GAP-6: Effective stack (smallest of hero and all active villains)
+    const effectiveStack = useMemo(() => {
+        const villainStacks = seats
+            .filter((_, i) => i !== heroSeatIndex)
+            .map((_, i) => {
+                const seed = (questionNumber || 1) * 13 + i * 7;
+                return 30 + (seed % 120);
+            });
+        return Math.min(heroStack, ...villainStacks);
+    }, [heroStack, seats, heroSeatIndex, questionNumber]);
+
+    // GAP-2: SPR calculation
+    const spr = useMemo(() => {
+        if (pot <= 0) return null;
+        return (effectiveStack / pot).toFixed(1);
+    }, [effectiveStack, pot]);
+
+    // GAP-2: Pot odds calculation
+    const potOdds = useMemo(() => {
+        if (pot <= 0) return null;
+        // Find if there's a call option
+        const callOpt = options.find(o => /call/i.test(o.text || ''));
+        if (!callOpt) return null;
+        const callMatch = (callOpt.text || '').match(/(\d+\.?\d*)/);
+        if (!callMatch) return null;
+        const callSize = parseFloat(callMatch[1]);
+        if (callSize <= 0) return null;
+        return Math.round((callSize / (pot + callSize)) * 100);
+    }, [pot, options]);
+
+    // GAP-1: Parse action history from scenario
+    const actionHistory = useMemo(() => {
+        const actions = scenario.actionHistory || scenario.actions || scenario.preflop_actions || [];
+        if (Array.isArray(actions) && actions.length > 0) return actions;
+        // Build from available data
+        const built = [];
+        if (villainAction) {
+            built.push({ position: villainPosition, action: villainAction });
+        }
+        return built;
+    }, [scenario, villainAction, villainPosition]);
+
     // Compute simulated GTO frequencies for this question (if not passed down)
     const computedFrequencies = useMemo(() => {
         if (gtoFrequencies) return gtoFrequencies;
@@ -896,27 +938,46 @@ function UniversalDynamicTable({
                 </div>
             </div>
 
-            {/* QUESTION TEXT — Slim bar below top bar */}
+            {/* GAP-5: Progress bar */}
+            <div style={styles.progressBarContainer}>
+                <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${((questionNumber || 1) / (totalQuestions || 25)) * 100}%` }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    style={styles.progressBarFill}
+                />
+            </div>
+
+            {/* GAP-4: Scenario context bar (replaces verbose question text) */}
             <div style={styles.questionBar}>
-                <div style={styles.questionText}>
-                    {(() => {
-                        const parts = renderInlineCards(questionText);
-                        if (!Array.isArray(parts)) return questionText;
-                        return parts.map((part, idx) => {
-                            if (typeof part === 'string') return part;
-                            if (part.type === 'card') {
-                                return (
-                                    <img
-                                        key={idx}
-                                        src={part.path}
-                                        alt={part.notation}
-                                        style={styles.inlineCard}
-                                    />
-                                );
-                            }
-                            return null;
-                        });
-                    })()}
+                <div style={styles.scenarioInfo}>
+                    {/* GAP-1: Action history strip */}
+                    {actionHistory.length > 0 ? (
+                        <div style={styles.actionHistoryStrip}>
+                            {actionHistory.map((a, i) => (
+                                <span key={i} style={styles.actionHistoryItem}>
+                                    <span style={styles.actionHistoryPos}>{a.position || ''}</span>
+                                    <span style={styles.actionHistoryAction}>{a.action || ''}</span>
+                                    {i < actionHistory.length - 1 && <span style={styles.actionHistorySep}>→</span>}
+                                </span>
+                            ))}
+                        </div>
+                    ) : villainAction ? (
+                        <div style={styles.actionHistoryStrip}>
+                            <span style={styles.actionHistoryItem}>
+                                <span style={styles.actionHistoryPos}>{villainPosition}</span>
+                                <span style={styles.actionHistoryAction}>{villainAction}</span>
+                            </span>
+                        </div>
+                    ) : (
+                        <div style={styles.scenarioLabel}>
+                            {streetLabel} — Your action
+                        </div>
+                    )}
+                    {/* GAP-6: Effective stack badge */}
+                    <div style={styles.effStackBadge}>
+                        Eff: {effectiveStack} BB
+                    </div>
                 </div>
                 {/* Streak Badge */}
                 {streak >= 2 && (
@@ -1035,6 +1096,13 @@ function UniversalDynamicTable({
                                             />
                                         </div>
                                     )}
+                                    {/* GAP-8: Card-back images at villain seats */}
+                                    {!isHero && (
+                                        <div style={styles.villainCardsInline}>
+                                            <img src="/cards/back.png" alt="card" style={styles.villainCard} />
+                                            <img src="/cards/back.png" alt="card" style={{ ...styles.villainCard, marginLeft: -10 }} />
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         );
@@ -1118,7 +1186,7 @@ function UniversalDynamicTable({
                     </div>
                 )}
 
-                {/* POT DISPLAY */}
+                {/* POT DISPLAY + GAP-2: SPR & Pot Odds */}
                 {pot > 0 && (
                     <motion.div
                         initial={{ scale: 0.8, opacity: 0 }}
@@ -1127,20 +1195,11 @@ function UniversalDynamicTable({
                     >
                         <span style={styles.chipIcon}>🪙</span>
                         <span>POT: {pot} BB</span>
-                    </motion.div>
-                )}
-
-                {/* VILLAIN ACTION SPEECH BUBBLE */}
-                {villainAction && (
-                    <motion.div
-                        initial={{ x: -30, opacity: 0, scale: 0.9 }}
-                        animate={{ x: 0, opacity: 1, scale: 1 }}
-                        transition={{ type: 'spring', damping: 15 }}
-                        style={styles.villainActionBubble}
-                    >
-                        <div style={styles.villainActionHeader}>{villainPosition}</div>
-                        <div style={styles.villainActionText}>{villainAction}</div>
-                        <div style={styles.speechTail} />
+                        {/* GAP-2: SPR + Pot Odds overlays */}
+                        <div style={styles.potOverlayRow}>
+                            {spr && <span style={styles.potOverlayBadge}>SPR: {spr}</span>}
+                            {potOdds && <span style={styles.potOverlayBadge}>Odds: {potOdds}%</span>}
+                        </div>
                     </motion.div>
                 )}
 
@@ -1666,6 +1725,114 @@ const styles = {
 
     chipIcon: {
         fontSize: 16,
+    },
+
+    // GAP-2: SPR + Pot Odds overlays
+    potOverlayRow: {
+        display: 'flex',
+        gap: 6,
+        marginTop: 2,
+    },
+
+    potOverlayBadge: {
+        fontSize: 9,
+        color: '#94a3b8',
+        background: 'rgba(255,255,255,0.06)',
+        padding: '1px 6px',
+        borderRadius: 4,
+        fontWeight: '600',
+        letterSpacing: 0.5,
+    },
+
+    // GAP-5: Progress bar
+    progressBarContainer: {
+        height: 3,
+        background: 'rgba(255,255,255,0.06)',
+        width: '100%',
+        flexShrink: 0,
+    },
+
+    progressBarFill: {
+        height: '100%',
+        background: 'linear-gradient(90deg, #00d4ff, #06b6d4)',
+        borderRadius: '0 2px 2px 0',
+    },
+
+    // GAP-1: Action history strip
+    scenarioInfo: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flex: 1,
+        gap: 8,
+    },
+
+    scenarioLabel: {
+        fontSize: 13,
+        color: '#94a3b8',
+        fontWeight: '500',
+    },
+
+    actionHistoryStrip: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        flexWrap: 'wrap',
+    },
+
+    actionHistoryItem: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 3,
+    },
+
+    actionHistoryPos: {
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: '#00d4ff',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+
+    actionHistoryAction: {
+        fontSize: 11,
+        color: '#e2e8f0',
+        fontWeight: '500',
+        textTransform: 'capitalize',
+    },
+
+    actionHistorySep: {
+        fontSize: 10,
+        color: '#64748b',
+        margin: '0 2px',
+    },
+
+    // GAP-6: Effective stack badge
+    effStackBadge: {
+        fontSize: 10,
+        color: '#94a3b8',
+        background: 'rgba(255,255,255,0.06)',
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontWeight: '600',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+    },
+
+    // GAP-8: Villain card-back images
+    villainCardsInline: {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+    },
+
+    villainCard: {
+        width: 20,
+        height: 28,
+        borderRadius: 3,
+        opacity: 0.7,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
     },
 
     villainActionBubble: {
