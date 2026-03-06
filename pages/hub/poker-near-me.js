@@ -1290,7 +1290,7 @@ export default function PokerNearMePage() {
                 params.set('lat', userLocation.lat.toString());
                 params.set('lng', userLocation.lng.toString());
             }
-            const res = await fetch('/api/poker/live-games?' + params, { signal });
+            const res = await fetch('/api/poker/live-games?' + params);
             const json = await res.json();
             // API returns { venues: { venueId: [games] } } for active=true
             // Flatten grouped object into a flat array
@@ -1552,7 +1552,7 @@ export default function PokerNearMePage() {
         series: series.length,
         daily: dailyTournaments.length,
         live: liveGames.length
-    };
+    });
 
     const counts = getCounts();
 

@@ -93,7 +93,7 @@ class GameStateMachine {
       // Multi-board: 1 = normal, 2 = double board, 3 = triple board
       numBoards: config.doubleBoard ? 2 : config.tripleBoard ? 3 : (config.numBoards || 1),
     };
-    
+
     // Engine components
     this.deck = new Deck({ shortDeck: config.variant === GAME_VARIANT.SHORT_DECK });
     this.potCalculator = new PotCalculator();
@@ -104,17 +104,17 @@ class GameStateMachine {
       ante: this.config.ante,
       allowStraddle: this.config.straddle,
     });
-    
+
     // Game state
     this.phase = GAME_PHASE.IDLE;
     this.handNumber = 0;
     this.buttonSeat = -1; // Will be set on first hand
     this._pendingStraddles = new Set(); // Players who want to straddle next hand
-    
+
     // Current hand state
     this.currentHand = null;
     this.bettingRound = null;
-    
+
     // Event listeners
     this._listeners = new Map();
   }
@@ -163,27 +163,27 @@ class GameStateMachine {
     if (players.length < 2) {
       throw new Error('Need at least 2 players to start a hand');
     }
-    
+
     // Validate all players have chips
     const playersWithChips = players.filter(p => p.stack > 0);
     if (playersWithChips.length < 2) {
       throw new Error('Need at least 2 players with chips');
     }
-    
+
     this.handNumber++;
-    
+
     // Rotate button
     if (buttonSeat !== undefined) {
       this.buttonSeat = buttonSeat;
     } else {
       this.buttonSeat = this._rotateButton(playersWithChips);
     }
-    
+
     // Determine blind positions
     const positions = this._assignPositions(playersWithChips);
-    
+
     const isBombPot = options.bombPot || false;
-    
+
     // Initialize hand state
     this.currentHand = {
       handNumber: this.handNumber,
@@ -206,20 +206,20 @@ class GameStateMachine {
       result: null,
       isBombPot,
     };
-    
+
     // Reset components
     this.deck.reset();
     this.potCalculator.reset();
-    
+
     this.phase = GAME_PHASE.POST_BLINDS;
-    
+
     this.emit('hand_start', {
       handNumber: this.handNumber,
       players: this.currentHand.players.map(p => ({ id: p.id, stack: p.stack, seatIndex: p.seatIndex, position: p.position })),
       buttonSeat: this.buttonSeat,
       bombPot: isBombPot,
     });
-    
+
     if (isBombPot) {
       // ── BOMB POT: Everyone antes, skip preflop, deal flop ──
       const bombPotAnte = this.config.bigBlind * 2; // 2x BB per player
@@ -236,32 +236,32 @@ class GameStateMachine {
         ante: bombPotAnte,
         players: bombPotAmounts,
       });
-      
+
       // Deal hole cards
       this._dealHoleCards();
-      
+
       // Deal flop immediately
       this._dealCommunityCards('flop');
-      this.emit('street_start', { 
-        street: 'flop', 
+      this.emit('street_start', {
+        street: 'flop',
         communityCards: [...this.currentHand.communityCards],
         boards: this.config.numBoards > 1 ? this.currentHand.boards.map(b => [...b]) : undefined,
       });
-      
+
       // Start betting at flop (skip preflop entirely)
       this._startBettingRound('flop');
     } else {
       // ── NORMAL HAND ──
       // Post blinds
       this._postBlinds();
-      
+
       // Deal cards
       this._dealHoleCards();
-      
+
       // Start preflop betting
       this._startBettingRound('preflop');
     }
-    
+
     return this.getState();
   }
 
@@ -275,13 +275,13 @@ class GameStateMachine {
     if (!this.bettingRound || this.bettingRound.status !== ROUND_STATUS.IN_PROGRESS) {
       throw new Error('No active betting round');
     }
-    
+
     const result = this.bettingRound.processAction(playerId, action);
-    
+
     if (!result.success) {
       return { success: false, error: result.error, state: this.getState() };
     }
-    
+
     // Update pot calculator
     const player = this.currentHand.players.find(p => String(p.id) === String(playerId));
     if (result.action.type === ACTION_TYPES.FOLD) {
@@ -297,7 +297,7 @@ class GameStateMachine {
         this.potCalculator.markAllIn(playerId);
       }
     }
-    
+
     // Log action
     this.currentHand.actions.push({
       street: this.phase,
@@ -305,7 +305,7 @@ class GameStateMachine {
       action: result.action,
       potAfter: this.potCalculator.totalPot,
     });
-    
+
     this.emit('action_processed', {
       playerId,
       action: result.action,
@@ -313,7 +313,7 @@ class GameStateMachine {
       potTotal: this.potCalculator.totalPot,
       currentBet: this.bettingRound.currentBet,
     });
-    
+
     // Check if round is complete
     if (result.roundComplete) {
       this._onRoundComplete();
@@ -328,7 +328,7 @@ class GameStateMachine {
         });
       }
     }
-    
+
     return { success: true, state: this.getState() };
   }
 
@@ -485,13 +485,13 @@ class GameStateMachine {
   _postBlinds() {
     const players = this.currentHand.players;
     const { smallBlind, bigBlind, ante } = this.config;
-    
+
     // Find SB and BB players
     // In heads-up, the button player is also the SB
-    const sbPlayer = players.find(p => p.position === 'sb') 
+    const sbPlayer = players.find(p => p.position === 'sb')
       || (players.length === 2 ? players.find(p => p.position === 'btn') : null);
     const bbPlayer = players.find(p => p.position === 'bb');
-    
+
     // Post antes (traditional ante: before blinds; BBA: after blinds)
     if (ante > 0 && !this.config.bigBlindAnte) {
       // ── TRADITIONAL ANTE: Each player posts individually ──
@@ -505,7 +505,7 @@ class GameStateMachine {
         }
       }
     }
-    
+
     // Post small blind
     if (sbPlayer) {
       const sbAmount = Math.min(smallBlind, sbPlayer.stack);
@@ -517,7 +517,7 @@ class GameStateMachine {
         this.potCalculator.markAllIn(sbPlayer.id);
       }
     }
-    
+
     // Post big blind
     if (bbPlayer) {
       const bbAmount = Math.min(bigBlind, bbPlayer.stack);
@@ -529,7 +529,7 @@ class GameStateMachine {
         this.potCalculator.markAllIn(bbPlayer.id);
       }
     }
-    
+
     // BIG BLIND ANTE: posted AFTER BB blind so blind is always covered first
     if (ante > 0 && this.config.bigBlindAnte && bbPlayer) {
       const totalAnte = ante * players.length;
@@ -543,7 +543,7 @@ class GameStateMachine {
         }
       }
     }
-    
+
     this.emit('blinds_posted', {
       smallBlind: this.currentHand.blinds.sb,
       bigBlind: this.currentHand.blinds.bb,
@@ -609,15 +609,15 @@ class GameStateMachine {
   _dealHoleCards() {
     const players = this.currentHand.players;
     const cardsPerPlayer = this._getCardsPerPlayer();
-    
+
     const hands = this.deck.dealHoleCards(players.length, cardsPerPlayer);
-    
+
     for (let i = 0; i < players.length; i++) {
       players[i].holeCards = hands[i];
     }
-    
+
     this.phase = GAME_PHASE.DEAL;
-    
+
     this.emit('cards_dealt', {
       players: players.map(p => ({
         id: p.id,
@@ -658,9 +658,9 @@ class GameStateMachine {
    */
   _startBettingRound(street) {
     this.phase = street;
-    
+
     const activePlayers = this.currentHand.players.filter(p => !p.folded);
-    
+
     // Build player list for the betting round
     // Order: For preflop, UTG first. For postflop, first after button.
     let orderedPlayers;
@@ -669,7 +669,7 @@ class GameStateMachine {
     } else {
       orderedPlayers = this._getPostflopOrder();
     }
-    
+
     // Prepare blind info for preflop
     let blinds = undefined;
     if (street === 'preflop') {
@@ -681,7 +681,7 @@ class GameStateMachine {
       if (bb) blinds.push({ playerId: bb.playerId, amount: bb.amount });
       if (straddle) blinds.push({ playerId: straddle.playerId, amount: straddle.amount });
     }
-    
+
     this.bettingRound = new BettingRound({
       players: orderedPlayers.map(p => ({
         id: p.id,
@@ -692,25 +692,25 @@ class GameStateMachine {
       validator: this.actionValidator,
       capAmount: this.config.capAmount || 0,
     });
-    
+
     this.bettingRound.start({
       potFromPreviousRounds: this.potCalculator.totalPot - (blinds ? blinds.reduce((s, b) => s + b.amount, 0) : 0),
       blinds: street === 'preflop' ? blinds : undefined,
     });
-    
+
     this.emit('street_start', {
       street,
       communityCards: this.currentHand.communityCards.map(c => c),
       boards: this.config.numBoards > 1 ? this.currentHand.boards.map(b => [...b]) : undefined,
       potTotal: this.potCalculator.totalPot,
     });
-    
+
     // Check if betting is already complete (everyone all-in)
     if (this.bettingRound.status === ROUND_STATUS.COMPLETE) {
       this._onRoundComplete();
       return;
     }
-    
+
     // Emit action required for first player
     const firstPlayer = this.bettingRound.getCurrentPlayer();
     if (firstPlayer) {
@@ -729,7 +729,7 @@ class GameStateMachine {
   _onRoundComplete() {
     // Check if hand is over (all but one folded)
     const activePlayers = this.currentHand.players.filter(p => !p.folded);
-    
+
     if (activePlayers.length <= 1) {
       // Everyone folded - award pot to last player
       this._handleFoldWin(activePlayers[0]);
@@ -754,19 +754,19 @@ class GameStateMachine {
       }
       return;
     }
-    
+
     // Advance to next street
     const nextStreet = this._getNextStreet();
-    
+
     if (!nextStreet) {
       // No more streets - go to showdown
       this._handleShowdown();
       return;
     }
-    
+
     // Check if we need to deal community cards
     this._dealCommunityCards(nextStreet);
-    
+
     // Check if all remaining players are all-in (run out the board)
     const actionablePlayers = activePlayers.filter(p => !p.allIn);
     if (actionablePlayers.length <= 1) {
@@ -774,7 +774,7 @@ class GameStateMachine {
       this._runOutBoard(nextStreet);
       return;
     }
-    
+
     // Start next betting round
     this._startBettingRound(nextStreet);
   }
@@ -802,7 +802,7 @@ class GameStateMachine {
         if (this.currentHand.boards?.[0]) this.currentHand.boards[0] = [...this.currentHand.communityCards];
         break;
     }
-    
+
     // Multi-board: deal same street to extra boards (board[1], board[2])
     const numBoards = this.config.numBoards || 1;
     if (numBoards > 1) {
@@ -1212,10 +1212,10 @@ class GameStateMachine {
     // fromStreet has ALREADY been dealt by _onRoundComplete → _dealCommunityCards.
     // Only deal streets AFTER fromStreet.
     const streetsRemaining = STREETS.slice(STREETS.indexOf(fromStreet) + 1);
-    
+
     const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
     const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
-    
+
     // Helper: evaluate a board for all active players
     const evalBoard = (board) => {
       const results = [];
@@ -1231,7 +1231,7 @@ class GameStateMachine {
       results.sort((a, b) => b.score - a.score);
       return results;
     };
-    
+
     // Helper: deal a fresh board from deck
     const dealBoard = () => {
       const cards = [...boardBefore];
@@ -1250,31 +1250,31 @@ class GameStateMachine {
       }
       return cards;
     };
-    
+
     // Board 1: deal using the standard community card methods
     for (const street of streetsRemaining) {
       this._dealCommunityCards(street);
     }
     const boards = [{ board: [...this.currentHand.communityCards] }];
-    
+
     // Boards 2..N: deal from remaining deck
     for (let i = 1; i < numBoards; i++) {
       boards.push({ board: dealBoard() });
     }
-    
+
     this.phase = GAME_PHASE.SHOWDOWN;
-    
+
     // Evaluate all boards
     const allResults = boards.map(b => {
       b.results = evalBoard(b.board);
       b.winner = b.results[0];
       return b;
     });
-    
+
     // ── Use PotCalculator for correct side pot distribution per board ──
     const pots = this.potCalculator.calculatePots();
     const totalPot = this.potCalculator.totalPot;
-    
+
     // Apply rake to total pot
     // "No flop, no drop" — no rake if flop was never dealt
     const flopSeen = this.currentHand.communityCards.length >= 3;
@@ -1287,7 +1287,7 @@ class GameStateMachine {
         rake = Math.min(Math.floor(totalPot * rakePercent / 100), rakeCap > 0 ? rakeCap : Infinity);
       }
     }
-    
+
     // Deduct rake from pots (main pot first)
     let rakeRemaining = rake;
     for (const pot of pots) {
@@ -1296,33 +1296,33 @@ class GameStateMachine {
       pot.amount -= deduction;
       rakeRemaining -= deduction;
     }
-    
+
     // Distribute each pot across boards, respecting eligibility
     const payouts = {};
     const boardPayouts = allResults.map(() => ({})); // per-board payout map
-    
+
     for (const pot of pots) {
       if (pot.amount <= 0) continue;
-      
+
       // Split this pot across N boards
       const basePortion = Math.floor(pot.amount / numBoards);
       let potRemainder = pot.amount - (basePortion * numBoards);
-      
+
       allResults.forEach((b, boardIdx) => {
         const portion = basePortion + (boardIdx === 0 ? potRemainder : 0);
         if (portion <= 0) return;
-        
+
         // Find best eligible hand for this pot on this board
         const eligibleResults = b.results.filter(r => pot.eligible.has(r.playerId));
         if (eligibleResults.length === 0) return;
-        
+
         // Best score among eligible (handle ties)
         const bestScore = eligibleResults[0].score;
         const winners = eligibleResults.filter(r => r.score === bestScore);
-        
+
         const share = Math.floor(portion / winners.length);
         let shareRemainder = portion - (share * winners.length);
-        
+
         for (const winner of winners) {
           const award = share + (shareRemainder > 0 ? 1 : 0);
           if (shareRemainder > 0) shareRemainder--;
@@ -1331,18 +1331,18 @@ class GameStateMachine {
         }
       });
     }
-    
+
     // Compute per-board total payouts for reporting
     allResults.forEach((b, i) => {
       b.payout = Object.values(boardPayouts[i]).reduce((s, v) => s + v, 0);
     });
-    
+
     // Apply payouts to player stacks
     for (const [pid, amount] of Object.entries(payouts)) {
       const player = this.currentHand.players.find(p => String(p.id) === String(pid));
       if (player) player.stack += amount;
     }
-    
+
     // Store multi-runout results
     const runoutData = {
       numBoards,
@@ -1362,9 +1362,9 @@ class GameStateMachine {
       payouts,
       totalPot,
     };
-    
+
     this.currentHand.runItMultiple = runoutData;
-    
+
     // Backwards-compatible: also set runItTwice for 2-board runs
     if (numBoards === 2) {
       this.currentHand.runItTwice = {
@@ -1374,28 +1374,28 @@ class GameStateMachine {
         payout1: allResults[0].payout, payout2: allResults[1].payout,
       };
     }
-    
+
     // Set hand result for _finishHand
     this.currentHand.result = {
       winners: Object.entries(payouts).map(([playerId, amount]) => ({
         playerId,
         amount,
         hand: allResults[0].results.find(r => r.playerId === playerId)?.hand ||
-              allResults[1].results.find(r => r.playerId === playerId)?.hand,
+          allResults[1].results.find(r => r.playerId === playerId)?.hand,
       })),
       runItMultiple: runoutData,
       potTotal: totalPot,
       rake,
     };
-    
+
     const eventName = numBoards === 2 ? 'run_it_twice' : 'run_it_thrice';
     this.emit(eventName, runoutData);
-    
+
     // Also emit generic event for UI
     this.emit('run_it_multiple', runoutData);
-    
+
     console.log(`🃏 Run It ${numBoards === 2 ? 'Twice' : 'Three Times'}: ${numBoards} boards dealt`);
-    
+
     // Finish hand normally
     this._finishHand();
   }
@@ -1418,7 +1418,7 @@ class GameStateMachine {
   _offerInsurance(fromStreet, activePlayers) {
     const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
     const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
-    
+
     // Evaluate current hand strengths
     const board = [...this.currentHand.communityCards];
     const evaluations = activePlayers.map(p => {
@@ -1430,18 +1430,18 @@ class GameStateMachine {
       }
       return { playerId: p.id, hand, score: hand.score, holeCards: p.holeCards };
     }).sort((a, b) => b.score - a.score);
-    
+
     // Count remaining cards and approximate outs for trailing player
     const cardsDealt = board.length + activePlayers.reduce((sum, p) => sum + p.holeCards.length, 0);
     const deckSize = isShortDeck ? 36 : 52;
     const remainingCards = deckSize - cardsDealt;
     const streetsLeft = STREETS.slice(STREETS.indexOf(fromStreet)).length;
-    
+
     // Approximate equity: trailing player has roughly (outs / remaining) per street
     // For simplicity, use a fixed approximation based on street
     const leader = evaluations[0];
     const trailer = evaluations[evaluations.length - 1];
-    
+
     // Rough out estimation based on hand category gap
     const categoryGap = Math.floor(leader.score / 1e10) - Math.floor(trailer.score / 1e10);
     let estimatedOuts;
@@ -1449,19 +1449,19 @@ class GameStateMachine {
     else if (categoryGap === 1) estimatedOuts = Math.min(10, remainingCards - 5);
     else if (categoryGap === 2) estimatedOuts = Math.min(6, remainingCards - 5);
     else estimatedOuts = Math.max(2, Math.min(4, remainingCards - 10));
-    
+
     // Equity approximation (rule of 2 and 4)
     const trailerEquity = Math.min(0.45, Math.max(0.02,
       (estimatedOuts * (streetsLeft >= 2 ? 4 : 2)) / 100
     ));
-    
+
     const totalPot = this.potCalculator.totalPot;
     const maxInsurance = Math.floor(totalPot * 0.5); // Can insure up to 50% of pot
-    
+
     // Insurance premium calculation: fair odds + house edge (10%)
     const fairPremiumRate = trailerEquity / (1 - trailerEquity);
     const premiumRate = fairPremiumRate * 1.10; // 10% house edge
-    
+
     // Emit insurance offer for the leading player
     this.emit('insurance_offered', {
       leaderId: leader.playerId,
@@ -1475,7 +1475,7 @@ class GameStateMachine {
       streetsLeft,
       totalPot,
     });
-    
+
     // Store insurance data for when player responds
     this.currentHand.insuranceOffer = {
       leaderId: leader.playerId,
@@ -1498,7 +1498,7 @@ class GameStateMachine {
       this.emit('error', { message: 'No insurance offer available' });
       return;
     }
-    
+
     const clampedAmount = Math.max(0, Math.min(amount, offer.maxInsurance));
     if (clampedAmount <= 0) {
       // Declined insurance
@@ -1506,9 +1506,9 @@ class GameStateMachine {
       this.emit('insurance_declined', { playerId });
       return;
     }
-    
+
     const premium = Math.ceil(clampedAmount * offer.premiumRate);
-    
+
     // Deduct premium from the leader's stack NOW
     const buyer = this.currentHand.players.find(p => p.id === playerId);
     if (!buyer || buyer.stack < premium) {
@@ -1526,7 +1526,7 @@ class GameStateMachine {
       trailerId: offer.trailerId,
       accepted: true,
     };
-    
+
     this.emit('insurance_purchased', {
       buyerId: playerId,
       amount: clampedAmount,
@@ -1535,7 +1535,7 @@ class GameStateMachine {
       // Premium goes to union treasury (or club if standalone)
       houseRevenue: premium,
     });
-    
+
     console.log(`🛡️ Insurance purchased: ${clampedAmount} coverage for ${premium} premium`);
   }
 
@@ -1546,10 +1546,10 @@ class GameStateMachine {
   _settleInsurance(showdownResult) {
     const ins = this.currentHand?.insurance;
     if (!ins || !ins.accepted) return null;
-    
+
     // Check if the trailer won (insurance should pay out)
     const trailerWon = showdownResult?.winners?.some(w => w.playerId === ins.trailerId);
-    
+
     if (trailerWon) {
       // Insurance pays out: buyer gets their insured amount.
       // Funds come from the UNION treasury (or club if standalone).
@@ -1559,7 +1559,7 @@ class GameStateMachine {
       if (buyer) buyer.stack += payout;
       // NOTE: Trailer stack is NOT touched — they keep full pot winnings.
       // The union/club absorbs the payout as an insurance expense.
-      
+
       this.emit('insurance_payout', {
         buyerId: ins.buyerId,
         payout,
@@ -1567,7 +1567,7 @@ class GameStateMachine {
         netGain: payout - ins.premium,
         reason: 'Trailer won — union/club pays insurance claim',
       });
-      
+
       return { buyerId: ins.buyerId, payout, premium: ins.premium, source: 'house' };
     } else {
       // Leader won — insurance not needed. Premium already deducted from
@@ -1577,7 +1577,7 @@ class GameStateMachine {
         premiumLost: ins.premium,
         reason: 'Leader won — no payout',
       });
-      
+
       console.log(`🛡️ Insurance expired: ${ins.buyerId} loses ${ins.premium} premium`);
       return { buyerId: ins.buyerId, payout: 0, premiumLost: ins.premium };
     }
@@ -1601,13 +1601,13 @@ class GameStateMachine {
    */
   _handleShowdown() {
     this.phase = GAME_PHASE.SHOWDOWN;
-    
+
     const activePlayers = this.currentHand.players.filter(p => !p.folded);
     const isOmaha = [GAME_VARIANT.OMAHA4, GAME_VARIANT.OMAHA5, GAME_VARIANT.OMAHA6, GAME_VARIANT.OMAHA_HILO].includes(this.config.variant);
     const isShortDeck = this.config.variant === GAME_VARIANT.SHORT_DECK;
     const isHiLo = this.config.variant === GAME_VARIANT.OMAHA_HILO;
     const numBoards = this.config.numBoards || 1;
-    
+
     // Helper: evaluate a board
     const evalBoard = (board) => {
       if (isOmaha) {
@@ -1621,12 +1621,12 @@ class GameStateMachine {
         board, { shortDeck: isShortDeck }
       );
     };
-    
+
     // ── MULTI-BOARD SHOWDOWN ──────────────────────────────────
     if (numBoards > 1 && this.currentHand.boards?.length > 1) {
       const boardResults = [];
       const allWinnerIds = new Set();
-      
+
       for (let b = 0; b < numBoards; b++) {
         const board = this.currentHand.boards[b];
         if (!board || board.length < 5) continue;
@@ -1635,23 +1635,23 @@ class GameStateMachine {
         winners.forEach(w => allWinnerIds.add(String(w.playerId)));
         boardResults.push({ boardIndex: b, board, result, winners });
       }
-      
+
       // Mark cards shown
       for (const player of activePlayers) {
         player.showCards = this.config.autoMuck ? allWinnerIds.has(String(player.id)) : true;
       }
-      
+
       // ── Side-pot-aware distribution across boards ──
       const pots = this.potCalculator.calculatePots();
       const totalPot = this.potCalculator.totalPot;
-      
+
       // Calculate rake on full pot ("no flop, no drop")
       const flopSeen = this.currentHand.communityCards.length >= 3;
       const rakeAmount = flopSeen ? Math.min(
         Math.floor(totalPot * (this.config.rakePercent || 0) / 100),
         this.config.rakeCap || Infinity
       ) : 0;
-      
+
       // Deduct rake from pots (main pot first)
       let rakeLeft = rakeAmount;
       for (const pot of pots) {
@@ -1660,34 +1660,34 @@ class GameStateMachine {
         pot.amount -= deduct;
         rakeLeft -= deduct;
       }
-      
+
       const payouts = {};
       const boardWinners = [];
-      
+
       for (const pot of pots) {
         if (pot.amount <= 0) continue;
-        
+
         const basePortion = Math.floor(pot.amount / boardResults.length);
         let potRemainder = pot.amount - (basePortion * boardResults.length);
-        
+
         boardResults.forEach((br, i) => {
           const portion = basePortion + (i === 0 ? potRemainder : 0);
           if (portion <= 0) return;
-          
+
           // Find the best hand(s) AMONG eligible players for this pot
           // (not just the overall board winners — they may not be eligible for side pots)
           const allRankings = br.result.hiRankings || br.result.rankings || [];
           const eligibleRankings = allRankings.filter(r => pot.eligible.has(r.playerId));
-          
+
           if (eligibleRankings.length === 0) return;
-          
+
           // Best score among eligible players (rankings are already sorted desc)
           const bestScore = eligibleRankings[0].hand.score;
           const eligibleWinners = eligibleRankings.filter(r => r.hand.score === bestScore);
-          
+
           const perWinner = Math.floor(portion / eligibleWinners.length);
           let shareRemainder = portion - (perWinner * eligibleWinners.length);
-          
+
           for (const w of eligibleWinners) {
             const award = perWinner + (shareRemainder > 0 ? 1 : 0);
             if (shareRemainder > 0) shareRemainder--;
@@ -1695,7 +1695,7 @@ class GameStateMachine {
           }
         });
       }
-      
+
       boardResults.forEach((br, i) => {
         boardWinners.push({
           boardIndex: br.boardIndex,
@@ -1704,7 +1704,7 @@ class GameStateMachine {
           portion: Object.values(payouts).reduce((s, v) => s + v, 0) / boardResults.length,
         });
       });
-      
+
       // Apply payouts
       const winnerDetails = [];
       for (const [pid, amount] of Object.entries(payouts)) {
@@ -1714,7 +1714,7 @@ class GameStateMachine {
           winnerDetails.push({ playerId: pid, amount });
         }
       }
-      
+
       this.emit('showdown', {
         multiBoard: true,
         numBoards,
@@ -1722,22 +1722,22 @@ class GameStateMachine {
         players: activePlayers.map(p => ({ id: p.id, holeCards: p.holeCards })),
         winners: [...allWinnerIds],
       });
-      
+
       this.currentHand.result = {
         type: 'multi_board_showdown',
         winners: winnerDetails,
         boards: boardWinners,
         rake: rakeAmount,
       };
-      
+
       this.emit('hand_complete', this.currentHand.result);
       return;
     }
-    
+
     // ── STANDARD SINGLE-BOARD SHOWDOWN ────────────────────────
     const board = this.currentHand.communityCards;
     let showdownResult = evalBoard(board);
-    
+
     // Mark cards as shown based on auto-muck setting
     const winnerIds = new Set(
       (showdownResult.hiWinners || showdownResult.winners || []).map(w => String(w.playerId))
@@ -1755,20 +1755,20 @@ class GameStateMachine {
     if (bbjResult) {
       this.emit('bbj_triggered', bbjResult);
     }
-    
+
     this.emit('showdown', {
       players: activePlayers.map(p => ({
         id: p.id,
         holeCards: p.holeCards,
-        hand: showdownResult.hiRankings 
-          ? showdownResult.hiRankings.find(r => r.playerId === p.id)?.hand 
+        hand: showdownResult.hiRankings
+          ? showdownResult.hiRankings.find(r => r.playerId === p.id)?.hand
           : showdownResult.rankings.find(r => r.playerId === p.id)?.hand,
       })),
       communityCards: board,
       winners: (showdownResult.hiWinners || showdownResult.winners).map(w => w.playerId),
       bbj: bbjResult || null,
     });
-    
+
     // Distribute pots
     this._handlePayout(showdownResult);
   }
@@ -1779,7 +1779,7 @@ class GameStateMachine {
    */
   _handleFoldWin(winner) {
     this.phase = GAME_PHASE.PAYOUT;
-    
+
     // "No flop, no drop" — standard poker rule: no rake if hand ends before flop
     const flopSeen = this.currentHand.communityCards.length >= 3 || this.phase !== 'preflop';
     const { payouts, rake } = this.potCalculator.awardToLastPlayer(winner.id, {
@@ -1787,7 +1787,7 @@ class GameStateMachine {
       rakeCap: this.config.rakeCap,
       flopSeen,
     });
-    
+
     // Update player stacks
     for (const [playerId, amount] of payouts) {
       const player = this.currentHand.players.find(p => String(p.id) === String(playerId));
@@ -1797,7 +1797,7 @@ class GameStateMachine {
     // Rabbit hunt: peek at remaining board cards
     const boardSize = this.currentHand.communityCards.length;
     const rabbitCards = this.deck.peekRabbitCards(boardSize);
-    
+
     this.currentHand.result = {
       type: 'fold',
       winners: [{ playerId: winner.id, amount: payouts.get(winner.id) }],
@@ -1805,13 +1805,13 @@ class GameStateMachine {
       rabbitCards: rabbitCards.length > 0 ? rabbitCards : null,
       boardAtEnd: [...this.currentHand.communityCards],
     };
-    
+
     this.emit('payout', {
       type: 'fold',
       winners: [{ playerId: winner.id, amount: payouts.get(winner.id) }],
       rake,
     });
-    
+
     this._finishHand();
   }
 
@@ -1821,18 +1821,18 @@ class GameStateMachine {
    */
   _handlePayout(showdownResult) {
     this.phase = GAME_PHASE.PAYOUT;
-    
+
     // Build player hand scores for pot distribution
     const playerHands = [];
     const rankings = showdownResult.hiRankings || showdownResult.rankings;
-    
+
     for (const ranking of rankings) {
       playerHands.push({
         playerId: ranking.playerId,
         handScore: ranking.hand.score,
       });
     }
-    
+
     // Build low hands if Hi-Lo
     let lowHands = [];
     if (showdownResult.loRankings) {
@@ -1841,14 +1841,14 @@ class GameStateMachine {
         lowScore: r.hand.score,
       }));
     }
-    
+
     const { payouts, pots, rake } = this.potCalculator.distribute(playerHands, {
       rakePercent: this.config.rakePercent,
       rakeCap: this.config.rakeCap,
       hiLo: this.config.variant === GAME_VARIANT.OMAHA_HILO,
       lowHands,
     });
-    
+
     // Update player stacks
     const winnerDetails = [];
     for (const [playerId, amount] of payouts) {
@@ -1865,7 +1865,7 @@ class GameStateMachine {
 
     // ── INSURANCE SETTLEMENT ────────────────────────────────
     const insuranceResult = this._settleInsurance(showdownResult);
-    
+
     this.currentHand.result = {
       type: 'showdown',
       winners: winnerDetails,
@@ -1873,14 +1873,14 @@ class GameStateMachine {
       rake,
       insurance: insuranceResult || null,
     };
-    
+
     this.emit('payout', {
       type: 'showdown',
       winners: winnerDetails,
       pots,
       rake,
     });
-    
+
     this._finishHand();
   }
 
@@ -1890,7 +1890,7 @@ class GameStateMachine {
    */
   _finishHand() {
     this.phase = GAME_PHASE.IDLE;
-    
+
     this.emit('hand_complete', {
       handNumber: this.handNumber,
       result: this.currentHand.result,
@@ -2056,11 +2056,11 @@ class GameStateMachine {
       // First hand - random button
       return players[0].seatIndex;
     }
-    
+
     // Find next player clockwise from current button
     const seats = players.map(p => p.seatIndex).sort((a, b) => a - b);
     const currentIdx = seats.indexOf(this.buttonSeat);
-    
+
     if (currentIdx === -1) {
       // Button player left - find next clockwise seat
       for (const seat of seats) {
@@ -2068,7 +2068,7 @@ class GameStateMachine {
       }
       return seats[0]; // Wrap around
     }
-    
+
     return seats[(currentIdx + 1) % seats.length];
   }
 
@@ -2079,7 +2079,7 @@ class GameStateMachine {
   _assignPositions(players) {
     const n = players.length;
     const buttonIdx = players.findIndex(p => p.seatIndex === this.buttonSeat);
-    
+
     if (n === 2) {
       // Heads-up: Button is SB, other is BB
       return players.map((p, i) => {
@@ -2087,39 +2087,39 @@ class GameStateMachine {
         return 'bb';
       });
     }
-    
+
     const positions = new Array(n).fill('mp');
-    
+
     // Button
     positions[buttonIdx] = 'btn';
-    
+
     // Small Blind (next after button)
     const sbIdx = (buttonIdx + 1) % n;
     positions[sbIdx] = 'sb';
-    
+
     // Big Blind (next after SB)
     const bbIdx = (sbIdx + 1) % n;
     positions[bbIdx] = 'bb';
-    
+
     // UTG (next after BB)
     if (n > 3) {
       const utgIdx = (bbIdx + 1) % n;
       positions[utgIdx] = 'utg';
     }
-    
+
     // CO (before button)
     if (n > 4) {
       const coIdx = (buttonIdx - 1 + n) % n;
       if (positions[coIdx] === 'mp') positions[coIdx] = 'co';
     }
-    
+
     // HJ (before CO)
     if (n > 5) {
       const coIdx = (buttonIdx - 1 + n) % n;
       const hjIdx = (coIdx - 1 + n) % n;
       if (positions[hjIdx] === 'mp') positions[hjIdx] = 'hj';
     }
-    
+
     // LJ (before HJ)
     if (n > 6) {
       const coIdx = (buttonIdx - 1 + n) % n;
@@ -2127,7 +2127,7 @@ class GameStateMachine {
       const ljIdx = (hjIdx - 1 + n) % n;
       if (positions[ljIdx] === 'mp') positions[ljIdx] = 'lj';
     }
-    
+
     // UTG+1, UTG+2, etc.
     if (n > 7) {
       const bbIdx2 = (buttonIdx + 3) % n;
@@ -2140,7 +2140,7 @@ class GameStateMachine {
         }
       }
     }
-    
+
     return positions;
   }
 
@@ -2166,16 +2166,16 @@ class GameStateMachine {
     }
 
     const bbIdx = players.findIndex(p => p.position === 'bb');
-    
+
     if (bbIdx === -1) return players;
-    
+
     // Start from after BB, wrap around to BB
     const ordered = [];
     for (let i = 1; i <= players.length; i++) {
       const idx = (bbIdx + i) % players.length;
       ordered.push(players[idx]);
     }
-    
+
     return ordered;
   }
 
@@ -2186,16 +2186,16 @@ class GameStateMachine {
   _getPostflopOrder() {
     const players = this.currentHand.players.filter(p => !p.folded);
     const btnIdx = players.findIndex(p => p.position === 'btn');
-    
+
     if (btnIdx === -1) return players;
-    
+
     // Start from after button, wrap around to button
     const ordered = [];
     for (let i = 1; i <= players.length; i++) {
       const idx = (btnIdx + i) % players.length;
       ordered.push(players[idx]);
     }
-    
+
     return ordered;
   }
 
@@ -2214,7 +2214,7 @@ class GameStateMachine {
         buttonSeat: this.buttonSeat,
       };
     }
-    
+
     return {
       phase: this.phase,
       handNumber: this.handNumber,
@@ -2264,7 +2264,7 @@ class GameStateMachine {
     if (!player) return { success: false, error: 'Player not in hand' };
     if (!player.holeCards || player.holeCards.length === 0) return { success: false, error: 'No cards to show' };
     if (player.showCards) return { success: true }; // already showing
-    
+
     player.showCards = true;
     this.emit('cards_shown', {
       playerId,
@@ -2281,7 +2281,7 @@ class GameStateMachine {
     if (!this.bettingRound) return null;
     const player = this.bettingRound.getCurrentPlayer();
     if (!player) return null;
-    
+
     return {
       playerId: player.id,
       actions: this.bettingRound.getLegalActions(),
@@ -2302,7 +2302,7 @@ class GameStateMachine {
    */
   getHandHistory() {
     if (!this.currentHand) return null;
-    
+
     return {
       handNumber: this.handNumber,
       variant: this.config.variant,
