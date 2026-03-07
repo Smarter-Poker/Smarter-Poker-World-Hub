@@ -153,7 +153,7 @@ export default function HelpPage() {
                     gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                     gap: 16,
                 }}>
-                    <Link href="/hub/live-help" style={{
+                    <Link href="/hub/messenger?chat=jarvis" style={{
                         textDecoration: 'none',
                         background: C.card,
                         border: `1px solid ${C.border}`,

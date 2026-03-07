@@ -373,7 +373,7 @@ export default function RegisterPage() {
                 ))}
               </div>
               <div className="p-4 bg-[#31A24C]/10 border border-[#31A24C]/30 rounded-xl text-center text-[#E4E6EB]"><span className="font-semibold">14-Day Free Trial</span> - No Credit Card Required</div>
-              <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <a href="/legal/terms" className="text-[#1877F2]">Terms</a> And <a href="/legal/privacy" className="text-[#1877F2]">Privacy Policy</a></label></div>
+              <div className="flex items-start gap-3"><input type="checkbox" id="terms" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)} className="mt-1 w-4 h-4 rounded" /><label htmlFor="terms" className="text-sm text-[#B0B3B8]">I Agree To The <a href="/terms" className="text-[#1877F2]">Terms</a> And <a href="/terms" className="text-[#1877F2]">Privacy Policy</a></label></div>
             </div>
           )}
 

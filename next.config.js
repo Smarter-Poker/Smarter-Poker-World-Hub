@@ -73,11 +73,15 @@ const nextConfig = {
   async redirects() {
     return [
       // Short-form auth URLs → canonical auth routes
-      { source: '/login',   destination: '/auth/login',  permanent: true },
-      { source: '/signup',  destination: '/auth/signup', permanent: true },
-      { source: '/register',destination: '/auth/signup', permanent: true },
-      // Privacy policy → terms (no separate privacy page exists)
-      { source: '/privacy', destination: '/terms',        permanent: true },
+      { source: '/login',         destination: '/auth/login',  permanent: true },
+      { source: '/signup',        destination: '/auth/signup', permanent: true },
+      { source: '/register',      destination: '/auth/signup', permanent: true },
+      // Privacy/legal routes → terms page (no separate privacy page exists)
+      { source: '/privacy',       destination: '/terms',        permanent: true },
+      { source: '/legal/privacy', destination: '/terms',        permanent: true },
+      { source: '/legal/terms',   destination: '/terms',        permanent: true },
+      // Live help → messenger with Jarvis
+      { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
     ];
   },
 
