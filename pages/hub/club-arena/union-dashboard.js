@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
+const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -131,7 +132,17 @@ export default function UnionDashboard() {
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) setUser(session.user);
-            else router.push('/auth/login');
+            else {
+                // Fallback: try localStorage directly
+                try {
+                    const cached = localStorage.getItem('smarter-poker-auth');
+                    if (cached) {
+                        const parsed = JSON.parse(cached);
+                        if (parsed?.user) { setUser(parsed.user); return; }
+                    }
+                } catch (_) { /* ignore */ }
+                router.push('/auth/login');
+            }
         });
     }, [router]);
 
