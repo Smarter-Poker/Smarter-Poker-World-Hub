@@ -32,8 +32,29 @@ export default function ThreePillHeader({
     onMenuClick = null
 }) {
     const router = useRouter();
-    const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ diamonds: 0 });
+
+    // 🛡️ INSTANT UI: Read cached header user from localStorage on mount
+    const [user, setUser] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('sp-cached-header-user');
+                if (cached) return JSON.parse(cached);
+            } catch (e) { }
+        }
+        return null;
+    });
+    const [stats, setStats] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('sp-cached-header-user');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    return { diamonds: data.diamonds || 0 };
+                }
+            } catch (e) { }
+        }
+        return { diamonds: 0 };
+    });
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
@@ -87,9 +108,19 @@ export default function ThreePillHeader({
                 if (authUser) {
                     setUser(authUser);
 
+                    // Get access token for JWT auth
+                    let accessToken = null;
+                    try {
+                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                        accessToken = authData?.access_token || null;
+                    } catch (e) { }
+
                     const response = await fetch('/api/user/get-header-stats', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                        },
                         body: JSON.stringify({ userId: authUser.id }),
                     });
                     const result = await response.json();
@@ -105,6 +136,15 @@ export default function ThreePillHeader({
                         if (typeof result.notificationCount === 'number') {
                             setNotificationCount(result.notificationCount);
                         }
+                        // 🛡️ INSTANT UI: Cache user data for next page load
+                        try {
+                            localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                                avatar: avatar_url,
+                                name: full_name || username,
+                                diamonds: diamonds || 0,
+                                is_vip: !!result.profile.is_vip
+                            }));
+                        } catch (_) { }
                     }
                 }
             } catch (e) {

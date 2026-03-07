@@ -91,13 +91,44 @@ export default function UniversalHeader({
     onMenuClick = null  // Callback for hamburger menu click
 }) {
     const router = useRouter();
-    const [user, setUser] = useState(null);
-    const [stats, setStats] = useState({ diamonds: 0 });
+
+    // 🛡️ INSTANT UI: Read cached header user from localStorage on mount
+    // This prevents "flash of missing data" before the API call completes
+    const [user, setUser] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('sp-cached-header-user');
+                if (cached) return JSON.parse(cached);
+            } catch (e) { }
+        }
+        return null;
+    });
+    const [stats, setStats] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('sp-cached-header-user');
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    return { diamonds: data.diamonds || 0 };
+                }
+            } catch (e) { }
+        }
+        return { diamonds: 0 };
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
-    const [isVip, setIsVip] = useState(false);
+    const [isVip, setIsVip] = useState(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const cached = localStorage.getItem('sp-cached-header-user');
+                if (cached) return !!JSON.parse(cached).is_vip;
+                return localStorage.getItem('sp-vip-status') === 'true';
+            } catch (e) { return false; }
+        }
+        return false;
+    });
 
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
@@ -177,6 +208,15 @@ export default function UniversalHeader({
                                 if (typeof result.notificationCount === 'number') {
                                     setNotificationCount(result.notificationCount);
                                 }
+                                // 🛡️ INSTANT UI: Cache user data for next page load
+                                try {
+                                    localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                                        avatar: avatar_url,
+                                        name: full_name || username,
+                                        diamonds: diamonds || 0,
+                                        is_vip: !!is_vip
+                                    }));
+                                } catch (_) { }
                                 return true; // Success
                             }
                             return false; // API returned error
@@ -292,14 +332,30 @@ export default function UniversalHeader({
         const refreshBalance = async () => {
             if (!user?.id) return;
             try {
+                // Get access token for JWT auth
+                let accessToken = null;
+                try {
+                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    accessToken = authData?.access_token || null;
+                } catch (e) { }
+
                 const response = await fetch('/api/user/get-header-stats', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                    },
                     body: JSON.stringify({ userId: user.id }),
                 });
                 const result = await response.json();
                 if (result.success && result.profile) {
                     setStats({ diamonds: result.profile.diamonds });
+                    // Update localStorage cache with new balance
+                    try {
+                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+                        cached.diamonds = result.profile.diamonds;
+                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
+                    } catch (_) { }
                     console.log('[UniversalHeader] 💎 Balance refreshed:', result.profile.diamonds);
                 }
             } catch (e) {
@@ -325,9 +381,19 @@ export default function UniversalHeader({
             // Re-fetch header stats to pick up all profile changes
             if (!user?.id) return;
             try {
+                // Get access token for JWT auth
+                let accessToken = null;
+                try {
+                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    accessToken = authData?.access_token || null;
+                } catch (e) { }
+
                 const response = await fetch('/api/user/get-header-stats', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                    },
                     body: JSON.stringify({ userId: user.id }),
                 });
                 const result = await response.json();
@@ -339,6 +405,15 @@ export default function UniversalHeader({
                         avatar: result.profile.avatar_url || prev?.avatar,
                         name: result.profile.full_name || result.profile.username || prev?.name
                     }));
+                    // Update localStorage cache with fresh profile data
+                    try {
+                        localStorage.setItem('sp-cached-header-user', JSON.stringify({
+                            avatar: result.profile.avatar_url,
+                            name: result.profile.full_name || result.profile.username,
+                            diamonds: result.profile.diamonds || 0,
+                            is_vip: !!result.profile.is_vip
+                        }));
+                    } catch (_) { }
                     console.log('[UniversalHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {
