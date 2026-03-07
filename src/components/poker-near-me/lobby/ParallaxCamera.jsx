@@ -28,44 +28,49 @@ export function ParallaxCamera() {
   const targetPos = useRef(new Vector3(0, BASE_Y, BASE_Z));
   const lookTarget = useRef(new Vector3(0, 0, 0));
 
-  // Mouse tracking (desktop)
+  // Consolidated event listeners — mouse, touch, and device orientation
   useEffect(() => {
     const handleMouseMove = (e) => {
-      mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseRef.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+      let x = (e.clientX / window.innerWidth) * 2 - 1;
+      let y = (e.clientY / window.innerHeight) * 2 - 1;
+      mouseRef.current.x = Math.max(-1, Math.min(1, x));
+      mouseRef.current.y = Math.max(-1, Math.min(1, y));
     };
 
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
-  // Touch tracking (mobile) — single finger parallax
-  useEffect(() => {
     const handleTouchMove = (e) => {
       if (e.touches.length === 1) {
         const touch = e.touches[0];
-        mouseRef.current.x = (touch.clientX / window.innerWidth) * 2 - 1;
-        mouseRef.current.y = (touch.clientY / window.innerHeight) * 2 - 1;
+        let x = (touch.clientX / window.innerWidth) * 2 - 1;
+        let y = (touch.clientY / window.innerHeight) * 2 - 1;
+        mouseRef.current.x = Math.max(-1, Math.min(1, x));
+        mouseRef.current.y = Math.max(-1, Math.min(1, y));
       }
     };
 
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    return () => window.removeEventListener('touchmove', handleTouchMove);
-  }, []);
-
-  // Device orientation (mobile)
-  useEffect(() => {
     const handleOrientation = (e) => {
-      if (e.gamma !== null) {
-        mouseRef.current.x = Math.max(-1, Math.min(1, e.gamma / 30));
-      }
-      if (e.beta !== null) {
-        mouseRef.current.y = Math.max(-1, Math.min(1, (e.beta - 45) / 30));
+      if (typeof DeviceOrientationEvent !== 'undefined') {
+        if (e.gamma !== null) {
+          mouseRef.current.x = Math.max(-1, Math.min(1, e.gamma / 30));
+        }
+        if (e.beta !== null) {
+          mouseRef.current.y = Math.max(-1, Math.min(1, (e.beta - 45) / 30));
+        }
       }
     };
 
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    if (typeof DeviceOrientationEvent !== 'undefined') {
+      window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
+      if (typeof DeviceOrientationEvent !== 'undefined') {
+        window.removeEventListener('deviceorientation', handleOrientation);
+      }
+    };
   }, []);
 
   useFrame(() => {

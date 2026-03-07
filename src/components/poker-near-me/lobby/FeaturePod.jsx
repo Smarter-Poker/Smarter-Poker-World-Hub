@@ -83,19 +83,22 @@ function PodImage({ podId, isHovered, isActive }) {
   const [texture, setTexture] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     const loader = new TextureLoader();
     const imagePath = POD_IMAGES[podId] || POD_IMAGES.search;
     loader.load(
       imagePath,
       (tex) => {
+        if (cancelled) { tex.dispose(); return; }
         tex.minFilter = LinearFilter;
         tex.magFilter = LinearFilter;
         tex.colorSpace = SRGBColorSpace;
-        setTexture(tex);
+        setTexture(prev => { if (prev) prev.dispose(); return tex; });
       },
       undefined,
       (err) => console.warn(`[FeaturePod] Failed to load image for ${podId}:`, err)
     );
+    return () => { cancelled = true; };
   }, [podId]);
 
   useFrame(({ camera }) => {

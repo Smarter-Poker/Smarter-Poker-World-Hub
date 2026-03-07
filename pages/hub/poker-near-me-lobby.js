@@ -316,15 +316,23 @@ export default function PokerNearMeLobby() {
   }, [fetchVenues, fetchTours, fetchSeries, fetchDaily, fetchLiveGames, fetchFavorites]);
 
   // ─── Live games refresh ───
+  const fetchLiveGamesRef = useRef(fetchLiveGames);
+  fetchLiveGamesRef.current = fetchLiveGames;
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchLiveGames();
+      fetchLiveGamesRef.current();
     }, LIVE_REFRESH_MS);
     return () => clearInterval(interval);
-  }, [fetchLiveGames]);
+  }, []);
 
   // ─── Search handler ───
   const searchTimeoutRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
+
   const handleSearchChange = useCallback((value) => {
     setSearchQuery(value);
 
