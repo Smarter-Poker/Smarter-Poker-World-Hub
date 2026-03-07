@@ -3,7 +3,7 @@
  * Reference: SCOPE_LOCK.md - Phase 3 Components
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Trophy, Users, DollarSign, Clock, Play, Pause, SkipForward,
   UserPlus, UserMinus, Award, Settings, RefreshCw, AlertCircle,
