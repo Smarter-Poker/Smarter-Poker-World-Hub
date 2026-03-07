@@ -80,22 +80,39 @@ export function UnreadProvider({ children }) {
             refreshUnread();
 
             // Set up real-time subscription for new messages
+            // We subscribe to INSERT events, then validate the message belongs
+            // to a conversation the user participates in before incrementing
             const channel = supabase
-                .channel('unread-messages')
+                .channel(`unread-messages:${userId}`)
                 .on('postgres_changes', {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'social_messages',
-                }, (payload) => {
-                    // If the message is not from us, increment count
-                    if (payload.new.sender_id !== userId) {
+                }, async (payload) => {
+                    // Ignore our own messages
+                    if (payload.new.sender_id === userId) return;
+
+                    // Verify this message is in a conversation we participate in
+                    try {
+                        const { data: participation } = await supabase
+                            .from('social_conversation_participants')
+                            .select('conversation_id')
+                            .eq('user_id', userId)
+                            .eq('conversation_id', payload.new.conversation_id)
+                            .maybeSingle();
+
+                        if (participation) {
+                            setUnreadCount(prev => prev + 1);
+                        }
+                    } catch (_) {
+                        // Fallback: increment anyway — refreshUnread will correct it
                         setUnreadCount(prev => prev + 1);
                     }
                 })
                 .subscribe();
 
-            // Refresh periodically as backup
-            const interval = setInterval(refreshUnread, 60000);
+            // Refresh periodically as backup (corrects any drift)
+            const interval = setInterval(refreshUnread, 30000);
 
             return () => {
                 supabase.removeChannel(channel);

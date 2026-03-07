@@ -319,6 +319,17 @@ export default function UniversalHeader({
                                 setNotificationCount(prev => Math.max(0, prev - 1));
                             }
                         })
+                        .on('postgres_changes', {
+                            event: 'DELETE',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, (payload) => {
+                            // If an unread notification is deleted, decrease count
+                            if (payload.old && !payload.old.read) {
+                                setNotificationCount(prev => Math.max(0, prev - 1));
+                            }
+                        })
                         .subscribe();
 
                     // Global useUnreadCount handles social_messages naturally

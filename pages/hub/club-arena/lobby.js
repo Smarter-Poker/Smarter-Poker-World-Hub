@@ -159,11 +159,13 @@ export default function ClubLobby() {
                 table: 'tables',
                 filter: `club_id=eq.${club.id}`,
             }, (payload) => {
-                if (payload.eventType === 'INSERT') {
+                // Supabase v2 uses 'event' not 'eventType' for postgres_changes
+                const eventType = payload.event || payload.eventType;
+                if (eventType === 'INSERT') {
                     setTables(prev => [...prev, payload.new]);
-                } else if (payload.eventType === 'UPDATE') {
+                } else if (eventType === 'UPDATE') {
                     setTables(prev => prev.map(t => t.id === payload.new.id ? { ...t, ...payload.new } : t));
-                } else if (payload.eventType === 'DELETE') {
+                } else if (eventType === 'DELETE') {
                     setTables(prev => prev.filter(t => t.id !== payload.old.id));
                 }
             })
@@ -200,7 +202,7 @@ export default function ClubLobby() {
                     }));
                 }
             } catch (_) { }
-        }, 60000); // Reduced from 15s — Realtime handles near-instant updates
+        }, 15000); // 15s polling fallback — safety net if Realtime channel drops
 
         return () => {
             supabase.removeChannel(channel);

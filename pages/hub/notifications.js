@@ -51,16 +51,15 @@ export default function NotificationsPage() {
             if (au) {
                 setUser(au);
 
-                // Fetch social notifications and poker page notifications in parallel
+                // Fetch social & poker notifications through API (service role, bypasses RLS)
+                const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+                const headers = { 'Authorization': 'Bearer ' + token };
+
                 const [socialRes, pokerRes] = await Promise.all([
-                    supabase
-                        .from('notifications')
-                        .select('*')
-                        .eq('user_id', au.id)
-                        .not('type', 'in', `(${BLOCKED_TYPES.join(',')})`)
-                        .order('created_at', { ascending: false })
-                        .limit(50),
-                    fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30', { signal })
+                    fetch('/api/notifications/list?limit=50', { headers, signal })
+                        .then(r => r.json())
+                        .catch(() => ({ success: false })),
+                    fetch('/api/poker/notifications?user_id=' + encodeURIComponent(au.id) + '&limit=30', { headers, signal })
                         .then(r => r.json())
                         .catch(() => ({ success: false })),
                 ]);
@@ -78,7 +77,7 @@ export default function NotificationsPage() {
                     _source: 'poker',
                 })) : [];
 
-                const data = socialRes.data || [];
+                const data = (socialRes.success && socialRes.notifications) ? socialRes.notifications : [];
                 const combined = [...data.map(n => ({ ...n, _source: 'social' })), ...pokerNotifs]
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
                     .slice(0, 60);

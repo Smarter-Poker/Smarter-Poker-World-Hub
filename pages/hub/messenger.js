@@ -13,7 +13,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser } from '../../src/lib/authUtils';
+import { getSafeUser, getAuthUser } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -1128,33 +1128,36 @@ export default function MessengerPage() {
     useEffect(() => {
         async function init(signal) {
             try {
-                let authUser = null;
-                try {
-                    authUser = await getSafeUser(supabase);
-                } catch (e) {
-                }
+                // BULLETPROOF: Use authUtils instead of getSafeUser (avoids AbortError)
+                const authUser = getAuthUser();
 
                 if (authUser) {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('id, username, avatar_url, is_vip')
-                        .eq('id', authUser.id)
-                        .maybeSingle();
+                    // Fetch profile through API-friendly approach
+                    const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+                    const headers = { 'Authorization': 'Bearer ' + token };
 
-                    setUser({ ...authUser, ...profile });
-                    setIsVip(!!profile?.is_vip);
+                    // Get profile data via header stats API (already proven working)
+                    const profileResp = await fetch('/api/user/get-header-stats', {
+                        method: 'POST',
+                        headers: { ...headers, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    }).then(r => r.json()).catch(() => ({}));
+
+                    setUser({
+                        ...authUser,
+                        username: profileResp.username || authUser.email?.split('@')[0],
+                        avatar_url: profileResp.avatar_url,
+                        is_vip: profileResp.is_vip
+                    });
+                    setIsVip(!!profileResp.is_vip);
                     await loadConversations(authUser.id);
 
-                    // Load friends for quick access
-                    const { data: friendships } = await supabase
-                        .from('friendships')
-                        .select('friend_id, friend:profiles!friendships_friend_id_fkey(id, username, full_name, avatar_url)')
-                        .eq('user_id', authUser.id)
-                        .eq('status', 'accepted')
-                        .limit(100) // messenger friends
+                    // Load friends via API (service role, bypasses RLS)
+                    const friendsResp = await fetch('/api/friends?action=list', { headers })
+                        .then(r => r.json()).catch(() => ({ data: { friends: [] } }));
 
-                    if (friendships) {
-                        setFriends(friendships.map(f => f.friend).filter(Boolean));
+                    if (friendsResp?.data?.friends) {
+                        setFriends(friendsResp.data.friends);
                     }
                 }
             } catch (e) {
