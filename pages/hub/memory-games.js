@@ -2565,7 +2565,7 @@ export default function MemoryGamesPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 },
                 body: JSON.stringify({
                     type: 'subscription',
