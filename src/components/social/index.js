@@ -95,19 +95,19 @@ export {
 
 export {
     default as FacebookClubView
-} from '../views/FacebookClubView';
+} from './views/FacebookClubView';
 
 export {
     default as FacebookWatchView
-} from '../views/FacebookWatchView';
+} from './views/FacebookWatchView';
 
 export {
     default as FacebookFeedView
-} from '../views/FacebookFeedView';
+} from './views/FacebookFeedView';
 
 export {
     default as FacebookProfileView
-} from '../views/FacebookProfileView';
+} from './views/FacebookProfileView';
 
 export const POKER_SOCIAL_COMPONENTS = {
     // Heat Effects

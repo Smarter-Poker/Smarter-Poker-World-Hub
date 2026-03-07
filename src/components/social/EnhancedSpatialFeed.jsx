@@ -7,15 +7,17 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSupabase } from '../../providers/SupabaseProvider';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
+// TODO: SupabaseProvider and SocialOrbProvider don't exist - using direct supabase client instead
+// import { useSupabase } from '../../providers/SupabaseProvider';
+// import { useSocialOrb } from '../../providers/SocialOrbProvider';
 import { SocialCard } from './SocialCard';
 import { ChallengeCard } from './ChallengeCard';
 import { ShareScoreCard } from './ShareScoreCard';
 import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
-import { SocialService } from '../SocialService';
-import { FEED_FILTERS, initialFeedState } from '../types';
-import { WarpLoader } from '../../components/WarpLoader';
+// TODO: SocialService and types don't exist - needs module creation
+// import { SocialService } from '../SocialService';
+// import { FEED_FILTERS, initialFeedState } from '../types';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { claimReward } from '../../lib/claimReward';
 
 // ═══════════════════════════════════════════════════════════════════════════

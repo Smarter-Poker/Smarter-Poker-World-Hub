@@ -93,11 +93,15 @@ export default function PlayerRewardsPage() {
     if (!user?.id) return;
     const ch = supabase
       .channel(`rewards:${user?.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_comp_balances' }, () => {})
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_comp_transactions' }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_comp_balances' }, () => {
+        refreshRewards();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_comp_transactions' }, () => {
+        refreshRewards();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
+  }, [user?.id, refreshRewards]);
 
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
     const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };

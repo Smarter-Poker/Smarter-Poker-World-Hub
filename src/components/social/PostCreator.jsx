@@ -7,11 +7,14 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useSupabase } from '../../providers/SupabaseProvider';
+// TODO: useSupabase and useSocialOrb providers don't exist
+// import { useSupabase } from '../../providers/SupabaseProvider';
+// import { useSocialOrb } from '../../providers/SocialOrbProvider';
+import { supabase } from '../../lib/supabase';
 import { claimReward } from '../../lib/claimReward';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
-import { SocialService } from '../SocialService';
-import { validatePostContent } from '../types';
+// TODO: SocialService and types modules don't exist - needs creation
+// import { SocialService } from '../SocialService';
+// import { validatePostContent } from '../types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ✍️ POST CREATOR COMPONENT

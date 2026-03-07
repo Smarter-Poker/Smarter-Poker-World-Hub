@@ -118,10 +118,12 @@ export default function PlayerNotificationsPage() {
     if (!user?.id) return;
     const ch = supabase
       .channel(`notifications:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_notifications' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_notifications' }, () => {
+        refreshNotifications();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
+  }, [user?.id, refreshNotifications]);
 
   const { isLoading: loading, mutate: refreshNotifications } = useSWR(
     '/api/commander/notifications/my',

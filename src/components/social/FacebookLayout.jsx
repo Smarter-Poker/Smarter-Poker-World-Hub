@@ -8,7 +8,8 @@ import React, { useState, useEffect } from 'react';
 import { FB_COLORS, FBAvatar } from './FacebookStyleCard';
 import { NotificationBell, NotificationsDropdown } from './FacebookNotifications';
 import { ChatDock, ChatWindow, ConversationList } from './FacebookMessenger';
-import { useSupabase } from '../../providers/SupabaseProvider';
+// TODO: useSupabase provider doesn't exist - using direct supabase client instead
+// import { useSupabase } from '../../providers/SupabaseProvider';
 import { supabase } from '../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -275,7 +276,28 @@ const FBNavBar = ({
 
 export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) => {
     // 1. Get Real User Data from Supabase auth
-    const { user: authUser, profile: authProfile } = useSupabase();
+    const [authUser, setAuthUser] = useState(null);
+    const [authProfile, setAuthProfile] = useState(null);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setAuthUser(user);
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('username, avatar_url')
+                        .eq('id', user.id)
+                        .single();
+                    setAuthProfile(profile);
+                }
+            } catch (err) {
+                console.error('Auth error:', err);
+            }
+        };
+        checkAuth();
+    }, []);
 
     const currentUser = propUser || (authUser ? {
         id: authUser.id,

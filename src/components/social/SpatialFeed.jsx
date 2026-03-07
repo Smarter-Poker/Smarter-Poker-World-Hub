@@ -7,12 +7,15 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSupabase } from '../../providers/SupabaseProvider';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
+// TODO: useSupabase and useSocialOrb providers don't exist
+// import { useSupabase } from '../../providers/SupabaseProvider';
+// import { useSocialOrb } from '../../providers/SocialOrbProvider';
+import { supabase } from '../../lib/supabase';
 import { SocialCard } from './SocialCard';
-import { SocialService } from '../SocialService';
-import { FEED_FILTERS, initialFeedState } from '../types';
-import { WarpLoader } from '../../components/WarpLoader';
+// TODO: SocialService and types modules don't exist - needs creation
+// import { SocialService } from '../SocialService';
+// import { FEED_FILTERS, initialFeedState } from '../types';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { claimReward } from '../../lib/claimReward';
 
 // ═══════════════════════════════════════════════════════════════════════════

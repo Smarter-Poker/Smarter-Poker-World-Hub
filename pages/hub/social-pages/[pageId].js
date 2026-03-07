@@ -298,11 +298,15 @@ export default function SocialPageDetail() {
     if (!pageId) return;
     const _ch = supabase
       .channel(`social-page:${pageId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {})
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${pageId}` }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {
+        fetchPosts();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${pageId}` }, () => {
+        fetchPosts();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId]);
+  }, [pageId, fetchPosts]);
 
     const handleFollow = async () => {
         if (!user) { router.push('/auth/login'); return; }

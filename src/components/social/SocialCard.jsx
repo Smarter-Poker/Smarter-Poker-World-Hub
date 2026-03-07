@@ -7,7 +7,8 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { INTERACTION_TYPES } from '../types';
+// TODO: types module doesn't exist - needs creation
+// import { INTERACTION_TYPES } from '../types';
 import { getAuthorDisplayName } from '../../utils/displayName';
 
 // ═══════════════════════════════════════════════════════════════════════════

@@ -471,8 +471,8 @@ export default function AvatarGallery({ onSelect }) {
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
-              justifyContent: 'center',
-              flexWrap: 'wrap'
+              justifyContent: 'flex-start',
+              flexWrap: 'nowrap'
             }}>
               {['All', ...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
                 <button

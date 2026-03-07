@@ -300,10 +300,12 @@ export default function ServicesPage() {
     if (!user?.id) return;
     const ch = supabase
       .channel(`services:${user?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_service_requests' }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_service_requests' }, () => {
+        refreshServices();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
+  }, [user?.id, refreshServices]);
 
   const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR('/api/commander/sessions/current', async () => {
     const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };

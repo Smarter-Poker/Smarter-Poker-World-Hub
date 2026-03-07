@@ -88,11 +88,15 @@ export default function ManageSocialPage() {
     if (!pageId) return;
     const _ch = supabase
       .channel(`social-page-mgr:${pageId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_pages', filter: `id=eq.${pageId}` }, () => {})
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'social_pages', filter: `id=eq.${pageId}` }, () => {
+        fetchPage();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {
+        if (tab === 'posts') fetchPosts();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [pageId]);
+  }, [pageId, tab, fetchPage]);
 
     const fetchMembers = async () => {
         try {

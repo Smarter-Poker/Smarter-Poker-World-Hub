@@ -35,7 +35,9 @@ export default function ShoppingCart() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`dcart:${user?.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {
+        loadCart();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);

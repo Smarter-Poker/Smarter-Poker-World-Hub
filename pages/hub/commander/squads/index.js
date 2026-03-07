@@ -103,10 +103,12 @@ export default function SquadsPage() {
     if (!user?.id) return;
     const ch = supabase
       .channel(`squads-list:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries' }, () => {
+        refreshSquads();
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
+  }, [user?.id, refreshSquads]);
 
   const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', async (url) => {
     const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
