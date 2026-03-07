@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { getSafeUser } from '../../../../lib/authUtils';
 
 interface OpponentProfile {
     id: string;
@@ -63,7 +64,7 @@ export function OpponentProfiler({ onAskJarvis, onClose }: OpponentProfilerProps
     useEffect(() => {
         async function loadProfiles() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const user = await getSafeUser(supabase);
                 if (!user) {
                     setLoading(false);
                     // Load from localStorage for unauthenticated users

@@ -1128,11 +1128,9 @@ export default function MessengerPage() {
     useEffect(() => {
         async function init(signal) {
             try {
-                // Get authenticated user from Supabase session
                 let authUser = null;
                 try {
-                    const { data } = await supabase.auth.getUser();
-                    authUser = data?.user || null;
+                    authUser = await getSafeUser(supabase);
                 } catch (e) {
                 }
 

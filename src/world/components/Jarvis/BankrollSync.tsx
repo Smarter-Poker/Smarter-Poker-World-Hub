@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { getSafeUser } from '../../../../lib/authUtils';
 
 interface BankrollSyncProps {
     onAskJarvis: (question: string) => void;
@@ -39,7 +40,7 @@ export function BankrollSync({ onAskJarvis, onClose }: BankrollSyncProps) {
     useEffect(() => {
         const loadBankroll = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const user = await getSafeUser(supabase);
                 if (user) {
                     setUserId(user.id);
                     const { data, error } = await supabase

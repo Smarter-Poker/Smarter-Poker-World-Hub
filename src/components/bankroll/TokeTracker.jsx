@@ -508,44 +508,72 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     // ── GIG CRUD Handlers ──
     const handleCreateGig = async (e) => {
         e.preventDefault();
+        console.log('[TokeTracker] handleCreateGig fired', { venue_name: newGig.venue_name, userId });
+
         if (!newGig.venue_name.trim()) {
             toast.error('Please select or enter a venue');
             return;
         }
 
-        // Bulletproof fallback: 3-layer userId resolution
+        // Bulletproof 4-layer userId resolution
         let actualUserId = userId;
-        if (!actualUserId) {
-            // Layer 1: Read Supabase session directly from localStorage (synchronous, never throws)
-            try {
-                const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (storageKey) {
-                    const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-                    actualUserId = stored?.user?.id || stored?.currentSession?.user?.id;
-                }
-            } catch (e) { /* ignore parse errors */ }
 
-            // Layer 2: Try supabase.auth.getSession() (may fail with AbortError)
+        if (!actualUserId) {
+            console.warn('[TokeTracker] userId prop is null/undefined — running fallback resolution');
+
+            // Layer 1: getAuthUser() — handles smarter-poker-auth, smarter_poker_auth, sb-* keys
+            try {
+                const { getAuthUser } = await import('../../lib/authUtils');
+                const authUser = getAuthUser();
+                actualUserId = authUser?.id;
+                if (actualUserId) console.log('[TokeTracker] Layer 1 (getAuthUser) resolved:', actualUserId);
+            } catch (e) { console.warn('[TokeTracker] Layer 1 failed:', e?.message); }
+
+            // Layer 2: Direct localStorage scan — all known auth key variants
+            if (!actualUserId) {
+                const authKeys = ['smarter-poker-auth', 'smarter_poker_auth', 'sp_auth', 'sb-auth-token'];
+                for (const key of authKeys) {
+                    try {
+                        const raw = localStorage.getItem(key);
+                        if (!raw) continue;
+                        const parsed = JSON.parse(raw);
+                        const id = parsed?.user?.id || parsed?.currentSession?.user?.id;
+                        if (id) {
+                            actualUserId = id;
+                            console.log(`[TokeTracker] Layer 2 (${key}) resolved:`, id);
+                            break;
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+            }
+
+            // Layer 3: Also check sb-*-auth-token pattern (legacy Supabase default keys)
+            if (!actualUserId) {
+                try {
+                    const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKey) {
+                        const parsed = JSON.parse(localStorage.getItem(sbKey) || '{}');
+                        actualUserId = parsed?.user?.id || parsed?.currentSession?.user?.id;
+                        if (actualUserId) console.log(`[TokeTracker] Layer 3 (${sbKey}) resolved:`, actualUserId);
+                    }
+                } catch (e) { /* ignore */ }
+            }
+
+            // Layer 4: supabase.auth.getSession() — last resort (may AbortError)
             if (!actualUserId) {
                 try {
                     const { data: { session } } = await supabase.auth.getSession();
                     actualUserId = session?.user?.id;
+                    if (actualUserId) console.log('[TokeTracker] Layer 4 (getSession) resolved:', actualUserId);
                 } catch (err) {
-                    console.warn('[TokeTracker] getSession fallback failed:', err?.message);
+                    console.warn('[TokeTracker] Layer 4 (getSession) failed:', err?.message);
                 }
-            }
-
-            // Layer 3: Try custom smarter-poker-auth key
-            if (!actualUserId) {
-                try {
-                    const custom = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                    actualUserId = custom?.user?.id;
-                } catch (e) { /* ignore */ }
             }
         }
 
         if (!actualUserId) {
-            toast.error('You must be logged in to create an event', 5000);
+            console.error('[TokeTracker] ALL 4 userId resolution layers failed — user session is expired or missing');
+            toast.error('Session expired — please log out and log back in to start an event', 8000);
             return;
         }
         try {
