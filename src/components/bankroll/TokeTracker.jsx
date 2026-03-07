@@ -1514,14 +1514,33 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                 <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` }}>
                                                     {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                 </span>
-                                                {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
-                                                {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
-                                                    <span style={{ ...styles.downDetail, color: '#a78bfa', fontWeight: 600 }}>
-                                                        ${parseFloat(down.tournament_buyin).toLocaleString()} buy-in
-                                                    </span>
+                                                {editingDownId === down.id ? (
+                                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, marginBottom: 4 }}>
+                                                        {down.down_type === 'tournament' ? (
+                                                            <>
+                                                                <input type="text" value={editingDownForm.tournament_name || ''} onChange={e => setEditingDownForm({ ...editingDownForm, tournament_name: e.target.value })} placeholder="Tournament Name" style={{ ...styles.tokeInput, width: 130 }} />
+                                                                <input type="number" value={editingDownForm.tournament_buyin || ''} onChange={e => setEditingDownForm({ ...editingDownForm, tournament_buyin: e.target.value })} placeholder="Buy-in $" style={{ ...styles.tokeInput, width: 70 }} />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <input type="text" value={editingDownForm.game_type || ''} onChange={e => setEditingDownForm({ ...editingDownForm, game_type: e.target.value })} placeholder="Variant" style={{ ...styles.tokeInput, width: 80 }} />
+                                                                <input type="text" value={editingDownForm.cash_stakes || ''} onChange={e => setEditingDownForm({ ...editingDownForm, cash_stakes: e.target.value })} placeholder="Stakes" style={{ ...styles.tokeInput, width: 70 }} />
+                                                            </>
+                                                        )}
+                                                        <input type="text" value={editingDownForm.table_number || ''} onChange={e => setEditingDownForm({ ...editingDownForm, table_number: e.target.value })} placeholder="Table #" style={{ ...styles.tokeInput, width: 60 }} />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        {down.tournament_name && <span style={styles.downDetail}>{down.tournament_name}</span>}
+                                                        {down.tournament_buyin && parseFloat(down.tournament_buyin) > 0 && (
+                                                            <span style={{ ...styles.downDetail, color: '#a78bfa', fontWeight: 600 }}>
+                                                                ${parseFloat(down.tournament_buyin).toLocaleString()} buy-in
+                                                            </span>
+                                                        )}
+                                                        {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
+                                                        {down.table_number && <span style={styles.downDetail}>T{down.table_number}</span>}
+                                                    </>
                                                 )}
-                                                {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
-                                                {down.table_number && <span style={styles.downDetail}>T{down.table_number}</span>}
                                                 <span style={styles.downTime}>
                                                     {new Date(down.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                                                     {' · '}{formatDuration(duration)}
@@ -1557,8 +1576,18 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                         </button>
                                                     )
                                                 )}
-                                                {isOpen && <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>}
-                                                <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={styles.downDeleteBtn}>✕</button>
+                                                {editingDownId === down.id ? (
+                                                    <>
+                                                        <button onClick={handleSaveDownEdit} style={{ ...styles.downDeleteBtn, background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }} title="Save">✓</button>
+                                                        <button onClick={() => { setEditingDownId(null); setEditingDownForm(null); }} style={styles.downDeleteBtn} title="Cancel">✕</button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {isOpen && <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>}
+                                                        <button onClick={() => { setEditingDownId(down.id); setEditingDownForm(down); }} style={{ ...styles.downDeleteBtn, color: '#64748b', borderColor: 'rgba(255,255,255,0.1)', background: 'transparent' }} title="Edit Down">✏️</button>
+                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={styles.downDeleteBtn} title="Delete Down">✕</button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     );
