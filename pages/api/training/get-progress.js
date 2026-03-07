@@ -27,16 +27,10 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { userId, gameId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'userId is required' });
-        }
-
-        // Bug 6 fix: Validate userId matches the authenticated user
-        if (userId !== _authUser.id) {
-            return res.status(403).json({ success: false, error: 'Cannot access other users\' progress' });
-        }
+        const { gameId } = req.query;
+        // BUG FIX: was reading userId from query and validating it — unnecessary IDOR surface;
+        // always use JWT identity directly
+        const userId = _authUser.id;
 
         // If gameId is provided, fetch progress for that game only
         if (gameId) {
