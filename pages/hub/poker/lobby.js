@@ -9,6 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import PokerLobby from '../../../src/components/poker/PokerLobby';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 export default function PokerLobbyPage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function PokerLobbyPage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const token = getAccessToken();
       if (session?.user) {
         setUserId(session.user.id);
       } else {

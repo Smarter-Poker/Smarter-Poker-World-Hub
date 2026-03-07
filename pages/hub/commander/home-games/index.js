@@ -13,6 +13,7 @@ import GroupCard from '../../../../src/components/commander/home-games/GroupCard
 import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -124,9 +125,7 @@ export default function PlayerHomeGamesHub() {
   const loadGames = async(signal) => {
     setIsLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-
-      const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/home-games/groups?visibility=public,friends', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -145,9 +144,7 @@ export default function PlayerHomeGamesHub() {
     if (!joinCode.trim()) return;
 
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) {
         router.push('/auth/login?redirect=/hub/commander/home-games');
         return;
@@ -177,9 +174,7 @@ export default function PlayerHomeGamesHub() {
   const loadDiscoverGames = async(signal) => {
     setDiscoverLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-
-      const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/home-games/discover?type=groups&limit=20', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -197,9 +192,7 @@ export default function PlayerHomeGamesHub() {
   const loadCalendarEvents = async(signal) => {
     setCalendarLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-
-      const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/home-games/events?limit=100', {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
@@ -215,9 +208,7 @@ export default function PlayerHomeGamesHub() {
   };
 
   const handleJoinGame = async (game) => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) {
       router.push('/auth/login?redirect=/hub/commander/home-games');
       return;

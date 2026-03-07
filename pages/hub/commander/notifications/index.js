@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Bell, MapPin, Clock, Users, Gift, Trophy, AlertCircle, Check, Trash2 } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const NOTIFICATION_ICONS = {
   seat_available: Users,
@@ -104,7 +105,7 @@ export default function PlayerNotificationsPage() {
   const [notifications, setNotifications] = useState([]);
 
   const getToken = async () => {
-    const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+    const token = getAccessToken();
     return session?.access_token || null;
   };
 
@@ -142,7 +143,7 @@ export default function PlayerNotificationsPage() {
     );
 
     try {
-      const _authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const _authSession = { access_token: getAccessToken() };
       const token = _authSession?.access_token;
 
       await fetch(`/api/commander/notifications/${notification.id}`, {
@@ -168,7 +169,7 @@ export default function PlayerNotificationsPage() {
     setNotifications(prev => prev.filter(n => n.id !== notification.id));
 
     try {
-      const _authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const _authSession = { access_token: getAccessToken() };
       const token = _authSession?.access_token;
 
       await fetch(`/api/commander/notifications/${notification.id}`, {
@@ -190,7 +191,7 @@ export default function PlayerNotificationsPage() {
     );
 
     try {
-      const _authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const _authSession = { access_token: getAccessToken() };
       const token = _authSession?.access_token;
 
       await fetch('/api/commander/notifications/mark-all-read', {

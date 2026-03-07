@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, Plus, Clock, UserPlus, Check, X } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {
@@ -92,8 +93,7 @@ export default function SquadsPage() {
   useEffect(() => {    const _c = new AbortController();
     (async () => {
   
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) router.push('/auth/login?redirect=/hub/commander/squads');
       return () => _c.abort();
     })();
@@ -111,8 +111,7 @@ export default function SquadsPage() {
   }, [user?.id, refreshSquads]);
 
   const { data: swrData, isLoading: loading, mutate: refreshSquads } = useSWR('/api/commander/squads/my', async (url) => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => d.success ? d.data : { squads: [], invitations: [] });
@@ -122,8 +121,7 @@ export default function SquadsPage() {
 
   async function handleInvitation(invitationId, accept) {
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       await fetch(`/api/commander/squads/${invitationId}/${accept ? 'join' : 'decline'}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }

@@ -12,6 +12,7 @@ import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucid
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {
@@ -108,8 +109,7 @@ export default function LeaguesPage() {
   const [filter, setFilter] = usePersistedState('sp-filters-commander-leagues', 'all');
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/leagues', async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     const [allRes, myRes] = await Promise.all([
       fetch('/api/commander/leagues'),
       token ? fetch('/api/commander/leagues/my', { headers: { Authorization: `Bearer ${token}` } })

@@ -1133,7 +1133,7 @@ export default function MessengerPage() {
 
                 if (authUser) {
                     // Fetch profile through API-friendly approach
-                    const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+                    const token = getAccessToken();
                     const headers = { 'Authorization': 'Bearer ' + token };
 
                     // Get profile data via header stats API (already proven working)
@@ -1208,7 +1208,7 @@ export default function MessengerPage() {
 
         async function checkPendingCalls(signal) {
             try {
-                const pendingSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                const pendingSession = { access_token: getAccessToken() };
                 const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
                     headers: pendingSession?.access_token ? { Authorization: `Bearer ${pendingSession.access_token}` } : {},
                 });
@@ -1508,7 +1508,7 @@ export default function MessengerPage() {
             // PRIMARY: Use API with service_role + circuit breaker
             const result = await circuit.execute(
                 async () => {
-                    const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+                    const token = getAccessToken();
                     const resp = await fetch('/api/messenger/get-conversations', {
                         method: 'POST',
                         headers: {
@@ -1651,7 +1651,7 @@ export default function MessengerPage() {
         try {
 
             // Use API route to bypass RLS issues
-            const msgSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const msgSession = { access_token: getAccessToken() };
             const response = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {
@@ -1671,7 +1671,7 @@ export default function MessengerPage() {
 
             // Mark as read - use API with service role to bypass RLS
             try {
-                const readSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                const readSession = { access_token: getAccessToken() };
                 await fetch('/api/messenger/mark-read', {
                     method: 'POST',
                     headers: {
@@ -1795,7 +1795,7 @@ export default function MessengerPage() {
             setMessages(prev => [...prev, typingMsg]);
 
             try {
-                const jarvisSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                const jarvisSession = { access_token: getAccessToken() };
                 const response = await fetch('/api/geeves/chat', {
                     method: 'POST',
                     headers: {
@@ -2268,7 +2268,7 @@ export default function MessengerPage() {
 
             // 📱 Create pending call in database (for offline users)
             try {
-                const callSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                const callSession = { access_token: getAccessToken() };
                 await fetch('/api/calls/create', {
                     method: 'POST',
                     headers: {

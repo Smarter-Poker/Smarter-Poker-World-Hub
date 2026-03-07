@@ -24,6 +24,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
+import { getAccessToken } from '../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT
@@ -307,7 +308,7 @@ export default function SettingsPage() {
         if (!user?.id) return;
 
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) return;
 
             await fetch('/api/auth/sessions/track', {
@@ -333,7 +334,7 @@ export default function SettingsPage() {
     const setup2FA = async () => {
         setLoadingMFA(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) return;
 
             const response = await fetch('/api/auth/mfa/setup', {
@@ -366,7 +367,7 @@ export default function SettingsPage() {
 
         setLoadingMFA(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) return;
 
             const response = await fetch('/api/auth/mfa/verify', {
@@ -403,7 +404,7 @@ export default function SettingsPage() {
 
         setLoadingMFA(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) return;
 
             const response = await fetch('/api/auth/mfa/disable', {
@@ -490,7 +491,7 @@ export default function SettingsPage() {
 
     const handleDeleteAccount = async () => {
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) {
                 alert('Session expired. Please log in again.');
                 return;
@@ -546,7 +547,7 @@ export default function SettingsPage() {
         if (!user?.id) return;
         setBillingLoading(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             const headers = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
 
             // Fetch orders, transactions, VIP sub, and profile in parallel
@@ -589,7 +590,7 @@ export default function SettingsPage() {
         setPromoLoading(true);
         setPromoResult(null);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) {
                 setPromoResult({ success: false, message: 'Please Log In To Redeem A Promo Code.' });
                 return;
@@ -1093,7 +1094,7 @@ export default function SettingsPage() {
                                             setShowDevicesModal(true);
                                             // Load connected devices from API
                                             try {
-                                                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                                                const token = getAccessToken();
                                                 if (!session) return;
 
                                                 const response = await fetch('/api/auth/sessions/list', {
@@ -2037,7 +2038,7 @@ export default function SettingsPage() {
                                             );
                                             if (!doubleConfirm) return;
                                             try {
-                                                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                                                const token = getAccessToken();
                                                 if (!session) { alert('Session expired. Please log in again.'); return; }
                                                 const response = await fetch('/api/auth/delete-account', {
                                                     method: 'DELETE',
@@ -2670,7 +2671,7 @@ export default function SettingsPage() {
                                                 onClick={async () => {
                                                     if (confirm('Revoke access for this device?')) {
                                                         try {
-                                                            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                                                            const token = getAccessToken();
                                                             if (!session) return;
 
                                                             const response = await fetch('/api/auth/sessions/revoke', {

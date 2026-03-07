@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Award, Star, Lock } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 export default function AchievementsPage() {
   const router = useRouter();
@@ -17,15 +18,13 @@ export default function AchievementsPage() {
 
   useEffect(() => {
     (async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile/achievements');
     })();
   }, [router]);
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => d.success ? (d.data?.achievements || []) : []);

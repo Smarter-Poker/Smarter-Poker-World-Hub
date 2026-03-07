@@ -18,6 +18,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { friendPreferences } from '../../src/services/preferences-service';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
+import { getAccessToken } from '../src/lib/authUtils';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -473,7 +474,7 @@ export default function FriendsPage() {
         // ── PHASE 2: Background revalidation (fresh data) ──
         try {
             // Fetch ALL friends data through API (service role key, bypasses RLS)
-            const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+            const token = getAccessToken();
             const resp = await fetch('/api/friends?action=full', {
                 headers: {
                     'Authorization': 'Bearer ' + token,

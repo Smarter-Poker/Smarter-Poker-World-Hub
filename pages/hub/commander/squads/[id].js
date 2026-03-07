@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 import {
   ChevronLeft,
   Users,
@@ -79,8 +80,7 @@ export default function SquadDetailPage() {
 
   useEffect(() => {
     (async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/squads/${id}`);
       return;
@@ -170,8 +170,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/squads/${id}/submit`, {
         method: 'POST',
         headers: {
@@ -201,8 +200,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/squads/${id}/members/${memberId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -224,8 +222,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/squads/${id}`, {
         method: 'DELETE',
         headers: {
@@ -251,8 +248,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/squads/${id}/leave`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }

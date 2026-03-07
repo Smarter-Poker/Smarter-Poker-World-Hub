@@ -24,6 +24,7 @@ import { useProfileStore } from '../../src/stores/profileStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import { staggerContainer, staggerItem } from '../../src/utils/animations';
 import toast from '../../src/stores/toastStore';
+import { getAccessToken } from '../src/lib/authUtils';
 
 // Light Theme Colors
 const C = {
@@ -566,7 +567,7 @@ export default function ProfilePage() {
             formData.append('folder', 'covers');
             formData.append('prefix', user.id);
 
-            const _coverSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const _coverSess = { access_token: getAccessToken() };
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},

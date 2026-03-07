@@ -116,8 +116,7 @@ export default function LeagueDetailPage() {
   async function handleJoinLeague(signal) {
     setJoining(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) {
         router.push(`/auth/login?redirect=/hub/commander/leagues/${id}`);
         return;

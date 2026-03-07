@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser } from '../../../../src/lib/authUtils';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const MultiTableView = dynamic(
   () => import('../../../../src/components/poker/MultiTableView'),
@@ -115,7 +116,7 @@ export default function ClubArenaTable() {
       }
 
       // 2. Get auth token
-      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const token = getAccessToken();
       const token = session?.access_token;
 
       // 3. Connect to engine with retry backoff

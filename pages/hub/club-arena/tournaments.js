@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -25,7 +26,7 @@ const STATUS_COLORS = {
 // BUG #148 FIX: supabase.auth.session?.() is v1 API — returns undefined in v2.
 // Migrated to async getSession() so tournament API calls include a valid token.
 async function api(action, params) {
-  const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+  const token = getAccessToken();
   return fetch('/api/club-arena/tournaments', {
     method: 'POST',
     headers: {
@@ -560,7 +561,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
   // Find user's assigned table
   const goToTable = async () => {
     try {
-      const goSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const goSession = { access_token: getAccessToken() };
       const res = await fetch('/api/poker/engine/tournament', {
         method: 'POST', headers: {
           'Content-Type': 'application/json',

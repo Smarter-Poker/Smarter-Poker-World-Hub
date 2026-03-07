@@ -24,7 +24,7 @@ const getAuthToken = async () => {
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
     try {
-        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+        const token = getAccessToken();
         return session?.access_token || null;
     } catch (_) {
         return null;
@@ -45,6 +45,7 @@ const apiCall = async (endpoint, body) => {
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import ClubArenaBottomNav from '../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getAccessToken } from '../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // IMAGE PATHS (proxied from club-arena.vercel.app via next.config.js rewrites)

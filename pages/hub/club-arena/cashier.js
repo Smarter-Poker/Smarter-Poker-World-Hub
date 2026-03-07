@@ -9,6 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -42,7 +43,7 @@ const getAuthToken = async () => {
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
     try {
-        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+        const token = getAccessToken();
         return session?.access_token || null;
     } catch (_) {
         return null;

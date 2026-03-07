@@ -24,6 +24,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getDiamondArcadePreferences, updateDiamondArcadePreferences } from '../../src/services/diamondArcadePreferences';
+import { getAccessToken } from '../src/lib/authUtils';
 import {
     ARCADE_GAMES,
     generateHandSnapQuestion,
@@ -367,7 +368,7 @@ export default function DiamondArcade() {
             // Get auth token for secure server-side verification
             let authHeaders = { 'Content-Type': 'application/json' };
             try {
-                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                const token = getAccessToken();
                 if (session?.access_token) {
                     authHeaders['Authorization'] = `Bearer ${session.access_token}`;
                 }

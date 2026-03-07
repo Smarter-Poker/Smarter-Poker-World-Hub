@@ -15,6 +15,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
 import { Trophy, Users, Clock, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
@@ -37,7 +38,7 @@ export default function MyTournamentStatus() {
     const fetchData = useCallback(async () => {
         if (!id) return;
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session?.access_token) {
                 router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/my-status`);
                 return;
@@ -152,7 +153,7 @@ export default function MyTournamentStatus() {
         setSharingStory(true);
         setStoryShared(false);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session?.access_token) return;
 
             const res = await fetch(`/api/commander/tournaments/${id}/story`, {
@@ -185,7 +186,7 @@ export default function MyTournamentStatus() {
         setError(null);
 
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             const res = await fetch(`/api/commander/tournaments/${id}/my-chips`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },

@@ -66,6 +66,7 @@ import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
+import { getAccessToken } from '../src/lib/authUtils';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)
@@ -1614,7 +1615,7 @@ export default function BankrollManagerPage() {
                     <button
                       onClick={async () => {
                         try {
-                          const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                          const token = getAccessToken();
                           const token = session?.access_token;
                           const res = await fetch('/api/bankroll/export-pdf', {
                             headers: { Authorization: `Bearer ${token}` }

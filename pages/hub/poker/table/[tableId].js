@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../../src/lib/supabase';
 import LivePokerTable from '../../../../src/components/poker/LivePokerTable';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 export default function PokerTablePage() {
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function PokerTablePage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+      const token = getAccessToken();
       if (session?.user) {
         setUserId(session.user.id);
 

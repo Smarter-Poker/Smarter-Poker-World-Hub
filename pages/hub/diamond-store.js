@@ -25,6 +25,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 
 
@@ -678,7 +679,7 @@ export default function DiamondStorePage() {
         const _c = new AbortController();
 
         (async () => {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (session?.user?.id) {
                 setUser(session.user);
                 const { data: profile } = await supabase
@@ -749,7 +750,7 @@ export default function DiamondStorePage() {
         setIsProcessing(true);
 
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
 
             if (!session) {
                 alert('Please sign in to complete your purchase');
@@ -824,7 +825,7 @@ export default function DiamondStorePage() {
     const handlePayWithDiamonds = async (items) => {
         setIsProcessing(true);
         try {
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             if (!session) {
                 alert('Please sign in to pay with diamonds');
                 setIsProcessing(false);

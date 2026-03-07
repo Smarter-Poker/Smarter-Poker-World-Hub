@@ -21,6 +21,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (
@@ -89,8 +90,7 @@ export default function ResponsibleGamingPage() {
 
   useEffect(() => {
     (async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
     })();
   }, [router]);
@@ -98,8 +98,7 @@ export default function ResponsibleGamingPage() {
   const { isLoading: loading, mutate: refreshSettings } = useSWR(
     '/api/commander/responsible-gaming/limits',
     async (url) => {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) return null;
       const h = { Authorization: `Bearer ${token}` };
       const [limRes, exRes] = await Promise.all([
@@ -122,8 +121,7 @@ export default function ResponsibleGamingPage() {
   async function handleSaveLimits(signal) {
     setSaving(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/responsible-gaming/limits', {
         method: 'PUT',
         headers: {
@@ -153,8 +151,7 @@ export default function ResponsibleGamingPage() {
 
     setSaving(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/responsible-gaming/exclusion', {
         method: 'POST',
         headers: {

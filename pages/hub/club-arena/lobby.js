@@ -16,6 +16,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 import useDebounce from '../../../src/hooks/useDebounce';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -30,7 +31,7 @@ const getAuthToken = async () => {
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
     try {
-        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+        const token = getAccessToken();
         return session?.access_token || null;
     } catch (_) {
         return null;

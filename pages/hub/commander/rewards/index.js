@@ -12,6 +12,7 @@ import { Gift, Clock, TrendingUp, History, Star, ChevronRight, Utensils, CreditC
 import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },
@@ -82,8 +83,7 @@ export default function PlayerRewardsPage() {
     (async () => {
       const _c = new AbortController();
   
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
       return () => _c.abort();
     })();
@@ -104,8 +104,7 @@ export default function PlayerRewardsPage() {
   }, [user?.id, refreshRewards]);
 
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [balRes, txRes, rateRes] = await Promise.all([
@@ -155,8 +154,7 @@ export default function PlayerRewardsPage() {
     const finalAmount = Math.min(parsed, balance);
 
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/comps/redeem', {
         method: 'POST',
         headers: {

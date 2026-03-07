@@ -7,6 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function SquadJoinPage() {
   const router = useRouter();
@@ -20,8 +21,7 @@ export default function SquadJoinPage() {
   useEffect(() => {
     (async () => {
       if (!code) return;
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) {
         router.push(`/auth/login?redirect=/hub/commander/squads/join/${code}`);
         return;
@@ -32,8 +32,7 @@ export default function SquadJoinPage() {
 
   async function fetchSquad(signal) {
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -54,8 +53,7 @@ export default function SquadJoinPage() {
   async function handleJoin(signal) {
     setJoining(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         method: 'POST',
         headers: {

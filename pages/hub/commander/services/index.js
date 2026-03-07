@@ -10,6 +10,7 @@ import Head from 'next/head';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 import {
   Coffee,
   Coins,
@@ -290,8 +291,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     (async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) router.push('/auth/login?redirect=/hub/commander/services');
     })();
   }, [router]);
@@ -308,8 +308,7 @@ export default function ServicesPage() {
   }, [user?.id, refreshServices]);
 
   const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR('/api/commander/sessions/current', async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [sessRes, reqRes] = await Promise.all([
@@ -327,8 +326,7 @@ export default function ServicesPage() {
 
   async function handleSubmitRequest(request) {
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch('/api/commander/services/request', {
         method: 'POST',
         headers: {
@@ -353,8 +351,7 @@ export default function ServicesPage() {
 
   async function handleCancelRequest(requestId) {
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       await fetch(`/api/commander/services/${requestId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }

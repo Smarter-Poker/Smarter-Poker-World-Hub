@@ -15,6 +15,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getAccessToken } from '../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -52,7 +53,7 @@ export default function NotificationsPage() {
                 setUser(au);
 
                 // Fetch social & poker notifications through API (service role, bypasses RLS)
-                const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+                const token = getAccessToken();
                 const headers = { 'Authorization': 'Bearer ' + token };
 
                 const [socialRes, pokerRes] = await Promise.all([

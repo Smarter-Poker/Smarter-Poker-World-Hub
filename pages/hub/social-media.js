@@ -68,6 +68,7 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 import { useSocialStore } from '../../src/stores/socialStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
+import { getAccessToken } from '../src/lib/authUtils';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -713,7 +714,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-                    const _uploadSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                    const _uploadSess = { access_token: getAccessToken() };
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
@@ -750,7 +751,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     formData.append('file', file);
                     formData.append('folder', folder);
                     formData.append('prefix', user.id);
-                    const _imgSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                    const _imgSess = { access_token: getAccessToken() };
                     const res = await fetch('/api/social/upload', {
                         method: 'POST',
                         headers: _imgSess?.access_token ? { Authorization: `Bearer ${_imgSess.access_token}` } : {},
@@ -1933,7 +1934,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('file', file);
             formData.append('folder', 'covers');
             formData.append('prefix', page.id);
-            const _coverSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const _coverSess = { access_token: getAccessToken() };
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
@@ -1975,7 +1976,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('file', file);
             formData.append('folder', 'logos');
             formData.append('prefix', page.id);
-            const _logoSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const _logoSess = { access_token: getAccessToken() };
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _logoSess?.access_token ? { Authorization: `Bearer ${_logoSess.access_token}` } : {},
@@ -2022,7 +2023,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-                    const _clubVidSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                    const _clubVidSess = { access_token: getAccessToken() };
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
@@ -2058,7 +2059,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     formData.append('file', file);
                     formData.append('folder', 'club-posts');
                     formData.append('prefix', page.id);
-                    const _clubImgSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                    const _clubImgSess = { access_token: getAccessToken() };
                     const res = await fetch('/api/social/upload', {
                         method: 'POST',
                         headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
@@ -4146,7 +4147,7 @@ export default function SocialMediaPage() {
                 if (!authUser) {
                     console.log('[Social] No user from localStorage, trying getSession...');
                     try {
-                        const sessionData = { session: { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token } };
+                        const sessionData = { session: { access_token: getAccessToken() } };
                         if (sessionData?.session?.user) {
                             authUser = sessionData.session.user;
                             console.log('[Social] ✅ Got user from getSession:', authUser.email);
@@ -4962,7 +4963,7 @@ export default function SocialMediaPage() {
         if (!user?.id || !confirm('Delete this post?')) return;
         try {
             // Get auth token for server-side API
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const token = getAccessToken();
             const token = session?.access_token;
 
             if (!token) {

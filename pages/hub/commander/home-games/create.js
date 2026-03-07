@@ -21,6 +21,7 @@ import {
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -81,8 +82,7 @@ export default function CreateHomeGamePage() {
     setError(null);
 
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) {
         router.push('/auth/login?redirect=/hub/commander/home-games/create');
         return;
@@ -556,8 +556,7 @@ export default function CreateHomeGamePage() {
                 onSubmit={async (eventData) => {
                   setEventSubmitting(true);
                   try {
-                    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+                    const token = getAccessToken();
                     const res = await fetch('/api/commander/home-games/events', {
                       method: 'POST',
                       headers: {

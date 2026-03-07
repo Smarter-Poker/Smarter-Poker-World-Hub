@@ -12,6 +12,7 @@ import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, Che
 import { supabase } from '../../../../src/lib/supabase';
 import { getSafeUser } from '../../../../src/lib/authUtils';
 import { getAuthUser } from '../../../../src/lib/authUtils';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -78,16 +79,14 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     const _c = new AbortController();
     (async () => {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
     })();
     return () => _c.abort();
   }, [router]);
 
   const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
     const [profileRes, statsRes] = await Promise.all([

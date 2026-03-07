@@ -12,6 +12,7 @@ import {
   AlertTriangle, CheckCircle, BarChart3, Zap
 } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken } from '../src/lib/authUtils';
 
 export default function GodModePage() {
   const router = useRouter();
@@ -32,8 +33,7 @@ export default function GodModePage() {
     setLoading(true);
     setError(null);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/hands/${handId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });

@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -145,7 +146,7 @@ export default function PlayerWaitlistPage() {
     } catch (_) { /* localStorage unavailable */ }
 
     // 2. Session path: supabase.auth.getSession (handles refresh, slower on first call)
-    const _authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+    const _authSession = { access_token: getAccessToken() };
     if (_authSession?.access_token) return _authSession.access_token;
 
     // 3. Legacy fallback: sb-*-auth-token keys (backwards compat)

@@ -11,6 +11,7 @@ import { History, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -88,8 +89,7 @@ export default function PlayerHistoryPage() {
   // Auth redirect
   useEffect(() => {
     (async () => {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) router.push('/auth/login?redirect=/hub/commander/history');
     })();
   }, [router]);
@@ -98,8 +98,7 @@ export default function PlayerHistoryPage() {
   const { data: swrData, isLoading: loading } = useSWR(
     `/api/commander/sessions?period=${filter}`,
     async (url) => {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(data => {

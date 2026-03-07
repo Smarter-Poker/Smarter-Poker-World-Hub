@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 export default function TournamentRegisterPage() {
   const router = useRouter();
@@ -38,8 +39,7 @@ export default function TournamentRegisterPage() {
 
   async function fetchTournament(signal) {
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const [tournamentRes, entriesRes] = await Promise.all([
@@ -69,8 +69,7 @@ export default function TournamentRegisterPage() {
   }
 
   async function handleRegister(signal) {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;
@@ -109,8 +108,7 @@ export default function TournamentRegisterPage() {
   async function handleUnregister(signal) {
     if (!myEntry) return;
 
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/register`);
       return;

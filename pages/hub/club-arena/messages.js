@@ -17,6 +17,7 @@ import { createMultiDeviceAuthListener, persistSession } from '../../../src/util
 import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -501,7 +502,7 @@ export default function ClubMessages() {
         if (!user?.id) return;
 
         try {
-            const convSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const convSession = { access_token: getAccessToken() };
             const resp = await fetch('/api/messenger/get-conversations', {
                 method: 'POST',
                 headers: {
@@ -789,7 +790,7 @@ export default function ClubMessages() {
 
         // Background call to mark as read
         if (user?.id) {
-            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((readSession) => {
+            Promise.resolve({ access_token: getAccessToken() }).then((readSession) => {
                 fetch('/api/messenger/mark-read', {
                     method: 'POST',
                     headers: {
@@ -802,7 +803,7 @@ export default function ClubMessages() {
         }
 
         try {
-            const msgSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+            const msgSession = { access_token: getAccessToken() };
             const resp = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {

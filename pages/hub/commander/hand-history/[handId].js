@@ -16,6 +16,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 function CardDisplay({ cards, size = 'md' }) {
   if (!cards || cards.length === 0) return null;
@@ -142,8 +143,7 @@ export default function HandDetailPage() {
   async function fetchHand(signal) {
     setLoading(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/hands/${handId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -162,8 +162,7 @@ export default function HandDetailPage() {
   async function handleAnalyze(signal) {
     setAnalyzing(true);
     try {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+      const token = getAccessToken();
       const res = await fetch(`/api/commander/hands/${handId}/analyze`, {
         method: 'POST',
         headers: {
