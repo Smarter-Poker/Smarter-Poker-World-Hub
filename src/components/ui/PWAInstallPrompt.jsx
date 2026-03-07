@@ -16,23 +16,28 @@ export default function PWAInstallPrompt() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // ─── Already installed (user clicked Install or appinstalled fired) ───
-    if (localStorage.getItem('pwa_installed')) return;
+    try {
+      // ─── Already installed (user clicked Install or appinstalled fired) ───
+      if (localStorage.getItem('pwa_installed')) return;
 
-    // ─── Running as installed PWA ───
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      localStorage.setItem('pwa_installed', 'true');
+      // ─── Running as installed PWA ───
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        localStorage.setItem('pwa_installed', 'true');
+        return;
+      }
+
+      // ─── Escalating dismissal logic ───
+      const dismissCount = parseInt(localStorage.getItem('pwa_dismiss_count') || '0');
+      if (dismissCount >= 2) return; // Permanently dismissed after 2nd "Later"
+
+      const dismissedAt = localStorage.getItem('pwa_prompt_dismissed');
+      if (dismissedAt) {
+        const cooldown = 30 * 24 * 60 * 60 * 1000; // 30 days
+        if (Date.now() - parseInt(dismissedAt) < cooldown) return;
+      }
+    } catch {
+      // localStorage disabled (Safari private browsing, quota exceeded) — don't show prompt
       return;
-    }
-
-    // ─── Escalating dismissal logic ───
-    const dismissCount = parseInt(localStorage.getItem('pwa_dismiss_count') || '0');
-    if (dismissCount >= 2) return; // Permanently dismissed after 2nd "Later"
-
-    const dismissedAt = localStorage.getItem('pwa_prompt_dismissed');
-    if (dismissedAt) {
-      const cooldown = 30 * 24 * 60 * 60 * 1000; // 30 days
-      if (Date.now() - parseInt(dismissedAt) < cooldown) return;
     }
 
     const handler = (e) => {
@@ -61,22 +66,30 @@ export default function PWAInstallPrompt() {
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setShow(false);
-    if (outcome === 'accepted') {
-      // User accepted the install — permanently remember
-      localStorage.setItem('pwa_installed', 'true');
-    } else {
-      // User dismissed the browser prompt — escalate dismiss count
-      const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
-      localStorage.setItem('pwa_dismiss_count', count.toString());
-      localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
+    try {
+      if (outcome === 'accepted') {
+        // User accepted the install — permanently remember
+        localStorage.setItem('pwa_installed', 'true');
+      } else {
+        // User dismissed the browser prompt — escalate dismiss count
+        const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
+        localStorage.setItem('pwa_dismiss_count', count.toString());
+        localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
+      }
+    } catch {
+      // localStorage disabled — silently continue
     }
   };
 
   const handleDismiss = () => {
     setShow(false);
-    const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
-    localStorage.setItem('pwa_dismiss_count', count.toString());
-    localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
+    try {
+      const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
+      localStorage.setItem('pwa_dismiss_count', count.toString());
+      localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
+    } catch {
+      // localStorage disabled — silently continue
+    }
   };
 
   if (!show) return null;

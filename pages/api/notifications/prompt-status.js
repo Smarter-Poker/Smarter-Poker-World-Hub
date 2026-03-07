@@ -55,7 +55,7 @@ function getClientIp(req) {
 }
 
 // ─── Validate action string (whitelist allowed values) ───
-const ALLOWED_ACTIONS = ['yes', 'no', 'dismissed', 'subscribed', 'denied'];
+const ALLOWED_ACTIONS = ['yes', 'no', 'dismissed', 'subscribed', 'denied', 'granted'];
 function sanitizeAction(action) {
     if (!action || typeof action !== 'string') return 'dismissed';
     const clean = action.toLowerCase().trim().slice(0, 20);
@@ -69,9 +69,9 @@ function isValidUuid(str) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     // Only allow GET and POST
     if (req.method !== 'GET' && req.method !== 'POST') {

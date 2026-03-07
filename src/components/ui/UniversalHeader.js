@@ -19,6 +19,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
+import { getAuthUser } from '../../lib/authUtils';
 
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
@@ -179,11 +180,18 @@ export default function UniversalHeader({
                     authUser = gu;
                 } catch (_) { /* AbortError on Safari */ }
 
-                // Fallback: recover from session if getUser threw
+                // Fallback 1: recover from session if getUser threw
                 if (!authUser) {
                     try {
                         const { data: { session } } = await supabase.auth.getSession();
                         authUser = session?.user || null;
+                    } catch (_) { /* ignore */ }
+                }
+
+                // Fallback 2: read directly from localStorage (bypasses navigator.locks AbortError)
+                if (!authUser) {
+                    try {
+                        authUser = getAuthUser();
                     } catch (_) { /* ignore */ }
                 }
 
