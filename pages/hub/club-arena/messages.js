@@ -502,12 +502,12 @@ export default function ClubMessages() {
         if (!user?.id) return;
 
         try {
-            const convSession = { access_token: getAccessToken() };
+            const convToken = getAccessToken();
             const resp = await fetch('/api/messenger/get-conversations', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(convSession?.access_token ? { Authorization: `Bearer ${convSession.access_token}` } : {}),
+                    ...(convToken ? { Authorization: `Bearer ${convToken}` } : {}),
                 },
                 body: JSON.stringify({ userId: user.id }),
             });
@@ -790,25 +790,24 @@ export default function ClubMessages() {
 
         // Background call to mark as read
         if (user?.id) {
-            Promise.resolve({ access_token: getAccessToken() }).then((readSession) => {
-                fetch('/api/messenger/mark-read', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(readSession?.access_token ? { Authorization: `Bearer ${readSession.access_token}` } : {}),
-                    },
-                    body: JSON.stringify({ conversationId: conv.id, userId: user.id })
-                }).catch(e => console.error('Failed to mark read:', e));
+            const readToken = getAccessToken();
+            fetch('/api/messenger/mark-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(readToken ? { Authorization: `Bearer ${readToken}` } : {}),
+                },
+                body: JSON.stringify({ conversationId: conv.id, userId: user.id })
             }).catch(e => console.error('Failed to mark read:', e));
         }
 
         try {
-            const msgSession = { access_token: getAccessToken() };
+            const msgToken = getAccessToken();
             const resp = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(msgSession?.access_token ? { Authorization: `Bearer ${msgSession.access_token}` } : {}),
+                    ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
                 },
                 body: JSON.stringify({ conversationId: conv.id, userId: user.id }),
             });
