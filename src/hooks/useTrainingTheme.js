@@ -4,7 +4,7 @@
  * Centralizes ALL visual constants for the Training Hand Scenario Player.
  * 
  * Based on:
- * - Facebook Dark color schema (metalStyles.js)
+ * - SmarterPoker Dark color schema (metalStyles.js)
  * - Golden Template table styling
  * - Standard 2-color deck (red/black)
  * - PokerBros action tag colors
@@ -25,17 +25,17 @@ export const FACEBOOK_DARK = {
     highlight: '#4e4f50',  // Borders and dividers
     light: '#65676b',      // Secondary text
 
-    // Facebook blue accent
-    primary: '#2374e1',    // Facebook blue
+    // SmarterPoker blue accent
+    primary: '#2374e1',    // SmarterPoker blue
     primaryGlow: 'rgba(35, 116, 225, 0.4)',
     primaryDim: 'rgba(35, 116, 225, 0.15)',
 
     // Status colors
-    success: '#31a24c',    // Facebook green
+    success: '#31a24c',    // SmarterPoker green
     successGlow: 'rgba(49, 162, 76, 0.4)',
-    warning: '#f7b928',    // Facebook warning
+    warning: '#f7b928',    // SmarterPoker warning
     warningGlow: 'rgba(247, 185, 40, 0.4)',
-    danger: '#f02849',     // Facebook red
+    danger: '#f02849',     // SmarterPoker red
     dangerGlow: 'rgba(240, 40, 73, 0.4)',
 
     // Premium accents
@@ -107,7 +107,7 @@ export const TABLE_COLORS = {
 
 export default function useTrainingTheme() {
     const theme = useMemo(() => ({
-        // Facebook Dark palette
+        // SmarterPoker Dark palette
         colors: FACEBOOK_DARK,
 
         // Action tag colors

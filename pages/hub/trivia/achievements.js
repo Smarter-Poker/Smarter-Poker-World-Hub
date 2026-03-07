@@ -2,7 +2,7 @@
  * Trivia - Achievements
  * Fetches user's trivia achievements from Supabase
  * Uses trivia_scores and trivia_streaks to determine unlocks
- * Facebook Dark color schema — no emojis
+ * SmarterPoker Dark color schema — no emojis
  */
 
 import { useState, useEffect } from 'react';

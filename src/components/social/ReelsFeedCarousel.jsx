@@ -1,5 +1,5 @@
 /**
- * REELS FEED CAROUSEL - Facebook-style inline Reels in the feed
+ * REELS FEED CAROUSEL - SmarterPoker-style inline Reels in the feed
  * Horizontal scrollable carousel that appears between posts
  * Swipe right to see more reels
  */

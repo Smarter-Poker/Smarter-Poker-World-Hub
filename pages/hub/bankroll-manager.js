@@ -68,7 +68,7 @@ import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
-// Clean Facebook-style navigation (no emojis)
+// Clean SmarterPoker-style navigation (no emojis)
 const SIDEBAR_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '' },
   { id: 'adjust-bankroll', label: 'Adjust Bankroll', icon: '', action: true },
@@ -2125,7 +2125,7 @@ export default function BankrollManagerPage() {
 const styles = {
   container: {
     minHeight: '100vh',
-    background: '#18191a',  // Facebook dark background
+    background: '#18191a',  // SmarterPoker dark background
     fontFamily: 'Inter, -apple-system, sans-serif',
     position: 'relative',
   },
@@ -2244,7 +2244,7 @@ const styles = {
     textOverflow: 'ellipsis',
   },
   sidebarItemActive: {
-    background: 'rgba(35, 116, 225, 0.15)',  // Facebook blue
+    background: 'rgba(35, 116, 225, 0.15)',  // SmarterPoker blue
     color: '#2374e1',
   },
   sidebarIcon: {
@@ -2278,7 +2278,7 @@ const styles = {
   },
   logButton: {
     padding: '10px 24px',
-    background: '#2374e1',  // Facebook blue - clean, sleek
+    background: '#2374e1',  // SmarterPoker blue - clean, sleek
     border: 'none',
     borderRadius: 8,
     color: '#fff',

@@ -1,5 +1,5 @@
 /**
- * POKER PAGES - Facebook Pages-style discovery and follow management
+ * POKER PAGES - SmarterPoker Pages-style discovery and follow management
  * Browse venues, tours, and tournament series as followable pages.
  * Integrated with /api/poker/follow for Supabase persistence.
  */

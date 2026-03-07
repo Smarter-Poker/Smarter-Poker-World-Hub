@@ -1,7 +1,7 @@
 /**
  * SMARTER.POKER FRIENDS & FOLLOWERS PAGE
  * View friends, friend requests, following, followers, and discover suggested connections
- * Features Facebook-style follow system with auto-follow on declined requests
+ * Features SmarterPoker-style follow system with auto-follow on declined requests
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -617,7 +617,7 @@ export default function FriendsPage() {
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
     };
 
-    //  DECLINE = AUTO-FOLLOW (Facebook style)
+    //  DECLINE = AUTO-FOLLOW (SmarterPoker style)
     const handleDeclineRequest = async (request) => {
         if (!user) return;
 

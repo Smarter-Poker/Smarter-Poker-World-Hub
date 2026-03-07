@@ -2,7 +2,7 @@
  * 🃏 POKER SOCIAL COMPONENTS - BARREL EXPORT
  * src/app/social/components/index.js
  * 
- * Facebook Clone with a Poker Twist - Component Library
+ * SmarterPoker Clone with a Poker Twist - Component Library
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -42,72 +42,72 @@ export {
 } from './PokerStoriesRow';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🌐 FACEBOOK-STYLE COMPONENTS (Light Theme - RECOMMENDED)
+// 🌐 smarter-poker-style COMPONENTS (Light Theme - RECOMMENDED)
 // ═══════════════════════════════════════════════════════════════════════════
 export {
-    FBAvatar,
+    SPAvatar,
     CreatePostBox,
-    FBPostCard,
+    SPPostCard,
     FBStoriesRow,
-    FB_COLORS,
-    default as FacebookStyleDefault
-} from './FacebookStyleCard';
+    SP_COLORS,
+    default as SmarterPokerStyleDefault
+} from './SmarterPokerStyleCard';
 
 export {
     ChatWindow,
     ConversationList,
     ChatDock,
-    default as FacebookMessengerDefault
-} from './FacebookMessenger';
+    default as SmarterPokerMessengerDefault
+} from './SmarterPokerMessenger';
 
 export {
     NotificationItem,
     NotificationsDropdown,
     NotificationBell,
     NOTIFICATION_TYPES,
-    default as FacebookNotificationsDefault
-} from './FacebookNotifications';
+    default as SmarterPokerNotificationsDefault
+} from './SmarterPokerNotifications';
 
 export {
     FriendCard,
     FriendRequestsSection,
     PeopleYouMayKnow,
     FriendsList,
-    default as FacebookFriendsDefault
-} from './FacebookFriends';
+    default as SmarterPokerFriendsDefault
+} from './SmarterPokerFriends';
 
 export {
     ReelCard,
     ReelsCarousel,
-    default as FacebookReelsDefault
-} from './FacebookReels';
+    default as SmarterPokerReelsDefault
+} from './SmarterPokerReels';
 
 export {
     PhotoGrid,
     PhotoLightbox,
     PhotoAlbumGrid,
-    default as FacebookPhotosDefault
-} from './FacebookPhotos';
+    default as SmarterPokerPhotosDefault
+} from './SmarterPokerPhotos';
 
 export {
-    default as FacebookLayout
-} from './FacebookLayout';
+    default as SmarterPokerLayout
+} from './SmarterPokerLayout';
 
 export {
-    default as FacebookClubView
-} from './views/FacebookClubView';
+    default as SmarterPokerClubView
+} from './views/SmarterPokerClubView';
 
 export {
-    default as FacebookWatchView
-} from './views/FacebookWatchView';
+    default as SmarterPokerWatchView
+} from './views/SmarterPokerWatchView';
 
 export {
-    default as FacebookFeedView
-} from './views/FacebookFeedView';
+    default as SmarterPokerFeedView
+} from './views/SmarterPokerFeedView';
 
 export {
-    default as FacebookProfileView
-} from './views/FacebookProfileView';
+    default as SmarterPokerProfileView
+} from './views/SmarterPokerProfileView';
 
 export const POKER_SOCIAL_COMPONENTS = {
     // Heat Effects

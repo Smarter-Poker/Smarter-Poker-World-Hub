@@ -4,7 +4,7 @@
  * Shows schedule, downs, and time clock for linked staff accounts.
  * Only accessible when user has ≥1 linked venue via commander_staff.linked_user_id
  *
- * Facebook Dark Theme
+ * SmarterPoker Dark Theme
  */
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback } from 'react';

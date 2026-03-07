@@ -8,7 +8,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
 
-// Shared color theme (Facebook Dark)
+// Shared color theme (SmarterPoker Dark)
 const C = {
     bg: '#18191A', card: '#242526', text: '#E4E6EB', textSec: '#B0B3B8',
     border: '#3A3B3C', blue: '#2D88FF', blueHover: '#1A7AFF', green: '#42B72A', red: '#FA383E',

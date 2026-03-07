@@ -33,7 +33,7 @@ export default async function handler(req, res) {
             .not('full_name', 'is', null)
             .limit(5);
 
-        // 3. Check required fields for Facebook-style profile
+        // 3. Check required fields for SmarterPoker-style profile
         const requiredFields = [
             'id', 'username', 'full_name', 'avatar_url', 'bio',
             'city', 'state', 'country', 'hometown',

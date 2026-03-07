@@ -1,8 +1,8 @@
 /**
- * 🌐 FACEBOOK-STYLE FEED CARD
- * src/app/social/components/FacebookStyleCard.jsx
+ * 🌐 smarter-poker-style FEED CARD
+ * src/app/social/components/SmarterPokerStyleCard.jsx
  * 
- * Light, bright, familiar Facebook UI with poker integration
+ * Light, bright, familiar SmarterPoker UI with poker integration
  */
 
 import React, { useState } from 'react';
@@ -12,7 +12,7 @@ import { getAuthorDisplayName } from '../../utils/displayName';
 // 🎨 FACEBOOK COLOR PALETTE
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const FB_COLORS = {
+export const SP_COLORS = {
     blue: '#1877F2',
     blueHover: '#166FE5',
     blueLight: '#E7F3FF',
@@ -33,8 +33,8 @@ export const FB_COLORS = {
 // 👤 USER AVATAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const FBAvatar = ({ src, name, size = 40, online = false }) => (
-    <div className="fb-avatar-container" style={{ position: 'relative', width: size, height: size }}>
+export const SPAvatar = ({ src, name, size = 40, online = false }) => (
+    <div className="sp-avatar-container" style={{ position: 'relative', width: size, height: size }}>
         <img
             src={src || '/default-avatar.png'}
             alt={name}
@@ -65,69 +65,69 @@ export const FBAvatar = ({ src, name, size = 40, online = false }) => (
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const CreatePostBox = ({ user, onPost }) => (
-    <div className="fb-create-post">
-        <div className="fb-create-post-header">
-            <FBAvatar src={user?.avatar} name={user?.name} size={40} />
-            <button className="fb-create-input">
+    <div className="sp-create-post">
+        <div className="sp-create-post-header">
+            <SPAvatar src={user?.avatar} name={user?.name} size={40} />
+            <button className="sp-create-input">
                 What's on your mind, {user?.firstName || 'there'}?
             </button>
         </div>
-        <div className="fb-create-divider" />
-        <div className="fb-create-actions">
-            <button className="fb-create-btn live">
+        <div className="sp-create-divider" />
+        <div className="sp-create-actions">
+            <button className="sp-create-btn live">
                 <span className="icon">🔴</span> Live Session
             </button>
-            <button className="fb-create-btn photo">
+            <button className="sp-create-btn photo">
                 <span className="icon">📷</span> Photo/Video
             </button>
-            <button className="fb-create-btn hand">
+            <button className="sp-create-btn hand">
                 <span className="icon">🃏</span> Share Hand
             </button>
         </div>
 
         <style>{`
-            .fb-create-post {
-                background: ${FB_COLORS.bgWhite};
+            .sp-create-post {
+                background: ${SP_COLORS.bgWhite};
                 border-radius: 8px;
-                box-shadow: ${FB_COLORS.shadow};
+                box-shadow: ${SP_COLORS.shadow};
                 margin-bottom: 16px;
                 padding: 12px 16px;
             }
 
-            .fb-create-post-header {
+            .sp-create-post-header {
                 display: flex;
                 align-items: center;
                 gap: 12px;
             }
 
-            .fb-create-input {
+            .sp-create-input {
                 flex: 1;
-                background: ${FB_COLORS.bgMain};
+                background: ${SP_COLORS.bgMain};
                 border: none;
                 border-radius: 20px;
                 padding: 10px 16px;
                 font-size: 17px;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
                 text-align: left;
                 cursor: pointer;
             }
 
-            .fb-create-input:hover {
-                background: ${FB_COLORS.bgHover};
+            .sp-create-input:hover {
+                background: ${SP_COLORS.bgHover};
             }
 
-            .fb-create-divider {
+            .sp-create-divider {
                 height: 1px;
-                background: ${FB_COLORS.divider};
+                background: ${SP_COLORS.divider};
                 margin: 12px 0;
             }
 
-            .fb-create-actions {
+            .sp-create-actions {
                 display: flex;
                 justify-content: space-around;
             }
 
-            .fb-create-btn {
+            .sp-create-btn {
                 display: flex;
                 align-items: center;
                 gap: 8px;
@@ -137,19 +137,19 @@ export const CreatePostBox = ({ user, onPost }) => (
                 border-radius: 6px;
                 font-size: 15px;
                 font-weight: 600;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
                 cursor: pointer;
             }
 
-            .fb-create-btn:hover {
-                background: ${FB_COLORS.bgHover};
+            .sp-create-btn:hover {
+                background: ${SP_COLORS.bgHover};
             }
 
-            .fb-create-btn.live .icon { color: #F02849; }
-            .fb-create-btn.photo .icon { color: #45BD62; }
-            .fb-create-btn.hand .icon { color: ${FB_COLORS.pokerOrange}; }
+            .sp-create-btn.live .icon { color: #F02849; }
+            .sp-create-btn.photo .icon { color: #45BD62; }
+            .sp-create-btn.hand .icon { color: ${SP_COLORS.pokerOrange}; }
 
-            .fb-create-btn .icon {
+            .sp-create-btn .icon {
                 font-size: 20px;
             }
         `}</style>
@@ -160,7 +160,7 @@ export const CreatePostBox = ({ user, onPost }) => (
 // 📰 POST CARD
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const FBPostCard = ({
+export const SPPostCard = ({
     post,
     user,
     onLike,
@@ -203,38 +203,38 @@ export const FBPostCard = ({
     };
 
     return (
-        <div className="fb-post">
+        <div className="sp-post">
             {/* Header */}
-            <div className="fb-post-header">
-                <FBAvatar src={authorAvatar} name={authorName} size={40} online={author?.online} />
-                <div className="fb-post-meta">
-                    <div className="fb-post-author">
-                        <span className="fb-post-name">{authorName}</span>
+            <div className="sp-post-header">
+                <SPAvatar src={authorAvatar} name={authorName} size={40} online={author?.online} />
+                <div className="sp-post-meta">
+                    <div className="sp-post-author">
+                        <span className="sp-post-name">{authorName}</span>
                         {authorTier === 'SHARK' && <span className="badge-shark">🦈 Shark</span>}
                         {authorTier === 'GTO_MASTER' && <span className="badge-gto">👑 GTO</span>}
                         {author?.isVerified && <span className="badge-verified">✓</span>}
                     </div>
-                    <div className="fb-post-time">
+                    <div className="sp-post-time">
                         {formatTime(post.createdAt)} · 🌐
                     </div>
                 </div>
-                <button className="fb-post-more">⋯</button>
+                <button className="sp-post-more">⋯</button>
             </div>
 
             {/* Content */}
-            <div className="fb-post-content">
-                {postContent && <p className="fb-post-text">{postContent}</p>}
+            <div className="sp-post-content">
+                {postContent && <p className="sp-post-text">{postContent}</p>}
 
                 {/* Hand History (Poker-specific) */}
                 {post.handData && (
-                    <div className="fb-hand-embed">
-                        <div className="fb-hand-header">
+                    <div className="sp-hand-embed">
+                        <div className="sp-hand-header">
                             <span className="stakes">{post.handData.stakes}</span>
                             <span className={`result ${post.handData.won ? 'win' : 'loss'}`}>
                                 {post.handData.won ? '+' : '-'}${post.handData.amount}
                             </span>
                         </div>
-                        <div className="fb-hand-cards">
+                        <div className="sp-hand-cards">
                             {post.handData.heroCards?.map((card, i) => (
                                 <span key={i} className={`playing-card ${card.includes('♥') || card.includes('♦') ? 'red' : 'black'}`}>
                                     {card}
@@ -256,7 +256,7 @@ export const FBPostCard = ({
 
                 {/* Media Grid - supports multiple images/videos */}
                 {(post.mediaUrls?.length > 0 || post.media) && (
-                    <div className="fb-post-media">
+                    <div className="sp-post-media">
                         {/* Support both array and single item */}
                         {post.mediaUrls?.length > 0 ? (
                             <div className={`media-grid media-count-${Math.min(post.mediaUrls.length, 4)}`}>
@@ -308,7 +308,7 @@ export const FBPostCard = ({
             </div>
 
             {/* Reactions Count */}
-            <div className="fb-post-reactions">
+            <div className="sp-post-reactions">
                 <div className="reaction-icons">
                     <span className="reaction-emoji">👍</span>
                     <span className="reaction-emoji">❤️</span>
@@ -322,23 +322,23 @@ export const FBPostCard = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="fb-post-actions">
+            <div className="sp-post-actions">
                 <button
-                    className={`fb-action-btn ${liked ? 'liked' : ''}`}
+                    className={`sp-action-btn ${liked ? 'liked' : ''}`}
                     onClick={handleLike}
                 >
                     <span className="icon">{liked ? '👍' : '👍'}</span>
                     <span>Like</span>
                 </button>
                 <button
-                    className="fb-action-btn"
+                    className="sp-action-btn"
                     onClick={() => setShowComments(!showComments)}
                 >
                     <span className="icon">💬</span>
                     <span>Comment</span>
                 </button>
                 <button
-                    className="fb-action-btn"
+                    className="sp-action-btn"
                     onClick={() => onShare?.(post.id)}
                 >
                     <span className="icon">↗️</span>
@@ -348,17 +348,17 @@ export const FBPostCard = ({
 
             {/* Comments */}
             {showComments && (
-                <div className="fb-comments">
-                    <div className="fb-comment-input">
-                        <FBAvatar size={32} />
+                <div className="sp-comments">
+                    <div className="sp-comment-input">
+                        <SPAvatar size={32} />
                         <input type="text" placeholder="Write A Comment..." />
                     </div>
                     {post.comments?.map((comment, i) => (
-                        <div key={i} className="fb-comment">
-                            <FBAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
-                            <div className="fb-comment-content">
-                                <span className="fb-comment-author">{getAuthorDisplayName(comment.user || comment.author)}</span>
-                                <span className="fb-comment-text">{comment.text || comment.content}</span>
+                        <div key={i} className="sp-comment">
+                            <SPAvatar src={comment.user?.avatar || comment.author?.avatarUrl} size={32} />
+                            <div className="sp-comment-content">
+                                <span className="sp-comment-author">{getAuthorDisplayName(comment.user || comment.author)}</span>
+                                <span className="sp-comment-text">{comment.text || comment.content}</span>
                             </div>
                         </div>
                     ))}
@@ -366,39 +366,39 @@ export const FBPostCard = ({
             )}
 
             <style>{`
-                .fb-post {
-                    background: ${FB_COLORS.bgWhite};
+                .sp-post {
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
-                    box-shadow: ${FB_COLORS.shadow};
+                    box-shadow: ${SP_COLORS.shadow};
                     margin-bottom: 16px;
                     overflow: hidden;
                 }
 
-                .fb-post-header {
+                .sp-post-header {
                     display: flex;
                     align-items: center;
                     gap: 12px;
                     padding: 12px 16px;
                 }
 
-                .fb-post-meta {
+                .sp-post-meta {
                     flex: 1;
                 }
 
-                .fb-post-author {
+                .sp-post-author {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                 }
 
-                .fb-post-name {
+                .sp-post-name {
                     font-weight: 600;
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     cursor: pointer;
                 }
 
-                .fb-post-name:hover {
+                .sp-post-name:hover {
                     text-decoration: underline;
                 }
 
@@ -410,66 +410,66 @@ export const FBPostCard = ({
                 }
 
                 .badge-shark {
-                    background: ${FB_COLORS.blueLight};
-                    color: ${FB_COLORS.blue};
+                    background: ${SP_COLORS.blueLight};
+                    color: ${SP_COLORS.blue};
                 }
 
                 .badge-gto {
-                    background: linear-gradient(135deg, ${FB_COLORS.pokerGold}, #FEF08A);
+                    background: linear-gradient(135deg, ${SP_COLORS.pokerGold}, #FEF08A);
                     color: #92400E;
                 }
 
-                .fb-post-time {
+                .sp-post-time {
                     font-size: 13px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
-                .fb-post-more {
+                .sp-post-more {
                     width: 36px;
                     height: 36px;
                     border: none;
                     background: transparent;
                     border-radius: 50%;
                     font-size: 16px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     cursor: pointer;
                 }
 
-                .fb-post-more:hover {
-                    background: ${FB_COLORS.bgHover};
+                .sp-post-more:hover {
+                    background: ${SP_COLORS.bgHover};
                 }
 
-                .fb-post-content {
+                .sp-post-content {
                     padding: 0 16px 12px;
                 }
 
-                .fb-post-text {
+                .sp-post-text {
                     font-size: 15px;
                     line-height: 1.34;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin: 0 0 12px;
                 }
 
                 /* Hand Embed */
-                .fb-hand-embed {
-                    background: ${FB_COLORS.bgMain};
+                .sp-hand-embed {
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 8px;
                     padding: 12px;
                     margin-bottom: 12px;
                 }
 
-                .fb-hand-header {
+                .sp-hand-header {
                     display: flex;
                     justify-content: space-between;
                     margin-bottom: 8px;
                     font-weight: 600;
                 }
 
-                .stakes { color: ${FB_COLORS.textSecondary}; }
-                .result.win { color: ${FB_COLORS.pokerGreen}; }
+                .stakes { color: ${SP_COLORS.textSecondary}; }
+                .result.win { color: ${SP_COLORS.pokerGreen}; }
                 .result.loss { color: #EF4444; }
 
-                .fb-hand-cards {
+                .sp-hand-cards {
                     display: flex;
                     align-items: center;
                     gap: 4px;
@@ -501,17 +501,17 @@ export const FBPostCard = ({
 
                 .board-label {
                     font-size: 12px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     margin-left: 8px;
                 }
 
                 /* Media Grid */
-                .fb-post-media {
+                .sp-post-media {
                     margin-left: -16px;
                     margin-right: -16px;
                 }
 
-                .fb-post-media > img {
+                .sp-post-media > img {
                     width: 100%;
                     max-height: 600px;
                     object-fit: cover;
@@ -549,7 +549,7 @@ export const FBPostCard = ({
                     overflow: hidden;
                     min-height: 150px;
                     max-height: 300px;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                 }
 
                 .media-item img,
@@ -610,11 +610,11 @@ export const FBPostCard = ({
                 }
 
                 /* Reactions */
-                .fb-post-reactions {
+                .sp-post-reactions {
                     display: flex;
                     align-items: center;
                     padding: 10px 16px;
-                    border-bottom: 1px solid ${FB_COLORS.divider};
+                    border-bottom: 1px solid ${SP_COLORS.divider};
                 }
 
                 .reaction-icons {
@@ -633,7 +633,7 @@ export const FBPostCard = ({
 
                 .reaction-count {
                     font-size: 15px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     margin-right: auto;
                 }
 
@@ -641,16 +641,16 @@ export const FBPostCard = ({
                     display: flex;
                     gap: 16px;
                     font-size: 15px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 /* Actions */
-                .fb-post-actions {
+                .sp-post-actions {
                     display: flex;
                     padding: 4px 8px;
                 }
 
-                .fb-action-btn {
+                .sp-action-btn {
                     flex: 1;
                     display: flex;
                     align-items: center;
@@ -660,68 +660,68 @@ export const FBPostCard = ({
                     background: transparent;
                     border: none;
                     border-radius: 6px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
                 }
 
-                .fb-action-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                .sp-action-btn:hover {
+                    background: ${SP_COLORS.bgHover};
                 }
 
-                .fb-action-btn.liked {
-                    color: ${FB_COLORS.blue};
+                .sp-action-btn.liked {
+                    color: ${SP_COLORS.blue};
                 }
 
-                .fb-action-btn .icon {
+                .sp-action-btn .icon {
                     font-size: 18px;
                 }
 
                 /* Comments */
-                .fb-comments {
+                .sp-comments {
                     padding: 8px 16px 16px;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                 }
 
-                .fb-comment-input {
+                .sp-comment-input {
                     display: flex;
                     align-items: center;
                     gap: 8px;
                     margin-bottom: 12px;
                 }
 
-                .fb-comment-input input {
+                .sp-comment-input input {
                     flex: 1;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border: none;
                     border-radius: 20px;
                     padding: 8px 16px;
                     font-size: 15px;
                 }
 
-                .fb-comment {
+                .sp-comment {
                     display: flex;
                     gap: 8px;
                     margin-bottom: 8px;
                 }
 
-                .fb-comment-content {
-                    background: ${FB_COLORS.bgWhite};
+                .sp-comment-content {
+                    background: ${SP_COLORS.bgWhite};
                     padding: 8px 12px;
                     border-radius: 18px;
                 }
 
-                .fb-comment-author {
+                .sp-comment-author {
                     font-weight: 600;
                     font-size: 13px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin-right: 4px;
                 }
 
-                .fb-comment-text {
+                .sp-comment-text {
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
             `}</style>
         </div>
@@ -734,9 +734,9 @@ export const FBPostCard = ({
 
 export const FBStoriesRow = ({ stories = [], currentUser }) => {
     return (
-        <div className="fb-stories">
+        <div className="sp-stories">
             {/* Create Story */}
-            <div className="fb-story create">
+            <div className="sp-story create">
                 <div className="story-bg">
                     <img src={currentUser?.avatar || '/default-avatar.png'} alt="" />
                 </div>
@@ -748,7 +748,7 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
             {stories.map((story, i) => (
                 <div
                     key={i}
-                    className={`fb-story ${story.viewed ? '' : 'unviewed'}`}
+                    className={`sp-story ${story.viewed ? '' : 'unviewed'}`}
                 >
                     <img src={story.thumbnail} alt="" className="story-bg" />
                     <div className="story-avatar-ring">
@@ -759,22 +759,22 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
             ))}
 
             <style>{`
-                .fb-stories {
+                .sp-stories {
                     display: flex;
                     gap: 8px;
                     padding: 16px;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
-                    box-shadow: ${FB_COLORS.shadow};
+                    box-shadow: ${SP_COLORS.shadow};
                     margin-bottom: 16px;
                     overflow-x: auto;
                 }
 
-                .fb-stories::-webkit-scrollbar {
+                .sp-stories::-webkit-scrollbar {
                     display: none;
                 }
 
-                .fb-story {
+                .sp-story {
                     position: relative;
                     width: 112px;
                     height: 200px;
@@ -784,28 +784,28 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     flex-shrink: 0;
                 }
 
-                .fb-story:hover {
+                .sp-story:hover {
                     transform: scale(1.02);
                 }
 
-                .fb-story .story-bg,
-                .fb-story > img {
+                .sp-story .story-bg,
+                .sp-story > img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
                 }
 
-                .fb-story.create {
-                    background: linear-gradient(to bottom, transparent 60%, ${FB_COLORS.bgWhite} 60%);
+                .sp-story.create {
+                    background: linear-gradient(to bottom, transparent 60%, ${SP_COLORS.bgWhite} 60%);
                 }
 
-                .fb-story.create .story-bg {
+                .sp-story.create .story-bg {
                     height: 70%;
                     border-radius: 12px 12px 0 0;
                     overflow: hidden;
                 }
 
-                .fb-story.create .story-bg img {
+                .sp-story.create .story-bg img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
@@ -818,8 +818,8 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     transform: translate(-50%, -50%);
                     width: 40px;
                     height: 40px;
-                    background: ${FB_COLORS.blue};
-                    border: 4px solid ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.blue};
+                    border: 4px solid ${SP_COLORS.bgWhite};
                     border-radius: 50%;
                     color: white;
                     font-size: 24px;
@@ -836,18 +836,18 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     height: 44px;
                     border-radius: 50%;
                     padding: 3px;
-                    background: linear-gradient(135deg, ${FB_COLORS.blue}, #00D9FF);
+                    background: linear-gradient(135deg, ${SP_COLORS.blue}, #00D9FF);
                 }
 
-                .fb-story.unviewed .story-avatar-ring {
-                    background: linear-gradient(135deg, ${FB_COLORS.blue}, #00D9FF);
+                .sp-story.unviewed .story-avatar-ring {
+                    background: linear-gradient(135deg, ${SP_COLORS.blue}, #00D9FF);
                 }
 
                 .story-avatar-ring img {
                     width: 100%;
                     height: 100%;
                     border-radius: 50%;
-                    border: 3px solid ${FB_COLORS.bgWhite};
+                    border: 3px solid ${SP_COLORS.bgWhite};
                     object-fit: cover;
                 }
 
@@ -865,8 +865,8 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
                     text-overflow: ellipsis;
                 }
 
-                .fb-story.create .story-label {
-                    color: ${FB_COLORS.textPrimary};
+                .sp-story.create .story-label {
+                    color: ${SP_COLORS.textPrimary};
                     text-shadow: none;
                     text-align: center;
                 }
@@ -880,9 +880,9 @@ export const FBStoriesRow = ({ stories = [], currentUser }) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default {
-    FBAvatar,
+    SPAvatar,
     CreatePostBox,
-    FBPostCard,
+    SPPostCard,
     FBStoriesRow,
-    FB_COLORS
+    SP_COLORS
 };

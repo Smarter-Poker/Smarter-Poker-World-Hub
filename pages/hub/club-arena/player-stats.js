@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  CLUB ARENA — Player Stats | FULLY WIRED
- Facebook Dark Theme | Real Stats from Hand History & Gameplay
+ SmarterPoker Dark Theme | Real Stats from Hand History & Gameplay
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -11,7 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 
-// Facebook Dark Color Scheme
+// SmarterPoker Dark Color Scheme
 const FB = {
     primary: '#2374E1',
     background: '#18191A',

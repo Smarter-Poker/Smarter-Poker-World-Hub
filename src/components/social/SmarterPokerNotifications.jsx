@@ -1,24 +1,24 @@
 /**
- * 🔔 FACEBOOK-STYLE NOTIFICATIONS
- * src/app/social/components/FacebookNotifications.jsx
+ * 🔔 smarter-poker-style NOTIFICATIONS
+ * src/app/social/components/SmarterPokerNotifications.jsx
  * 
  * Notification dropdown and notification items
  */
 
 import React, { useState } from 'react';
-import { FBAvatar, FB_COLORS } from './FacebookStyleCard';
+import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🔔 NOTIFICATION TYPES
 // ═══════════════════════════════════════════════════════════════════════════
 
 const NOTIFICATION_TYPES = {
-    like: { icon: '👍', color: FB_COLORS.blue, label: 'Liked Your Post' },
+    like: { icon: '👍', color: SP_COLORS.blue, label: 'Liked Your Post' },
     comment: { icon: '💬', color: '#31A24C', label: 'Commented On Your Post' },
     share: { icon: '↗️', color: '#F7B928', label: 'Shared Your Post' },
-    friend_request: { icon: '👤', color: FB_COLORS.blue, label: 'Sent You A Friend Request' },
+    friend_request: { icon: '👤', color: SP_COLORS.blue, label: 'Sent You A Friend Request' },
     friend_accepted: { icon: '👥', color: '#31A24C', label: 'Accepted Your Friend Request' },
-    mention: { icon: '@', color: FB_COLORS.blue, label: 'Mentioned You' },
+    mention: { icon: '@', color: SP_COLORS.blue, label: 'Mentioned You' },
     tag: { icon: '📷', color: '#E41E3F', label: 'Tagged You In A Photo' },
     hand_reaction: { icon: '🃏', color: '#FF6B35', label: 'Reacted To Your Hand' },
     gto_badge: { icon: '👑', color: '#FFD700', label: 'You Earned GTO Master!' },
@@ -41,7 +41,7 @@ const NotificationItem = ({ notification, onClick }) => {
             onClick={() => onClick?.(notification)}
         >
             <div className="notification-avatar">
-                <FBAvatar src={notification.user?.avatar} size={56} />
+                <SPAvatar src={notification.user?.avatar} size={56} />
                 <span
                     className="notification-icon"
                     style={{ background: type.color }}
@@ -82,11 +82,11 @@ const NotificationItem = ({ notification, onClick }) => {
                 }
 
                 .notification-item:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .notification-item.unread {
-                    background: ${FB_COLORS.blueLight};
+                    background: ${SP_COLORS.blueLight};
                 }
 
                 .notification-item.unread:hover {
@@ -119,29 +119,29 @@ const NotificationItem = ({ notification, onClick }) => {
 
                 .notification-text {
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     line-height: 1.34;
                     margin: 0;
                 }
 
                 .notification-preview {
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .notification-time {
                     font-size: 13px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .notification-time.unread {
-                    color: ${FB_COLORS.blue};
+                    color: ${SP_COLORS.blue};
                     font-weight: 600;
                 }
 
                 .unread-dot {
                     width: 12px;
                     height: 12px;
-                    background: ${FB_COLORS.blue};
+                    background: ${SP_COLORS.blue};
                     border-radius: 50%;
                     flex-shrink: 0;
                 }
@@ -152,7 +152,7 @@ const NotificationItem = ({ notification, onClick }) => {
                     width: 32px;
                     height: 32px;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 50%;
                     cursor: pointer;
                     opacity: 0;
@@ -241,7 +241,7 @@ export const NotificationsDropdown = ({
                 .notifications-dropdown {
                     width: 360px;
                     max-height: 500px;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
                     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
                     display: flex;
@@ -258,7 +258,7 @@ export const NotificationsDropdown = ({
                 .notif-title {
                     font-size: 24px;
                     font-weight: 700;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin: 0;
                 }
 
@@ -266,14 +266,14 @@ export const NotificationsDropdown = ({
                     width: 36px;
                     height: 36px;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 50%;
                     cursor: pointer;
                     font-size: 16px;
                 }
 
                 .header-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .notif-filters {
@@ -285,21 +285,21 @@ export const NotificationsDropdown = ({
                 .filter-btn {
                     padding: 8px 12px;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 20px;
                     font-size: 15px;
                     font-weight: 500;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     cursor: pointer;
                 }
 
                 .filter-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .filter-btn.active {
-                    background: ${FB_COLORS.blueLight};
-                    color: ${FB_COLORS.blue};
+                    background: ${SP_COLORS.blueLight};
+                    color: ${SP_COLORS.blue};
                 }
 
                 .notif-section-header {
@@ -308,13 +308,13 @@ export const NotificationsDropdown = ({
                     align-items: center;
                     padding: 8px 16px;
                     font-weight: 600;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
 
                 .mark-read-btn {
                     border: none;
                     background: none;
-                    color: ${FB_COLORS.blue};
+                    color: ${SP_COLORS.blue};
                     font-size: 15px;
                     cursor: pointer;
                 }
@@ -331,7 +331,7 @@ export const NotificationsDropdown = ({
                 .empty-state {
                     text-align: center;
                     padding: 40px 20px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .empty-icon {
@@ -370,7 +370,7 @@ export const NotificationBell = ({
                 width: 40px;
                 height: 40px;
                 border: none;
-                background: ${FB_COLORS.bgMain};
+                background: ${SP_COLORS.bgMain};
                 border-radius: 50%;
                 cursor: pointer;
                 position: relative;
@@ -379,11 +379,11 @@ export const NotificationBell = ({
 
             .notification-bell:hover,
             .notification-bell.active {
-                background: ${FB_COLORS.bgHover};
+                background: ${SP_COLORS.bgHover};
             }
 
             .notification-bell.active {
-                color: ${FB_COLORS.blue};
+                color: ${SP_COLORS.blue};
             }
 
             .bell-badge {

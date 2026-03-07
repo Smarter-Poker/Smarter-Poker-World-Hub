@@ -1,7 +1,7 @@
 /**
  * PROMOTIONS DISCOVERY PAGE
  * Aggregates active promotions from all venues, tours, and series.
- * Facebook light theme, Inter font, no emojis.
+ * SmarterPoker light theme, Inter font, no emojis.
  */
 
 import SEOHead from '../../src/components/seo/SEOHead';

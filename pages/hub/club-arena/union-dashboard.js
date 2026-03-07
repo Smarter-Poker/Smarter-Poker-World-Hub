@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    CLUB ARENA — Union Dashboard | FULLY WIRED
-   Facebook Dark Theme | Union Stats, Clubs, Agents, Settlement, Mint Chips
+   SmarterPoker Dark Theme | Union Stats, Clubs, Agents, Settlement, Mint Chips
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';

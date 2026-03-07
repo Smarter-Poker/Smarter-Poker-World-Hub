@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    CLUB ARENA — Agent Dashboard | FULLY WIRED
-   Facebook Dark Theme | Downline, Cashouts, Chips, Commissions, Clawback
+   SmarterPoker Dark Theme | Downline, Cashouts, Chips, Commissions, Clawback
    ═══════════════════════════════════════════════════════════════════════════════ */
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';

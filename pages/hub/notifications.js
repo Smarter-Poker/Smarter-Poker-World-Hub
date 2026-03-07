@@ -190,7 +190,7 @@ export default function NotificationsPage() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // FRIEND REQUEST HANDLERS (Facebook-style: Decline = Auto-Follow)
+    // FRIEND REQUEST HANDLERS (SmarterPoker-style: Decline = Auto-Follow)
     // ═══════════════════════════════════════════════════════════════════════════
 
     const handleAcceptFriendRequest = async (notification, e) => {
@@ -279,7 +279,7 @@ export default function NotificationsPage() {
                     .eq('status', 'pending');
             }
 
-            //  FACEBOOK-STYLE: Auto-convert to follower
+            //  smarter-poker-style: Auto-convert to follower
             // The requester now FOLLOWS the person who declined
             await supabase.from('follows').upsert({
                 follower_id: requesterId,     // Person who sent request
@@ -395,7 +395,7 @@ export default function NotificationsPage() {
                                         borderBottom: `1px solid ${C.border}`, cursor: isClickable ? 'pointer' : 'default'
                                     }}
                                 >
-                                    {/* Facebook-style avatar with action icon */}
+                                    {/* SmarterPoker-style avatar with action icon */}
                                     <div style={{ position: 'relative', flexShrink: 0 }}>
                                         <img
                                             src={n.actor_avatar_url || '/default-avatar.png'}

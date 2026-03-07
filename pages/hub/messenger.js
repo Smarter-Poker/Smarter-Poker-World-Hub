@@ -1,6 +1,6 @@
 /**
  *  SMARTER.POKER MESSENGER V2.0
- * Full-featured Facebook Messenger clone with premium design
+ * Full-featured SmarterPoker Messenger clone with premium design
  * Real-time chat, read receipts, typing indicators, and poker-themed UI
  * Enhanced with: optimistic updates, message reactions, sound notifications
  */
@@ -113,7 +113,7 @@ function formatDateHeader(timestamp) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📱 FACEBOOK-STYLE SVG ICONS
+// 📱 smarter-poker-style SVG ICONS
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PhoneIcon = ({ size = 20, color = '#0084FF' }) => (
@@ -380,7 +380,7 @@ function MessageInput({ onSend, onTyping, onMediaUpload, disabled }) {
                 )}
             </div>
 
-            {/* Send button - Facebook Messenger style */}
+            {/* Send button - SmarterPoker Messenger style */}
             <button
                 onClick={handleSend}
                 disabled={!text.trim()}
@@ -1928,7 +1928,7 @@ export default function MessengerPage() {
         }
     };
 
-    // Handle message deletion (Facebook-style: delete for me vs delete for everyone)
+    // Handle message deletion (SmarterPoker-style: delete for me vs delete for everyone)
     const handleDeleteMessage = async (messageId, deleteType = 'for_me') => {
         if (!user) return;
 
@@ -2816,7 +2816,7 @@ export default function MessengerPage() {
                     flexDirection: 'column',
                     height: '100%',
                 }}>
-                    {/* Header - Facebook Messenger Style */}
+                    {/* Header - SmarterPoker Messenger Style */}
                     <div style={{
                         padding: '12px 16px',
                         display: 'flex',

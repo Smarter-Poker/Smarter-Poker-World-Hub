@@ -823,7 +823,7 @@ export default function UserProfilePage() {
                 noindex={true}
             />
 
-            <div className="fb-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <div className="sp-profile-page" style={{ minHeight: '100vh', background: C.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }}>
                 <UniversalHeader pageDepth={2} />
 
                 {/* COVER PHOTO */}
@@ -854,7 +854,7 @@ export default function UserProfilePage() {
                     )}
                 </div>
 
-                {/* PROFILE HEADER - Facebook Style */}
+                {/* PROFILE HEADER - SmarterPoker Style */}
                 <div style={{ padding: '0 16px', marginTop: -50, position: 'relative', zIndex: 10 }}>
                     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
                         {/* Avatar */}

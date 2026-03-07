@@ -1,12 +1,12 @@
 /**
- * 👥 FACEBOOK-STYLE FRIENDS
- * src/app/social/components/FacebookFriends.jsx
+ * 👥 smarter-poker-style FRIENDS
+ * src/app/social/components/SmarterPokerFriends.jsx
  * 
  * Friends list, friend requests, and friend suggestions
  */
 
 import React, { useState } from 'react';
-import { FBAvatar, FB_COLORS } from './FacebookStyleCard';
+import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 import { PokerTierBadge } from './PokerReputationBadges';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -30,7 +30,7 @@ export const FriendCard = ({
             </div>
 
             <div className="friend-avatar">
-                <FBAvatar src={user.avatar} size={96} online={user.online} />
+                <SPAvatar src={user.avatar} size={96} online={user.online} />
             </div>
 
             <div className="friend-info">
@@ -76,7 +76,7 @@ export const FriendCard = ({
             <style>{`
                 .friend-card {
                     width: 200px;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                     overflow: hidden;
@@ -101,7 +101,7 @@ export const FriendCard = ({
                 }
 
                 .friend-avatar img {
-                    border: 4px solid ${FB_COLORS.bgWhite};
+                    border: 4px solid ${SP_COLORS.bgWhite};
                 }
 
                 .friend-info {
@@ -112,7 +112,7 @@ export const FriendCard = ({
                 .friend-name {
                     font-size: 17px;
                     font-weight: 600;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin: 0 0 4px;
                 }
 
@@ -124,7 +124,7 @@ export const FriendCard = ({
 
                 .friend-mutual {
                     font-size: 13px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .friend-actions {
@@ -137,7 +137,7 @@ export const FriendCard = ({
                 .btn-primary {
                     width: 100%;
                     padding: 8px;
-                    background: ${FB_COLORS.blue};
+                    background: ${SP_COLORS.blue};
                     border: none;
                     border-radius: 6px;
                     color: white;
@@ -147,23 +147,23 @@ export const FriendCard = ({
                 }
 
                 .btn-primary:hover {
-                    background: ${FB_COLORS.blueHover};
+                    background: ${SP_COLORS.blueHover};
                 }
 
                 .btn-secondary {
                     width: 100%;
                     padding: 8px;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border: none;
                     border-radius: 6px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
                 }
 
                 .btn-secondary:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
             `}</style>
         </div>
@@ -180,7 +180,7 @@ export const FriendRequestItem = ({
     onDecline
 }) => (
     <div className="friend-request-item">
-        <FBAvatar src={user.avatar} size={60} />
+        <SPAvatar src={user.avatar} size={60} />
 
         <div className="request-info">
             <span className="request-name">{user.name}</span>
@@ -211,7 +211,7 @@ export const FriendRequestItem = ({
             }
 
             .friend-request-item:hover {
-                background: ${FB_COLORS.bgHover};
+                background: ${SP_COLORS.bgHover};
             }
 
             .request-info {
@@ -222,19 +222,19 @@ export const FriendRequestItem = ({
                 display: block;
                 font-weight: 600;
                 font-size: 15px;
-                color: ${FB_COLORS.textPrimary};
+                color: ${SP_COLORS.textPrimary};
                 margin-bottom: 2px;
             }
 
             .request-mutual {
                 display: block;
                 font-size: 13px;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
             }
 
             .request-time {
                 font-size: 12px;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
             }
 
             .request-actions {
@@ -244,7 +244,7 @@ export const FriendRequestItem = ({
 
             .btn-confirm {
                 padding: 8px 16px;
-                background: ${FB_COLORS.blue};
+                background: ${SP_COLORS.blue};
                 border: none;
                 border-radius: 6px;
                 color: white;
@@ -253,21 +253,21 @@ export const FriendRequestItem = ({
             }
 
             .btn-confirm:hover {
-                background: ${FB_COLORS.blueHover};
+                background: ${SP_COLORS.blueHover};
             }
 
             .btn-delete {
                 padding: 8px 16px;
-                background: ${FB_COLORS.bgMain};
+                background: ${SP_COLORS.bgMain};
                 border: none;
                 border-radius: 6px;
-                color: ${FB_COLORS.textPrimary};
+                color: ${SP_COLORS.textPrimary};
                 font-weight: 600;
                 cursor: pointer;
             }
 
             .btn-delete:hover {
-                background: ${FB_COLORS.bgHover};
+                background: ${SP_COLORS.bgHover};
             }
         `}</style>
     </div>
@@ -309,7 +309,7 @@ export const FriendRequestsSection = ({
 
         <style>{`
             .friend-requests-section {
-                background: ${FB_COLORS.bgWhite};
+                background: ${SP_COLORS.bgWhite};
                 border-radius: 8px;
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 margin-bottom: 16px;
@@ -319,13 +319,13 @@ export const FriendRequestsSection = ({
                 display: flex;
                 align-items: center;
                 padding: 16px;
-                border-bottom: 1px solid ${FB_COLORS.divider};
+                border-bottom: 1px solid ${SP_COLORS.divider};
             }
 
             .section-header h3 {
                 font-size: 20px;
                 font-weight: 700;
-                color: ${FB_COLORS.textPrimary};
+                color: ${SP_COLORS.textPrimary};
                 margin: 0;
             }
 
@@ -343,7 +343,7 @@ export const FriendRequestsSection = ({
                 margin-left: auto;
                 border: none;
                 background: none;
-                color: ${FB_COLORS.blue};
+                color: ${SP_COLORS.blue};
                 font-size: 15px;
                 cursor: pointer;
             }
@@ -355,7 +355,7 @@ export const FriendRequestsSection = ({
             .empty-message {
                 text-align: center;
                 padding: 24px;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
             }
         `}</style>
     </div>
@@ -396,7 +396,7 @@ export const PeopleYouMayKnow = ({
                         </button>
 
                         <div className="suggestion-avatar">
-                            <FBAvatar src={user.avatar} size={80} />
+                            <SPAvatar src={user.avatar} size={80} />
                         </div>
 
                         <h4 className="suggestion-name">{user.name}</h4>
@@ -426,20 +426,20 @@ export const PeopleYouMayKnow = ({
 
             <style>{`
                 .people-may-know {
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 }
 
                 .section-header {
                     padding: 16px;
-                    border-bottom: 1px solid ${FB_COLORS.divider};
+                    border-bottom: 1px solid ${SP_COLORS.divider};
                 }
 
                 .section-header h3 {
                     font-size: 20px;
                     font-weight: 700;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin: 0;
                 }
 
@@ -451,8 +451,8 @@ export const PeopleYouMayKnow = ({
                 }
 
                 .suggestion-card {
-                    background: ${FB_COLORS.bgWhite};
-                    border: 1px solid ${FB_COLORS.divider};
+                    background: ${SP_COLORS.bgWhite};
+                    border: 1px solid ${SP_COLORS.divider};
                     border-radius: 8px;
                     padding: 16px;
                     text-align: center;
@@ -466,15 +466,15 @@ export const PeopleYouMayKnow = ({
                     width: 24px;
                     height: 24px;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 50%;
                     cursor: pointer;
                     font-size: 12px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .dismiss-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .suggestion-avatar {
@@ -484,7 +484,7 @@ export const PeopleYouMayKnow = ({
                 .suggestion-name {
                     font-size: 15px;
                     font-weight: 600;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin: 0 0 4px;
                 }
 
@@ -496,7 +496,7 @@ export const PeopleYouMayKnow = ({
 
                 .suggestion-reason {
                     font-size: 13px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     display: block;
                     margin-bottom: 12px;
                 }
@@ -504,10 +504,10 @@ export const PeopleYouMayKnow = ({
                 .add-friend-btn {
                     width: 100%;
                     padding: 8px;
-                    background: ${FB_COLORS.blueLight};
+                    background: ${SP_COLORS.blueLight};
                     border: none;
                     border-radius: 6px;
-                    color: ${FB_COLORS.blue};
+                    color: ${SP_COLORS.blue};
                     font-size: 15px;
                     font-weight: 600;
                     cursor: pointer;
@@ -562,7 +562,7 @@ export const FriendsList = ({
                             className="friend-row"
                             onClick={() => onViewProfile?.(friend)}
                         >
-                            <FBAvatar src={friend.avatar} size={36} online={true} />
+                            <SPAvatar src={friend.avatar} size={36} online={true} />
                             <div className="friend-details">
                                 <span className="friend-name">{friend.name}</span>
                                 {friend.tier && (
@@ -590,7 +590,7 @@ export const FriendsList = ({
                             className="friend-row"
                             onClick={() => onViewProfile?.(friend)}
                         >
-                            <FBAvatar src={friend.avatar} size={36} />
+                            <SPAvatar src={friend.avatar} size={36} />
                             <div className="friend-details">
                                 <span className="friend-name">{friend.name}</span>
                                 {friend.tier && (
@@ -610,7 +610,7 @@ export const FriendsList = ({
 
             <style>{`
                 .friends-list {
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 }
@@ -619,13 +619,13 @@ export const FriendsList = ({
                     display: flex;
                     align-items: center;
                     padding: 12px 16px;
-                    border-bottom: 1px solid ${FB_COLORS.divider};
+                    border-bottom: 1px solid ${SP_COLORS.divider};
                 }
 
                 .friends-search input {
                     flex: 1;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     padding: 8px 12px;
                     border-radius: 20px;
                     margin-left: 8px;
@@ -633,7 +633,7 @@ export const FriendsList = ({
                 }
 
                 .search-icon {
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .friends-section {
@@ -643,7 +643,7 @@ export const FriendsList = ({
                 .section-title {
                     font-size: 13px;
                     font-weight: 600;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     text-transform: uppercase;
                     padding: 8px 16px;
                     margin: 0;
@@ -658,7 +658,7 @@ export const FriendsList = ({
                 }
 
                 .friend-row:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .friend-details {
@@ -671,14 +671,14 @@ export const FriendsList = ({
                 .friend-name {
                     font-size: 15px;
                     font-weight: 500;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
 
                 .message-btn {
                     width: 32px;
                     height: 32px;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 50%;
                     cursor: pointer;
                     opacity: 0;
@@ -689,7 +689,7 @@ export const FriendsList = ({
                 }
 
                 .message-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
             `}</style>
         </div>

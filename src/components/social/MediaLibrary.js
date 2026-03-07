@@ -1,6 +1,6 @@
 /**
  * 📸 MEDIA LIBRARY COMPONENT
- * Premium Facebook-style photo/video gallery with lightbox
+ * Premium SmarterPoker-style photo/video gallery with lightbox
  * src/components/social/MediaLibrary.js
  */
 

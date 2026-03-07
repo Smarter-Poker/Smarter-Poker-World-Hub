@@ -5,7 +5,7 @@
  * ║  WORKFLOW: /social-feed-protection                                       ║
  * ║  REGISTRY: .agent/PROTECTED_FILES.md                                     ║
  * ╠═══════════════════════════════════════════════════════════════════════════╣
- * ║  GO LIVE MODAL — Facebook/TikTok-style Live Streaming Interface          ║
+ * ║  GO LIVE MODAL — SmarterPoker/TikTok-style Live Streaming Interface          ║
  * ║                                                                           ║
  * ║  FUNCTIONALITY:                                                           ║
  * ║  - Camera/microphone permission handling                                  ║

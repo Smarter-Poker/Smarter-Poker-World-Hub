@@ -1,12 +1,12 @@
 /**
- * 💬 FACEBOOK-STYLE MESSENGER
- * src/app/social/components/FacebookMessenger.jsx
+ * 💬 smarter-poker-style MESSENGER
+ * src/app/social/components/SmarterPokerMessenger.jsx
  * 
  * Chat system with conversation list and message threads
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { FBAvatar, FB_COLORS } from './FacebookStyleCard';
+import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 💬 MESSAGE BUBBLE
@@ -15,7 +15,7 @@ import { FBAvatar, FB_COLORS } from './FacebookStyleCard';
 const MessageBubble = ({ message, isOwn, showAvatar, user }) => (
     <div className={`message-row ${isOwn ? 'own' : 'other'}`}>
         {!isOwn && showAvatar && (
-            <FBAvatar src={user?.avatar} size={28} />
+            <SPAvatar src={user?.avatar} size={28} />
         )}
         {!isOwn && !showAvatar && <div className="avatar-spacer" />}
 
@@ -62,14 +62,14 @@ const MessageBubble = ({ message, isOwn, showAvatar, user }) => (
             }
 
             .message-bubble.own {
-                background: ${FB_COLORS.blue};
+                background: ${SP_COLORS.blue};
                 color: white;
                 border-bottom-right-radius: 4px;
             }
 
             .message-bubble.other {
-                background: ${FB_COLORS.bgMain};
-                color: ${FB_COLORS.textPrimary};
+                background: ${SP_COLORS.bgMain};
+                color: ${SP_COLORS.textPrimary};
                 border-bottom-left-radius: 4px;
             }
 
@@ -86,7 +86,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, user }) => (
 
             .message-time {
                 font-size: 11px;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
                 opacity: 0;
                 white-space: nowrap;
             }
@@ -137,7 +137,7 @@ export const ChatWindow = ({
     if (minimized) {
         return (
             <div className="chat-minimized" onClick={onMinimize}>
-                <FBAvatar src={otherUser?.avatar} size={48} online={otherUser?.online} />
+                <SPAvatar src={otherUser?.avatar} size={48} online={otherUser?.online} />
                 {conversation?.unreadCount > 0 && (
                     <span className="unread-badge">{conversation.unreadCount}</span>
                 )}
@@ -170,7 +170,7 @@ export const ChatWindow = ({
         <div className="chat-window">
             {/* Header */}
             <div className="chat-header">
-                <FBAvatar src={otherUser?.avatar} size={32} online={otherUser?.online} />
+                <SPAvatar src={otherUser?.avatar} size={32} online={otherUser?.online} />
                 <div className="chat-user-info">
                     <span className="chat-user-name">{otherUser?.name}</span>
                     <span className="chat-user-status">
@@ -236,7 +236,7 @@ export const ChatWindow = ({
                 .chat-window {
                     width: 328px;
                     height: 455px;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px 8px 0 0;
                     box-shadow: 0 0 8px rgba(0,0,0,0.15);
                     display: flex;
@@ -249,8 +249,8 @@ export const ChatWindow = ({
                     align-items: center;
                     gap: 8px;
                     padding: 8px;
-                    background: ${FB_COLORS.bgWhite};
-                    border-bottom: 1px solid ${FB_COLORS.divider};
+                    background: ${SP_COLORS.bgWhite};
+                    border-bottom: 1px solid ${SP_COLORS.divider};
                     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
                 }
 
@@ -262,12 +262,12 @@ export const ChatWindow = ({
                     display: block;
                     font-weight: 600;
                     font-size: 13px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
 
                 .chat-user-status {
                     font-size: 11px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .chat-header-actions {
@@ -286,7 +286,7 @@ export const ChatWindow = ({
                 }
 
                 .header-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .chat-messages {
@@ -300,7 +300,7 @@ export const ChatWindow = ({
                     align-items: center;
                     gap: 4px;
                     padding: 8px;
-                    border-top: 1px solid ${FB_COLORS.divider};
+                    border-top: 1px solid ${SP_COLORS.divider};
                 }
 
                 .input-btn {
@@ -311,18 +311,18 @@ export const ChatWindow = ({
                     border-radius: 50%;
                     cursor: pointer;
                     font-size: 16px;
-                    color: ${FB_COLORS.blue};
+                    color: ${SP_COLORS.blue};
                 }
 
                 .input-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .input-wrapper {
                     flex: 1;
                     display: flex;
                     align-items: center;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 20px;
                     padding: 0 8px;
                 }
@@ -354,7 +354,7 @@ export const ChatWindow = ({
                     border-radius: 50%;
                     cursor: pointer;
                     font-size: 18px;
-                    color: ${FB_COLORS.blue};
+                    color: ${SP_COLORS.blue};
                 }
 
                 .send-btn:disabled {
@@ -417,7 +417,7 @@ export const ConversationList = ({
                             className={`conv-item ${conv.unread ? 'unread' : ''}`}
                             onClick={() => onSelectConversation?.(conv)}
                         >
-                            <FBAvatar
+                            <SPAvatar
                                 src={otherUser?.avatar}
                                 size={56}
                                 online={otherUser?.online}
@@ -446,7 +446,7 @@ export const ConversationList = ({
                 .conversation-list {
                     width: 360px;
                     max-height: 500px;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     border-radius: 8px;
                     box-shadow: 0 2px 12px rgba(0,0,0,0.15);
                     display: flex;
@@ -463,7 +463,7 @@ export const ConversationList = ({
                 .conv-title {
                     font-size: 24px;
                     font-weight: 700;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin: 0;
                 }
 
@@ -476,14 +476,14 @@ export const ConversationList = ({
                     width: 36px;
                     height: 36px;
                     border: none;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 50%;
                     cursor: pointer;
                     font-size: 16px;
                 }
 
                 .header-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .conv-search {
@@ -491,7 +491,7 @@ export const ConversationList = ({
                     align-items: center;
                     margin: 0 16px 8px;
                     padding: 8px 12px;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border-radius: 20px;
                 }
 
@@ -508,7 +508,7 @@ export const ConversationList = ({
                 }
 
                 .search-icon {
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .conv-items {
@@ -525,7 +525,7 @@ export const ConversationList = ({
                 }
 
                 .conv-item:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .conv-info {
@@ -537,7 +537,7 @@ export const ConversationList = ({
                     display: block;
                     font-weight: 500;
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
 
                 .conv-item.unread .conv-name {
@@ -546,36 +546,36 @@ export const ConversationList = ({
 
                 .conv-preview {
                     font-size: 13px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
                 }
 
                 .conv-item.unread .conv-preview {
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     font-weight: 500;
                 }
 
                 .conv-time {
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .unread-dot {
                     width: 12px;
                     height: 12px;
-                    background: ${FB_COLORS.blue};
+                    background: ${SP_COLORS.blue};
                     border-radius: 50%;
                 }
 
                 .conv-footer {
                     padding: 12px;
                     text-align: center;
-                    border-top: 1px solid ${FB_COLORS.divider};
+                    border-top: 1px solid ${SP_COLORS.divider};
                 }
 
                 .see-all-link {
-                    color: ${FB_COLORS.blue};
+                    color: ${SP_COLORS.blue};
                     font-size: 15px;
                     font-weight: 500;
                     text-decoration: none;

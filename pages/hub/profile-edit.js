@@ -1,6 +1,6 @@
 /**
  * SMARTER.POKER PROFILE PAGE - Full Editable Profile
- * Facebook-style profile with HendonMob integration
+ * SmarterPoker-style profile with HendonMob integration
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -941,7 +941,7 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Friends Section - Facebook Style */}
+                    {/* Friends Section - SmarterPoker Style */}
                     {friends.length > 0 && (
                         <div style={{
                             background: C.card, borderRadius: 8, padding: 16, marginBottom: 16,

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  CLUB ARENA — Hand Histories | FULLY WIRED
- Facebook Dark Theme | Real Hand Data with Filters & Visualization
+ SmarterPoker Dark Theme | Real Hand Data with Filters & Visualization
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -11,7 +11,7 @@ import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
-// Facebook Dark Color Scheme
+// SmarterPoker Dark Color Scheme
 const FB = {
     primary: '#2374E1',
     background: '#18191A',

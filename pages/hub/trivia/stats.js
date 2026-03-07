@@ -1,7 +1,7 @@
 /**
  * Trivia - Player Stats
  * Fetches real user data from Supabase
- * Uses Facebook Dark color schema
+ * Uses SmarterPoker Dark color schema
  */
 
 import { useState, useEffect } from 'react';

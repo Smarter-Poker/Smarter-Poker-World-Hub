@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  CLUB ARENA — Players | FULLY WIRED
- Facebook Dark Theme | Member List with Search, Roles & Actions
+ SmarterPoker Dark Theme | Member List with Search, Roles & Actions
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
@@ -12,7 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
-// Facebook Dark Color Scheme
+// SmarterPoker Dark Color Scheme
 const FB = {
     primary: '#2374E1',
     background: '#18191A',

@@ -24,7 +24,7 @@ import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useAvatar } from '../../src/contexts/AvatarContext';
-import { Search, Eye, TrendingUp, Trophy, Play, Check, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, Facebook, LinkIcon, CheckCircle, ChevronDown, Video, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
+import { Search, Eye, TrendingUp, Trophy, Play, Check, MapPin, ExternalLink, Loader, Bookmark, BookmarkCheck, Share2, Twitter, SmarterPoker, LinkIcon, CheckCircle, ChevronDown, Video, Newspaper, Globe, ChevronRight, Film } from 'lucide-react';
 
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -1112,7 +1112,7 @@ export default function NewsHub() {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(article.title)}&url=${encodeURIComponent(url)}`, '_blank');
     };
 
-    const shareToFacebook = (article) => {
+    const shareToSmarterPoker = (article) => {
         const url = `https://smarter.poker/hub/article?id=${article.id}`;
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
     };
@@ -1368,8 +1368,8 @@ export default function NewsHub() {
                                         <button onClick={() => { shareToTwitter(shareArticle); setShareArticle(null); }}>
                                             <Twitter size={20} /> Twitter
                                         </button>
-                                        <button onClick={() => { shareToFacebook(shareArticle); setShareArticle(null); }}>
-                                            <Facebook size={20} /> Facebook
+                                        <button onClick={() => { shareToSmarterPoker(shareArticle); setShareArticle(null); }}>
+                                            <SmarterPoker size={20} /> SmarterPoker
                                         </button>
                                         <button onClick={() => { copyLink(shareArticle); setShareArticle(null); }}>
                                             <LinkIcon size={20} /> Copy Link
@@ -2735,7 +2735,7 @@ export default function NewsHub() {
 
                     /* MSPT Widget */
                     .mspt h4 {
-                        background: #2374E1; /* Facebook Blue */
+                        background: #2374E1; /* SmarterPoker Blue */
                         margin: -16px -16px 14px -16px;
                         padding: 12px 16px;
                         border-radius: 8px 8px 0 0;
@@ -2812,7 +2812,7 @@ export default function NewsHub() {
                         padding: 10px;
                         background: rgba(35, 116, 225, 0.1);
                         border-radius: 8px;
-                        color: #2374E1; /* Facebook Blue */
+                        color: #2374E1; /* SmarterPoker Blue */
                         font-size: 12px;
                         font-weight: 600;
                         text-decoration: none;
@@ -2881,7 +2881,7 @@ export default function NewsHub() {
                         padding: 10px;
                         background: rgba(35, 116, 225, 0.1);
                         border-radius: 8px;
-                        color: #2374E1; /* Facebook Blue */
+                        color: #2374E1; /* SmarterPoker Blue */
                         font-size: 12px;
                         font-weight: 600;
                     }

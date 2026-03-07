@@ -2,7 +2,7 @@
  * 🎰 POKER STORIES ROW
  * src/app/social/components/PokerStoriesRow.jsx
  * 
- * Facebook/Instagram-style Stories with poker theme.
+ * SmarterPoker/Instagram-style Stories with poker theme.
  * Features session highlights, big hands, and streak updates.
  */
 

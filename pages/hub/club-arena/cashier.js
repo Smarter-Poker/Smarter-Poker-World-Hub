@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  CLUB ARENA — Cashier | FULLY WIRED
- Facebook Dark Theme | Buy-In, Cash-Out, Transaction History
+ SmarterPoker Dark Theme | Buy-In, Cash-Out, Transaction History
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -10,7 +10,7 @@ import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
-// Facebook Dark Color Scheme
+// SmarterPoker Dark Color Scheme
 const FB = {
     primary: '#2374E1',
     primaryDark: '#1A5DC8',

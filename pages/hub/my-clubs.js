@@ -21,7 +21,7 @@ import { supabase } from '../../src/lib/supabase';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DESIGN TOKENS — Facebook Dark palette
+// DESIGN TOKENS — SmarterPoker Dark palette
 // ─────────────────────────────────────────────────────────────────────────────
 const C = {
     bg: '#18191a',
@@ -37,7 +37,7 @@ const C = {
     green: '#31a24c',
     red: '#f02849',
     cyan: '#00bfff',
-    border: '#3E4042',        // Facebook Dark border color
+    border: '#3E4042',        // SmarterPoker Dark border color
     borderLight: '#333536',   // Subtle inner border
 };
 

@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    LIVE STREAM VIEWER — Full-screen viewing experience for live streams
-   TikTok/Facebook Live style immersive viewer with chat overlay
+   TikTok/SmarterPoker Live style immersive viewer with chat overlay
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useRef, useEffect } from 'react';

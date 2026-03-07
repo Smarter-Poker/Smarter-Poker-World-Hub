@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    CLUB ARENA — Union Games | Tournaments & Cash Games
-   Facebook Dark Theme | Union-Level Tournament + Cash Table Management
+   SmarterPoker Dark Theme | Union-Level Tournament + Cash Table Management
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';

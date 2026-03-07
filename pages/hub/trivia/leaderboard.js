@@ -1,7 +1,7 @@
 /**
  * Trivia - Leaderboard
  * Fetches real rankings from Supabase trivia_scores table
- * Uses Facebook Dark color schema
+ * Uses SmarterPoker Dark color schema
  */
 
 import { useState, useEffect } from 'react';

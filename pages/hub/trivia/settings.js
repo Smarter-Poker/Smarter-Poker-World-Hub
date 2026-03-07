@@ -1,7 +1,7 @@
 /**
  * Trivia - Settings
  * Preferences are saved to Supabase via triviaPreferences service
- * Facebook Dark color schema
+ * SmarterPoker Dark color schema
  */
 
 import { useState, useEffect } from 'react';

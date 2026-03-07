@@ -2,14 +2,14 @@
  * 🃏 POKER REPUTATION BADGES
  * src/app/social/components/PokerReputationBadges.jsx
  * 
- * Facebook-style badges with poker terminology and visual flair.
+ * SmarterPoker-style badges with poker terminology and visual flair.
  * These appear on posts and profiles to show poker credibility.
  */
 
 import React from 'react';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🃏 POKER TIER BADGES (Like Facebook Verified but Poker-themed)
+// 🃏 POKER TIER BADGES (Like SmarterPoker Verified but Poker-themed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POKER_TIERS = {
@@ -136,7 +136,7 @@ export const PokerTierBadge = ({ tier = 'fish', size = 'md', showLabel = true })
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ♠️ HAND STRENGTH REACTION (Like Facebook Reactions but Poker-themed)
+// ♠️ HAND STRENGTH REACTION (Like SmarterPoker Reactions but Poker-themed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POKER_REACTIONS = {
@@ -242,7 +242,7 @@ export const PokerReactionBar = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 📊 WIN RATE DISPLAY (Like Facebook Insights)
+// 📊 WIN RATE DISPLAY (Like SmarterPoker Insights)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const WinRateDisplay = ({
@@ -353,7 +353,7 @@ export const WinRateDisplay = ({
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🏆 ACHIEVEMENT BADGE (Like Facebook Badges)
+// 🏆 ACHIEVEMENT BADGE (Like SmarterPoker Badges)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POKER_ACHIEVEMENTS = {

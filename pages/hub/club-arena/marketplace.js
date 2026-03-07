@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
  CLUB ARENA — Marketplace | FULLY WIRED
- Facebook Dark Theme | Club Shop with Real Items & Purchases
+ SmarterPoker Dark Theme | Club Shop with Real Items & Purchases
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -44,7 +44,7 @@ const apiCall = async (endpoint, body) => {
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
-// Facebook Dark Color Scheme
+// SmarterPoker Dark Color Scheme
 const FB = {
     primary: '#2374E1',
     background: '#18191A',

@@ -68,7 +68,7 @@ import { useSocialStore } from '../../src/stores/socialStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
 
-// Light Theme Colors (Facebook-style)
+// Light Theme Colors (SmarterPoker-style)
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
     border: '#DADDE1', blue: '#1877F2', blueHover: '#166FE5', green: '#42B72A', red: '#FA383E',
@@ -677,7 +677,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     const [mentionResults, setMentionResults] = useState([]);
     const [showMentions, setShowMentions] = useState(false);
     const [cursorPosition, setCursorPosition] = useState(0);
-    // 🔗 LINK PREVIEW STATE - Facebook-style auto-detect
+    // 🔗 LINK PREVIEW STATE - SmarterPoker-style auto-detect
     const [linkPreview, setLinkPreview] = useState(null); // { url, title, image, domain }
     const [linkLoading, setLinkLoading] = useState(false);
     const [showIdentityPicker, setShowIdentityPicker] = useState(false);
@@ -772,12 +772,12 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         setUploading(false);
     };
 
-    // Handle @mention detection AND auto URL detection (Facebook-style)
+    // Handle @mention detection AND auto URL detection (SmarterPoker-style)
     const handleContentChange = (e) => {
         const value = e.target.value;
         const pos = e.target.selectionStart;
 
-        // 🔗 AUTO-DETECT URLs - Facebook-style: remove URL and show preview card
+        // 🔗 AUTO-DETECT URLs - SmarterPoker-style: remove URL and show preview card
         // ONLY trigger when URL is followed by a space (user finished typing the URL)
         // Regex matches: http(s)://... followed by a space
         const urlRegex = /(https?:\/\/\S+)\s/i;
@@ -925,7 +925,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
         let type = media.some(m => m.type === 'video') ? 'video' : media.length ? 'photo' : 'text';
         let cleanContent = content;
 
-        // 🔗 USE LINK PREVIEW if available (Facebook-style - URL already extracted)
+        // 🔗 USE LINK PREVIEW if available (SmarterPoker-style - URL already extracted)
         if (linkPreview && type === 'text') {
             urls = [linkPreview.url];
             type = linkPreview.type || 'link';
@@ -1148,7 +1148,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     <div style={{ fontSize: 12, color: C.textSec, marginTop: 4 }}>{media.length}/{MAX_MEDIA} files</div>
                 </div>
             )}
-            {/* 🔗 LINK PREVIEW CARD - Facebook-style */}
+            {/* 🔗 LINK PREVIEW CARD - SmarterPoker-style */}
             {(linkPreview || linkLoading) && (
                 <div style={{ padding: '0 12px 8px' }}>
                     <div style={{
@@ -1463,7 +1463,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             {post.content && (
                 <div style={{ padding: '0 12px 12px', color: C.text, fontSize: 15, lineHeight: 1.4 }}>
                     {(() => {
-                        // For link-type posts, strip URLs from displayed content (Facebook-style)
+                        // For link-type posts, strip URLs from displayed content (SmarterPoker-style)
                         let displayContent = post.content;
                         if (post.contentType === 'link' || post.contentType === 'video') {
                             // Remove URLs from content - they'll be shown as clickable preview cards
@@ -3451,7 +3451,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                                 }
                                             }
 
-                                            // Badge border color (Facebook dark)
+                                            // Badge border color (SmarterPoker dark)
                                             const badgeBorder = isMe
                                                 ? 'rgba(74,222,128,0.6)'
                                                 : isOccupied
@@ -4490,7 +4490,7 @@ export default function SocialMediaPage() {
                 setHasMorePosts(true);
             }
 
-            //  FACEBOOK-STYLE RANKING: Score posts by relevance
+            //  smarter-poker-style RANKING: Score posts by relevance
             const calculatePostScore = (post) => {
                 let score = 0;
 
@@ -4532,7 +4532,7 @@ export default function SocialMediaPage() {
                 isSuggested: feedCycle > 0 // Mark as suggested on loop
             }));
 
-            // Sort by score (Facebook-style ranking)
+            // Sort by score (SmarterPoker-style ranking)
             mixedFeed.sort((a, b) => b.score - a.score);
 
             // Fetch author profiles using native fetch to avoid AbortError
@@ -4835,7 +4835,7 @@ export default function SocialMediaPage() {
                 author: { name: user.name, username: user.username, avatar: user.avatar }
             }, ...prev]);
 
-            // Scroll to top of feed so user sees their new post immediately (Facebook behavior)
+            // Scroll to top of feed so user sees their new post immediately (SmarterPoker behavior)
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
             // Show success toast
@@ -5877,7 +5877,7 @@ export default function SocialMediaPage() {
                     </>}
                 </main>
 
-                {/* Bottom Navigation Bar - Facebook Style with SVG Icons */}
+                {/* Bottom Navigation Bar - SmarterPoker Style with SVG Icons */}
                 <nav style={{
                     position: 'fixed', bottom: 0, left: 0, right: 0, height: 56,
                     background: '#ffffff', borderTop: '1px solid #dddfe2',

@@ -1,5 +1,5 @@
 /**
- * REELS COMPONENT - Facebook-style permanent video archive
+ * REELS COMPONENT - SmarterPoker-style permanent video archive
  * Videos from Stories are saved here permanently
  */
 

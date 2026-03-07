@@ -2,7 +2,7 @@
  * 🃏 POKER SOCIAL FEED CARD
  * src/app/social/components/PokerFeedCard.jsx
  * 
- * Facebook-style post card with poker DNA integration.
+ * SmarterPoker-style post card with poker DNA integration.
  * Shows user tier, hand analysis sharing, and poker reactions.
  */
 
@@ -11,7 +11,7 @@ import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
 import { PokerTierBadge, PokerReactionBar, PokerAchievementBadge } from './PokerReputationBadges';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🃏 POST TYPES (Like Facebook's photo/video/live but poker-themed)
+// 🃏 POST TYPES (Like SmarterPoker's photo/video/live but poker-themed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POST_TYPES = {

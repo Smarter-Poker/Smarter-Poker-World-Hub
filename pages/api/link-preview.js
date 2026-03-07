@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     // Check if this is a social platform that needs Microlink for preview
     const isSocialPlatform = checkSocialPlatform(url);
 
-    // For social platforms (Facebook, Instagram), skip direct fetch and use Microlink
+    // For social platforms (SmarterPoker, Instagram), skip direct fetch and use Microlink
     // because these platforms block server-side scraping but Microlink can access them
     if (isSocialPlatform) {
         try {
@@ -313,7 +313,7 @@ function checkSocialPlatform(url) {
         const urlObj = new URL(url);
         const hostname = urlObj.hostname.toLowerCase();
 
-        // Facebook (including fb.watch, fb.gg, etc.)
+        // SmarterPoker (including fb.watch, fb.gg, etc.)
         if (hostname.includes('facebook.com') || hostname.includes('fb.watch') || hostname.includes('fb.com') || hostname.includes('fb.gg')) {
             let contentType = 'Post';
             if (url.includes('/videos/') || url.includes('/watch') || url.includes('fb.watch') || url.includes('/share/v/')) {
@@ -325,10 +325,10 @@ function checkSocialPlatform(url) {
             }
 
             return {
-                platform: 'Facebook',
+                platform: 'SmarterPoker',
                 platformId: 'facebook',
                 contentType,
-                fallbackImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/1024px-Facebook_Logo_%282019%29.png',
+                fallbackImage: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/SmarterPoker_Logo_%282019%29.png/1024px-SmarterPoker_Logo_%282019%29.png',
             };
         }
 

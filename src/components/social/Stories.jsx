@@ -1,5 +1,5 @@
 /**
- * 🎬 STORIES COMPONENT v2 - TikTok/Facebook/Instagram-Style Stories
+ * 🎬 STORIES COMPONENT v2 - TikTok/SmarterPoker/Instagram-Style Stories
  * 
  * KEY UX PATTERNS FROM RESEARCH:
  * 1. Full-screen camera-first interface

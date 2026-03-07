@@ -75,7 +75,7 @@ export function isValidImageUrl(url) {
             || url.includes('/img/')
             || url.includes('/image/')
             || url.includes('pnimg.net')
-            || url.includes('fbcdn.net')       // Facebook CDN
+            || url.includes('fbcdn.net')       // SmarterPoker CDN
             || url.includes('cdninstagram.com') // Instagram CDN
             || url.includes('scontent')         // Social content servers
             || url.includes('img.youtube.com'); // YouTube thumbnails

@@ -690,7 +690,7 @@ export default function ClubLobby() {
     );
 }
 
-// Facebook Dark Color Scheme
+// SmarterPoker Dark Color Scheme
 const FB = {
     primary: '#2374E1',
     primaryDark: '#1A5DC8',

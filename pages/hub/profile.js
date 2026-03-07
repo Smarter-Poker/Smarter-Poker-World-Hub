@@ -1,7 +1,7 @@
 /**
- * PROFILE PAGE - Facebook-Style Redirect
+ * PROFILE PAGE - SmarterPoker-Style Redirect
  * 
- * When users click "Profile", they see their own Facebook-style public profile
+ * When users click "Profile", they see their own SmarterPoker-style public profile
  * (same view others see when visiting /hub/user/[username])
  * 
  * Edit functionality is at /hub/profile-edit
@@ -55,7 +55,7 @@ export default function ProfileRedirect() {
                     .maybeSingle();
 
                 if (profile?.username) {
-                    // Redirect to their Facebook-style public profile
+                    // Redirect to their SmarterPoker-style public profile
                     router.replace(`/hub/user/${profile.username}`);
                 } else {
                     // No username set, go to edit page to set one

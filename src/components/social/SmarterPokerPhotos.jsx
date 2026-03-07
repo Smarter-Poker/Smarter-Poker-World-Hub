@@ -1,12 +1,12 @@
 /**
- * 📸 FACEBOOK-STYLE PHOTO GALLERY
- * src/app/social/components/FacebookPhotos.jsx
+ * 📸 smarter-poker-style PHOTO GALLERY
+ * src/app/social/components/SmarterPokerPhotos.jsx
  * 
- * Photo grid and lightbox like Facebook Photos
+ * Photo grid and lightbox like SmarterPoker Photos
  */
 
 import React, { useState } from 'react';
-import { FBAvatar, FB_COLORS } from './FacebookStyleCard';
+import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📸 PHOTO GRID (In Posts)
@@ -26,7 +26,7 @@ export const PhotoGrid = ({ photos = [], onPhotoClick }) => {
     };
 
     return (
-        <div className={`fb-photo-grid ${getGridClass()}`}>
+        <div className={`sp-photo-grid ${getGridClass()}`}>
             {photos.slice(0, 5).map((photo, i) => (
                 <div
                     key={i}
@@ -43,7 +43,7 @@ export const PhotoGrid = ({ photos = [], onPhotoClick }) => {
             ))}
 
             <style>{`
-                .fb-photo-grid {
+                .sp-photo-grid {
                     display: grid;
                     gap: 2px;
                     cursor: pointer;
@@ -51,34 +51,34 @@ export const PhotoGrid = ({ photos = [], onPhotoClick }) => {
                     overflow: hidden;
                 }
 
-                .fb-photo-grid.grid-1 {
+                .sp-photo-grid.grid-1 {
                     grid-template-columns: 1fr;
                 }
 
-                .fb-photo-grid.grid-2 {
+                .sp-photo-grid.grid-2 {
                     grid-template-columns: 1fr 1fr;
                 }
 
-                .fb-photo-grid.grid-3 {
+                .sp-photo-grid.grid-3 {
                     grid-template-columns: 2fr 1fr;
                     grid-template-rows: 1fr 1fr;
                 }
 
-                .fb-photo-grid.grid-3 .photo-item:first-child {
+                .sp-photo-grid.grid-3 .photo-item:first-child {
                     grid-row: 1 / 3;
                 }
 
-                .fb-photo-grid.grid-4 {
+                .sp-photo-grid.grid-4 {
                     grid-template-columns: 1fr 1fr;
                     grid-template-rows: 1fr 1fr;
                 }
 
-                .fb-photo-grid.grid-5plus {
+                .sp-photo-grid.grid-5plus {
                     grid-template-columns: 1fr 1fr 1fr;
                     grid-template-rows: 1fr 1fr;
                 }
 
-                .fb-photo-grid.grid-5plus .photo-item:first-child {
+                .sp-photo-grid.grid-5plus .photo-item:first-child {
                     grid-column: 1 / 3;
                 }
 
@@ -139,7 +139,7 @@ export const PhotoLightbox = ({
     const currentPhoto = photos[currentIndex];
 
     return (
-        <div className="fb-lightbox">
+        <div className="sp-lightbox">
             {/* Close Button */}
             <button className="close-btn" onClick={onClose}>✕</button>
 
@@ -159,7 +159,7 @@ export const PhotoLightbox = ({
                 <div className="lightbox-panel">
                     {/* Post Header */}
                     <div className="panel-header">
-                        <FBAvatar src={user?.avatar} size={40} />
+                        <SPAvatar src={user?.avatar} size={40} />
                         <div className="post-meta">
                             <span className="post-author">{user?.name}</span>
                             <span className="post-time">{post?.time || 'Just now'}</span>
@@ -193,7 +193,7 @@ export const PhotoLightbox = ({
                     <div className="panel-comments">
                         {post?.comments?.map((comment, i) => (
                             <div key={i} className="comment">
-                                <FBAvatar src={comment.user?.avatar} size={32} />
+                                <SPAvatar src={comment.user?.avatar} size={32} />
                                 <div className="comment-content">
                                     <span className="comment-author">{comment.user?.name}</span>
                                     <span className="comment-text">{comment.text}</span>
@@ -204,7 +204,7 @@ export const PhotoLightbox = ({
 
                     {/* Comment Input */}
                     <div className="panel-input">
-                        <FBAvatar size={32} />
+                        <SPAvatar size={32} />
                         <input type="text" placeholder="Write A Comment..." />
                     </div>
                 </div>
@@ -224,7 +224,7 @@ export const PhotoLightbox = ({
             </div>
 
             <style>{`
-                .fb-lightbox {
+                .sp-lightbox {
                     position: fixed;
                     inset: 0;
                     background: rgba(0, 0, 0, 0.9);
@@ -295,10 +295,10 @@ export const PhotoLightbox = ({
 
                 .lightbox-panel {
                     width: 360px;
-                    background: ${FB_COLORS.bgWhite};
+                    background: ${SP_COLORS.bgWhite};
                     display: flex;
                     flex-direction: column;
-                    border-left: 1px solid ${FB_COLORS.divider};
+                    border-left: 1px solid ${SP_COLORS.divider};
                 }
 
                 .panel-header {
@@ -306,7 +306,7 @@ export const PhotoLightbox = ({
                     align-items: center;
                     gap: 12px;
                     padding: 16px;
-                    border-bottom: 1px solid ${FB_COLORS.divider};
+                    border-bottom: 1px solid ${SP_COLORS.divider};
                 }
 
                 .post-meta {
@@ -317,12 +317,12 @@ export const PhotoLightbox = ({
                     display: block;
                     font-weight: 600;
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
 
                 .post-time {
                     font-size: 13px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                 }
 
                 .more-btn {
@@ -335,13 +335,13 @@ export const PhotoLightbox = ({
                 }
 
                 .more-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .panel-caption {
                     padding: 16px;
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     line-height: 1.34;
                 }
 
@@ -362,15 +362,15 @@ export const PhotoLightbox = ({
                 }
 
                 .reaction-count {
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     font-size: 15px;
                 }
 
                 .panel-actions {
                     display: flex;
                     padding: 8px 16px;
-                    border-top: 1px solid ${FB_COLORS.divider};
-                    border-bottom: 1px solid ${FB_COLORS.divider};
+                    border-top: 1px solid ${SP_COLORS.divider};
+                    border-bottom: 1px solid ${SP_COLORS.divider};
                 }
 
                 .panel-actions .action-btn {
@@ -379,14 +379,14 @@ export const PhotoLightbox = ({
                     background: none;
                     border: none;
                     border-radius: 4px;
-                    color: ${FB_COLORS.textSecondary};
+                    color: ${SP_COLORS.textSecondary};
                     font-size: 14px;
                     font-weight: 600;
                     cursor: pointer;
                 }
 
                 .panel-actions .action-btn:hover {
-                    background: ${FB_COLORS.bgHover};
+                    background: ${SP_COLORS.bgHover};
                 }
 
                 .panel-comments {
@@ -402,7 +402,7 @@ export const PhotoLightbox = ({
                 }
 
                 .comment-content {
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     padding: 8px 12px;
                     border-radius: 18px;
                 }
@@ -410,13 +410,13 @@ export const PhotoLightbox = ({
                 .comment-author {
                     font-weight: 600;
                     font-size: 13px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                     margin-right: 4px;
                 }
 
                 .comment-text {
                     font-size: 15px;
-                    color: ${FB_COLORS.textPrimary};
+                    color: ${SP_COLORS.textPrimary};
                 }
 
                 .panel-input {
@@ -424,13 +424,13 @@ export const PhotoLightbox = ({
                     align-items: center;
                     gap: 8px;
                     padding: 12px 16px;
-                    border-top: 1px solid ${FB_COLORS.divider};
+                    border-top: 1px solid ${SP_COLORS.divider};
                 }
 
                 .panel-input input {
                     flex: 1;
                     padding: 8px 16px;
-                    background: ${FB_COLORS.bgMain};
+                    background: ${SP_COLORS.bgMain};
                     border: none;
                     border-radius: 20px;
                     font-size: 15px;
@@ -443,8 +443,8 @@ export const PhotoLightbox = ({
                     transform: translateY(-50%);
                     width: 32px;
                     height: 48px;
-                    background: ${FB_COLORS.bgWhite};
-                    border: 1px solid ${FB_COLORS.divider};
+                    background: ${SP_COLORS.bgWhite};
+                    border: 1px solid ${SP_COLORS.divider};
                     border-right: none;
                     border-radius: 4px 0 0 4px;
                     cursor: pointer;
@@ -482,7 +482,7 @@ export const PhotoLightbox = ({
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const PhotoAlbumGrid = ({ albums = [], onAlbumClick }) => (
-    <div className="fb-album-grid">
+    <div className="sp-album-grid">
         {albums.map((album, i) => (
             <div
                 key={i}
@@ -500,7 +500,7 @@ export const PhotoAlbumGrid = ({ albums = [], onAlbumClick }) => (
         ))}
 
         <style>{`
-            .fb-album-grid {
+            .sp-album-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
                 gap: 16px;
@@ -508,7 +508,7 @@ export const PhotoAlbumGrid = ({ albums = [], onAlbumClick }) => (
             }
 
             .album-card {
-                background: ${FB_COLORS.bgWhite};
+                background: ${SP_COLORS.bgWhite};
                 border-radius: 8px;
                 overflow: hidden;
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -539,13 +539,13 @@ export const PhotoAlbumGrid = ({ albums = [], onAlbumClick }) => (
             .album-name {
                 font-size: 15px;
                 font-weight: 600;
-                color: ${FB_COLORS.textPrimary};
+                color: ${SP_COLORS.textPrimary};
                 margin: 0 0 4px;
             }
 
             .album-count {
                 font-size: 13px;
-                color: ${FB_COLORS.textSecondary};
+                color: ${SP_COLORS.textSecondary};
             }
         `}</style>
     </div>
