@@ -257,10 +257,25 @@ export default function Cashier() {
                 }
             });
 
+        // TIER 2 REALTIME: Cross-tab sync for chip balance via BroadcastChannel
+        let bc = null;
+        try {
+            bc = new BroadcastChannel('smarter_poker_chips_sync');
+            bc.onmessage = (event) => {
+                if (event.data === 'refresh') {
+                    console.log('[Cashier] Chip balance refresh via BroadcastChannel');
+                    loadData();
+                }
+            };
+        } catch (e) { }
+
         return () => {
             supabase.removeChannel(memberChannel);
             supabase.removeChannel(cashoutChannel);
             supabase.removeChannel(txnChannel);
+            if (bc) {
+                try { bc.close(); } catch (e) { }
+            }
         };
     }, [club?.id, user?.id]);
 
@@ -293,6 +308,11 @@ export default function Cashier() {
             setShowBuyInModal(false);
             setBuyInAmount('');
             loadData();
+
+            // Broadcast chip balance change to other tabs
+            try {
+                new BroadcastChannel('smarter_poker_chips_sync').postMessage('refresh');
+            } catch (e) { }
         } catch (e) {
             showToast(e.message || 'Buy-in failed. Try again.', 'error');
         } finally {
@@ -325,6 +345,11 @@ export default function Cashier() {
             setShowCashOutModal(false);
             setCashOutAmount('');
             loadData();
+
+            // Broadcast chip balance change to other tabs
+            try {
+                new BroadcastChannel('smarter_poker_chips_sync').postMessage('refresh');
+            } catch (e) { }
         } catch (e) {
             showToast(e.message || 'Cash-out failed. Try again.', 'error');
         } finally {

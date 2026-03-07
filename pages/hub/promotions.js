@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
 import useSWR from 'swr';
+import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -62,11 +63,33 @@ export default function PromotionsPage() {
     const menuConfig = getMenuConfig('promotions', null, {}, {});
 
     // SWR-backed promotions — cached 60s, instant on revisit
-    const { data: swrData, error, isLoading: loading } = useSWR('/api/poker/promotions', (url) =>
+    const { data: swrData, error, isLoading: loading, mutate: refreshPromotions } = useSWR('/api/poker/promotions', (url) =>
         fetch(url).then(r => { if (!r.ok) throw new Error('Failed to fetch promotions'); return r.json(); })
             .then(json => json.success ? (json.promotions || json.data || []) : [])
     );
     const promotions = swrData || [];
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Promotions Live Updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        // Subscribe to promotions table changes
+        const promotionsChannel = supabase
+            .channel('promotions-live')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'promotions'
+            }, () => {
+                console.log('[Promotions] 🔄 Promotions updated via realtime');
+                refreshPromotions();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(promotionsChannel);
+        };
+    }, [refreshPromotions]);
 
     // Debounced search
     useEffect(() => {

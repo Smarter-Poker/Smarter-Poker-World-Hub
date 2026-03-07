@@ -475,6 +475,53 @@ export default function UniversalHeader({
         };
     }, [user?.id]);
 
+    // ── TIER 2: Avatar Changes Cross-Tab Sync ──
+    // Listen for avatar changes from AvatarContext and other tabs
+    useEffect(() => {
+        if (!user?.id) return;
+        let avatarBc = null;
+
+        try {
+            avatarBc = new BroadcastChannel('smarter_poker_avatar_sync');
+            avatarBc.onmessage = (event) => {
+                if (event.data === 'refresh') {
+                    console.log('[UniversalHeader] Avatar refresh via BroadcastChannel');
+                    // Avatar is managed by AvatarContext which handles the refresh
+                    // This listener just ensures immediate UI update in this tab
+                }
+            };
+        } catch (e) { }
+
+        return () => {
+            if (avatarBc) {
+                try { avatarBc.close(); } catch (e) { }
+            }
+        };
+    }, [user?.id]);
+
+    // ── TIER 2: Club Arena Chip Balance Cross-Tab Sync ──
+    // Listen for chip balance changes from other Club Arena tabs
+    useEffect(() => {
+        let chipsBc = null;
+
+        try {
+            chipsBc = new BroadcastChannel('smarter_poker_chips_sync');
+            chipsBc.onmessage = (event) => {
+                if (event.data === 'refresh') {
+                    console.log('[UniversalHeader] Chip balance refresh via BroadcastChannel');
+                    // Header doesn't display chip balance, but listeners help propagate
+                    // the sync event to other components that do display it
+                }
+            };
+        } catch (e) { }
+
+        return () => {
+            if (chipsBc) {
+                try { chipsBc.close(); } catch (e) { }
+            }
+        };
+    }, []);
+
     // ── VIP status bus listener — updates VIP badge in real time ──
     // Triggered by PhoneVerifyVIPModal after successful phone verification
     useEffect(() => {

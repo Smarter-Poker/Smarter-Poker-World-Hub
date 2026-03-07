@@ -3,8 +3,10 @@
  * Global rankings for Diamond Arena players
  */
 
+import { useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
@@ -19,6 +21,28 @@ export default function DiamondArenaLeaderboard() {
     const gameType = filters.gameType;
     const setPeriod = (val) => setFilter('period', val);
     const setGameType = (val) => setFilter('gameType', val);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Diamond Arena Leaderboard Live Updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        const leaderboardChannel = supabase
+            .channel('diamond-arena-leaderboard')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'diamond_arena_scores'
+            }, () => {
+                console.log('[DiamondArena] 🔄 Leaderboard updated via realtime');
+                // Trigger leaderboard refresh when scores change
+                window.dispatchEvent(new CustomEvent('diamond-arena-refresh'));
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(leaderboardChannel);
+        };
+    }, []);
 
     const leaderboard = [
         { rank: 1, username: 'PokerPro2024', diamonds: 147832, games: 1247, winRate: 68 },

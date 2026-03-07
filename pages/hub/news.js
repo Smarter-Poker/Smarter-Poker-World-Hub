@@ -21,6 +21,7 @@ import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import useSWR from 'swr';
+import { supabase } from '../../src/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useAvatar } from '../../src/contexts/AvatarContext';
@@ -993,6 +994,28 @@ export default function NewsHub() {
         autoRefresh: false
     });
 
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: News Updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        const newsChannel = supabase
+            .channel('news-live')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'poker_news'
+            }, () => {
+                console.log('[News] 🔄 New articles detected via realtime');
+                // Dispatch refresh event to trigger SWR revalidation
+                window.dispatchEvent(new CustomEvent('news-refresh'));
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(newsChannel);
+        };
+    }, []);
 
     // Load preferences and bookmarks from Supabase on mount
     useEffect(() => {

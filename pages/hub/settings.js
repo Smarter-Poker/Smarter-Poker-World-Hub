@@ -189,23 +189,84 @@ export default function SettingsPage() {
         timeBank: 30,
     });
 
-    // Load user settings when user is available
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Settings/Preferences Sync
+    // ═══════════════════════════════════════════════════════════════════════════
     useEffect(() => {
-        if (user?.id) {
+        if (!user?.id) return;
+
+        const loadSettings = async () => {
             // Load user's display preference from profiles table
-            supabase
+            const { data: profile } = await supabase
                 .from('profiles')
                 .select('display_name_preference')
                 .eq('id', user.id)
-                .maybeSingle()
-                .then(({ data: profile }) => {
-                    if (profile) {
-                        setSettings(prev => ({
-                            ...prev,
-                            display_name_preference: profile.display_name_preference || 'full_name'
-                        }));
+                .maybeSingle();
+
+            if (profile) {
+                setSettings(prev => ({
+                    ...prev,
+                    display_name_preference: profile.display_name_preference || 'full_name'
+                }));
+            }
+        };
+
+        loadSettings();
+
+        // Subscribe to profile changes
+        const settingsChannel = supabase
+            .channel(`settings:${user.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`
+            }, async () => {
+                console.log('[Settings] 🔄 Profile updated via realtime');
+                await loadSettings();
+                // Broadcast to other tabs
+                try {
+                    new BroadcastChannel('smarter_poker_settings_sync').postMessage('refresh_settings');
+                } catch (e) { }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(settingsChannel);
+        };
+    }, [user?.id]);
+
+    // Cross-tab Settings sync
+    useEffect(() => {
+        try {
+            const bc = new BroadcastChannel('smarter_poker_settings_sync');
+            bc.onmessage = (event) => {
+                if (event.data === 'refresh_settings') {
+                    console.log('[Settings] 📡 Refreshing settings from other tab');
+                    if (user?.id) {
+                        supabase
+                            .from('profiles')
+                            .select('display_name_preference')
+                            .eq('id', user.id)
+                            .maybeSingle()
+                            .then(({ data: profile }) => {
+                                if (profile) {
+                                    setSettings(prev => ({
+                                        ...prev,
+                                        display_name_preference: profile.display_name_preference || 'full_name'
+                                    }));
+                                }
+                            });
                     }
-                });
+                }
+            };
+            return () => bc.close();
+        } catch (e) { }
+    }, [user?.id]);
+
+    // Load user settings when user is available
+    useEffect(() => {
+        if (user?.id) {
             // Load custom avatars gallery
             getCustomAvatarGallery(user.id).then(avatars => {
                 setCustomAvatars(avatars || []);

@@ -42,7 +42,7 @@ import toast from '../../stores/toastStore';
 // ── Down type metadata ──
 const DOWN_TYPES = [
     { id: 'cash', label: 'Cash Game', color: '#3b82f6' },
-    { id: 'tournament', label: 'Tournament', color: '#f59e0b' },
+    { id: 'tournament', label: 'Tournament', color: '#38bdf8' },
     { id: 'break', label: 'On Break', color: '#8b5cf6' },
     { id: 'brush', label: 'Brush', color: '#10b981' },
 ];
@@ -62,7 +62,7 @@ const DOWN_TYPE_LABELS = {
 
 const DOWN_TYPE_COLORS = {
     cash: '#3b82f6',
-    tournament: '#f59e0b',
+    tournament: '#38bdf8',
     break: '#8b5cf6',
     brush: '#10b981',
 };
@@ -1130,10 +1130,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         const irsRates = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585 };
                         const rate = irsRates[year] || 0.67;
                         return (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, fontSize: 13 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
                                 <span>🚗</span>
                                 <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} miles × ${rate}/mi</span>
-                                <span style={{ color: '#f59e0b', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} deductible</span>
+                                <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} deductible</span>
                             </div>
                         );
                     })()}
@@ -1145,7 +1145,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Total Tokes</span>
-                            <span style={{ ...styles.reportStatValue, color: '#f59e0b' }}>{formatCurrency(stats.totalTokes)}</span>
+                            <span style={{ ...styles.reportStatValue, color: '#38bdf8' }}>{formatCurrency(stats.totalTokes)}</span>
                         </div>
                         <div style={styles.reportStat}>
                             <span style={styles.reportStatLabel}>Expenses</span>
@@ -1195,7 +1195,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                             Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
                                         <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#64748b' }}>
-                                            <span style={{ color: '#f59e0b', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
+                                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{formatCurrency(day.totalTokes || 0)}</span>
                                             <span>{day.totalDowns || 0} downs</span>
                                             <span>{(day.totalHoursWorked || 0).toFixed(1)}h</span>
                                             {(day.totalExpenses || 0) > 0 && <span style={{ color: '#ef4444' }}>-{formatCurrency(day.totalExpenses)}</span>}
@@ -1233,7 +1233,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </button>
                         <button
                             onClick={handleDownloadCSV}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b' }}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8' }}
                         >
                             📄 Download CSV
                         </button>
@@ -1328,9 +1328,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                         <span style={{
                             marginLeft: 'auto', fontSize: 13, fontWeight: 700,
-                            background: isDayOpen ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
-                            color: isDayOpen ? '#f59e0b' : '#94a3b8',
-                            border: `1px solid ${isDayOpen ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                            background: isDayOpen ? 'rgba(56,189,248,0.15)' : 'rgba(100,116,139,0.15)',
+                            color: isDayOpen ? '#38bdf8' : '#94a3b8',
+                            border: `1px solid ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: 20, padding: '4px 12px',
                         }}>
                             {isDayOpen ? `Day ${currentDayNumber} — In Progress` : `Day ${currentDayNumber} — Closed`}
@@ -1397,7 +1397,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         <div style={{ ...styles.runningStats, gridTemplateColumns: 'repeat(4, 1fr)' }}>
                             <div style={styles.runningStat}>
                                 <span style={styles.runningStatLabel}>Total Tokes</span>
-                                <span style={{ ...styles.runningStatValue, color: '#f59e0b' }}>
+                                <span style={{ ...styles.runningStatValue, color: '#38bdf8' }}>
                                     {formatCurrency(activeGig.totalTokes || 0)}
                                 </span>
                             </div>
@@ -1443,7 +1443,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             >
                                 <span style={styles.closedDayLabel}>Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                                 <span style={styles.closedDayStats}>
-                                    <span style={{ color: '#f59e0b' }}>{formatCurrency(day.totalTokes || 0)}</span>
+                                    <span style={{ color: '#38bdf8' }}>{formatCurrency(day.totalTokes || 0)}</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
                                     <span>{day.totalDowns || 0} downs</span>
                                     <span style={{ color: '#94a3b8' }}>·</span>
@@ -1469,7 +1469,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                     <span style={styles.downTime}>{formatDuration(duration)}</span>
                                                 </div>
                                                 <div style={styles.downRight}>
-                                                    {(down.toke_amount || 0) > 0 && <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12 }}>{formatCurrency(down.toke_amount)}</span>}
+                                                    {(down.toke_amount || 0) > 0 && <span style={{ color: '#38bdf8', fontWeight: 700, fontSize: 12 }}>{formatCurrency(down.toke_amount)}</span>}
                                                 </div>
                                             </div>
                                         );
@@ -1554,7 +1554,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                             <button onClick={() => handleSaveToke(down.id)} style={styles.tokeSaveBtn}>✓</button>
                                                         </div>
                                                     ) : (
-                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#f59e0b' : '#64748b' }} title="Edit Toke">
+                                                        <button onClick={() => { setEditingTokeId(down.id); setTokeEditValue(down.toke_amount || ''); }} style={{ ...styles.tokeDisplay, color: (down.toke_amount || 0) > 0 ? '#38bdf8' : '#64748b' }} title="Edit Toke">
                                                             {(down.toke_amount || 0) > 0 ? formatCurrency(down.toke_amount) : '+ Toke'}
                                                         </button>
                                                     )
@@ -1783,7 +1783,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 {endingDown.table_number ? ` · Table ${endingDown.table_number}` : ''}
                             </p>
                             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                                <span style={{ fontSize: 22, color: '#f59e0b', fontWeight: 800 }}>$</span>
+                                <span style={{ fontSize: 22, color: '#38bdf8', fontWeight: 800 }}>$</span>
                                 <input
                                     type="number"
                                     value={endTokeValue}
@@ -1795,7 +1795,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     autoFocus
                                     style={{
                                         flex: 1, padding: '12px 14px', background: 'rgba(0,0,0,0.4)',
-                                        border: '2px solid rgba(245,158,11,0.4)', borderRadius: 10,
+                                        border: '2px solid rgba(56,189,248,0.4)', borderRadius: 10,
                                         color: '#fff', fontSize: 22, fontWeight: 700, outline: 'none',
                                     }}
                                 />
@@ -1958,7 +1958,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                         style={{ ...styles.formInput, flex: 1, padding: '8px 12px', fontSize: 14 }}
                                     />
                                     {downForm.tournament_buyin && parseFloat(downForm.tournament_buyin) > 0 && (
-                                        <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                        <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                             Tracked For Analysis
                                         </span>
                                     )}
@@ -2071,7 +2071,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 {promptDown.down_type === 'break' ? 'Your break has been going 35 minutes.' :
                                     promptDown.down_type === 'brush' ? 'Your brush down has been 35 minutes.' : (
                                         <>
-                                            <span style={{ color: '#f59e0b', fontWeight: 700 }}>
+                                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>
                                                 {promptDown.game_type || DOWN_TYPE_LABELS[promptDown.down_type]}
                                                 {promptDown.table_number ? ` · Table ${promptDown.table_number}` : ''}
                                             </span>
@@ -2145,7 +2145,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     <div onClick={() => handleViewReport(gig.id)} style={{ cursor: 'pointer' }}>
                                         <div style={styles.gigCardHeader}>
                                             <h4 style={styles.gigCardName}>{gig.venue_name}</h4>
-                                            <span style={{ ...styles.gigCardTokes, color: '#f59e0b' }}>
+                                            <span style={{ ...styles.gigCardTokes, color: '#38bdf8' }}>
                                                 {formatCurrency(gig.totalTokes || 0)}
                                             </span>
                                         </div>
@@ -2197,7 +2197,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
                         const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
                         const daysLeft = daysInMonth - new Date().getDate();
-                        const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#f59e0b' : '#f02849';
+                        const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#38bdf8' : '#f02849';
                         return (
                             <>
                                 <div style={styles.goalText}>
@@ -2326,10 +2326,10 @@ const styles = {
     },
     activeHeader: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 },
     activeLed: {
-        width: 8, height: 8, borderRadius: '50%', background: '#f59e0b',
-        boxShadow: '0 0 8px rgba(245, 158, 11, 0.6)', animation: 'pulse 2s infinite',
+        width: 8, height: 8, borderRadius: '50%', background: '#38bdf8',
+        boxShadow: '0 0 8px rgba(56, 189, 248, 0.6)', animation: 'pulse 2s infinite',
     },
-    activeLabel: { fontSize: 14, fontWeight: 700, letterSpacing: 1.5, color: '#f59e0b', textTransform: 'uppercase' },
+    activeLabel: { fontSize: 14, fontWeight: 700, letterSpacing: 1.5, color: '#38bdf8', textTransform: 'uppercase' },
     activeGigName: { fontSize: 22, fontWeight: 700, color: '#E4E6EB', margin: '4px 0' },
     activeGigAddress: { fontSize: 13, color: '#B0B3B8', margin: '0 0 4px', fontStyle: 'italic' },
     activeGigMeta: { fontSize: 14, color: '#B0B3B8', margin: '0 0 16px' },
@@ -2343,13 +2343,13 @@ const styles = {
     // Timer
     timerBanner: {
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-        background: 'rgba(245, 158, 11, 0.1)', border: '2px solid rgba(245, 158, 11, 0.3)',
+        background: 'rgba(56, 189, 248, 0.1)', border: '2px solid rgba(56, 189, 248, 0.3)',
         borderRadius: 10, padding: '10px 14px', marginBottom: 16,
     },
     timerIcon: { fontSize: 24, flexShrink: 0 },
     timerInfo: { flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column' },
     timerLabel: { fontSize: 13, fontWeight: 600, color: '#E4E6EB' },
-    timerCountdown: { fontSize: 20, fontWeight: 800, color: '#f59e0b', fontFamily: 'monospace' },
+    timerCountdown: { fontSize: 20, fontWeight: 800, color: '#38bdf8', fontFamily: 'monospace' },
     endDownBtn: {
         background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
@@ -2402,7 +2402,7 @@ const styles = {
         flex: '1 1 120px', textAlign: 'center', whiteSpace: 'nowrap',
     },
     addDownBtn: {
-        background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', border: '2px solid rgba(245, 158, 11, 0.3)',
+        background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '2px solid rgba(56, 189, 248, 0.3)',
         borderRadius: 8, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
     },
     addExpenseBtn: {
@@ -2563,7 +2563,7 @@ const styles = {
 
     // Double down prompt
     promptCard: {
-        background: '#242526', border: '2px solid rgba(245,158,11,0.4)', borderRadius: 16, padding: 28,
+        background: '#242526', border: '2px solid rgba(56,189,248,0.4)', borderRadius: 16, padding: 28,
         width: '100%', maxWidth: 380, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
     },
     promptIcon: { fontSize: 48, marginBottom: 12 },
@@ -2571,7 +2571,7 @@ const styles = {
     promptSub: { fontSize: 14, color: '#94a3b8', margin: '0 0 20px' },
     promptActions: { display: 'flex', flexDirection: 'column', gap: 10 },
     promptYesBtn: {
-        background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '2px solid rgba(245,158,11,0.4)',
+        background: 'rgba(56,189,248,0.15)', color: '#38bdf8', border: '2px solid rgba(56,189,248,0.4)',
         borderRadius: 10, padding: '12px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
     },
     promptNoBtn: {
@@ -2637,8 +2637,8 @@ const styles = {
     },
     jarvisChip: {
         fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
-        background: 'rgba(245,158,11,0.08)', color: '#f59e0b',
-        border: '1px solid rgba(245,158,11,0.25)', transition: 'all 0.15s',
+        background: 'rgba(56,189,248,0.08)', color: '#38bdf8',
+        border: '1px solid rgba(56,189,248,0.25)', transition: 'all 0.15s',
     },
     jarvisInputRow: { display: 'flex', gap: 8, marginBottom: 12 },
     jarvisInput: {
@@ -2654,17 +2654,17 @@ const styles = {
     },
     jarvisLoading: {
         display: 'flex', alignItems: 'center', gap: 8,
-        color: '#f59e0b', fontSize: 13, fontWeight: 600, padding: '10px 0',
+        color: '#38bdf8', fontSize: 13, fontWeight: 600, padding: '10px 0',
     },
     jarvisLoadingDot: {
-        width: 8, height: 8, borderRadius: '50%', background: '#f59e0b',
+        width: 8, height: 8, borderRadius: '50%', background: '#38bdf8',
         animation: 'pulse 1s infinite',
     },
     jarvisAnswer: {
         background: 'rgba(0,0,0,0.25)', borderRadius: 10,
-        padding: 14, border: '1px solid rgba(245,158,11,0.15)',
+        padding: 14, border: '1px solid rgba(56,189,248,0.15)',
     },
-    jarvisAnswerLabel: { fontSize: 11, fontWeight: 700, color: '#f59e0b', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
+    jarvisAnswerLabel: { fontSize: 11, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
     jarvisAnswerText: { fontSize: 13, color: '#E4E6EB', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
     jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
     jarvisHistoryItem: {

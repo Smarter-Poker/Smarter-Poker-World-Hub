@@ -255,7 +255,7 @@ export function AvatarProvider({ children }) {
     // ═══════════════════════════════════════════════════════════════════
     useEffect(() => {
         function handleVipChange(e) {
-            console.log('[AvatarContext] 🚌 vip-status-changed received:', e.detail);
+            console.log('[AvatarContext] VIP status change event received:', e.detail);
             const vipGranted = e.detail?.vipGranted !== false;
             setIsVip(vipGranted);
             try { localStorage.setItem('sp-vip-status', String(vipGranted)); } catch (_) { }
@@ -266,7 +266,7 @@ export function AvatarProvider({ children }) {
         }
 
         function handleProfileUpdate(e) {
-            console.log('[AvatarContext] 🚌 profile-updated received:', e.detail);
+            console.log('[AvatarContext] Profile update event received:', e.detail);
             const { avatar_url, full_name, username } = e.detail;
 
             setUser(prev => {
@@ -300,6 +300,98 @@ export function AvatarProvider({ children }) {
             window.removeEventListener('profile-updated', handleProfileUpdate);
         };
     }, [user]);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // TIER 1: VIP Status Realtime Sync
+    // Listen to profile updates on is_vip field and sync across all tabs
+    // ═══════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id) return;
+        let vipChannel = null;
+        let vipBc = null;
+
+        const refreshVipStatus = async () => {
+            await fetchVipStatus(user.id);
+        };
+
+        // Supabase realtime: listen for profile updates on this user
+        vipChannel = supabase
+            .channel(`vip:${user.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`
+            }, (payload) => {
+                if (payload.new.is_vip !== undefined) {
+                    const vipStatus = !!payload.new.is_vip;
+                    setIsVip(vipStatus);
+                    try { localStorage.setItem('sp-vip-status', String(vipStatus)); } catch (_) { }
+                }
+            })
+            .subscribe();
+
+        // BroadcastChannel: cross-tab sync
+        try {
+            vipBc = new BroadcastChannel('smarter_poker_vip_sync');
+            vipBc.onmessage = () => {
+                refreshVipStatus();
+            };
+        } catch (e) { }
+
+        return () => {
+            if (vipChannel) supabase.removeChannel(vipChannel);
+            try { vipBc?.close(); } catch (e) { }
+        };
+    }, [user?.id]);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 2 REALTIME: Avatar Changes Cross-Tab Sync
+    // Listen for avatar changes from other tabs via BroadcastChannel
+    // Also subscribe to postgres_changes on user_avatars table
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id) return;
+
+        let avatarChannel = null;
+        let bc = null;
+
+        try {
+            // Subscribe to user_avatars table changes for this user
+            avatarChannel = supabase
+                .channel(`avatar:${user.id}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'user_avatars',
+                    filter: `user_id=eq.${user.id}`
+                }, (payload) => {
+                    console.log('[AvatarContext] Avatar updated via realtime:', payload);
+                    loadAvatar();
+                })
+                .subscribe();
+
+            // Listen for cross-tab avatar sync messages
+            bc = new BroadcastChannel('smarter_poker_avatar_sync');
+            bc.onmessage = (event) => {
+                if (event.data === 'refresh') {
+                    console.log('[AvatarContext] Avatar refresh via BroadcastChannel');
+                    loadAvatar();
+                }
+            };
+        } catch (e) {
+            console.warn('[AvatarContext] Failed to set up avatar realtime:', e);
+        }
+
+        return () => {
+            if (avatarChannel) {
+                supabase.removeChannel(avatarChannel);
+            }
+            if (bc) {
+                try { bc.close(); } catch (e) { }
+            }
+        };
+    }, [user?.id]);
 
     // Load user's avatar when user changes
     useEffect(() => {
@@ -338,6 +430,10 @@ export function AvatarProvider({ children }) {
 
         if (result.success) {
             await loadAvatar(); // Refresh avatar
+            // Broadcast avatar change to other tabs
+            try {
+                new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
+            } catch (e) { }
         }
 
         return result;
@@ -377,6 +473,12 @@ export function AvatarProvider({ children }) {
             if (error) throw error;
 
             await loadAvatar(); // Refresh avatar
+
+            // Broadcast avatar change to other tabs
+            try {
+                new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
+            } catch (e) { }
+
             return { success: true };
         } catch (error) {
             console.error('Error setting active avatar:', error);

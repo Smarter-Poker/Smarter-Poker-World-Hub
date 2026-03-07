@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
+import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -464,6 +465,43 @@ export default function VideoLibraryPage() {
             introVideoRef.current.muted = false;
         }
     }, []);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Video Library Updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!userId) return;
+
+        const videoLibraryChannel = supabase
+            .channel(`video-library:${userId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'user_video_watch_history',
+                filter: `user_id=eq.${userId}`
+            }, () => {
+                console.log('[VideoLibrary] 🔄 Watch history updated via realtime');
+                // Reload watch stats and recently watched
+                getWatchStats(userId).then(stats => setWatchStats(stats));
+                getRecentlyWatched(userId, 10).then(recent => setRecentlyWatched(recent));
+            })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'user_video_favorites',
+                filter: `user_id=eq.${userId}`
+            }, () => {
+                console.log('[VideoLibrary] 🔄 Favorites updated via realtime');
+                getVideoFavorites(userId).then(data => {
+                    setFavorites(new Set(data.map(v => v.video_id)));
+                });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(videoLibraryChannel);
+        };
+    }, [userId]);
 
     // Load preferences from Supabase on mount
     useEffect(() => {

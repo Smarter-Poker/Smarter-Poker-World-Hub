@@ -4034,6 +4034,50 @@ export default function SocialMediaPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Social Feed Subscription
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        if (!user?.id) return;
+
+        // Subscribe to new posts (INSERT events)
+        const feedChannel = supabase
+            .channel(`social-feed:${user.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'social_posts',
+                filter: `visibility=is.null,visibility=eq.public`
+            }, async (payload) => {
+                console.log('[Social] 🔄 New post detected via realtime:', payload.new.id);
+                // Trigger feed reload to pick up new posts
+                try {
+                    new BroadcastChannel('smarter_poker_social_sync').postMessage('refresh_feed');
+                } catch (e) { }
+                // Also refresh local feed
+                await loadFeed(0, false);
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(feedChannel);
+        };
+    }, [user?.id]);
+
+    // Cross-tab Social Feed sync
+    useEffect(() => {
+        try {
+            const bc = new BroadcastChannel('smarter_poker_social_sync');
+            bc.onmessage = (event) => {
+                if (event.data === 'refresh_feed') {
+                    console.log('[Social] 📡 Refreshing feed from other tab');
+                    loadFeed(0, false);
+                }
+            };
+            return () => bc.close();
+        } catch (e) { }
+    }, []);
+
     useEffect(() => {
         (async () => {
             try {

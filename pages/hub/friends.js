@@ -529,12 +529,29 @@ export default function FriendsPage() {
     // Realtime subscription — live updates
     useEffect(() => {
         if (!user?.id) return;
+        let friendsChannel = null;
+        let friendsBc = null;
+
         const _ch = supabase
             .channel(`friends:${user.id}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `user_id=eq.${user.id}` }, () => { fetchData(); })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${user.id}` }, () => { fetchData(); })
             .subscribe();
-        return () => { supabase.removeChannel(_ch); };
+        friendsChannel = _ch;
+
+        // TIER 1: Friend Request Realtime Sync
+        // Cross-tab sync when friend requests are sent/accepted/declined
+        try {
+            friendsBc = new BroadcastChannel('smarter_poker_friends_sync');
+            friendsBc.onmessage = () => {
+                fetchData();
+            };
+        } catch (e) { }
+
+        return () => {
+            supabase.removeChannel(friendsChannel);
+            try { friendsBc?.close(); } catch (e) { }
+        };
     }, [user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -558,6 +575,8 @@ export default function FriendsPage() {
             // Rollback on failure
             setFollowing(prev => prev.filter(f => f.id !== userId));
             setFollowingIds(prev => { const s = new Set(prev); s.delete(userId); return s; });
+        } else {
+            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
         }
     };
 
@@ -579,6 +598,8 @@ export default function FriendsPage() {
             // Rollback on failure
             if (removed) setFollowing(prev => [...prev, removed]);
             setFollowingIds(prev => new Set([...prev, userId]));
+        } else {
+            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
         }
     };
 
@@ -591,6 +612,7 @@ export default function FriendsPage() {
 
         if (!error) {
             setPendingIds(prev => new Set([...prev, friendId]));
+            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
         }
     };
 
@@ -615,6 +637,8 @@ export default function FriendsPage() {
         setFriends(prev => [...prev, newFriend]);
         setFriendIds(prev => new Set([...prev, request.user_id]));
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
+
+        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
     };
 
     //  DECLINE = AUTO-FOLLOW (SmarterPoker style)
@@ -646,6 +670,8 @@ export default function FriendsPage() {
 
         // Remove from requests
         setFriendRequests(prev => prev.filter(r => r.id !== request.id));
+
+        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
     };
 
     const handleRemoveFriend = async (friendId) => {
@@ -674,6 +700,8 @@ export default function FriendsPage() {
                 return newSet;
             });
         }
+
+        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch (e) { }
     };
 
     // ═══════════════════════════════════════════════════════════════════════

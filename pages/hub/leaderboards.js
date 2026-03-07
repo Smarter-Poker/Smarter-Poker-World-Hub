@@ -304,6 +304,44 @@ export default function LeaderboardsPage() {
     );
     const leaders = swrData?.leaders || [];
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Leaderboard Live Updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        // Subscribe to leaderboard data changes (check-ins, reviews, posts)
+        const leaderboardChannel = supabase
+            .channel('leaderboards-live')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'venue_checkins'
+            }, () => {
+                console.log('[Leaderboards] 🔄 Check-in activity detected');
+                refreshLeaderboards();
+            })
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'venue_reviews'
+            }, () => {
+                console.log('[Leaderboards] 🔄 Review activity detected');
+                refreshLeaderboards();
+            })
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'social_posts'
+            }, () => {
+                console.log('[Leaderboards] 🔄 Post activity detected');
+                refreshLeaderboards();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(leaderboardChannel);
+        };
+    }, [refreshLeaderboards]);
+
     // Set tab from URL query
     useEffect(() => {
         if (router.query.tab && TABS.find(t => t.key === router.query.tab)) {

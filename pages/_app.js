@@ -503,19 +503,18 @@ export default function App({ Component, pageProps }) {
         {shouldCapitalize && (
           <style dangerouslySetInnerHTML={{
             __html: `
-              .capitalize-world p, 
-              .capitalize-world span, 
-              .capitalize-world div, 
-              .capitalize-world a, 
-              .capitalize-world h1, 
-              .capitalize-world h2, 
-              .capitalize-world h3, 
-              .capitalize-world h4, 
-              .capitalize-world h5, 
-              .capitalize-world h6, 
-              .capitalize-world button, 
-              .capitalize-world li, 
-              .capitalize-world label {
+              /* Target ONLY structural UI elements, buttons, headers, and discrete labels */
+              .capitalize-world .settingLabel,
+              .capitalize-world .settingDesc,
+              .capitalize-world button,
+              .capitalize-world a.nav-link,
+              .capitalize-world .orb-badge,
+              .capitalize-world label,
+              .capitalize-world .ui-heading,
+              .capitalize-world .menu-item,
+              .capitalize-world .tab-label,
+              .capitalize-world .btn,
+              .capitalize-world .button-text {
                 text-transform: capitalize !important;
               }
 

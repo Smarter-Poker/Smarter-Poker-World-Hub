@@ -498,6 +498,40 @@ export default function BankrollManagerPage() {
     }
   }, [userId, locationFilter, timeFilter]);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TIER 3 REALTIME: Bankroll Data Sync
+  // ═══════════════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!userId) return;
+
+    // Subscribe to changes on relevant bankroll tables
+    const bankrollChannel = supabase
+      .channel(`bankroll:${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'bankroll_ledger',
+        filter: `user_id=eq.${userId}`
+      }, () => {
+        console.log('[Bankroll] 🔄 Ledger updated via realtime');
+        loadData();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'bankroll_trips',
+        filter: `user_id=eq.${userId}`
+      }, () => {
+        console.log('[Bankroll] 🔄 Trip updated via realtime');
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(bankrollChannel);
+    };
+  }, [userId, loadData]);
+
   useEffect(() => {
     loadData();
     window.addEventListener('bankroll-updated', loadData);

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
@@ -21,6 +22,28 @@ export default function DiamondArenaSchedule() {
     const gameType = filters.gameType;
     const setFilter = (val) => setFilterState('filter', val);
     const setGameType = (val) => setFilterState('gameType', val);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TIER 3 REALTIME: Diamond Arena Events Live Updates
+    // ═══════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        const scheduleChannel = supabase
+            .channel('diamond-arena-schedule')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'diamond_arena_events'
+            }, () => {
+                console.log('[DiamondArena] 🔄 Schedule updated via realtime');
+                // Trigger schedule refresh when events change
+                window.dispatchEvent(new CustomEvent('diamond-arena-schedule-refresh'));
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(scheduleChannel);
+        };
+    }, []);
 
     useEffect(() => {
         // TODO: Fetch tournaments from API

@@ -215,6 +215,49 @@ export default function ClubLobby() {
         };
     }, [club?.id]);
 
+    // TIER 2 REALTIME: Cross-tab sync for chip balance changes
+    useEffect(() => {
+        if (!club?.id || !user?.id) return;
+
+        let memberChannel = null;
+        let chipBc = null;
+
+        try {
+            // Subscribe to club_members changes for this user's chip balance
+            memberChannel = supabase
+                .channel(`lobby-member-${club.id}-${user.id}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'club_members',
+                    filter: `club_id=eq.${club.id}`,
+                }, (payload) => {
+                    if (payload.new?.user_id === user.id) {
+                        setChipBalance(payload.new.chip_balance || 0);
+                    }
+                })
+                .subscribe();
+
+            // Cross-tab sync listener
+            chipBc = new BroadcastChannel('smarter_poker_chips_sync');
+            chipBc.onmessage = (event) => {
+                if (event.data === 'refresh') {
+                    console.log('[Lobby] Chip balance refresh via BroadcastChannel');
+                    loadClubData();
+                }
+            };
+        } catch (e) {
+            console.warn('[Lobby] Failed to set up chip balance realtime:', e);
+        }
+
+        return () => {
+            if (memberChannel) supabase.removeChannel(memberChannel);
+            if (chipBc) {
+                try { chipBc.close(); } catch (e) { }
+            }
+        };
+    }, [club?.id, user?.id]);
+
     async function loadClubData() {
         setIsLoading(true);
         try {
