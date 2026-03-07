@@ -89,10 +89,15 @@ export function AvatarProvider({ children }) {
 
     // Refresh user session to get latest metadata
     async function refreshUser() {
-        const { data: { user: freshUser }, error } = await supabase.auth.refreshSession();
-        if (freshUser && !error) {
-            setUser(freshUser);
-            await fetchVipStatus(freshUser.id);
+        try {
+            const { data: { user: freshUser }, error } = await supabase.auth.refreshSession();
+            if (freshUser && !error) {
+                setUser(freshUser);
+                await fetchVipStatus(freshUser.id);
+            }
+        } catch (e) {
+            // AbortError or network failure — keep existing session, don't crash
+            console.warn('[AvatarContext] refreshUser failed (non-blocking):', e.name);
         }
     }
 

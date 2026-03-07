@@ -206,6 +206,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
     // Day-close notes
     const [closeDayNotes, setCloseDayNotes] = useState('');
+    const [createError, setCreateError] = useState(null);
 
     // Green celebration flash after closing a day
     const [showCelebration, setShowCelebration] = useState(false);
@@ -508,6 +509,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     // ── GIG CRUD Handlers ──
     const handleCreateGig = async (e) => {
         if (e?.preventDefault) e.preventDefault();
+        setCreateError(null); // Clear any previous error
         console.log('[TokeTracker] handleCreateGig fired', { venue_name: newGig.venue_name, userId });
 
         if (!newGig.venue_name.trim()) {
@@ -573,7 +575,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
         if (!actualUserId) {
             console.error('[TokeTracker] ALL 4 userId resolution layers failed — user session is expired or missing');
-            toast.error('Session expired — please log out and log back in to start an event', 8000);
+            const errMsg = 'Session expired — please log out and log back in to start an event';
+            setCreateError(errMsg);
+            toast.error(errMsg, 8000);
             return;
         }
         try {
@@ -1679,6 +1683,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <button type="button" onClick={handleCreateGig} style={styles.formSubmitBtn}>Start Event</button>
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
+                        {createError && (
+                            <div style={{ margin: '8px 0 0', padding: '10px 14px', background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.4)', borderRadius: 8, color: '#fca5a5', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+                                ⚠️ {createError}
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
