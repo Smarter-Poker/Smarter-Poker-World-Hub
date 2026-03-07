@@ -110,6 +110,8 @@ export default function UnionDashboard() {
     // Two-tap confirm state
     const [confirmRemoveClub, setConfirmRemoveClub] = useState(null);
     const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState(null);
+    // Commission rates controlled state — keyed by club.id
+    const [commissionRates, setCommissionRates] = useState({});
 
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
@@ -127,11 +129,22 @@ export default function UnionDashboard() {
     }, [router]);
 
     // Load dashboard data
-    const loadDashboard = useCallback(async () => {
+    const loadDashboard = useCallback(async ({ signal } = {}) => {
         if (!unionIdParam || !user) { setIsLoading(false); return; }
         setIsLoading(true);
         try {
-            const data = await apiGet(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`);
+            const token = await getAuthToken();
+            if (!token) { router.push('/auth/login'); return; }
+            const res = await fetch(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`, {
+                headers: { Authorization: `Bearer ${token}` },
+                ...(signal ? { signal } : {}),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || `Dashboard load failed (${res.status})`);
+            }
+            const data = await res.json();
+            setDashboard(data);
             setDashboard(data);
             if (data.union) {
                 // Only pre-fill name/desc on first load — don't overwrite unsaved user edits
@@ -147,16 +160,31 @@ export default function UnionDashboard() {
             if (data.clubs?.length > 0) {
                 setMintClubId(prev => prev || data.clubs[0].id);
                 setSettleClubId(prev => prev || data.clubs[0].id);
+                // Seed commission rates from live data (only for clubs not yet edited)
+                setCommissionRates(prev => {
+                    const updated = { ...prev };
+                    for (const club of data.clubs) {
+                        if (!(club.id in updated)) {
+                            updated[club.id] = String(((club.club_commission_rate || 0.9) * 100).toFixed(0));
+                        }
+                    }
+                    return updated;
+                });
             }
         } catch (err) {
+            if (err.name === 'AbortError') return; // component unmounted — ignore
             console.error('Union dashboard load failed:', err);
             showToast(err.message || 'Failed to load union dashboard', 'error');
         } finally {
             setIsLoading(false);
         }
-    }, [unionIdParam, user]);
+    }, [unionIdParam, user, router]);
 
-    useEffect(() => { const _c = new AbortController(); loadDashboard(); return () => _c.abort(); }, [loadDashboard]);
+    useEffect(() => {
+        const _c = new AbortController();
+        loadDashboard({ signal: _c.signal });
+        return () => _c.abort();
+    }, [loadDashboard]);
 
     // ── Realtime subscriptions for live data ──
     useEffect(() => {
@@ -884,18 +912,16 @@ export default function UnionDashboard() {
                                     </button>
                                 </div>
                                 {/* Commission rate editor */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                                    <span style={{ fontSize: 12, color: FB.textSecondary }}>Club Commission:</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>\n                                    <span style={{ fontSize: 12, color: FB.textSecondary }}>Club Commission:</span>
                                     <input
                                         type="number" min="1" max="100" step="1"
-                                        defaultValue={((club.club_commission_rate || 0.9) * 100).toFixed(0)}
-                                        id={`comm-rate-${club.id}`}
+                                        value={commissionRates[club.id] ?? String(((club.club_commission_rate || 0.9) * 100).toFixed(0))}
+                                        onChange={e => setCommissionRates(prev => ({ ...prev, [club.id]: e.target.value }))}
                                         style={{ width: 64, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 8px', fontSize: 13 }}
                                     />
                                     <span style={{ fontSize: 12, color: FB.textSecondary }}>%</span>
                                     <button onClick={async () => {
-                                        const input = document.getElementById(`comm-rate-${club.id}`);
-                                        const val = parseFloat(input?.value || '90');
+                                        const val = parseFloat(commissionRates[club.id] || '90');
                                         if (isNaN(val) || val < 1 || val > 100) { showToast('Rate must be 1–100%', 'error'); return; }
                                         try {
                                             await apiCall('/api/club-arena/manage-union', { action: 'update_club_commission', unionId: unionIdParam, clubId: club.id, commissionRate: val / 100 });
@@ -1163,9 +1189,15 @@ export default function UnionDashboard() {
                             <button onClick={async () => {
                                 setBbjLoading(true);
                                 try {
-                                    const { data, error } = await supabase.rpc('get_union_bbj_status', { p_union_id: unionIdParam });
-                                    if (error) throw error;
-                                    setBbjData(data);
+                                    const result = await apiCall('/api/club-arena/union-games', {
+                                        action: 'get_bbj_status',
+                                        unionId: unionIdParam,
+                                    });
+                                    if (result.rpcNotAvailable) {
+                                        showToast('Detailed BBJ activity not available yet', 'error');
+                                    } else {
+                                        setBbjData(result.data);
+                                    }
                                 } catch (e) {
                                     showToast('Detailed BBJ activity not available yet', 'error');
                                 } finally { setBbjLoading(false); }
