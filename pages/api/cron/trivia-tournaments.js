@@ -75,9 +75,10 @@ export default async function handler(req, res) {
             .select('id')
             .gte('start_time', startOfDay.toISOString())
             .lt('start_time', endOfDay.toISOString())
-            .limit(1);
+            .limit(1)
+            .maybeSingle();
 
-        if (!existingTournament || existingTournament.length === 0) {
+        if (!existingTournament) {
             // Load questions for the tournament
             const { data: questions } = await supabase
                 .from('trivia_questions')
@@ -103,7 +104,7 @@ export default async function handler(req, res) {
                     created_at: now.toISOString()
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (!error && newTournament) {
                 results.created = newTournament.id;

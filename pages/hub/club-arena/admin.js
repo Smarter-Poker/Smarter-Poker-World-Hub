@@ -144,7 +144,7 @@ export default function Admin() {
                 .from('clubs')
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                .single();
+                .maybeSingle();
 
             if (clubData) {
                 setClub(clubData);
@@ -158,7 +158,7 @@ export default function Admin() {
                         .select('role')
                         .eq('club_id', clubData.id)
                         .eq('user_id', authUser.id)
-                        .single();
+                        .maybeSingle();
                     setIsAdmin(membership?.role === 'owner' || membership?.role === 'admin');
                 }
 
@@ -210,7 +210,11 @@ export default function Admin() {
                 filter: `club_id=eq.${club.id}` }, () => loadData())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members',
                 filter: `club_id=eq.${club.id}` }, () => loadData())
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Admin] Realtime channel status: ${status}`);
+                }
+            });
         return () => { supabase.removeChannel(ch); };
     }, [club?.id, loadData]);
 

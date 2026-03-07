@@ -164,7 +164,7 @@ async function handlePost(req, res) {
             .from('poker_venues')
             .select('id, name')
             .eq('id', parseInt(venue_id))
-            .single();
+            .maybeSingle();
 
         if (venueError || !venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });

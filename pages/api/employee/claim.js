@@ -63,7 +63,7 @@ export default async function handler(req, res) {
             .from('commander_staff')
             .select('id, display_name, role, linked_user_id, venue_id')
             .eq('id', claim.staff_id)
-            .single();
+            .maybeSingle();
 
         if (!staff) {
             return res.status(404).json({ success: false, error: 'Staff record not found' });
@@ -108,7 +108,7 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .select('name')
             .eq('id', staff.venue_id)
-            .single();
+            .maybeSingle();
 
         return res.status(200).json({
             success: true,

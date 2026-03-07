@@ -96,7 +96,7 @@ export default function SurvivalModePage() {
             .eq('user_id', user.id)
             .order('correct_count', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (best) {
             setPersonalBest(best.correct_count);
@@ -187,7 +187,7 @@ export default function SurvivalModePage() {
                     .from('profiles')
                     .select('diamonds')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (profile) {
                     await supabase

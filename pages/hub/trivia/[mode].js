@@ -130,7 +130,7 @@ export default function TriviaModePage() {
                         .from('profiles')
                         .select('diamonds')
                         .eq('id', currentUserId)
-                        .single();
+                        .maybeSingle();
 
                     if (profile) {
                         setUserDiamonds(profile.diamonds || 0);
@@ -141,7 +141,7 @@ export default function TriviaModePage() {
                         .from('trivia_streaks')
                         .select('current_streak')
                         .eq('user_id', currentUserId)
-                        .single();
+                        .maybeSingle();
 
                     if (streakData) {
                         setUserStreak(streakData.current_streak || 0);
@@ -215,7 +215,7 @@ export default function TriviaModePage() {
             .from('profiles')
             .select('diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
         return data?.diamonds || 0;
     }
 
@@ -545,7 +545,7 @@ export default function TriviaModePage() {
                         .from('profiles')
                         .select('diamonds')
                         .eq('id', userId)
-                        .single();
+                        .maybeSingle();
 
                     if (profile) {
                         await supabase
@@ -594,7 +594,7 @@ export default function TriviaModePage() {
                         .select('*')
                         .eq('user_id', userId)
                         .eq('category', category)
-                        .single();
+                        .maybeSingle();
 
                     if (existing) {
                         const newTotal = existing.total_answered + stats.answered;
@@ -805,7 +805,7 @@ export default function TriviaModePage() {
                                     .from('profiles')
                                     .select('diamonds')
                                     .eq('id', userId)
-                                    .single();
+                                    .maybeSingle();
                                 if (profile) {
                                     await supabase
                                         .from('profiles')
@@ -894,7 +894,7 @@ export default function TriviaModePage() {
                                             .from('profiles')
                                             .select('diamonds')
                                             .eq('id', userId)
-                                            .single();
+                                            .maybeSingle();
                                         if (profile) {
                                             await supabase
                                                 .from('profiles')
@@ -911,7 +911,7 @@ export default function TriviaModePage() {
                                             .from('profiles')
                                             .select('diamonds')
                                             .eq('id', userId)
-                                            .single();
+                                            .maybeSingle();
                                         if (profile) {
                                             await supabase
                                                 .from('profiles')

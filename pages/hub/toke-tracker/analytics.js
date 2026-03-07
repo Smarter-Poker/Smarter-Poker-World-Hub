@@ -47,7 +47,7 @@ export default function TokeAnalyticsPage() {
         try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
         if (!userId) return;
         try {
-            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
+            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;
             await supabase.from('profiles').update({ settings }).eq('id', userId);

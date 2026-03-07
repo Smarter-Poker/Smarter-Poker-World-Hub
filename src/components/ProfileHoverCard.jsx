@@ -49,7 +49,7 @@ export function ProfileHoverCard({ userId, username, children, position = 'botto
                 query = query.eq('username', username);
             }
 
-            const { data } = await query.single();
+            const { data } = await query.maybeSingle();
             if (data) {
                 setProfile(data);
             }

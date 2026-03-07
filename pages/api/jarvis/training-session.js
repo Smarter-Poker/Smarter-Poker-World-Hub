@@ -94,7 +94,7 @@ export default async function handler(req, res) {
             .from('jarvis_user_training_profile')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         const updatedProfile = mergeTrainingProfile(existingProfile, {
             lastSession: sessionData,

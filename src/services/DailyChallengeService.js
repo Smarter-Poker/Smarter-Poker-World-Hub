@@ -113,7 +113,7 @@ class DailyChallengeService {
                 .from('user_daily_streaks')
                 .select('*')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 
@@ -157,7 +157,7 @@ class DailyChallengeService {
                     bonus_reward: bonusReward
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 

@@ -1139,7 +1139,7 @@ export default function MessengerPage() {
                         .from('profiles')
                         .select('id, username, avatar_url, is_vip')
                         .eq('id', authUser.id)
-                        .single();
+                        .maybeSingle();
 
                     setUser({ ...authUser, ...profile });
                     setIsVip(!!profile?.is_vip);
@@ -1186,7 +1186,7 @@ export default function MessengerPage() {
                     .from('profiles')
                     .select('id, username, avatar_url, is_vip')
                     .eq('id', authUser.id)
-                    .single();
+                    .maybeSingle();
 
                 setUser({ ...authUser, ...profile });
                 setIsVip(!!profile?.is_vip);
@@ -1266,7 +1266,7 @@ export default function MessengerPage() {
                     .from('profiles')
                     .select('id, username, avatar_url, is_vip')
                     .eq('id', newMsg.sender_id)
-                    .single();
+                    .maybeSingle();
 
                 setMessages(prev => {
                     // Check for duplicates
@@ -1592,7 +1592,7 @@ export default function MessengerPage() {
                                     .from('profiles')
                                     .select('id, username, avatar_url')
                                     .eq('id', otherParticipants[0].user_id)
-                                    .single();
+                                    .maybeSingle();
                                 otherUser = directProfile || { id: otherParticipants[0].user_id, username: 'User', avatar_url: null };
                             }
                         } else if (otherParticipants.length > 1) {

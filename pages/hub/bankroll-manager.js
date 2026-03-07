@@ -368,7 +368,7 @@ export default function BankrollManagerPage() {
     if (userId) {
       initializeUserBankroll(userId).catch(console.error);
       // Check VIP status
-      supabase.from('profiles').select('is_vip').eq('id', userId).single()
+      supabase.from('profiles').select('is_vip').eq('id', userId).maybeSingle()
         .then(({ data }) => { if (data) setIsVip(!!data.is_vip); });
     }
   }, [userId]);

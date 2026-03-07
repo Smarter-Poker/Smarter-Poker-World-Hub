@@ -329,7 +329,7 @@ export default function MemoryGameClient({
             .from('memory_charts_gold')
             .select('*')
             .eq('chart_id', chartId)
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             console.error('Failed to load chart:', error);

@@ -65,7 +65,7 @@ function assert(condition, label) {
         .select('win_rate_bb100, hands_played')
         .eq('profile_id', HORSE)
         .eq('table_id', `evolution_${HORSE}`)
-        .single();
+        .maybeSingle();
     assert(evoData !== null, 'Skill evolution persisted to Supabase');
     if (evoData) {
         assert(typeof evoData.win_rate_bb100 === 'number', `Persisted drift value (win_rate_bb100): ${evoData.win_rate_bb100}`);
@@ -96,7 +96,7 @@ function assert(condition, label) {
         .select('bluff_frequency, tendency')
         .eq('horse_id', HORSE)
         .eq('opponent_id', OPP_ID)
-        .single();
+        .maybeSingle();
     assert(readBack?.bluff_frequency === 0.45, `Opponent read loaded back: bluffFreq=${readBack?.bluff_frequency}`);
     assert(readBack?.tendency === 'loose-aggressive', `Opponent tendency: ${readBack?.tendency}`);
 

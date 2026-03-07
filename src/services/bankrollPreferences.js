@@ -20,7 +20,7 @@ export async function getBankrollPreferences(userId) {
             .from('profiles')
             .select('bankroll_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

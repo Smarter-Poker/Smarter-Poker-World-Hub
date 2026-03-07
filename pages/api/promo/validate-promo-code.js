@@ -24,7 +24,7 @@ export default async function handler(req, res) {
             .from('promo_codes')
             .select('id, code, description, reward_type, reward_value, max_uses, times_used, is_active, expires_at')
             .eq('code', code.toUpperCase().trim())
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return res.status(404).json({ valid: false, error: 'Invalid promo code' });

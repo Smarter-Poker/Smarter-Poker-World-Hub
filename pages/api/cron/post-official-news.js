@@ -100,7 +100,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, username')
             .eq('id', OFFICIAL_ACCOUNT_UUID)
-            .single();
+            .maybeSingle();
 
         if (accountError || !officialAccount) {
             console.error('❌ SmarterPokerOfficial account not found!');

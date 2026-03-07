@@ -60,7 +60,7 @@ function useUserProfile() {
                     .from('profiles')
                     .select('diamonds, streak_days, diamond_multiplier')
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (profileError) {
                     console.log('Profile fetch error:', profileError);

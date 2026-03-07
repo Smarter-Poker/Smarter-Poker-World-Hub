@@ -94,7 +94,7 @@ export function useTrainingAccountant(userId: string | null) {
                 .from('xp_logs')
                 .insert(entry)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (insertError) {
                 console.error('[ACCOUNTANT] XP log error:', insertError);
@@ -200,7 +200,7 @@ export function useTrainingAccountant(userId: string | null) {
                     .from('user_leaks')
                     .insert(entry)
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (insertError) {
                     console.error('[ACCOUNTANT] Leak insert error:', insertError);

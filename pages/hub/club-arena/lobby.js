@@ -173,7 +173,11 @@ export default function ClubLobby() {
                 table: 'club_tournaments',
                 filter: `club_id=eq.${club.id}`,
             }, () => { loadClubData(); })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Lobby] Realtime channel status: ${status}`);
+                }
+            });
 
         const _c = new AbortController();
         // Polling fallback every 60s — last resort for player counts
@@ -217,7 +221,7 @@ export default function ClubLobby() {
                 .from('clubs')
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                .single();
+                .maybeSingle();
 
             if (clubData) {
                 setClub(clubData);

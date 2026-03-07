@@ -189,7 +189,7 @@ async function saveClips(clips) {
                 channel_handle: clip.channel_handle
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (data && !error) {
             saved++;

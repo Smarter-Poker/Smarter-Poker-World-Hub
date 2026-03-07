@@ -508,7 +508,7 @@ export default async function handler(req, res) {
         // Load ClipLibrary for poker video clips
         await loadClipLibrary();
 
-        const { data: horses } = await supabase
+        const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
@@ -516,7 +516,7 @@ export default async function handler(req, res) {
             .order('profile_id')
                 .limit(100);
 
-        if (!horses?.length || index >= horses.length) {
+        if (horseError || !horses?.length || index >= horses.length) {
             return res.status(200).json({ success: false, error: 'No horse' });
         }
 

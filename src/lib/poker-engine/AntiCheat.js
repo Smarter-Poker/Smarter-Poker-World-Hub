@@ -682,7 +682,7 @@ class AntiCheat {
         .eq('user_id', playerId)
         .not('agent_id', 'is', null)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!membership?.agent_id) {
         this._agentCache.set(playerId, { agentId: null, parentChain: [], cachedAt: Date.now() });
@@ -698,7 +698,7 @@ class AntiCheat {
           .from('agents')
           .select('id, user_id, parent_agent_id')
           .eq('id', currentAgentId)
-          .single();
+          .maybeSingle();
 
         if (!agent) break;
 

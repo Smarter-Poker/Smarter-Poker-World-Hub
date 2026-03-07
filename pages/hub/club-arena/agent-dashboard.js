@@ -171,7 +171,11 @@ export default function AgentDashboard() {
             }, () => {
                 loadDashboard(); // Refresh full dashboard on any cashout change
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[AgentDashboard] Cashout channel status: ${status}`);
+                }
+            });
 
         // Also listen for chip_transactions (distribute/clawback events)
         const txnChannel = supabase
@@ -184,7 +188,11 @@ export default function AgentDashboard() {
             }, () => {
                 loadDashboard();
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[AgentDashboard] Txn channel status: ${status}`);
+                }
+            });
 
         return () => {
             supabase.removeChannel(cashoutChannel);

@@ -154,7 +154,7 @@ function CustomAvatarBuilder({ isVip = false, onClose = null, user: propUser = n
             prompt: prompt
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error saving avatar:', error);

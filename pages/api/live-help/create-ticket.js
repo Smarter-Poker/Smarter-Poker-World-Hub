@@ -85,7 +85,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('username, email')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         // Send email notification via Resend
         try {

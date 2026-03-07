@@ -179,7 +179,7 @@ export async function fetchLedgerEntry(
     )
     .eq('user_id', userId)
     .eq('id', entryId)
-    .single();
+    .maybeSingle();
 
   if (error) return null;
 
@@ -253,7 +253,7 @@ async function recalculateSegmentBalance(userId: string, segmentType: string): P
     .select('current_balance, initial_deposit')
     .eq('user_id', userId)
     .eq('segment_type', segmentType)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     // Add initial deposit (from Adjust Bankroll modal) to the ledger-derived total
@@ -628,7 +628,7 @@ export async function getTripReport(userId: string, tripId: string) {
     .select(`*, bankroll_locations(name)`)
     .eq('user_id', userId)
     .eq('id', tripId)
-    .single();
+    .maybeSingle();
 
   if (tripError) throw tripError;
 
@@ -1037,7 +1037,7 @@ export async function updateSegmentBalance(
     .select('current_balance')
     .eq('user_id', userId)
     .eq('segment_type', segmentType)
-    .single();
+    .maybeSingle();
 
   const newBalance = (current?.current_balance || 0) + amount;
 
@@ -1133,7 +1133,7 @@ export async function adjustBankroll(
     .select('current_balance')
     .eq('user_id', userId)
     .eq('segment_type', 'poker')
-    .single();
+    .maybeSingle();
 
   if (fetchErr) {
     console.error('[adjustBankroll] Failed to fetch segment:', fetchErr);

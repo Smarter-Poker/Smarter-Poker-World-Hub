@@ -44,7 +44,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('first_name, username')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         const userName = profile?.first_name || profile?.username || 'there';
 
@@ -113,15 +113,15 @@ export default async function handler(req, res) {
             .select()
             .single();
 
-        if (msgError) {
-            console.error('Failed to create greeting message:', msgError);
+        if (greetingError) {
+            console.error('Failed to create greeting message:', greetingError);
         }
 
         return res.status(200).json({
             conversationId: conversation.id,
             agentId: selectedAgent,
-            greeting: greetingText,
-            messages: greetingMessage ? [greetingMessage] : []
+            greeting: greeting?.content || greetingMessage,
+            messages: greeting ? [greeting] : []
         });
 
     } catch (error) {

@@ -75,7 +75,7 @@ export default function Leaderboard() {
                 .from('clubs')
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                .single();
+                .maybeSingle();
 
             if (clubData) {
                 setClub(clubData);
@@ -198,7 +198,11 @@ export default function Leaderboard() {
             .channel(`leaderboard-live:${clubIdParam}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
                 filter: `club_id=eq.${clubIdParam}` }, () => loadData())
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Leaderboard] Realtime channel status: ${status}`);
+                }
+            });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
 

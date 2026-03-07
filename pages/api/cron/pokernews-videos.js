@@ -54,7 +54,7 @@ async function ingestLatestVideos() {
                 .select('id, profile_id')
                 .not('profile_id', 'is', null)
                 .limit(1)
-                .single();
+                .maybeSingle();
             author = fallback;
         }
 

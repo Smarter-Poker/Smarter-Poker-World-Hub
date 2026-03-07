@@ -45,7 +45,7 @@ export default async function handler(req, res) {
                 .from('social_conversations')
                 .select('*')
                 .eq('id', sharedConvoId)
-                .single();
+                .maybeSingle();
             conversation = convo;
 
             // Get all messages in this conversation

@@ -205,7 +205,11 @@ export default function UnionDashboard() {
                 event: '*', schema: 'public', table: 'union_admins',
                 filter: `union_id=eq.${unionIdParam}`,
             }, () => { loadDashboard(); })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[UnionDashboard] Realtime channel status: ${status}`);
+                }
+            });
 
         // Silent poll every 30s as fallback — Realtime postgres_changes handles live updates
         const poll = setInterval(async () => {

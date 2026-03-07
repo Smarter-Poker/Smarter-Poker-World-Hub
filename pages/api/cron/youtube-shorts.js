@@ -154,7 +154,7 @@ async function saveVideos(videos) {
                 created_at: video.published_at || new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (data && !error) {
             saved++;
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, username')
             .eq('id', SYSTEM_ACCOUNT_UUID)
-            .single();
+            .maybeSingle();
 
         if (accountError || !systemAccount) {
             console.error('❌ System account not found!');

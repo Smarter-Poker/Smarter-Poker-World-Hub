@@ -370,7 +370,7 @@ export async function saveVideoToReels(userId, videoUrl, caption, sourceStoryId 
                 source_story_id: sourceStoryId,
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         return data;

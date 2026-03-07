@@ -72,7 +72,7 @@ export default function TriviaHubPage() {
                     .from('profiles')
                     .select('diamonds, is_vip')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (profile) {
                     setUserDiamonds(profile.diamonds || 0);
@@ -86,7 +86,7 @@ export default function TriviaHubPage() {
                     .select('id')
                     .eq('user_id', userId)
                     .eq('played_date', today)
-                    .single();
+                    .maybeSingle();
 
                 setDailyCompleted(!!dailyPlay);
 
@@ -95,7 +95,7 @@ export default function TriviaHubPage() {
                     .from('trivia_streaks')
                     .select('current_streak')
                     .eq('user_id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (streakData) {
                     setCurrentStreak(streakData.current_streak || 0);

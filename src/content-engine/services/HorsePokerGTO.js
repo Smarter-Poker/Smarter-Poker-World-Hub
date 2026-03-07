@@ -134,7 +134,7 @@ export async function getPreflopRange(chartName) {
         .from('memory_charts_gold')
         .select('chart_grid')
         .eq('chart_name', chartName)
-        .single();
+        .maybeSingle();
 
     if (error || !data) return null;
 
@@ -167,7 +167,7 @@ export async function getPostflopStrategy(params) {
         .eq('topology', topology)
         .eq('mode', mode)
         .contains('board_cards', board)
-        .single();
+        .maybeSingle();
 
     if (error || !data) return null;
 

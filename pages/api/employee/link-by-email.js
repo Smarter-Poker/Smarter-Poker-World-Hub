@@ -93,7 +93,7 @@ async function handlePost(req, res) {
             .eq('id', staff_id)
             .eq('email', user.email)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
 
         if (!staff) {
             return res.status(404).json({ success: false, error: 'No matching staff record found' });
@@ -117,7 +117,7 @@ async function handlePost(req, res) {
             .from('poker_venues')
             .select('name')
             .eq('id', staff.venue_id)
-            .single();
+            .maybeSingle();
 
         return res.status(200).json({
             success: true,

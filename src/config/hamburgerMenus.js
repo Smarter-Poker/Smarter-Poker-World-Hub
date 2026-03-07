@@ -23,7 +23,7 @@ export const copyReferralLink = async (user) => {
             .from('profiles')
             .select('player_number')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
         if (data?.player_number) {
             const link = `https://smarter.poker/auth/signup?ref=${data.player_number}`;
             await navigator.clipboard.writeText(link);

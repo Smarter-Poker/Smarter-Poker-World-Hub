@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         .in('role', ['owner', 'manager'])
         .eq('is_active', true)
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (!staff) {
         return res.status(403).json({ success: false, error: 'Only owners and managers can seed promo codes' });

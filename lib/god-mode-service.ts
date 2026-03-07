@@ -207,14 +207,9 @@ export async function getGTOStrategy(params: {
             .from('solved_spots_gold')
             .select('*')
             .eq('scenario_hash', scenarioHash)
-            .single();
+            .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') {
-                // No rows returned - scenario not in database
-                console.warn(`⚠️ Scenario not found: ${scenarioHash}`);
-                return null;
-            }
             console.error('❌ God Mode query error:', error);
             return null;
         }
@@ -319,7 +314,7 @@ export async function hasGTODataForScenario(params: {
             .from('solved_spots_gold')
             .select('id')
             .eq('scenario_hash', scenarioHash)
-            .single();
+            .maybeSingle();
 
         return !error && !!data;
 
@@ -429,7 +424,7 @@ export async function generateLevelQuiz(
             .from('training_levels')
             .select('*')
             .eq('level_id', levelId)
-            .single();
+            .maybeSingle();
 
         if (levelError || !level) {
             console.error(`❌ Level ${levelId} not found:`, levelError);

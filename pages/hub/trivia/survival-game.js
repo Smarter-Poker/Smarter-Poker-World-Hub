@@ -265,7 +265,7 @@ export default function SurvivalGamePage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', uid)
-                .single();
+                .maybeSingle();
             if (data) setUserDiamonds(data.diamonds || 0);
         } catch (e) {
             // Ignore
@@ -278,7 +278,7 @@ export default function SurvivalGamePage() {
                 .from('survival_progress')
                 .select('highest_level, last_played')
                 .eq('user_id', uid)
-                .single();
+                .maybeSingle();
             if (data) {
                 setUserProgress({ highestLevel: data.highest_level || 0 });
             }
@@ -610,7 +610,7 @@ export default function SurvivalGamePage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (profile) {
                 await supabase

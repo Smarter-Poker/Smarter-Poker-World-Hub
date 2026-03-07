@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .select('id, is_private')
       .eq('club_code', code)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (groupError || !group) {
       return res.status(404).json({

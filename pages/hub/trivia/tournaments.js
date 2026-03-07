@@ -154,7 +154,7 @@ export default function TournamentsPage() {
             .from('profiles')
             .select('diamonds')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profile) setUserDiamonds(profile.diamonds || 0);
 
@@ -180,7 +180,7 @@ export default function TournamentsPage() {
                 .select('*')
                 .eq('tournament_id', active.id)
                 .eq('user_id', user.id)
-                .single();
+                .maybeSingle();
 
             setUserEntry(entry);
         }
@@ -231,13 +231,13 @@ export default function TournamentsPage() {
                         .from('profiles')
                         .select('username, avatar_url')
                         .eq('id', opponentId)
-                        .single();
+                        .maybeSingle();
 
                     const { data: oppStats } = await supabase
                         .from('trivia_pvp_stats')
                         .select('wins, losses')
                         .eq('user_id', opponentId)
-                        .single();
+                        .maybeSingle();
 
                     setOpponentInfo({
                         id: opponentId,
@@ -1626,7 +1626,7 @@ function BracketPlayerName({ playerId, userId }) {
             .from('profiles')
             .select('username')
             .eq('id', playerId)
-            .single()
+            .maybeSingle()
             .then(({ data }) => {
                 setName(data?.username || 'Player');
             });

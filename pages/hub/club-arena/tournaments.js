@@ -73,7 +73,7 @@ export default function TournamentsPage() {
       .select('role, chip_balance, clubs(name, avatar_url)')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (member) {
       setClubInfo(member.clubs);
@@ -469,7 +469,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         .eq('tournament_id', t.id)
         .eq('user_id', userId)
         .eq('status', 'registered')
-        .single();
+        .maybeSingle();
       setIsRegistered(!!data);
     })();
     // Load registrations
@@ -509,7 +509,11 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         }
       });
     }
-    tCh.subscribe();
+    tCh.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') {
+        console.warn(`[Tournament] Broadcast channel ${t.id} status: ${status}`);
+      }
+    });
 
     // ── Fallback: postgres_changes on club_tournaments for status/level sync ──
     // Covers the case where the engine isn't running yet and DB reflects truth.
@@ -521,7 +525,11 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
       }, (payload) => {
         setTourneyState(prev => ({ ...prev, ...payload.new }));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          console.warn(`[Tournament] Postgres channel ${t.id} status: ${status}`);
+        }
+      });
 
     return () => {
       supabase.removeChannel(tCh);

@@ -101,7 +101,7 @@ async function createTemplate(req, res, staff) {
                     leaderboard_id: tournament.leaderboard_id
                 })
                 .select()
-                .maybeSingle();
+                .single();
 
             if (error) throw error;
             return res.status(201).json({ success: true, data: { template } });

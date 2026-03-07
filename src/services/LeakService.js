@@ -33,7 +33,7 @@ class LeakService {
                 .eq('user_id', userId)
                 .eq('leak_type', leakType.id)
                 .is('fixed_at', null)
-                .single();
+                .maybeSingle();
 
             if (fetchError && fetchError.code !== 'PGRST116') {
                 // PGRST116 = no rows returned, which is fine
@@ -51,7 +51,7 @@ class LeakService {
                     })
                     .eq('id', existingLeak.id)
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
                 console.log(`[LeakService] Updated leak ${leakType.id}: count=${data.count}`);
@@ -69,7 +69,7 @@ class LeakService {
                         metadata: context
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
                 console.log(`[LeakService] Recorded new leak: ${leakType.id}`);

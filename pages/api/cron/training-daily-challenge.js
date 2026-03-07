@@ -94,11 +94,11 @@ export default async function handler(req, res) {
                 community_scenario: communityScenario // Store the Grok-generated scenario
             })
             .select()
-            .single();
+            .maybeSingle();
 
-        if (error) {
+        if (error || !challenge) {
             console.error('[TrainingDailyChallenge] Error creating challenge:', error);
-            return res.status(500).json({ error: 'Failed to create challenge', details: error.message });
+            return res.status(500).json({ error: 'Failed to create challenge', details: error?.message || 'No data returned' });
         }
 
 

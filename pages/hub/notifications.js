@@ -216,7 +216,7 @@ export default function NotificationsPage() {
                     .eq('user_id', requesterId)
                     .eq('friend_id', user.id)
                     .eq('status', 'pending')
-                    .single();
+                    .maybeSingle();
                 requestId = request?.id;
             }
 

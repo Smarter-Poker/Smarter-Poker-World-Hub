@@ -227,7 +227,7 @@ export default function StrategyTrivia({ mode }) {
             .from('profiles')
             .select('diamonds')
             .eq('id', uid)
-            .single();
+            .maybeSingle();
         if (profile) {
             setUserDiamonds(profile.diamonds || 0);
         }
@@ -496,7 +496,7 @@ export default function StrategyTrivia({ mode }) {
                     .from('profiles')
                     .select('diamonds')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (profile) {
                     await supabase

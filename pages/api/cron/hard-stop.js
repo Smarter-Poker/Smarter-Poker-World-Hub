@@ -152,7 +152,7 @@ export default async function handler(req, res) {
                                 .from('commander_members')
                                 .select('comp_balance, comp_lifetime_earned')
                                 .eq('id', ts.member_id)
-                                .single();
+                                .maybeSingle();
 
                             if (member) {
                                 await supabase

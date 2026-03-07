@@ -192,7 +192,11 @@ export default function UnionGames() {
           loadTournaments();
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          console.warn(`[UnionGames] Tournament channel status: ${status}`);
+        }
+      });
 
     // Subscribe to table changes across all union clubs
     const tableChannel = supabase
@@ -205,7 +209,11 @@ export default function UnionGames() {
           loadTables();
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          console.warn(`[UnionGames] Table channel status: ${status}`);
+        }
+      });
 
     // Polling fallback every 15s — silent (no loading state change)
     const poll = setInterval(async () => {
@@ -926,7 +934,11 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         setTourneyState(prev => ({ ...prev, ...payload.payload, _lastEvent: evt }));
       });
     }
-    tCh.subscribe();
+    tCh.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') {
+        console.warn(`[UnionTournament] Broadcast channel ${t.id} status: ${status}`);
+      }
+    });
 
     // DB fallback: postgres_changes on club_tournaments keeps status/level in sync
     const dbCh = supabase
@@ -937,7 +949,11 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
       }, (payload) => {
         setTourneyState(prev => ({ ...prev, ...payload.new }));
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          console.warn(`[UnionTournament] Postgres channel ${t.id} status: ${status}`);
+        }
+      });
 
     return () => {
       supabase.removeChannel(tCh);

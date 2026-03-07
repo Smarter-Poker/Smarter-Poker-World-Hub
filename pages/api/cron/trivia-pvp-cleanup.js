@@ -136,7 +136,7 @@ async function updatePlayerStats(playerId, outcome, diamondsDelta) {
         .from('trivia_pvp_stats')
         .select('*')
         .eq('user_id', playerId)
-        .single();
+        .maybeSingle();
 
     const prev = current || { wins: 0, losses: 0, ties: 0, win_streak: 0, best_streak: 0, total_diamonds_won: 0, total_diamonds_lost: 0 };
 

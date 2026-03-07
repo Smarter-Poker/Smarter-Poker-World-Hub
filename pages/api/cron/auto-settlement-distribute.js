@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       if (!user) return res.status(401).json({ error: 'Unauthorized' });
       // BUG #123 FIX: Require platform admin or club owner
       const { data: adminCheck } = await supabaseAdmin
-        .from('profiles').select('role').eq('id', user.id).single();
+        .from('profiles').select('role').eq('id', user.id).maybeSingle();
       const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin';
       if (!isAdmin) {
         const { data: ownedClubs } = await supabaseAdmin
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
               .select('chip_balance')
               .eq('club_id', clubId)
               .eq('user_id', agentUserId)
-              .single();
+              .maybeSingle();
 
             if (!agentMember) {
               for (const dist of agentDists) {
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
                   .select('chip_balance, nickname')
                   .eq('club_id', clubId)
                   .eq('user_id', dist.player_user_id)
-                  .single();
+                  .maybeSingle();
 
                 if (!playerMember) {
                   await markDistributionFailed(dist.id, 'Player not found in club');

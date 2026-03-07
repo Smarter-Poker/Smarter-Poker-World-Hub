@@ -97,7 +97,7 @@ export default function TimeAttackPage() {
             .eq('mode', 'time-attack')
             .order('correct_count', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (best) {
             setPersonalBest(best.correct_count);
@@ -215,7 +215,7 @@ export default function TimeAttackPage() {
                     .from('profiles')
                     .select('diamonds')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (profile) {
                     await supabase

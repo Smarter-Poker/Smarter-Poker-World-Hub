@@ -440,7 +440,7 @@ class StateSerializer {
           .from('hand_private_state')
           .select('hole_cards')
           .eq('table_id', tableId)
-          .single();
+          .maybeSingle();
 
         if (privateData?.hole_cards && state.hand.players) {
           for (const player of state.hand.players) {

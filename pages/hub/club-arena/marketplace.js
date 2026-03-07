@@ -120,7 +120,7 @@ export default function Marketplace() {
                 .from('clubs')
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                .single();
+                .maybeSingle();
 
             if (clubData) {
                 setClub(clubData);
@@ -132,7 +132,7 @@ export default function Marketplace() {
                         .select('*')
                         .eq('club_id', clubData.id)
                         .eq('user_id', authUser.id)
-                        .single();
+                        .maybeSingle();
 
                     if (memberData) {
                         setMembership(memberData);
@@ -192,7 +192,11 @@ export default function Marketplace() {
                 filter: `club_id=eq.${clubIdParam}` }, () => loadData())
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_shop_purchases',
                 filter: `club_id=eq.${clubIdParam}` }, () => loadData())
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Marketplace] Realtime channel status: ${status}`);
+                }
+            });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
 

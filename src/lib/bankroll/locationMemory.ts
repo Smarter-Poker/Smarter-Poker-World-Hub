@@ -57,7 +57,7 @@ export async function getOrCreateLocation(
     .eq('user_id', authUserId)
     .ilike('name', name)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (existing) return existing.id;
 
@@ -163,7 +163,7 @@ export async function getLocationStats(
     .from('bankroll_locations')
     .select('id, name')
     .eq('id', locationId)
-    .single();
+    .maybeSingle();
 
   if (!location) return null;
 
@@ -457,7 +457,7 @@ export async function detectNearbyLocation(
     .gte('longitude', longitude - lonDelta)
     .lte('longitude', longitude + lonDelta)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   return data || null;
 }

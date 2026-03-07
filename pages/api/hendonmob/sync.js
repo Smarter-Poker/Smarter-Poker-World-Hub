@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('full_name')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         const playerName = profile?.full_name;
 

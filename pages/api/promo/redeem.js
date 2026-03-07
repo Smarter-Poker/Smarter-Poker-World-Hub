@@ -74,7 +74,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('promo_code_id', promo.id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             return res.status(400).json({ success: false, error: 'You have already redeemed this code' });
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
                     .from('profiles')
                     .select('diamonds')
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 const currentDiamonds = profile?.diamonds || 0;
                 await supabaseAdmin
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
                 .from('profiles')
                 .select('vip_expires_at')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
 
             const now = new Date();
             const currentExpiry = profile?.vip_expires_at ? new Date(profile.vip_expires_at) : now;

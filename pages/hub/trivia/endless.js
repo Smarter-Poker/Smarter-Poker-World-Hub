@@ -113,7 +113,7 @@ export default function EndlessModePage() {
                         .select('high_score')
                         .eq('user_id', user.id)
                         .eq('mode', 'random')
-                        .single();
+                        .maybeSingle();
                     if (data) setHighScore(data.high_score || 0);
                 } catch (e) {
                     // High score table may not exist yet
@@ -124,7 +124,7 @@ export default function EndlessModePage() {
                         .from('profiles')
                         .select('diamonds')
                         .eq('id', user.id)
-                        .single();
+                        .maybeSingle();
                     if (profile) setUserDiamonds(profile.diamonds || 0);
                 } catch (e) {
                     console.error('Failed to load diamonds:', e);
@@ -504,7 +504,7 @@ export default function EndlessModePage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (profile) {
                 await supabase

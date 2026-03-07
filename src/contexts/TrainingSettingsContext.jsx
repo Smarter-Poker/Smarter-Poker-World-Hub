@@ -43,7 +43,7 @@ export function TrainingSettingsProvider({ children }) {
                 .from('profiles')
                 .select('training_view_mode, training_sound_enabled, training_timer_enabled, training_auto_advance, training_hints_enabled')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 

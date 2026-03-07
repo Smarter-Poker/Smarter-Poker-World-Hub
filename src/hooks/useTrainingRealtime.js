@@ -41,7 +41,7 @@ export function useTrainingRealtime(userId) {
                         .from('training_achievement_definitions')
                         .select('*')
                         .eq('id', payload.new.achievement_id)
-                        .single();
+                        .maybeSingle();
 
                     if (achievementDef) {
                         setNewAchievement({
@@ -86,7 +86,12 @@ export function useTrainingRealtime(userId) {
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('[Realtime] Leaderboard channel status:', status);
+                if (status === 'SUBSCRIBED') {
+                    setIsConnected(true);
+                }
+            });
 
         // Challenge completion channel
         const challengeChannel = supabase
@@ -109,7 +114,7 @@ export function useTrainingRealtime(userId) {
                             .from('training_challenge_definitions')
                             .select('*')
                             .eq('id', payload.new.challenge_id)
-                            .single();
+                            .maybeSingle();
 
                         if (challengeDef) {
                             setChallengeComplete({
@@ -120,7 +125,12 @@ export function useTrainingRealtime(userId) {
                     }
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('[Realtime] Challenge channel status:', status);
+                if (status === 'SUBSCRIBED') {
+                    setIsConnected(true);
+                }
+            });
 
         // Cleanup
         return () => {

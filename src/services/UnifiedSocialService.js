@@ -121,7 +121,7 @@ export class UnifiedSocialService {
                 achievement_data: achievementData
             })
             .select('*')
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 
@@ -154,7 +154,7 @@ export class UnifiedSocialService {
             .eq('post_id', postId)
             .eq('user_id', userId)
             .eq('interaction_type', interactionType)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             await this.supabase.from('social_interactions').delete().eq('id', existing.id);
@@ -196,7 +196,7 @@ export class UnifiedSocialService {
             .from('social_comments')
             .insert({ post_id: postId, author_id: authorId, content, parent_id: parentId })
             .select(`*, author:user_dna_profiles!author_id (username, avatar_url, current_level)`)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         return createComment({
@@ -285,7 +285,7 @@ export class UnifiedSocialService {
                     .from('profiles')
                     .select('id, username, avatar_url')
                     .eq('id', p.user_id)
-                    .single();
+                    .maybeSingle();
                 profile = directProfile || { id: p.user_id, username: 'Unknown', avatar_url: null };
             }
             return { ...p, ...profile, name: profile?.username, avatar: profile?.avatar_url };

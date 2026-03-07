@@ -71,7 +71,7 @@ export default async function handler(req, res) {
       `)
       .eq('id', id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (venueError || !venue) {
       // Fallback: check social_pages by UUID (clubs, charities, home games)
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         .from('social_pages')
         .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (!spError && spById) {
         socialPage = spById;
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
           .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
           .eq('linked_venue_id', id)
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (!linkedError && spByLinked) {
           socialPage = spByLinked;
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('id, name, slug, description, avatar_url, cover_url, category, page_type, location_city, location_state, website, phone, follower_count, metadata, owner_id, linked_venue_id, created_at')
             .eq('slug', id)
-            .single();
+            .maybeSingle();
 
           if (!slugError && spBySlug) {
             socialPage = spBySlug;
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
           .select('id, commander_enabled, games_offered, stakes_cash, poker_tables, hours_weekday, hours_weekend, trust_score, is_featured, cover_photo_url, profile_photo_url, tagline, about, follower_count, social_links, slug, has_tournaments')
           .eq('id', linkedVenueId)
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
         if (lv) linkedVenue = lv;
       }
 
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
           .ilike('name', socialPage.name)
           .eq('is_active', true)
           .limit(1)
-          .single();
+          .maybeSingle();
         if (lv) {
           linkedVenue = lv;
           linkedVenueId = lv.id;
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
             .eq('owner_id', socialPage.owner_id)
             .ilike('name', socialPage.name)
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (!club) {
             const { data: fallbackClub } = await supabase
@@ -209,7 +209,7 @@ export default async function handler(req, res) {
               .select('id')
               .eq('owner_id', socialPage.owner_id)
               .limit(1)
-              .single();
+              .maybeSingle();
             club = fallbackClub;
           }
 

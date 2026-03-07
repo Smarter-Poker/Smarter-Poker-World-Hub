@@ -56,7 +56,7 @@ async function handleGet(req, res, id) {
                 )
             `)
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (error || !game) {
             return res.status(404).json({ success: false, error: 'Game not found' });
@@ -101,7 +101,7 @@ async function handlePost(req, res, id) {
             .from('live_games')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (gameError || !game) {
             return res.status(404).json({ success: false, error: 'Game not found' });
@@ -193,7 +193,7 @@ async function handleDelete(req, res, id) {
             .from('live_games')
             .select('reported_by')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (gameError || !game) {
             return res.status(404).json({ success: false, error: 'Game not found' });

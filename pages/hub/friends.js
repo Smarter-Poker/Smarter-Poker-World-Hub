@@ -444,129 +444,50 @@ export default function FriendsPage() {
         }
         setUser(authUser);
 
-        // Fetch current friends (accepted) - CHECK BOTH DIRECTIONS
-        // Friendships can be stored where user_id = me OR friend_id = me
-        const { data: friendshipsAsUser } = await supabase
-            .from('friendships')
-            .select('friend_id, friend:profiles!friendships_friend_id_fkey(*)')
-            .eq('user_id', authUser.id)
-            .eq('status', 'accepted')
-            .limit(100) // friends list
-
-        const { data: friendshipsAsFriend } = await supabase
-            .from('friendships')
-            .select('user_id, requester:profiles!friendships_user_id_fkey(*)')
-            .eq('friend_id', authUser.id)
-            .eq('status', 'accepted')
-            .limit(100) // friends list
-
-        let currentFriendIdsList = [];
-        const allFriends = [];
-
-        // Friends where I am the user_id (I sent the request)
-        if (friendshipsAsUser) {
-            friendshipsAsUser.forEach(f => {
-                if (f.friend) {
-                    allFriends.push(f.friend);
-                    currentFriendIdsList.push(f.friend_id);
+        try {
+            // Fetch ALL friends data through API (service role key, bypasses RLS)
+            const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+            const resp = await fetch('/api/friends?action=full', {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
                 }
             });
-        }
 
-        // Friends where I am the friend_id (they sent the request)
-        if (friendshipsAsFriend) {
-            friendshipsAsFriend.forEach(f => {
-                if (f.requester && !currentFriendIdsList.includes(f.user_id)) {
-                    allFriends.push(f.requester);
-                    currentFriendIdsList.push(f.user_id);
-                }
-            });
-        }
+            if (resp.ok) {
+                const result = await resp.json();
+                const d = result.data || {};
 
-        setFriends(allFriends);
-        setFriendIds(new Set(currentFriendIdsList));
-        setMyFriendIds(currentFriendIdsList);
+                // Friends
+                setFriends(d.friends || []);
+                setFriendIds(new Set(d.friendIds || []));
+                setMyFriendIds(d.friendIds || []);
 
-        // Fetch pending friend requests (where I am the receiver)
-        const { data: incomingRequests } = await supabase
-            .from('friendships')
-            .select('id, user_id, requester:profiles!friendships_user_id_fkey(*)')
-            .eq('friend_id', authUser.id)
-            .eq('status', 'pending')
-            .limit(100) // friends list
+                // Friend requests
+                setFriendRequests(d.friendRequests || []);
 
-        if (incomingRequests) {
-            setFriendRequests(incomingRequests);
-        }
+                // Pending outgoing
+                setPendingIds(new Set((d.pendingOutgoing || []).map(r => r.friend_id)));
 
-        // Fetch my pending outgoing requests
-        const { data: outgoingRequests } = await supabase
-            .from('friendships')
-            .select('friend_id')
-            .eq('user_id', authUser.id)
-            .eq('status', 'pending')
-            .limit(100) // friends list
+                // Following
+                setFollowing(d.following || []);
+                setFollowingIds(new Set(d.followingIds || []));
 
-        if (outgoingRequests) {
-            setPendingIds(new Set(outgoingRequests.map(r => r.friend_id)));
-        }
+                // Followers
+                setFollowers(d.followers || []);
+                setFollowerIds(new Set(d.followerIds || []));
 
-        // Fetch people I'm following
-        const { data: myFollowing } = await supabase
-            .from('follows')
-            .select('following_id, following:profiles!follows_following_id_fkey(*)')
-            .eq('follower_id', authUser.id);
-
-        if (myFollowing) {
-            setFollowing(myFollowing.map(f => f.following));
-            setFollowingIds(new Set(myFollowing.map(f => f.following_id)));
-        }
-
-        // Fetch my followers
-        const { data: myFollowers } = await supabase
-            .from('follows')
-            .select('follower_id, follower:profiles!follows_follower_id_fkey(*)')
-            .eq('following_id', authUser.id);
-
-        if (myFollowers) {
-            setFollowers(myFollowers.map(f => f.follower));
-            setFollowerIds(new Set(myFollowers.map(f => f.follower_id)));
-        }
-
-        // Fetch ALL users for discovery (show everyone)
-        const { data: allUsers } = await supabase
-            .from('profiles')
-            .select('*')
-            .neq('id', authUser.id)
-            .order('created_at', { ascending: false })
-            .limit(100);
-
-        if (allUsers && currentFriendIdsList.length > 0) {
-            // Calculate mutual friends for each suggestion
-            const usersWithMutual = await Promise.all(allUsers.map(async (u) => {
-                const { data: theirFriends } = await supabase
-                    .from('friendships')
-                    .select('user_id, friend_id')
-                    .eq('status', 'accepted')
-                    .or(`user_id.eq.${u.id},friend_id.eq.${u.id}`)
-                    .limit(50);
-                let mutualCount = 0;
-                if (theirFriends) {
-                    const theirFriendIds = theirFriends.map(f => f.user_id === u.id ? f.friend_id : f.user_id);
-                    mutualCount = currentFriendIdsList.filter(id => theirFriendIds.includes(id)).length;
-                }
-                return { ...u, mutualCount };
-            }));
-            // Sort by mutual friends (descending)
-            usersWithMutual.sort((a, b) => b.mutualCount - a.mutualCount);
-            setSuggestions(usersWithMutual);
-        } else if (allUsers) {
-            setSuggestions(allUsers.map(u => ({ ...u, mutualCount: 0 })));
+                // Suggestions
+                setSuggestions((d.suggestions || []).map(u => ({ ...u, mutualCount: 0 })));
+            } else {
+                console.error('[Friends] API returned', resp.status);
+            }
+        } catch (err) {
+            console.error('[Friends] fetchData error:', err);
         }
 
         // Keep discover as default - user came here to find friends
         setActiveTab('discover');
-
         setLoading(false);
     };
 

@@ -88,7 +88,7 @@ class LiveStreamService {
                 status: 'live',
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw new Error(`Failed to create stream: ${error.message}`);
 
@@ -120,7 +120,7 @@ class LiveStreamService {
                 .from('profiles')
                 .select('username')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             const username = broadcaster?.username || 'Someone you follow';
 
@@ -246,7 +246,7 @@ class LiveStreamService {
             .from('live_streams')
             .select('*, profiles!broadcaster_id(username, avatar_url)')
             .eq('id', streamId)
-            .single();
+            .maybeSingle();
 
         if (error || !stream) throw new Error('Stream not found');
         if (stream.status !== 'live') throw new Error('Stream has ended');
@@ -459,7 +459,7 @@ class LiveStreamService {
             .from('live_streams')
             .select('*, profiles!broadcaster_id(username, avatar_url)')
             .eq('id', streamId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         return data;

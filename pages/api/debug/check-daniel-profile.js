@@ -22,7 +22,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('*')
             .eq('id', DANIEL_ID)
-            .single();
+            .maybeSingle();
 
         return res.json({
             success: true,

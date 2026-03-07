@@ -131,7 +131,7 @@ export default function BankrollRulesCard({ userId }) {
             is_strict: false,
           })
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
         setRules(prev => ({ ...prev, [premadeRule.rule_type]: data }));
         toast.success(`${premadeRule.label} enabled`);
@@ -188,7 +188,7 @@ export default function BankrollRulesCard({ userId }) {
             is_strict: false,
           })
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
         setRules(prev => ({ ...prev, [premadeRule.rule_type]: data }));
       }
@@ -249,7 +249,7 @@ export default function BankrollRulesCard({ userId }) {
           unit: newUnit,
         })
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
       setCustomRules(prev => [...prev, data]);
       setNewLabel('');

@@ -83,7 +83,7 @@ async function sendPushNotification(userId, title, message) {
             .from('profiles')
             .select('onesignal_player_id')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (!profile?.onesignal_player_id) {
             return;

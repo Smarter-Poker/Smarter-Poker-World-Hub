@@ -42,7 +42,7 @@ export default function TriviaStats() {
                     .from('trivia_streaks')
                     .select('*')
                     .eq('user_id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 // Get all user scores for aggregation
                 const { data: scores } = await supabase

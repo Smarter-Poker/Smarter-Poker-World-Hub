@@ -62,7 +62,7 @@ export default function TokeTrackerLanding() {
     // Load preferences from Supabase
     useEffect(() => {
         if (!userId) return;
-        supabase.from('profiles').select('settings').eq('id', userId).single()
+        supabase.from('profiles').select('settings').eq('id', userId).maybeSingle()
             .then(({ data }) => {
                 if (data?.settings?.tokeTracker) {
                     setTokePrefs(prev => ({ ...prev, ...data.settings.tokeTracker }));
@@ -88,7 +88,7 @@ export default function TokeTrackerLanding() {
         if (!userId) return;
         try {
 
-            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
+            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).maybeSingle();
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;
             await supabase.from('profiles').update({ settings }).eq('id', userId);

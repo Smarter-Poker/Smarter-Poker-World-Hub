@@ -154,7 +154,7 @@ function HorsesDashboard({ user, onLogout }) {
             const { data: settingsData } = await supabase
                 .from('content_settings')
                 .select('*')
-                .single();
+                .maybeSingle();
 
             // Load stats
             const { data: statsData } = await supabase

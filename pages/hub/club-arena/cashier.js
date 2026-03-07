@@ -108,7 +108,7 @@ export default function Cashier() {
                     .from('profiles')
                     .select('diamonds')
                     .eq('id', authUser.id)
-                    .single();
+                    .maybeSingle();
                 setDiamondBalance(profile?.diamonds || 0);
 
                 // Get club data
@@ -117,7 +117,7 @@ export default function Cashier() {
                     .from('clubs')
                     .select('*')
                     .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                    .single();
+                    .maybeSingle();
                 if (clubData) setClub(clubData);
 
                 // Get user's club membership and chip balance
@@ -127,7 +127,7 @@ export default function Cashier() {
                         .select('*')
                         .eq('club_id', clubData.id)
                         .eq('user_id', authUser.id)
-                        .single();
+                        .maybeSingle();
                     if (memberData) {
                         setMembership(memberData);
                         setChipBalance(memberData.chip_balance || 0);
@@ -213,7 +213,11 @@ export default function Cashier() {
                     setChipBalance(payload.new.chip_balance || 0);
                 }
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Cashier] Member channel status: ${status}`);
+                }
+            });
 
         // Subscribe to cashout_requests changes (status updates from agent)
         const cashoutChannel = supabase
@@ -228,7 +232,11 @@ export default function Cashier() {
                     loadData(); // Full refresh on cashout status change
                 }
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Cashier] Cashout channel status: ${status}`);
+                }
+            });
 
         // Subscribe to chip_transactions (live transaction history)
         const txnChannel = supabase
@@ -243,7 +251,11 @@ export default function Cashier() {
                     loadData();
                 }
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Cashier] Txn channel status: ${status}`);
+                }
+            });
 
         return () => {
             supabase.removeChannel(memberChannel);

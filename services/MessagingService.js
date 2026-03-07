@@ -33,14 +33,20 @@ class MessagingService {
             .from('social_messaging_settings')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
-        if (error && error.code === 'PGRST116') {
+        if (error) {
+            console.error('Error fetching settings:', error);
             // No settings found, create default
             return this.createDefaultSettings(userId);
         }
 
-        return data || this.getDefaultSettings(userId);
+        if (!data) {
+            // No settings found, create default
+            return this.createDefaultSettings(userId);
+        }
+
+        return data;
     }
 
     /**
@@ -210,7 +216,7 @@ class MessagingService {
                     .from('profiles')
                     .select('id, username, avatar_url')
                     .eq('id', p.user_id)
-                    .single();
+                    .maybeSingle();
                 profile = directProfile || { id: p.user_id, username: 'Unknown User', avatar_url: null };
             }
 
@@ -336,7 +342,11 @@ class MessagingService {
                 )
             `)
             .eq('id', data)
-            .single();
+            .maybeSingle();
+
+        if (!message) {
+            throw new Error('Failed to fetch sent message');
+        }
 
         return {
             id: message.id,

@@ -26,7 +26,7 @@ export async function isSportsClipAlreadyPosted(videoId) {
             .from('posted_sports_clips')
             .select('id')
             .eq('video_id', videoId)
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
             console.error('Error checking sports clip:', error);

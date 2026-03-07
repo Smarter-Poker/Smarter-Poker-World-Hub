@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
       const isAdmin = adminCheck?.role === 'admin' || adminCheck?.role === 'superadmin';
       if (!isAdmin) {
         // Check if they own at least one club (owners may manually trigger for testing)
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
           .select('*')
           .eq('club_id', club.id)
           .eq('status', 'open')
-          .single();
+          .maybeSingle();
 
         if (!openPeriod) {
           // No open period — just open a new one later
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
             .from('unions')
             .select('id, settings, name')
             .eq('id', unionId)
-            .single();
+            .maybeSingle();
           unionRakeHold = union?.settings?.union_rake_hold || 0.10;
         }
 
@@ -282,7 +282,7 @@ export default async function handler(req, res) {
               .from('agents')
               .select('commission_rate, user_id')
               .eq('id', agent.parent_agent_id)
-              .single();
+              .maybeSingle();
 
             if (parentAgent) {
               subAgentDeduction = Math.round(
@@ -378,7 +378,7 @@ export default async function handler(req, res) {
               .select('chip_balance')
               .eq('club_id', club.id)
               .eq('user_id', agent.user_id)
-              .single();
+              .maybeSingle();
 
             if (agentMember) {
               // BUG #150 FIX: Debit club treasury FIRST, then credit agent.

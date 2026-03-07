@@ -180,7 +180,7 @@ export class BaseScraper {
                         updated_at: new Date().toISOString()
                     })
                     .select('id')
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
                 this.stats.venuesCreated++;

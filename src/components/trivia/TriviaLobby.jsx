@@ -202,7 +202,7 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
             if (!profile || (profile.diamonds || 0) < GAME_COST) return false;
             await supabase
                 .from('profiles')

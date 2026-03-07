@@ -134,9 +134,9 @@ export async function checkFeatureAccess(userId, featureKey) {
         .gt('expires_at', now)
         .order('expires_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-    if (universalError && universalError.code !== 'PGRST116') {
+    if (universalError) {
         console.warn('[FeatureGate] Universal pass check error:', universalError.message);
     }
 
@@ -159,10 +159,9 @@ export async function checkFeatureAccess(userId, featureKey) {
         .gt('expires_at', now)
         .order('expires_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-    if (accessError && accessError.code !== 'PGRST116') {
-        // PGRST116 = no rows found (expected when no active pass)
+    if (accessError) {
         console.warn('[FeatureGate] Access check error:', accessError.message);
     }
 
@@ -460,9 +459,9 @@ export async function checkDailyUnlockAll(userId) {
         .gt('expires_at', now)
         .order('expires_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
         console.warn('[DailyUnlockAll] Check error:', error.message);
     }
 

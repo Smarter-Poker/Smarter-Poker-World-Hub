@@ -112,10 +112,10 @@ export default async function handler(req, res) {
                     }
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
 
-            if (postError) {
-                result.postTest = `error: ${postError.message}`;
+            if (postError || !post) {
+                result.postTest = `error: ${postError?.message || 'No data returned'}`;
             } else {
                 result.postTest = { success: true, post_id: post.id };
             }

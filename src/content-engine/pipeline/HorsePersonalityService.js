@@ -140,7 +140,7 @@ class HorsePersonalityService {
             .from('content_authors')
             .select('personality')
             .eq('profile_id', horseId)
-            .single();
+            .maybeSingle();
 
         if (horse?.personality?.type) {
             this.cache.set(horseId, horse.personality);

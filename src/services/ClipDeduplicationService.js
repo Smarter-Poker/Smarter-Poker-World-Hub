@@ -26,7 +26,7 @@ export async function isClipAlreadyPosted(videoId) {
         .from('posted_clips')
         .select('id, posted_by, posted_at')
         .eq('video_id', videoId)
-        .single();
+        .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
         console.error('Error checking clip:', error);

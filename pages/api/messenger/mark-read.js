@@ -44,11 +44,16 @@ export default async function handler(req, res) {
             .eq('conversation_id', conversationId)
             .eq('user_id', userId)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[MARK-READ] Update error:', error);
             return res.status(500).json({ success: false, error: error.message });
+        }
+
+        if (!data) {
+            console.warn('[MARK-READ] No participant found to mark as read');
+            return res.status(404).json({ success: false, error: 'Participant not found' });
         }
 
         return res.json({ success: true, data });

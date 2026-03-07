@@ -43,7 +43,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('conversation_id', conversationId)
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         if (partError || !participant) {
             return res.status(403).json({ success: false, error: 'Not a participant in this conversation' });

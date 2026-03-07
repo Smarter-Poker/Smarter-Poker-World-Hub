@@ -52,7 +52,7 @@ async function testFullPipeline() {
                 .from('profiles')
                 .select('id, display_name')
                 .limit(1)
-                .single();
+                .maybeSingle();
 
             if (!testProfile) {
                 console.error('No profiles found in database');

@@ -216,7 +216,7 @@ class HorseMemoryService {
             .select('*')
             .eq('author_id', authorId)
             .eq('target_author_id', targetAuthorId)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             // Update existing

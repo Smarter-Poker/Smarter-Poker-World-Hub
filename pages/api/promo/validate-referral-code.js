@@ -29,7 +29,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, display_name, username, player_number')
             .eq('player_number', playerNumber)
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return res.status(404).json({ valid: false, error: 'No player found with that referral code' });

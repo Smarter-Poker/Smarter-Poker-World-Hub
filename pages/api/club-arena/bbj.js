@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         .from('bbj_pools')
         .select('id')
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
 
       // Get last 10 winners
       const { data: winners } = await supabaseAdmin

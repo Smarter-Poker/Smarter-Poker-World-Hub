@@ -215,7 +215,7 @@ async function postVideoClip(horse, recentlyUsedClips = new Set()) {
                 .from('horse_source_assignments')
                 .select('source_name, is_primary')
                 .eq('horse_id', horse.profile_id)
-                    .limit(100);
+                .limit(100);
 
             if (!assignError && assignments && assignments.length > 0) {
                 assignedSources = assignments.map(a => a.source_name);
@@ -445,10 +445,10 @@ BAD EXAMPLES:
                 }
             })
             .select('id')
-            .single();
+            .maybeSingle();
 
-        if (postError) {
-            console.error(`   Post creation failed: ${postError.message}`);
+        if (postError || !post) {
+            console.error(`   Post creation failed: ${postError?.message || 'No data returned'}`);
             return null;
         }
 

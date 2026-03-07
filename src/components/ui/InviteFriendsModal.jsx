@@ -49,7 +49,7 @@ export default function InviteFriendsModal({
             .from('profiles')
             .select('player_number')
             .eq('id', user.id)
-            .single()
+            .maybeSingle()
             .then(({ data }) => {
                 setPlayerNumber(data?.player_number || null);
                 setLoading(false);

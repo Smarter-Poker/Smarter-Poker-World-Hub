@@ -219,7 +219,7 @@ export async function hydrateHiddenCardIds(userId: string): Promise<void> {
             .from('profiles')
             .select('hub_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

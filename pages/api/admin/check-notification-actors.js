@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         .from('profiles')
         .select('id')
         .ilike('email', '%bekavac%')
-        .single();
+        .maybeSingle();
 
     // HARDENED: March 7 — removed hardcoded UUID and query param fallback (IDOR risk)
     const userId = danProfile?.id;

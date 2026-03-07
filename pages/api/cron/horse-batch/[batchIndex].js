@@ -520,13 +520,17 @@ export default async function handler(req, res) {
         await loadClipLibrary();
 
         // Get all active horses
-        const { data: horses } = await supabase
+        const { data: horses, error: horseError } = await supabase
             .from('content_authors')
             .select('*')
             .eq('is_active', true)
             .not('profile_id', 'is', null)
             .order('profile_id')
                 .limit(100);
+
+        if (horseError || !horses?.length) {
+            return res.status(200).json({ success: false, error: 'No horses found' });
+        }
 
         if (!horses?.length) {
             return res.status(200).json({ success: false, error: 'No horses found' });

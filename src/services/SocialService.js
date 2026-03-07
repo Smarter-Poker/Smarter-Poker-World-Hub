@@ -117,7 +117,7 @@ export class SocialService {
           )
         `)
                 .eq('id', postId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 
@@ -183,7 +183,7 @@ export class SocialService {
                         achievement_data: achievementData
                     })
                     .select('*')
-                    .single();
+                    .maybeSingle();
 
                 if (error) {
                     console.error('❌ Post insert error:', error);
@@ -254,7 +254,7 @@ export class SocialService {
                 })
                 .eq('id', postId)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 
@@ -306,7 +306,7 @@ export class SocialService {
                 .eq('post_id', postId)
                 .eq('user_id', userId)
                 .eq('interaction_type', interactionType)
-                .single();
+                .maybeSingle();
 
             if (existing) {
                 // Remove reaction
@@ -355,7 +355,7 @@ export class SocialService {
                 .select('interaction_type')
                 .eq('post_id', postId)
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
 
@@ -436,7 +436,7 @@ export class SocialService {
             current_level
           )
         `)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 
@@ -527,7 +527,7 @@ export class SocialService {
                 .eq('follower_id', followerId)
                 .eq('following_id', followingId)
                 .eq('status', 'active')
-                .single();
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
             return !!data;
@@ -574,7 +574,7 @@ export class SocialService {
                 .from('clubs')
                 .select('*')
                 .eq('id', clubId)
-                .single();
+                .maybeSingle();
             if (error) throw error;
             return data;
         } catch (error) {
@@ -593,7 +593,7 @@ export class SocialService {
                 .from('user_dna_profiles')
                 .select('*')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
             if (error) throw error;
             return data;
         } catch (error) {

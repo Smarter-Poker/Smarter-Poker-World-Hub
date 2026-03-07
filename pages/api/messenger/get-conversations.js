@@ -88,7 +88,7 @@ export default async function handler(req, res) {
                         .from('profiles')
                         .select('id, username, avatar_url')
                         .eq('id', otherParticipants[0].user_id)
-                        .single();
+                        .maybeSingle();
                     otherUser = profile;
                 }
 

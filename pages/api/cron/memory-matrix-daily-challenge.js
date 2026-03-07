@@ -83,7 +83,7 @@ export default async function handler(req, res) {
             .from('memory_daily_challenges')
             .select('id')
             .eq('challenge_date', challengeDate)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             return res.status(200).json({
@@ -137,11 +137,11 @@ export default async function handler(req, res) {
                 bonus_reward: bonusReward
             })
             .select()
-            .single();
+            .maybeSingle();
 
-        if (error) {
+        if (error || !challenge) {
             console.error('[DailyChallenge] Insert error:', error);
-            throw error;
+            throw error || new Error('No data returned from insert');
         }
 
         console.log('[DailyChallenge] Created:', {

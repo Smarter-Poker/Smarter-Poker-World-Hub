@@ -55,7 +55,7 @@ export default function TriviaAchievements() {
                     .from('trivia_streaks')
                     .select('*')
                     .eq('user_id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 const { data: scores } = await supabase
                     .from('trivia_scores')

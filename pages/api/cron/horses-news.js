@@ -478,10 +478,10 @@ async function postNewsArticle(horse, article, timeEnergy = null) {
             link_image: null // Could fetch article image later
         })
         .select()
-        .single();
+        .maybeSingle();
 
-    if (error) {
-        console.error(`   Post error: ${error.message}`);
+    if (error || !post) {
+        console.error(`   Post error: ${error?.message || 'No data returned'}`);
         return null;
     }
 

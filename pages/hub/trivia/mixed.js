@@ -103,7 +103,7 @@ export default function MixedModePage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', user.id)
-                .single();
+                .maybeSingle();
 
             if (profile) {
                 setUserDiamonds(profile.diamonds || 0);
@@ -301,7 +301,7 @@ export default function MixedModePage() {
                     .from('profiles')
                     .select('diamonds')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (profile) {
                     await supabase
@@ -321,7 +321,7 @@ export default function MixedModePage() {
                     .select('*')
                     .eq('user_id', userId)
                     .eq('category', category)
-                    .single();
+                    .maybeSingle();
 
                 if (existing) {
                     const newTotal = existing.total_answered + stats.answered;

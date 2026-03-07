@@ -34,7 +34,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, diamonds')
             .eq('id', TEST_USER_ID)
-            .single();
+            .maybeSingle();
 
         const latency = Date.now() - startTime;
 

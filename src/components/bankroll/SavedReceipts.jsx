@@ -64,7 +64,7 @@ export default function SavedReceipts({ userId }) {
                 .from('bankroll_ledger')
                 .select('media_urls')
                 .eq('id', receipt.entryId)
-                .single();
+                .maybeSingle();
 
             if (!entry) return;
 

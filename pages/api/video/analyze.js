@@ -144,7 +144,7 @@ export default async function handler(req, res) {
                 .from('video_analysis')
                 .select('*')
                 .eq('video_id', videoId)
-                .single();
+                .maybeSingle();
 
             if (cached) {
                 return res.status(200).json({

@@ -70,7 +70,7 @@ export default function HandHistories() {
                 .from('clubs')
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                .single();
+                .maybeSingle();
 
             if (clubByClubId) {
                 clubData = clubByClubId;
@@ -80,7 +80,7 @@ export default function HandHistories() {
                     .from('clubs')
                     .select('*')
                     .eq('id', clubIdParam)
-                    .single();
+                    .maybeSingle();
                 clubData = clubById;
             }
 
@@ -205,7 +205,11 @@ export default function HandHistories() {
                     setPage(0);
                     loadData(true);
                 })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[HandHistories] Realtime channel status: ${status}`);
+                }
+            });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
 

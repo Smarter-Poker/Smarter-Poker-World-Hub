@@ -44,7 +44,7 @@ export default async function handler(req, res) {
             `)
             .eq('id', conversationId)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (convError || !conversation) {
             return res.status(404).json({ error: 'Conversation not found' });

@@ -548,7 +548,7 @@ class GameController {
         .from('tables')
         .select('*')
         .eq('id', clubTableId)
-        .single();
+        .maybeSingle();
 
       if (error || !row) {
         return { success: false, error: error?.message || 'Table not found in club database' };

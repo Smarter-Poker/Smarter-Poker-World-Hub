@@ -84,7 +84,7 @@ export default function Players() {
                 .from('clubs')
                 .select('*')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
-                .single();
+                .maybeSingle();
 
             if (clubData) {
                 setClub(clubData);
@@ -126,7 +126,11 @@ export default function Players() {
                 filter: `club_id=eq.${clubIdParam}` }, () => loadData())
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' },
                 () => loadData())
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Players] Realtime channel status: ${status}`);
+                }
+            });
         return () => { supabase.removeChannel(ch); };
     }, [clubIdParam, loadData]);
 

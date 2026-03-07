@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, role')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (!profile) {
             return res.status(401).json({ success: false, error: 'Profile not found' });
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
             .from('social_posts')
             .select('id, author_id')
             .eq('id', postId)
-            .single();
+            .maybeSingle();
 
         if (!post) {
             return res.status(404).json({ success: false, error: 'Post not found' });

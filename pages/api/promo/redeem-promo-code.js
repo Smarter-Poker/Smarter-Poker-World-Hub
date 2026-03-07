@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('promo_code_id', promo.id)
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             return res.status(400).json({ success: false, error: 'You have already used this promo code' });
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
                 .from('profiles')
                 .select('phone_verified')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (!userProfile?.phone_verified) {
                 return res.status(403).json({

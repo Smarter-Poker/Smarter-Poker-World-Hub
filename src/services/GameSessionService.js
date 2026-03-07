@@ -43,7 +43,7 @@ class GameSessionService {
                     completed: completed
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 // Table doesn't exist - silently fail

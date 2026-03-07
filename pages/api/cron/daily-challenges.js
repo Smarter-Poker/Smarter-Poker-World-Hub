@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             .from('training_daily_challenges')
             .select('id')
             .eq('challenge_date', challengeDate)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             return res.status(200).json({

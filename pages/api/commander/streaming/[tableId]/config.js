@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         })
         .eq('table_id', tableId)
         .select()
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
       result = data;

@@ -170,10 +170,10 @@ async function saveToNewsArchive(article) {
             published_at: article.pubDate
         })
         .select()
-        .single();
+        .maybeSingle();
 
-    if (error) {
-        console.error(`   Archive error: ${error.message}`);
+    if (error || !newsRecord) {
+        console.error(`   Archive error: ${error?.message || 'No data returned'}`);
         return null;
     }
 
@@ -262,10 +262,10 @@ ${article.summary}
                     created_at: new Date().toISOString()
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
-            if (directError) {
-                throw directError;
+            if (directError || !directPost) {
+                throw directError || new Error('No data returned from insert');
             }
 
             return { post_id: directPost.id, method: 'direct', has_image: !!article.imageUrl };

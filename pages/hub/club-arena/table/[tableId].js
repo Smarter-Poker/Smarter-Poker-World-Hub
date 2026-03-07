@@ -106,7 +106,7 @@ export default function ClubArenaTable() {
         .from('tables')
         .select('*, clubs(name, avatar_url)')
         .eq('id', tableId)
-        .single();
+        .maybeSingle();
 
       if (fe || !td) {
         setError('Table not found');

@@ -2308,7 +2308,7 @@ function LivePokerTable({
           .select('chip_balance')
           .eq('club_id', tableState.clubId)
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
         setClubChipBalance(data?.chip_balance || 0);
       } catch (e) {
         console.warn('[LivePokerTable] Failed to fetch chip balance:', e);

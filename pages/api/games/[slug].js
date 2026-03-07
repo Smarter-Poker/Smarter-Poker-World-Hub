@@ -23,7 +23,7 @@ export default async function handler(req, res) {
             .from('game_registry')
             .select('*')
             .eq('slug', slug)
-            .single();
+            .maybeSingle();
 
         if (error || !game) {
             // Try by ID as fallback
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
                 .from('game_registry')
                 .select('*')
                 .eq('id', slug)
-                .single();
+                .maybeSingle();
 
             if (!gameById) {
                 return res.status(404).json({ error: 'Game not found', slug });

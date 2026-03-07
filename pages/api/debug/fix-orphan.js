@@ -31,7 +31,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('*')
             .eq('id', USER_ID)
-            .single();
+            .maybeSingle();
 
         if (existingProfile) {
             return res.json({

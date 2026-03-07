@@ -30,7 +30,7 @@ export default async function handler(req, res) {
             .select('*')
             .eq('conversation_id', CONVO_ID)
             .eq('user_id', DANIEL_ID)
-            .single();
+            .maybeSingle();
 
         // Run a raw SQL query to check what auth.uid() returns with RLS for this user
         // Test: select messages as if we were Daniel

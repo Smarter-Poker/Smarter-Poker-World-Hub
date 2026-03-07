@@ -67,7 +67,7 @@ export default function BankrollGoals({ userId, currentBankroll = 0, periodPL = 
                     end_date: endDate.toISOString().split('T')[0],
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (!error && data) {
                 setGoals([data, ...goals]);

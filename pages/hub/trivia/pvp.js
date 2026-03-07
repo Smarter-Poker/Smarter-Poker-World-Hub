@@ -130,7 +130,7 @@ export default function PvPPage() {
             .from('profiles')
             .select('diamonds, username')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profile) {
             setUserDiamonds(profile.diamonds || 0);
@@ -142,7 +142,7 @@ export default function PvPPage() {
             .from('trivia_pvp_stats')
             .select('*')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (pvpStats) {
             setStats({
@@ -164,7 +164,7 @@ export default function PvPPage() {
             .from('trivia_pvp_stats')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         const prev = current || { wins: 0, losses: 0, ties: 0, win_streak: 0, best_streak: 0, total_diamonds_won: 0, total_diamonds_lost: 0 };
 
@@ -399,7 +399,7 @@ export default function PvPPage() {
             .from('profiles')
             .select('diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (profile) {
             const refunded = (profile.diamonds || 0) + stakeAmount;
@@ -428,7 +428,7 @@ export default function PvPPage() {
             .from('profiles')
             .select('diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (profile) {
             const refundedBalance = (profile.diamonds || 0) + stakeAmount;
@@ -533,7 +533,7 @@ export default function PvPPage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (profile) {
                 await supabase
@@ -548,7 +548,7 @@ export default function PvPPage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
 
             if (profile) {
                 await supabase
@@ -621,7 +621,7 @@ export default function PvPPage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds);
         }
 

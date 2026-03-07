@@ -205,7 +205,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
       .from('clubs')
       .select('total_rake, hands_played')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
 
     if (club) {
       const oldRake = club.total_rake || 0;
@@ -222,7 +222,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
 
       // Retry once on conflict (concurrent hand)
       if (!upd?.length) {
-        const { data: fresh } = await sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).single();
+        const { data: fresh } = await sb.from('clubs').select('total_rake, hands_played').eq('id', clubId).maybeSingle();
         if (fresh) {
           const freshRake = fresh.total_rake || 0;
           await sb.from('clubs').update({
@@ -260,7 +260,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
             .select('id, weekly_rake_generated')
             .eq('user_id', agentUserId)
             .eq('club_id', clubId)
-            .single();
+            .maybeSingle();
 
           if (agent) {
             const oldWeekly = agent.weekly_rake_generated || 0;
@@ -276,7 +276,7 @@ async function recordRake({ clubId, tableId, handId, potSize, rakeAmount, numPla
 
             // Retry once on conflict
             if (!rUpd?.length) {
-              const { data: freshA } = await sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).single();
+              const { data: freshA } = await sb.from('agents').select('weekly_rake_generated').eq('id', agent.id).maybeSingle();
               if (freshA) {
                 const freshWeekly = freshA.weekly_rake_generated || 0;
                 await sb.from('agents').update({

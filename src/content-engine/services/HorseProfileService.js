@@ -206,7 +206,7 @@ async function executeFollow(horseProfileId, targetUserId) {
             .select('id')
             .eq('follower_id', horseProfileId)
             .eq('following_id', targetUserId)
-            .single();
+            .maybeSingle();
 
         if (existing) return false;
 

@@ -136,7 +136,7 @@ export async function getUserELO(userId) {
             .from('profiles')
             .select('memory_elo')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return DEFAULT_ELO;

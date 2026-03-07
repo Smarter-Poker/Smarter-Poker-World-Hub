@@ -413,7 +413,7 @@ export class MediaUploadService {
             .from('social_media')
             .select('bucket_name, file_path')
             .eq('id', mediaId)
-            .single();
+            .maybeSingle();
 
         if (fetchError || !media) {
             throw new Error('Media not found');
@@ -453,7 +453,7 @@ export class MediaUploadService {
             .from('user_dna_profiles')
             .select('storage_used_bytes, storage_limit_bytes')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return { used: 0, limit: 1073741824, percentage: 0 };

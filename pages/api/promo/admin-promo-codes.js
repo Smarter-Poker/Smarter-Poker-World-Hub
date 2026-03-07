@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         .in('role', ['owner', 'manager'])
         .eq('is_active', true)
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (staff) {
         isAuthorized = true;
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('role')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profile && ['admin', 'superadmin'].includes(profile.role)) {
             isAuthorized = true;

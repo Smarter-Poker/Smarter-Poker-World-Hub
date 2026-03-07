@@ -30,7 +30,7 @@ export default async function handler(req, res) {
             .from('newsletter_subscribers')
             .select('id, is_active')
             .eq('email', email.toLowerCase())
-            .single();
+            .maybeSingle();
 
         if (existing) {
             if (!existing.is_active) {

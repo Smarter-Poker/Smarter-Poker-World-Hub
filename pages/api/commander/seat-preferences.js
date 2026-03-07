@@ -76,7 +76,11 @@ async function savePreferences(req, res) {
       .from('commander_seat_preferences')
       .upsert(data, { onConflict: 'player_id,venue_id' })
       .select()
-      .single();
+      .maybeSingle();
+
+    if (!pref) {
+      throw new Error('Failed to upsert preferences');
+    }
 
     if (error) throw error;
 

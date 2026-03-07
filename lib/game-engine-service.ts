@@ -111,7 +111,7 @@ export async function getLevel(levelId: number): Promise<TrainingLevel | null> {
         .from('training_levels')
         .select('*')
         .eq('level_id', levelId)
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error(`Error fetching level ${levelId}:`, error);
@@ -160,9 +160,9 @@ export async function getLevelProgress(
         .select('*')
         .eq('user_id', userId)
         .eq('level_id', levelId)
-        .single();
+        .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
         console.error('Error fetching level progress:', error);
         return null;
     }

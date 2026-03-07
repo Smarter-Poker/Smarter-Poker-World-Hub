@@ -103,7 +103,7 @@ export default function ArticlePage() {
                 query = query.eq('slug', slug);
             }
 
-            const { data, error } = await query.single();
+            const { data, error } = await query.maybeSingle();
 
             if (!error && data) {
                 setArticle(data);

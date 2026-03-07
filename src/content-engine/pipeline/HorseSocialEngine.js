@@ -287,7 +287,7 @@ async function sendFriendRequests(maxRequests = 10) {
             .from('friendships')
             .select('id')
             .or(`and(user_id.eq.${horse.profile_id},friend_id.eq.${target.profile_id}),and(user_id.eq.${target.profile_id},friend_id.eq.${horse.profile_id})`)
-            .single();
+            .maybeSingle();
 
         if (existing) continue; // Already have relationship
 
@@ -576,7 +576,7 @@ async function likePosts(maxLikes = 30, includeRealUsers = true) {
                 .select('id')
                 .eq('post_id', post.id)
                 .eq('user_id', horse.profile_id)
-                .single();
+                .maybeSingle();
 
             if (existing) continue;
 
@@ -685,7 +685,7 @@ async function replyToComments(maxReplies = 15) {
             .select('id')
             .eq('parent_id', comment.id)
             .eq('author_id', horse.profile_id)
-            .single();
+            .maybeSingle();
 
         if (existingReply) continue;
 

@@ -47,7 +47,7 @@ export default async function handler(req, res) {
             .eq('id', staff_id)
             .eq('venue_id', venue_id)
             .eq('linked_user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (!staff) {
             return res.status(403).json({ success: false, error: 'Access denied — not your staff record' });

@@ -68,7 +68,7 @@ export async function requireStaff(req, res, venueId, allowedRoles = null) {
     .eq('venue_id', venueId)
     .eq('user_id', user.id)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   if (error || !staff) {
     res.status(403).json({
@@ -178,7 +178,7 @@ export async function verifyPin(venueId, pinCode) {
     .eq('venue_id', venueId)
     .eq('pin_code', pinCode)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
 
   if (error || !staff) {
     return null;
@@ -216,7 +216,7 @@ export async function verifyStaffSession(req) {
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (staffError || !staff) {
       return { error: { status: 401, code: 'INVALID_STAFF', message: 'Staff Member Not Found Or Inactive' } };

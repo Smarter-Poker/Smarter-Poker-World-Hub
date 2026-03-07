@@ -492,7 +492,7 @@ export default function SettingsPage() {
                 supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
                 session ? fetch(`/api/store/diamond-transactions?limit=10`, { headers }).then(r => r.json()) : Promise.resolve({ transactions: [] }),
                 supabase.from('vip_subscriptions').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-                supabase.from('profiles').select('diamonds').eq('id', user.id).single(),
+                supabase.from('profiles').select('diamonds').eq('id', user.id).maybeSingle(),
             ]);
 
             if (ordersRes.status === 'fulfilled' && ordersRes.value.data) {

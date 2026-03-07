@@ -39,7 +39,7 @@ class PipelineCommander {
         const { data: settings } = await supabase
             .from('content_settings')
             .select('*')
-            .single();
+            .maybeSingle();
 
         this.settings = settings || this.getDefaultSettings();
 

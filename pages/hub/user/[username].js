@@ -484,7 +484,7 @@ export default function UserProfilePage() {
                     .from('profiles')
                     .select('*')
                     .eq('username', username)
-                    .single();
+                    .maybeSingle();
                 // HendonMob URLs will open in ArticleReaderModal with proxy support
 
                 if (error || !data) {

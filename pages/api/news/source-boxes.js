@@ -46,7 +46,7 @@ export default async function handler(req, res) {
                 .eq('is_published', true)
                 .order('published_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
 
             // Fallback: try by source_name if source_box didn't match
             if (!article) {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
                     .eq('is_published', true)
                     .order('published_at', { ascending: false })
                     .limit(1)
-                    .single();
+                    .maybeSingle();
                 article = byName;
             }
 
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
                         .eq('is_published', true)
                         .order('published_at', { ascending: false })
                         .limit(1)
-                        .single();
+                        .maybeSingle();
 
                     if (crossSource && new Date(crossSource.published_at) > new Date(article.published_at)) {
                         article = crossSource;

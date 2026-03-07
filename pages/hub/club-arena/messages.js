@@ -373,7 +373,7 @@ export default function ClubMessages() {
                 const authUser = await getSafeUser(supabase);
 
                 if (authUser) {
-                    const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).single();
+                    const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).maybeSingle();
                     const fullUser = { ...authUser, ...profile };
                     setUser(fullUser);
                     persistSession(fullUser);
@@ -396,7 +396,7 @@ export default function ClubMessages() {
                 return;
             }
 
-            const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).single();
+            const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).maybeSingle();
             setUser({ ...authUser, ...profile });
         });
 
@@ -472,7 +472,7 @@ export default function ClubMessages() {
     async function loadClubData(userId) {
         try {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
-            const { data: clubData } = await supabase.from('clubs').select('*').eq(isUUID ? 'id' : 'club_id', clubIdParam).single();
+            const { data: clubData } = await supabase.from('clubs').select('*').eq(isUUID ? 'id' : 'club_id', clubIdParam).maybeSingle();
             if (clubData) {
                 setClub(clubData);
 
