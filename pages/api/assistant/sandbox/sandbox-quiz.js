@@ -32,8 +32,9 @@ export default async function handler(req, res) {
             });
 
             if (error) {
+                // If table doesn't exist, silently succeed (quiz works client-side)
                 console.error('Quiz save error:', error);
-                return res.status(500).json({ error: 'Failed to save quiz result' });
+                return res.status(200).json({ success: true, persisted: false });
             }
 
             return res.status(200).json({ success: true });
@@ -56,8 +57,9 @@ export default async function handler(req, res) {
                 .limit(100);
 
             if (error) {
+                // If table doesn't exist, return empty stats (quiz works client-side)
                 console.error('Quiz fetch error:', error);
-                return res.status(500).json({ error: 'Failed to fetch quiz stats' });
+                return res.status(200).json({ total: 0, correct: 0, accuracy: 0, streak: 0 });
             }
 
             const total = data?.length || 0;

@@ -1116,6 +1116,34 @@ export default function TrainingPage() {
                                 <span style={gamificationNavStyles.icon}>🧠</span>
                                 <span style={gamificationNavStyles.label}>Coach</span>
                             </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/play-mode')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🎮</span>
+                                <span style={gamificationNavStyles.label}>Play</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/solutions')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🔍</span>
+                                <span style={gamificationNavStyles.label}>Solutions</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/analyzer')}
+                            >
+                                <span style={gamificationNavStyles.icon}>📋</span>
+                                <span style={gamificationNavStyles.label}>Analyzer</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/reports')}
+                            >
+                                <span style={gamificationNavStyles.icon}>📊</span>
+                                <span style={gamificationNavStyles.label}>Reports</span>
+                            </div>
                         </div>
 
                         {/* 🎁 Daily Bonus Widget */}
