@@ -48,7 +48,10 @@ export default async function handler(req, res) {
       if (status !== 'all') query = query.eq('status', status);
 
       const { data, error } = await query;
-      if (error) return res.status(200).json({ success: true, data: [] });
+      if (error) {
+        console.error('[Incidents] Query error:', error.message);
+        return res.status(500).json({ success: false, error: 'Failed to fetch incidents' });
+      }
       return res.status(200).json({ success: true, data: data || [] });
     }
 

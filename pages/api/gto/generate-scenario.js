@@ -10,6 +10,7 @@
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { createClient as _createAuthClient } from '../../../src/lib/supabaseServerClient';
 
 // Position configurations by difficulty
 const POSITION_CONFIGS = {
@@ -73,7 +74,6 @@ export default async function handler(req, res) {
   }
 
   // BUG #244 FIX: Require JWT auth — these routes use paid AI APIs
-  const { createClient: _createAuthClient } = await import('@supabase/supabase-js');
   const _authSupa = _createAuthClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const _token = req.headers.authorization?.replace('Bearer ', '');
   if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });

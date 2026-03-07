@@ -8,6 +8,8 @@
  * Response:  { success, messageId?, error? }
  */
 
+import { createClient } from '../../../src/lib/supabaseServerClient';
+
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
@@ -27,7 +29,6 @@ export default async function handler(req, res) {
     }
 
     // BUG #241 FIX: Require JWT auth and verify caller is the target user
-    const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL,
         process.env.SUPABASE_SERVICE_ROLE_KEY

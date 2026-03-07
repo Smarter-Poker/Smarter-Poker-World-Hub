@@ -1,11 +1,12 @@
 /**
  * LiveKit Token Generation API
- * 
+ *
  * Generates access tokens for users to join LiveKit video rooms.
  * Used for seamless 1:1 video calling in the Messenger.
  */
 import { AccessToken } from 'livekit-server-sdk';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 export default async function handler(req, res) {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -17,7 +18,6 @@ export default async function handler(req, res) {
     }
 
     // BUG #247 FIX: Require JWT auth — token generation must be authenticated
-    const { createClient } = await import('@supabase/supabase-js');
     const _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const _token = req.headers.authorization?.replace('Bearer ', '');
     if (!_token) return res.status(401).json({ error: 'Auth required' });

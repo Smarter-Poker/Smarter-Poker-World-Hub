@@ -4,7 +4,6 @@
  * Reference: API_REFERENCE.md - Waitlist section
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
-import { createPagesServerClient } from '@supabase/auth-helpers-nextjs';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,9 +19,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get authenticated user
-    const supabaseServerClient = createPagesServerClient({ req, res });
-    const { data: { user } } = await supabaseServerClient.auth.getUser();
+    // Get authenticated user via JWT (consistent with all other routes)
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Authentication required' }
+      });
+    }
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Invalid token' }
+      });
+    }
 
     if (!user) {
       return res.status(401).json({

@@ -1,10 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    ONESIGNAL — LINK USER ID API
    POST /api/notifications/link-user
-   
+
    Links a Supabase user ID to their OneSignal player ID via REST API
    (Fallback because OneSignal.login() JavaScript SDK isn't working)
    ═══════════════════════════════════════════════════════════════════════════ */
+
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
@@ -26,7 +28,6 @@ export default async function handler(req, res) {
         }
 
         // BUG #242 FIX: Require JWT auth and verify caller is linking their OWN user ID
-        const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.SUPABASE_SERVICE_ROLE_KEY

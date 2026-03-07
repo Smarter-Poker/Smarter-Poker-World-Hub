@@ -351,10 +351,19 @@ export default function DiamondArcade() {
         setDuelSearching(duelType);
         setDuelResult(null);
         try {
+            // Get auth token for secure server-side verification
+            let authHeaders = { 'Content-Type': 'application/json' };
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.access_token) {
+                    authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+                }
+            } catch (_) { }
+
             const res = await fetch('/api/arcade/find-duel', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, duel_type: duelType, entry_fee: costs[duelType] })
+                headers: authHeaders,
+                body: JSON.stringify({ duel_type: duelType, entry_fee: costs[duelType] })
             });
             const json = await res.json();
             if (json.error) {

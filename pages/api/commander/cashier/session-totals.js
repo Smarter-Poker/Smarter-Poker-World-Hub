@@ -34,10 +34,8 @@ export default async function handler(req, res) {
             .limit(100);
 
       const transactions = txns || [];
-      const buyIns = transactions.filter(t => t.type === 'buy_in' || t.type === 'add_on')
-          .limit(100);
-      const cashOuts = transactions.filter(t => t.type === 'cash_out')
-          .limit(100);
+      const buyIns = transactions.filter(t => t.type === 'buy_in' || t.type === 'add_on');
+      const cashOuts = transactions.filter(t => t.type === 'cash_out');
 
       return res.status(200).json({
         success: true,
@@ -80,8 +78,7 @@ export default async function handler(req, res) {
 
       const result = sessions.map(s => {
         const txns = txnMap[s.id] || [];
-        const bought = txns.filter(t => t.type === 'buy_in' || t.type === 'add_on').reduce((sum, t) => sum + parseFloat(t.amount), 0)
-            .limit(100);
+        const bought = txns.filter(t => t.type === 'buy_in' || t.type === 'add_on').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         const cashed = txns.filter(t => t.type === 'cash_out').reduce((sum, t) => sum + parseFloat(t.amount), 0);
         return {
           session_id: s.id,

@@ -4,6 +4,7 @@
  */
 
 import { HorseAlertingService, ClipUsageTracker } from '../../../src/content-engine/pipeline/HorseAlertingService.js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -13,7 +14,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
     // BUG #250 FIX: Require admin auth for analytics dashboard
-    const { createClient } = await import('@supabase/supabase-js');
     const _authSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
     const _token = req.headers.authorization?.replace('Bearer ', '');
     if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
