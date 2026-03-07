@@ -7,16 +7,16 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-// TODO: useSupabase and useSocialOrb providers don't exist
-// import { useSupabase } from '../../providers/SupabaseProvider';
-// import { useSocialOrb } from '../../providers/SocialOrbProvider';
 import { supabase } from '../../lib/supabase';
 import { SocialCard } from './SocialCard';
-// TODO: SocialService and types modules don't exist - needs creation
-// import { SocialService } from '../SocialService';
-// import { FEED_FILTERS, initialFeedState } from '../types';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { claimReward } from '../../lib/claimReward';
+
+// TODO: Module dependencies missing:
+// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
+// - useSocialOrb: import { useSocialOrb } from '../../providers/SocialOrbProvider'
+// - SocialService: import { SocialService } from '../SocialService'
+// - FEED_FILTERS, initialFeedState: import { FEED_FILTERS, initialFeedState } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📜 SPATIAL FEED COMPONENT

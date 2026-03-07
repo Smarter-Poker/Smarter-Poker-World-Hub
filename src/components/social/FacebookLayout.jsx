@@ -8,9 +8,10 @@ import React, { useState, useEffect } from 'react';
 import { FB_COLORS, FBAvatar } from './FacebookStyleCard';
 import { NotificationBell, NotificationsDropdown } from './FacebookNotifications';
 import { ChatDock, ChatWindow, ConversationList } from './FacebookMessenger';
-// TODO: useSupabase provider doesn't exist - using direct supabase client instead
-// import { useSupabase } from '../../providers/SupabaseProvider';
 import { supabase } from '../../lib/supabase';
+
+// TODO: useSupabase provider doesn't exist - using direct supabase client instead
+// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR

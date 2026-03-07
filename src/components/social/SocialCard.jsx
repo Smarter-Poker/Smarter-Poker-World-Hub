@@ -7,9 +7,10 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-// TODO: types module doesn't exist - needs creation
-// import { INTERACTION_TYPES } from '../types';
 import { getAuthorDisplayName } from '../../utils/displayName';
+
+// TODO: types module doesn't exist - needs creation
+// - INTERACTION_TYPES: import { INTERACTION_TYPES } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎴 SOCIAL CARD COMPONENT

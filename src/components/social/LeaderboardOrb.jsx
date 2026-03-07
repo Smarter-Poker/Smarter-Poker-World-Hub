@@ -7,9 +7,10 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-// TODO: useSupabase provider doesn't exist - using direct supabase client instead
-// import { useSupabase } from '../../providers/SupabaseProvider';
 import { supabase } from '../../lib/supabase';
+
+// TODO: useSupabase provider doesn't exist - using direct supabase client instead
+// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 TIER CONFIGURATION
