@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Trophy, DollarSign, Users, Calendar, Loader2,
@@ -42,12 +42,48 @@ export default function MyTournaments() {
     }, []);
 
     // SWR-backed tournament fetch — only fires once token is available
-    const { data: swrData, isLoading: swrLoading } = useSWR(
+    const { data: swrData, isLoading: swrLoading, mutate } = useSWR(
         sessionToken ? ['/api/commander/tournaments/my?limit=50', sessionToken] : null,
         ([url, token]) => fetch(url, { headers: { Authorization: `Bearer ${token}` } })
             .then(r => r.json())
             .then(json => json.success && json.data?.registrations ? json.data.registrations : [])
     );
+
+    // Realtime: revalidate SWR when my tournament registrations change status
+    useEffect(() => {
+        const authUser = getAuthUser();
+        if (!authUser?.id) return;
+
+        // Subscribe to tournament_registrations changes for this user
+        const regChannel = supabase
+            .channel(`my-tournaments:${authUser.id}`)
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'tournament_registrations',
+                filter: `user_id=eq.${authUser.id}`,
+            }, () => { mutate(); })
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn('[MyTournaments] Realtime channel status:', status);
+                }
+            });
+
+        // Also listen for tournament status changes (cancellations, completions)
+        const tournChannel = supabase
+            .channel(`my-tournaments-status:${authUser.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'club_tournaments',
+            }, (payload) => {
+                // Only revalidate if this tournament is in our list
+                const knownIds = (swrData || []).map(r => r.tournament_id);
+                if (knownIds.includes(payload.new?.id)) mutate();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(regChannel);
+            supabase.removeChannel(tournChannel);
+        };
+    }, [sessionToken, mutate]);
 
     const loading = !authChecked || swrLoading;
     const tournaments = swrData || [];
