@@ -126,10 +126,10 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             throw error;
         }
 
-        // Award video watch diamonds when crossing 5-min threshold (3💎, once per video)
+        // Award video watch diamonds when crossing 5-min threshold (3 diamonds, once per video)
         if (newDuration >= 300 && !rewardedVideoIds.has(videoId) && userId) {
             rewardedVideoIds.add(videoId);
-            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)');
+            claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)').catch(console.error);
         }
 
         return data || null;

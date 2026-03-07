@@ -549,11 +549,16 @@ export default async function handler(req, res) {
         }
 
         // Refund all registered players
-        const { data: registrations } = await supabaseAdmin
+        const { data: registrations, error: regErr } = await supabaseAdmin
           .from('tournament_registrations')
           .select('*')
           .eq('tournament_id', tournamentId)
-          .eq('status', 'registered')
+          .eq('status', 'registered');
+
+        if (regErr) {
+          console.error('[Tournament] Failed to fetch registrations for refund:', regErr);
+          return res.status(500).json({ success: false, error: 'Failed to fetch registrations for refund' });
+        }
 
         for (const reg of (registrations || [])) {
           // Refund by releasing the chip lock (registration used lock_chips_for_table)

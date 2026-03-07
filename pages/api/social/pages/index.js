@@ -241,6 +241,8 @@ export default async function handler(req, res) {
 
         if (error) return res.status(500).json({ success: false, error: error.message });
 
+        if (!data) return res.status(500).json({ success: false, error: 'Failed to create page' });
+
         // Auto-follow as owner
         // MEDIUM FIX: Add error check after auto-follow insert
         const { error: followErr } = await supabase.from('social_page_followers').insert({

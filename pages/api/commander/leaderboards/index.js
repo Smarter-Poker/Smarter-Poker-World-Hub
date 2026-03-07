@@ -62,7 +62,7 @@ async function listLeaderboards(req, res) {
 
     if (error) throw error;
 
-    return res.status(200).json({ leaderboards: data });
+    return res.status(200).json({ leaderboards: data || [] });
   } catch (error) {
     console.error('List leaderboards error:', error);
     return res.status(500).json({ error: error.message });

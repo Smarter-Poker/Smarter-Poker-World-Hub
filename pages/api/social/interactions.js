@@ -140,15 +140,19 @@ export default async function handler(req, res) {
             if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
             // Update comment count on post
-            await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(async () => {
+            await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(async (err) => {
                 // If RPC doesn't exist, try direct update
-                try {
-                    const { data: p } = await supabase.from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
-                    if (p) {
-                        await supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
+                if (err.code === '42883') {
+                    try {
+                        const { data: p } = await supabase.from('social_posts').select('comment_count').eq('id', post_id).maybeSingle();
+                        if (p) {
+                            await supabase.from('social_posts').update({ comment_count: (p.comment_count || 0) + 1 }).eq('id', post_id);
+                        }
+                    } catch (fallbackErr) {
+                        console.warn('[Interactions] Fallback comment count update failed:', fallbackErr.message);
                     }
-                } catch (fallbackErr) {
-                    console.warn('[Interactions] Fallback comment count update failed:', fallbackErr.message);
+                } else {
+                    console.warn('[Interactions] Comment count increment RPC failed:', err.message);
                 }
             });
 
