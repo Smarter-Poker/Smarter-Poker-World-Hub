@@ -43,6 +43,16 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   compress: true, // Enable gzip compression for all responses
 
+  // ─── Build Memory Optimization ──────────────────────────────────────────────
+  // With 950+ pages, the build needs memory-efficient compilation.
+  // workerThreads offloads page compilation to separate workers (lower per-worker memory).
+  // cpus limits parallel compilation to prevent 8-core machines from OOMing.
+  experimental: {
+    workerThreads: true,
+    cpus: 4,
+  },
+  swcMinify: true, // SWC minifier uses less memory than Terser
+
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
   // Build timestamp: 2026-01-24T10:00:00Z
   generateBuildId: async () => {
