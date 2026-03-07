@@ -57,23 +57,29 @@ export default function AvatarGallery({ onSelect }) {
 
   async function loadAvatars() {
     try {
-      // VIP users: show ALL avatars (VIP + FREE = 75 total)
-      // FREE users: show ONLY FREE avatars (25 total)
-      const tierFilter = isVip ? 'all' : 'free';
-      const data = await getAvailableAvatars(user?.id || null, tierFilter);
+      // Load ALL avatars regardless of tier (to show VIP upsells)
+      const data = await getAvailableAvatars(user?.id || null, 'all');
 
-      // All avatars are unlocked for their respective tiers
-      setAvatars(data.map(a => ({ ...a, isLocked: false })));
+      // Determine lock status: if it's not a free avatar and user is not VIP, it's locked
+      setAvatars(data.map(a => ({
+        ...a,
+        isLocked: !isVip && a.category !== 'free' && a.tier !== 'free' && !a.is_free
+      })));
     } catch (error) {
       console.error('Error loading avatars:', error);
       setAvatars([]);
     }
   }
 
-  async function handleSelectPresetAvatar(avatarId) {
-    const result = await selectPresetAvatar(avatarId);
+  async function handleSelectPresetAvatar(avatar) {
+    if (avatar.isLocked) {
+      toast.warning('Upgrade to VIP to unlock this premium avatar!');
+      return;
+    }
+
+    const result = await selectPresetAvatar(avatar.id);
     if (result.success) {
-      if (onSelect) onSelect(avatarId);
+      if (onSelect) onSelect(avatar.id);
       await loadAvatars(); // Refresh to show selection
     } else {
       toast.error(result.error);
@@ -519,7 +525,8 @@ export default function AvatarGallery({ onSelect }) {
                     <div
                       key={av.id}
                       className={`avatar-card ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleSelectPresetAvatar(av.id)}
+                      onClick={() => handleSelectPresetAvatar(av)}
+                      style={{ cursor: av.isLocked ? 'not-allowed' : 'pointer' }}
                     >
                       <img
                         src={av.image}
@@ -532,32 +539,70 @@ export default function AvatarGallery({ onSelect }) {
                       </div>
 
                       {/* EQUIP OVERLAY */}
-                      <div style={{
-                        position: 'absolute',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        background: 'rgba(0,0,0,0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'opacity 0.2s ease',
-                      }}
-                        className="equip-overlay">
+                      {!av.isLocked && (
                         <div style={{
-                          padding: '8px 20px',
-                          background: isSelected ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 245, 255, 0.2)',
-                          border: `2px solid ${isSelected ? '#00ff00' : '#00f5ff'}`,
-                          borderRadius: '20px',
-                          color: isSelected ? '#00ff00' : '#00f5ff',
-                          fontFamily: "'Rajdhani', sans-serif",
-                          fontWeight: 'bold',
-                          fontSize: '14px',
-                          textTransform: 'uppercase',
-                          boxShadow: `0 0 15px ${isSelected ? 'rgba(0,255,0,0.4)' : 'rgba(0,245,255,0.4)'}`,
-                          transform: 'translateY(-10px)'
-                        }}>
-                          {isSelected ? '✓ Current' : 'Equip'}
+                          position: 'absolute',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          background: 'rgba(0,0,0,0.5)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'opacity 0.2s ease',
+                          opacity: isSelected ? 1 : 0
+                        }}
+                          className={`${isSelected ? '' : 'equip-overlay'}`}>
+                          <div style={{
+                            padding: '8px 20px',
+                            background: isSelected ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 245, 255, 0.2)',
+                            border: `2px solid ${isSelected ? '#00ff00' : '#00f5ff'}`,
+                            borderRadius: '20px',
+                            color: isSelected ? '#00ff00' : '#00f5ff',
+                            fontFamily: "'Rajdhani', sans-serif",
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            textTransform: 'uppercase',
+                            boxShadow: `0 0 15px ${isSelected ? 'rgba(0,255,0,0.4)' : 'rgba(0,245,255,0.4)'}`,
+                            transform: 'translateY(-10px)'
+                          }}>
+                            {isSelected ? '✓ Current' : 'Equip'}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* VIP LOCK OVERLAY */}
+                      {av.isLocked && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          background: 'rgba(0,0,0,0.6)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 5
+                        }}>
+                          <div style={{
+                            padding: '10px 15px',
+                            background: 'rgba(255, 215, 0, 0.1)',
+                            border: '1px solid #FFD700',
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(4px)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '5px'
+                          }}>
+                            <span style={{ fontSize: '24px' }}>🔒</span>
+                            <span style={{
+                              color: '#FFD700',
+                              fontFamily: "'Rajdhani', sans-serif",
+                              fontWeight: 'bold',
+                              fontSize: '12px',
+                              textTransform: 'uppercase',
+                              textShadow: '0 0 5px rgba(255, 215, 0, 0.5)'
+                            }}>VIP ONLY</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

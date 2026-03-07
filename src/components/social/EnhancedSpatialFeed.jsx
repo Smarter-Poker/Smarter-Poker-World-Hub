@@ -45,10 +45,11 @@ export const EnhancedSpatialFeed = ({
     onAuthorClick,
     onStartTraining
 }) => {
-    const { user, supabase } = useSupabase();
-    const { state: socialState } = useSocialOrb();
+    // TODO: useSupabase and useSocialOrb hooks don't exist - component needs refactoring
+    // const { user, supabase } = useSupabase();
+    // const { state: socialState } = useSocialOrb();
 
-    const [feedState, setFeedState] = useState(initialFeedState);
+    const [feedState, setFeedState] = useState({ posts: [], isLoading: false, hasMore: true, offset: 0, error: null });
     const [activeFilter, setActiveFilter] = useState('recent');
     const [dismissedChallenges, setDismissedChallenges] = useState(new Set());
     const feedRef = useRef(null);

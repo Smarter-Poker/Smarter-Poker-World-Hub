@@ -111,18 +111,38 @@ export function UnreadProvider({ children }) {
                 })
                 .subscribe();
 
+            // BroadcastChannel for cross-tab sync (instantly updates other tabs when read)
+            const bc = new BroadcastChannel('smarter_poker_unread_sync');
+            bc.onmessage = (event) => {
+                if (event.data === 'refresh_unread') {
+                    refreshUnread();
+                }
+            };
+
             // Refresh periodically as backup (corrects any drift)
             const interval = setInterval(refreshUnread, 30000);
 
             return () => {
                 supabase.removeChannel(channel);
                 clearInterval(interval);
+                bc.close();
             };
         }
     }, [userId]);
 
+    // Enhanced setUnreadCount that also broadcasts to other tabs
+    const setAndBroadcastUnreadCount = (count) => {
+        setUnreadCount(count);
+        // Only broadcast if we are specifically clearing/changing it
+        try {
+            const bc = new BroadcastChannel('smarter_poker_unread_sync');
+            bc.postMessage('refresh_unread');
+            setTimeout(() => bc.close(), 100);
+        } catch (e) { }
+    };
+
     return (
-        <UnreadContext.Provider value={{ unreadCount, refreshUnread, setUnreadCount }}>
+        <UnreadContext.Provider value={{ unreadCount, refreshUnread, setUnreadCount: setAndBroadcastUnreadCount }}>
             {children}
         </UnreadContext.Provider>
     );
