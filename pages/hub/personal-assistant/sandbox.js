@@ -25,13 +25,18 @@ import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
 import { getAuthUser } from '../../../src/lib/authUtils';
-import { calculateEquity } from '../../../src/lib/sandbox/EquityEngine';
+import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/EquityEngine';
+import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import {
   FrequencyBar, RangeMatrix, classifyBoardTexture, BoardTextureHUD,
   ActionHistoryBuilder, SizingSensitivity, TreeVisualization,
   OnboardingTour, ShareAnalysisModal, StreetTimeline, EquityGauge, AnalysisSkeleton,
+  PreflopChartOverlay, RunoutChart, ExploitToggle,
+  QuizPanel, StudyReplayCard, AccuracyBadge,
+  WeeklySpotBanner, LeaderboardCard,
 } from '../../../src/components/sandbox/SandboxComponents';
+import { ExportCard } from '../../../src/components/sandbox/ExportCard';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -410,6 +415,14 @@ export default function VirtualSandbox() {
     setVillains(prev.villains);
   };
 
+  // Street — must be declared above dealAndAnalyze + rangeGrid which reference it
+  const currentStreet = useMemo(() => {
+    if (board.flop.length === 0) return 'preflop';
+    if (!board.turn) return 'flop';
+    if (!board.river) return 'turn';
+    return 'river';
+  }, [board]);
+
   // Phase 1: Equity calculation
   const [equity, setEquity] = useState(null);
   useEffect(() => {
@@ -436,641 +449,763 @@ export default function VirtualSandbox() {
     dealNextStreet();
   };
 
-  // Check first visit for onboarding
+  // Phase 2: Preflop charts
+  const [preflopScenario, setPreflopScenario] = useState('rfi');
+  const rangeGrid = useMemo(() => currentStreet === 'preflop' ? getRangeGrid(heroPosition, preflopScenario) : null, [heroPosition, preflopScenario, currentStreet]);
+  const rangePercent = useMemo(() => currentStreet === 'preflop' ? getRangePercentage(heroPosition, preflopScenario) : 0, [heroPosition, preflopScenario, currentStreet]);
+
+  // Phase 2: Exploit mode
+  const [exploitMode, setExploitMode] = useState('gto');
+  const exploitTip = useMemo(() => {
+    if (exploitMode !== 'exploit' || !results || !villains[0]) return null;
+    const arch = villains[0].archetype?.id || 'gto_neutral';
+    const tips = {
+      calling_station: 'Bet thinner for value, skip bluffs',
+      nit: 'Steal more pots, respect raises',
+      lag: 'Tighten up, let them hang themselves',
+      tag: 'Stay balanced, mix your frequencies',
+      maniac: 'Widen value range, reduce bluff frequency',
+      fish: 'Bet bigger with strong hands, simplify decisions',
+      gto_neutral: 'No exploit adjustment needed',
+    };
+    return tips[arch] || 'Adjust based on villain tendencies';
+  }, [exploitMode, results, villains]);
+
+  // Phase 2: Runout simulation
+  const [runoutData, setRunoutData] = useState(null);
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const seen = localStorage.getItem('sandbox-tour-seen');
-      if (!seen) setShowTour(true);
+    if (!heroHand.card1 || !heroHand.card2 || board.flop.length < 3 || board.river) {
+      setRunoutData(null); return;
     }
+    const heroCards = [heroHand.card1, heroHand.card2];
+    const boardCards = [...board.flop];
+    if (board.turn) boardCards.push(board.turn);
+    const t = setTimeout(() => {
+      try {
+        const data = simulateRunouts(heroCards, boardCards, 200);
+        setRunoutData(data);
+      } catch (e) { setRunoutData(null); }
+    }, 200);
+    return () => clearTimeout(t);
+  }, [heroHand.card1, heroHand.card2, board]);
+
+  // Phase 2: ICM / Tournament bubble factor
+  const [bubbleFactor, setBubbleFactor] = useState(1.0);
+
+  // Phase 3: Quiz mode
+  const [quizMode, setQuizMode] = useState(false);
+  const [userGuess, setUserGuess] = useState(null);
+  const [quizRevealed, setQuizRevealed] = useState(false);
+  const [quizScore, setQuizScore] = useState({ correct: 0, total: 0, streak: 0 });
+
+  const handleQuizGuess = (guess) => {
+    setUserGuess(guess);
+    setQuizRevealed(true);
+    const correctLabel = results?.optimalAction?.label || '';
+    const isCorrect = guess.toLowerCase().includes(correctLabel.toLowerCase().split(' ')[0]);
+    setQuizScore(prev => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1,
+      streak: isCorrect ? prev.streak + 1 : 0,
+    }));
+    // Persist quiz result (fire and forget)
+    try {
+      const user = getAuthUser();
+      if (user) {
+        const hash = `${heroHand.card1}${heroHand.card2}_${heroPosition}_${board.flop.join('')}${board.turn || ''}${board.river || ''}`;
+        fetch('/api/assistant/sandbox/sandbox-quiz', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, scenarioHash: hash, userAction: guess, correctAction: correctLabel, isCorrect }),
+        }).catch(() => { });
+      }
+    } catch (e) { /* silent */ }
+  };
+
+  // Phase 4: Weekly spot challenge
+  const [weeklySpot, setWeeklySpot] = useState(null);
+  useEffect(() => {
+    fetch('/api/assistant/sandbox/weekly-spot')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.spot) setWeeklySpot(data.spot); })
+      .catch(() => { });
   }, []);
 
-  // BUS LISTENER — broadcast sandbox data changes to other pages
-  useEffect(() => {
-    if (results && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('pa-sandbox-updated', {
-        detail: { heroPosition, heroHand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`, results: !!results }
-      }));
-    }
-  }, [results, heroPosition, heroHand]);
+  const loadWeeklySpot = (spot) => {
+    if (!spot?.scenario_json) return;
+    const s = spot.scenario_json;
+    pushUndo();
+    if (s.heroHand) setHeroHand(s.heroHand);
+    if (s.heroPosition) setHeroPosition(s.heroPosition);
+    if (s.heroStack != null) setHeroStack(s.heroStack);
+    if (s.gameType) setGameType(s.gameType);
+    if (s.board) setBoard(s.board);
+    if (s.villains) setVillains(s.villains);
+    if (s.actionHistory) setActionHistory(s.actionHistory);
+    setQuizMode(true); setQuizRevealed(false); setUserGuess(null);
+  };
+};
 
-  const dismissTour = () => { setShowTour(false); localStorage.setItem('sandbox-tour-seen', 'true'); };
+// Check first visit for onboarding
+useEffect(() => {
+  if (typeof window !== 'undefined') {
+    const seen = localStorage.getItem('sandbox-tour-seen');
+    if (!seen) setShowTour(true);
+  }
+}, []);
 
-  // All used cards
-  const allUsedCards = useMemo(() => {
-    const c = [];
-    if (heroHand.card1) c.push(heroHand.card1);
-    if (heroHand.card2) c.push(heroHand.card2);
-    c.push(...(board.flop || []));
-    if (board.turn) c.push(board.turn);
-    if (board.river) c.push(board.river);
-    return c;
-  }, [heroHand, board]);
+// BUS LISTENER — broadcast sandbox data changes to other pages
+useEffect(() => {
+  if (results && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pa-sandbox-updated', {
+      detail: { heroPosition, heroHand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`, results: !!results }
+    }));
+  }
+}, [results, heroPosition, heroHand]);
 
-  // Board texture
-  const boardTexture = useMemo(() => classifyBoardTexture(board), [board]);
+const dismissTour = () => { setShowTour(false); localStorage.setItem('sandbox-tour-seen', 'true'); };
 
-  // Community cards array
-  const communityCards = useMemo(() => {
-    const c = [...(board.flop || [])];
-    if (board.turn) c.push(board.turn);
-    if (board.river) c.push(board.river);
-    return c;
-  }, [board]);
+// All used cards
+const allUsedCards = useMemo(() => {
+  const c = [];
+  if (heroHand.card1) c.push(heroHand.card1);
+  if (heroHand.card2) c.push(heroHand.card2);
+  c.push(...(board.flop || []));
+  if (board.turn) c.push(board.turn);
+  if (board.river) c.push(board.river);
+  return c;
+}, [heroHand, board]);
 
-  // Street
-  const currentStreet = useMemo(() => {
-    if (board.flop.length === 0) return 'preflop';
-    if (!board.turn) return 'flop';
-    if (!board.river) return 'turn';
-    return 'river';
-  }, [board]);
+// Board texture
+const boardTexture = useMemo(() => classifyBoardTexture(board), [board]);
 
-  // Pot calculation
-  useEffect(() => {
-    // Bug 14 fix: skip recalc when restoring from session
-    if (skipPotCalcRef.current) {
-      skipPotCalcRef.current = false;
+// Community cards array
+const communityCards = useMemo(() => {
+  const c = [...(board.flop || [])];
+  if (board.turn) c.push(board.turn);
+  if (board.river) c.push(board.river);
+  return c;
+}, [board]);
+
+// Pot calculation
+useEffect(() => {
+  // Bug 14 fix: skip recalc when restoring from session
+  if (skipPotCalcRef.current) {
+    skipPotCalcRef.current = false;
+    return;
+  }
+  let pot = 1.5;
+  actionHistory.forEach(a => {
+    if (a.action === 'bet_33') pot += pot * 0.33;
+    else if (a.action === 'bet_50') pot += pot * 0.5;
+    else if (a.action === 'bet_66') pot += pot * 0.66;
+    else if (a.action === 'bet_100') pot += pot;
+    else if (a.action === 'call') pot += pot * 0.5;
+    else if (a.action === 'raise') pot += pot * 1.5;
+    else if (a.action === 'allin') pot = heroStack * 2;
+  });
+  setPotSize(Math.round(pot * 10) / 10);
+}, [actionHistory, heroStack]);
+
+// Deck card selection handler — keeps deck open for multi-card flop selection (#6)
+const handleDeckSelect = (card) => {
+  if (deckTarget === 'hero1') {
+    setHeroHand(h => ({ ...h, card1: card }));
+    setShowDeck(false);
+    setDeckTarget(null);
+  } else if (deckTarget === 'hero2') {
+    setHeroHand(h => ({ ...h, card2: card }));
+    setShowDeck(false);
+    setDeckTarget(null);
+  } else if (deckTarget === 'board') {
+    setBoard(prev => {
+      if (prev.flop.length < 3) {
+        const newFlop = [...prev.flop, card];
+        // Keep deck open until all 3 flop cards are picked
+        if (newFlop.length >= 3) {
+          setTimeout(() => { setShowDeck(false); setDeckTarget(null); }, 150);
+        }
+        return { ...prev, flop: newFlop };
+      } else if (!prev.turn) {
+        setShowDeck(false);
+        setDeckTarget(null);
+        return { ...prev, turn: card };
+      } else if (!prev.river) {
+        setShowDeck(false);
+        setDeckTarget(null);
+        return { ...prev, river: card };
+      }
+      return prev;
+    });
+  }
+};
+
+// Random board (Feature #8) — exclude only hero cards, not current board
+const randomBoard = () => {
+  const heroOnly = [heroHand.card1, heroHand.card2].filter(Boolean);
+  const deck = [];
+  RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!heroOnly.includes(c)) deck.push(c); }));
+  const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+  const shuffled = shuffle([...deck]);
+  setBoard({ flop: shuffled.slice(0, 3), turn: null, river: null });
+};
+
+// Random board + deal next street (Feature #2)
+const dealNextStreet = () => {
+  const deck = [];
+  RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!allUsedCards.includes(c)) deck.push(c); }));
+  if (deck.length === 0) return; // Guard: no cards left in deck
+  const card = deck[Math.floor(Math.random() * deck.length)];
+  if (board.flop.length === 3 && !board.turn) setBoard(b => ({ ...b, turn: card }));
+  else if (board.turn && !board.river) setBoard(b => ({ ...b, river: card }));
+};
+
+// Save bookmark (Feature #5)
+const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
+const saveBookmark = async () => {
+  try {
+    const user = await getSafeUser(supabase);
+    if (!user) {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus(null), 2000);
       return;
     }
-    let pot = 1.5;
-    actionHistory.forEach(a => {
-      if (a.action === 'bet_33') pot += pot * 0.33;
-      else if (a.action === 'bet_50') pot += pot * 0.5;
-      else if (a.action === 'bet_66') pot += pot * 0.66;
-      else if (a.action === 'bet_100') pot += pot;
-      else if (a.action === 'call') pot += pot * 0.5;
-      else if (a.action === 'raise') pot += pot * 1.5;
-      else if (a.action === 'allin') pot = heroStack * 2;
+    setSaveStatus('saving');
+    const { error } = await supabase.from('sandbox_bookmarks').insert({
+      user_id: user.id,
+      hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+      hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
+      board_flop: board.flop.join(''), board_turn: board.turn, board_river: board.river,
+      villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
+      label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
     });
-    setPotSize(Math.round(pot * 10) / 10);
-  }, [actionHistory, heroStack]);
-
-  // Deck card selection handler — keeps deck open for multi-card flop selection (#6)
-  const handleDeckSelect = (card) => {
-    if (deckTarget === 'hero1') {
-      setHeroHand(h => ({ ...h, card1: card }));
-      setShowDeck(false);
-      setDeckTarget(null);
-    } else if (deckTarget === 'hero2') {
-      setHeroHand(h => ({ ...h, card2: card }));
-      setShowDeck(false);
-      setDeckTarget(null);
-    } else if (deckTarget === 'board') {
-      setBoard(prev => {
-        if (prev.flop.length < 3) {
-          const newFlop = [...prev.flop, card];
-          // Keep deck open until all 3 flop cards are picked
-          if (newFlop.length >= 3) {
-            setTimeout(() => { setShowDeck(false); setDeckTarget(null); }, 150);
-          }
-          return { ...prev, flop: newFlop };
-        } else if (!prev.turn) {
-          setShowDeck(false);
-          setDeckTarget(null);
-          return { ...prev, turn: card };
-        } else if (!prev.river) {
-          setShowDeck(false);
-          setDeckTarget(null);
-          return { ...prev, river: card };
-        }
-        return prev;
-      });
-    }
-  };
-
-  // Random board (Feature #8) — exclude only hero cards, not current board
-  const randomBoard = () => {
-    const heroOnly = [heroHand.card1, heroHand.card2].filter(Boolean);
-    const deck = [];
-    RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!heroOnly.includes(c)) deck.push(c); }));
-    const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
-    const shuffled = shuffle([...deck]);
-    setBoard({ flop: shuffled.slice(0, 3), turn: null, river: null });
-  };
-
-  // Random board + deal next street (Feature #2)
-  const dealNextStreet = () => {
-    const deck = [];
-    RANKS.forEach(r => SUITS.forEach(s => { const c = `${r}${s.code}`; if (!allUsedCards.includes(c)) deck.push(c); }));
-    if (deck.length === 0) return; // Guard: no cards left in deck
-    const card = deck[Math.floor(Math.random() * deck.length)];
-    if (board.flop.length === 3 && !board.turn) setBoard(b => ({ ...b, turn: card }));
-    else if (board.turn && !board.river) setBoard(b => ({ ...b, river: card }));
-  };
-
-  // Save bookmark (Feature #5)
-  const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
-  const saveBookmark = async () => {
-    try {
-      const user = await getSafeUser(supabase);
-      if (!user) {
-        setSaveStatus('error');
-        setTimeout(() => setSaveStatus(null), 2000);
-        return;
-      }
-      setSaveStatus('saving');
-      const { error } = await supabase.from('sandbox_bookmarks').insert({
-        user_id: user.id,
-        hero_hand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
-        hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
-        board_flop: board.flop.join(''), board_turn: board.turn, board_river: board.river,
-        villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
-        label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
-      });
-      if (error) {
-        console.warn('[Sandbox] Bookmark save error (table may not exist yet):', error.message);
-        setSaveStatus('error');
-      } else {
-        setSaveStatus('saved');
-        // 📢 Dispatch BUS LISTENER update for bookmark changes
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('pa-data-updated'));
-        }
-      }
-    } catch (e) {
-      console.error('Bookmark save error:', e);
+    if (error) {
+      console.warn('[Sandbox] Bookmark save error (table may not exist yet):', error.message);
       setSaveStatus('error');
-    } finally {
-      setTimeout(() => setSaveStatus(null), 2000);
+    } else {
+      setSaveStatus('saved');
+      // 📢 Dispatch BUS LISTENER update for bookmark changes
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pa-data-updated'));
+      }
     }
-  };
+  } catch (e) {
+    console.error('Bookmark save error:', e);
+    setSaveStatus('error');
+  } finally {
+    setTimeout(() => setSaveStatus(null), 2000);
+  }
+};
 
-  // Run analysis
-  const runAnalysis = async () => {
-    if (!heroHand.card1 || !heroHand.card2) return;
-    await analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
-    setShowResults(true); // auto-open fullscreen analysis popup
-  };
+// Run analysis
+const runAnalysis = async () => {
+  if (!heroHand.card1 || !heroHand.card2) return;
+  await analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+  setShowResults(true); // auto-open fullscreen analysis popup
+};
 
-  // Position comparison (Feature #11)
-  const runPositionComparison = async (pos) => {
-    setComparePosition(pos);
-    await analyze({ heroHand, heroPosition: pos, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
-  };
+// Position comparison (Feature #11)
+const runPositionComparison = async (pos) => {
+  setComparePosition(pos);
+  await analyze({ heroHand, heroPosition: pos, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+};
 
-  const resetAll = () => {
-    setHeroHand({ card1: null, card2: null });
-    setBoard({ flop: [], turn: null, river: null });
-    setActionHistory([]); setPotSize(6); clearResults();
-    setComparePosition(null);
-  };
+const resetAll = () => {
+  setHeroHand({ card1: null, card2: null });
+  setBoard({ flop: [], turn: null, river: null });
+  setActionHistory([]); setPotSize(6); clearResults();
+  setComparePosition(null);
+};
 
-  if (isGated) return GateComponent;
+if (isGated) return GateComponent;
 
-  // Source badge
-  const sourceBadge = results ? (
-    results.matchTier <= 2 ? { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', text: '#4ade80', label: 'PIO Verified' }
-      : results.matchTier === 3 ? { bg: 'rgba(251,191,36,0.15)', border: '#fbbf24', text: '#fde68a', label: 'PIO Approximated' }
-        : { bg: 'rgba(139,92,246,0.15)', border: '#8b5cf6', text: '#c4b5fd', label: 'AI Analysis' }
-  ) : null;
+// Source badge
+const sourceBadge = results ? (
+  results.matchTier <= 2 ? { bg: 'rgba(34,197,94,0.15)', border: '#22c55e', text: '#4ade80', label: 'PIO Verified' }
+    : results.matchTier === 3 ? { bg: 'rgba(251,191,36,0.15)', border: '#fbbf24', text: '#fde68a', label: 'PIO Approximated' }
+      : { bg: 'rgba(139,92,246,0.15)', border: '#8b5cf6', text: '#c4b5fd', label: 'AI Analysis' }
+) : null;
 
-  return (
-    <div className="sandbox-page" style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter',-apple-system,sans-serif" }}>
-      {/* Onboarding Tour */}
-      <OnboardingTour isVisible={showTour} step={tourStep}
-        onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
+return (
+  <div className="sandbox-page" style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter',-apple-system,sans-serif" }}>
+    {/* Onboarding Tour */}
+    <OnboardingTour isVisible={showTour} step={tourStep}
+      onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
 
-      {/* Share Modal */}
-      <ShareAnalysisModal isOpen={showShare} onClose={() => setShowShare(false)}
-        results={results} scenario={{ board: communityCards.join(' ') }} />
+    {/* Share Modal */}
+    <ShareAnalysisModal isOpen={showShare} onClose={() => setShowShare(false)}
+      results={results} scenario={{ board: communityCards.join(' ') }} />
 
-      {/* Sessions Sidebar */}
-      <AnimatePresence>{showSessions && (
-        <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={(session) => {
-          if (session.hero_hand && typeof session.hero_hand === 'string') {
-            const h = session.hero_hand;
-            setHeroHand({ card1: h.length >= 2 ? h.substring(0, 2) : null, card2: h.length >= 4 ? h.substring(2, 4) : null });
-          }
-          if (session.hero_position) setHeroPosition(session.hero_position);
-          if (session.hero_stack != null) setHeroStack(Number(session.hero_stack) || 100);
-          if (session.game_type) setGameType(session.game_type);
+    {/* Sessions Sidebar */}
+    <AnimatePresence>{showSessions && (
+      <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={(session) => {
+        if (session.hero_hand && typeof session.hero_hand === 'string') {
+          const h = session.hero_hand;
+          setHeroHand({ card1: h.length >= 2 ? h.substring(0, 2) : null, card2: h.length >= 4 ? h.substring(2, 4) : null });
+        }
+        if (session.hero_position) setHeroPosition(session.hero_position);
+        if (session.hero_stack != null) setHeroStack(Number(session.hero_stack) || 100);
+        if (session.game_type) setGameType(session.game_type);
 
-          // Restore Board — handle both comma-separated ("As,Kd,Jh") and concatenated ("AsKdJh") formats
-          const newBoard = { flop: [], turn: null, river: null };
-          if (session.board_flop) {
-            if (session.board_flop.includes(',')) {
-              newBoard.flop = session.board_flop.split(',').filter(Boolean);
-            } else {
-              newBoard.flop = session.board_flop.match(/.{1,2}/g) || [];
-            }
-          }
-          if (session.board_turn) newBoard.turn = session.board_turn;
-          if (session.board_river) newBoard.river = session.board_river;
-          setBoard(newBoard);
-
-          // Restore Villains
-          if (session.villain_config && Array.isArray(session.villain_config) && session.villain_config.length > 0) {
-            // Ensure all villain stacks are numeric (DB may store as strings)
-            setVillains(session.villain_config.map(v => ({ ...v, stack: Number(v.stack) || 100 })));
+        // Restore Board — handle both comma-separated ("As,Kd,Jh") and concatenated ("AsKdJh") formats
+        const newBoard = { flop: [], turn: null, river: null };
+        if (session.board_flop) {
+          if (session.board_flop.includes(',')) {
+            newBoard.flop = session.board_flop.split(',').filter(Boolean);
           } else {
-            // Default villain if missing
-            setVillains([{ position: session.hero_position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: Number(session.hero_stack) || 100 }]);
+            newBoard.flop = session.board_flop.match(/.{1,2}/g) || [];
           }
+        }
+        if (session.board_turn) newBoard.turn = session.board_turn;
+        if (session.board_river) newBoard.river = session.board_river;
+        setBoard(newBoard);
 
-          // Restore Action History from Bookmarks
-          if (session.action_history && Array.isArray(session.action_history)) {
-            setActionHistory(session.action_history);
-          } else {
-            setActionHistory([]);
-          }
+        // Restore Villains
+        if (session.villain_config && Array.isArray(session.villain_config) && session.villain_config.length > 0) {
+          // Ensure all villain stacks are numeric (DB may store as strings)
+          setVillains(session.villain_config.map(v => ({ ...v, stack: Number(v.stack) || 100 })));
+        } else {
+          // Default villain if missing
+          setVillains([{ position: session.hero_position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: Number(session.hero_stack) || 100 }]);
+        }
 
-          // Restore pot size (Bug 12 + 14)
-          if (session.pot_size_bb != null) {
-            skipPotCalcRef.current = true;
-            setPotSize(Number(session.pot_size_bb) || 6);
-          }
-          clearResults();
-        }} />
-      )}</AnimatePresence>
+        // Restore Action History from Bookmarks
+        if (session.action_history && Array.isArray(session.action_history)) {
+          setActionHistory(session.action_history);
+        } else {
+          setActionHistory([]);
+        }
 
-      {/* HEADER */}
-      <div className="sandbox-header" style={{
-        padding: '12px 20px', borderBottom: '1px solid #3A3B3C',
-        background: '#242526',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={() => router.push('/hub/personal-assistant')} aria-label="Back"
-              style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#B0B3B8', cursor: 'pointer', fontSize: 14 }}>←</button>
+        // Restore pot size (Bug 12 + 14)
+        if (session.pot_size_bb != null) {
+          skipPotCalcRef.current = true;
+          setPotSize(Number(session.pot_size_bb) || 6);
+        }
+        clearResults();
+      }} />
+    )}</AnimatePresence>
+
+    {/* HEADER */}
+    <div className="sandbox-header" style={{
+      padding: '12px 20px', borderBottom: '1px solid #3A3B3C',
+      background: '#242526',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button onClick={() => router.push('/hub/personal-assistant')} aria-label="Back"
+            style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#B0B3B8', cursor: 'pointer', fontSize: 14 }}>←</button>
+          <div>
+            <h1 style={{
+              fontSize: 18, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
+              background: 'linear-gradient(135deg, #2374E1, #4599FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+            }}>
+              Virtual Sandbox</h1>
+            <p style={{ color: '#B0B3B8', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>
+          </div>
+        </div>
+        <div className="sandbox-header-actions" style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
+          <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
+          {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
+          {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
+          <button onClick={() => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); }} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: quizMode ? 'rgba(139,92,246,0.2)' : '#3A3B3C', border: `1px solid ${quizMode ? 'rgba(139,92,246,0.3)' : '#4E4F50'}`, color: quizMode ? '#c4b5fd' : '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Quiz</button>
+          <AccuracyBadge stats={quizScore} />
+          <button onClick={popUndo} disabled={undoStackRef.current.length === 0} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#B0B3B8', cursor: undoStackRef.current.length === 0 ? 'default' : 'pointer', minHeight: 36 }}>Undo</button>
+          <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
+        </div>
+      </div>
+    </div>
+
+    {/* STEP INDICATOR (Improvement #1) */}
+    <StepIndicator
+      hasCards={!!heroHand.card1 && !!heroHand.card2}
+      hasBoard={board.flop.length === 3}
+      hasResults={!!results}
+      isAnalyzing={isAnalyzing}
+    />
+
+    {/* MAIN LAYOUT — Mobile-first responsive */}
+    <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+      {/* LEFT — Setup + Table */}
+      <div>
+        {/* Visual Poker Table */}
+        <div className="sandbox-table-wrap" style={{ marginBottom: '16px' }}>
+          <SandboxPokerTable
+            heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
+            communityCards={communityCards}
+            pot={potSize}
+            heroPosition={heroPosition}
+            heroStack={heroStack}
+            villains={villains}
+            street={currentStreet}
+          />
+        </div>
+        {/* Equity Gauge — Phase 1 */}
+        <EquityGauge equity={equity?.heroEquity} label={equity ? `${equity.heroEquity}% vs random hand` : null} />
+
+        {/* Board Texture HUD */}
+        <BoardTextureHUD texture={boardTexture} />
+
+        {/* Equity Display */}
+        <EquityDisplay heroHand={heroHand} board={board} />
+
+        {/* Preflop Chart -- Phase 2 */}
+        {currentStreet === 'preflop' && (
+          <PreflopChartOverlay position={heroPosition} scenario={preflopScenario} rangeGrid={rangeGrid} rangePercent={rangePercent} onChangeScenario={setPreflopScenario} />
+        )}
+
+        {/* Runout Simulator -- Phase 2 */}
+        {board.flop.length === 3 && !board.river && (
+          <RunoutChart runoutData={runoutData} />
+        )}
+
+        {/* Your Hand */}
+        <div id="hero-setup" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+          <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
+            <span style={{ color: '#B0B3B8', fontSize: 12, minWidth: 45 }}>Hand:</span>
+            <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
+            <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
+            <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
+          </div>
+          <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
             <div>
-              <h1 style={{
-                fontSize: 18, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
-                background: 'linear-gradient(135deg, #2374E1, #4599FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>
-                Virtual Sandbox</h1>
-              <p style={{ color: '#B0B3B8', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>
+              <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
+              <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
             </div>
-          </div>
-          <div className="sandbox-header-actions" style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
-            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
-            {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
-            {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
-            <button onClick={popUndo} disabled={undoStackRef.current.length === 0} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#B0B3B8', cursor: undoStackRef.current.length === 0 ? 'default' : 'pointer', minHeight: 36 }}>Undo</button>
-            <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
+            <div>
+              <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
+              <input type="text" inputMode="numeric" pattern="[0-9]*"
+                value={heroStack}
+                onChange={e => {
+                  const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                  setHeroStack(val === 0 ? '' : val);
+                }}
+                onBlur={() => setHeroStack(h => h || 100)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
+              <select value={gameType} onChange={e => setGameType(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+              </select>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* STEP INDICATOR (Improvement #1) */}
-      <StepIndicator
-        hasCards={!!heroHand.card1 && !!heroHand.card2}
-        hasBoard={board.flop.length === 3}
-        hasResults={!!results}
-        isAnalyzing={isAnalyzing}
-      />
-
-      {/* MAIN LAYOUT — Mobile-first responsive */}
-      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-        {/* LEFT — Setup + Table */}
-        <div>
-          {/* Visual Poker Table */}
-          <div className="sandbox-table-wrap" style={{ marginBottom: '16px' }}>
-            <SandboxPokerTable
-              heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
-              communityCards={communityCards}
-              pot={potSize}
-              heroPosition={heroPosition}
-              heroStack={heroStack}
-              villains={villains}
-              street={currentStreet}
-            />
-          </div>
-          {/* Equity Gauge — Phase 1 */}
-          <EquityGauge equity={equity?.heroEquity} label={equity ? `${equity.heroEquity}% vs random hand` : null} />
-
-          {/* Board Texture HUD */}
-          <BoardTextureHUD texture={boardTexture} />
-
-          {/* Equity Display */}
-          <EquityDisplay heroHand={heroHand} board={board} />
-
-          {/* Your Hand */}
-          <div id="hero-setup" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
-              <span style={{ color: '#B0B3B8', fontSize: 12, minWidth: 45 }}>Hand:</span>
-              <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
-              <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
-              <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
-            </div>
-            <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
-                <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={heroStack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    setHeroStack(val === 0 ? '' : val);
-                  }}
-                  onBlur={() => setHeroStack(h => h || 100)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
-                <select value={gameType} onChange={e => setGameType(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Board Builder */}
-          <div id="board-builder" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>Random</button>
-                {board.flop.length === 3 && !board.river && (
-                  <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
-                    Deal {!board.turn ? 'Turn' : 'River'}
-                  </button>
-                )}
-                {results && board.flop.length === 3 && !board.river && (
-                  <button onClick={() => { pushUndo(); dealAndAnalyze(); }} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(59,130,246,0.15)', border: 'none', color: '#93c5fd', cursor: 'pointer' }}>
-                    Deal + Analyze
-                  </button>
-                )}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
-              {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
-              {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
-              {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: '#3A3B3C', margin: '0 2px' }} />}
-              {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
-              {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
-            </div>
-
-            {/* Quick Scenario Presets (Improvement #2) */}
-            {!heroHand.card1 && board.flop.length === 0 && (
-              <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '12px', marginTop: '10px' }}>
-                <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  {QUICK_PRESETS.map((preset, i) => (
-                    <button key={i} onClick={() => {
-                      setHeroHand(preset.hand); setHeroPosition(preset.position);
-                      setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
-                      setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
-                    }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'rgba(35,116,225,0.15)'}
-                      onMouseOut={e => e.currentTarget.style.background = '#3A3B3C'}>
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}</div>
-
-          {/* Villains */}
-          <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
-              <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
-                disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
-            </div>
-            {villains.map((v, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
-                <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={v.stack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    const u = [...villains];
-                    u[i] = { ...u[i], stack: val === 0 ? '' : val };
-                    setVillains(u);
-                  }}
-                  onBlur={() => {
-                    const u = [...villains];
-                    u[i] = { ...u[i], stack: v.stack || 100 };
-                    setVillains(u);
-                  }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', width: '100%', boxSizing: 'border-box' }} />
-                <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
-                  style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#4E4F50' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Action History */}
-          <div id="action-history">
-            <ActionHistoryBuilder actions={actionHistory}
-              onAdd={a => setActionHistory([...actionHistory, a])}
-              onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
-              potSize={potSize} />
-          </div>
-
-          {/* Run Analysis */}
-          <div id="run-analysis">
-            <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
-              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-              style={{
-                width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
-                cursor: isAnalyzing ? 'wait' : 'pointer',
-                background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
-                color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
-                fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
-                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
-              }}>
-              {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
-            </motion.button>
-            {isAnalyzing && <AnalysisSkeleton />}
-          </div>
-
-          {/* Position Comparison — Feature #11 */}
-          {results && (
-            <div style={{ marginTop: '12px', background: '#242526', borderRadius: 10, padding: '12px' }}>
-              <h4 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                {POSITIONS.map(p => {
-                  const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
-                  return (
-                    <button key={p}
-                      onClick={() => {
-                        if (p === heroPosition) {
-                          setComparePosition(null);
-                          analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
-                        } else {
-                          runPositionComparison(p);
-                        }
-                      }}
-                      disabled={isAnalyzing}
-                      style={{
-                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                        background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-                        border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
-                        cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
-                      }}>{p}</button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div style={{ marginTop: '10px', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12 }}>
-              {error}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */}
-      <AnimatePresence>
-        {results && showResults && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{
-              position: 'fixed', inset: 0, zIndex: 100,
-              background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
-              display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-              overflowY: 'auto', padding: '40px 20px',
-            }}
-            onClick={(e) => { if (e.target === e.currentTarget) setShowResults(false); }}
-          >
-            <motion.div
-              id="results-panel"
-              initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              style={{
-                background: '#242526', borderRadius: 16,
-                border: '1px solid #3A3B3C', padding: '24px',
-                width: '100%', maxWidth: 600,
-                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-              }}
-            >
-              {/* Close button */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3 style={{ color: '#E4E6EB', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>
-                  Analysis Results {comparePosition ? `(${comparePosition})` : ''}
-                </h3>
-                <button onClick={() => setShowResults(false)} style={{
-                  background: '#3A3B3C', border: 'none', borderRadius: '50%',
-                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#E4E6EB', fontSize: 18, cursor: 'pointer',
-                }}>x</button>
-              </div>
-
-              {/* Street Timeline — Phase 1 */}
-              <StreetTimeline streetHistory={streetHistory} activeStreet={activeStreet} onSelectStreet={setActiveStreet} />
-
-              {/* Plain-English Summary */}
-              {getResultsSummary(results) && (
-                <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: '#E4E6EB', textTransform: 'none' }}>
-                  {getResultsSummary(results)}
-                </div>
-              )}
-
-              {/* Source Badge */}
-              {sourceBadge && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 700, background: sourceBadge.bg, border: `1px solid ${sourceBadge.border}`, color: sourceBadge.text }}>{sourceBadge.label}</div>
-                  <span style={{ fontSize: 10, color: '#B0B3B8' }}>{results.source}</span>
-                </div>
-              )}
-
-              {/* Optimal Action */}
-              {results.optimalAction && (
-                <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '12px', marginBottom: 12, textAlign: 'center' }}>
-                  <div style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
-                    {results.isMixed ? 'Primary (Mixed)' : 'Optimal (Pure)'}
-                  </div>
-                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Orbitron',sans-serif", color: results.optimalAction.color || '#22c55e' }}>
-                    {results.optimalAction.label}
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>{results.optimalAction.frequency}%</div>
-                </div>
-              )}
-
-              {/* EV Display */}
-              {results.ev?.heroDisplay && results.ev.heroDisplay !== '—' && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: 12 }}>
-                  {[
-                    { l: 'Hand EV', v: results.ev.heroDisplay, c: results.ev.hero >= 0 ? '#22c55e' : '#ef4444' },
-                    { l: 'EV Loss', v: results.ev.evLoss > 0 ? `-${results.ev.evLoss.toFixed(2)}` : '0.00', c: results.ev.evLoss > 0 ? '#ef4444' : '#22c55e' },
-                    { l: 'Avg EV', v: `${results.ev.avg >= 0 ? '+' : ''}${results.ev.avg.toFixed(2)}`, c: '#B0B3B8' },
-                  ].map((item, i) => (
-                    <div key={i} style={{ background: '#3A3B3C', borderRadius: 6, padding: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 9, color: '#B0B3B8', textTransform: 'uppercase' }}>{item.l}</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Orbitron',monospace", color: item.c, marginTop: 2 }}>{item.v}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Frequency Bars */}
-              <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
-                <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>GTO Frequencies</h4>
-                {results.actions?.map(a => <FrequencyBar key={a.id} action={a} isOptimal={a.isOptimal} />)}
-              </div>
-
-              {/* Tree Visualization */}
-              <TreeVisualization actions={results.actions} />
-
-              {/* Sizing Sensitivity */}
-              <SizingSensitivity results={results} />
-
-              {/* Explanation */}
-              {results.explanation && (
-                <div style={{ background: 'rgba(35,116,225,0.06)', border: '1px solid rgba(35,116,225,0.15)', borderRadius: 8, padding: '10px', marginBottom: 12 }}>
-                  <div style={{ color: '#B0B3B8', fontSize: 10, marginBottom: 4, textTransform: 'uppercase' }}>Analysis</div>
-                  <p style={{ color: '#E4E6EB', fontSize: 12, lineHeight: 1.5, margin: 0 }}>{results.explanation}</p>
-                </div>
-              )}
-
-              {/* Range Matrix */}
-              {results.rangeHeatmap && (
-                <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontWeight: 700 }}>
-                      Range Heatmap ({results.rangeHeatmap.totalHands})
-                    </h4>
-                    <div style={{ display: 'flex', gap: '3px' }}>
-                      {results.rangeHeatmap.actions?.slice(0, 4).map(a => (
-                        <button key={a.id} onClick={() => setSelectedHeatmapAction(a.id)}
-                          style={{
-                            padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600, border: 'none', cursor: 'pointer',
-                            background: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? 'rgba(35,116,225,0.3)' : '#242526',
-                            color: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? '#4599FF' : '#B0B3B8',
-                          }}>{a.label}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <RangeMatrix rangeHeatmap={results.rangeHeatmap} selectedAction={selectedHeatmapAction} />
-                </div>
-              )}
-
-              {/* Multi-Street — Feature #2 */}
+        {/* Board Builder */}
+        <div id="board-builder" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>Random</button>
               {board.flop.length === 3 && !board.river && (
-                <button onClick={() => { dealNextStreet(); setTimeout(runAnalysis, 200); }}
-                  style={{
-                    width: '100%', padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                    background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none',
-                    color: '#fff', cursor: 'pointer', marginBottom: 8,
-                  }}>
-                  Deal {!board.turn ? 'Turn' : 'River'} & Re-Analyze ▸
+                <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
+                  Deal {!board.turn ? 'Turn' : 'River'}
                 </button>
               )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              {results && board.flop.length === 3 && !board.river && (
+                <button onClick={() => { pushUndo(); dealAndAnalyze(); }} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(59,130,246,0.15)', border: 'none', color: '#93c5fd', cursor: 'pointer' }}>
+                  Deal + Analyze
+                </button>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
+            {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
+            {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
+            {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: '#3A3B3C', margin: '0 2px' }} />}
+            {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
+            {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
+          </div>
 
-      <style jsx global>{`
+          {/* Quick Scenario Presets (Improvement #2) */}
+          {!heroHand.card1 && board.flop.length === 0 && (
+            <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '12px', marginTop: '10px' }}>
+              <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                {QUICK_PRESETS.map((preset, i) => (
+                  <button key={i} onClick={() => {
+                    setHeroHand(preset.hand); setHeroPosition(preset.position);
+                    setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
+                    setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
+                  }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(35,116,225,0.15)'}
+                    onMouseOut={e => e.currentTarget.style.background = '#3A3B3C'}>
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}</div>
+
+        {/* Villains */}
+        <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
+            <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
+              disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
+          </div>
+          {villains.map((v, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+              <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
+                style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
+                style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+              <input type="text" inputMode="numeric" pattern="[0-9]*"
+                value={v.stack}
+                onChange={e => {
+                  const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                  const u = [...villains];
+                  u[i] = { ...u[i], stack: val === 0 ? '' : val };
+                  setVillains(u);
+                }}
+                onBlur={() => {
+                  const u = [...villains];
+                  u[i] = { ...u[i], stack: v.stack || 100 };
+                  setVillains(u);
+                }}
+                style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', width: '100%', boxSizing: 'border-box' }} />
+              <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
+                style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#4E4F50' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Action History */}
+        <div id="action-history">
+          <ActionHistoryBuilder actions={actionHistory}
+            onAdd={a => setActionHistory([...actionHistory, a])}
+            onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
+            potSize={potSize} />
+        </div>
+
+        {/* Run Analysis */}
+        <div id="run-analysis">
+          <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
+            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
+              cursor: isAnalyzing ? 'wait' : 'pointer',
+              background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
+              color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
+              fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
+              boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
+            }}>
+            {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
+          </motion.button>
+          {isAnalyzing && <AnalysisSkeleton />}
+        </div>
+
+        {/* Position Comparison — Feature #11 */}
+        {results && (
+          <div style={{ marginTop: '12px', background: '#242526', borderRadius: 10, padding: '12px' }}>
+            <h4 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {POSITIONS.map(p => {
+                const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
+                return (
+                  <button key={p}
+                    onClick={() => {
+                      if (p === heroPosition) {
+                        setComparePosition(null);
+                        analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+                      } else {
+                        runPositionComparison(p);
+                      }
+                    }}
+                    disabled={isAnalyzing}
+                    style={{
+                      padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                      border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
+                      cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
+                    }}>{p}</button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ marginTop: '10px', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */}
+    <AnimatePresence>
+      {results && showResults && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+            overflowY: 'auto', padding: '40px 20px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowResults(false); }}
+        >
+          <motion.div
+            id="results-panel"
+            initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            style={{
+              background: '#242526', borderRadius: 16,
+              border: '1px solid #3A3B3C', padding: '24px',
+              width: '100%', maxWidth: 600,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+            }}
+          >
+            {/* Close button */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ color: '#E4E6EB', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>
+                Analysis Results {comparePosition ? `(${comparePosition})` : ''}
+              </h3>
+              <button onClick={() => setShowResults(false)} style={{
+                background: '#3A3B3C', border: 'none', borderRadius: '50%',
+                width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#E4E6EB', fontSize: 18, cursor: 'pointer',
+              }}>x</button>
+            </div>
+
+            {/* Street Timeline — Phase 1 */}
+            <StreetTimeline streetHistory={streetHistory} activeStreet={activeStreet} onSelectStreet={setActiveStreet} />
+
+            {/* Exploit Toggle -- Phase 2 */}
+            <ExploitToggle mode={exploitMode} onToggle={setExploitMode} exploitTip={exploitTip} />
+
+            {/* ICM Badge -- Phase 2 */}
+            {gameType === 'tournament' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '6px 10px', borderRadius: '8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}>
+                <span style={{ fontSize: '10px', color: '#fde68a', fontWeight: '700' }}>ICM Bubble Factor</span>
+                <input type="range" min="0.5" max="2.0" step="0.1" value={bubbleFactor} onChange={e => setBubbleFactor(Number(e.target.value))} style={{ flex: 1, accentColor: '#fbbf24' }} />
+                <span style={{ fontSize: '11px', color: '#fde68a', fontWeight: '700', minWidth: '30px' }}>{bubbleFactor.toFixed(1)}</span>
+              </div>
+            )}
+
+            {/* Plain-English Summary */}
+            {/* Quiz Panel -- Phase 3 */}
+            {quizMode && results && (
+              <QuizPanel onGuess={handleQuizGuess} correctAction={results.optimalAction?.label} revealed={quizRevealed} userGuess={userGuess} score={quizScore} />
+            )}
+            {getResultsSummary(results) && (
+              <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: '#E4E6EB', textTransform: 'none' }}>
+                {getResultsSummary(results)}
+              </div>
+            )}
+
+            {/* Source Badge */}
+            {sourceBadge && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 700, background: sourceBadge.bg, border: `1px solid ${sourceBadge.border}`, color: sourceBadge.text }}>{sourceBadge.label}</div>
+                <span style={{ fontSize: 10, color: '#B0B3B8' }}>{results.source}</span>
+              </div>
+            )}
+
+            {/* Optimal Action */}
+            {results.optimalAction && (
+              <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '12px', marginBottom: 12, textAlign: 'center' }}>
+                <div style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  {results.isMixed ? 'Primary (Mixed)' : 'Optimal (Pure)'}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Orbitron',sans-serif", color: results.optimalAction.color || '#22c55e' }}>
+                  {results.optimalAction.label}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>{results.optimalAction.frequency}%</div>
+              </div>
+            )}
+
+            {/* EV Display */}
+            {results.ev?.heroDisplay && results.ev.heroDisplay !== '—' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: 12 }}>
+                {[
+                  { l: 'Hand EV', v: results.ev.heroDisplay, c: results.ev.hero >= 0 ? '#22c55e' : '#ef4444' },
+                  { l: 'EV Loss', v: results.ev.evLoss > 0 ? `-${results.ev.evLoss.toFixed(2)}` : '0.00', c: results.ev.evLoss > 0 ? '#ef4444' : '#22c55e' },
+                  { l: 'Avg EV', v: `${results.ev.avg >= 0 ? '+' : ''}${results.ev.avg.toFixed(2)}`, c: '#B0B3B8' },
+                ].map((item, i) => (
+                  <div key={i} style={{ background: '#3A3B3C', borderRadius: 6, padding: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 9, color: '#B0B3B8', textTransform: 'uppercase' }}>{item.l}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Orbitron',monospace", color: item.c, marginTop: 2 }}>{item.v}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Frequency Bars */}
+            <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+              <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>GTO Frequencies</h4>
+              {results.actions?.map(a => <FrequencyBar key={a.id} action={a} isOptimal={a.isOptimal} />)}
+            </div>
+
+            {/* Tree Visualization */}
+            <TreeVisualization actions={results.actions} />
+
+            {/* Sizing Sensitivity */}
+            <SizingSensitivity results={results} />
+
+            {/* Explanation */}
+            {results.explanation && (
+              <div style={{ background: 'rgba(35,116,225,0.06)', border: '1px solid rgba(35,116,225,0.15)', borderRadius: 8, padding: '10px', marginBottom: 12 }}>
+                <div style={{ color: '#B0B3B8', fontSize: 10, marginBottom: 4, textTransform: 'uppercase' }}>Analysis</div>
+                <p style={{ color: '#E4E6EB', fontSize: 12, lineHeight: 1.5, margin: 0 }}>{results.explanation}</p>
+              </div>
+            )}
+
+            {/* Range Matrix */}
+            {results.rangeHeatmap && (
+              <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontWeight: 700 }}>
+                    Range Heatmap ({results.rangeHeatmap.totalHands})
+                  </h4>
+                  <div style={{ display: 'flex', gap: '3px' }}>
+                    {results.rangeHeatmap.actions?.slice(0, 4).map(a => (
+                      <button key={a.id} onClick={() => setSelectedHeatmapAction(a.id)}
+                        style={{
+                          padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600, border: 'none', cursor: 'pointer',
+                          background: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? 'rgba(35,116,225,0.3)' : '#242526',
+                          color: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? '#4599FF' : '#B0B3B8',
+                        }}>{a.label}</button>
+                    ))}
+                  </div>
+                </div>
+                <RangeMatrix rangeHeatmap={results.rangeHeatmap} selectedAction={selectedHeatmapAction} />
+              </div>
+            )}
+
+            {/* Multi-Street — Feature #2 */}
+            {board.flop.length === 3 && !board.river && (
+              <button onClick={() => { dealNextStreet(); setTimeout(runAnalysis, 200); }}
+                style={{
+                  width: '100%', padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                  background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none',
+                  color: '#fff', cursor: 'pointer', marginBottom: 8,
+                }}>
+                Deal {!board.turn ? 'Turn' : 'River'} & Re-Analyze ▸
+              </button>
+            )}
+
+            {/* Train This Spot -- Phase 3 */}
+            <button onClick={() => router.push(`/hub/training?position=${heroPosition}&hand=${heroHand.card1}${heroHand.card2}`)}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', marginBottom: 8 }}>
+              Train This Spot
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+
+    <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&display=swap');
 
         /* Capitalize first letter of every word globally */
@@ -1171,6 +1306,6 @@ export default function VirtualSandbox() {
           animation: analyze-pulse 1.5s ease-in-out infinite;
         }
       `}</style>
-    </div >
-  );
+  </div >
+);
 }

@@ -254,6 +254,14 @@ function HandDetail({ hand, freqs, onClose }) {
 export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false }) {
     const [selectedHand, setSelectedHand] = useState(null);
 
+    // heroGlow keyframes injected once
+    if (typeof document !== 'undefined' && !document.getElementById('heroGlowKeyframes')) {
+        const style = document.createElement('style');
+        style.id = 'heroGlowKeyframes';
+        style.textContent = `@keyframes heroGlow { from { box-shadow: 0 0 8px rgba(0,212,255,0.5); } to { box-shadow: 0 0 20px rgba(0,212,255,0.9); } }`;
+        document.head.appendChild(style);
+    }
+
     const handleCellClick = useCallback((hand) => {
         setSelectedHand(prev => prev === hand ? null : hand);
         if (onHandSelect) onHandSelect(hand);
@@ -283,7 +291,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
             rows.push(cells);
         }
         return rows;
-    }, [gridData, selectedHand, handleCellClick, cellSize]);
+    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand]);
 
     // Get action legend
     const activeActions = useMemo(() => {

@@ -137,6 +137,48 @@ function usePlayMode() {
         setGameState('playing');
     }, [config.stackDepth]);
 
+    // Simulate villain response (simplified GTO) — must be declared before handleAction
+    const simulateVillainResponse = useCallback((heroAction, street, currentPot) => {
+        const rand = Math.random();
+        if (heroAction === 'check') {
+            if (rand < 0.4) return { action: 'check', amount: 0 };
+            return { action: 'bet', amount: Math.round(currentPot * 0.67 * 100) / 100 };
+        }
+        if (heroAction === 'bet' || heroAction === 'raise') {
+            if (rand < 0.35) return { action: 'fold', amount: 0 };
+            if (rand < 0.85) return { action: 'call', amount: Math.round(currentPot * 0.5 * 100) / 100 };
+            return { action: 'raise', amount: Math.round(currentPot * 2.5 * 100) / 100 };
+        }
+        if (heroAction === 'call') {
+            return { action: 'check', amount: 0 };
+        }
+        return { action: 'check', amount: 0 };
+    }, []);
+
+    // Advance to next street — must be declared before handleAction
+    const advanceStreet = useCallback((fromStreet, newPot) => {
+        const deck = deckRef.current;
+        if (fromStreet === 'preflop') {
+            setBoard([deck[2], deck[3], deck[4]]);
+            setCurrentStreet('flop');
+        } else if (fromStreet === 'flop') {
+            setBoard(prev => [...prev, deck[5]]);
+            setCurrentStreet('turn');
+        } else if (fromStreet === 'turn') {
+            setBoard(prev => [...prev, deck[6]]);
+            setCurrentStreet('river');
+        } else if (fromStreet === 'river') {
+            const heroWon = Math.random() > 0.45;
+            setShowdownResult({
+                result: 'showdown',
+                pot: newPot,
+                heroWon,
+                evLoss: heroWon ? 0 : (Math.random() * 2).toFixed(2),
+            });
+            setGameState('handComplete');
+        }
+    }, []);
+
     // Hero makes an action
     const handleAction = useCallback((action, amount = 0) => {
         const newAction = {
@@ -151,12 +193,11 @@ function usePlayMode() {
         setActionHistory(prev => [...prev, newAction]);
 
         if (action === 'fold') {
-            // Hero folds — hand is over
             setShowdownResult({
                 result: 'fold',
                 pot: pot,
                 heroWon: false,
-                evLoss: 0, // Simplified — would compare against solver
+                evLoss: 0,
             });
             setGameState('handComplete');
             return;
@@ -174,7 +215,6 @@ function usePlayMode() {
             newPot += raiseAmount;
             newStack -= raiseAmount;
         }
-        // All-in
         if (action === 'allin') {
             newPot += heroStack;
             newStack = 0;
@@ -183,7 +223,7 @@ function usePlayMode() {
         setPot(newPot);
         setHeroStack(newStack);
 
-        // AI villain response (simplified GTO-ish responses)
+        // AI villain response
         const villainAction = simulateVillainResponse(action, currentStreet, newPot);
         setActionHistory(prev => [...prev, {
             street: currentStreet,
@@ -211,52 +251,7 @@ function usePlayMode() {
 
         // Advance to next street
         advanceStreet(currentStreet, newPot);
-    }, [currentStreet, pot, heroStack, heroPosition]);
-
-    // Simulate villain response (simplified GTO)
-    const simulateVillainResponse = useCallback((heroAction, street, currentPot) => {
-        const rand = Math.random();
-        if (heroAction === 'check') {
-            // Villain checks ~40%, bets ~60%
-            if (rand < 0.4) return { action: 'check', amount: 0 };
-            return { action: 'bet', amount: Math.round(currentPot * 0.67 * 100) / 100 };
-        }
-        if (heroAction === 'bet' || heroAction === 'raise') {
-            // Villain folds ~35%, calls ~50%, raises ~15%
-            if (rand < 0.35) return { action: 'fold', amount: 0 };
-            if (rand < 0.85) return { action: 'call', amount: Math.round(currentPot * 0.5 * 100) / 100 };
-            return { action: 'raise', amount: Math.round(currentPot * 2.5 * 100) / 100 };
-        }
-        if (heroAction === 'call') {
-            return { action: 'check', amount: 0 }; // Villain checked, hero called — move on
-        }
-        return { action: 'check', amount: 0 };
-    }, []);
-
-    // Advance to next street
-    const advanceStreet = useCallback((fromStreet, newPot) => {
-        const deck = deckRef.current;
-        if (fromStreet === 'preflop') {
-            setBoard([deck[2], deck[3], deck[4]]); // Flop
-            setCurrentStreet('flop');
-        } else if (fromStreet === 'flop') {
-            setBoard(prev => [...prev, deck[5]]); // Turn
-            setCurrentStreet('turn');
-        } else if (fromStreet === 'turn') {
-            setBoard(prev => [...prev, deck[6]]); // River
-            setCurrentStreet('river');
-        } else if (fromStreet === 'river') {
-            // Showdown
-            const heroWon = Math.random() > 0.45; // Simplified
-            setShowdownResult({
-                result: 'showdown',
-                pot: newPot,
-                heroWon,
-                evLoss: heroWon ? 0 : (Math.random() * 2).toFixed(2),
-            });
-            setGameState('handComplete');
-        }
-    }, []);
+    }, [currentStreet, pot, heroStack, heroPosition, simulateVillainResponse, advanceStreet]);
 
     // Save hand result and advance
     const nextHand = useCallback(() => {

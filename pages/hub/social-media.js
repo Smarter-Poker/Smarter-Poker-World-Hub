@@ -40,7 +40,7 @@ const InviteFriendsModal = dynamic(() => import('../../src/components/ui/InviteF
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import Image from 'next/image';
+import NextImage from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
@@ -389,7 +389,7 @@ function LinkPreviewCard({ url }) {
                 if (linkPreviewInflight.has(url)) {
                     data = await linkPreviewInflight.get(url);
                 } else {
-                    const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`, { signal })
+                    const promise = fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
                         .then(r => r.json());
                     linkPreviewInflight.set(url, promise);
                     data = await promise;
@@ -2844,7 +2844,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
                                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                                 {/* Table image fills entire container */}
-                                                <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
+                                                <NextImage src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
                                                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                                     objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
                                                 }} />
@@ -3357,7 +3357,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
                                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                         {/* Table image fills entire container */}
-                                        <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
+                                        <NextImage src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
                                             position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
                                             objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
                                         }} />
@@ -4568,16 +4568,16 @@ export default function SocialMediaPage() {
     useEffect(() => { feedOffsetRef.current = feedOffset; }, [feedOffset]);
     useEffect(() => { hasMorePostsRef.current = hasMorePosts; }, [hasMorePosts]);
     useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!userId) return;
-    const _ch = supabase
-      .channel(`social:${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, () => {})
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!userId) return;
+        const _ch = supabase
+            .channel(`social:${userId}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [userId]);
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
@@ -5155,7 +5155,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/friends.png" alt="" width={128} height={82} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <NextImage src="/icons/friends.png" alt="" width={128} height={82} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
                     {/* Club Arena - Purple columns SVG (fallback) */}
@@ -5176,7 +5176,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/diamond.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <NextImage src="/icons/diamond.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
                     </Link>
                     {/* Tournaments - Custom AI icon */}
@@ -5184,7 +5184,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <NextImage src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
                     {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
@@ -5206,7 +5206,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/gto.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <NextImage src="/icons/gto.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
                     </Link>
                     {/* Reels - Custom AI icon */}
@@ -5214,7 +5214,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <Image src="/icons/reels.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <NextImage src="/icons/reels.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
                     </Link>
                 </div>

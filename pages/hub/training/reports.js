@@ -143,6 +143,7 @@ export default function GTOReports() {
 
     // Get user ID from supabase on mount
     useEffect(() => {
+        if (typeof window === 'undefined') return;
         (async () => {
             try {
                 const { createClient } = await import('@supabase/supabase-js');
@@ -151,9 +152,14 @@ export default function GTOReports() {
                     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
                 );
                 const { data: { user } } = await sb.auth.getUser();
-                if (user) setUserId(user.id);
+                if (user) {
+                    setUserId(user.id);
+                } else {
+                    setLoading(false); // No user → stop loading spinner
+                }
             } catch (e) {
                 console.warn('[Reports] Auth error:', e);
+                setLoading(false);
             }
         })();
     }, []);

@@ -602,3 +602,282 @@ export function AnalysisSkeleton() {
         </div>
     );
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PREFLOP CHART OVERLAY — Phase 2.1
+// Compact 13x13 range grid with position-specific GTO colors
+// ═══════════════════════════════════════════════════════════════════════════
+export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercent, onChangeScenario }) {
+    if (!rangeGrid) return null;
+
+    const actionColors = { raise: '#22c55e', '3bet': '#ef4444', call: '#3b82f6', fold: 'transparent' };
+    return (
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
+                    Preflop Range -- {position} ({rangePercent}% of hands)
+                </h4>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    {['rfi', '3bet'].map(s => (
+                        <button key={s} onClick={() => onChangeScenario(s)} style={{
+                            padding: '3px 8px', borderRadius: '5px', fontSize: '9px', fontWeight: '600',
+                            background: scenario === s ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                            border: scenario === s ? '1px solid rgba(35,116,225,0.3)' : '1px solid #4E4F50',
+                            color: scenario === s ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
+                        }}>{s === 'rfi' ? 'Open Raise' : '3-Bet'}</button>
+                    ))}
+                </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px', fontSize: '7px' }}>
+                {rangeGrid.flat().map((cell, i) => (
+                    <div key={i} style={{
+                        padding: '2px 1px', textAlign: 'center', borderRadius: '2px',
+                        background: cell.inRange ? (actionColors[cell.action] || '#3A3B3C') + '33' : '#1a1a2e',
+                        border: cell.inRange ? `1px solid ${actionColors[cell.action]}44` : '1px solid transparent',
+                        color: cell.inRange ? '#E4E6EB' : '#4E4F50',
+                        fontWeight: cell.inRange ? '600' : '400',
+                    }}>{cell.hand}</div>
+                ))}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', fontSize: '9px' }}>
+                <span style={{ color: '#22c55e' }}>Raise</span>
+                <span style={{ color: '#ef4444' }}>3-Bet</span>
+                <span style={{ color: '#3b82f6' }}>Call</span>
+                <span style={{ color: '#4E4F50' }}>Fold</span>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RUNOUT CHART — Phase 2.2
+// Shows best/worst cards for next street + improve/worsen rates
+// ═══════════════════════════════════════════════════════════════════════════
+export function RunoutChart({ runoutData }) {
+    if (!runoutData || !runoutData.bestCards || runoutData.bestCards.length === 0) return null;
+
+    return (
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
+            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px', fontWeight: '700' }}>
+                Runout Simulator
+            </h4>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '8px' }}>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#22c55e', fontFamily: "'Orbitron',monospace" }}>{runoutData.improveRate}%</div>
+                    <div style={{ fontSize: '9px', color: '#B0B3B8' }}>Cards improve</div>
+                </div>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#ef4444', fontFamily: "'Orbitron',monospace" }}>{runoutData.worsenRate}%</div>
+                    <div style={{ fontSize: '9px', color: '#B0B3B8' }}>Cards worsen</div>
+                </div>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#fbbf24', fontFamily: "'Orbitron',monospace" }}>{runoutData.avgEquity}%</div>
+                    <div style={{ fontSize: '9px', color: '#B0B3B8' }}>Avg equity</div>
+                </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '9px', color: '#22c55e', fontWeight: '600', marginBottom: '4px' }}>Best Cards</div>
+                    {runoutData.bestCards.map((c, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '10px' }}>
+                            <span style={{ color: '#E4E6EB', fontWeight: '600' }}>{c.card}</span>
+                            <span style={{ color: '#22c55e' }}>{c.equity}%</span>
+                        </div>
+                    ))}
+                </div>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: '600', marginBottom: '4px' }}>Worst Cards</div>
+                    {runoutData.worstCards.map((c, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontSize: '10px' }}>
+                            <span style={{ color: '#E4E6EB', fontWeight: '600' }}>{c.card}</span>
+                            <span style={{ color: '#ef4444' }}>{c.equity}%</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPLOIT TOGGLE — Phase 2.3
+// Toggle between GTO and Exploitative recommendations
+// ═══════════════════════════════════════════════════════════════════════════
+export function ExploitToggle({ mode, onToggle, exploitTip }) {
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <button
+                onClick={() => onToggle(mode === 'gto' ? 'exploit' : 'gto')}
+                style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: '700',
+                    background: mode === 'gto' ? 'rgba(34,197,94,0.15)' : 'rgba(251,191,36,0.15)',
+                    border: `1px solid ${mode === 'gto' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.3)'}`,
+                    color: mode === 'gto' ? '#4ade80' : '#fde68a',
+                    cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.5px',
+                }}>
+                {mode === 'gto' ? 'GTO' : 'Exploit'}
+            </button>
+            {mode === 'exploit' && exploitTip && (
+                <span style={{ fontSize: '10px', color: '#fde68a', fontStyle: 'italic' }}>{exploitTip}</span>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUIZ PANEL — Phase 3.1
+// "What Would You Do?" — pick an action before seeing the GTO answer
+// ═══════════════════════════════════════════════════════════════════════════
+export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score }) {
+    const actions = ['Check', 'Call', 'Bet Small', 'Bet Medium', 'Bet Large', 'Raise', 'Fold', 'All-In'];
+
+    if (revealed) {
+        const isCorrect = userGuess && correctAction && userGuess.toLowerCase().includes(correctAction.toLowerCase().split(' ')[0]);
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                style={{
+                    padding: '12px', borderRadius: '12px', marginBottom: '12px',
+                    background: isCorrect ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                    border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                }}>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: isCorrect ? '#4ade80' : '#fca5a5', marginBottom: '4px' }}>
+                    {isCorrect ? 'Correct' : 'Incorrect'}
+                </div>
+                <div style={{ fontSize: '11px', color: '#B0B3B8' }}>
+                    You chose: <strong style={{ color: '#E4E6EB' }}>{userGuess}</strong> | GTO: <strong style={{ color: '#4599FF' }}>{correctAction}</strong>
+                </div>
+                {score && (
+                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                        Score: {score.correct}/{score.total} ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%) | Streak: {score.streak}
+                    </div>
+                )}
+            </motion.div>
+        );
+    }
+
+    return (
+        <div style={{ padding: '12px', borderRadius: '12px', marginBottom: '12px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: '#c4b5fd', marginBottom: '8px' }}>What Would You Do?</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
+                {actions.map(a => (
+                    <button key={a} onClick={() => onGuess(a)} style={{
+                        padding: '6px 4px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
+                        background: '#242526', border: '1px solid #3A3B3C', color: '#E4E6EB',
+                        cursor: 'pointer', transition: 'all 0.2s',
+                    }}>{a}</button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STUDY REPLAY CARD — Phase 3.2
+// Compact flashcard view of a previous analysis
+// ═══════════════════════════════════════════════════════════════════════════
+export function StudyReplayCard({ session, index, total, onNext, onPrev }) {
+    if (!session) return null;
+
+    return (
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px', border: '1px solid #3A3B3C' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
+                    Study Card {index + 1} of {total}
+                </h4>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    <button onClick={onPrev} disabled={index === 0} style={{ padding: '4px 8px', borderRadius: '5px', fontSize: '11px', background: '#3A3B3C', border: 'none', color: index === 0 ? '#65676B' : '#E4E6EB', cursor: index === 0 ? 'default' : 'pointer' }}>Prev</button>
+                    <button onClick={onNext} disabled={index >= total - 1} style={{ padding: '4px 8px', borderRadius: '5px', fontSize: '11px', background: '#3A3B3C', border: 'none', color: index >= total - 1 ? '#65676B' : '#E4E6EB', cursor: index >= total - 1 ? 'default' : 'pointer' }}>Next</button>
+                </div>
+            </div>
+            <div style={{ fontSize: '11px', color: '#E4E6EB', marginBottom: '4px' }}>
+                {session.label || session.hero_position + ' ' + (session.hero_hand || 'Unknown')}
+            </div>
+            {session.full_analysis && (
+                <div style={{ fontSize: '10px', color: '#B0B3B8' }}>
+                    Optimal: <strong style={{ color: '#4ade80' }}>{session.full_analysis?.optimalAction?.label || 'N/A'}</strong>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCURACY BADGE — Phase 3.4
+// Shows quiz accuracy % and streak in the header
+// ═══════════════════════════════════════════════════════════════════════════
+export function AccuracyBadge({ stats }) {
+    if (!stats || stats.total === 0) return null;
+
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '4px 10px', borderRadius: '16px', fontSize: '10px', fontWeight: '700',
+            background: stats.accuracy >= 70 ? 'rgba(34,197,94,0.1)' : stats.accuracy >= 50 ? 'rgba(251,191,36,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1px solid ${stats.accuracy >= 70 ? 'rgba(34,197,94,0.2)' : stats.accuracy >= 50 ? 'rgba(251,191,36,0.2)' : 'rgba(239,68,68,0.2)'}`,
+            color: stats.accuracy >= 70 ? '#4ade80' : stats.accuracy >= 50 ? '#fde68a' : '#fca5a5',
+        }}>
+            <span>{stats.accuracy}% Accuracy</span>
+            {stats.streak > 0 && <span style={{ color: '#fbbf24' }}>{stats.streak} Streak</span>}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEEKLY SPOT BANNER — Phase 4.3
+// Shows the current week's challenge with a "Load This Spot" button
+// ═══════════════════════════════════════════════════════════════════════════
+export function WeeklySpotBanner({ spot, onLoad }) {
+    if (!spot) return null;
+
+    return (
+        <div style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.08))',
+            border: '1px solid rgba(139,92,246,0.2)',
+            borderRadius: '12px', padding: '12px', marginBottom: '12px',
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <h4 style={{ color: '#c4b5fd', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
+                    Weekly Spot Challenge
+                </h4>
+                <button onClick={() => onLoad(spot)} style={{
+                    padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
+                    background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)',
+                    color: '#c4b5fd', cursor: 'pointer',
+                }}>Load This Spot</button>
+            </div>
+            <div style={{ fontSize: '11px', color: '#E4E6EB' }}>
+                {spot.description || 'Can you find the GTO play?'}
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LEADERBOARD CARD — Phase 4.4
+// Compact leaderboard for quiz accuracy
+// ═══════════════════════════════════════════════════════════════════════════
+export function LeaderboardCard({ entries }) {
+    if (!entries || entries.length === 0) return null;
+
+    return (
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px', border: '1px solid #3A3B3C' }}>
+            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px', fontWeight: '700' }}>
+                Leaderboard
+            </h4>
+            {entries.map((e, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '11px', borderBottom: i < entries.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: i < 3 ? '#fbbf24' : '#64748b', fontWeight: '700' }}>#{i + 1}</span>
+                        <span style={{ color: '#E4E6EB' }}>{e.name || 'Anonymous'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ color: e.accuracy >= 70 ? '#4ade80' : '#fde68a', fontWeight: '600' }}>{e.accuracy}%</span>
+                        {e.streak > 0 && <span style={{ color: '#fbbf24', fontSize: '10px' }}>{e.streak} Streak</span>}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
