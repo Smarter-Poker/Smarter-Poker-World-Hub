@@ -42,7 +42,7 @@ export default function StreaksPage() {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`train-streaks:${user?.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => { refreshStreak(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);
