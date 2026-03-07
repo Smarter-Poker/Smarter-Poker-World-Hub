@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../../src/lib/supabase';
 import LivePokerTable from '../../../../src/components/poker/LivePokerTable';
 import SEOHead from '../../../../src/components/seo/SEOHead';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../../../src/lib/authUtils';
 
 export default function PokerTablePage() {
   const router = useRouter();
@@ -20,19 +20,19 @@ export default function PokerTablePage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const token = getAccessToken();
-      if (session?.user) {
-        setUserId(session.user.id);
+      const authUser = getAuthUser();
+      if (authUser) {
+        setUserId(authUser.id);
 
         // Fetch profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('display_name, avatar_url')
-          .eq('id', session.user.id)
+          .eq('id', authUser.id)
           .maybeSingle();
 
         if (profile) {
-          setDisplayName(profile.display_name || session.user.email?.split('@')[0] || 'Player');
+          setDisplayName(profile.display_name || authUser.email?.split('@')[0] || 'Player');
           setAvatarUrl(profile.avatar_url);
         }
       } else {
