@@ -556,7 +556,11 @@ export default function VirtualSandbox() {
   useEffect(() => {
     if (results && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('pa-sandbox-updated', {
-        detail: { heroPosition, heroHand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`, results: !!results }
+        detail: {
+          heroPosition, heroHand: `${heroHand.card1 || ''}${heroHand.card2 || ''}`,
+          results: !!results, equity: equity?.heroEquity || null,
+          quizAccuracy: quizScore.total > 0 ? Math.round(quizScore.correct / quizScore.total * 100) : null,
+        }
       }));
     }
   }, [results, heroPosition, heroHand]);
@@ -594,13 +598,15 @@ export default function VirtualSandbox() {
     }
     let pot = 1.5;
     actionHistory.forEach(a => {
-      if (a.action === 'bet_33') pot += pot * 0.33;
-      else if (a.action === 'bet_50') pot += pot * 0.5;
-      else if (a.action === 'bet_66') pot += pot * 0.66;
-      else if (a.action === 'bet_100') pot += pot;
-      else if (a.action === 'call') pot += pot * 0.5;
+      if (a.action === 'call') pot += pot * 0.5;
       else if (a.action === 'raise') pot += pot * 1.5;
       else if (a.action === 'allin') pot = heroStack * 2;
+      else if (a.action === 'check' || a.action === 'fold') { /* no change */ }
+      else if (a.action && a.action.startsWith('bet_')) {
+        // Parse any bet_XX format (bet_33, bet_50, bet_66, bet_75, bet_100, bet_150, etc.)
+        const pct = parseInt(a.action.split('_')[1], 10);
+        if (!isNaN(pct) && pct > 0) pot += pot * (pct / 100);
+      }
     });
     setPotSize(Math.round(pot * 10) / 10);
   }, [actionHistory, heroStack]);
@@ -713,6 +719,13 @@ export default function VirtualSandbox() {
     setBoard({ flop: [], turn: null, river: null });
     setActionHistory([]); setPotSize(6); clearResults();
     setComparePosition(null);
+    // Phase 1-4 state reset
+    setStreetHistory([]); setActiveStreet(0);
+    setEquity(null); setRunoutData(null);
+    undoStackRef.current = [];
+    setQuizMode(false); setUserGuess(null); setQuizRevealed(false);
+    setExploitMode('gto'); setPreflopScenario('rfi');
+    setBubbleFactor(1.0);
   };
 
   if (isGated) return GateComponent;

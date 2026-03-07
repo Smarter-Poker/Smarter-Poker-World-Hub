@@ -253,7 +253,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             const [active, gigs, locs] = await Promise.all([
                 getActiveGig(userId),
                 fetchGigs(userId),
-                getUserLocations(userId),
+                // Locations are non-critical — don't let AbortError crash the whole load
+                getUserLocations(userId).catch(locErr => {
+                    console.warn('[TokeTracker] getUserLocations failed (non-fatal):', locErr?.message);
+                    return [];
+                }),
             ]);
             loadAttemptRef.current = 0; // Reset on success
             setActiveGig(active);
