@@ -45,7 +45,7 @@ export default async function handler(req, res) {
                 .from('training_streaks')
                 .select('*')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             if (!streak) {
                 return res.status(200).json({
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
                 .from('training_streaks')
                 .select('*')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             if (!existing) {
                 // Create new streak
@@ -207,7 +207,7 @@ export default async function handler(req, res) {
                 .from('training_streaks')
                 .select('*')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             if (!streak || streak.current_streak < milestoneDays) {
                 return res.status(400).json({ success: false, error: 'Milestone not achieved' });

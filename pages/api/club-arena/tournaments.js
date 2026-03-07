@@ -61,7 +61,7 @@ export default async function handler(req, res) {
           .select('role')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
           return res.status(403).json({ success: false, error: 'Only club admins can create tournaments' });
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
             },
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (createErr) {
           console.error('[tournament/create]', createErr);
@@ -228,7 +228,7 @@ export default async function handler(req, res) {
           .from('club_tournaments')
           .select('*')
           .eq('id', tournamentId)
-          .single();
+          .maybeSingle();
 
         if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (!['scheduled', 'registering'].includes(tourn.status)) {
@@ -244,7 +244,7 @@ export default async function handler(req, res) {
           .select('chip_balance')
           .eq('club_id', tourn.club_id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!member) return res.status(400).json({ success: false, error: 'Not a member of this club' });
         if ((member.chip_balance || 0) < tourn.buy_in) {
@@ -258,7 +258,7 @@ export default async function handler(req, res) {
           .eq('tournament_id', tournamentId)
           .eq('user_id', user.id)
           .eq('status', 'registered')
-          .single();
+          .maybeSingle();
 
         if (existing) return res.status(400).json({ success: false, error: 'Already registered' });
 
@@ -314,7 +314,7 @@ export default async function handler(req, res) {
             .from('club_tournaments')
             .select('registered_count, prize_pool')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
           // Retry the increment with fresh values
           await supabaseAdmin
             .from('club_tournaments')
@@ -330,7 +330,7 @@ export default async function handler(req, res) {
           .from('club_tournaments')
           .select('registered_count')
           .eq('id', tournamentId)
-          .single();
+          .maybeSingle();
         const currentCount = freshTourn?.registered_count || tourn.registered_count + 1;
 
         // Auto-start SNG when full — init engine THEN mark running
@@ -391,7 +391,7 @@ export default async function handler(req, res) {
           .eq('tournament_id', tournamentId)
           .eq('user_id', user.id)
           .eq('status', 'registered')
-          .single();
+          .maybeSingle();
 
         if (!reg) return res.status(400).json({ success: false, error: 'Not registered' });
 
@@ -437,7 +437,7 @@ export default async function handler(req, res) {
           .from('club_tournaments')
           .select('*')
           .eq('id', tournamentId)
-          .single();
+          .maybeSingle();
 
         if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
@@ -447,7 +447,7 @@ export default async function handler(req, res) {
           .select('role')
           .eq('club_id', tourn.club_id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
           return res.status(403).json({ success: false, error: 'Admin only' });
@@ -529,7 +529,7 @@ export default async function handler(req, res) {
           .from('club_tournaments')
           .select('*')
           .eq('id', tournamentId)
-          .single();
+          .maybeSingle();
 
         if (!tourn) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (tourn.status === 'running') {
@@ -542,7 +542,7 @@ export default async function handler(req, res) {
           .select('role')
           .eq('club_id', tourn.club_id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!cancelMember || !['owner', 'admin', 'manager'].includes(cancelMember.role)) {
           return res.status(403).json({ success: false, error: 'Only club admins can cancel tournaments' });

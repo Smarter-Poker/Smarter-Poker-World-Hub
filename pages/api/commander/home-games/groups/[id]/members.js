@@ -71,7 +71,7 @@ async function listMembers(req, res, groupId) {
       .select('role, status')
       .eq('group_id', groupId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!myMembership || myMembership.status !== 'approved') {
       return res.status(403).json({ success: false, error: 'You are not a member of this group' });
@@ -131,7 +131,7 @@ async function joinOrInvite(req, res, groupId) {
       .from('commander_home_groups')
       .select('id, owner_id, is_private, requires_approval, invite_code')
       .eq('id', groupId)
-      .single();
+      .maybeSingle();
 
     if (groupError || !group) {
       return res.status(404).json({ success: false, error: 'Group not found' });
@@ -145,7 +145,7 @@ async function joinOrInvite(req, res, groupId) {
         .eq('group_id', groupId)
         .eq('user_id', user.id)
         .eq('status', 'approved')
-        .single();
+        .maybeSingle();
 
       if (!myMembership || (myMembership.role !== 'owner' && myMembership.role !== 'admin')) {
         return res.status(403).json({ success: false, error: 'Only admins can invite members' });
@@ -156,7 +156,7 @@ async function joinOrInvite(req, res, groupId) {
         .from('profiles')
         .select('id')
         .eq('id', user_id)
-        .single();
+        .maybeSingle();
 
       if (!targetUser) {
         return res.status(404).json({ success: false, error: 'User not found' });
@@ -196,7 +196,7 @@ async function joinOrInvite(req, res, groupId) {
       .select('id, status')
       .eq('group_id', groupId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       if (existing.status === 'approved') {
@@ -281,7 +281,7 @@ async function updateMembership(req, res, groupId) {
       .eq('group_id', groupId)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (!myMembership || (myMembership.role !== 'owner' && myMembership.role !== 'admin')) {
       return res.status(403).json({ success: false, error: 'Only owners and admins can manage members' });
@@ -293,7 +293,7 @@ async function updateMembership(req, res, groupId) {
       .select('*')
       .eq('id', member_id)
       .eq('group_id', groupId)
-      .single();
+      .maybeSingle();
 
     if (!targetMember) {
       return res.status(404).json({ success: false, error: 'Member not found' });
@@ -349,7 +349,7 @@ async function updateMembership(req, res, groupId) {
         *,
         profiles:user_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -383,7 +383,7 @@ async function leaveOrRemove(req, res, groupId) {
         .select('id, role')
         .eq('group_id', groupId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!myMembership) {
         return res.status(404).json({ success: false, error: 'You are not a member of this group' });
@@ -410,7 +410,7 @@ async function leaveOrRemove(req, res, groupId) {
       .eq('group_id', groupId)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (!myMembership || (myMembership.role !== 'owner' && myMembership.role !== 'admin')) {
       return res.status(403).json({ success: false, error: 'Only owners and admins can remove members' });
@@ -421,7 +421,7 @@ async function leaveOrRemove(req, res, groupId) {
       .select('role')
       .eq('id', member_id)
       .eq('group_id', groupId)
-      .single();
+      .maybeSingle();
 
     if (!targetMember) {
       return res.status(404).json({ success: false, error: 'Member not found' });

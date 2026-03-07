@@ -49,7 +49,7 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('user_id', userId)
                 .eq('bonus_date', today)
-                .single();
+                .maybeSingle();
 
             if (claimed) {
                 return res.status(200).json({
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
                 .from('training_streaks')
                 .select('current_streak')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             const currentStreak = streak?.current_streak || 0;
 
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('user_id', userId)
                 .eq('bonus_date', today)
-                .single();
+                .maybeSingle();
 
             if (existing) {
                 return res.status(200).json({
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
                 .from('training_streaks')
                 .select('current_streak')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             const currentStreak = streak?.current_streak || 0;
 

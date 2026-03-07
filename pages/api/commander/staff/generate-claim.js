@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             .eq('id', staff_id)
             .eq('venue_id', venue_id)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
 
         if (staffErr || !staff) {
             return res.status(404).json({ success: false, error: 'Staff member not found' });
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .select('name')
             .eq('id', venue_id)
-            .single();
+            .maybeSingle();
 
         return res.status(201).json({
             success: true,

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         .from('profiles')
         .select('id, display_name, city, state')
         .eq('id', user.id)
-        .single(),
+        .maybeSingle(),
 
       // 2. Player preferences (all venues — general prefs)
       supabase

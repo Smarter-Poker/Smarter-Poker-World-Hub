@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       .from('commander_leads')
       .select('id, email, visit_count')
       .eq('email', email.toLowerCase())
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Update existing lead with new activity

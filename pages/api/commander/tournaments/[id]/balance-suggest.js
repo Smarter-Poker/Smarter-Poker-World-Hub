@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('id, venue_id')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     // Get all active entries with table/seat info

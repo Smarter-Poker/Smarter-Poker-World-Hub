@@ -61,7 +61,7 @@ export default async function handler(req, res) {
                 .from('commander_dealers')
                 .select('id, name, employee_id, skill_level')
                 .eq('id', rotation.dealer_id)
-                .single();
+                .maybeSingle();
             dealerDetails = dealerRow;
         }
 

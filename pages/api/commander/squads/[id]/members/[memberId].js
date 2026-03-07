@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       .from('commander_waitlist_groups')
       .select('leader_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!squad || squad.leader_id !== _u.id) {
       return res.status(403).json({ success: false, error: 'Only squad leader can remove members' });

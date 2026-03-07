@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .eq('group_id', id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (memberError || !membership) {
       return res.status(403).json({

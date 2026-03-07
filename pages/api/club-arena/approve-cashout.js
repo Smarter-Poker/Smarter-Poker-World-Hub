@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       .from('cashout_requests')
       .select('id, club_id, player_id, agent_id, amount, status')
       .eq('id', cashoutId)
-      .single();
+      .maybeSingle();
 
     if (coErr || !cashout) return res.status(404).json({ success: false, error: 'Cashout request not found' });
 
@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       .eq('id', cashoutId)
       .eq('status', 'pending')  // Only succeeds if still pending
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (claimErr || !claimed) {
       return res.status(409).json({ success: false, error: 'Cashout already processed or claimed by another request' });
@@ -80,16 +80,16 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', cashout.club_id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     const isAgent = cashout.agent_id === user.id;
     const isAdmin = ['owner', 'admin'].includes(callerMember?.role);
     if (!isAgent && !isAdmin) {
       // Union admin fallback
-      const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', cashout.club_id).single();
+      const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', cashout.club_id).maybeSingle();
       let unionAuth = false;
       if (clubInfo?.union_id) {
-        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
         unionAuth = !!ua;
       }
       if (!unionAuth) {
@@ -102,14 +102,14 @@ export default async function handler(req, res) {
       .from('profiles')
       .select('username, display_name')
       .eq('id', cashout.player_id)
-      .single();
+      .maybeSingle();
     const playerName = playerProfile?.display_name || playerProfile?.username || 'Player';
 
     const { data: agentProfile } = await supabaseAdmin
       .from('profiles')
       .select('username, display_name')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
     // ═════════════════════════════════════════════════════════════
@@ -206,7 +206,7 @@ export default async function handler(req, res) {
         .select('chip_balance')
         .eq('club_id', cashout.club_id)
         .eq('user_id', cashout.player_id)
-        .single();
+        .maybeSingle();
 
       // Mark cashout cancelled (from 'cancelling' → 'cancelled')
       await supabaseAdmin

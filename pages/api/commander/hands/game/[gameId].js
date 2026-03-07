@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       .from('commander_games')
       .select('id, game_type, stakes')
       .eq('id', gameId)
-      .single();
+      .maybeSingle();
 
     if (gameError || !game) {
       return res.status(404).json({

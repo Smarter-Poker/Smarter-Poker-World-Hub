@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'GET') {
-    const { data, error } = await supabase.from('commander_venue_settings').select('*').eq('venue_id', id).single();
+    const { data, error } = await supabase.from('commander_venue_settings').select('*').eq('venue_id', id).maybeSingle();
     if (error) return res.json({ success: true, data: { settings: {} } });
     return res.json({ success: true, data: { settings: data } });
   }

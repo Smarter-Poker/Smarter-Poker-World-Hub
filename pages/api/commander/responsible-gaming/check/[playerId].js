@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       .from('commander_spending_limits')
       .select('*')
       .eq('player_id', playerId)
-      .single();
+      .maybeSingle();
 
     // Check current spending against limits
     let limitReached = false;

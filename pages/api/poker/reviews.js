@@ -171,7 +171,7 @@ export default async function handler(req, res) {
         .from('venue_reviews')
         .select('helpful_count')
         .eq('id', review_id)
-        .single();
+        .maybeSingle();
 
       if (fetchErr || !existing) {
         return res.status(404).json({ success: false, error: 'Review not found' });

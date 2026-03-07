@@ -63,7 +63,7 @@ export default async function handler(req, res) {
                     .eq('user_id', userId)
                     .eq('period_type', period.type)
                     .eq('period_key', period.key)
-                    .single();
+                    .maybeSingle();
 
                 if (existing) {
                     const newTotal = existing.questions_answered + questionsAnswered;

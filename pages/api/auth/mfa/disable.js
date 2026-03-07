@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             .from('user_mfa_factors')
             .select('secret, enabled, backup_codes')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (mfaError || !mfaData || !mfaData.enabled) {
             return res.status(404).json({ error: '2FA is not enabled on this account' });

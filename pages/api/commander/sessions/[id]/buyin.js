@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       .from('commander_player_sessions')
       .select('id, status, total_buyin, venue_id, player_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !session) {
       return res.status(404).json({
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       .update({ total_buyin: newTotal })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Session buy-in error:', updateError);

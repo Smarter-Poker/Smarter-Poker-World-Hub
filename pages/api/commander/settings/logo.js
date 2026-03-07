@@ -50,7 +50,7 @@ export default async function handler(req, res) {
                 .from('commander_venue_settings')
                 .select('club_logo_url')
                 .eq('venue_id', staff.venue_id)
-                .single();
+                .maybeSingle();
 
             if (settings?.club_logo_url) {
                 const urlParts = settings.club_logo_url.split(`/${BUCKET}/`);
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
                 .from('commander_venue_settings')
                 .select('club_logo_url')
                 .eq('venue_id', staff.venue_id)
-                .single();
+                .maybeSingle();
 
             if (existingSettings?.club_logo_url) {
                 const urlParts = existingSettings.club_logo_url.split(`/${BUCKET}/`);

@@ -25,7 +25,7 @@ async function verifyUnionAdmin(token, unionId) {
     .select('role, permissions')
     .eq('union_id', unionId)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!admin) return { error: 'Not a union admin', status: 403 };
 
@@ -201,7 +201,7 @@ export default async function handler(req, res) {
           },
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -251,7 +251,7 @@ export default async function handler(req, res) {
           },
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -270,7 +270,7 @@ export default async function handler(req, res) {
         .from('club_tournaments')
         .select('id, club_id, status')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (!tourn || !clubIds.includes(tourn.club_id)) {
         return res.status(404).json({ success: false, error: 'Tournament not found in union' });
@@ -326,7 +326,7 @@ export default async function handler(req, res) {
         .from('club_tournaments')
         .select('id, club_id, status')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (!tourn || !clubIds.includes(tourn.club_id)) {
         return res.status(404).json({ success: false, error: 'Tournament not found in union' });
@@ -385,7 +385,7 @@ export default async function handler(req, res) {
         .from('club_tournaments')
         .select('id, club_id, status')
         .eq('id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (!tourn || !clubIds.includes(tourn.club_id)) {
         return res.status(404).json({ success: false, error: 'Tournament not found in union' });
@@ -414,7 +414,7 @@ export default async function handler(req, res) {
         .from('tables')
         .select('id, club_id, status')
         .eq('id', tableId)
-        .single();
+        .maybeSingle();
 
       if (!table || !clubIds.includes(table.club_id)) {
         return res.status(404).json({ success: false, error: 'Table not found in union' });

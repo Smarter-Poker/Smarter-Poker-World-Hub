@@ -50,7 +50,7 @@ export default async function handler(req, res) {
             .select('id, rating')
             .eq('cache_id', cacheId)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (existingRating) {
             // Update existing rating
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
             .from('geeves_knowledge_cache')
             .select('avg_rating, total_ratings')
             .eq('id', cacheId)
-            .single();
+            .maybeSingle();
 
         return res.status(200).json({
             success: true,

@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
     if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
         return res.status(403).json({ success: false, error: 'Access denied' });

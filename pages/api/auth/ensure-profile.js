@@ -14,7 +14,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     // Use service key to bypass RLS
     const supabase = createClient(
         SUPABASE_URL.trim(),
-        SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY
+        SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
     );
 
     // BUG #240 FIX: Require JWT auth and verify caller is the same user
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, username, full_name, email, created_at')
             .eq('id', user_id)
-            .single();
+            .maybeSingle();
 
         if (existingProfile) {
             // Profile exists - optionally update last_login
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
             .select('player_number')
             .order('player_number', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         const nextPlayerNumber = (maxPlayer?.player_number || 1254) + 1;
 

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .eq('id', id)
       .eq('player_id', user.id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Mark read error:', error);

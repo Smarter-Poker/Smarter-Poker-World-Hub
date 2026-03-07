@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       .select('role, permissions')
       .eq('union_id', unionId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!callerAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
         .from('clubs')
         .select('id, name, union_id, owner_id')
         .eq(isUUID ? 'id' : 'club_id', isUUID ? clubId : parseInt(clubId))
-        .single();
+        .maybeSingle();
 
       if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
       if (club.union_id && club.union_id !== unionId) {
@@ -226,7 +226,7 @@ export default async function handler(req, res) {
         .from('profiles')
         .select('id, username, display_name')
         .eq('id', adminUserId)
-        .single();
+        .maybeSingle();
 
       if (!profile) return res.status(404).json({ success: false, error: 'User not found' });
 
@@ -303,7 +303,7 @@ export default async function handler(req, res) {
         .select('club_id')
         .eq('union_id', unionId)
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
 
       if (!uc) return res.status(404).json({ success: false, error: 'Club not found in this union' });
 

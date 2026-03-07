@@ -131,7 +131,7 @@ export default async function handler(req, res) {
                     .from('commander_members')
                     .select('time_balance_minutes')
                     .eq('id', session.member_id)
-                    .single();
+                    .maybeSingle();
 
                 if (member) {
                     await supabase
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
                     .from('commander_venue_settings')
                     .select('auto_comp_rate')
                     .eq('venue_id', session.venue_id)
-                    .single();
+                    .maybeSingle();
 
                 const rate = parseFloat(venueSettings?.auto_comp_rate || 0);
                 if (rate > 0) {
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
                             .from('commander_members')
                             .select('comp_balance, comp_lifetime_earned')
                             .eq('id', session.member_id)
-                            .single();
+                            .maybeSingle();
 
                         if (member) {
                             await supabase

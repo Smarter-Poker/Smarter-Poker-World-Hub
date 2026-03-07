@@ -35,14 +35,14 @@ export default async function handler(req, res) {
             .select('role')
             .eq('club_id', clubId)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
             // Union admin fallback
-            const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).single();
+            const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
             let unionAuth = false;
             if (clubInfo?.union_id) {
-                const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+                const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
                 unionAuth = !!ua;
             }
             if (!unionAuth) {
@@ -165,7 +165,7 @@ export default async function handler(req, res) {
                 },
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (createErr) throw createErr;
 
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
             .from('clubs')
             .select('table_count')
             .eq('id', clubId)
-            .single();
+            .maybeSingle();
 
         if (club) {
             const oldCount = club.table_count || 0;
@@ -187,7 +187,7 @@ export default async function handler(req, res) {
                 .limit(200);
 
             if (!upd?.length) {
-                const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).single();
+                const { data: fresh } = await supabaseAdmin.from('clubs').select('table_count').eq('id', clubId).maybeSingle();
                 if (fresh) {
                     await supabaseAdmin.from('clubs').update({ table_count: (fresh.table_count || 0) + 1 }).eq('id', clubId);
                 }

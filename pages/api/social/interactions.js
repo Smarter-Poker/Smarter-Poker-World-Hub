@@ -141,7 +141,7 @@ export default async function handler(req, res) {
             // Update comment count on post
             await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(() => {
                 // If RPC doesn't exist, try direct update
-                supabase.from('social_posts').select('comment_count').eq('id', post_id).single().then(({ data: p }) => {
+                supabase.from('social_posts').select('comment_count').eq('id', post_id).maybeSingle().then(({ data: p }) => {
                     supabase.from('social_posts').update({ comment_count: (p?.comment_count || 0) + 1 }).eq('id', post_id);
                 });
             });

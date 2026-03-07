@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       .from('commander_members')
       .select('visit_count')
       .eq('id', member_id)
-      .single();
+      .maybeSingle();
 
     const { data: member, error: memberError } = await supabase
       .from('commander_members')
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       })
       .eq('id', member_id)
       .select()
-      .single();
+      .maybeSingle();
 
     // Also log the check-in event
     await supabase.from('commander_checkins').insert({

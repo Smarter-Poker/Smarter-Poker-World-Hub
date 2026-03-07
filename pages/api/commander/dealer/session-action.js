@@ -44,7 +44,7 @@ export default async function handler(req, res) {
                 .eq('id', entry_id)
                 .eq('tournament_id', tournament_id)
                 .select('id, player_name, current_chips')
-                .single();
+                .maybeSingle();
             if (eErr) throw eErr;
             return res.status(200).json({ success: true, data: { action: 'tournament_chip_update', player_name: entry.player_name, entry_id: entry.id, chip_count: entry.current_chips } });
         } catch (err) {
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
                 .select('mode')
                 .eq('table_number', parseInt(table_number))
                 .eq('venue_id', session.venue_id)
-                .single();
+                .maybeSingle();
 
             if (tableRow?.mode === 'tournament') {
                 return res.status(400).json({

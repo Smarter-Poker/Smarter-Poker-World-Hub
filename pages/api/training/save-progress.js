@@ -141,7 +141,7 @@ export default async function handler(req, res) {
             .select('*')
             .eq('user_id', userId)
             .eq('game_id', gameId)
-            .single();
+            .maybeSingle();
 
         if (existingProgress) {
             // Update existing progress
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
                 .eq('user_id', userId)
                 .eq('game_id', gameId)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (updateError) {
                 console.error('Error updating progress:', updateError);

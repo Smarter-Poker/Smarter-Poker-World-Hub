@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       .from('clubs')
       .select('id, owner_id, union_id, chip_treasury')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!club) return res.status(404).json({ error: 'Club not found' });
 
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('union_id', club.union_id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       authorized = !!ua;
     }
     if (!authorized) return res.status(403).json({ error: 'Not authorized' });
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       .select('user_id, role, chip_balance, credit_limit, credit_used, nickname')
       .eq('club_id', clubId)
       .eq('user_id', agentUserId)
-      .single();
+      .maybeSingle();
 
     if (!agentMember || !['agent', 'sub_agent', 'super_agent'].includes(agentMember.role)) {
       return res.status(404).json({ error: 'Agent not found in this club' });
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       .select('id, is_prepaid, credit_limit, business_balance')
       .eq('user_id', agentUserId)
       .eq('club_id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!agentRecord) return res.status(404).json({ error: 'Agent record not found' });
 
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
 
       // Retry once on conflict
       if (!balUpd?.length) {
-        const { data: freshAgent } = await supabaseAdmin.from('agents').select('business_balance').eq('id', agentRecord.id).single();
+        const { data: freshAgent } = await supabaseAdmin.from('agents').select('business_balance').eq('id', agentRecord.id).maybeSingle();
         if (freshAgent) {
           await supabaseAdmin.from('agents').update({ business_balance: (freshAgent.business_balance || 0) + amount }).eq('id', agentRecord.id);
         }

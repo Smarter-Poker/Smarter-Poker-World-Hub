@@ -122,7 +122,7 @@ export default async function handler(req, res) {
                 .eq('id', presetId)
                 .eq('venue_id', venueId)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return res.status(200).json({ success: true, data });

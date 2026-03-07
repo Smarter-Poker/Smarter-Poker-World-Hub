@@ -120,7 +120,7 @@ export default async function handler(req, res) {
         .update(updates)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return res.json({ success: true, data: { announcement: data } });
     } catch (err) {

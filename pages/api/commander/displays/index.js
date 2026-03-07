@@ -116,7 +116,7 @@ async function handlePost(req, res) {
       .from('commander_table_displays')
       .select('id')
       .eq('device_id', device_id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Update existing
@@ -136,7 +136,7 @@ async function handlePost(req, res) {
         })
         .eq('id', existing.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

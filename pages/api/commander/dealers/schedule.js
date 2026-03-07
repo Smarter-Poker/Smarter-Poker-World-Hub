@@ -110,7 +110,7 @@ async function handleCreate(req, res) {
       .select('id, name')
       .eq('id', dealer_id)
       .eq('venue_id', venue_id)
-      .single();
+      .maybeSingle();
 
     if (dealerError || !dealer) {
       return res.status(404).json({
@@ -126,7 +126,7 @@ async function handleCreate(req, res) {
       .select('id, table_number')
       .eq('id', table_id)
       .eq('venue_id', venue_id)
-      .single();
+      .maybeSingle();
 
     if (tableError || !table) {
       return res.status(404).json({

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
       .select('role, permissions')
       .eq('union_id', unionId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!unionAdmin) return res.status(403).json({ success: false, error: 'Not a union admin' });
 
@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       .from('unions')
       .select('*')
       .eq('id', unionId)
-      .single();
+      .maybeSingle();
 
     if (!union) return res.status(404).json({ success: false, error: 'Union not found' });
 

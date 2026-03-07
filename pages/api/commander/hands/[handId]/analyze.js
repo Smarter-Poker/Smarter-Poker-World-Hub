@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       .from('commander_hand_history')
       .select('*')
       .eq('id', handId)
-      .single();
+      .maybeSingle();
 
     if (error || !hand) {
       return res.status(404).json({

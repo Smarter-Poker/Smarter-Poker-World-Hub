@@ -59,7 +59,7 @@ async function listAnnouncements(req, res, groupId) {
       .select('role, status')
       .eq('group_id', groupId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!membership || membership.status !== 'approved') {
       return res.status(403).json({ error: 'You are not a member of this group' });
@@ -115,7 +115,7 @@ async function createAnnouncement(req, res, groupId) {
       .eq('group_id', groupId)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (!membership || (membership.role !== 'owner' && membership.role !== 'admin')) {
       return res.status(403).json({ error: 'Only admins can create announcements' });
@@ -159,7 +159,7 @@ async function createAnnouncement(req, res, groupId) {
         *,
         profiles:author_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

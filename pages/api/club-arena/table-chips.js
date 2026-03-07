@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', clubId)
       .eq('user_id', callerUserId)
-      .single();
+      .maybeSingle();
     if (!callerMember || !['owner', 'admin', 'manager'].includes(callerMember.role)) {
       return res.status(403).json({ success: false, error: 'Cannot operate on another user\'s chips' });
     }

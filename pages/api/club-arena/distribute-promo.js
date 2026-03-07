@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     .select('role')
     .eq('club_id', clubId)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!member) return res.status(403).json({ error: 'Not a member of this club' });
 

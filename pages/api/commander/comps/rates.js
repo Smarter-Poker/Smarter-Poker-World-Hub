@@ -125,7 +125,7 @@ async function createRate(req, res) {
       .eq('user_id', user.id)
       .in('role', ['owner', 'manager', 'dualrate'])
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ success: false, error: 'Manager or owner role required' });
@@ -183,7 +183,7 @@ async function createRate(req, res) {
         is_default
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

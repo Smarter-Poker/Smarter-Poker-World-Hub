@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!member || !['owner', 'admin'].includes(member.role)) {
       return res.status(403).json({ success: false, error: 'Only owners and admins can update table settings' });
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       .select('id, club_id, settings')
       .eq('id', tableId)
       .eq('club_id', clubId)
-      .single();
+      .maybeSingle();
 
     if (tableErr || !table) {
       return res.status(404).json({ success: false, error: 'Table not found in this club' });
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       .update(updates)
       .eq('id', tableId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateErr) throw updateErr;
 

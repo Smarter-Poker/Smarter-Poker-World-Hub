@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       .from('clubs')
       .select('id, owner_id, union_id')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('union_id', club.union_id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       authorized = !!ua;
     }
 

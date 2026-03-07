@@ -68,7 +68,7 @@ export default async function handler(req, res) {
             .select('explanation, was_correct')
             .eq('cache_key', cacheKey)
             .eq('was_correct', wasCorrect)
-            .single();
+            .maybeSingle();
 
         if (cached?.explanation) {
             return res.status(200).json({

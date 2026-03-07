@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         commander_home_games:home_game_id (id, host_id, status)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (escrowError || !escrow) {
       return res.status(404).json({
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -38,7 +38,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('club_id', clubId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!member || !['owner', 'admin'].includes(member.role)) {
         return res.status(403).json({ success: false, error: 'Admin access required' });
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('club_id', clubId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!member || !['owner', 'admin'].includes(member.role)) {
         return res.status(403).json({ success: false, error: 'Admin access required' });
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
           .select('is_active')
           .eq('id', itemId)
           .eq('club_id', clubId)
-          .single();
+          .maybeSingle();
 
         if (!item) return res.status(404).json({ success: false, error: 'Item not found' });
 

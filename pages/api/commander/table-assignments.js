@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           .select('venue_id')
           .eq('id', staffSession.id)
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
         venueId = staffData?.venue_id;
       } else if (staffSession.user_id) {
         venueId = staffSession.venue_id;
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
               .select('venue_id')
               .eq('user_id', user.id)
               .eq('is_active', true)
-              .single();
+              .maybeSingle();
             venueId = staff?.venue_id;
           }
         }
@@ -201,7 +201,7 @@ async function handlePut(req, res, venueId, staffUserId) {
     .select('*')
     .eq('id', table_id)
     .eq('venue_id', venueId)
-    .single();
+    .maybeSingle();
 
   if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
@@ -255,7 +255,7 @@ async function handlePut(req, res, venueId, staffUserId) {
     .update(updates)
     .eq('id', table_id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Assignment update error:', error);
@@ -275,7 +275,7 @@ async function handleClose(req, res, venueId, staffUserId) {
     .select('*')
     .eq('id', table_id)
     .eq('venue_id', venueId)
-    .single();
+    .maybeSingle();
 
   if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
@@ -316,7 +316,7 @@ async function handleClose(req, res, venueId, staffUserId) {
     })
     .eq('id', table_id)
     .select()
-    .single();
+    .maybeSingle();
 
   return res.status(200).json({ success: true, data: updated });
 }

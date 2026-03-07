@@ -59,7 +59,7 @@ async function handleGet(req, res) {
       .from('commander_spending_limits')
       .select('*')
       .eq('player_id', player_id)
-      .single();
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') throw error;
 

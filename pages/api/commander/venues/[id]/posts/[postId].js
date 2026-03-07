@@ -57,7 +57,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('id', postId)
       .eq('venue_id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !post) {
       return res.status(404).json({
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
         .update(updates)
         .eq('id', postId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

@@ -155,7 +155,7 @@ async function handlePatch(req, res, staff) {
       .from('commander_cash_transactions')
       .select('id, voided_at, venue_id')
       .eq('id', transaction_id)
-      .single();
+      .maybeSingle();
 
     if (fetchErr || !existing) {
       return res.status(404).json({ success: false, error: 'Transaction not found' });
@@ -181,7 +181,7 @@ async function handlePatch(req, res, staff) {
       })
       .eq('id', transaction_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       .from('clubs')
       .select('id, name, owner_id')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
     if (club.owner_id !== user.id) {

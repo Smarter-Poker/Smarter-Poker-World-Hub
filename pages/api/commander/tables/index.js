@@ -168,7 +168,7 @@ async function handlePost(req, res) {
       .select('id')
       .eq('venue_id', venue_id)
       .eq('table_number', table_number)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({

@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (tournamentError || !tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('id', entry_id)
       .eq('tournament_id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (entryError || !entry) {
       return res.status(404).json({ success: false, error: 'Entry not found' });
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
         .from('commander_tournament_entries')
         .select('bounties_collected, metadata')
         .eq('id', eliminated_by_id)
-        .single();
+        .maybeSingle();
 
       await supabase
         .from('commander_tournament_entries')
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
         *,
         profiles (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (updateError) throw updateError;
 
@@ -190,7 +190,7 @@ export default async function handler(req, res) {
         .eq('tournament_id', tournamentId)
         .in('status', ['seated', 'active'])
         .neq('id', entry_id)
-        .single();
+        .maybeSingle();
 
       if (winner) {
         // Calculate winner payout
@@ -267,7 +267,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     const autoBreakResult = freshTournament?.status !== 'completed'
       ? await checkAndExecuteAutoBreak(tournamentId, freshTournament || tournament)

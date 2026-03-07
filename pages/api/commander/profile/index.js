@@ -57,7 +57,7 @@ async function getProfile(req, res, user) {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profileError) throw profileError;
 
@@ -66,7 +66,7 @@ async function getProfile(req, res, user) {
       .from('commander_player_preferences')
       .select('*')
       .eq('player_id', user.id)
-      .single();
+      .maybeSingle();
 
     // Get favorite venues (venues where player has sessions)
     const { data: sessions } = await supabase

@@ -113,7 +113,7 @@ export default async function handler(req, res) {
         .from('commander_floor_calls')
         .select('created_at, responded_at')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       const now = new Date().toISOString();
       const updates = { status };
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
       }
 
       const { data, error } = await supabase.from('commander_floor_calls')
-        .update(updates).eq('id', id).select().single();
+        .update(updates).eq('id', id).select().maybeSingle();
 
       if (error) throw error;
       return res.status(200).json({ success: true, data });

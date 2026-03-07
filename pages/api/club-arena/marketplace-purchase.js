@@ -36,7 +36,7 @@ export default async function handler(req, res) {
             .select('chip_balance, user_id')
             .eq('club_id', clubId)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
 
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
             .select('id, price, is_active, name, description, item_type')
             .eq('id', itemId)
             .eq('club_id', clubId)
-            .single();
+            .maybeSingle();
 
         if (itemErr || !item) return res.status(404).json({ success: false, error: 'Item not found' });
         if (!item.is_active) return res.status(400).json({ success: false, error: 'Item not available' });

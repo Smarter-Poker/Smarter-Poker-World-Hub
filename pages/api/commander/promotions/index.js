@@ -60,7 +60,7 @@ async function listPromotions(req, res) {
             .select('venue_id')
             .eq('user_id', user.id)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
           if (staff) resolvedVenueId = staff.venue_id;
         }
       }
@@ -149,7 +149,7 @@ async function createPromotion(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (staffRow) {
       staff = staffRow;
@@ -161,7 +161,7 @@ async function createPromotion(req, res) {
         .eq('owner_id', user.id)
         .eq('venue_id', venue_id)
         .in('status', ['active', 'trialing'])
-        .single();
+        .maybeSingle();
       if (sub) {
         staff = { id: user.id, role: 'owner', _isOwnerFallback: true };
       }
@@ -236,7 +236,7 @@ async function createPromotion(req, res) {
         *,
         poker_venues:venue_id (id, name)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

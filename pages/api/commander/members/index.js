@@ -153,7 +153,7 @@ async function handleCreate(req, res) {
             .from('poker_venues')
             .select('name')
             .eq('id', venue_id)
-            .single();
+            .maybeSingle();
 
         const prefix = (venue?.name || 'CLUB')
             .replace(/[^A-Za-z]/g, '')
@@ -194,7 +194,7 @@ async function handleCreate(req, res) {
                 created_by: created_by || null,
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Member create error:', error);

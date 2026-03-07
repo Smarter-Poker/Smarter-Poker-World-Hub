@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         .from('commander_members')
         .select('*, venue:poker_venues(id, name, city, state)')
         .eq('id', memberId)
-        .single();
+        .maybeSingle();
 
     if (error || !member) {
         return res.status(404).json({ success: false, error: 'Member not found' });

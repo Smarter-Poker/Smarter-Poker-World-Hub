@@ -11,7 +11,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -32,13 +32,13 @@ export default async function handler(req, res) {
         return res.status(500).json({ success: false, error: 'OneSignal not configured' });
     }
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({ success: false, error: 'Supabase not configured' });
     }
 
     try {
         // Create Supabase admin client
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
         // Fetch all users from profiles
         const { data: users, error: fetchError } = await supabase

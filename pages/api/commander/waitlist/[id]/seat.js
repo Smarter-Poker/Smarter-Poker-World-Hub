@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !entry) {
       return res.status(404).json({
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       .from('commander_games')
       .select('id, status, venue_id, current_players')
       .eq('id', game_id)
-      .single();
+      .maybeSingle();
 
     if (gameError || !game) {
       return res.status(404).json({
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
       .select('id, status')
       .eq('game_id', game_id)
       .eq('seat_number', seat_number)
-      .single();
+      .maybeSingle();
 
     if (seatError || !existingSeat) {
       return res.status(404).json({
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (entryUpdateError) {
       console.error('Commander waitlist update error:', entryUpdateError);
@@ -204,7 +204,7 @@ export default async function handler(req, res) {
         .eq('venue_id', entry.venue_id)
         .eq('player_id', entry.player_id)
         .is('check_out_at', null)
-        .single();
+        .maybeSingle();
 
       if (existingSession) {
         // Update existing session with XP in metadata

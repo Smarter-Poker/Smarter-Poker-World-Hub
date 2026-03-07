@@ -83,7 +83,7 @@ async function upsertQualification(req, res, freerollId) {
             .from('commander_freerolls')
             .select('qualification_type, qualification_threshold')
             .eq('id', freerollId)
-            .single();
+            .maybeSingle();
 
         let autoQualified = is_qualified || false;
         const threshold = freeroll?.qualification_threshold || 0;

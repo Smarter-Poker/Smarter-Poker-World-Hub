@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       .select('id')
       .eq('table_id', tableId)
       .eq('status', 'live')
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({

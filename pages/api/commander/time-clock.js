@@ -155,7 +155,7 @@ async function handlePost(req, res) {
                 .update({ clock_out: clockOut.toISOString(), hours_worked: hoursWorked })
                 .eq('id', openShift[0].id)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 

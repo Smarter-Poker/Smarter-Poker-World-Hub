@@ -103,7 +103,7 @@ async function addOrUpdateEntry(req, res, leaderboardId) {
       .from('commander_leaderboards')
       .select('id, venue_id, leaderboard_type, status')
       .eq('id', leaderboardId)
-      .single();
+      .maybeSingle();
 
     if (!leaderboard) {
       return res.status(404).json({ error: 'Leaderboard not found' });

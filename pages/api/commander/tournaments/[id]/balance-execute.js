@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         .select('table_number, seat_number, player_name, metadata')
         .eq('id', move.entry_id)
         .eq('tournament_id', tournamentId)
-        .single();
+        .maybeSingle();
 
       if (!entry) {
         errors.push({ entry_id: move.entry_id, error: 'Entry not found' });

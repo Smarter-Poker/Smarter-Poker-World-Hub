@@ -62,7 +62,7 @@ export default async function handler(req, res) {
         )
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (squadError || !squad) {
       return res.status(404).json({

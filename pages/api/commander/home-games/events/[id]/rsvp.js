@@ -63,7 +63,7 @@ async function getRsvps(req, res, eventId) {
       .from('commander_home_games')
       .select('group_id, host_id')
       .eq('id', eventId)
-      .single();
+      .maybeSingle();
 
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
@@ -75,7 +75,7 @@ async function getRsvps(req, res, eventId) {
       .eq('group_id', event.group_id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (!membership) {
       return res.status(403).json({ error: 'You are not a member of this group' });
@@ -140,7 +140,7 @@ async function submitRsvp(req, res, eventId) {
       .from('commander_home_games')
       .select('group_id, host_id, max_players, rsvp_yes, allow_guests, guest_limit, status')
       .eq('id', eventId)
-      .single();
+      .maybeSingle();
 
     if (eventError || !event) {
       return res.status(404).json({ error: 'Event not found' });
@@ -157,7 +157,7 @@ async function submitRsvp(req, res, eventId) {
       .eq('group_id', event.group_id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (!membership) {
       return res.status(403).json({ error: 'You are not a member of this group' });
@@ -192,7 +192,7 @@ async function submitRsvp(req, res, eventId) {
       .select('id')
       .eq('game_id', eventId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     let rsvp;
     if (existing) {
@@ -211,7 +211,7 @@ async function submitRsvp(req, res, eventId) {
           *,
           profiles:user_id (id, display_name, avatar_url)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       rsvp = data;
@@ -276,7 +276,7 @@ async function updateRsvp(req, res, eventId) {
       .select('*, commander_home_games(group_id, host_id, max_players, rsvp_yes)')
       .eq('id', rsvp_id)
       .eq('game_id', eventId)
-      .single();
+      .maybeSingle();
 
     if (!rsvp) {
       return res.status(404).json({ error: 'RSVP not found' });
@@ -293,7 +293,7 @@ async function updateRsvp(req, res, eventId) {
         .eq('group_id', event.group_id)
         .eq('user_id', user.id)
         .eq('status', 'approved')
-        .single();
+        .maybeSingle();
 
       if (membership?.role !== 'owner' && membership?.role !== 'admin') {
         return res.status(403).json({ error: 'Only the host or admins can manage RSVPs' });
@@ -341,7 +341,7 @@ async function updateRsvp(req, res, eventId) {
         *,
         profiles:user_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

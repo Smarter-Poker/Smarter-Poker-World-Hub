@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       .from('commander_table_displays')
       .select('*, commander_tables(id, table_number, table_name)')
       .eq('device_id', deviceId)
-      .single();
+      .maybeSingle();
 
     if (displayError || !display) {
       return res.status(404).json({
@@ -151,7 +151,7 @@ async function getClockContent(venueId) {
     .in('status', ['running', 'paused', 'final_table'])
     .order('actual_start', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!tournament) {
     return { active: false };
@@ -227,7 +227,7 @@ async function getLeaderboardContent(venueId) {
     .eq('venue_id', venueId)
     .eq('is_active', true)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (!leaderboard) {
     return { active: false };

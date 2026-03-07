@@ -56,7 +56,7 @@ async function handleGet(req, res, sessionId) {
         )
       `)
       .eq('id', sessionId)
-      .single();
+      .maybeSingle();
 
     if (error || !session) {
       return res.status(404).json({
@@ -87,7 +87,7 @@ async function handlePatch(req, res, sessionId) {
       .from('commander_player_sessions')
       .select('*')
       .eq('id', sessionId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !session) {
       return res.status(404).json({
@@ -154,7 +154,7 @@ async function handlePatch(req, res, sessionId) {
       .update(updates)
       .eq('id', sessionId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander session PATCH error:', updateError);

@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         .from('commander_tables')
         .select('id, table_number, table_name')
         .eq('id', activeSeat.commander_games.table_id)
-        .single();
+        .maybeSingle();
       tableInfo = table;
     }
 
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       .from('poker_venues')
       .select('id, name')
       .eq('id', activeSeat.commander_games.venue_id)
-      .single();
+      .maybeSingle();
 
     // Format response
     const formattedSession = {

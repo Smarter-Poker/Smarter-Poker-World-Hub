@@ -86,7 +86,7 @@ export default async function handler(req, res) {
                 .from('solved_spots_gold')
                 .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
                 .eq('scenario_hash', childHash)
-                .single();
+                .maybeSingle();
 
             // If exact match fails, try with appended card directly to the board part
             if (!childSpot) {

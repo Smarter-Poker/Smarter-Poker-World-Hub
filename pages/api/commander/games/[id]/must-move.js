@@ -66,7 +66,7 @@ async function handlePost(req, res, gameId) {
       .from('commander_games')
       .select('id, venue_id, game_type, stakes, status, is_must_move, parent_game_id')
       .eq('id', gameId)
-      .single();
+      .maybeSingle();
 
     if (mmError || !mustMoveGame) {
       return res.status(404).json({
@@ -94,7 +94,7 @@ async function handlePost(req, res, gameId) {
       .from('commander_games')
       .select('id, venue_id, game_type, stakes, status, is_must_move')
       .eq('id', parent_game_id)
-      .single();
+      .maybeSingle();
 
     if (mainError || !mainGame) {
       return res.status(404).json({
@@ -144,7 +144,7 @@ async function handlePost(req, res, gameId) {
           .from('commander_games')
           .select('parent_game_id')
           .eq('id', currentId)
-          .single();
+          .maybeSingle();
         currentId = nextGame?.parent_game_id || null;
         depth++;
       }
@@ -159,7 +159,7 @@ async function handlePost(req, res, gameId) {
       })
       .eq('id', gameId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Must-move link error:', updateError);
@@ -201,7 +201,7 @@ async function handleDelete(req, res, gameId) {
       .from('commander_games')
       .select('id, is_must_move, parent_game_id')
       .eq('id', gameId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !game) {
       return res.status(404).json({
@@ -226,7 +226,7 @@ async function handleDelete(req, res, gameId) {
       })
       .eq('id', gameId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Must-move unlink error:', updateError);

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (staffError || !staff) {
       return res.status(401).json({
@@ -243,7 +243,7 @@ async function sendSmsNotification(notification, phone) {
       .select('notification_preferences')
       .eq('player_id', notification.player_id)
       .eq('venue_id', notification.venue_id)
-      .single();
+      .maybeSingle();
 
     // If no phone in preferences, get from profiles table
     if (!prefs?.notification_preferences?.phone) {
@@ -251,7 +251,7 @@ async function sendSmsNotification(notification, phone) {
         .from('profiles')
         .select('phone')
         .eq('id', notification.player_id)
-        .single();
+        .maybeSingle();
       toPhone = profile?.phone;
     } else {
       toPhone = prefs.notification_preferences.phone;
@@ -338,7 +338,7 @@ async function sendEmailNotification(notification) {
       .from('profiles')
       .select('email')
       .eq('id', notification.player_id)
-      .single();
+      .maybeSingle();
     toEmail = profile?.email;
   }
 

@@ -70,7 +70,7 @@ export default async function handler(req, res) {
             .eq('user_id', user.id)
             .eq('device_name', deviceName)
             .eq('ip_address', ipAddress)
-            .single();
+            .maybeSingle();
 
         if (existingSession) {
             // Update existing session

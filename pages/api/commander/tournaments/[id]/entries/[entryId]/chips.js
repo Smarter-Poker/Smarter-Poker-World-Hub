@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('id, venue_id')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
 
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       .select('id, player_name, current_chips, status, metadata')
       .eq('id', entryId)
       .eq('tournament_id', tournamentId)
-      .single();
+      .maybeSingle();
     if (!entry) return res.status(404).json({ success: false, error: 'Entry not found' });
 
     const previousChips = entry.current_chips || 0;
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       })
       .eq('id', entryId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (uErr) return res.status(500).json({ success: false, error: 'Failed to update chips' });
 

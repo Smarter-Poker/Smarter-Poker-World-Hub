@@ -197,7 +197,7 @@ async function createGroup(req, res) {
         *,
         profiles:owner_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -229,7 +229,7 @@ async function handlePost(req, res) {
       .from('commander_games')
       .select('id, table_id, current_players, max_players')
       .eq('id', actualTargetId)
-      .single();
+      .maybeSingle();
 
     if (!targetGame) return res.status(404).json({ success: false, error: 'Target game not found' });
 
@@ -237,7 +237,7 @@ async function handlePost(req, res) {
       .from('commander_tables')
       .select('id, table_number, max_seats')
       .eq('id', targetGame.table_id)
-      .single();
+      .maybeSingle();
 
     if (!targetTable) return res.status(404).json({ success: false, error: 'Target table not found' });
 
@@ -264,13 +264,13 @@ async function handlePost(req, res) {
       .from('commander_games')
       .select('table_id, current_players')
       .eq('id', must_move_game_id)
-      .single();
+      .maybeSingle();
 
     const { data: mmTable } = await supabase
       .from('commander_tables')
       .select('table_number')
       .eq('id', mmGame?.table_id)
-      .single();
+      .maybeSingle();
 
     // Move the player (INSERT FIRST, THEN DELETE — if insert fails, player stays at source):
     // 1. Insert a new seat at the target game FIRST

@@ -59,7 +59,7 @@ export default async function handler(req, res) {
             .from('commander_tournaments')
             .select('*, poker_venues:venue_id (name)')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
 
         if (tErr || !tournament) {
             return res.status(404).json({ success: false, error: 'Tournament not found' });

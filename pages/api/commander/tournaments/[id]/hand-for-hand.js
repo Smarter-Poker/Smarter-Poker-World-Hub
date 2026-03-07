@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     const { active } = req.body;

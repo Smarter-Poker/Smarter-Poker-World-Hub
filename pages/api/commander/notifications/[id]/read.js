@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

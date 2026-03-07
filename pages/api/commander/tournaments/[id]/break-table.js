@@ -45,15 +45,15 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('id, name, buyin_amount, venue_id')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (tErr || !tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
 
     // Fetch real venue data from both tables in parallel
     const [venueRes, settingsRes] = await Promise.all([
-      supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).single(),
-      supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).single()
+      supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).maybeSingle(),
+      supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).maybeSingle()
     ]);
     const venueName = venueRes.data?.name || 'Smarter Poker';
     const venueCity = venueRes.data?.city || null;
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
         .from('commander_tournament_entries')
         .select('table_number, seat_number, player_name, current_chips, metadata')
         .eq('id', a.entry_id)
-        .single();
+        .maybeSingle();
 
       const { error: uErr } = await supabase
         .from('commander_tournament_entries')

@@ -54,7 +54,7 @@ async function getPromotion(req, res, id) {
         commander_staff:created_by (id, display_name)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error || !promotion) {
       return res.status(404).json({ success: false, error: 'Promotion not found' });
@@ -106,7 +106,7 @@ async function updatePromotion(req, res, id) {
       .from('commander_promotions')
       .select('venue_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Promotion not found' });
@@ -119,7 +119,7 @@ async function updatePromotion(req, res, id) {
       .eq('venue_id', existing.venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ success: false, error: 'You are not authorized to update this promotion' });
@@ -155,7 +155,7 @@ async function updatePromotion(req, res, id) {
         *,
         poker_venues:venue_id (id, name)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -185,7 +185,7 @@ async function deletePromotion(req, res, id) {
       .from('commander_promotions')
       .select('venue_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       return res.status(404).json({ success: false, error: 'Promotion not found' });
@@ -199,7 +199,7 @@ async function deletePromotion(req, res, id) {
       .eq('user_id', user.id)
       .in('role', ['owner', 'manager'])
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ success: false, error: 'Only owners and managers can delete promotions' });

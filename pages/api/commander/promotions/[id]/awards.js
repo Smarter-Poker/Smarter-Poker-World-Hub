@@ -96,7 +96,7 @@ async function createAward(req, res, promotionId) {
       .from('commander_promotions')
       .select('id, venue_id, name, promotion_type, prize_type, prize_value')
       .eq('id', promotionId)
-      .single();
+      .maybeSingle();
 
     if (!promotion) {
       return res.status(404).json({ error: 'Promotion not found' });
@@ -109,7 +109,7 @@ async function createAward(req, res, promotionId) {
       .eq('venue_id', promotion.venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ error: 'You are not authorized to create awards' });
@@ -159,7 +159,7 @@ async function createAward(req, res, promotionId) {
         *,
         profiles:player_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

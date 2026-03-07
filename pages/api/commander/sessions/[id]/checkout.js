@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       .from('commander_player_sessions')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !session) {
       return res.status(404).json({
@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander session checkout error:', updateError);

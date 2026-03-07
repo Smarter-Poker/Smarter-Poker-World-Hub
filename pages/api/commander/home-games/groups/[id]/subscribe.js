@@ -69,7 +69,7 @@ async function subscribe(req, res, groupId, userId) {
       .select('id, status')
       .eq('group_id', groupId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (!membership || membership.status !== 'approved') {
       return res.status(403).json({ success: false, error: 'You are not a member of this group' });
@@ -159,7 +159,7 @@ async function updatePreferences(req, res, groupId, userId) {
       .eq('group_id', groupId)
       .eq('user_id', userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

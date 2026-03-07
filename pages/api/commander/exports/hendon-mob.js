@@ -51,7 +51,7 @@ async function handler(req, res) {
         poker_venues:venue_id (id, name, city, state, country)
       `)
       .eq('id', tournament_id)
-      .single();
+      .maybeSingle();
 
     if (tournamentError || !tournament) {
       return res.status(404).json({ error: 'Tournament not found' });
@@ -64,7 +64,7 @@ async function handler(req, res) {
       .eq('venue_id', tournament.venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff || !['owner', 'manager'].includes(staff.role)) {
       return res.status(403).json({ error: 'Manager access required to export' });

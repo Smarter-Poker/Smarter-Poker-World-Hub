@@ -14,6 +14,30 @@ See `.agent/workflows/deploy.md` for details. **Violation of this rule causes ca
 
 ---
 
+## MANDATORY: Pre-Push Safety Checklist (ALL AGENTS — March 2026 Incident Response)
+
+On March 7, 2026, a single uncalled React hook import caused 14 consecutive failed deployments
+and took down ALL pages site-wide. To prevent this from EVER happening again:
+
+### Before ANY commit/push, verify ALL of the following:
+
+1. **No imported-but-uncalled hooks**: If you import `useXxx`, you MUST call `const { ... } = useXxx()` somewhere in the component. An unused hook import causes a ReferenceError during SSG that kills the entire build.
+
+2. **No bare `createClient()` at module scope**: Any `createClient()` call at the top of a file (outside a function) MUST be guarded with `typeof window !== 'undefined'`. Without this, SSG will crash because there's no browser environment at build time.
+
+3. **Use `.maybeSingle()` not `.single()`**: When querying Supabase for a row that might not exist, ALWAYS use `.maybeSingle()`. The `.single()` method throws when zero rows are found, which crashes API routes with 500 errors.
+
+4. **Never trust `req.query.userId` or `req.body.userId`**: ALL user identity MUST come from JWT token via `supabase.auth.getUser(token)`. Query/body params are IDOR attack vectors.
+
+5. **Test the build locally**: Run `npm run build` or verify the Next.js build before pushing.
+
+### Post-Push Verification (5-minute follow-up):
+After every push, wait 5 minutes then check Vercel deployment status. If the deployment fails,
+revert immediately with `git revert HEAD && git push`.
+
+### The pre-push git hook (`.git/hooks/pre-push`) will block pushes that violate rules 1-2 above.
+
+---
 
 ## Project Overview
 

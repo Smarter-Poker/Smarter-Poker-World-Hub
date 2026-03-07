@@ -74,7 +74,7 @@ async function listTransactions(req, res) {
         .eq('venue_id', venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (staff) {
         query = query.eq('venue_id', venue_id);
@@ -150,7 +150,7 @@ async function createTransaction(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ success: false, error: 'Staff access required to issue comps' });
@@ -181,7 +181,7 @@ async function createTransaction(req, res) {
         commander_staff:approved_by (id, display_name)
       `)
       .eq('id', data)
-      .single();
+      .maybeSingle();
 
     // Get updated balance
     const { data: balance } = await supabase
@@ -189,7 +189,7 @@ async function createTransaction(req, res) {
       .select('*')
       .eq('venue_id', venue_id)
       .eq('player_id', player_id)
-      .single();
+      .maybeSingle();
 
     return res.status(201).json({
       transaction,

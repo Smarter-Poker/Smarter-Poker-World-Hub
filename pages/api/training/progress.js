@@ -44,7 +44,7 @@ export default async function handler(req, res) {
             .select('current_level, highest_level_unlocked, health_chips, total_hands_played, total_correct, total_rounds_completed')
             .eq('user_id', userId)
             .eq('game_id', gameId)
-            .single();
+            .maybeSingle();
 
         if (error || !session) {
             return res.status(200).json(DEFAULT_PROGRESS);

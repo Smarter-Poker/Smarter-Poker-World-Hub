@@ -6,7 +6,7 @@ import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -17,11 +17,11 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    if (!SUPABASE_SERVICE_KEY) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({ success: false, error: 'Service key not configured' });
     }
 
-    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
     // ── Auth: verify JWT identity ──
     const token = req.headers.authorization?.replace('Bearer ', '');

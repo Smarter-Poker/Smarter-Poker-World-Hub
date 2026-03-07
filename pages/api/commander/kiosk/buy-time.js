@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         .select('id, venue_id, is_active')
         .eq('id', sessionData.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
       if (!staff) {
         return res.status(401).json({ success: false, error: 'Invalid staff session' });
       }
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       .from('commander_members')
       .select('id, venue_id, time_balance_minutes, first_name, last_name')
       .eq('id', member_id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !member) {
       return res.status(404).json({ success: false, error: 'Member not found' });

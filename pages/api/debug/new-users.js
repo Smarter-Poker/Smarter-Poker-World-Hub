@@ -4,7 +4,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default async function handler(req, res) {
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     // Use service role key to bypass RLS
     const adminSupabase = createClient(
         SUPABASE_URL.trim(),
-        SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY
+        SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
     );
 
     const DANIEL_USER_ID = '47965354-0e56-43ef-931c-ddaab82af765';

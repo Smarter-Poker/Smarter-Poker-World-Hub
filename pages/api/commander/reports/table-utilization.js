@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const { start, end } = getDateRange(range);

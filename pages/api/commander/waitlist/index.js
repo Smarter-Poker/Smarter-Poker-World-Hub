@@ -110,7 +110,7 @@ export default async function handler(req, res) {
       .from('poker_venues')
       .select('id, commander_enabled, name')
       .eq('id', venue_id)
-      .single();
+      .maybeSingle();
 
     if (venueError || !venue) {
       return res.status(404).json({
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
         .eq('stakes', stakes)
         .eq('player_id', player_id)
         .eq('status', 'waiting')
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.status(400).json({
@@ -154,7 +154,7 @@ export default async function handler(req, res) {
         .is('lifted_at', null)
         .or('expires_at.is.null,expires_at.gt.now()')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (exclusion) {
         return res.status(403).json({
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
         .from('commander_spending_limits')
         .select('daily_limit, weekly_limit, monthly_limit, session_duration_limit')
         .eq('player_id', player_id)
-        .single();
+        .maybeSingle();
 
       if (limits) {
         // Check if player has exceeded daily sessions (simple check)
@@ -212,7 +212,7 @@ export default async function handler(req, res) {
       .eq('game_type', game_type)
       .eq('stakes', stakes)
       .in('status', ['waiting', 'running'])
-      .single();
+      .maybeSingle();
 
     // Create waitlist entry
     const { data: entry, error: insertError } = await supabase
@@ -252,7 +252,7 @@ export default async function handler(req, res) {
         .eq('venue_id', venue_id)
         .eq('player_id', player_id)
         .is('check_out_at', null)
-        .single();
+        .maybeSingle();
 
       if (existingSession) {
         const currentMetadata = existingSession.metadata || {};

@@ -233,7 +233,7 @@ export default async function handler(req, res) {
                     .from('poker_venues')
                     .select('*')
                     .eq('id', numericId)
-                    .single();
+                    .maybeSingle();
 
                 if (!error && data) {
                     venues = [data];

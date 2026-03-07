@@ -93,7 +93,7 @@ async function handleCreate(req, res, eventId) {
       .select('id')
       .eq('game_id', eventId)
       .eq('reviewer_id', player_id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({
@@ -108,7 +108,7 @@ async function handleCreate(req, res, eventId) {
       .select('response, is_confirmed')
       .eq('game_id', eventId)
       .eq('player_id', player_id)
-      .single();
+      .maybeSingle();
 
     if (!rsvp || rsvp.response !== 'yes') {
       return res.status(403).json({

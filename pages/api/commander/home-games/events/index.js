@@ -158,7 +158,7 @@ async function createEvent(req, res) {
       .eq('group_id', group_id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     if (!membership) {
       return res.status(403).json({ error: 'You are not a member of this group' });
@@ -177,7 +177,7 @@ async function createEvent(req, res) {
       .from('commander_home_groups')
       .select('default_game_type, default_stakes, max_players')
       .eq('id', group_id)
-      .single();
+      .maybeSingle();
 
     const { data: event, error } = await supabase
       .from('commander_home_games')
@@ -210,7 +210,7 @@ async function createEvent(req, res) {
         commander_home_groups (id, name),
         profiles:host_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

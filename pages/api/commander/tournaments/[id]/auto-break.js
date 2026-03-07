@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (tErr || !tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
     if (req.method === 'GET') return handleCheck(req, res, tournament);
@@ -216,8 +216,8 @@ async function handleExecute(req, res, tournament) {
 
   // Fetch real venue data from both tables in parallel
   const [venueRes, settingsRes] = await Promise.all([
-    supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).single(),
-    supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).single()
+    supabase.from('venues').select('name, city, state').eq('id', tournament.venue_id).maybeSingle(),
+    supabase.from('commander_venue_settings').select('club_logo_url').eq('venue_id', tournament.venue_id).maybeSingle()
   ]);
   const venueName = venueRes.data?.name || 'Smarter Poker';
   const venueCity = venueRes.data?.city || null;
@@ -240,7 +240,7 @@ async function handleExecute(req, res, tournament) {
       .from('commander_tournament_entries')
       .select('metadata')
       .eq('id', a.entry_id)
-      .single();
+      .maybeSingle();
 
     const existingMetadata = currentEntry?.metadata || {};
 

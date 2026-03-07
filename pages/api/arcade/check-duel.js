@@ -26,7 +26,7 @@ export default async function handler(req, res) {
             .from('arcade_duel_queue')
             .select('id')
             .eq('id', queue_id)
-            .single();
+            .maybeSingle();
 
         if (error || !entry) {
             return res.status(404).json({ error: 'Queue entry not found' });

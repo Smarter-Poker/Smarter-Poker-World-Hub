@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const updates = {};
     if (status) updates.status = status;
     if (notes !== undefined) updates.notes = notes;
-    const { data, error } = await supabase.from('commander_leads').update(updates).eq('id', id).select().single();
+    const { data, error } = await supabase.from('commander_leads').update(updates).eq('id', id).select().maybeSingle();
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { lead: data } });
   }

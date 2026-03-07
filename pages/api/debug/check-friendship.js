@@ -4,18 +4,18 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
     // Block debug endpoints in production
     if (process.env.NODE_ENV === 'production') {
         return res.status(404).json({ success: false, error: 'Not found' });
     }
-    if (!SUPABASE_SERVICE_KEY) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({ success: false, error: 'Service key not configured' });
     }
 
-    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
     // Daniel and Marcela's IDs
     const DANIEL_ID = '47965354-0e56-43ef-931c-ddaab82af765';

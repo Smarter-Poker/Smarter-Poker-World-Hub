@@ -78,7 +78,7 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .eq('request_type', request_type)
       .in('status', ['pending', 'in_progress'])
-      .single();
+      .maybeSingle();
 
     if (existingRequest) {
       return res.status(400).json({

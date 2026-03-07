@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         .select('role, chip_balance')
         .eq('club_id', clubId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
 
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         .from('clubs')
         .select('settings')
         .eq('id', clubId)
-        .single();
+        .maybeSingle();
 
       const rakebackRate = club?.settings?.rakeback_rate || 0.10; // default 10%
 
@@ -120,17 +120,17 @@ export default async function handler(req, res) {
         .select('role')
         .eq('club_id', clubId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       // Union admin fallback — union admins are not club members but can manage rakeback
       let effectiveRole = member?.role || null;
       if (!member) {
         const { data: clubInfo } = await supabaseAdmin
-          .from('clubs').select('union_id').eq('id', clubId).single();
+          .from('clubs').select('union_id').eq('id', clubId).maybeSingle();
         if (clubInfo?.union_id) {
           const { data: ua } = await supabaseAdmin
             .from('union_admins').select('role')
-            .eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+            .eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
           if (ua) effectiveRole = 'owner'; // union admins get full access
         }
       }
@@ -196,7 +196,7 @@ export default async function handler(req, res) {
           .from('clubs')
           .select('settings')
           .eq('id', clubId)
-          .single();
+          .maybeSingle();
 
         const rakebackRate = club?.settings?.rakeback_rate || 0.10;
 
@@ -319,7 +319,7 @@ export default async function handler(req, res) {
           .select('chip_balance')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         const newBalance = freshMember?.chip_balance || 0;
 

@@ -71,7 +71,7 @@ async function handleGet(req, res, gameId) {
         )
       `)
       .eq('id', gameId)
-      .single();
+      .maybeSingle();
 
     if (error || !game) {
       return res.status(404).json({
@@ -111,7 +111,7 @@ async function handlePatch(req, res, gameId) {
       .from('commander_games')
       .select('id, status, table_id')
       .eq('id', gameId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !existingGame) {
       return res.status(404).json({
@@ -172,7 +172,7 @@ async function handlePatch(req, res, gameId) {
       .update(updates)
       .eq('id', gameId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander game PATCH error:', updateError);
@@ -211,7 +211,7 @@ async function handleDelete(req, res, gameId) {
       .from('commander_games')
       .select('id, status, table_id')
       .eq('id', gameId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !game) {
       return res.status(404).json({

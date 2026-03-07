@@ -70,7 +70,7 @@ async function getEvent(req, res, id) {
         )
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error || !event) {
       return res.status(404).json({ success: false, error: 'Event not found' });
@@ -82,7 +82,7 @@ async function getEvent(req, res, id) {
       .select('role, status')
       .eq('group_id', event.group_id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!membership || membership.status !== 'approved') {
       return res.status(403).json({ success: false, error: 'You are not a member of this group' });
@@ -154,7 +154,7 @@ async function updateEvent(req, res, id) {
       .from('commander_home_games')
       .select('host_id, group_id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!event) {
       return res.status(404).json({ success: false, error: 'Event not found' });
@@ -169,7 +169,7 @@ async function updateEvent(req, res, id) {
       .eq('group_id', event.group_id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     const isAdmin = membership?.role === 'owner' || membership?.role === 'admin';
 
@@ -186,7 +186,7 @@ async function updateEvent(req, res, id) {
         .update({ status: 'in_progress', updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -199,7 +199,7 @@ async function updateEvent(req, res, id) {
         .update({ status: 'completed', updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -248,7 +248,7 @@ async function updateEvent(req, res, id) {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -278,7 +278,7 @@ async function cancelEvent(req, res, id) {
       .from('commander_home_games')
       .select('host_id, group_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!event) {
       return res.status(404).json({ success: false, error: 'Event not found' });
@@ -293,7 +293,7 @@ async function cancelEvent(req, res, id) {
       .eq('group_id', event.group_id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     const isAdmin = membership?.role === 'owner' || membership?.role === 'admin';
 

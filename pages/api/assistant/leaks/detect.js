@@ -16,7 +16,7 @@ import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 /**
@@ -171,7 +171,7 @@ async function getPlayerStats(supabase, userId) {
     .from('player_stats')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (error || !stats) {
     // Try alternative stats table
@@ -179,7 +179,7 @@ async function getPlayerStats(supabase, userId) {
       .from('user_poker_stats')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (altStats) {
       return normalizeStats(altStats);
@@ -593,7 +593,7 @@ async function linkHandExamplesToLeak(supabase, userId, leakId, leakType) {
           .select('id')
           .eq('leak_id', leakId)
           .eq('hand_history_id', example.hand_history_id)
-          .single();
+          .maybeSingle();
 
         if (!existing) {
           await supabase.from('leak_hand_examples').insert(example);

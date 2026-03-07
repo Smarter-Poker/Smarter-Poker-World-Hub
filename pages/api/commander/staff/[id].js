@@ -48,7 +48,7 @@ async function handlePatch(req, res, id) {
       .from('commander_staff')
       .select('id, venue_id, role')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !target) {
       return res.status(404).json({
@@ -124,7 +124,7 @@ async function handlePatch(req, res, id) {
           avatar_url
         )
       `)
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander staff update error:', updateError);
@@ -154,7 +154,7 @@ async function handleDelete(req, res, id) {
       .from('commander_staff')
       .select('id, venue_id, role')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !target) {
       return res.status(404).json({
@@ -174,7 +174,7 @@ async function handleDelete(req, res, id) {
       .update({ is_active: false })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (deleteError) {
       console.error('Commander staff delete error:', deleteError);

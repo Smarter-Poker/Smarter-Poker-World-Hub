@@ -47,17 +47,17 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!member || !['owner', 'admin', 'agent', 'sub_agent', 'super_agent'].includes(member.role)) {
       // Fallback: check if caller is a union admin for this club's union
       const { data: club } = await supabaseAdmin
-        .from('clubs').select('union_id').eq('id', clubId).single();
+        .from('clubs').select('union_id').eq('id', clubId).maybeSingle();
       let unionAuthorized = false;
       if (club?.union_id) {
         const { data: ua } = await supabaseAdmin
           .from('union_admins').select('role')
-          .eq('union_id', club.union_id).eq('user_id', user.id).single();
+          .eq('union_id', club.union_id).eq('user_id', user.id).maybeSingle();
         unionAuthorized = !!ua;
       }
       if (!unionAuthorized) {

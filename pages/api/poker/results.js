@@ -170,7 +170,7 @@ async function handlePost(req, res) {
             const { data: { user } } = await supabase.auth.getUser(token);
             if (user) {
                 const { data: profile } = await supabase
-                    .from('profiles').select('role').eq('id', user.id).single();
+                    .from('profiles').select('role').eq('id', user.id).maybeSingle();
                 if (profile?.role !== 'admin' && profile?.role !== 'superadmin') {
                     return res.status(403).json({ success: false, error: 'Admin access required' });
                 }

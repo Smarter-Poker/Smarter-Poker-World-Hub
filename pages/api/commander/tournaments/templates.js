@@ -69,7 +69,7 @@ async function createTemplate(req, res, staff) {
                 .from('commander_tournaments')
                 .select('*')
                 .eq('id', from_tournament_id)
-                .single();
+                .maybeSingle();
 
             if (tErr || !tournament) {
                 return res.status(404).json({ success: false, error: { message: 'Tournament not found' } });
@@ -101,7 +101,7 @@ async function createTemplate(req, res, staff) {
                     leaderboard_id: tournament.leaderboard_id
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return res.status(201).json({ success: true, data: { template } });

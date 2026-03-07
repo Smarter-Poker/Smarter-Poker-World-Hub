@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         .from('commander_venue_settings')
         .select('*')
         .eq('venue_id', staff.venue_id)
-        .single();
+        .maybeSingle();
 
       return res.status(200).json({
         success: true,

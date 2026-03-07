@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       .select('id, user_id, role, chip_balance, held_chips, credit_used, credit_limit, agent_id, nickname, display_name')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (memErr || !member) {
       return res.status(404).json({ error: 'You are not a member of this club' });
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       .from('clubs')
       .select('id, name, owner_id')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!club) return res.status(404).json({ error: 'Club not found' });
 
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
       .select('chip_balance')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     const totalChips = freshMember?.chip_balance || 0;
     let chipsReturnedToTreasury = 0;

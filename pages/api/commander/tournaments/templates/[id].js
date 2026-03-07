@@ -35,7 +35,7 @@ async function getTemplate(req, res, id) {
             .from('commander_tournament_templates')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         return res.status(200).json({ success: true, data: { template: data } });
@@ -60,7 +60,7 @@ async function updateTemplate(req, res, id) {
             .update(updates)
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         return res.status(200).json({ success: true, data: { template: data } });

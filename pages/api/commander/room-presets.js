@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           .select('venue_id')
           .eq('id', staffSession.id)
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
         venueId = staffData?.venue_id;
       } else if (staffSession.user_id) {
         // Owner login path
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
               .select('venue_id')
               .eq('user_id', user.id)
               .eq('is_active', true)
-              .single();
+              .maybeSingle();
             venueId = staff?.venue_id;
           }
         }
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
           .select('*')
           .eq('id', req.query.id)
           .eq('venue_id', venueId)
-          .single();
+          .maybeSingle();
 
         if (fetchErr || !rawPreset) {
           return res.status(404).json({ success: false, error: 'Preset not found' });
@@ -332,7 +332,7 @@ export default async function handler(req, res) {
         .eq('id', id)
         .eq('venue_id', venueId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) return res.status(500).json({ success: false, error: error.message });
       return res.status(200).json({ success: true, data: normalizePreset(data) });

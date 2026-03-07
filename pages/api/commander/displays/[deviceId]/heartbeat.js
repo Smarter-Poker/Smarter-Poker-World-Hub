@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       })
       .eq('device_id', deviceId)
       .select('id, display_mode, rotation_screens, rotation_interval, config, updated_at')
-      .single();
+      .maybeSingle();
 
     if (error || !display) {
       return res.status(404).json({

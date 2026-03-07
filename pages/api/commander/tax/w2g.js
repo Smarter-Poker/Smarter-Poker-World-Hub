@@ -112,7 +112,7 @@ async function generateW2G(req, res) {
       .from('commander_tax_events')
       .select('*')
       .eq('id', tax_event_id)
-      .single();
+      .maybeSingle();
 
     if (fetchErr || !event) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tax event not found' } });
@@ -126,7 +126,7 @@ async function generateW2G(req, res) {
         .from('profiles')
         .select('display_name, full_name')
         .eq('id', event.player_id)
-        .single();
+        .maybeSingle();
       playerName = profile?.full_name || profile?.display_name || 'Unknown';
     }
 
@@ -135,7 +135,7 @@ async function generateW2G(req, res) {
       .from('poker_venues')
       .select('name, address, city, state, zip')
       .eq('id', event.venue_id)
-      .single();
+      .maybeSingle();
 
     const venueAddress = venue
       ? `${venue.address || ''}, ${venue.city || ''}, ${venue.state || ''} ${venue.zip || ''}`.trim()
@@ -189,7 +189,7 @@ async function generateW2G(req, res) {
       })
       .eq('id', tax_event_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateErr) throw updateErr;
 
@@ -228,7 +228,7 @@ async function updateTaxEvent(req, res) {
       .update(updates)
       .eq('id', tax_event_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

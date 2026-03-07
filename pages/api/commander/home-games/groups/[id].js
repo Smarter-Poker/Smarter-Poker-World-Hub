@@ -78,7 +78,7 @@ async function getGroup(req, res, id) {
       query = query.eq('id', id);
     }
 
-    const { data: group, error } = await query.single();
+    const { data: group, error } = await query.maybeSingle();
 
     if (error || !group) {
       return res.status(404).json({ success: false, error: 'Group not found' });
@@ -172,7 +172,7 @@ async function updateGroup(req, res, id) {
       .from('commander_home_groups')
       .select('owner_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!group) {
       return res.status(404).json({ success: false, error: 'Group not found' });
@@ -184,7 +184,7 @@ async function updateGroup(req, res, id) {
       .eq('group_id', id)
       .eq('user_id', user.id)
       .eq('status', 'approved')
-      .single();
+      .maybeSingle();
 
     const canEdit = group.owner_id === user.id ||
       membership?.role === 'owner' ||
@@ -209,7 +209,7 @@ async function updateGroup(req, res, id) {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -239,7 +239,7 @@ async function deleteGroup(req, res, id) {
       .from('commander_home_groups')
       .select('owner_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!group) {
       return res.status(404).json({ success: false, error: 'Group not found' });

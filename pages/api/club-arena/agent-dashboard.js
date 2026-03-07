@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .select('user_id, role, chip_balance, credit_limit, credit_used, nickname, tier')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!callerMember) return res.status(404).json({ success: false, error: 'Not a member of this club' });
 

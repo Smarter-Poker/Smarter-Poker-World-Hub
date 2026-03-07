@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       .select('*, profiles:dealer_id (id, display_name, email)')
       .eq('id', id)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
     if (dealerError || !dealer) {
       return res.status(404).json({
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
       .from('commander_home_games')
       .select('id, host_id, name, scheduled_date')
       .eq('id', home_game_id)
-      .single();
+      .maybeSingle();
 
     if (gameError || !game) {
       return res.status(404).json({
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
         status: 'sent'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (notifError) {
       console.error('Notification error:', notifError);

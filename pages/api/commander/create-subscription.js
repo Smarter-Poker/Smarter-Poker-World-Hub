@@ -36,7 +36,7 @@ async function findUserByEmail(email) {
       .from('profiles')
       .select('id, email')
       .ilike('email', normalizedEmail)
-      .single();
+      .maybeSingle();
     if (profile?.id) {
       return { id: profile.id, email: profile.email || normalizedEmail };
     }
@@ -237,7 +237,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('name', clubInfo.name)
         .eq('address', venueAddress)
-        .single();
+        .maybeSingle();
       existingVenue = foundVenue;
     }
 
@@ -348,7 +348,7 @@ export default async function handler(req, res) {
       .from('commander_subscriptions')
       .select('id')
       .eq('venue_id', venueId)
-      .single();
+      .maybeSingle();
 
     let subscriptionData;
 
@@ -368,7 +368,7 @@ export default async function handler(req, res) {
         })
         .eq('id', existingSub.id)
         .select()
-        .single();
+        .maybeSingle();
       subscriptionData = updatedSub;
     } else {
       const { data: newSub, error: subError } = await supabase
@@ -399,7 +399,7 @@ export default async function handler(req, res) {
       .select('id')
       .eq('venue_id', venueId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (!existingStaff) {
       await supabase.from('commander_staff').insert({

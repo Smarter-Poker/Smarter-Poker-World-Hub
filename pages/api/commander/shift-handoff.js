@@ -90,7 +90,7 @@ async function createHandoff(req, res) {
         table_snapshot: tableSnapshot
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -155,7 +155,7 @@ async function acknowledgeHandoff(req, res) {
       .eq('id', handoff_id)
       .eq('status', 'pending')
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

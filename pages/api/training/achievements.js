@@ -92,13 +92,13 @@ export default async function handler(req, res) {
                 .select('sessions_completed, questions_correct, accuracy, perfect_rounds, total_xp')
                 .eq('user_id', userId)
                 .eq('period_type', 'alltime')
-                .single();
+                .maybeSingle();
 
             const { data: streakData } = await supabase
                 .from('training_streaks')
                 .select('current_streak, longest_streak')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             // Merge client stats with cumulative DB stats
             const cumulativeStats = {

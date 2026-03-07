@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       .select('id')
       .eq('group_id', id)
       .eq('player_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (findError || !membership) {
       return res.status(404).json({

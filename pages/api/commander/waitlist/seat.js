@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .select('*')
       .eq('id', waitlist_id)
-      .single();
+      .maybeSingle();
 
     if (!entry) return res.status(404).json({ success: false, error: 'Waitlist entry not found' });
 

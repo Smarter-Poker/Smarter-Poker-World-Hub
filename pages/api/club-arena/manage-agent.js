@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       .from('clubs')
       .select('id, owner_id, union_id')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
     if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     let authorized = club.owner_id === user.id;
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('union_id', club.union_id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       authorized = !!ua;
     }
 
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .eq('club_id', clubId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
       if (callerAsAgent) authorized = true;
     }
 
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
           .eq('user_id', parentAgentId)
           .eq('club_id', clubId)
           .eq('status', 'active')
-          .single();
+          .maybeSingle();
 
         if (!parentAgent) {
           return res.status(404).json({ success: false, error: 'Parent agent not found or not active in this club' });
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
         .select('id, role')  // BUG FIX: must include role — previously only 'id', making member.role always undefined
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (!member) return res.status(404).json({ success: false, error: 'User not in club' });
       if (['agent', 'super_agent', 'sub_agent'].includes(member.role)) {
@@ -261,7 +261,7 @@ export default async function handler(req, res) {
             .select('id, active_player_count, total_players')
             .eq('user_id', reassignTo)
             .eq('club_id', clubId)
-            .single();
+            .maybeSingle();
           if (newAgent) {
             const oldActive = newAgent.active_player_count || 0;
             const oldTotal = newAgent.total_players || 0;
@@ -277,7 +277,7 @@ export default async function handler(req, res) {
 
             // Retry once on conflict
             if (!upd?.length) {
-              const { data: freshA } = await supabaseAdmin.from('agents').select('active_player_count, total_players').eq('id', newAgent.id).single();
+              const { data: freshA } = await supabaseAdmin.from('agents').select('active_player_count, total_players').eq('id', newAgent.id).maybeSingle();
               if (freshA) {
                 await supabaseAdmin.from('agents').update({
                   active_player_count: (freshA.active_player_count || 0) + playerCount,
@@ -336,10 +336,10 @@ export default async function handler(req, res) {
           .select('id, parent_agent_id, rakeback_percentage')
           .eq('user_id', targetUserId)
           .eq('club_id', clubId)
-          .single();
+          .maybeSingle();
 
         if (tgtAgent?.parent_agent_id) {
-          const { data: parentAg } = await supabaseAdmin.from('agents').select('commission_rate').eq('id', tgtAgent.parent_agent_id).single();
+          const { data: parentAg } = await supabaseAdmin.from('agents').select('commission_rate').eq('id', tgtAgent.parent_agent_id).maybeSingle();
           if (parentAg && commissionRate >= parentAg.commission_rate) {
             return res.status(400).json({ success: false, error: 'Sub-agent rate must be less than parent rate', parent_rate: parentAg.commission_rate });
           }
@@ -415,7 +415,7 @@ export default async function handler(req, res) {
           .select('id, active_player_count')
           .eq('user_id', fromAgentId)
           .eq('club_id', clubId)
-          .single();
+          .maybeSingle();
         if (fromAgent) {
           await supabaseAdmin
             .from('agents')
@@ -429,7 +429,7 @@ export default async function handler(req, res) {
         .select('id, active_player_count, total_players')
         .eq('user_id', toAgentId)
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
       if (toAgent) {
         await supabaseAdmin
           .from('agents')
@@ -489,7 +489,7 @@ export default async function handler(req, res) {
         .select('user_id, role, agent_id')
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (!targetMember) return res.status(404).json({ success: false, error: 'Member not found' });
       if (targetMember.role === 'owner') {
@@ -536,7 +536,7 @@ export default async function handler(req, res) {
           .select('id')
           .eq('user_id', targetUserId)
           .eq('club_id', clubId)
-          .single();
+          .maybeSingle();
 
         if (existingAgent) {
           await supabaseAdmin
@@ -591,7 +591,7 @@ export default async function handler(req, res) {
         .select('user_id, role, chip_balance')
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (!targetMember) return res.status(404).json({ success: false, error: 'Member not found' });
       if (targetMember.role === 'owner') {
@@ -688,7 +688,7 @@ export default async function handler(req, res) {
         .select('id, user_id, parent_agent_id')
         .eq('user_id', targetUserId)
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
 
       if (!targetAgent) return res.status(404).json({ success: false, error: 'Target agent not found' });
 
@@ -701,7 +701,7 @@ export default async function handler(req, res) {
           .eq('user_id', parentAgentId)
           .eq('club_id', clubId)
           .eq('status', 'active')
-          .single();
+          .maybeSingle();
         if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
         parentRecordId = parentAgent.id;
       }
@@ -729,7 +729,7 @@ export default async function handler(req, res) {
         .select('id, user_id')
         .eq('user_id', parentAgentUserId)
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
 
       if (!parentAgent) return res.status(404).json({ success: false, error: 'Parent agent not found' });
 
@@ -785,7 +785,7 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .eq('club_id', clubId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (!callerAgent) return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
 
@@ -795,7 +795,7 @@ export default async function handler(req, res) {
         .select('user_id, role, agent_id')
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (!playerMember) return res.status(404).json({ success: false, error: 'Player not found in club' });
       if (playerMember.agent_id !== user.id) {
@@ -871,7 +871,7 @@ export default async function handler(req, res) {
         .select('id, user_id, commission_rate, parent_agent_id, rakeback_percentage')
         .eq('user_id', targetUserId)
         .eq('club_id', clubId)
-        .single();
+        .maybeSingle();
 
       if (!targetAgent) return res.status(404).json({ success: false, error: 'Agent not found' });
 
@@ -883,7 +883,7 @@ export default async function handler(req, res) {
           .eq('user_id', user.id)
           .eq('club_id', clubId)
           .eq('status', 'active')
-          .single();
+          .maybeSingle();
 
         if (callerAgent && targetAgent.parent_agent_id !== callerAgent.id) {
           return res.status(403).json({ success: false, error: 'You can only update commission for your own sub-agents' });
@@ -896,7 +896,7 @@ export default async function handler(req, res) {
           .from('agents')
           .select('commission_rate')
           .eq('id', targetAgent.parent_agent_id)
-          .single();
+          .maybeSingle();
 
         if (parentAgent && commissionRate >= parentAgent.commission_rate) {
           return res.status(400).json({
@@ -969,7 +969,7 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .eq('club_id', clubId)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (!parentAgent) {
         return res.status(403).json({ success: false, error: 'You are not an active agent in this club' });
@@ -989,7 +989,7 @@ export default async function handler(req, res) {
         .select('user_id, role, agent_id')
         .eq('club_id', clubId)
         .eq('user_id', targetUserId)
-        .single();
+        .maybeSingle();
 
       if (!targetMember) return res.status(404).json({ success: false, error: 'Player not found in club' });
       if (targetMember.agent_id !== user.id) {

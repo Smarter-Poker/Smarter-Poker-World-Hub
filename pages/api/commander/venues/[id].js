@@ -49,7 +49,7 @@ async function handleGet(req, res, venueId) {
       .from('poker_venues')
       .select('*')
       .eq('id', venueId)
-      .single();
+      .maybeSingle();
 
     if (venueError || !venue) {
       return res.status(404).json({
@@ -133,7 +133,7 @@ async function handlePatch(req, res, venueId) {
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (staffError || !staff) {
       return res.status(401).json({
@@ -183,7 +183,7 @@ async function handlePatch(req, res, venueId) {
       .update(updates)
       .eq('id', venueId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Commander venue PATCH error:', error);

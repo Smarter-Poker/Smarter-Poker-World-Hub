@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       .from('commander_table_sessions')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!session) return res.status(404).json({ success: false, error: 'Session not found' });
     if (session.status !== 'active') return res.status(400).json({ success: false, error: 'Session not active' });
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.status(200).json({ success: true, data: updated });

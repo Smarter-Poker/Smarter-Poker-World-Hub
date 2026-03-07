@@ -61,7 +61,7 @@ async function listExports(req, res) {
         .eq('venue_id', venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (!staff || !['owner', 'manager'].includes(staff.role)) {
         return res.status(403).json({ error: 'Manager access required' });
@@ -121,7 +121,7 @@ async function createExport(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff || !['owner', 'manager'].includes(staff.role)) {
       return res.status(403).json({ error: 'Manager access required to export data' });
@@ -167,7 +167,7 @@ async function createExport(req, res) {
       .from('commander_export_jobs')
       .select('*')
       .eq('id', exportJob.id)
-      .single();
+      .maybeSingle();
 
     return res.status(201).json({
       export: updatedJob,
@@ -192,7 +192,7 @@ async function processExport(exportId) {
       .from('commander_export_jobs')
       .select('*')
       .eq('id', exportId)
-      .single();
+      .maybeSingle();
 
     if (!job) return;
 

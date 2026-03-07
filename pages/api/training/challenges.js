@@ -310,7 +310,7 @@ export default async function handler(req, res) {
                     .eq('user_id', userId)
                     .eq('challenge_id', def.id)
                     .eq('period_key', periodKey)
-                    .single();
+                    .maybeSingle();
 
                 const newProgress = directProgress !== null
                     ? directProgress
@@ -382,7 +382,7 @@ export default async function handler(req, res) {
                 .eq('user_id', userId)
                 .eq('challenge_id', challengeId)
                 .eq('period_key', periodKey)
-                .single();
+                .maybeSingle();
 
             if (!progress) {
                 return res.status(404).json({ success: false, error: 'Challenge progress not found' });
@@ -408,7 +408,7 @@ export default async function handler(req, res) {
                 .eq('id', progress.id)
                 .eq('claimed', false)  // Only succeeds if still unclaimed
                 .select('id')
-                .single();
+                .maybeSingle();
 
             if (claimErr || !claimedRow) {
                 return res.status(409).json({ success: false, error: 'Already claimed (concurrent request)' });

@@ -140,7 +140,7 @@ async function createFreeroll(req, res, guard) {
                 created_by: guard.id || null,
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

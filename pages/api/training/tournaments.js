@@ -37,7 +37,7 @@ export default async function handler(req, res) {
                     .from('training_tournaments')
                     .select('*')
                     .eq('id', tournamentId)
-                    .single();
+                    .maybeSingle();
 
                 if (!tournament) {
                     return res.status(404).json({ success: false, error: 'Tournament not found' });
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
                 .from('training_tournaments')
                 .select('*')
                 .eq('id', tournamentId)
-                .single();
+                .maybeSingle();
 
             if (!tournament) {
                 return res.status(404).json({ success: false, error: 'Tournament not found' });
@@ -153,7 +153,7 @@ export default async function handler(req, res) {
                     .select('id')
                     .eq('tournament_id', tournamentId)
                     .eq('user_id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (existing) {
                     return res.status(400).json({ success: false, error: 'Already registered' });
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
                     .select('*')
                     .eq('tournament_id', tournamentId)
                     .eq('user_id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (!entry) {
                     return res.status(400).json({ success: false, error: 'Not registered for this tournament' });

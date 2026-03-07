@@ -39,7 +39,7 @@ export default async function handler(req, res) {
             .from('geeves_conversations')
             .select('id, title, user_id')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (convError || !conversation) {
             return res.status(404).json({ error: 'Conversation not found' });

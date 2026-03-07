@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       .from('clubs')
       .select('id, owner_id, union_id, chip_treasury')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
     if (!club) return res.status(404).json({ success: false, error: 'Club not found' });
 
     let authorized = club.owner_id === user.id;
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         .select('role')
         .eq('union_id', club.union_id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       authorized = !!ua;
     }
     if (!authorized) return res.status(403).json({ success: false, error: 'Not authorized' });
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
         .select('id, period_number, start_at')  // BUG FIX: was select('id') — period_number/start_at were undefined
         .eq('club_id', clubId)
         .eq('status', 'open')
-        .single();
+        .maybeSingle();
 
       if (!period) return res.status(404).json({ success: false, error: 'No open period to close' });
 
@@ -205,7 +205,7 @@ export default async function handler(req, res) {
           .from('unions')
           .select('settings')
           .eq('id', club.union_id)
-          .single();
+          .maybeSingle();
         unionRakeHold = union?.settings?.union_rake_hold || 0.10;
       }
 
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
             .from('agents')
             .select('commission_rate')
             .eq('id', agent.parent_agent_id)
-            .single();
+            .maybeSingle();
           if (parentAgent) {
             // Parent gets the difference between their rate and sub-agent's rate
             subAgentDeduction = Math.round(grossRake * (parentAgent.commission_rate - agent.commission_rate) * 100) / 100;
@@ -385,7 +385,7 @@ export default async function handler(req, res) {
         .from('commission_records')
         .select('id, agent_id, commission_amount, period_id, status, period:settlement_periods!inner(club_id)')
         .eq('id', commissionId)
-        .single();
+        .maybeSingle();
 
       if (!cr) return res.status(404).json({ success: false, error: 'Commission record not found' });
       if (cr.period?.club_id !== clubId) {
@@ -409,7 +409,7 @@ export default async function handler(req, res) {
         .from('agents')
         .select('user_id')
         .eq('id', cr.agent_id)
-        .single();
+        .maybeSingle();
 
       // Distribute chips: debit treasury, credit agent
       if (cr.commission_amount > 0 && agentData) {
@@ -444,7 +444,7 @@ export default async function handler(req, res) {
         .from('settlement_periods')
         .select('start_at')
         .eq('id', cr.period_id)
-        .single();
+        .maybeSingle();
 
       // Also update commission_history for this specific period only
       await supabaseAdmin
@@ -481,7 +481,7 @@ export default async function handler(req, res) {
         .from('settlement_periods')
         .select('id, club_id, start_at')
         .eq('id', periodId)
-        .single();
+        .maybeSingle();
 
       if (!verifyPeriod) return res.status(404).json({ success: false, error: 'Period not found' });
       if (verifyPeriod.club_id !== clubId) {
@@ -512,7 +512,7 @@ export default async function handler(req, res) {
           .from('agents')
           .select('user_id')
           .eq('id', cr.agent_id)
-          .single();
+          .maybeSingle();
 
         if (agentData && cr.commission_amount > 0) {
           // Debit club treasury FIRST

@@ -98,7 +98,7 @@ export default async function handler(req, res) {
                 .from('solved_spots_gold')
                 .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
                 .eq('id', spotId)
-                .single();
+                .maybeSingle();
 
             if (error || !spot) {
                 return res.status(404).json({ success: false, error: 'Spot not found' });

@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       .from('commander_player_preferences')
       .select('id')
       .eq('player_id', playerId)
-      .single();
+      .maybeSingle();
 
     // Analyze player patterns
     const gameTypeCount = {};

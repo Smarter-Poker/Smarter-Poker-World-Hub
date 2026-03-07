@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     .select('role')
     .eq('club_id', clubId)
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!member || !['owner', 'admin'].includes(member.role)) {
     return res.status(403).json({ success: false, error: 'Only owners and admins can manage promo wallet' });
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
           .from('clubs')
           .select('promo_balance')
           .eq('id', clubId)
-          .single();
+          .maybeSingle();
 
         const { data: agents } = await supabaseAdmin
           .from('agents')

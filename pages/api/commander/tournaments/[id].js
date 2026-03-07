@@ -65,7 +65,7 @@ async function getTournament(req, res, id) {
         )
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -92,7 +92,7 @@ async function updateTournament(req, res, id, staff) {
       .from('commander_tournaments')
       .select('venue_id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !existing) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
@@ -116,7 +116,7 @@ async function updateTournament(req, res, id, staff) {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -144,7 +144,7 @@ async function cancelTournament(req, res, id, staff) {
       .from('commander_tournaments')
       .select('venue_id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !existing) {
       return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Tournament not found' } });
@@ -168,7 +168,7 @@ async function cancelTournament(req, res, id, staff) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

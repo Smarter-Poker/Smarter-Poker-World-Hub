@@ -80,7 +80,7 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .select('id, commander_enabled, name')
             .eq('id', venue_id)
-            .single();
+            .maybeSingle();
 
         if (venueError || !venue) {
             return res.status(404).json({
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('display_name, full_name, phone')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         const playerName = player_name || profile?.display_name || profile?.full_name || user.email?.split('@')[0] || 'Web Player';
         // Phone priority: request body > profiles table > Supabase auth user.phone

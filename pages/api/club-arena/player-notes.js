@@ -109,7 +109,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('user_id', userId)
             .eq('target_user_id', targetUserId)
-            .maybeSingle();
+            .single();
 
           if (existing) {
             const { data: updated, error: updErr } = await supabaseAdmin
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
               .update(upsertData)
               .eq('id', existing.id)
               .select()
-              .single();
+              .maybeSingle();
             if (updErr) return res.status(500).json({ success: false, error: updErr.message });
             return res.json({ success: true, note: updated });
           } else {

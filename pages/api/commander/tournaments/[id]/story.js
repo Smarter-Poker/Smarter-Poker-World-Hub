@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             .from('commander_tournaments')
             .select('name, venue_id, status, current_level, blind_structure')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
 
         if (tErr || !tournament) {
             return res.status(404).json({ success: false, error: 'Tournament not found' });
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
             .select('id, status, current_chips, finish_position, payout_amount, table_number, seat_number')
             .eq('tournament_id', tournamentId)
             .eq('player_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (!entry) {
             return res.status(403).json({ success: false, error: 'You are not registered in this tournament' });

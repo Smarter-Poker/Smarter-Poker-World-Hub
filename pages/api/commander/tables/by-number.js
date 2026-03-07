@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       .select('venue_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const { tableNumber } = req.query;
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
         .select('*')
         .eq('venue_id', staff.venue_id)
         .eq('table_number', parseInt(tableNumber))
-        .single();
+        .maybeSingle();
 
       if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
           .from('commander_tournaments')
           .select('id, name, status, game_type, buyin_amount')
           .eq('id', table.tournament_id)
-          .single();
+          .maybeSingle();
         tournament = t;
       }
 
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
           .in('status', ['waiting', 'running'])
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         game = g || null;
       }
 

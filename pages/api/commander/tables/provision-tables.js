@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .select('id, name')
             .eq('id', venue_id)
-            .single();
+            .maybeSingle();
 
         if (venueErr || !venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });

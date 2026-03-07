@@ -62,7 +62,7 @@ async function getClubByCode(req, res, code) {
       `)
       .or(`club_code.eq.${upperCode},invite_code.eq.${upperCode}`)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (error || !group) {
       return res.status(404).json({ error: 'Club not found. Check the code and try again.' });
@@ -82,7 +82,7 @@ async function getClubByCode(req, res, code) {
           .select('status, role')
           .eq('group_id', group.id)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         myMembership = membership;
       }
@@ -121,7 +121,7 @@ async function joinClubByCode(req, res, code) {
       .select('id, name, requires_approval, invite_code, club_code')
       .or(`club_code.eq.${upperCode},invite_code.eq.${upperCode}`)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (groupError || !group) {
       return res.status(404).json({ error: 'Club not found. Check the code and try again.' });
@@ -133,7 +133,7 @@ async function joinClubByCode(req, res, code) {
       .select('id, status')
       .eq('group_id', group.id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       if (existing.status === 'approved') {

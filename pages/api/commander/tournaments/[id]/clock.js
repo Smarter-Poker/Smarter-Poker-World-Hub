@@ -59,7 +59,7 @@ async function getClockState(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (error || !tournament) {
       return res.status(404).json({
@@ -172,7 +172,7 @@ async function handleClockAction(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !tournament) {
       return res.status(404).json({
@@ -465,7 +465,7 @@ async function handleClockAction(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     // --- AUTO BREAK CHECK (runs only after level advances, post re-entry period) ---
     let autoBreakResult = null;

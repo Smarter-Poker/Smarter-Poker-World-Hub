@@ -40,7 +40,7 @@ async function registrationReport(req, res, tournamentId) {
             .from('commander_tournaments')
             .select('name, buyin_amount, buyin_fee, scheduled_start')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
 
         const { data: entries, error } = await supabase
             .from('commander_tournament_entries')
@@ -113,7 +113,7 @@ async function cashierReport(req, res, tournamentId) {
             .from('commander_tournaments')
             .select('name, buyin_amount, buyin_fee, scheduled_start')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
 
         const { data: entries, error } = await supabase
             .from('commander_tournament_entries')

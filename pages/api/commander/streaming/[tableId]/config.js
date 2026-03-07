@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       .select('id, venue_id')
       .eq('id', tableId)
       .eq('venue_id', venue_id)
-      .single();
+      .maybeSingle();
 
     if (tableError || !table) {
       return res.status(404).json({
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
       .from('commander_streams')
       .select('id')
       .eq('table_id', tableId)
-      .single();
+      .maybeSingle();
 
     let result;
     if (existingStream) {
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         })
         .eq('table_id', tableId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       result = data;

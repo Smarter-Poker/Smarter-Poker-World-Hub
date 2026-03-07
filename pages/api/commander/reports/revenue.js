@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     if (staffRow) {
       staff = staffRow;
     } else {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         .eq('owner_id', user.id)
         .eq('venue_id', venue_id)
         .in('status', ['active', 'trialing'])
-        .single();
+        .maybeSingle();
       if (sub) staff = { id: user.id, role: 'owner' };
     }
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });

@@ -150,7 +150,7 @@ async function handlePost(req, res) {
       .from('poker_venues')
       .select('id, name')
       .eq('id', venue_id)
-      .single();
+      .maybeSingle();
 
     if (venueError || !venue) {
       return res.status(404).json({
@@ -165,7 +165,7 @@ async function handlePost(req, res) {
         .from('profiles')
         .select('id')
         .eq('id', user_id)
-        .single();
+        .maybeSingle();
 
       if (userError || !user) {
         return res.status(404).json({
@@ -179,7 +179,7 @@ async function handlePost(req, res) {
         .select('id')
         .eq('venue_id', venue_id)
         .eq('user_id', user_id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.status(400).json({
@@ -245,7 +245,7 @@ async function handlePost(req, res) {
           notes: `Staff member — ${role}`,
         })
         .select('id')
-        .single();
+        .maybeSingle();
       if (member) memberId = member.id;
     } catch (err) {
       console.warn('Auto-create member failed (non-critical):', err.message);

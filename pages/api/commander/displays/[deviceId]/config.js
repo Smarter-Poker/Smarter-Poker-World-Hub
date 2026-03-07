@@ -51,7 +51,7 @@ async function handleGet(req, res, deviceId) {
         )
       `)
       .eq('device_id', deviceId)
-      .single();
+      .maybeSingle();
 
     if (error || !display) {
       return res.status(404).json({
@@ -109,7 +109,7 @@ async function handlePatch(req, res, deviceId) {
       .update(updates)
       .eq('device_id', deviceId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error || !display) {
       return res.status(404).json({

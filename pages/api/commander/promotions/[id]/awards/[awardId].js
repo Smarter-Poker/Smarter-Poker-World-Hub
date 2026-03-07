@@ -54,7 +54,7 @@ async function updateAward(req, res, promotionId, awardId) {
       .select('id, venue_id, status')
       .eq('id', awardId)
       .eq('promotion_id', promotionId)
-      .single();
+      .maybeSingle();
 
     if (!award) {
       return res.status(404).json({ error: 'Award not found' });
@@ -67,7 +67,7 @@ async function updateAward(req, res, promotionId, awardId) {
       .eq('venue_id', award.venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ error: 'You are not authorized to update awards' });
@@ -111,7 +111,7 @@ async function updateAward(req, res, promotionId, awardId) {
         profiles:player_id (id, display_name, avatar_url),
         commander_staff:approved_by (id, display_name)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -137,7 +137,7 @@ export default async function handler(req, res) {
         is_active: true
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { plan: data } });
@@ -158,7 +158,7 @@ export default async function handler(req, res) {
       .eq('id', id)
       .eq('venue_id', venue_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { plan: data } });
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
       .eq('id', id)
       .eq('venue_id', venue_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { plan: data } });

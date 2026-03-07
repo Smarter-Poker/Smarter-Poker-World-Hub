@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         .from('commander_waitlist')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         return res.status(404).json({ success: false, error: 'Waitlist entry not found' });
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         .from('commander_waitlist')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (fetchErr || !entry) {
         return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Waitlist entry not found' } });
@@ -67,7 +67,7 @@ export default async function handler(req, res) {
               .select('id')
               .eq('id', sessionData.id)
               .eq('is_active', true)
-              .single();
+              .maybeSingle();
             if (staffCheck) authorized = true;
           } else if (sessionData.user_id && sessionData.venue_id) {
             const { data: staffCheck } = await supabase
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
               .eq('user_id', sessionData.user_id)
               .eq('venue_id', sessionData.venue_id)
               .eq('is_active', true)
-              .single();
+              .maybeSingle();
             if (staffCheck) authorized = true;
             // Owner fallback
             if (!authorized && sessionData.role === 'owner') {
@@ -86,7 +86,7 @@ export default async function handler(req, res) {
                 .eq('owner_id', sessionData.user_id)
                 .eq('venue_id', sessionData.venue_id)
                 .in('status', ['active', 'trialing'])
-                .single();
+                .maybeSingle();
               if (sub) authorized = true;
             }
           }
@@ -163,7 +163,7 @@ export default async function handler(req, res) {
             .select('id, venue_id, is_active')
             .eq('id', sessionData.id)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
           if (staff) isStaff = true;
         } else if (sessionData.user_id && sessionData.venue_id) {
           const { data: staff } = await supabase
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
             .eq('user_id', sessionData.user_id)
             .eq('venue_id', sessionData.venue_id)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
           if (staff) isStaff = true;
           // Owner fallback
           if (!isStaff && sessionData.role === 'owner') {
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
               .eq('owner_id', sessionData.user_id)
               .eq('venue_id', sessionData.venue_id)
               .in('status', ['active', 'trialing'])
-              .single();
+              .maybeSingle();
             if (sub) isStaff = true;
           }
         }
@@ -210,7 +210,7 @@ export default async function handler(req, res) {
         .update(updates)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         return res.status(500).json({ success: false, error: { code: 'DATABASE_ERROR', message: error.message } });

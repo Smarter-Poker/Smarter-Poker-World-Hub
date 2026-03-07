@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         )
       `)
       .eq('id', handId)
-      .single();
+      .maybeSingle();
 
     if (error || !hand) {
       return res.status(404).json({

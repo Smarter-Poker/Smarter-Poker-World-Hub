@@ -108,7 +108,7 @@ async function tryFallbacks(source, configPath) {
                     config_path: configPath,
                     auto_fixed: true
                 }
-            }).select().maybeSingle();
+            }).select().single();
 
             return { fixed: true, new_url: fallback };
         }

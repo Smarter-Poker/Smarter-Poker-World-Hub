@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', clubId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (!membership || !['owner', 'admin', 'manager'].includes(membership.role)) {
       return res.status(403).json({ error: 'Not authorized. Club admin access required.' });
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
           .eq('id', flagId)
           .eq('club_id', clubId)
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         if (!data) return res.status(404).json({ error: 'Flag not found' });

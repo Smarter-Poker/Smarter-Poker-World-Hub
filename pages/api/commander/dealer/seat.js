@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       .from('commander_members')
       .select('*')
       .eq('id', member_id)
-      .single();
+      .maybeSingle();
 
     if (memberError || !member) {
       return res.status(404).json({ success: false, error: 'Member not found' });

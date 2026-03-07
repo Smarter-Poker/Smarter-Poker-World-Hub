@@ -42,14 +42,14 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!member || !['owner', 'admin'].includes(member.role)) {
       // Union admin fallback
-      const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).single();
+      const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
       let unionAuth = false;
       if (clubInfo?.union_id) {
-        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
         unionAuth = !!ua;
       }
       if (!unionAuth) {
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       .select('id, club_id, status, name')
       .eq('id', tableId)
       .eq('club_id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!table) return res.status(404).json({ success: false, error: 'Table not found' });
 

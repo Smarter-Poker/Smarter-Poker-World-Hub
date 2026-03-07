@@ -136,7 +136,7 @@ async function createRotation(req, res) {
       .eq('id', dealer_id)
       .eq('venue_id', venue_id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     // Look up table_number from table_id for complete rotation records
     let resolvedTableNumber = null;
@@ -145,7 +145,7 @@ async function createRotation(req, res) {
         .from('commander_tables')
         .select('table_number')
         .eq('id', parseInt(table_id))
-        .single();
+        .maybeSingle();
       resolvedTableNumber = tbl?.table_number || null;
     }
 

@@ -156,7 +156,7 @@ export default async function handler(req, res) {
           .from('tournament_series')
           .select('*')
           .eq('id', numericId)
-          .single();
+          .maybeSingle();
 
         if (!error && data) {
           singleSeries = data;

@@ -59,7 +59,7 @@ export default async function handler(req, res) {
         .select('id, venue_id, role')
         .eq('id', sessionData.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
       if (data && String(data.venue_id) === String(venueId)) {
         authRole = data.role;
       }

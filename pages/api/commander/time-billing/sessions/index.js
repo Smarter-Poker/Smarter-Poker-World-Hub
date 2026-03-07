@@ -47,7 +47,7 @@ export default async function handler(req, res) {
           .from('commander_venue_settings')
           .select('time_billing_rate')
           .eq('venue_id', staff.venue_id)
-          .single();
+          .maybeSingle();
         finalRate = settings?.time_billing_rate || 0;
       }
 

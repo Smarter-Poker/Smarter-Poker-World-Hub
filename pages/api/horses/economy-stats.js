@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     // BUG #240 FIX: Require admin/superadmin role — economy data is sensitive
     const { data: profile } = await supabase
-        .from('profiles').select('role').eq('id', user.id).single();
+        .from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
         return res.status(403).json({ error: 'Admin access required' });
     }

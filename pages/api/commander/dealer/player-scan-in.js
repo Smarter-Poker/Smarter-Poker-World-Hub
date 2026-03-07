@@ -89,7 +89,7 @@ export default async function handler(req, res) {
                 .from('commander_venue_settings')
                 .select('venue_type, time_billing_rate')
                 .eq('venue_id', resolvedVenueId)
-                .single();
+                .maybeSingle();
 
             if (settings?.venue_type) {
                 venueType = settings.venue_type;

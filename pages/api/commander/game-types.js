@@ -35,7 +35,7 @@ export default async function handler(req, res) {
       .select('venue_id, role, name')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     if (staffRow) {
       staff = staffRow;
     } else {
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         .eq('owner_id', user.id)
         .in('status', ['active', 'trialing'])
         .limit(1)
-        .single();
+        .maybeSingle();
       if (sub) staff = { venue_id: sub.venue_id, role: 'owner', name: 'Owner' };
     }
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
         .eq('id', id)
         .eq('venue_id', venueId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) return res.status(500).json({ success: false, error: error.message });
       return res.status(200).json({ success: true, data });
@@ -167,7 +167,7 @@ export default async function handler(req, res) {
         .eq('id', id)
         .eq('venue_id', venueId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) return res.status(500).json({ success: false, error: error.message });
       return res.status(200).json({ success: true, data });

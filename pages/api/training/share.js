@@ -94,7 +94,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('username, avatar_url, display_name')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         // Create the social post
         const { data: post, error } = await supabase

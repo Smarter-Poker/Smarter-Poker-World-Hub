@@ -98,7 +98,7 @@ async function handleRemove(req, res) {
       .select('*')
       .eq('id', exclusion_id)
       .eq('player_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!exclusion) {
       return res.status(404).json({

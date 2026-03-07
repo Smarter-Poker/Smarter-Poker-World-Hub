@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       .eq('id', escrow_id)
       .eq('player_id', user.id)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (escrowError || !escrow) {
       return res.status(404).json({
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .select('stripe_customer_id, email, username')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (profile?.stripe_customer_id) {
       customerId = profile.stripe_customer_id;

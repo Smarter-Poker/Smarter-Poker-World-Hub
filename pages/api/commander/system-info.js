@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       .select('venue_id, role, name')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     const venueId = staff.venue_id;
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
 
     // 1. Database connectivity
     const dbStart = Date.now();
-    const { error: dbErr } = await supabase.from('poker_venues').select('id').eq('id', venueId).single();
+    const { error: dbErr } = await supabase.from('poker_venues').select('id').eq('id', venueId).maybeSingle();
     healthChecks.database = {
       status: dbErr ? 'error' : 'healthy',
       latency_ms: Date.now() - dbStart,
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
       .from('poker_venues')
       .select('id, name, created_at')
       .eq('id', venueId)
-      .single();
+      .maybeSingle();
 
     // 3. Count active resources
     const [tablesRes, staffRes, gamesRes, membersRes] = await Promise.all([

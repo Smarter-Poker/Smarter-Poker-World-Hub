@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       .from('poker_venues')
       .select('id, commander_enabled')
       .eq('id', venue_id)
-      .single();
+      .maybeSingle();
 
     if (venueError || !venue) {
       return res.status(404).json({
@@ -95,7 +95,7 @@ export default async function handler(req, res) {
         .from('commander_tables')
         .select('id, status')
         .eq('id', table_id)
-        .single();
+        .maybeSingle();
 
       if (tableError || !table) {
         return res.status(404).json({

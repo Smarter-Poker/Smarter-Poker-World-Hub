@@ -44,7 +44,7 @@ export default async function handler(req, res) {
         commander_waitlist_group_members (id, player_id)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (squadError || !squad) {
       return res.status(404).json({

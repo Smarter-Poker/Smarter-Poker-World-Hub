@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       .from('commander_home_games')
       .select('id, host_id, buyin_min, buyin_max, status')
       .eq('id', home_game_id)
-      .single();
+      .maybeSingle();
 
     if (gameError || !game) {
       return res.status(404).json({
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       .eq('home_game_id', home_game_id)
       .eq('player_id', user.id)
       .eq('status', 'pending')
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({

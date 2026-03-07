@@ -104,7 +104,7 @@ export default async function handler(req, res) {
             .from('solved_spots_gold')
             .select('strategy_matrix')
             .eq('scenario_hash', scenarioHash)
-            .single();
+            .maybeSingle();
 
         const baselineAggression = currentSpot
             ? calculateAggressionIndex(currentSpot.strategy_matrix)

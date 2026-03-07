@@ -5,7 +5,7 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Known test user with profile data (Danny Bek)
 const TEST_USER_ID = '3bb71bfe-f723-427c-aac7-a853ba04a014';
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ status: 'error', message: 'Method not allowed' });
     }
 
-    if (!SUPABASE_SERVICE_KEY) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({
             status: 'error',
             message: 'Service key not configured',
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+        const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
         // Test profile fetch with known user
         const { data: profile, error } = await supabase

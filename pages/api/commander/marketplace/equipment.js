@@ -156,7 +156,7 @@ async function listForRent(req, res) {
         *,
         profiles:vendor_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

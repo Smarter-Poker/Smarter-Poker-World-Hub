@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       .eq('table_id', tableId)
       .eq('status', 'live')
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') {

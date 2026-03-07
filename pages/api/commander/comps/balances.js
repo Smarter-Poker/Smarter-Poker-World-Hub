@@ -340,7 +340,7 @@ async function getBalances(req, res) {
             .from('commander_staff')
             .select('user_id')
             .eq('id', session.id)
-            .single();
+            .maybeSingle();
           if (staffRow?.user_id) userId = staffRow.user_id;
         }
       } catch { /* invalid session */ }
@@ -403,7 +403,7 @@ async function getBalances(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', userId)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     // If staff, can view all balances
     if (staff) {
@@ -459,7 +459,7 @@ async function getBalances(req, res) {
       `)
       .eq('venue_id', venue_id)
       .eq('player_id', userId)
-      .single();
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') throw error;
 
@@ -495,7 +495,7 @@ async function voidComp(req, res, staffAuth) {
       .from('commander_member_comp_log')
       .select('*')
       .eq('id', comp_log_id)
-      .single();
+      .maybeSingle();
 
     if (logErr || !logEntry) return res.status(404).json({ success: false, error: 'Comp log entry not found' });
 
@@ -519,7 +519,7 @@ async function voidComp(req, res, staffAuth) {
       .from('commander_members')
       .select('id, comp_balance, comp_lifetime_earned, comp_lifetime_redeemed, time_balance_minutes, membership_status, membership_expires')
       .eq('id', logEntry.member_id)
-      .single();
+      .maybeSingle();
 
     if (memberErr || !member) return res.status(404).json({ success: false, error: 'Member not found' });
 

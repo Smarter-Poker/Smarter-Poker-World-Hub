@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       .from('commander_equipment_rentals')
       .select('*, owner:owner_id (id, display_name, email)')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (equipError || !equipment) {
       return res.status(404).json({
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
         status: 'pending'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (rentalError) {
       console.error('Rental record error:', rentalError);

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         .select('*')
         .eq('venue_id', id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       return res.status(200).json({
         success: true,
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('venue_id', id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.status(200).json({

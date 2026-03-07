@@ -138,7 +138,7 @@ async function registerDealer(req, res) {
       .from('commander_dealer_marketplace')
       .select('id')
       .eq('dealer_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({
@@ -167,7 +167,7 @@ async function registerDealer(req, res) {
         *,
         profiles:dealer_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       .from('commander_members')
       .select('first_name, last_name, venue_id')
       .eq('id', member_id)
-      .single();
+      .maybeSingle();
 
     if (memberErr || !member) {
       return res.status(404).json({ success: false, error: { message: 'Member not found' } });

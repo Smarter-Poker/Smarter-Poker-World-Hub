@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       .select('role')
       .eq('club_id', req.body.clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!['owner', 'admin'].includes(member?.role)) {
       return res.status(403).json({ success: false, error: 'Only owners/admins or the engine can record rake' });

@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       .from('commander_leagues')
       .select('id, status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (leagueError || !league) {
       return res.status(404).json({
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       .select('id')
       .eq('league_id', id)
       .eq('player_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return res.status(400).json({

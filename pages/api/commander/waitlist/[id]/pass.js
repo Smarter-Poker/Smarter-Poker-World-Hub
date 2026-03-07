@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (getError || !entry) {
       return res.status(404).json({
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
         .in('status', ['waiting', 'called'])
         .order('position', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       if (maxEntry?.position) newPosition = maxEntry.position + 1;
     } catch { /* use fallback */ }
 
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

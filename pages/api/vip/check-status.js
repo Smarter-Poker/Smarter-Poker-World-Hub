@@ -38,7 +38,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('is_vip, vip_tier, vip_expires_at, diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error || !profile) {
             return res.status(200).json({

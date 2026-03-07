@@ -35,7 +35,7 @@ async function getLeaderboard(req, res, id) {
             .from('commander_tournament_leaderboards')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
         if (!lb) return res.status(404).json({ success: false, error: { message: 'Leaderboard not found' } });
@@ -99,7 +99,7 @@ async function updateLeaderboard(req, res, id) {
             .update(updates)
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 
@@ -117,7 +117,7 @@ async function deactivateLeaderboard(req, res, id) {
             .update({ is_active: false })
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

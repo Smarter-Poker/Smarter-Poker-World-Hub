@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       .from('chip_transactions')
       .select('id, from_user_id, to_user_id, amount, club_id, created_at, transaction_type, notes')
       .eq('id', transactionId)
-      .single();
+      .maybeSingle();
 
     if (txnErr || !txn) {
       return res.status(404).json({ success: false, error: 'Transaction not found' });
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
       .eq('id', transactionId)
       .not('notes', 'like', '%[CLAWED BACK]%')  // Only if not already claimed
       .select('id')
-      .single();
+      .maybeSingle();
 
     if (claimErr || !claimed) {
       return res.status(409).json({ success: false, error: 'Transaction already clawed back or claim failed' });

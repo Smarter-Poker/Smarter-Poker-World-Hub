@@ -43,7 +43,7 @@ export default async function handler(req, res) {
             .from('user_mfa_factors')
             .select('secret')
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (mfaError || !mfaData) {
             return res.status(404).json({ error: '2FA not set up. Call /api/auth/mfa/setup first.' });

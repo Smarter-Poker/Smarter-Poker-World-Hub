@@ -113,7 +113,7 @@ async function handlePost(req, res) {
         .eq('venue_id', venue_id)
         .eq('player_id', player_id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.status(400).json({

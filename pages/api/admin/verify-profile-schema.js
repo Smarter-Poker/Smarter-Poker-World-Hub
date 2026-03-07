@@ -67,7 +67,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('*')
             .eq('username', testUsername)
-            .single();
+            .maybeSingle();
 
         // 8. If user exists, get their friends
         let userFriends = [];

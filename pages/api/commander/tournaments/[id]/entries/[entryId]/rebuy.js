@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('id, venue_id, status, allows_rebuys, rebuy_cost, rebuy_chips, rebuy_levels, max_rebuys, current_level, clock_state')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (!tournament) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
 
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('id', entryId)
       .eq('tournament_id', tournamentId)
-      .single();
+      .maybeSingle();
     if (!entry) return res.status(404).json({ success: false, error: 'Entry not found' });
 
     if (entry.status === 'eliminated') {
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       })
       .eq('id', entryId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (uErr) return res.status(500).json({ success: false, error: 'Failed to process rebuy' });
 

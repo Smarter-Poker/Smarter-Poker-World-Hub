@@ -13,7 +13,7 @@ import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 // Indifference threshold: actions with >= 40% freq are acceptable
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
                 .from('solved_spots_gold')
                 .select('strategy_matrix')
                 .eq('id', effectiveFileId)
-                .single();
+                .maybeSingle();
 
             if (spotData?.strategy_matrix) {
                 // Build solver node from strategy_matrix

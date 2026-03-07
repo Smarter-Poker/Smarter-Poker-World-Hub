@@ -97,7 +97,7 @@ async function registerPlayer(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (tournamentError || !tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
@@ -137,7 +137,7 @@ async function registerPlayer(req, res, tournamentId) {
         .eq('venue_id', tournament.venue_id)
         .eq('user_id', userId)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (staffError || !staff) {
         return res.status(403).json({ success: false, error: 'Only staff can register other players' });
@@ -152,7 +152,7 @@ async function registerPlayer(req, res, tournamentId) {
         .eq('tournament_id', tournamentId)
         .eq('player_id', effectivePlayerId)
         .not('status', 'in', '("eliminated","cancelled")')
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return res.status(400).json({ success: false, error: 'Player is already registered' });
@@ -218,7 +218,7 @@ async function unregisterPlayer(req, res, tournamentId) {
       .select('*, commander_tournaments(venue_id, status)')
       .eq('id', entry_id)
       .eq('tournament_id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (entryError || !entry) {
       return res.status(404).json({ success: false, error: 'Entry not found' });
@@ -235,7 +235,7 @@ async function unregisterPlayer(req, res, tournamentId) {
         .eq('venue_id', tournament.venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (!staff) {
         return res.status(400).json({ success: false, error: 'Cannot unregister after tournament has started' });
@@ -251,7 +251,7 @@ async function unregisterPlayer(req, res, tournamentId) {
         .eq('venue_id', tournament.venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (!staff) {
         return res.status(403).json({ success: false, error: 'Access denied' });

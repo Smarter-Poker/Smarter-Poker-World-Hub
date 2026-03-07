@@ -75,7 +75,7 @@ async function subscribe(req, res) {
       query = query.eq('endpoint', onesignal_player_id)
     }
 
-    const { data: existing } = await query.single();
+    const { data: existing } = await query.maybeSingle();
 
     // Build subscription data with OneSignal player ID
     const subscriptionData = subscription || {};
@@ -98,7 +98,7 @@ async function subscribe(req, res) {
         })
         .eq('id', existing.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

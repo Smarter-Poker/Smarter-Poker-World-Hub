@@ -63,7 +63,7 @@ export default async function handler(req, res) {
       .select('user_id, role, chip_balance, agent_id, nickname')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member of this club' });
 
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .select('username, display_name, full_name')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     const playerName = playerProfile?.display_name
       || playerProfile?.full_name

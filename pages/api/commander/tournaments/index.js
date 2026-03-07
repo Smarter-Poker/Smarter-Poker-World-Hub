@@ -177,7 +177,7 @@ async function createTournament(req, res, staff) {
         created_by: staff.role === 'owner' ? null : staff.id
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

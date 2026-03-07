@@ -131,7 +131,7 @@ async function createLeaderboard(req, res) {
         *,
         poker_venues:venue_id (id, name)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -67,7 +67,7 @@ async function handleGet(req, res, tableId) {
         )
       `)
       .eq('id', tableId)
-      .single();
+      .maybeSingle();
 
     if (error || !table) {
       return res.status(404).json({
@@ -107,7 +107,7 @@ async function handlePatch(req, res, tableId) {
       .from('commander_tables')
       .select('id, status, current_game_id')
       .eq('id', tableId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !existing) {
       return res.status(404).json({
@@ -153,7 +153,7 @@ async function handlePatch(req, res, tableId) {
           commander_games!commander_games_table_id_fkey (id, status, game_type, stakes)
         `)
         .eq('id', tableId)
-        .single();
+        .maybeSingle();
 
       if (tableWithGames) {
         const currentMode = tableWithGames.mode || tableWithGames.table_purpose || 'cash';
@@ -214,7 +214,7 @@ async function handlePatch(req, res, tableId) {
       .update(updates)
       .eq('id', tableId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander table PATCH error:', updateError);
@@ -253,7 +253,7 @@ async function handleDelete(req, res, tableId) {
       .from('commander_tables')
       .select('id, status, current_game_id')
       .eq('id', tableId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !table) {
       return res.status(404).json({

@@ -68,7 +68,7 @@ async function redeemComps(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ error: 'Staff access required to process redemptions' });
@@ -104,7 +104,7 @@ async function redeemComps(req, res) {
         commander_staff:processed_by (id, display_name)
       `)
       .eq('id', data)
-      .single();
+      .maybeSingle();
 
     // Get updated balance
     const { data: balance } = await supabase
@@ -112,7 +112,7 @@ async function redeemComps(req, res) {
       .select('*')
       .eq('venue_id', venue_id)
       .eq('player_id', player_id)
-      .single();
+      .maybeSingle();
 
     return res.status(200).json({
       redemption,
@@ -166,7 +166,7 @@ async function listRedemptions(req, res) {
         .eq('venue_id', venue_id)
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (staff) {
         query = query.eq('venue_id', venue_id);

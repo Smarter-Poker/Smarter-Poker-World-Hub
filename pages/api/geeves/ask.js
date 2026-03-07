@@ -154,7 +154,7 @@ async function checkExactCache(questionHash) {
         .from('geeves_knowledge_cache')
         .select('*')
         .eq('question_hash', questionHash)
-        .single();
+        .maybeSingle();
 
     if (error || !data) return null;
     return data;

@@ -2,18 +2,18 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    if (!SUPABASE_SERVICE_KEY) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({ error: 'Service key not configured' });
     }
 
-    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
     // HARDENED: Local JWT decode (no GoTrue network call) + fallback
     const localUser = getServerUser(req);
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('username, full_name, avatar_url, diamonds, is_vip')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[get-header-stats] Profile error:', error);

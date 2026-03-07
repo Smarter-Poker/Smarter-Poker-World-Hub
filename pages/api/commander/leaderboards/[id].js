@@ -52,7 +52,7 @@ async function getLeaderboard(req, res, id) {
         poker_venues:venue_id (id, name, city, state)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error || !leaderboard) {
       return res.status(404).json({ error: 'Leaderboard not found' });
@@ -95,7 +95,7 @@ async function updateLeaderboard(req, res, id) {
       .from('commander_leaderboards')
       .select('venue_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       return res.status(404).json({ error: 'Leaderboard not found' });
@@ -128,7 +128,7 @@ async function updateLeaderboard(req, res, id) {
       .update(updates)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

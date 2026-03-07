@@ -39,7 +39,7 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('user_id', userId)
                 .eq('game_id', gameId)
-                .single();
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
                 console.error('Error fetching game progress:', error);

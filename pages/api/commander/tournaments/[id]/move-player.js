@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .from('commander_tournaments')
       .select('id, venue_id, status')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
     if (tErr || !tournament) {
       return res.status(404).json({ success: false, error: 'Tournament not found' });
     }
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('id', entry_id)
       .eq('tournament_id', tournamentId)
-      .single();
+      .maybeSingle();
     if (eErr || !entry) {
       return res.status(404).json({ success: false, error: 'Entry not found' });
     }
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
       })
       .eq('id', entry_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (uErr) {
       return res.status(500).json({ success: false, error: 'Failed to move player' });

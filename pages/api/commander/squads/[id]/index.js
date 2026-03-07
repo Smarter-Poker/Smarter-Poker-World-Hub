@@ -48,7 +48,7 @@ async function handleGet(req, res, id) {
         poker_venues (id, name, city, state)
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error || !squad) {
       return res.status(404).json({
@@ -79,7 +79,7 @@ async function handleDelete(req, res, id) {
       .from('commander_waitlist_groups')
       .select('leader_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (!squad) {
       return res.status(404).json({

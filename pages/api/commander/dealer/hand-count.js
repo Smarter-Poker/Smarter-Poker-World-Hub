@@ -45,7 +45,7 @@ export default async function handler(req, res) {
             .select('venue_id')
             .eq('user_id', user.id)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
         if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
         const { table_number, action } = req.body;
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('venue_id', staff.venue_id)
             .eq('table_number', tableNum)
-            .single();
+            .maybeSingle();
 
         if (tblErr || !table) {
             return res.status(404).json({ success: false, error: 'Table not found' });
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
                     .from('commander_tables')
                     .select('hands_dealt')
                     .eq('id', table.id)
-                    .single();
+                    .maybeSingle();
 
                 newCount = (current?.hands_dealt || 0) + 1;
                 const { error: fallbackErr } = await supabase
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
                 .is('ended_at', null)
                 .order('started_at', { ascending: false })
                 .limit(1)
-                .single()
+                .maybeSingle()
                 .then(({ data: rotation }) => {
                     if (rotation) {
                         supabase

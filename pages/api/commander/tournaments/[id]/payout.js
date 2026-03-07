@@ -39,7 +39,7 @@ async function handleGetPayouts(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('*, commander_tournament_leaderboards(*)')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (tErr) throw tErr;
 
@@ -144,7 +144,7 @@ async function handlePayout(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('venue_id, buyin_amount, buyin_fee, leaderboard_id')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     const { data: entry, error } = await supabase
       .from('commander_tournament_entries')
@@ -157,7 +157,7 @@ async function handlePayout(req, res, tournamentId) {
       .eq('tournament_id', tournamentId)
       .eq('player_id', player_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -205,7 +205,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('venue_id, buyin_amount, buyin_fee, leaderboard_id')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     // Update each entry
     const results = [];
@@ -221,7 +221,7 @@ async function handleBulkPayouts(req, res, tournamentId) {
         .eq('tournament_id', tournamentId)
         .eq('player_id', p.player_id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (!error && entry) {
         results.push(entry);
@@ -258,7 +258,7 @@ async function awardLeaderboardPoints(leaderboardId, tournamentId, entry) {
       .from('commander_tournament_leaderboards')
       .select('point_for_entry, point_structure')
       .eq('id', leaderboardId)
-      .single();
+      .maybeSingle();
 
     if (!lb) return;
 

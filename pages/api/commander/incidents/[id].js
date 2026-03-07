@@ -44,7 +44,7 @@ async function handleGet(req, res, id) {
       .from('commander_incidents')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error || !incident) {
       return res.status(404).json({
@@ -77,7 +77,7 @@ async function handlePatch(req, res, id) {
       .from('commander_incidents')
       .select('id, venue_id, incident_status')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !existing) {
       return res.status(404).json({
@@ -131,7 +131,7 @@ async function handlePatch(req, res, id) {
       .update(updates)
       .eq('id', id)
       .select('*')
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Update incident error:', updateError);

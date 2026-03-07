@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         // Get venue name
         let venueName = 'Your Venue';
         try {
-            const { data: venueData } = await supabase.from('poker_venues').select('name').eq('id', venue_id).single();
+            const { data: venueData } = await supabase.from('poker_venues').select('name').eq('id', venue_id).maybeSingle();
             if (venueData?.name) venueName = venueData.name;
         } catch (e) { /* fallback */ }
 

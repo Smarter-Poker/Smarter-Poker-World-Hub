@@ -87,7 +87,7 @@ async function listHighHands(req, res) {
       .not('verified_at', 'is', null)
       .order('hand_rank', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     return res.status(200).json({
       high_hands: data,
@@ -146,7 +146,7 @@ async function createHighHand(req, res) {
       .eq('venue_id', venue_id)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!staff) {
       return res.status(403).json({ error: 'You are not authorized to record high hands' });

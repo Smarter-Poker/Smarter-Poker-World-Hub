@@ -14,14 +14,14 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'GET') {
-    const { data, error } = await supabase.from('commander_home_rsvps').select('*').eq('id', id).single();
+    const { data, error } = await supabase.from('commander_home_rsvps').select('*').eq('id', id).maybeSingle();
     if (error) return res.status(404).json({ success: false, error: 'RSVP not found' });
     return res.json({ success: true, data: { rsvp: data } });
   }
 
   if (req.method === 'PATCH') {
     const { status } = req.body;
-    const { data, error } = await supabase.from('commander_home_rsvps').update({ status }).eq('id', id).select().single();
+    const { data, error } = await supabase.from('commander_home_rsvps').update({ status }).eq('id', id).select().maybeSingle();
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { rsvp: data } });
   }

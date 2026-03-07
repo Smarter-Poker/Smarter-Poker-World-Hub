@@ -44,7 +44,7 @@ async function handleGet(req, res, id) {
         .from('commander_members')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
     if (error || !member) {
         return res.status(404).json({ success: false, error: 'Member not found' });
@@ -81,7 +81,7 @@ async function handleUpdate(req, res, id) {
         .update(updates)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Member update error:', error);
@@ -101,7 +101,7 @@ async function handleDelete(req, res, id) {
         })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Member delete error:', error);

@@ -58,7 +58,7 @@ async function handleRegister(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('*')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (tError || !tournament) {
       return res.status(404).json({
@@ -115,7 +115,7 @@ async function handleRegister(req, res, tournamentId) {
       .is('lifted_at', null)
       .or('expires_at.is.null,expires_at.gt.now()')
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (exclusion) {
       return res.status(403).json({
@@ -134,7 +134,7 @@ async function handleRegister(req, res, tournamentId) {
       .from('commander_spending_limits')
       .select('daily_limit')
       .eq('player_id', player_id)
-      .single();
+      .maybeSingle();
 
     if (limits?.daily_limit) {
       // Get today's tournament registrations total
@@ -181,7 +181,7 @@ async function handleRegister(req, res, tournamentId) {
     // but before logging the cash drawer transaction.
     const totalAmount = (tournament.buyin_amount || 0) + (tournament.buyin_fee || 0);
     if (totalAmount > 0) {
-      const { data: profile } = await supabase.from('profiles').select('display_name, first_name, last_name').eq('id', player_id).single();
+      const { data: profile } = await supabase.from('profiles').select('display_name, first_name, last_name').eq('id', player_id).maybeSingle();
       const pName = req.body.player_name || profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || 'Unknown Player';
 
       await supabase.from('commander_cash_transactions').insert({
@@ -256,7 +256,7 @@ async function handleUnregister(req, res, tournamentId) {
       .from('commander_tournaments')
       .select('status')
       .eq('id', tournamentId)
-      .single();
+      .maybeSingle();
 
     if (tournament?.status === 'running' || tournament?.status === 'completed') {
       return res.status(400).json({

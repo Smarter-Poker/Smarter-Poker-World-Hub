@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       .select('venue_id')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     if (!staff) return res.status(403).json({ success: false, error: 'Staff access required' });
 
     if (req.method === 'GET') {

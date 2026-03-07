@@ -72,7 +72,7 @@ async function handleGet(req, res, requestId) {
         )
       `)
       .eq('id', requestId)
-      .single();
+      .maybeSingle();
 
     if (error || !request) {
       return res.status(404).json({
@@ -120,7 +120,7 @@ async function handlePatch(req, res, requestId) {
       .select('id, venue_id, role, is_active')
       .eq('id', sessionData.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (staffError || !staff) {
       return res.status(401).json({
@@ -136,7 +136,7 @@ async function handlePatch(req, res, requestId) {
       .from('commander_service_requests')
       .select('*')
       .eq('id', requestId)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !request) {
       return res.status(404).json({
@@ -180,7 +180,7 @@ async function handlePatch(req, res, requestId) {
       .update(updates)
       .eq('id', requestId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander service PATCH error:', updateError);

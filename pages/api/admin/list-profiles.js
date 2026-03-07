@@ -34,7 +34,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('*')
             .eq('id', '00000000-0000-0000-0000-000000000001')
-            .single();
+            .maybeSingle();
 
         return res.status(200).json({
             totalProfiles: profiles?.length || 0,

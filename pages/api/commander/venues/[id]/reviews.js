@@ -109,7 +109,7 @@ export default async function handler(req, res) {
         .select('id')
         .eq('venue_id', id)
         .eq('reviewer_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Update existing review
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
           })
           .eq('id', existing.id)
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 

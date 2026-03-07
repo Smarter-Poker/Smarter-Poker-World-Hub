@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
     const { data: profile } = await supabaseAdmin
-        .from('profiles').select('role').eq('id', user.id).single();
+        .from('profiles').select('role').eq('id', user.id).maybeSingle();
     if (!profile || !['admin', 'superadmin'].includes(profile.role)) {
         return res.status(403).json({ error: 'Admin access required' });
     }

@@ -116,7 +116,7 @@ async function createLeaderboard(req, res, staff) {
                 ]
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

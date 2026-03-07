@@ -5,7 +5,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
@@ -16,11 +16,11 @@ export default async function handler(req, res) {
     if (process.env.NODE_ENV === 'production') {
         return res.status(404).json({ error: 'Not found' });
     }
-    if (!SUPABASE_SERVICE_KEY) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
         return res.status(500).json({ error: 'Service key not configured' });
     }
 
-    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
+    const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_ROLE_KEY);
 
     // The new user's ID
     const USER_ID = '9ca264f1-c0aa-4df9-bc39-1a97bdaad016';

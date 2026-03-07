@@ -132,7 +132,7 @@ export default async function handler(req, res) {
         )
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (fetchError || !entry) {
       return res.status(404).json({
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
       })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       console.error('Commander waitlist call update error:', updateError);

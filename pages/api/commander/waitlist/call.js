@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       .from('commander_waitlist')
       .select('*')
       .eq('id', waitlist_id)
-      .single();
+      .maybeSingle();
 
     if (!entry) return res.status(404).json({ success: false, error: 'Waitlist entry not found' });
     if (entry.status !== 'waiting') {
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       })
       .eq('id', waitlist_id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) return res.status(500).json({ success: false, error: error.message });
 
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
           .from('poker_venues')
           .select('name')
           .eq('id', entry.venue_id)
-          .single();
+          .maybeSingle();
         if (venue?.name) venueName = venue.name;
       } catch { }
 

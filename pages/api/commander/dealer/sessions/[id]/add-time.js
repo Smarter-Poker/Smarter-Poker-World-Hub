@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('id', id)
       .eq('status', 'active')
-      .single();
+      .maybeSingle();
 
     if (fetchError || !session) {
       return res.status(404).json({ success: false, error: 'Active session not found' });
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       .select('mode')
       .eq('venue_id', session.venue_id)
       .eq('table_number', session.table_number)
-      .single();
+      .maybeSingle();
 
     if (tableRow?.mode === 'tournament') {
       return res.status(400).json({
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         .from('commander_members')
         .select('time_balance_minutes')
         .eq('id', session.member_id)
-        .single();
+        .maybeSingle();
 
       const memberBalance = member?.time_balance_minutes || 0;
       if (memberBalance >= parseInt(minutes)) {
