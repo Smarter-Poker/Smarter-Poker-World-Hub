@@ -48,11 +48,8 @@ export default async function handler(req, res) {
     }
 
 
-    const { userId } = req.query;
-
-    if (!userId) {
-        return res.status(400).json({ success: false, error: 'userId required' });
-    }
+    // BUG FIX: was reading userId from query — IDOR; use JWT identity
+    const userId = _authUser.id;
 
     try {
         // Fetch user's training history
