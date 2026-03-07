@@ -12,8 +12,10 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TriviaLeaderboard() {
+    const bus = useTrainingBus('trivia-leaderboard');
     const router = useRouter();
     const [period, setPeriod] = usePersistedState('sp-filters-trivia-leaderboard', 'all');
     const [leaderboard, setLeaderboard] = useState([]);

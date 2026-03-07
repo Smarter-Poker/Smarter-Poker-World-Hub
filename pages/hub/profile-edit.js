@@ -539,17 +539,9 @@ export default function ProfilePage() {
             }));
         }
 
-        // ── CACHE: Invalidate profile cache + notify other tabs ──
-        try {
-            const cacheKey = `sp-profile-cache-${profile.username}`;
-            localStorage.removeItem(cacheKey);
-            new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
-            new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
-        } catch { /* noop */ }
-
-        // Award profile pic diamonds (fire-and-forget, 10 one-time)
+        // Award profile pic diamonds (fire-and-forget, 10💎 one-time)
         claimReward('/api/rewards/profile-pic', { userId: user.id }, 'Profile Picture Uploaded');
-        setMessage('Avatar saved!');
+        setMessage('✅ Avatar saved!');
         setOriginalProfile(prev => ({ ...prev, avatar_url: publicUrl }));
     };
 
@@ -599,13 +591,6 @@ export default function ProfilePage() {
 
             setProfile(prev => ({ ...prev, cover_photo_url: publicUrl }));
             setMessage('Cover photo saved!');
-
-            // ── CACHE: Invalidate profile cache ──
-            try {
-                const cacheKey = `sp-profile-cache-${profile.username}`;
-                localStorage.removeItem(cacheKey);
-                new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
-            } catch { /* noop */ }
         } catch (error) {
             setMessage('Error uploading cover photo: ' + error.message);
             console.error('Upload error:', error);
@@ -656,13 +641,6 @@ export default function ProfilePage() {
 
         setProfile(prev => ({ ...prev, cover_photo_url: null }));
         setMessage('Cover photo removed!');
-
-        // ── CACHE: Invalidate profile cache ──
-        try {
-            const cacheKey = `sp-profile-cache-${profile.username}`;
-            localStorage.removeItem(cacheKey);
-            new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
-        } catch { /* noop */ }
     };
 
     const handleSave = async () => {
@@ -728,14 +706,6 @@ export default function ProfilePage() {
                     }
                 }));
             }
-
-            // ── CACHE: Invalidate profile cache + avatar sync ──
-            try {
-                const cacheKey = `sp-profile-cache-${profile.username}`;
-                localStorage.removeItem(cacheKey);
-                new BroadcastChannel('smarter_poker_cache_sync').postMessage({ type: 'cache_sync', cacheKey, action: 'invalidate', ts: Date.now() });
-                new BroadcastChannel('smarter_poker_avatar_sync').postMessage('refresh');
-            } catch { /* noop */ }
 
             // Redirect to profile view
             if (profile.username) {

@@ -41,7 +41,6 @@ function DoubleDownPrompt({ show, promptDown, onYes, onNo, styles }) {
                                 <>
                                     <span style={{ color: '#38bdf8', fontWeight: 700 }}>
                                         {promptDown.game_type || DOWN_TYPE_LABELS[promptDown.down_type]}
-                                        {promptDown.cash_stakes ? ` ${promptDown.cash_stakes}` : ''}
                                         {promptDown.table_number ? ` · Table ${promptDown.table_number}` : ''}
                                     </span>
                                     {' — still at this table after 35 minutes?'}

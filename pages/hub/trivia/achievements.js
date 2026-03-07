@@ -13,6 +13,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { Target, BookOpen, Award, Trophy, Flame, Zap, Crown, CheckCircle, Gem, Gamepad2, Calendar, Star } from 'lucide-react';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // Achievement definitions with unlock conditions — using Lucide icons instead of emojis
 const ACHIEVEMENTS = [
@@ -31,6 +32,7 @@ const ACHIEVEMENTS = [
 ];
 
 export default function TriviaAchievements() {
+    const bus = useTrainingBus('trivia-achievements');
     const router = useRouter();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);

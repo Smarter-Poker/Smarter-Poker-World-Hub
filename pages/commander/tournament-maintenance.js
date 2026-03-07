@@ -61,29 +61,6 @@ export default function TournamentMaintenance() {
     const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
     const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
-    // Handle saving end-of-day chip counts
-    const handleBagAndTag = async (tournamentId, newChipCounts) => {
-        try {
-            const res = await fetch(`/api/commander/tournaments/${tournamentId}/bag-and-tag`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getToken()}`,
-                    'x-staff-session': getStaffSession()
-                },
-                body: JSON.stringify({ chip_counts: newChipCounts })
-            });
-            const json = await res.json();
-            if (json.success) {
-                fetchTournaments(); // Refresh to show new state
-            } else {
-                console.error('Failed to save bag and tag counts', json.error);
-            }
-        } catch (err) {
-            console.error('Failed to bag and tag', err);
-        }
-    };
-
     // Get tournaments for a specific date
     const getTournamentsForDate = (day) => {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;

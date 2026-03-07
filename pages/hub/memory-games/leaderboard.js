@@ -10,6 +10,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { supabase } from '../../../src/lib/supabase';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const GAME_MODES = [
     { key: 'range', label: 'Range Memory', icon: '🎯' },
@@ -18,6 +19,7 @@ const GAME_MODES = [
 ];
 
 export default function MemoryGamesLeaderboard() {
+    const bus = useTrainingBus('memory-games-leaderboard');
     const router = useRouter();
     const { user } = useAvatar();
     const [selectedMode, setSelectedMode] = useState('range');

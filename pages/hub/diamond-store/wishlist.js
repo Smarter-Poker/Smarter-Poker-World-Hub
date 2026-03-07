@@ -11,8 +11,10 @@ import { wishlistService } from '../../../src/services/preferences-service';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function Wishlist() {
+    const bus = useTrainingBus('diamond-store-wishlist');
     const [user, setUser] = useState(null);
     const [wishlist, setWishlist] = useState([]);
     const [loading, setLoading] = useState(true);

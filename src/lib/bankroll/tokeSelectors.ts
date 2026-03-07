@@ -139,9 +139,7 @@ function computeTotalHours(downs: TokeDown[]): number {
     for (const d of downs) {
         const start = new Date(d.started_at).getTime();
         const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
-        const durationMs = end - start;
-        const multiplier = d.down_multiplier || 1.0;
-        ms += (durationMs * multiplier);
+        ms += end - start;
     }
     return ms / (1000 * 60 * 60);
 }
@@ -613,8 +611,6 @@ export async function createDoubleDown(
         tournament_name: lastDown.tournament_name,
         table_number: lastDown.table_number,
         tournament_buyin: lastDown.tournament_buyin || null, // preserve buy-in for analysis continuity
-        cash_stakes: lastDown.cash_stakes || null,         // preserve stakes
-        cash_variant: lastDown.cash_variant || null,       // preserve variant
         is_double_down: true,
     });
 }

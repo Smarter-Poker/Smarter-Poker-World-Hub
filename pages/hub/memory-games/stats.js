@@ -10,6 +10,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import { supabase } from '../../../src/lib/supabase';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // Stat Card Component
 const StatCard = ({ label, value, icon, color = '#00D4FF', subtext }) => (
@@ -50,6 +51,7 @@ const ProgressBar = ({ label, value, max, color = '#00D4FF' }) => {
 };
 
 export default function MemoryGamesStats() {
+    const bus = useTrainingBus('memory-games-stats');
     const router = useRouter();
     const { user } = useAvatar();
     const [loading, setLoading] = useState(true);

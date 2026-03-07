@@ -10,8 +10,10 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function DiamondArenaLeaderboard() {
+    const bus = useTrainingBus('diamond-arena-leaderboard');
     const router = useRouter();
     const { filters, setFilter } = usePersistedFilters('diamond-arena-leaderboard', {
         period: 'all',

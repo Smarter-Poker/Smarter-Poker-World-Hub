@@ -15,8 +15,10 @@ import TriviaLobby from '../../../src/components/trivia/TriviaLobby';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TriviaHubPage() {
+    const bus = useTrainingBus('trivia-hub');
     const { user, loading: authLoading } = useAvatar();
     const userId = user?.id;
     const [userDiamonds, setUserDiamonds] = useState(0);

@@ -24,6 +24,7 @@ import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 
 
@@ -651,6 +652,7 @@ function MerchCard({ item, onSelect }) {
 // MAIN DIAMOND STORE PAGE
 // ═══════════════════════════════════════════════════════════════════════════
 export default function DiamondStorePage() {
+    const bus = useTrainingBus('diamond-store');
     const router = useRouter();
 
     // Persisted filters for activeTab and rewardsSubTab

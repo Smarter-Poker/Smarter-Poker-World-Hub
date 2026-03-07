@@ -563,15 +563,6 @@ export default function PlayModePage() {
     const game = usePlayMode();
     const bus = useTrainingBus('play-mode', { format: game.config?.format });
 
-    useEffect(() => {
-        if (game.gameState === 'handComplete') {
-            bus.emitHandComplete({
-                handNumber: game.handNumber,
-                showdownResult: game.showdownResult
-            });
-        }
-    }, [game.gameState, game.handNumber, game.showdownResult, bus]);
-
     return (
         <>
             <Head>

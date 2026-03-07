@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // Initialize Supabase — GUARD: Must not run during SSG (no localStorage on server)
 const supabase = (typeof window !== 'undefined')
@@ -44,6 +45,7 @@ const FALLBACK_ACHIEVEMENTS = [
 ];
 
 export default function MemoryGamesAchievements() {
+    const bus = useTrainingBus('memory-games-achievements');
     const router = useRouter();
     const { user } = useAvatar();
     const [achievements, setAchievements] = useState([]);

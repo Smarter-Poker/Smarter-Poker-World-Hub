@@ -18,8 +18,10 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getDiamondArenaPreferences, updateDiamondArenaPreferences } from '../../src/services/diamondArenaPreferences';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 export default function DiamondArenaPage() {
+    const bus = useTrainingBus('diamond-arena');
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;

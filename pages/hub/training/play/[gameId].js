@@ -10,8 +10,10 @@ import { useState, useEffect } from 'react';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import LevelSelector from '../../../../src/components/training/LevelSelector';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 export default function TrainingPlayPage() {
+    const bus = useTrainingBus('training-play');
     const router = useRouter();
     if (!router.isReady) return null;
     const { gameId } = router.query;

@@ -7,8 +7,10 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function DiamondArenaHistory() {
+    const bus = useTrainingBus('diamond-arena-history');
     const router = useRouter();
 
     const history = [

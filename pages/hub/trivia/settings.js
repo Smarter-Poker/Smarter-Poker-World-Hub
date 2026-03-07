@@ -11,8 +11,10 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { getTriviaPreferences, updateTriviaPreferences } from '../../../src/services/triviaPreferences';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TriviaSettings() {
+    const bus = useTrainingBus('trivia-settings');
     const router = useRouter();
     const [userId, setUserId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
