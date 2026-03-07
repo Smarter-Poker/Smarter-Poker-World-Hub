@@ -52,8 +52,10 @@ export function ActiveIdentityProvider({ children }) {
         const detectClubPage = async () => {
             try {
                 // ── Step 1: Get userId from Supabase session ──
-                const { data: { user: _aic_user } } = await supabase.auth.getUser();
-                const userId = _aic_user?.id || null;
+                // Use getSession() (reads localStorage) instead of getUser() (network call) 
+                // to avoid AbortError storm from navigator.locks killing the request
+                const { data: { session: _aic_session } } = await supabase.auth.getSession();
+                const userId = _aic_session?.user?.id || null;
 
                 if (!userId) return; // Not logged in, nothing to detect
 

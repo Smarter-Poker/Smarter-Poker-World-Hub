@@ -13,7 +13,7 @@ import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import TokeTracker from '../../../src/components/bankroll/TokeTracker';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../src/lib/supabase';
 
 export default function ShiftTrackerPage() {
     const router = useRouter();
@@ -45,7 +45,6 @@ export default function ShiftTrackerPage() {
         try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
         if (!userId) return;
         try {
-            const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
             const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;

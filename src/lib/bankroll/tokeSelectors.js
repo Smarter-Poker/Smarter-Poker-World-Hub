@@ -9,7 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════
  */
 var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
+    __assign = Object.assign || function (t) {
         for (var s, i = 1, n = arguments.length; i < n; i++) {
             s = arguments[i];
             for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
@@ -29,8 +29,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -105,16 +105,17 @@ function fetchGigs(userId) {
     return __awaiter(this, void 0, void 0, function () {
         var _this = this;
         return __generator(this, function (_a) {
-            return [2 /*return*/, (0, retryUtils_1.withRetry)(function () { return __awaiter(_this, void 0, void 0, function () {
+            return [2 /*return*/, (0, retryUtils_1.withRetry)(function () {
+                return __awaiter(_this, void 0, void 0, function () {
                     var _a, data, error, gigIds, _b, allDownsRaw, allExpsRaw, downsByGig, expsByGig, _i, _c, d, _d, _e, e;
                     return __generator(this, function (_f) {
                         switch (_f.label) {
                             case 0: return [4 /*yield*/, supabase_1.supabase
-                                    .from('toke_gigs')
-                                    .select('*')
-                                    .eq('user_id', userId)
-                                    .neq('status', 'deleted')
-                                    .order('start_date', { ascending: false })];
+                                .from('toke_gigs')
+                                .select('*')
+                                .eq('user_id', userId)
+                                .neq('status', 'deleted')
+                                .order('start_date', { ascending: false })];
                             case 1:
                                 _a = _f.sent(), data = _a.data, error = _a.error;
                                 if (error)
@@ -123,9 +124,9 @@ function fetchGigs(userId) {
                                     return [2 /*return*/, []];
                                 gigIds = data.map(function (g) { return g.id; });
                                 return [4 /*yield*/, Promise.all([
-                                        supabase_1.supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-                                        supabase_1.supabase.from('toke_expenses').select('*').in('gig_id', gigIds), // full row needed for category breakdown
-                                    ])];
+                                    supabase_1.supabase.from('toke_downs').select('*').in('gig_id', gigIds),
+                                    supabase_1.supabase.from('toke_expenses').select('*').in('gig_id', gigIds), // full row needed for category breakdown
+                                ])];
                             case 2:
                                 _b = _f.sent(), allDownsRaw = _b[0].data, allExpsRaw = _b[1].data;
                                 downsByGig = new Map();
@@ -143,14 +144,15 @@ function fetchGigs(userId) {
                                     expsByGig.get(e.gig_id).push(e);
                                 }
                                 return [2 /*return*/, data.map(function (gig) {
-                                        var allDowns = downsByGig.get(gig.id) || [];
-                                        var allExps = expsByGig.get(gig.id) || [];
-                                        var dealingDowns = allDowns.filter(function (d) { return d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'; });
-                                        return __assign(__assign({}, gig), { totalTokes: dealingDowns.reduce(function (s, d) { return s + (d.toke_amount || 0); }, 0), totalDowns: dealingDowns.length, totalHoursWorked: computeTotalHours(allDowns), totalExpenses: allExps.reduce(function (s, e) { return s + (e.amount || 0); }, 0), downs: allDowns, expenses: allExps });
-                                    })];
+                                    var allDowns = downsByGig.get(gig.id) || [];
+                                    var allExps = expsByGig.get(gig.id) || [];
+                                    var dealingDowns = allDowns.filter(function (d) { return d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush'; });
+                                    return __assign(__assign({}, gig), { totalTokes: dealingDowns.reduce(function (s, d) { return s + (d.toke_amount || 0); }, 0), totalDowns: dealingDowns.length, totalHoursWorked: computeTotalHours(allDowns), totalExpenses: allExps.reduce(function (s, e) { return s + (e.amount || 0); }, 0), downs: allDowns, expenses: allExps });
+                                })];
                         }
                     });
-                }); })];
+                });
+            })];
         });
     });
 }
@@ -161,17 +163,18 @@ function getActiveGig(userId) {
     return __awaiter(this, void 0, void 0, function () {
         var _this = this;
         return __generator(this, function (_a) {
-            return [2 /*return*/, (0, retryUtils_1.withRetry)(function () { return __awaiter(_this, void 0, void 0, function () {
+            return [2 /*return*/, (0, retryUtils_1.withRetry)(function () {
+                return __awaiter(_this, void 0, void 0, function () {
                     var _a, data, error, daysRaw, downs, expenses, allDowns, allExpenses, days, dealingDowns;
                     return __generator(this, function (_b) {
                         switch (_b.label) {
                             case 0: return [4 /*yield*/, supabase_1.supabase
-                                    .from('toke_gigs')
-                                    .select('*')
-                                    .eq('user_id', userId)
-                                    .eq('status', 'active')
-                                    .limit(1)
-                                    .maybeSingle()];
+                                .from('toke_gigs')
+                                .select('*')
+                                .eq('user_id', userId)
+                                .eq('status', 'active')
+                                .limit(1)
+                                .maybeSingle()];
                             case 1:
                                 _a = _b.sent(), data = _a.data, error = _a.error;
                                 if (error)
@@ -179,24 +182,24 @@ function getActiveGig(userId) {
                                 if (!data)
                                     return [2 /*return*/, null];
                                 return [4 /*yield*/, supabase_1.supabase
-                                        .from('toke_gig_days')
-                                        .select('*')
-                                        .eq('gig_id', data.id)
-                                        .order('day_number', { ascending: true })];
+                                    .from('toke_gig_days')
+                                    .select('*')
+                                    .eq('gig_id', data.id)
+                                    .order('day_number', { ascending: true })];
                             case 2:
                                 daysRaw = (_b.sent()).data;
                                 return [4 /*yield*/, supabase_1.supabase
-                                        .from('toke_downs')
-                                        .select('*')
-                                        .eq('gig_id', data.id)
-                                        .order('started_at', { ascending: true })];
+                                    .from('toke_downs')
+                                    .select('*')
+                                    .eq('gig_id', data.id)
+                                    .order('started_at', { ascending: true })];
                             case 3:
                                 downs = (_b.sent()).data;
                                 return [4 /*yield*/, supabase_1.supabase
-                                        .from('toke_expenses')
-                                        .select('*')
-                                        .eq('gig_id', data.id)
-                                        .order('created_at', { ascending: false })];
+                                    .from('toke_expenses')
+                                    .select('*')
+                                    .eq('gig_id', data.id)
+                                    .order('created_at', { ascending: false })];
                             case 4:
                                 expenses = (_b.sent()).data;
                                 allDowns = (downs || []);
@@ -208,7 +211,8 @@ function getActiveGig(userId) {
                                 return [2 /*return*/, __assign(__assign({}, data), { days: days, totalTokes: dealingDowns.reduce(function (s, d) { return s + (d.toke_amount || 0); }, 0), totalDowns: dealingDowns.length, totalHoursWorked: computeTotalHours(allDowns), totalExpenses: allExpenses.reduce(function (s, e) { return s + (e.amount || 0); }, 0) })];
                         }
                     });
-                }); })];
+                });
+            })];
         });
     });
 }
@@ -217,7 +221,7 @@ function getActiveGig(userId) {
  */
 function createGig(userId, gig) {
     return __awaiter(this, void 0, void 0, function () {
-        var existing, uuidRegex, safeLocationId, _a, data, error;
+        var existing, uuidRegex, safeLocationId, safePokerVenueId, _a, data, error;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, getActiveGig(userId)];
@@ -227,15 +231,16 @@ function createGig(userId, gig) {
                         throw new Error('You already have an active event. Complete or delete it first.');
                     uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
                     safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
+                    safePokerVenueId = gig.poker_venue_id && uuidRegex.test(String(gig.poker_venue_id)) ? gig.poker_venue_id : null;
                     return [4 /*yield*/, supabase_1.supabase
-                            .from('toke_gigs')
-                            .insert({
+                        .from('toke_gigs')
+                        .insert({
                             user_id: userId,
                             venue_name: gig.venue_name,
                             venue_address: gig.venue_address || null,
                             location_id: safeLocationId,
                             venue_type: gig.venue_type || 'casino',
-                            poker_venue_id: gig.poker_venue_id || null,
+                            poker_venue_id: safePokerVenueId,
                             latitude: gig.latitude || null,
                             longitude: gig.longitude || null,
                             start_date: gig.start_date || new Date().toISOString().split('T')[0],
@@ -243,8 +248,8 @@ function createGig(userId, gig) {
                             notes: gig.notes || null,
                             status: 'active',
                         })
-                            .select()
-                            .single()];
+                        .select()
+                        .single()];
                 case 2:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -268,18 +273,18 @@ function updateGig(userId, gigId, updates) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gigs')
-                        .update({
+                    .from('toke_gigs')
+                    .update({
                         venue_name: updates.venue_name,
                         venue_address: updates.venue_address,
                         hourly_rate: updates.hourly_rate,
                         notes: updates.notes,
                         updated_at: new Date().toISOString(),
                     })
-                        .eq('user_id', userId)
-                        .eq('id', gigId)
-                        .select()
-                        .single()];
+                    .eq('user_id', userId)
+                    .eq('id', gigId)
+                    .select()
+                    .single()];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -299,10 +304,10 @@ function completeGig(userId_1, gigId_1) {
         return __generator(this, function (_c) {
             switch (_c.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_downs')
-                        .select('id')
-                        .eq('gig_id', gigId)
-                        .is('ended_at', null)];
+                    .from('toke_downs')
+                    .select('id')
+                    .eq('gig_id', gigId)
+                    .is('ended_at', null)];
                 case 1:
                     openDowns = (_c.sent()).data;
                     if (!(openDowns === null || openDowns === void 0 ? void 0 : openDowns.length)) return [3 /*break*/, 5];
@@ -320,10 +325,10 @@ function completeGig(userId_1, gigId_1) {
                     _i++;
                     return [3 /*break*/, 2];
                 case 5: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gig_days')
-                        .select('id')
-                        .eq('gig_id', gigId)
-                        .is('ended_at', null)];
+                    .from('toke_gig_days')
+                    .select('id')
+                    .eq('gig_id', gigId)
+                    .is('ended_at', null)];
                 case 6:
                     openDays = (_c.sent()).data;
                     if (!(openDays === null || openDays === void 0 ? void 0 : openDays.length)) return [3 /*break*/, 10];
@@ -341,17 +346,17 @@ function completeGig(userId_1, gigId_1) {
                     _a++;
                     return [3 /*break*/, 7];
                 case 10: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gigs')
-                        .update({
+                    .from('toke_gigs')
+                    .update({
                         status: 'completed',
                         end_date: new Date().toISOString().split('T')[0],
                         mileage: mileage || 0,
                         updated_at: new Date().toISOString(),
                     })
-                        .eq('user_id', userId)
-                        .eq('id', gigId)
-                        .select()
-                        .single()];
+                    .eq('user_id', userId)
+                    .eq('id', gigId)
+                    .select()
+                    .single()];
                 case 11:
                     _b = _c.sent(), data = _b.data, error = _b.error;
                     if (error)
@@ -370,10 +375,10 @@ function deleteGig(userId, gigId) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gigs')
-                        .update({ status: 'deleted', updated_at: new Date().toISOString() })
-                        .eq('user_id', userId)
-                        .eq('id', gigId)];
+                    .from('toke_gigs')
+                    .update({ status: 'deleted', updated_at: new Date().toISOString() })
+                    .eq('user_id', userId)
+                    .eq('id', gigId)];
                 case 1:
                     error = (_a.sent()).error;
                     if (error)
@@ -393,16 +398,16 @@ function createDay(userId, gigId, dayNumber) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gig_days')
-                        .insert({
+                    .from('toke_gig_days')
+                    .insert({
                         gig_id: gigId,
                         user_id: userId,
                         day_number: dayNumber,
                         date: new Date().toISOString().split('T')[0],
                         started_at: new Date().toISOString(),
                     })
-                        .select()
-                        .single()];
+                    .select()
+                    .single()];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -421,10 +426,10 @@ function closeDay(dayId) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_downs')
-                        .select('id')
-                        .eq('day_id', dayId)
-                        .is('ended_at', null)];
+                    .from('toke_downs')
+                    .select('id')
+                    .eq('day_id', dayId)
+                    .is('ended_at', null)];
                 case 1:
                     openDowns = (_b.sent()).data;
                     if (!(openDowns === null || openDowns === void 0 ? void 0 : openDowns.length)) return [3 /*break*/, 5];
@@ -442,11 +447,11 @@ function closeDay(dayId) {
                     _i++;
                     return [3 /*break*/, 2];
                 case 5: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gig_days')
-                        .update({ ended_at: new Date().toISOString() })
-                        .eq('id', dayId)
-                        .select()
-                        .single()];
+                    .from('toke_gig_days')
+                    .update({ ended_at: new Date().toISOString() })
+                    .eq('id', dayId)
+                    .select()
+                    .single()];
                 case 6:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -466,10 +471,10 @@ function createDown(userId, gigId, dayId, down) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_downs')
-                        .select('id')
-                        .eq('day_id', dayId)
-                        .is('ended_at', null)];
+                    .from('toke_downs')
+                    .select('id')
+                    .eq('day_id', dayId)
+                    .is('ended_at', null)];
                 case 1:
                     openDowns = (_b.sent()).data;
                     if (!(openDowns === null || openDowns === void 0 ? void 0 : openDowns.length)) return [3 /*break*/, 5];
@@ -487,8 +492,8 @@ function createDown(userId, gigId, dayId, down) {
                     _i++;
                     return [3 /*break*/, 2];
                 case 5: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_downs')
-                        .insert({
+                    .from('toke_downs')
+                    .insert({
                         gig_id: gigId,
                         day_id: dayId,
                         user_id: userId,
@@ -503,8 +508,8 @@ function createDown(userId, gigId, dayId, down) {
                         down_multiplier: down.down_multiplier || 1.0,
                         notes: down.notes || null,
                     })
-                        .select()
-                        .single()];
+                    .select()
+                    .single()];
                 case 6:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -527,11 +532,11 @@ function endDown(downId, tokeAmount) {
                     if (tokeAmount !== undefined)
                         updates.toke_amount = tokeAmount;
                     return [4 /*yield*/, supabase_1.supabase
-                            .from('toke_downs')
-                            .update(updates)
-                            .eq('id', downId)
-                            .select()
-                            .single()];
+                        .from('toke_downs')
+                        .update(updates)
+                        .eq('id', downId)
+                        .select()
+                        .single()];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -548,13 +553,13 @@ function createDoubleDown(userId, gigId, dayId, lastDown) {
     return __awaiter(this, void 0, void 0, function () {
         return __generator(this, function (_a) {
             return [2 /*return*/, createDown(userId, gigId, dayId, {
-                    down_type: lastDown.down_type,
-                    game_type: lastDown.game_type,
-                    tournament_name: lastDown.tournament_name,
-                    table_number: lastDown.table_number,
-                    tournament_buyin: lastDown.tournament_buyin || null, // preserve buy-in for analysis continuity
-                    is_double_down: true,
-                })];
+                down_type: lastDown.down_type,
+                game_type: lastDown.game_type,
+                tournament_name: lastDown.tournament_name,
+                table_number: lastDown.table_number,
+                tournament_buyin: lastDown.tournament_buyin || null, // preserve buy-in for analysis continuity
+                is_double_down: true,
+            })];
         });
     });
 }
@@ -579,11 +584,11 @@ function updateDownToke(downId, tokeAmount) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_downs')
-                        .update({ toke_amount: tokeAmount })
-                        .eq('id', downId)
-                        .select()
-                        .single()];
+                    .from('toke_downs')
+                    .update({ toke_amount: tokeAmount })
+                    .eq('id', downId)
+                    .select()
+                    .single()];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -599,11 +604,11 @@ function updateDownMultiplier(downId, multiplier) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_downs')
-                        .update({ down_multiplier: multiplier })
-                        .eq('id', downId)
-                        .select()
-                        .single()];
+                    .from('toke_downs')
+                    .update({ down_multiplier: multiplier })
+                    .eq('id', downId)
+                    .select()
+                    .single()];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -620,10 +625,10 @@ function fetchExpenses(gigId) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_expenses')
-                        .select('*')
-                        .eq('gig_id', gigId)
-                        .order('created_at', { ascending: false })];
+                    .from('toke_expenses')
+                    .select('*')
+                    .eq('gig_id', gigId)
+                    .order('created_at', { ascending: false })];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -639,8 +644,8 @@ function createExpense(userId, gigId, dayId, expense) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_expenses')
-                        .insert({
+                    .from('toke_expenses')
+                    .insert({
                         user_id: userId,
                         gig_id: gigId,
                         day_id: dayId,
@@ -649,8 +654,8 @@ function createExpense(userId, gigId, dayId, expense) {
                         description: expense.description || null,
                         receipt_url: expense.receipt_url || null,
                     })
-                        .select()
-                        .single()];
+                    .select()
+                    .single()];
                 case 1:
                     _a = _b.sent(), data = _a.data, error = _a.error;
                     if (error)
@@ -682,34 +687,34 @@ function getGigReport(userId, gigId) {
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, supabase_1.supabase
-                        .from('toke_gigs')
-                        .select('*')
-                        .eq('user_id', userId)
-                        .eq('id', gigId)
-                        .single()];
+                    .from('toke_gigs')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('id', gigId)
+                    .single()];
                 case 1:
                     _a = _b.sent(), gig = _a.data, gigError = _a.error;
                     if (gigError)
                         throw gigError;
                     return [4 /*yield*/, supabase_1.supabase
-                            .from('toke_gig_days')
-                            .select('*')
-                            .eq('gig_id', gigId)
-                            .order('day_number', { ascending: true })];
+                        .from('toke_gig_days')
+                        .select('*')
+                        .eq('gig_id', gigId)
+                        .order('day_number', { ascending: true })];
                 case 2:
                     daysRaw = (_b.sent()).data;
                     return [4 /*yield*/, supabase_1.supabase
-                            .from('toke_downs')
-                            .select('*')
-                            .eq('gig_id', gigId)
-                            .order('started_at', { ascending: true })];
+                        .from('toke_downs')
+                        .select('*')
+                        .eq('gig_id', gigId)
+                        .order('started_at', { ascending: true })];
                 case 3:
                     downsRaw = (_b.sent()).data;
                     return [4 /*yield*/, supabase_1.supabase
-                            .from('toke_expenses')
-                            .select('*')
-                            .eq('gig_id', gigId)
-                            .order('created_at', { ascending: false })];
+                        .from('toke_expenses')
+                        .select('*')
+                        .eq('gig_id', gigId)
+                        .order('created_at', { ascending: false })];
                 case 4:
                     expensesRaw = (_b.sent()).data;
                     allDowns = (downsRaw || []);
@@ -733,28 +738,28 @@ function getGigReport(userId, gigId) {
                     endDate = gig.end_date ? new Date(gig.end_date) : new Date();
                     durationDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
                     return [2 /*return*/, {
-                            gig: gig,
-                            days: days,
-                            downs: allDowns,
-                            expenses: allExpenses,
-                            stats: {
-                                totalTokes: totalTokes,
-                                totalDowns: dealingDowns.length,
-                                totalHoursWorked: Math.round(totalHoursWorked * 100) / 100,
-                                hourlyRate: hourlyRate,
-                                hourlyPay: Math.round(hourlyPay * 100) / 100,
-                                totalEarnings: Math.round(totalEarnings * 100) / 100,
-                                totalExpenses: Math.round(totalExpenses * 100) / 100,
-                                cashDownCount: cashDowns.length,
-                                tournamentDownCount: tournamentDowns.length,
-                                brushDownCount: brushDowns.length,
-                                breakCount: breakDowns.length,
-                                doubleDownCount: doubleDowns.length,
-                                avgTokePerDown: dealingDowns.length > 0 ? Math.round((totalTokes / dealingDowns.length) * 100) / 100 : 0,
-                                durationDays: durationDays,
-                                perDay: durationDays > 0 ? Math.round(totalEarnings / durationDays) : 0,
-                            },
-                        }];
+                        gig: gig,
+                        days: days,
+                        downs: allDowns,
+                        expenses: allExpenses,
+                        stats: {
+                            totalTokes: totalTokes,
+                            totalDowns: dealingDowns.length,
+                            totalHoursWorked: Math.round(totalHoursWorked * 100) / 100,
+                            hourlyRate: hourlyRate,
+                            hourlyPay: Math.round(hourlyPay * 100) / 100,
+                            totalEarnings: Math.round(totalEarnings * 100) / 100,
+                            totalExpenses: Math.round(totalExpenses * 100) / 100,
+                            cashDownCount: cashDowns.length,
+                            tournamentDownCount: tournamentDowns.length,
+                            brushDownCount: brushDowns.length,
+                            breakCount: breakDowns.length,
+                            doubleDownCount: doubleDowns.length,
+                            avgTokePerDown: dealingDowns.length > 0 ? Math.round((totalTokes / dealingDowns.length) * 100) / 100 : 0,
+                            durationDays: durationDays,
+                            perDay: durationDays > 0 ? Math.round(totalEarnings / durationDays) : 0,
+                        },
+                    }];
             }
         });
     });
@@ -767,33 +772,34 @@ function getTokeAnalytics(userId) {
     return __awaiter(this, void 0, void 0, function () {
         var _this = this;
         return __generator(this, function (_a) {
-            return [2 /*return*/, (0, retryUtils_1.withRetry)(function () { return __awaiter(_this, void 0, void 0, function () {
+            return [2 /*return*/, (0, retryUtils_1.withRetry)(function () {
+                return __awaiter(_this, void 0, void 0, function () {
                     var _a, gigs, gigErr, gigIds, _b, downsRaw, expsRaw, allDowns, allExps, downsByGig, expsByGig, _i, allDowns_1, d, _c, allExps_1, e, careerTokes, totalHours, totalExpenses, totalDealingDowns, downTypes, bestEvent, cumulative, eventTrend, monthlyMap, completedGigs, _d, completedGigs_1, gig, gigDowns, gigDealing, gigTokes, gigHours, gigExpenses, _e, gigDowns_1, d, monthKey, existing, monthlyTrend, now, i, d, key, label, val;
                     return __generator(this, function (_f) {
                         switch (_f.label) {
                             case 0: return [4 /*yield*/, supabase_1.supabase
-                                    .from('toke_gigs')
-                                    .select('id, venue_name, start_date, end_date, hourly_rate, status')
-                                    .eq('user_id', userId)
-                                    .neq('status', 'deleted')
-                                    .order('start_date', { ascending: true })];
+                                .from('toke_gigs')
+                                .select('id, venue_name, start_date, end_date, hourly_rate, status')
+                                .eq('user_id', userId)
+                                .neq('status', 'deleted')
+                                .order('start_date', { ascending: true })];
                             case 1:
                                 _a = _f.sent(), gigs = _a.data, gigErr = _a.error;
                                 if (gigErr)
                                     throw gigErr;
                                 if (!gigs || gigs.length === 0) {
                                     return [2 /*return*/, {
-                                            careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0,
-                                            avgTokePerDown: 0, avgHoursPerEvent: 0, bestEvent: null,
-                                            eventTrend: [], downTypes: { cash: 0, tournament: 0, brush: 0, break: 0 },
-                                            monthlyTrend: [],
-                                        }];
+                                        careerTokes: 0, totalEvents: 0, totalHours: 0, totalExpenses: 0,
+                                        avgTokePerDown: 0, avgHoursPerEvent: 0, bestEvent: null,
+                                        eventTrend: [], downTypes: { cash: 0, tournament: 0, brush: 0, break: 0 },
+                                        monthlyTrend: [],
+                                    }];
                                 }
                                 gigIds = gigs.map(function (g) { return g.id; });
                                 return [4 /*yield*/, Promise.all([
-                                        supabase_1.supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-                                        supabase_1.supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
-                                    ])];
+                                    supabase_1.supabase.from('toke_downs').select('*').in('gig_id', gigIds),
+                                    supabase_1.supabase.from('toke_expenses').select('gig_id, amount').in('gig_id', gigIds),
+                                ])];
                             case 2:
                                 _b = _f.sent(), downsRaw = _b[0].data, expsRaw = _b[1].data;
                                 allDowns = (downsRaw || []);
@@ -867,20 +873,21 @@ function getTokeAnalytics(userId) {
                                     monthlyTrend.push(__assign({ month: label }, val));
                                 }
                                 return [2 /*return*/, {
-                                        careerTokes: careerTokes,
-                                        totalEvents: completedGigs.length,
-                                        totalHours: Math.round(totalHours * 10) / 10,
-                                        totalExpenses: Math.round(totalExpenses * 100) / 100,
-                                        avgTokePerDown: totalDealingDowns > 0 ? Math.round((careerTokes / totalDealingDowns) * 100) / 100 : 0,
-                                        avgHoursPerEvent: completedGigs.length > 0 ? Math.round((totalHours / completedGigs.length) * 10) / 10 : 0,
-                                        bestEvent: bestEvent,
-                                        eventTrend: eventTrend,
-                                        downTypes: downTypes,
-                                        monthlyTrend: monthlyTrend,
-                                    }];
+                                    careerTokes: careerTokes,
+                                    totalEvents: completedGigs.length,
+                                    totalHours: Math.round(totalHours * 10) / 10,
+                                    totalExpenses: Math.round(totalExpenses * 100) / 100,
+                                    avgTokePerDown: totalDealingDowns > 0 ? Math.round((careerTokes / totalDealingDowns) * 100) / 100 : 0,
+                                    avgHoursPerEvent: completedGigs.length > 0 ? Math.round((totalHours / completedGigs.length) * 10) / 10 : 0,
+                                    bestEvent: bestEvent,
+                                    eventTrend: eventTrend,
+                                    downTypes: downTypes,
+                                    monthlyTrend: monthlyTrend,
+                                }];
                         }
                     });
-                }); })];
+                });
+            })];
         });
     });
 }
