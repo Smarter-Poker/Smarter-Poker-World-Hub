@@ -457,9 +457,7 @@ export default function UnionGames() {
                   <span style={{
                     background: STATUS_COLORS[t.status] || FB.dim, color: '#fff', fontSize: 10,
                     fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase',
-                  }}>{t.status?.replace('_', ' ')}</span>
-                </div>
-                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
+                  }}>{t.status?.replace(/_/g, ' ')}</span>
                   <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
                   <span> {(t.game_type || 'NLHE').toUpperCase()} {(t.settings?.tournamentType || 'MTT').toUpperCase()}</span>
                   <span> {Number(t.buy_in).toLocaleString()}</span>
@@ -516,10 +514,10 @@ export default function UnionGames() {
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
                   <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown'}</span>
-                  <span> {t.game_variant?.toUpperCase() || 'NLH'}</span>
+                  <span> {(t.game_type || t.game_variant)?.toUpperCase() || 'NLH'}</span>
                   <span> {t.small_blind}/{t.big_blind}</span>
-                  <span> {t.current_players || 0}/{t.max_players}</span>
-                  <span>🃏 Buy-in: {t.min_buy_in}-{t.max_buy_in}</span>
+                  <span> {t.current_players || 0}/{t.max_seats || t.max_players}</span>
+                  <span>🃏 Buy-in: {(t.min_buyin || t.min_buy_in || 0).toLocaleString()}–{(t.max_buyin || t.max_buy_in || 0).toLocaleString()}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <button onClick={() => router.push(`/hub/club-arena/lobby?club=${t.club_id}`)} style={{
@@ -956,7 +954,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     ['Late Reg', t.late_reg_levels ? `${t.late_reg_levels} levels` : 'No'],
     ['Rebuys', t.rebuy_enabled ? `Yes (${t.rebuy_levels} levels)` : 'No'],
     ['Add-on', t.addon_enabled ? 'Yes' : 'No'],
-    ['Status', t.status?.replace('_', ' ')?.toUpperCase()],
+    ['Status', t.status?.replace(/_/g, ' ')?.toUpperCase()],
   ];
 
   if (t.settings?.clubIds?.length > 1) {
@@ -977,10 +975,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
           <span style={{
             background: STATUS_COLORS[t.status] || FB.dim, color: '#fff', fontSize: 10,
             fontWeight: 700, padding: '3px 10px', borderRadius: 4, textTransform: 'uppercase',
-          }}>{t.status?.replace('_', ' ')}</span>
-        </div>
-
-        {/* Info table */}
+          }}>{t.status?.replace(/_/g, ' ')}</span>        {/* Info table */}
         <div style={{ background: FB.bg, borderRadius: 8, padding: 12, marginBottom: 16 }}>
           {rows.map(([k, v], i) => (
             <div key={i} style={{
