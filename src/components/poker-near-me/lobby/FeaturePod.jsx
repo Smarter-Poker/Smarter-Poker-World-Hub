@@ -195,6 +195,7 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
     <group
       ref={groupRef}
       position={[basePos.x, basePos.y, basePos.z]}
+      userData={{ podId: pod.id }}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
       onClick={handleClick}

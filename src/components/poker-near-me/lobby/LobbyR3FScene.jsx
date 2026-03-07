@@ -13,8 +13,8 @@
  */
 
 import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { DoubleSide, AdditiveBlending, FogExp2 } from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { DoubleSide, AdditiveBlending, FogExp2, Raycaster, Vector2 } from 'three';
 
 // Feature pod definitions — each maps to a real tab/feature
 const FEATURE_PODS = [
@@ -366,6 +366,83 @@ function PropsSync({ propsRef, onUpdate }) {
 }
 
 /**
+ * ClickDetector — Native DOM click → Three.js raycast → pod callback.
+ *
+ * R3F's built-in event system doesn't initialize properly in the isolated
+ * React root (ReactDOM.createRoot). This component bypasses it entirely by:
+ *   1. Listening for native DOM click/pointermove events on the canvas
+ *   2. Running Three.js Raycaster against the scene
+ *   3. Walking up the hit object's parent chain to find a pod group (userData.podId)
+ *   4. Calling the propsRef.onPodClick callback
+ */
+function ClickDetector({ propsRef }) {
+  const { gl, camera, scene } = useThree();
+  const raycasterRef = useRef(new Raycaster());
+  const mouseRef = useRef(new Vector2());
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    if (!canvas) return;
+
+    const getMouseNDC = (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseRef.current.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseRef.current.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    };
+
+    const findPodId = (object) => {
+      let current = object;
+      while (current) {
+        if (current.userData?.podId) return current.userData.podId;
+        current = current.parent;
+      }
+      return null;
+    };
+
+    const handleClick = (e) => {
+      getMouseNDC(e);
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+      const intersects = raycasterRef.current.intersectObjects(scene.children, true);
+
+      for (const hit of intersects) {
+        const podId = findPodId(hit.object);
+        if (podId) {
+          console.log('[ClickDetector] Pod clicked:', podId);
+          propsRef.current?.onPodClick?.(podId);
+          return;
+        }
+      }
+    };
+
+    const handlePointerMove = (e) => {
+      getMouseNDC(e);
+      raycasterRef.current.setFromCamera(mouseRef.current, camera);
+      const intersects = raycasterRef.current.intersectObjects(scene.children, true);
+
+      let foundPod = false;
+      for (const hit of intersects) {
+        if (findPodId(hit.object)) {
+          foundPod = true;
+          break;
+        }
+      }
+      canvas.style.cursor = foundPod ? 'pointer' : 'auto';
+    };
+
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    console.log('[ClickDetector] Native click detection attached to canvas');
+
+    return () => {
+      canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+    };
+  }, [gl, camera, scene, propsRef]);
+
+  return null;
+}
+
+/**
  * Inner scene content — runs inside the Canvas context.
  */
 function SceneContent({ propsRef, quality, setQuality, setDpr }) {
@@ -410,6 +487,9 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
     <>
       {/* ═══ PROPS BRIDGE ═══ */}
       <PropsSync propsRef={propsRef} onUpdate={handlePropsUpdate} />
+
+      {/* ═══ NATIVE CLICK DETECTION (bypasses broken R3F events) ═══ */}
+      <ClickDetector propsRef={propsRef} />
 
       {/* ═══ SCENE ATMOSPHERE ═══ */}
       <SceneFog />
