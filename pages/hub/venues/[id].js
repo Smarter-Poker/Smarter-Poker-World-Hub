@@ -178,6 +178,7 @@ export default function VenueDetailPage() {
   const router = useRouter();
   const { id, action } = router.query;
 
+  // Fast-load follow state from localStorage (instant, before API round-trip)
   const [isFollowed, setIsFollowed] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -264,6 +265,15 @@ export default function VenueDetailPage() {
       return 'anon-fallback';
     }
   }
+
+  // Fast-load follow state from localStorage (instant, zero network round-trip)
+  useEffect(function () {
+    if (!id) return;
+    try {
+      var followed = JSON.parse(localStorage.getItem('followed-venues') || '[]');
+      if (followed.includes(String(id))) setIsFollowed(true);
+    } catch (_) { }
+  }, [id]);
 
   // Load follow state from Supabase API
   useEffect(function () {
@@ -551,6 +561,18 @@ export default function VenueDetailPage() {
     var newState = !isFollowed;
     setIsFollowed(newState);
     setFollowerCount(function (prev) { return newState ? prev + 1 : Math.max(0, prev - 1); });
+
+    // Persist follow state to localStorage for instant load next visit
+    try {
+      var followed = JSON.parse(localStorage.getItem('followed-venues') || '[]');
+      if (newState) {
+        if (!followed.includes(venueId)) followed.push(venueId);
+      } else {
+        followed = followed.filter(function (v) { return v !== venueId; });
+      }
+      localStorage.setItem('followed-venues', JSON.stringify(followed));
+    } catch (_) { }
+
     fetch('/api/poker/follow', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

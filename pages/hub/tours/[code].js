@@ -114,6 +114,15 @@ export default function TourDetailPage() {
     if (typeof window !== 'undefined' && 'Notification' in window) setNotifPermission(Notification.permission);
   }, []);
 
+  // Fast-load follow state from localStorage (instant, zero network round-trip)
+  useEffect(() => {
+    if (!code) return;
+    try {
+      const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
+      if (followed.includes(String(code))) setIsFollowed(true);
+    } catch (_) { }
+  }, [code]);
+
   // Load follow state from Supabase API
   useEffect(() => {
     if (!code) return;
@@ -150,6 +159,16 @@ export default function TourDetailPage() {
     const newState = !isFollowed;
     setIsFollowed(newState);
     setFollowerCount(prev => newState ? prev + 1 : Math.max(0, prev - 1));
+
+    // Persist follow state to localStorage for instant load next visit
+    try {
+      const tourCode = String(code);
+      const followed = JSON.parse(localStorage.getItem('followed-tours') || '[]');
+      const updated = newState
+        ? (followed.includes(tourCode) ? followed : [...followed, tourCode])
+        : followed.filter(t => t !== tourCode);
+      localStorage.setItem('followed-tours', JSON.stringify(updated));
+    } catch (_) { }
 
     // Persist follow state via API
     fetch('/api/poker/follow', {

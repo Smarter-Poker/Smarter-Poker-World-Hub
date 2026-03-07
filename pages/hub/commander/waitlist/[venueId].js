@@ -135,21 +135,28 @@ export default function PlayerWaitlistPage() {
   useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });
 
   async function getAuthToken() {
-    // Try direct key first
-    const { data: { session: _authSession } } = await supabase.auth.getSession();
-    let raw = _authSession?.access_token ? JSON.stringify({ access_token: _authSession.access_token }) : null;
-    if (!raw) {
-      const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-      if (sbKeys.length > 0) raw = localStorage.getItem(sbKeys[0]);
-    }
-    if (!raw) return null;
-    // Parse JSON if needed to get access_token
+    // 1. Fast path: smarter-poker-auth (primary key, set by supabase.ts storageKey config)
     try {
-      const parsed = JSON.parse(raw);
-      return parsed.access_token || raw;
-    } catch {
-      return raw;
+      const cached = localStorage.getItem('smarter-poker-auth');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.access_token) return parsed.access_token;
+      }
+    } catch (_) { /* localStorage unavailable */ }
+
+    // 2. Session path: supabase.auth.getSession (handles refresh, slower on first call)
+    const { data: { session: _authSession } } = await supabase.auth.getSession();
+    if (_authSession?.access_token) return _authSession.access_token;
+
+    // 3. Legacy fallback: sb-*-auth-token keys (backwards compat)
+    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+    if (sbKeys.length > 0) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(sbKeys[0]) || '');
+        return parsed.access_token || null;
+      } catch { return null; }
     }
+    return null;
   }
 
   // Join a single game

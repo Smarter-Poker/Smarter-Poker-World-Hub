@@ -29,8 +29,23 @@ const CASHOUT_PRESETS = [100, 500, 1000, 'All'];
 
 // Helper: get auth token for API calls
 const getAuthToken = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token;
+    // 1. Fast path: read from localStorage cache (instant, no network round-trip)
+    //    'smarter-poker-auth' is the storageKey configured in supabase.ts
+    try {
+        const cached = localStorage.getItem('smarter-poker-auth');
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.access_token) return parsed.access_token;
+        }
+    } catch (_) { /* localStorage unavailable (incognito, quota) */ }
+
+    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session?.access_token || null;
+    } catch (_) {
+        return null;
+    }
 };
 
 const apiCall = async (endpoint, body) => {
