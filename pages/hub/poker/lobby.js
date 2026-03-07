@@ -9,7 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import PokerLobby from '../../../src/components/poker/PokerLobby';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 export default function PokerLobbyPage() {
   const router = useRouter();
@@ -17,9 +17,9 @@ export default function PokerLobbyPage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const token = getAccessToken();
-      if (session?.user) {
-        setUserId(session.user.id);
+      const authUser = getAuthUser();
+      if (authUser) {
+        setUserId(authUser.id);
       } else {
         // Anonymous fallback for demo
         const stored = localStorage.getItem('sb-user-id');
