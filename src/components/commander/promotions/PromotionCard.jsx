@@ -1,5 +1,5 @@
 /**
- * PromotionCard Component — Premium Facebook Dark Redesign
+ * PromotionCard Component — Premium SmarterPoker Dark Redesign
  * Features: Status badges, countdown timer, duplicate button, image banner
  */
 import React, { useState, useEffect } from 'react';

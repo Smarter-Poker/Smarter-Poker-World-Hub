@@ -109,7 +109,7 @@ export default function SignUpPage() {
         }
     }, [router.isReady]);
 
-    // Override global html/body background for Facebook Dark theme
+    // Override global html/body background for SmarterPoker Dark theme
     useEffect(() => {
         const style = document.createElement('style');
         style.id = 'signup-bg-override';
@@ -355,7 +355,7 @@ export default function SignUpPage() {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
 
-    // Handle OAuth sign in (Google, Apple, Facebook)
+    // Handle OAuth sign in (Google, Apple, SmarterPoker)
     const handleOAuthSignIn = async (provider) => {
         setError('');
         setOauthLoading(provider);
@@ -1494,7 +1494,7 @@ function BrainIcon({ size = 24 }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎨 STYLES — FACEBOOK DARK THEME
+// 🎨 STYLES — SMARTERPOKER DARK THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
     container: {

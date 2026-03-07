@@ -1,5 +1,5 @@
 /**
- * PUBLIC USER PROFILE PAGE - FACEBOOK STYLE
+ * PUBLIC USER PROFILE PAGE - SmarterPoker style
  * View any user's profile with cover photo, tabs, friends, posts, and poker resume
  * Route: /hub/user/[username]
  */

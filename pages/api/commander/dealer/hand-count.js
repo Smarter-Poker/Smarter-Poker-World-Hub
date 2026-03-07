@@ -113,7 +113,8 @@ export default async function handler(req, res) {
                             .from('commander_dealer_rotations')
                             .update({ hands_dealt: (rotation.hands_dealt || 0) + 1 })
                             .eq('id', rotation.id)
-                            .then(() => { });
+                            .then(() => { })
+                            .catch(console.error);
                     }
                 })
                 .catch(() => { /* rotation increment is best-effort */ });

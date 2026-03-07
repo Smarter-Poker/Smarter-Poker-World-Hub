@@ -4,7 +4,7 @@
  * Uses the SAME table rendering as the Club Commander table-tablets.js:
  * - poker-table-black-gold.png image as the table
  * - Elliptical seat positions via computeSeatPositions()
- * - Facebook-dark avatar badges with player info
+ * - SmarterPoker-dark avatar badges with player info
  * - Community cards centered on the felt
  * 
  * This is a standalone widget version for the sandbox page.

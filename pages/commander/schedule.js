@@ -1,7 +1,7 @@
 /**
  * Staff Schedule — Weekly Shift Planner
  * /commander/schedule
- * Facebook Dark Theme
+ * SmarterPoker Dark Theme
  * 
  * Full weekly scheduling system for all staff roles:
  * - Week grid view with day columns and staff rows

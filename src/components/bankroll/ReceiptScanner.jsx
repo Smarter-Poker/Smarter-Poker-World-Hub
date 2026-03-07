@@ -11,7 +11,7 @@ import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import LiveCameraScanner from './LiveCameraScanner';
 
-// No emoji icons - use labels only for clean Facebook-style UI
+// No emoji icons - use labels only for clean SmarterPoker-style UI
 const EXPENSE_ICONS = {
     buy_in: '', hotel: '', flights: '', rental_car: '',
     gas: '', meals: '', transport: '', tips: '',

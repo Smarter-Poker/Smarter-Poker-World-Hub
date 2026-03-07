@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { getAuthorDisplayName } from '../../utils/displayName';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 🎨 FACEBOOK COLOR PALETTE
+// 🎨 SMARTERPOKER COLOR PALETTE
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const SP_COLORS = {

@@ -54,7 +54,7 @@ export default function SEOHead({
                 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
             )}
 
-            {/* Open Graph / Facebook */}
+            {/* Open Graph / SmarterPoker */}
             <meta property="og:type" content={ogType} />
             <meta property="og:site_name" content={SITE_NAME} />
             <meta property="og:title" content={title || SITE_NAME} />

@@ -12,7 +12,7 @@ import VenueSelector from './VenueSelector';
 import { checkRuleViolations } from '../../lib/bankroll/leakDetection';
 import toast from '../../stores/toastStore';
 
-// Clean Facebook-style categories (no emojis)
+// Clean SmarterPoker-style categories (no emojis)
 const CATEGORIES = [
   { id: 'poker_cash', label: 'Cash Games', icon: '' },
   { id: 'poker_mtt', label: 'Tournaments', icon: '' },
@@ -1419,7 +1419,7 @@ function LogEntryModal({ userId, locations, trips, editEntry, defaultCategory, d
         </div>
 
 
-        {/* Rule Warnings — Facebook Dark Theme */}
+        {/* Rule Warnings — SmarterPoker Dark Theme */}
         {ruleWarnings.length > 0 && (
           <div style={styles.warningBox}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>

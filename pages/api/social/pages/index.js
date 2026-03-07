@@ -389,7 +389,8 @@ export default async function handler(req, res) {
                     .then(({ error: venueErr }) => {
                         if (venueErr) console.error('[VenueSync] Failed to sync:', venueErr.message);
                         else console.log('[VenueSync] Synced venue', data.linked_venue_id, ':', Object.keys(venueUpdates).join(', '));
-                    });
+                    })
+                    .catch(err => console.error('[VenueSync] Error:', err.message));
             }
         }
 

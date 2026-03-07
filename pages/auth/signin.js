@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMARTER.POKER — SIGN IN ACCESS NODE
    Email/Password Authentication
-   Facebook Dark Theme
+   SmarterPoker Dark Theme
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect } from 'react';
@@ -20,7 +20,7 @@ export default function SignInPage() {
     const [error, setError] = useState('');
     const [oauthLoading, setOauthLoading] = useState('');
 
-    // Override global html/body background for Facebook Dark theme
+    // Override global html/body background for SmarterPoker Dark theme
     useEffect(() => {
         const style = document.createElement('style');
         style.id = 'signin-bg-override';
@@ -57,7 +57,7 @@ export default function SignInPage() {
         }
     };
 
-    // Handle OAuth sign in (Google, Apple, Facebook)
+    // Handle OAuth sign in (Google, Apple, SmarterPoker)
     const handleOAuthSignIn = async (provider) => {
         setError('');
         setOauthLoading(provider);
@@ -196,7 +196,7 @@ export default function SignInPage() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🎨 STYLES — FACEBOOK DARK THEME
+// 🎨 STYLES — SMARTERPOKER DARK THEME
 // ─────────────────────────────────────────────────────────────────────────────
 const styles = {
     container: {

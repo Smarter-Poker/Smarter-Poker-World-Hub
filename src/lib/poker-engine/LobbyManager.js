@@ -641,7 +641,7 @@ class LobbyManager {
           p_metadata: { coverage: data.amount, equity: data.trailerEquity },
         }).then(({ error }) => {
           if (error) console.error('[LobbyManager] Insurance premium recording failed:', error.message);
-        });
+        }).catch(console.error);
       }
     });
 
@@ -814,7 +814,7 @@ class LobbyManager {
               if (failures.length > 0) {
                 console.error(`[LobbyManager] ${failures.length}/${dealtPlayerIds.length} commission calcs failed`);
               }
-            });
+            }).catch(console.error);
           }
         } catch (rakeErr) {
           console.error('[LobbyManager] Rake recording failed:', rakeErr);

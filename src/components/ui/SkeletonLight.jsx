@@ -1,5 +1,5 @@
 /**
- * SkeletonLight — shimmer placeholder for light-theme hub pages (Facebook-style)
+ * SkeletonLight — shimmer placeholder for light-theme hub pages (SmarterPoker-style)
  *
  * Usage:
  *   import SkeletonLight from '../ui/SkeletonLight';

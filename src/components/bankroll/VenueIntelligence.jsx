@@ -2,7 +2,7 @@
  * VENUE INTELLIGENCE
  * ═══════════════════════════════════════════════════════════════
  * Career analytics derived from completed gigs — zero new DB queries
- * Facebook Dark UI — matches TokeTracker pattern
+ * SmarterPoker Dark UI — matches TokeTracker pattern
  * ═══════════════════════════════════════════════════════════════
  */
 

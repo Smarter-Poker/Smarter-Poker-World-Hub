@@ -2,7 +2,7 @@
  * TOKE CALENDAR — Apple Calendar-Style Yearly Planner
  * ═══════════════════════════════════════════════════════════════════
  * Dealers can schedule future events with alerts + sharing.
- * Matches Toke Tracker's Facebook Dark design language.
+ * Matches Toke Tracker's SmarterPoker Dark design language.
  * ═══════════════════════════════════════════════════════════════════
  */
 

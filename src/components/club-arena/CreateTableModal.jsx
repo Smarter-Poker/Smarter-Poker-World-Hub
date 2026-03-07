@@ -18,7 +18,7 @@
 import React, { useState, useCallback } from 'react';
 
 // ═══════════════════════════════════════════════════════════════
-// THEME — Facebook Dark
+// THEME — SmarterPoker Dark
 // ═══════════════════════════════════════════════════════════════
 const FB = {
   bg: '#18191A', cardBg: '#242526', elevated: '#3A3B3C',

@@ -1,8 +1,8 @@
 /**
  * Public Home Game Page
- * Like a Facebook Page for home game groups
+ * Like a SmarterPoker Page for home game groups
  * Features: Posts, Events, Members, Game Schedule
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: SmarterPoker color scheme, no emojis, Inter font
  */
 import { useState, useEffect } from 'react';
 import Image from 'next/image';

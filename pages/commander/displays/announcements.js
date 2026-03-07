@@ -2,7 +2,7 @@
  * Announcements Display & Management
  * /commander/displays/announcements
  * Dual-purpose: TV display mode + staff management panel
- * Facebook Dark theme • Supabase Realtime • Templates • Scheduling
+ * SmarterPoker Dark theme • Supabase Realtime • Templates • Scheduling
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
@@ -252,7 +252,7 @@ export default function AnnouncementsDisplay() {
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}>
 
-        {/* ─── HEADER BAR ─── Facebook Dark */}
+        {/* ─── HEADER BAR ─── SmarterPoker Dark */}
         <div style={{
           padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: '#242526', borderBottom: '1px solid #3A3B3C',

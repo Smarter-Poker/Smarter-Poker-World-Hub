@@ -6,7 +6,7 @@
  * Allows Club Commander users to switch between posting/messaging as
  * themselves (personal) or as their Club Page.
  * 
- * Similar to Facebook's "Switch to Page" feature.
+ * Similar to SmarterPoker's "Switch to Page" feature.
  * 
  * Usage:
  *   const { activeIdentity, switchToPersonal, switchToClub, isClubMode } = useActiveIdentity();

@@ -1,6 +1,6 @@
 /**
  * TAX REPORT PANEL
- * Facebook Dark UI - Generate IRS-ready reports with W2-G tracking
+ * SmarterPoker Dark UI - Generate IRS-ready reports with W2-G tracking
  * Includes W-2G Document Vault for uploading and managing W-2G forms
  */
 
@@ -675,7 +675,7 @@ export default function TaxReportPanel({ userId }) {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   FACEBOOK DARK STYLES — Large fonts, defined borders
+   SMARTERPOKER DARK STYLES — Large fonts, defined borders
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 const styles = {
     container: {

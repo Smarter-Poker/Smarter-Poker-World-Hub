@@ -25,7 +25,7 @@ const LiveKitCall = dynamic(
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  FACEBOOK DARK COLOR PALETTE
+//  SMARTERPOKER DARK COLOR PALETTE
 // ═══════════════════════════════════════════════════════════════════════════
 
 const C = {

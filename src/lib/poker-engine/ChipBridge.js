@@ -89,7 +89,7 @@ async function lockChips(clubId, userId, tableId, amount) {
       status: 'locked',
     }).then(({ error }) => {
       if (error) console.warn('[ChipBridge] Escrow insert warning:', error.message);
-    });
+    }).catch(console.error);
 
     return {
       success: true,

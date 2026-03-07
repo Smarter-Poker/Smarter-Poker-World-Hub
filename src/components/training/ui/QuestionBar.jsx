@@ -1,14 +1,14 @@
 /**
- * 🎯 Question Bar — Facebook Dark Theme
+ * 🎯 Question Bar — SmarterPoker Dark Theme
  * ═══════════════════════════════════════════════════════════════════
  * Fixed header displaying the training question.
- * Uses Facebook Dark color palette.
+ * Uses SmarterPoker Dark color palette.
  * ═══════════════════════════════════════════════════════════════════
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
+import { SMARTERPOKER_DARK } from '../../../hooks/useTrainingTheme';
 
 export default function QuestionBar({
     title = null,
@@ -65,9 +65,9 @@ const styles = {
     container: {
         width: '100%',
         padding: '16px 20px',
-        background: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 100%)`,
-        borderBottom: `3px solid ${FACEBOOK_DARK.primary}`,
-        boxShadow: `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 20px ${FACEBOOK_DARK.primaryDim}`,
+        background: `linear-gradient(180deg, ${SMARTERPOKER_DARK.mid} 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+        borderBottom: `3px solid ${SMARTERPOKER_DARK.primary}`,
+        boxShadow: `0 4px 20px rgba(0, 0, 0, 0.4), 0 0 20px ${SMARTERPOKER_DARK.primaryDim}`,
         position: 'relative',
     },
 
@@ -82,14 +82,14 @@ const styles = {
         margin: 0,
         fontSize: 18,
         fontWeight: 'bold',
-        color: FACEBOOK_DARK.primary,
+        color: SMARTERPOKER_DARK.primary,
         fontFamily: "'Inter', -apple-system, sans-serif",
         textTransform: 'uppercase',
         letterSpacing: 2,
     },
 
     questionText: {
-        color: FACEBOOK_DARK.textPrimary,
+        color: SMARTERPOKER_DARK.textPrimary,
         fontSize: 18,
         fontWeight: 'bold',
         fontFamily: "'Inter', -apple-system, sans-serif",
@@ -99,7 +99,7 @@ const styles = {
 
     subtext: {
         marginTop: 6,
-        color: FACEBOOK_DARK.primary,
+        color: SMARTERPOKER_DARK.primary,
         fontSize: 12,
         fontWeight: '600',
         fontFamily: "'Inter', sans-serif",
@@ -112,11 +112,11 @@ const styles = {
         position: 'absolute',
         top: 12,
         right: 16,
-        background: `${FACEBOOK_DARK.goldGlow}`,
+        background: `${SMARTERPOKER_DARK.goldGlow}`,
         padding: '5px 12px',
         borderRadius: 16,
-        border: `1px solid ${FACEBOOK_DARK.gold}`,
-        color: FACEBOOK_DARK.gold,
+        border: `1px solid ${SMARTERPOKER_DARK.gold}`,
+        color: SMARTERPOKER_DARK.gold,
         fontSize: 12,
         fontWeight: 'bold',
         fontFamily: "'Inter', sans-serif",
@@ -126,13 +126,13 @@ const styles = {
         position: 'absolute',
         bottom: 8,
         right: 16,
-        color: FACEBOOK_DARK.primary,
+        color: SMARTERPOKER_DARK.primary,
         fontSize: 11,
         fontWeight: 'bold',
         fontFamily: "'Inter', sans-serif",
-        background: FACEBOOK_DARK.darkest,
+        background: SMARTERPOKER_DARK.darkest,
         padding: '4px 10px',
         borderRadius: 6,
-        border: `1px solid ${FACEBOOK_DARK.primaryDim}`,
+        border: `1px solid ${SMARTERPOKER_DARK.primaryDim}`,
     },
 };

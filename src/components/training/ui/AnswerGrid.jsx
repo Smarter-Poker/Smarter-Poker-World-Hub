@@ -1,14 +1,14 @@
 /**
- * 🎯 Answer Grid — Facebook Dark Theme
+ * 🎯 Answer Grid — SmarterPoker Dark Theme
  * ═══════════════════════════════════════════════════════════════════
- * 2×2 grid of answer choices with Facebook Dark styling.
+ * 2×2 grid of answer choices with SmarterPoker Dark styling.
  * States: idle, hover, selected, correct, incorrect, dimmed
  * ═══════════════════════════════════════════════════════════════════
  */
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FACEBOOK_DARK } from '../../../hooks/useTrainingTheme';
+import { SMARTERPOKER_DARK } from '../../../hooks/useTrainingTheme';
 
 function AnswerGrid({
     answers = [],
@@ -86,10 +86,10 @@ function AnswerGrid({
 
                             {/* Correct/Incorrect indicator */}
                             {showFeedback && state === 'correct' && (
-                                <span style={{ ...styles.indicator, color: FACEBOOK_DARK.success }}>✓</span>
+                                <span style={{ ...styles.indicator, color: SMARTERPOKER_DARK.success }}>✓</span>
                             )}
                             {showFeedback && state === 'incorrect' && (
-                                <span style={{ ...styles.indicator, color: FACEBOOK_DARK.danger }}>✗</span>
+                                <span style={{ ...styles.indicator, color: SMARTERPOKER_DARK.danger }}>✗</span>
                             )}
                         </motion.button>
                     );
@@ -103,7 +103,7 @@ const styles = {
     container: {
         width: '100%',
         padding: '12px 16px 20px',
-        background: `linear-gradient(180deg, ${FACEBOOK_DARK.base} 0%, ${FACEBOOK_DARK.darkest} 100%)`,
+        background: `linear-gradient(180deg, ${SMARTERPOKER_DARK.base} 0%, ${SMARTERPOKER_DARK.darkest} 100%)`,
     },
 
     grid: {
@@ -132,39 +132,39 @@ const styles = {
         minHeight: 55,
     },
 
-    // Button states - Facebook Dark
+    // Button states - SmarterPoker Dark
     idle: {
-        background: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 100%)`,
-        border: `2px solid ${FACEBOOK_DARK.highlight}`,
-        color: FACEBOOK_DARK.primary,
+        background: `linear-gradient(180deg, ${SMARTERPOKER_DARK.mid} 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+        border: `2px solid ${SMARTERPOKER_DARK.highlight}`,
+        color: SMARTERPOKER_DARK.primary,
         boxShadow: `0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     selected: {
-        background: `linear-gradient(180deg, ${FACEBOOK_DARK.primaryDim} 0%, ${FACEBOOK_DARK.base} 100%)`,
-        border: `2px solid ${FACEBOOK_DARK.primary}`,
-        color: FACEBOOK_DARK.primary,
-        boxShadow: `0 0 20px ${FACEBOOK_DARK.primaryGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
+        background: `linear-gradient(180deg, ${SMARTERPOKER_DARK.primaryDim} 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+        border: `2px solid ${SMARTERPOKER_DARK.primary}`,
+        color: SMARTERPOKER_DARK.primary,
+        boxShadow: `0 0 20px ${SMARTERPOKER_DARK.primaryGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     correct: {
-        background: `linear-gradient(180deg, rgba(49, 162, 76, 0.2) 0%, ${FACEBOOK_DARK.base} 100%)`,
-        border: `2px solid ${FACEBOOK_DARK.success}`,
-        color: FACEBOOK_DARK.success,
-        boxShadow: `0 0 20px ${FACEBOOK_DARK.successGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
+        background: `linear-gradient(180deg, rgba(49, 162, 76, 0.2) 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+        border: `2px solid ${SMARTERPOKER_DARK.success}`,
+        color: SMARTERPOKER_DARK.success,
+        boxShadow: `0 0 20px ${SMARTERPOKER_DARK.successGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     incorrect: {
-        background: `linear-gradient(180deg, rgba(240, 40, 73, 0.2) 0%, ${FACEBOOK_DARK.base} 100%)`,
-        border: `2px solid ${FACEBOOK_DARK.danger}`,
-        color: FACEBOOK_DARK.danger,
-        boxShadow: `0 0 20px ${FACEBOOK_DARK.dangerGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
+        background: `linear-gradient(180deg, rgba(240, 40, 73, 0.2) 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+        border: `2px solid ${SMARTERPOKER_DARK.danger}`,
+        color: SMARTERPOKER_DARK.danger,
+        boxShadow: `0 0 20px ${SMARTERPOKER_DARK.dangerGlow}, 0 2px 8px rgba(0,0,0,0.3)`,
     },
 
     dimmed: {
-        background: FACEBOOK_DARK.base,
-        border: `2px solid ${FACEBOOK_DARK.mid}`,
-        color: FACEBOOK_DARK.textMuted,
+        background: SMARTERPOKER_DARK.base,
+        border: `2px solid ${SMARTERPOKER_DARK.mid}`,
+        color: SMARTERPOKER_DARK.textMuted,
         boxShadow: 'none',
         cursor: 'default',
     },

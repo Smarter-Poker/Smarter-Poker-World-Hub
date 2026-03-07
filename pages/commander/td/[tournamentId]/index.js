@@ -4,7 +4,7 @@
  * Main command screen for the TD holding a tablet on the floor
  * Shows: tournament header, stats, alerts, activity feed
  * Bottom nav bar links to Tables, Players, Clock screens
- * UI: Dark theme, Facebook colors, Inter font, 44px+ touch targets
+ * UI: Dark theme, SmarterPoker colors, Inter font, 44px+ touch targets
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';

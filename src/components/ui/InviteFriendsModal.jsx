@@ -2,7 +2,7 @@
  * InviteFriendsModal — Share & Referral System
  * ═══════════════════════════════════════════════════════════════
  * Full-featured invite modal with share channels:
- * Copy Link, Native Share, Email, SMS, WhatsApp, Facebook, X,
+ * Copy Link, Native Share, Email, SMS, WhatsApp, SmarterPoker, X,
  * Telegram, Instagram, Snapchat, LinkedIn, Reddit, Discord
  * Uses native app deep links (URI schemes) so mobile users
  * open the native app instead of the browser

@@ -1,7 +1,7 @@
 /**
  * Commander Owner/Manager Login Page
  * Email + Password for venue owners
- * Facebook color scheme
+ * SmarterPoker color scheme
  */
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';

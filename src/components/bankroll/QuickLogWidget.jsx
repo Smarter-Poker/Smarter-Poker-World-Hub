@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Clean Facebook-style categories (no emojis)
+// Clean SmarterPoker-style categories (no emojis)
 const QUICK_CATEGORIES = [
     { id: 'poker_cash', label: 'Cash Game', icon: '', color: '#31a24c' },
     { id: 'poker_mtt', label: 'Tournament', icon: '', color: '#2374e1' },

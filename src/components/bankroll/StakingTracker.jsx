@@ -1,6 +1,6 @@
 /**
  * STAKING TRACKER
- * Facebook Dark UI — Manage backer arrangements and staking sessions
+ * SmarterPoker Dark UI — Manage backer arrangements and staking sessions
  * Matches TripTracker/SeriesTracker styling
  */
 
@@ -583,7 +583,7 @@ export default function StakingTracker({ userId, refreshTrigger }) {
     );
 }
 
-// ── Facebook Dark Inline Styles (matching TripTracker/SeriesTracker) ──
+// ── SmarterPoker Dark Inline Styles (matching TripTracker/SeriesTracker) ──
 
 const styles = {
     container: {

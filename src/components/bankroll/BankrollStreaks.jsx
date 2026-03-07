@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-// Clean Facebook-style achievements (no emojis)
+// Clean SmarterPoker-style achievements (no emojis)
 const ACHIEVEMENTS = [
     { key: 'first_log', name: 'First Entry', icon: '', desc: 'Log your first session', diamonds: 10 },
     { key: 'streak_7', name: 'Week Warrior', icon: '', desc: '7-day logging streak', diamonds: 50 },

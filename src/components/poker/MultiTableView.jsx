@@ -27,7 +27,7 @@ const LivePokerTable = dynamic(
 );
 
 // ═══════════════════════════════════════════════════════
-// THEME (Facebook Dark)
+// THEME (SmarterPoker Dark)
 // ═══════════════════════════════════════════════════════
 const T = {
   bg: '#18191A',

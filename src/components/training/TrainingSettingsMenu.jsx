@@ -2,7 +2,7 @@
  * Training Settings Menu (Hamburger Menu)
  * ═══════════════════════════════════════════════════════════════════════════
  * Slide-out drawer from LEFT with training preferences
- * Facebook Dark Theme
+ * SmarterPoker Dark Theme
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -66,7 +66,7 @@ export default function TrainingSettingsMenu({ onClose }) {
                 />
             )}
 
-            {/* Drawer - Opens from LEFT - Facebook Dark Theme */}
+            {/* Drawer - Opens from LEFT - SmarterPoker Dark Theme */}
             <div style={{
                 ...styles.drawer,
                 transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
@@ -182,7 +182,7 @@ export default function TrainingSettingsMenu({ onClose }) {
     );
 }
 
-// Facebook Dark Theme Colors
+// SmarterPoker Dark Theme Colors
 const FB_DARK = {
     bg: '#18191A',           // Main background
     card: '#242526',         // Card/container background
@@ -190,7 +190,7 @@ const FB_DARK = {
     border: '#3E4042',       // Borders
     textPrimary: '#E4E6EB',  // Primary text
     textSecondary: '#B0B3B8', // Secondary text
-    accent: '#2374E1',       // Facebook blue
+    accent: '#2374E1',       // SmarterPoker blue
     success: '#31A24C',      // Green for toggles
 };
 

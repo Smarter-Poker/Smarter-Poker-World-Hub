@@ -224,7 +224,7 @@ async function handleRegister(req, res, tournamentId) {
           background_color: 'linear-gradient(135deg, #1877F2 0%, #0A5DC2 100%)'
         })
         .then(() => { })
-        .catch(err => console.warn('[register.js] Auto-story failed:', err.message));
+        .catch(err => console.error('[register.js] Auto-story failed:', err.message));
     }
 
     return res.status(201).json({

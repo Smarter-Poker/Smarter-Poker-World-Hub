@@ -3,7 +3,7 @@
  * /commander/td/[tournamentId]/reports
  * Tab-based report viewer: Registration, Cashier, Activity
  * CSV export capability
- * UI: Dark theme, Facebook colors, Inter font, 44px+ touch targets
+ * UI: Dark theme, SmarterPoker colors, Inter font, 44px+ touch targets
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';

@@ -1,5 +1,5 @@
 /**
- * FACEBOOK LAYOUT (SHELL)
+ * SMARTERPOKER LAYOUT (SHELL)
  * Main shell component with Navigation, Chat Dock, and Responsive Grid
  * Uses real authenticated user data from SupabaseProvider
  */

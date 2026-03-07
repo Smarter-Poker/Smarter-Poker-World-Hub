@@ -2,7 +2,7 @@
  * Tournament Director — Payouts Calculator & Manager
  * /commander/td/[tournamentId]/payouts
  * Auto-calculates payouts from payout structure, allows live override for deals/chops
- * UI: Dark theme, Facebook colors, Inter font, 44px+ touch targets
+ * UI: Dark theme, SmarterPoker colors, Inter font, 44px+ touch targets
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';

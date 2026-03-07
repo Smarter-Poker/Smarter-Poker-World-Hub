@@ -5499,7 +5499,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                 counterStrategy.mode = intel.totalScore >= 80 ? 'anti_bot_stealth' : 'anti_bot';
                 console.warn(`[HorseBrain] 📥 MODULE 9 PRE-ARM: ${primaryOppId.substring(0, 8)} known threat=${intel.totalScore} → mode=${counterStrategy.mode}`);
             }
-        }).catch(() => { });
+        }).catch(err => console.error('[HorseBrain] Threat intel load failed:', err));
 
         // Module 14: If opponent is actively blacklisted, spike horse tilt to escape table ASAP
         if (isBlacklisted(primaryOppId)) {

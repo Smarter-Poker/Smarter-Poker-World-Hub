@@ -1,7 +1,7 @@
 /**
  * Commander Tournament Management Page
  * List, create, and manage tournaments
- * Facebook Dark theme • Club Commander standard
+ * SmarterPoker Dark theme • Club Commander standard
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';

@@ -1,20 +1,20 @@
 /**
  * BANKROLL STYLES
- * Facebook Dark theme for Bankroll Manager
+ * SmarterPoker Dark theme for Bankroll Manager
  * Clean, sleek, professional styling
  */
 
-// Facebook Dark Color Palette
+// SmarterPoker Dark Color Palette
 export const METAL = {
-    // Core backgrounds (Facebook dark)
+    // Core backgrounds (SmarterPoker Dark)
     darkest: '#18191a',    // Deepest background
     base: '#242526',       // Standard surface
     mid: '#3a3b3c',        // Elevated surfaces
     highlight: '#4e4f50',  // Borders and dividers
     light: '#65676b',      // Secondary text
 
-    // Facebook blue accent
-    primary: '#2374e1',    // Facebook blue
+    // SmarterPoker blue accent
+    primary: '#2374e1',    // SmarterPoker blue
     primaryGlow: 'rgba(35, 116, 225, 0.4)',
     primaryDim: 'rgba(35, 116, 225, 0.15)',
 
@@ -24,11 +24,11 @@ export const METAL = {
     cyanDim: 'rgba(35, 116, 225, 0.15)',
 
     // Status colors
-    success: '#31a24c',    // Facebook green
+    success: '#31a24c',    // SmarterPoker green
     successGlow: 'rgba(49, 162, 76, 0.4)',
-    warning: '#f7b928',    // Facebook warning
+    warning: '#f7b928',    // SmarterPoker warning
     warningGlow: 'rgba(247, 185, 40, 0.4)',
-    danger: '#f02849',     // Facebook red
+    danger: '#f02849',     // SmarterPoker red
     dangerGlow: 'rgba(240, 40, 73, 0.4)',
 
     // Premium accents
@@ -43,7 +43,7 @@ export const METAL = {
     textMuted: '#8a8d91',
 };
 
-// Gradient presets (Facebook style - subtle, clean)
+// Gradient presets (SmarterPoker style - subtle, clean)
 export const GRADIENTS = {
     metalSurface: 'linear-gradient(180deg, #3a3b3c 0%, #242526 100%)',
     metalButton: 'linear-gradient(180deg, #3a3b3c 0%, #2d2e2f 100%)',
@@ -51,7 +51,7 @@ export const GRADIENTS = {
     goldPremium: 'linear-gradient(135deg, #f7b928 0%, #d9a520 100%)',
     purplePro: 'linear-gradient(135deg, #9b59b6 0%, #7c4a99 100%)',
     darkPanel: 'linear-gradient(180deg, #242526 0%, #18191a 100%)',
-    // Facebook button styles
+    // SmarterPoker button styles
     fbButton: 'linear-gradient(180deg, #3a3b3c 0%, #333435 100%)',
     fbPrimary: '#2374e1',
 };
@@ -63,7 +63,7 @@ export const GLOWS = {
     gold: '0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(247, 185, 40, 0.15)',
     success: '0 1px 2px rgba(0, 0, 0, 0.2)',
     danger: '0 1px 2px rgba(0, 0, 0, 0.2)',
-    // Facebook-style subtle shadows
+    // SmarterPoker-style subtle shadows
     card: '0 1px 2px rgba(0, 0, 0, 0.2)',
     elevated: '0 2px 12px rgba(0, 0, 0, 0.25)',
 };

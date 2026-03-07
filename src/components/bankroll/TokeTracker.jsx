@@ -2,7 +2,7 @@
  * TOKE TRACKER COMPONENT
  * ═══════════════════════════════════════════════════════════════
  * Dealer income & expense tracking — gigs, downs, 35-min timer
- * Facebook Dark UI — matches TripTracker pattern
+ * SmarterPoker Dark UI — matches TripTracker pattern
  * ═══════════════════════════════════════════════════════════════
  */
 
@@ -140,7 +140,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     // Tax Summary modal
     const [showTaxSummary, setShowTaxSummary] = useState(false);
 
-    // Toke edit state  
+    // Down inline edit state
+    const [editingDownId, setEditingDownId] = useState(null);
+    const [editingDownForm, setEditingDownForm] = useState(null);
+
+    // Toke edit state
     const [editingTokeId, setEditingTokeId] = useState(null);
     const [tokeEditValue, setTokeEditValue] = useState('');
 
@@ -321,7 +325,12 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         }, 500);
     }, [loadData]);
 
-    useEffect(() => { loadData(); }, [loadData, refreshTrigger]);
+    useEffect(() => {
+        loadData();
+        const handleSync = () => loadData();
+        window.addEventListener('toke-data-updated', handleSync);
+        return () => window.removeEventListener('toke-data-updated', handleSync);
+    }, [loadData, refreshTrigger]);
 
     // ── Supabase Realtime — debounced auto-refresh on any change to gig data ──
     useEffect(() => {
@@ -809,6 +818,34 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             if (!isAbortError(err)) toast.error(err.message || 'Failed to update multiplier');
+        }
+    };
+
+    const handleSaveDownEdit = async () => {
+        if (!userId) { toast.error('You must be logged in'); return; }
+        if (!editingDownId || !editingDownForm) return;
+
+        try {
+            const { error } = await supabase
+                .from('toke_downs')
+                .update({
+                    tournament_name: editingDownForm.tournament_name || null,
+                    tournament_buyin: editingDownForm.tournament_buyin ? parseFloat(editingDownForm.tournament_buyin) : null,
+                    game_type: editingDownForm.game_type || null,
+                    cash_stakes: editingDownForm.cash_stakes || null,
+                    cash_variant: editingDownForm.cash_variant || null,
+                    table_number: editingDownForm.table_number || null,
+                })
+                .eq('id', editingDownId);
+
+            if (error) throw error;
+
+            toast.success('Down updated');
+            setEditingDownId(null);
+            setEditingDownForm(null);
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
+        } catch (err) {
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to update down');
         }
     };
 
@@ -1594,16 +1631,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                         placeholder="0 Miles"
                                         style={{ ...styles.formInput, width: 100, padding: '8px 12px' }}
                                     />
-                                    {mileageInput && parseFloat(mileageInput) > 0 && (() => {
-                                        const yr = new Date().getFullYear();
-                                        const IRS = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
-                                        const rate = IRS[yr] || 0.67;
-                                        return (
-                                            <span style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                                {parseFloat(mileageInput).toLocaleString()} mi × ${rate}/mi = <strong>${(parseFloat(mileageInput) * rate).toFixed(2)} deductible</strong>
-                                            </span>
-                                        );
-                                    })()}
+                                    {/* tax calculation logic moved strictly to Vault per Vault-Only compliance rule */}
                                     <button onClick={() => handleCompleteGig(mileageInput)} style={styles.confirmYes}>Yes, Complete</button>
                                     <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                                 </div>
@@ -2256,7 +2284,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STYLES — Facebook Dark (matches TripTracker)
+// STYLES — SmarterPoker Dark (matches TripTracker)
 // ═══════════════════════════════════════════════════════════════
 const styles = {
     container: { display: 'flex', flexDirection: 'column', gap: 20 },

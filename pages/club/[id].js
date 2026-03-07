@@ -1,8 +1,8 @@
 /**
  * Public Club Page
- * Like a Facebook Page for poker venues/clubs
+ * Like a SmarterPoker Page for poker venues/clubs
  * Features: Posts, Photos, Events, Reviews, Live Games
- * UI: Facebook color scheme, no emojis, Inter font
+ * UI: SmarterPoker color scheme, no emojis, Inter font
  */
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';

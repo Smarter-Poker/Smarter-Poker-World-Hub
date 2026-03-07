@@ -2,7 +2,7 @@
  * DEALER VAULT
  * ═══════════════════════════════════════════════════════════════
  * Secure document management for professional dealers
- * Facebook Dark UI — matches TaxReportPanel / TokeTracker pattern
+ * SmarterPoker Dark UI — matches TaxReportPanel / TokeTracker pattern
  * ═══════════════════════════════════════════════════════════════
  */
 

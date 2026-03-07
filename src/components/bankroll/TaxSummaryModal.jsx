@@ -2,13 +2,13 @@
  * TAX SUMMARY MODAL
  * ══════════════════════════════════════════════════════════
  * Annual tax summary with print-to-PDF capability
- * Facebook Dark UI — uses window.print() with @media print styles
+ * SmarterPoker Dark UI — uses window.print() with @media print styles
  * ══════════════════════════════════════════════════════════
  */
 
 import { useState, useMemo } from 'react';
 
-const IRS_MILEAGE_RATES = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
+const IRS_MILEAGE_RATES = { 2026: 0.67, 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585, 2021: 0.56 };
 
 const METAL = {
     base: '#1C1E21', mid: '#242526', elevated: '#3A3B3C', darkest: '#18191A',

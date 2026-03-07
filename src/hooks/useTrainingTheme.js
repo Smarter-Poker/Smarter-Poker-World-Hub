@@ -14,10 +14,10 @@
 import { useMemo } from 'react';
 
 // =============================================================================
-// FACEBOOK DARK COLOR PALETTE (from metalStyles.js)
+// SMARTERPOKER DARK COLOR PALETTE (from metalStyles.js)
 // =============================================================================
 
-export const FACEBOOK_DARK = {
+export const SMARTERPOKER_DARK = {
     // Core backgrounds
     darkest: '#18191a',    // Deepest background
     base: '#242526',       // Standard surface
@@ -82,8 +82,8 @@ export const SUIT_COLORS = {
 
 export const TABLE_COLORS = {
     // Felt and table
-    felt: FACEBOOK_DARK.darkest,
-    feltGradient: `radial-gradient(ellipse at 50% 35%, ${FACEBOOK_DARK.base} 0%, ${FACEBOOK_DARK.darkest} 50%, #080808 100%)`,
+    felt: SMARTERPOKER_DARK.darkest,
+    feltGradient: `radial-gradient(ellipse at 50% 35%, ${SMARTERPOKER_DARK.base} 0%, ${SMARTERPOKER_DARK.darkest} 50%, #080808 100%)`,
     rail: {
         outer: 'linear-gradient(180deg, #f0d050 0%, #d4a000 25%, #a07800 60%, #705000 100%)',
         inner: 'linear-gradient(180deg, #ffe070 0%, #e8b810 25%, #b08000 60%, #785500 100%)',
@@ -91,13 +91,13 @@ export const TABLE_COLORS = {
 
     // Pot and chips
     pot: {
-        bg: FACEBOOK_DARK.mid,
-        border: FACEBOOK_DARK.highlight,
-        text: FACEBOOK_DARK.textPrimary,
+        bg: SMARTERPOKER_DARK.mid,
+        border: SMARTERPOKER_DARK.highlight,
+        text: SMARTERPOKER_DARK.textPrimary,
     },
 
     // Active player glow
-    activeGlow: FACEBOOK_DARK.primary,
+    activeGlow: SMARTERPOKER_DARK.primary,
     heroGlow: '#00d4ff',
 };
 
@@ -108,7 +108,7 @@ export const TABLE_COLORS = {
 export default function useTrainingTheme() {
     const theme = useMemo(() => ({
         // SmarterPoker Dark palette
-        colors: FACEBOOK_DARK,
+        colors: SMARTERPOKER_DARK,
 
         // Action tag colors
         actionColors: ACTION_COLORS,
@@ -128,44 +128,44 @@ export default function useTrainingTheme() {
 
         // Component styles
         questionBar: {
-            background: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 100%)`,
-            borderColor: FACEBOOK_DARK.primary,
-            text: FACEBOOK_DARK.textPrimary,
-            accent: FACEBOOK_DARK.primary,
+            background: `linear-gradient(180deg, ${SMARTERPOKER_DARK.mid} 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+            borderColor: SMARTERPOKER_DARK.primary,
+            text: SMARTERPOKER_DARK.textPrimary,
+            accent: SMARTERPOKER_DARK.primary,
         },
 
         answerGrid: {
-            background: `linear-gradient(180deg, ${FACEBOOK_DARK.base} 0%, ${FACEBOOK_DARK.darkest} 100%)`,
+            background: `linear-gradient(180deg, ${SMARTERPOKER_DARK.base} 0%, ${SMARTERPOKER_DARK.darkest} 100%)`,
             buttonIdle: {
-                bg: `linear-gradient(180deg, ${FACEBOOK_DARK.mid} 0%, ${FACEBOOK_DARK.base} 100%)`,
-                border: FACEBOOK_DARK.highlight,
-                text: FACEBOOK_DARK.primary,
+                bg: `linear-gradient(180deg, ${SMARTERPOKER_DARK.mid} 0%, ${SMARTERPOKER_DARK.base} 100%)`,
+                border: SMARTERPOKER_DARK.highlight,
+                text: SMARTERPOKER_DARK.primary,
             },
             buttonCorrect: {
                 bg: `linear-gradient(180deg, #1a5a3a 0%, #0d4028 100%)`,
-                border: FACEBOOK_DARK.success,
-                text: FACEBOOK_DARK.success,
+                border: SMARTERPOKER_DARK.success,
+                text: SMARTERPOKER_DARK.success,
             },
             buttonIncorrect: {
                 bg: `linear-gradient(180deg, #5a2a2a 0%, #4a1a1a 100%)`,
-                border: FACEBOOK_DARK.danger,
-                text: FACEBOOK_DARK.danger,
+                border: SMARTERPOKER_DARK.danger,
+                text: SMARTERPOKER_DARK.danger,
             },
         },
 
         // Feedback overlay
         feedback: {
             overlay: 'rgba(0, 0, 0, 0.85)',
-            card: `linear-gradient(180deg, ${FACEBOOK_DARK.base}, ${FACEBOOK_DARK.darkest})`,
-            correct: FACEBOOK_DARK.success,
-            incorrect: FACEBOOK_DARK.danger,
+            card: `linear-gradient(180deg, ${SMARTERPOKER_DARK.base}, ${SMARTERPOKER_DARK.darkest})`,
+            correct: SMARTERPOKER_DARK.success,
+            incorrect: SMARTERPOKER_DARK.danger,
         },
 
         // Debug overlay
         debug: {
             bg: 'rgba(0, 0, 0, 0.9)',
             text: '#0f0',
-            border: FACEBOOK_DARK.highlight,
+            border: SMARTERPOKER_DARK.highlight,
         },
     }), []);
 
