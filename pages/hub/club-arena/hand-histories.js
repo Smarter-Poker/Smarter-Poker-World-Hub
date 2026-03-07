@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
@@ -38,10 +39,14 @@ export default function HandHistories() {
     const [hands, setHands] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Filters
-    const [period, setPeriod] = useState('all'); // 'today' | 'week' | 'month' | 'all'
-    const [resultFilter, setResultFilter] = useState('all'); // 'all' | 'wins' | 'losses'
-    const [gameType, setGameType] = useState('all'); // 'all' | 'nlhe' | 'plo' | 'mixed'
+    // Filters (persisted to localStorage)
+    const { filters: _hhFilters, setFilter: _setHHFilter } = usePersistedFilters('club-arena-hand-histories', { period: 'all', resultFilter: 'all', gameType: 'all' });
+    const [period, setPeriod] = useState(_hhFilters.period);
+    const [resultFilter, setResultFilter] = useState(_hhFilters.resultFilter);
+    const [gameType, setGameType] = useState(_hhFilters.gameType);
+    useEffect(() => { _setHHFilter('period', period); }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { _setHHFilter('resultFilter', resultFilter); }, [resultFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { _setHHFilter('gameType', gameType); }, [gameType]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Pagination
     const [page, setPage] = useState(0);

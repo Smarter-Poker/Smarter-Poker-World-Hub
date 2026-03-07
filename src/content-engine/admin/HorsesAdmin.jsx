@@ -833,7 +833,7 @@ export default function HorsesAdmin() {
 
     useEffect(() => {
         // Check for existing session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
             setUser(session?.user ?? null);
             setLoading(false);
         }).catch(() => {

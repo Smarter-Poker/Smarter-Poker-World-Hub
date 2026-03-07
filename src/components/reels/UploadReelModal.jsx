@@ -40,7 +40,7 @@ export default function UploadReelModal({ user, onClose, onSuccess }) {
 
         try {
             // 1. Get signed upload URL from our API (metadata only, no file body)
-            const { data: { session: _reelSess } } = await supabase.auth.getSession();
+            const _reelSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const metaRes = await fetch('/api/social/upload-url', {
                 method: 'POST',
                 headers: {

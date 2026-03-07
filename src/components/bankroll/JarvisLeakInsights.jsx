@@ -27,7 +27,7 @@ export default function JarvisLeakInsights({ userId, onRefresh }) {
         setError(null);
 
         try {
-            const { data: { session: _jSession } } = await supabase.auth.getSession();
+            const _jSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const res = await fetch('/api/jarvis/bankroll-analysis', {
                 method: 'POST',
                 headers: {

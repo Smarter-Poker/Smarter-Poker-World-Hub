@@ -54,7 +54,7 @@ export function ActiveIdentityProvider({ children }) {
                 // ── Step 1: Get userId from Supabase session ──
                 // Use getSession() (reads localStorage) instead of getUser() (network call) 
                 // to avoid AbortError storm from navigator.locks killing the request
-                const { data: { session: _aic_session } } = await supabase.auth.getSession();
+                const _aic_session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 const userId = _aic_session?.user?.id || null;
 
                 if (!userId) return; // Not logged in, nothing to detect

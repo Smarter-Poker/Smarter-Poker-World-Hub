@@ -54,6 +54,7 @@ class HorseAlertingService {
 
             if (error) {
                 console.error('Failed to log error:', error.message);
+                return null;
             }
 
             // Track for rate limiting
@@ -63,7 +64,7 @@ class HorseAlertingService {
             // Check if we should send alert
             await this.checkAndAlert(errorType, errorMessage, context);
 
-            return data;
+            return data || null;
         } catch (e) {
             console.error('Error logging failed:', e.message);
         }
@@ -314,7 +315,7 @@ class ClipUsageTracker {
             console.error('Failed to record clip usage:', error.message);
         }
 
-        return data;
+        return data || null;
     }
 
     /**

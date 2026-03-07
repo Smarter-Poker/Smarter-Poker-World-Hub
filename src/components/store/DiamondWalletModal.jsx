@@ -91,7 +91,7 @@ export default function DiamondWalletModal({ isOpen, onClose, onBuyClick }) {
             const user = getAuthUser();
             if (!user) return;
 
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             if (!session?.access_token) return;
 
             const params = new URLSearchParams({ limit: '50' });

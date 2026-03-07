@@ -101,8 +101,8 @@ async function postNewsToHorse() {
         .select()
         .maybeSingle();
 
-    if (error) {
-        console.error('Post error:', error.message);
+    if (error || !post) {
+        console.error('Post error:', error?.message || 'No data returned');
         return;
     }
 

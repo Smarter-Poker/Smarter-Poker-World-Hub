@@ -474,8 +474,8 @@ class VideoClipper {
                     .select()
                     .maybeSingle();
 
-                if (reelError) {
-                    console.error(`Reel record creation failed: ${reelError.message}`);
+                if (reelError || !reel) {
+                    console.error(`Reel record creation failed: ${reelError?.message || 'No data returned'}`);
                 } else {
                     console.log(`✅ Reel created: ${reel.id}`);
                     return { success: true, publicUrl, reel };

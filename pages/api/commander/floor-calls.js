@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         status: 'pending'
       }).select().maybeSingle();
 
-      if (error) throw error;
+      if (error || !data) throw error || new Error('Failed to create floor call');
 
       // Also log to activity feed (non-blocking)
       await supabase.from('commander_activity_log').insert({
@@ -147,7 +147,7 @@ export default async function handler(req, res) {
       const { data, error } = await supabase.from('commander_floor_calls')
         .update(updates).eq('id', id).select().maybeSingle();
 
-      if (error) throw error;
+      if (error || !data) throw error || new Error('Floor call not found');
       return res.status(200).json({ success: true, data });
     }
 

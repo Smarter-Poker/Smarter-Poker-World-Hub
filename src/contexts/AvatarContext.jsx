@@ -47,10 +47,10 @@ export function AvatarProvider({ children }) {
             const timeoutId = setTimeout(() => controller.abort(), 5000);
 
             // Get session token for authenticated API call
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            const _lsToken = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
             const headers = {};
-            if (currentSession?.access_token) {
-                headers['Authorization'] = `Bearer ${currentSession.access_token}`;
+            if (_lsToken) {
+                headers['Authorization'] = `Bearer ${_lsToken}`;
             }
 
             const response = await fetch(`/api/vip/check-status?userId=${userId}`, {
@@ -111,12 +111,12 @@ export function AvatarProvider({ children }) {
                 let token = session?.access_token || null;
                 if (!token) {
                     // Fallback: try getSession() if no session was passed
-                    const { data: { session: currentSession } } = await supabase.auth.getSession();
-                    if (!currentSession?.access_token) {
+                    const _lsToken2 = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
+                    if (!_lsToken2) {
                         console.warn('[AvatarContext] ensureUserProfile skipped — no auth token available yet');
                         return; // Skip silently — will be called again on next auth event
                     }
-                    token = currentSession.access_token;
+                    token = _lsToken2;
                 }
 
                 const controller = new AbortController();

@@ -234,7 +234,7 @@ function DealerVault({ userId, completedGigs = [] }) {
     const analyzeDocument = async (imageBase64) => {
         setIsAnalyzing(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const token = session?.access_token;
 
             const res = await fetch('/api/bankroll/scan-dealer-document', {

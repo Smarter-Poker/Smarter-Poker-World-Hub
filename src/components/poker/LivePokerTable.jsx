@@ -2280,7 +2280,7 @@ function LivePokerTable({
     if (opponentIds.length === 0) return;
 
     // BUG #147 FIX: Include auth token — server requires Bearer auth
-    supabase.auth.getSession().then(({ data: { session: noteSession } }) => {
+    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((noteSession) => {
       fetch('/api/club-arena/player-notes', {
         method: 'POST',
         headers: {
@@ -3249,7 +3249,7 @@ function LivePokerTable({
           if (userId && seats?.length) {
             const opIds = seats.filter(s => s.player?.id && String(s.player.id) !== String(userId)).map(s => s.player.id);
             if (opIds.length) {
-              supabase.auth.getSession().then(({ data: { session: noteSession } }) => {
+              Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((noteSession) => {
                 fetch('/api/club-arena/player-notes', {
                   method: 'POST', headers: {
                     'Content-Type': 'application/json',

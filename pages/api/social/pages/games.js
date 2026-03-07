@@ -448,7 +448,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
             .from('club_live_games').update(updates).eq('id', id).select().maybeSingle();
 
-        if (error) return res.status(500).json({ success: false, error: error.message });
+        if (error || !data) return res.status(404).json({ success: false, error: 'Game not found' });
         return res.status(200).json({ success: true, data });
     }
 

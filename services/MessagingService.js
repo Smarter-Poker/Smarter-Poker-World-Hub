@@ -102,7 +102,8 @@ class MessagingService {
             throw error;
         }
 
-        return data;
+        // maybeSingle can return null, provide fallback
+        return data || { user_id: userId, ...settings };
     }
 
     /**
@@ -397,6 +398,10 @@ class MessagingService {
         if (error) {
             console.error('Failed to edit message:', error);
             throw error;
+        }
+
+        if (!data) {
+            throw new Error('Message not found or user not authorized');
         }
 
         return data;

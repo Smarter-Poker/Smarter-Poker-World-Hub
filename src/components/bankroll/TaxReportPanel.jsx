@@ -210,7 +210,7 @@ export default function TaxReportPanel({ userId }) {
         setReport(null);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const token = session?.access_token;
 
             const res = await fetch(`/api/bankroll/tax-report?year=${selectedYear}&format=json`, {
@@ -233,7 +233,7 @@ export default function TaxReportPanel({ userId }) {
         setDownloading(true);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const token = session?.access_token;
 
             const res = await fetch(`/api/bankroll/tax-report?year=${selectedYear}&format=pdf`, {

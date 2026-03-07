@@ -151,10 +151,6 @@ export default async function handler(req, res) {
             return res.status(403).json({ success: false, error: 'Not authorized to modify this page' });
         }
 
-        if (fetchError || !page) {
-            return res.status(404).json({ success: false, error: 'Page not found' });
-        }
-
         const metadata = page.metadata || {};
         const existing = metadata.geocoded_locations || {};
         const geocoded = { ...existing };

@@ -10,7 +10,7 @@ import { getAuthUser } from '../lib/authUtils';
 // Helper to get auth token from Supabase session
 async function getAuthToken() {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     return session?.access_token || null;
   } catch (e) {
     return null;

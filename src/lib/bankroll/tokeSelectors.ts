@@ -377,7 +377,7 @@ export async function updateGig(userId: string, gigId: string, updates: Partial<
         .select()
         .maybeSingle();
 
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to update gig');
     return data;
 }
 
@@ -426,7 +426,7 @@ export async function completeGig(userId: string, gigId: string, mileage = 0): P
         .select()
         .maybeSingle();
 
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to complete gig');
     return data;
 }
 
@@ -521,7 +521,7 @@ export async function closeDay(dayId: string): Promise<TokeGigDay> {
         .select()
         .maybeSingle();
 
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to end day');
     return data;
 }
 
@@ -588,7 +588,7 @@ export async function endDown(downId: string, tokeAmount?: number): Promise<Toke
         .select()
         .maybeSingle();
 
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to end down');
     return data;
 }
 
@@ -623,7 +623,7 @@ export async function updateDownToke(downId: string, tokeAmount: number): Promis
         .eq('id', downId)
         .select()
         .maybeSingle();
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to update down toke');
     return data;
 }
 
@@ -634,7 +634,7 @@ export async function updateDownMultiplier(downId: string, multiplier: number): 
         .eq('id', downId)
         .select()
         .maybeSingle();
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to update down multiplier');
     return data;
 }
 
@@ -669,7 +669,7 @@ export async function createExpense(
         })
         .select()
         .maybeSingle();
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to create expense');
     return data;
 }
 

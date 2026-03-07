@@ -1191,7 +1191,7 @@ export default function MessengerPage() {
                     .eq('id', authUser.id)
                     .maybeSingle();
 
-                setUser({ ...authUser, ...profile });
+                setUser({ ...authUser, ...(profile || {}) });
                 setIsVip(!!profile?.is_vip);
 
                 // Reload conversations (uses API-first approach, resilient to RLS)
@@ -1274,7 +1274,7 @@ export default function MessengerPage() {
                 setMessages(prev => {
                     // Check for duplicates
                     if (prev.some(m => m.id === newMsg.id)) return prev;
-                    return [...prev, { ...newMsg, profiles: profile }];
+                    return [...prev, { ...newMsg, profiles: profile || null }];
                 });
 
                 // Update conversation preview and re-sort to move to top

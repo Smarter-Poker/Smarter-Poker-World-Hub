@@ -31,13 +31,13 @@ export async function checkFeatureAccess(userId, featureKey) {
     // Ensure Supabase session is ready before querying
     let sessionUserId = null;
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
         sessionUserId = session?.user?.id;
         if (!sessionUserId) {
             console.warn('[FeatureGate] No active Supabase session — waiting for auth...');
             // Wait briefly for session to establish (common on page load)
             await new Promise(r => setTimeout(r, 500));
-            const { data: { session: retrySession } } = await supabase.auth.getSession();
+            const retrySession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             sessionUserId = retrySession?.user?.id;
         }
     } catch (e) {
@@ -91,7 +91,7 @@ export async function checkFeatureAccess(userId, featureKey) {
             // Try to include session token for authenticated call
             const headers = {};
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
             } catch (_) { }
             const resp = await fetch(`/api/vip/check-status?userId=${userId}`, { signal: controller.signal, headers });

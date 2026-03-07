@@ -4777,12 +4777,12 @@ export default function SocialMediaPage() {
 
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
 
-            if (error) {
-                console.error('[Social] ❌ Supabase insert error:', error.message, error.details, error.hint, error.code);
-                throw error;
+            if (error || !data) {
+                console.error('[Social] ❌ Supabase insert error:', error?.message, error?.details, error?.hint, error?.code);
+                throw error || new Error('Post creation returned no data');
             }
 
-            console.log('[Social] ✅ Post created successfully:', data?.id);
+            console.log('[Social] ✅ Post created successfully:', data.id);
 
             // Insert mentions if any
             if (mentions.length > 0 && data?.id) {

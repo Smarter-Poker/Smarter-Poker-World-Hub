@@ -48,9 +48,9 @@ class AutoPoster {
             .select()
             .maybeSingle();
 
-        if (error) {
+        if (error || !data) {
             console.error('Post failed:', error);
-            throw error;
+            throw error || new Error('Failed to create post');
         }
 
         console.log(`📤 Posted: ${persona_alias} - ${content.slice(0, 50)}...`);
@@ -110,9 +110,9 @@ class AutoPoster {
             .select()
             .maybeSingle();
 
-        if (error) {
+        if (error || !data) {
             console.error('Video post failed:', error);
-            throw error;
+            throw error || new Error('Failed to create video post');
         }
 
         console.log(`🎬 Video posted: ${persona_alias} - ${metadata.duration}s`);
@@ -149,7 +149,7 @@ class AutoPoster {
                 .select()
                 .maybeSingle();
 
-            if (!error) {
+            if (!error && data) {
                 results.push(data);
                 console.log(`📅 Scheduled: ${content.author_alias} for ${currentTime.toLocaleString()}`);
             }

@@ -181,7 +181,7 @@ export async function fetchLedgerEntry(
     .eq('id', entryId)
     .maybeSingle();
 
-  if (error) return null;
+  if (error || !data) return null;
 
   return {
     ...data,
@@ -361,7 +361,7 @@ export async function createRevisionEntry(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to create revision');
   return data;
 }
 
@@ -384,7 +384,7 @@ export async function updateLedgerEntry(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to update ledger entry');
 
   // Update the bankroll segment balance
   try {
@@ -548,7 +548,7 @@ export async function createTrip(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to create trip');
   return data;
 }
 
@@ -573,7 +573,7 @@ export async function updateTrip(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to update trip');
   return data;
 }
 
@@ -593,7 +593,7 @@ export async function completeTrip(userId: string, tripId: string): Promise<Trip
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to complete trip');
   return data;
 }
 
@@ -824,7 +824,7 @@ export async function createSeries(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to create series');
   return data;
 }
 
@@ -847,7 +847,7 @@ export async function updateSeries(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to update series');
   return data;
 }
 
@@ -864,7 +864,7 @@ export async function completeSeries(userId: string, seriesId: string): Promise<
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to complete series');
   return data;
 }
 
@@ -926,7 +926,7 @@ export async function updateBankrollRule(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to create alert');
   return data;
 }
 
@@ -1290,7 +1290,7 @@ export async function createStakingArrangement(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to create staking arrangement');
   return data as StakingArrangement;
 }
 
@@ -1309,7 +1309,7 @@ export async function updateStakingArrangement(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to update staking arrangement');
   return data as StakingArrangement;
 }
 
@@ -1401,7 +1401,7 @@ export async function createStakingSession(
     .select()
     .maybeSingle();
 
-  if (error) throw error;
+  if (error || !data) throw error || new Error('Failed to record staking session');
 
   // Update the arrangement's current_makeup
   await supabase

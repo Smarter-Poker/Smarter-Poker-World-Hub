@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
@@ -67,7 +68,8 @@ export default function ClubLobby() {
     const [tables, setTables] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [menuOpen, setMenuOpen] = useState(false);
-    const [activeFilter, setActiveFilter] = useState('ALL');
+    const { filters: _lobbyFilters, setFilter: _setLobbyFilter } = usePersistedFilters('club-arena-lobby', { activeFilter: 'ALL', sortBy: 'players' });
+    const [activeFilter, setActiveFilter] = useState(_lobbyFilters.activeFilter);
     const [chipBalance, setChipBalance] = useState(0);
     const [membership, setMembership] = useState(null);
     const [showCreateGame, setShowCreateGame] = useState(null); // null | { tab?, variant? }
@@ -77,7 +79,10 @@ export default function ClubLobby() {
     const [announcements, setAnnouncements] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
-    const [sortBy, setSortBy] = useState('players'); // players | stakes | name
+    const [sortBy, setSortBy] = useState(_lobbyFilters.sortBy); // players | stakes | name
+    // Sync filter changes to localStorage
+    useEffect(() => { _setLobbyFilter('activeFilter', activeFilter); }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { _setLobbyFilter('sortBy', sortBy); }, [sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
     const [showBBJ, setShowBBJ] = useState(false);
     const [toast, setToast] = useState(null); // { msg, type }
     const showToast = (msg, type = 'success') => {

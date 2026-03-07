@@ -130,7 +130,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
     const getAuthHeaders = async () => {
         const headers = { 'Content-Type': 'application/json' };
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             if (session?.access_token) {
                 headers['Authorization'] = `Bearer ${session.access_token}`;
             }
@@ -207,7 +207,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             formData.append('file', file);
             formData.append('folder', 'covers');
             formData.append('prefix', page.id);
-            const { data: { session: _coverSess } } = await supabase.auth.getSession();
+            const _coverSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
@@ -250,7 +250,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             formData.append('file', file);
             formData.append('folder', 'logos');
             formData.append('prefix', page.id);
-            const { data: { session: _logoSess } } = await supabase.auth.getSession();
+            const _logoSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _logoSess?.access_token ? { Authorization: `Bearer ${_logoSess.access_token}` } : {},
@@ -298,7 +298,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-                    const { data: { session: _clubVidSess } } = await supabase.auth.getSession();
+                    const _clubVidSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
@@ -334,7 +334,7 @@ export default function ClubPageDashboard({ page, userId, onBack, onPageUpdated,
                     formData.append('file', file);
                     formData.append('folder', 'club-posts');
                     formData.append('prefix', page.id);
-                    const { data: { session: _clubImgSess } } = await supabase.auth.getSession();
+                    const _clubImgSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                     const res = await fetch('/api/social/upload', {
                         method: 'POST',
                         headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},

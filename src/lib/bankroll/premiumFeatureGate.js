@@ -36,7 +36,7 @@ export async function checkBankrollProAccess(userId) {
                 // Try to include session token for authenticated call
                 const headers = {};
                 try {
-                    const { data: { session } } = await supabase.auth.getSession();
+                    const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                     if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
                 } catch (_) { }
                 const resp = await fetch(`/api/vip/check-status?userId=${userId}`, { signal: controller.signal, headers });

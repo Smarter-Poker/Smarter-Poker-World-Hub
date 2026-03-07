@@ -38,7 +38,7 @@ async function apiPost(url, body, supabase) {
   // BUG #147 FIX: Include auth token — server requires Bearer auth
   if (supabase) {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }

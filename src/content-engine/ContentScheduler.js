@@ -121,8 +121,8 @@ class ContentScheduler {
                     .select()
                     .maybeSingle();
 
-                if (contentError) {
-                    console.error('Content insert error:', contentError);
+                if (contentError || !insertedContent) {
+                    console.error('Content insert error:', contentError?.message || 'No data returned');
                     continue;
                 }
 

@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { usePersistedState } from '../../src/hooks/usePersistedState';
 import confetti from 'canvas-confetti';
 // useTheme removed — unused (DarkModeToggle handles theme internally)
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
@@ -80,7 +81,7 @@ export default function SettingsPage() {
     const { avatar, isVip, user: contextUser, initializing } = useAvatar();
     const [userProfile, setUserProfile] = useState(null);
     const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
-    const [activeSection, setActiveSection] = useState('account');
+    const [activeSection, setActiveSection] = usePersistedState('sp-settings-active-section', 'account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
     const [customAvatars, setCustomAvatars] = useState([]);

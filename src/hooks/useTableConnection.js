@@ -76,7 +76,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
   useEffect(() => {
     if (!supabase) return;
     // Get initial token
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
       tokenRef.current = session?.access_token || null;
     });
     // Listen for refreshes

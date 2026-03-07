@@ -35,7 +35,7 @@ export default function useTrainingProgress() {
             let userId = null;
 
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 userId = session?.user?.id;
                 console.log('[useTrainingProgress] Session check:', {
                     hasSession: !!session,
@@ -64,7 +64,7 @@ export default function useTrainingProgress() {
             if (userId) {
                 // Fetch from API with auth header
                 console.log('[useTrainingProgress] Fetching progress for userId:', userId);
-                const { data: { session: authSession } } = await supabase.auth.getSession();
+                const authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 const token = authSession?.access_token;
                 const response = await fetch(`/api/training/get-progress?userId=${userId}`, {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {},

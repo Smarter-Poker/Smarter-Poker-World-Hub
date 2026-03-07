@@ -118,7 +118,7 @@ export async function getLevel(levelId: number): Promise<TrainingLevel | null> {
         return null;
     }
 
-    return data;
+    return data || null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -198,7 +198,7 @@ export async function updateLevelProgress(
         return null;
     }
 
-    return data;
+    return data || null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -318,7 +318,7 @@ export async function submitAnswer(params: {
         return null;
     }
 
-    return data;
+    return data || null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

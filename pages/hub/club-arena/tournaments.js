@@ -111,7 +111,11 @@ export default function TournamentsPage() {
         // We use a slight delay so rapid burst AI registrations don't spam the API
         setTimeout(() => loadData(), 500);
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') {
+          console.warn(`[Tournaments] List channel status: ${status}`);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
