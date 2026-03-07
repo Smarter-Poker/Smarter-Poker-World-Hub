@@ -155,7 +155,7 @@ export default function HandHistoryPage() {
   const [searchQuery, setSearchQuery] = useState(_hf.searchQuery);
   const [filter, setFilter] = useState(_hf.filter);
   // Sync filter changes to localStorage
-  useEffect(() => { _setHF('filter', filter); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { _setHF('filter', filter); }, [filter, _setHF]);
 
   useEffect(() => {
     fetchSessions();

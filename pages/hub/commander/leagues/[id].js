@@ -4,7 +4,7 @@
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  * Per API_REFERENCE.md: GET /leagues/:id, GET /leagues/:id/standings
  */
-import { useState } from 'react';
+import React, { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';

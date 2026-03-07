@@ -39,6 +39,7 @@ export default function PlayerHomeGamesHub() {
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
+  const [user, setUser] = useState(null);
 
   // Use persisted values for filter and activeTab
   const filter = persistedFilters.filter;
@@ -51,6 +52,15 @@ export default function PlayerHomeGamesHub() {
     loadGames();
     return () => _c.abort();
   }, []);
+
+  // Load auth user
+  useEffect(() => {
+    const authUser = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+    if (authUser?.user) {
+      setUser(authUser.user);
+    }
+  }, []);
+
   // Realtime listener — live updates for home-games/index.js
   useEffect(() => {
     if (!user?.id) return;
@@ -97,7 +107,7 @@ export default function PlayerHomeGamesHub() {
 
     // Max buyin filter
     if (filters.maxBuyin) {
-      result = result.filter(game => !game.max_buyin || Game.max_buyin <= parseInt(filters.maxBuyin));
+      result = result.filter(game => !game.max_buyin || game.max_buyin <= parseInt(filters.maxBuyin));
     }
 
     // Days ahead filter

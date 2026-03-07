@@ -268,7 +268,7 @@ export default function GTOReports() {
                         </div>
                     ) : !report || report.totalSessions === 0 ? (
                         <div style={{ textAlign: 'center', paddingTop: 60, opacity: 0.6 }}>
-                            <div style={{ fontSize: 48, marginBottom: 12 }}>📊</div>
+                            <div style={{ fontSize: 48, marginBottom: 12 }}>REPORT</div>
                             <p style={{ fontSize: 14, color: '#94a3b8' }}>
                                 No training data found for this period.
                             </p>
@@ -443,7 +443,7 @@ export default function GTOReports() {
                                                 textTransform: 'uppercase', letterSpacing: 1,
                                                 marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
                                             }}>
-                                                <span style={{ fontSize: 16 }}>🔥</span>
+                                                <span style={{ fontSize: 16, fontWeight: 'bold' }}>●</span>
                                                 Weakest Spots — Fix These First
                                             </div>
 

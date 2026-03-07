@@ -204,6 +204,8 @@ async function handlePost(req, res) {
       });
     }
 
+    if (!table) return res.status(500).json({ success: false, error: 'Failed to create table' });
+
     return res.status(201).json({
       success: true,
       data: { table }
