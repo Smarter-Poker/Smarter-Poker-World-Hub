@@ -2,31 +2,26 @@
 // pages/api/user/get-header-stats.js
 
 import { createClient } from '@supabase/supabase-js';
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kuklfnapbkmacvwxktbh.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-        if (!applyRateLimit(req, res, LIMITS.write)) return;
-    }
-
     if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     if (!SUPABASE_SERVICE_KEY) {
-        return res.status(500).json({ success: false, error: 'Service key not configured' });
+        return res.status(500).json({ error: 'Service key not configured' });
     }
 
     const supabase = createClient(SUPABASE_URL.trim(), SUPABASE_SERVICE_KEY);
 
     // BUG #243 FIX: Require JWT and derive userId from token (not body)
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    if (!token) return res.status(401).json({ error: 'Auth required' });
     const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
     const userId = user.id;
 
     try {
@@ -39,11 +34,11 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[get-header-stats] Profile error:', error);
-            return res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ error: error.message });
         }
 
         if (!profile) {
-            return res.status(404).json({ success: false, error: 'Profile not found' });
+            return res.status(404).json({ error: 'Profile not found' });
         }
 
         // Level system removed - no longer using XP
@@ -53,16 +48,14 @@ export default async function handler(req, res) {
             .from('notifications')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId)
-            .eq('read', false)
-            .limit(50);
+            .eq('read', false);
 
         // Count unread messages - using social messaging schema
         // Get user's conversations with their last_read_at timestamp
         const { data: conversations } = await supabase
             .from('social_conversation_participants')
             .select('conversation_id, last_read_at')
-            .eq('user_id', userId)
-            .limit(50);
+            .eq('user_id', userId);
 
         let unreadMessages = 0;
         if (conversations && conversations.length > 0) {
@@ -79,8 +72,7 @@ export default async function handler(req, res) {
                 .in('conversation_id', conversationIds)
                 .neq('sender_id', userId)
                 .eq('is_deleted', false)
-                .gt('created_at', earliestRead)
-                .limit(100);
+                .gt('created_at', earliestRead);
 
             // Count locally per-conversation last_read_at
             const readMap = new Map(conversations.map(c => [c.conversation_id, c.last_read_at || '1970-01-01']));
@@ -89,16 +81,6 @@ export default async function handler(req, res) {
                 if (lastRead && msg.created_at > lastRead) unreadMessages++;
             });
         }
-
-        // ACTIVE DAY PASS CHECK: Fetch nearest expiring pass to display a countdown in Header
-        const now = new Date().toISOString();
-        const { data: passes } = await supabase
-            .from('premium_feature_access')
-            .select('feature_key, expires_at')
-            .eq('user_id', userId)
-            .gt('expires_at', now)
-            .order('expires_at', { ascending: true })
-            .limit(1);
 
         return res.json({
             success: true,
@@ -109,12 +91,11 @@ export default async function handler(req, res) {
                 diamonds: profile.diamonds || 0,
                 is_vip: profile.is_vip || false
             },
-            activePass: passes && passes.length > 0 ? passes[0] : null,
             notificationCount: notificationCount || 0,
             unreadMessages
         });
     } catch (e) {
         console.error('[get-header-stats] Exception:', e);
-        return res.status(500).json({ success: false, error: e.message });
+        return res.status(500).json({ error: e.message });
     }
 }

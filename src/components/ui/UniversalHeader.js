@@ -19,7 +19,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
-import { getAuthUser } from '../../lib/authUtils';
 
 import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
@@ -85,47 +84,6 @@ const OrbButton = ({ href, icon, badge = 0, onClick }) => {
     ) : content;
 };
 
-// ── Pass Countdown Timer ──
-const PassCountdown = ({ pass }) => {
-    const [timeLeft, setTimeLeft] = useState('');
-    useEffect(() => {
-        if (!pass?.expires_at) return;
-        const update = () => {
-            const diff = new Date(pass.expires_at) - new Date();
-            if (diff <= 0) { setTimeLeft('Expired'); return; }
-            const h = Math.floor(diff / 3600000);
-            const m = Math.floor((diff % 3600000) / 60000);
-            const s = Math.floor((diff % 60000) / 1000);
-            // Show seconds if under 5 min to build urgency, else hours/mins
-            if (h === 0 && m < 5) {
-                setTimeLeft(`${m}m ${s}s`);
-            } else {
-                setTimeLeft(`${h}h ${m}m`);
-            }
-        };
-        update();
-        const int = setInterval(update, 1000);
-        return () => clearInterval(int);
-    }, [pass]);
-    if (!timeLeft || timeLeft === 'Expired') return null;
-    return (
-        <div className="hide-mobile" style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            padding: '4px 10px',
-            background: 'rgba(0, 245, 255, 0.1)',
-            border: '1px solid rgba(0, 245, 255, 0.4)',
-            borderRadius: 8,
-            color: '#00f5ff',
-            fontSize: 12,
-            fontWeight: 700,
-            boxShadow: '0 0 10px rgba(0, 245, 255, 0.15)',
-            whiteSpace: 'nowrap'
-        }} title="Active Pass Remaining Time">
-            ⏳ {timeLeft}
-        </div>
-    );
-};
-
 export default function UniversalHeader({
     pageDepth = 1,  // 1 = major page (show Hub button), 2+ = nested (show Back)
     showSearch = false,
@@ -133,25 +91,13 @@ export default function UniversalHeader({
     onMenuClick = null  // Callback for hamburger menu click
 }) {
     const router = useRouter();
-    const [mounted, setMounted] = useState(false);
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ diamonds: 0 });
-    const [activePass, setActivePass] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [isVip, setIsVip] = useState(false);
-
-    // Hydrate from cache after mount to avoid SSR mismatch
-    useEffect(() => {
-        setMounted(true);
-        try {
-            const cachedUser = localStorage.getItem('sp-cached-header-user');
-            if (cachedUser) setUser(JSON.parse(cachedUser));
-            if (localStorage.getItem('sp-vip-status') === 'true') setIsVip(true);
-        } catch (e) { }
-    }, []);
 
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
@@ -159,61 +105,51 @@ export default function UniversalHeader({
     // Global Unread Messages State (instant caching)
     const { unreadCount } = useUnreadCount();
 
-    // Derived values — use mounted guard for client-only values to prevent hydration mismatch
-    // Priority: API-fetched avatar → auth metadata → cached localStorage → context avatar (but NOT generic presets)
-    const displayAvatar = mounted ? (() => {
-        // Layer 1: API-fetched profile avatar_url (set by get-header-stats)
-        if (user?.avatar) return user.avatar;
-        // Layer 2: Auth metadata avatar_url
-        if (contextUser?.user_metadata?.avatar_url) return contextUser.user_metadata.avatar_url;
-        // Layer 3: localStorage cached avatar from a previous successful load
-        try {
-            const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
-            if (cached?.avatar && !cached.avatar.includes('/avatars/free/')) return cached.avatar;
-        } catch (_) { }
-        // Layer 4: AvatarContext imageUrl — but skip generic preset avatars (shark, etc.)
-        if (contextAvatar?.imageUrl && !contextAvatar.imageUrl.includes('/avatars/free/')) return contextAvatar.imageUrl;
-        // Layer 5: Any avatar at all (including presets) — better than nothing
-        if (contextAvatar?.imageUrl) return contextAvatar.imageUrl;
-        return null;
-    })() : null;
-    const isVipDisplay = mounted ? (isVip || contextVip) : false;
+    // Derived values to prevent "flash of missing data" on mount
+    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
+    const isVipDisplay = isVip || contextVip;
 
     // Live Help state
     const liveHelp = useLiveHelp();
 
     useEffect(() => {
         let notifChannel = null;
+        let messageChannel = null;
         let mounted = true; // Prevent state updates after unmount
 
         const loadUser = async () => {
             try {
-                // Get authenticated user from Supabase session
+                // 🛡️ BULLETPROOF: Bypass Supabase client entirely to avoid AbortError
+                // Read user directly from localStorage instead of calling getUser()
                 let authUser = null;
-                try {
-                    const { data: { user: gu } } = await supabase.auth.getUser();
-                    authUser = gu;
-                } catch (_) { /* AbortError on Safari */ }
-
-                // Fallback 1: recover from session if getUser threw
-                if (!authUser) {
+                if (typeof window !== 'undefined') {
                     try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        authUser = session?.user || null;
-                    } catch (_) { /* ignore */ }
-                }
-
-                // Fallback 2: read directly from localStorage (bypasses navigator.locks AbortError)
-                if (!authUser) {
-                    try {
-                        authUser = getAuthUser();
-                    } catch (_) { /* ignore */ }
+                        // Check explicit storage key first
+                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                        if (explicitAuth) {
+                            const tokenData = JSON.parse(explicitAuth);
+                            authUser = tokenData?.user || null;
+                        }
+                        // Fallback to legacy sb-* keys
+                        if (!authUser) {
+                            const sbKeys = Object.keys(localStorage).filter(
+                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                            );
+                            if (sbKeys.length > 0) {
+                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                                authUser = tokenData?.user || null;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[UniversalHeader] Error reading localStorage:', e);
+                    }
                 }
 
                 if (!mounted) return;
 
                 if (authUser) {
-                    setUser(prev => ({ ...prev, ...authUser }));
+                    setUser(authUser);
+                    console.log('[UniversalHeader] User found in localStorage:', authUser.email);
 
                     // 🛡️ BULLETPROOF: Retry logic with exponential backoff
                     const MAX_RETRIES = 3;
@@ -232,20 +168,12 @@ export default function UniversalHeader({
                             if (result.success && result.profile && mounted) {
                                 const { diamonds, full_name, username, avatar_url, is_vip } = result.profile;
                                 setStats({ diamonds });
-                                setActivePass(result.activePass || null);
-                                setUser(prev => {
-                                    const nextUser = {
-                                        ...prev,
-                                        avatar: avatar_url,
-                                        name: full_name || username
-                                    };
-                                    try {
-                                        localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: avatar_url, name: full_name || username }));
-                                    } catch (e) { }
-                                    return nextUser;
-                                });
+                                setUser(prev => ({
+                                    ...prev,
+                                    avatar: avatar_url,
+                                    name: full_name || username
+                                }));
                                 setIsVip(!!is_vip);
-                                try { localStorage.setItem('sp-vip-status', String(!!is_vip)); } catch (e) { }
                                 if (typeof result.notificationCount === 'number') {
                                     setNotificationCount(result.notificationCount);
                                 }
@@ -274,15 +202,15 @@ export default function UniversalHeader({
                             const SUPABASE_URL = 'https://kuklfnapbkmacvwxktbh.supabase.co';
                             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1a2xmbmFwYmttYWN2d3hrdGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzA4NDQsImV4cCI6MjA4MzMwNjg0NH0.ZGFrUYq7yAbkveFdudh4q_Xk0qN0AZ-jnu4FkX9YKjo';
 
-                            // Get access token from Supabase session
+                            // Get access token for authenticated query
                             let accessToken = SUPABASE_ANON_KEY;
                             try {
-                                const { data: { session } } = await supabase.auth.getSession();
-                                if (session?.access_token) accessToken = session.access_token;
+                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                if (authData.access_token) accessToken = authData.access_token;
                             } catch (e) { }
 
                             const response = await fetch(
-                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds,is_vip`,
+                                `${SUPABASE_URL}/rest/v1/profiles?id=eq.${authUser.id}&select=username,full_name,avatar_url,diamonds`,
                                 {
                                     headers: {
                                         'apikey': SUPABASE_ANON_KEY,
@@ -296,20 +224,12 @@ export default function UniversalHeader({
 
                             if (profile && mounted) {
                                 setStats({ diamonds: profile.diamonds || 0 });
-                                setUser(prev => {
-                                    const nextUser = {
-                                        ...prev,
-                                        avatar: profile.avatar_url,
-                                        name: profile.full_name || profile.username
-                                    };
-                                    try {
-                                        localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: profile.avatar_url, name: profile.full_name || profile.username }));
-                                    } catch (e) { }
-                                    return nextUser;
-                                });
-                                setIsVip(!!profile.is_vip);
-                                try { localStorage.setItem('sp-vip-status', String(!!profile.is_vip)); } catch (e) { }
-                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds, is_vip: profile.is_vip });
+                                setUser(prev => ({
+                                    ...prev,
+                                    avatar: profile.avatar_url,
+                                    name: profile.full_name || profile.username
+                                }));
+                                console.log('[UniversalHeader] Direct REST fallback SUCCESS:', { diamonds: profile.diamonds });
                             }
                         } catch (e) {
                             console.error('[UniversalHeader] Direct REST fallback failed:', e);
@@ -369,17 +289,7 @@ export default function UniversalHeader({
 
     // ── Diamond balance auto-refresh when rewards are earned ──
     useEffect(() => {
-        const refreshBalance = async (e) => {
-            // Optimistic update (instantaneous UI feedback)
-            if (e?.detail?.newBalance !== undefined) {
-                setStats(prev => ({ ...prev, diamonds: e.detail.newBalance }));
-                return;
-            }
-            if (e?.detail?.cost !== undefined) {
-                setStats(prev => ({ ...prev, diamonds: prev.diamonds - e.detail.cost }));
-                return;
-            }
-
+        const refreshBalance = async () => {
             if (!user?.id) return;
             try {
                 const response = await fetch('/api/user/get-header-stats', {
@@ -390,7 +300,6 @@ export default function UniversalHeader({
                 const result = await response.json();
                 if (result.success && result.profile) {
                     setStats({ diamonds: result.profile.diamonds });
-                    setActivePass(result.activePass || null);
                     console.log('[UniversalHeader] 💎 Balance refreshed:', result.profile.diamonds);
                 }
             } catch (e) {
@@ -425,19 +334,11 @@ export default function UniversalHeader({
                 if (result.success && result.profile) {
                     setStats({ diamonds: result.profile.diamonds });
                     setIsVip(!!result.profile.is_vip);
-                    setActivePass(result.activePass || null);
-                    try { localStorage.setItem('sp-vip-status', String(!!result.profile.is_vip)); } catch (e) { }
-                    setUser(prev => {
-                        const nextUser = {
-                            ...prev,
-                            avatar: result.profile.avatar_url || prev?.avatar,
-                            name: result.profile.full_name || result.profile.username || prev?.name
-                        };
-                        try {
-                            localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: nextUser.avatar, name: nextUser.name }));
-                        } catch (e) { }
-                        return nextUser;
-                    });
+                    setUser(prev => ({
+                        ...prev,
+                        avatar: result.profile.avatar_url || prev?.avatar,
+                        name: result.profile.full_name || result.profile.username || prev?.name
+                    }));
                     console.log('[UniversalHeader] 🚌 Profile refreshed via bus event');
                 }
             } catch (e) {
@@ -802,9 +703,6 @@ export default function UniversalHeader({
 
                 {/* RIGHT: Orb Icons */}
                 <div className="header-right">
-                    {/* Active Pass Countdown */}
-                    {!isVipDisplay && activePass && <PassCountdown pass={activePass} />}
-
                     {/* Diamond Wallet Icon */}
                     <button
                         onClick={() => setIsWalletOpen(true)}

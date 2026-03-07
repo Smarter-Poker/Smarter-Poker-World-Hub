@@ -12,8 +12,7 @@ export default function AuthCallback() {
     const [status, setStatus] = useState('Verifying email...');
     const [error, setError] = useState('');
 
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         const handleCallback = async () => {
             try {
                 // Get the current session from the URL hash (after email verification)
@@ -100,17 +99,17 @@ export default function AuthCallback() {
                                 localStorage.setItem('commander_staff', JSON.stringify(staffSession));
                                 localStorage.setItem('commander_remember', 'true');
 
-                                setTimeout(() => { window.location.href = '/commander/dashboard'; }, 1000);
+                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
                                 return;
                             } else {
-                                // No subscription found — send to login with message
-                                // (prevents redirect loop: dashboard → login → dashboard)
-                                setTimeout(() => { window.location.href = '/commander/login?no_sub=1'; }, 1000);
+                                // If no subscription, redirect to commander lobby anyway
+                                // (They might just be a staff member with a row in commander_staff instead of an owner)
+                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
                                 return;
                             }
                         } catch (err) {
                             console.error('Failed to init commander session:', err);
-                            setTimeout(() => { window.location.href = '/commander/login'; }, 1000);
+                            setTimeout(() => router.replace('/commander/dashboard'), 1000);
                             return;
                         }
                     }
@@ -177,7 +176,7 @@ export default function AuthCallback() {
                             username: username,
                             avatar_url: avatarUrl,
                             xp_total: 50,
-                            diamonds: 500, // Welcome Package — 500 diamonds
+                            diamonds: 300,
                             diamond_multiplier: 1.0,
                             streak_days: 0,
                             skill_tier: 'Newcomer',
@@ -193,7 +192,7 @@ export default function AuthCallback() {
                 }
 
                 // ═══════════════════════════════════════════════════════════════
-                // 🎁 NEW USER WELCOME: 30-day VIP trial + 500 diamonds
+                // 🎁 NEW USER WELCOME: 30-day VIP trial + 300 diamonds
                 // Runs after profile creation (both RPC and fallback paths)
                 // ═══════════════════════════════════════════════════════════════
                 try {
@@ -206,7 +205,7 @@ export default function AuthCallback() {
                         .update({
                             is_vip: true,
                             vip_expires_at: vipExpires.toISOString(),
-                            diamonds: 500, // Welcome Package — 500 diamonds
+                            diamonds: 300,
                         })
                         .eq('id', user.id);
 
@@ -215,7 +214,7 @@ export default function AuthCallback() {
                         .from('user_diamond_balance')
                         .upsert({
                             user_id: user.id,
-                            balance: 500, // Welcome Package — 500 diamonds
+                            balance: 300,
                             updated_at: now.toISOString(),
                         }, { onConflict: 'user_id' });
 
@@ -224,11 +223,11 @@ export default function AuthCallback() {
                         .from('diamond_transactions')
                         .insert({
                             user_id: user.id,
-                            amount: 500,
+                            amount: 300,
                             transaction_type: 'bonus',
-                            description: 'Welcome Bonus — 500 Diamonds for Joining Smarter.Poker!',
+                            description: 'Welcome Bonus — 300 Diamonds for Joining Smarter.Poker!',
                             metadata: { source: 'welcome_bonus', type: 'new_user' },
-                            balance_after: 500,
+                            balance_after: 300,
                         });
 
                     // Log VIP trial activation
@@ -244,89 +243,21 @@ export default function AuthCallback() {
                                 type: 'new_user',
                                 vip_expires_at: vipExpires.toISOString(),
                             },
-                            balance_after: 500,
+                            balance_after: 300,
                         });
 
-                    console.log(`[Auth Callback] 🎁 Welcome package granted: 500💎 + 30-day VIP for ${user.email}`);
+                    console.log(`[Auth Callback] 🎁 Welcome package granted: 300💎 + 30-day VIP for ${user.email}`);
                 } catch (welcomeErr) {
                     // Don't block account creation if welcome package fails
                     console.error('[Auth Callback] Welcome package error (non-blocking):', welcomeErr);
-                }
-
-                // ═══════════════════════════════════════════════════════════════
-                // 🎟️ DEFERRED PROMO CODE REDEMPTION
-                // If user entered a promo code during signup but had no session
-                // (email confirmation required), redeem it now that we have auth.
-                // ═══════════════════════════════════════════════════════════════
-                try {
-                    const pendingPromo = localStorage.getItem('sp-pending-promo-code');
-                    if (pendingPromo && session?.access_token) {
-                        localStorage.removeItem('sp-pending-promo-code');
-                        const redeemRes = await fetch('/api/promo/redeem-promo-code', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${session.access_token}`,
-                            },
-                            body: JSON.stringify({ code: pendingPromo }),
-                        });
-                        const redeemData = await redeemRes.json();
-                        if (redeemRes.ok && redeemData.success) {
-                            console.log(`[Auth Callback] 🎟️ Deferred promo redeemed: ${pendingPromo} — ${redeemData.message}`);
-                        } else {
-                            console.warn(`[Auth Callback] Promo redemption failed: ${redeemData.error}`);
-                        }
-                    }
-                } catch (promoErr) {
-                    console.error('[Auth Callback] Deferred promo error (non-blocking):', promoErr);
                 }
 
                 // Check origin for redirect
                 const isCommanderOrigin = localStorage.getItem('commander_login_origin') === 'true';
                 if (isCommanderOrigin) {
                     localStorage.removeItem('commander_login_origin');
-
-                    // NEW PROFILE + COMMANDER ORIGIN: Must set up commander session
-                    // (same logic as the existing-profile path above)
-                    try {
-                        const accessToken = session?.access_token;
-                        const subRes = await fetch('/api/commander/check-subscription', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                            },
-                            body: JSON.stringify({ userId: user.id }),
-                        });
-                        const subData = await subRes.json();
-
-                        if (subRes.ok && subData.subscription) {
-                            const subscription = subData.subscription;
-                            localStorage.setItem('commander_venue', JSON.stringify(subscription.venue));
-                            localStorage.setItem('commander_subscription', JSON.stringify(subscription));
-
-                            const staffSession = {
-                                user_id: user.id,
-                                email: user.email,
-                                display_name: subscription.billing_name || fullName || user.email,
-                                role: 'owner',
-                                venue_id: subscription.venue_id,
-                                venue_name: subscription.venue?.name || 'My Venue',
-                                permissions: {
-                                    manage_games: true, manage_waitlist: true, manage_staff: true,
-                                    manage_tables: true, manage_tournaments: true, manage_settings: true,
-                                    view_analytics: true, view_reports: true, send_announcements: true,
-                                }
-                            };
-                            localStorage.setItem('commander_staff', JSON.stringify(staffSession));
-                            localStorage.setItem('commander_remember', 'true');
-                        }
-                    } catch (cmdErr) {
-                        console.error('[Auth Callback] Commander session init error (non-blocking):', cmdErr);
-                    }
-
                     sessionStorage.setItem('needs_phone_verify', user.id);
-                    setTimeout(() => { window.location.href = '/commander/dashboard'; }, 1500);
+                    setTimeout(() => router.replace('/commander/dashboard'), 1500);
                 } else {
                     // Redirect to hub with intro + phone verification prompt
                     sessionStorage.setItem('just_authenticated', 'true');
@@ -342,8 +273,7 @@ export default function AuthCallback() {
         };
 
         handleCallback();
-    return () => _c.abort();
-  }, [router]);
+    }, [router]);
 
     return (
         <div style={{

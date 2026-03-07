@@ -13,15 +13,11 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useLiveHelp } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
-import { supabase } from '../../lib/supabase';
-import { getSafeUser, getAuthUser } from '../../lib/authUtils';
-import { LiveHelpPanel } from '../../world/components/Geeves';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -36,32 +32,19 @@ export default function ThreePillHeader({
     onMenuClick = null
 }) {
     const router = useRouter();
-    const [user, setUser] = useState(() => {
-        if (typeof window !== 'undefined') {
-            try {
-                const cachedUser = localStorage.getItem('sp-cached-header-user');
-                if (cachedUser) return JSON.parse(cachedUser);
-            } catch (e) { }
-        }
-        return null;
-    });
+    const [user, setUser] = useState(null);
     const [stats, setStats] = useState({ diamonds: 0 });
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
-    const [isVip, setIsVip] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
 
-    // Get unread messages count
-    const { unreadCount = 0 } = useUnreadCount() || {};
-
     // Global Avatar State (instant caching)
-    const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
-    const isVipDisplay = isVip || contextVip;
+    const { user: contextUser, avatar: contextAvatar } = useAvatar();
 
     // Derived values to prevent "flash of missing data" on mount
-    const displayAvatar = contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url;
+    const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
 
     const liveHelp = useLiveHelp();
 
@@ -74,16 +57,35 @@ export default function ThreePillHeader({
 
     useEffect(() => {
         let mounted = true;
-        let notifChannel = null;
 
         const loadUser = async () => {
             try {
-                const authUser = await getSafeUser(supabase);
+                let authUser = null;
+                if (typeof window !== 'undefined') {
+                    try {
+                        const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                        if (explicitAuth) {
+                            const tokenData = JSON.parse(explicitAuth);
+                            authUser = tokenData?.user || null;
+                        }
+                        if (!authUser) {
+                            const sbKeys = Object.keys(localStorage).filter(
+                                k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                            );
+                            if (sbKeys.length > 0) {
+                                const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                                authUser = tokenData?.user || null;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[ThreePillHeader] Error reading localStorage:', e);
+                    }
+                }
 
                 if (!mounted) return;
 
                 if (authUser) {
-                    setUser(prev => ({ ...prev, ...authUser }));
+                    setUser(authUser);
 
                     const response = await fetch('/api/user/get-header-stats', {
                         method: 'POST',
@@ -93,125 +95,26 @@ export default function ThreePillHeader({
                     const result = await response.json();
 
                     if (result.success && result.profile && mounted) {
-                        const { diamonds, avatar_url, full_name, username, is_vip } = result.profile;
+                        const { diamonds, avatar_url, full_name, username } = result.profile;
                         setStats({ diamonds });
-                        setIsVip(!!is_vip);
-                        try { localStorage.setItem('sp-vip-status', String(!!is_vip)); } catch (_) { }
-                        setUser(prev => {
-                            const nextUser = {
-                                ...prev,
-                                avatar: avatar_url,
-                                name: full_name || username
-                            };
-                            try {
-                                localStorage.setItem('sp-cached-header-user', JSON.stringify({ avatar: avatar_url, name: full_name || username }));
-                            } catch (e) { }
-                            return nextUser;
-                        });
+                        setUser(prev => ({
+                            ...prev,
+                            avatar: avatar_url,
+                            name: full_name || username
+                        }));
                         if (typeof result.notificationCount === 'number') {
                             setNotificationCount(result.notificationCount);
                         }
                     }
-
-                    // REAL-TIME: Subscribe to new notifications for live badge updates
-                    notifChannel = supabase
-                        .channel('3pill-header-notifications')
-                        .on('postgres_changes', {
-                            event: 'INSERT',
-                            schema: 'public',
-                            table: 'notifications',
-                            filter: `user_id=eq.${authUser.id}`
-                        }, () => {
-                            setNotificationCount(prev => prev + 1);
-                        })
-                        .on('postgres_changes', {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'notifications',
-                            filter: `user_id=eq.${authUser.id}`
-                        }, (payload) => {
-                            if (payload.new.read && !payload.old.read) {
-                                setNotificationCount(prev => Math.max(0, prev - 1));
-                            }
-                        })
-                        .subscribe();
                 }
             } catch (e) {
                 console.error('[ThreePillHeader] Error:', e);
             }
         };
 
-        const handleProfileUpdate = (e) => {
-            console.log('[ThreePillHeader] 🚌 profile-updated received:', e.detail);
-            const { avatar_url, full_name, username } = e.detail;
-            setUser(prev => {
-                const nextUser = { ...prev };
-                if (avatar_url) nextUser.avatar = avatar_url;
-                if (full_name || username) nextUser.name = full_name || username;
-                try {
-                    localStorage.setItem('sp-cached-header-user', JSON.stringify({
-                        avatar: nextUser.avatar,
-                        name: nextUser.name
-                    }));
-                } catch (err) { }
-                return nextUser;
-            });
-        };
-
-        const refreshBalance = async (e) => {
-            // Optimistic update if cost/newBalance is provided
-            if (e?.detail?.newBalance !== undefined) {
-                setStats(prev => ({ ...prev, diamonds: e.detail.newBalance }));
-                return;
-            }
-            if (e?.detail?.cost !== undefined) {
-                setStats(prev => ({ ...prev, diamonds: prev.diamonds - e.detail.cost }));
-                return;
-            }
-
-            // Otherwise fetch fresh from server
-            try {
-                let currentUserId = user?.id;
-                if (!currentUserId) {
-                    const supaUser = await getSafeUser(supabase);
-                    currentUserId = supaUser?.id;
-                }
-
-                if (!currentUserId) return;
-
-                const response = await fetch('/api/user/get-header-stats', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: currentUserId }),
-                });
-                const result = await response.json();
-                if (result.success && result.profile && mounted) {
-                    setStats({ diamonds: result.profile.diamonds });
-                }
-            } catch (err) { console.error('[ThreePillHeader] Failed to refresh balance:', err); }
-        };
-
-        // ── VIP status bus listener — real-time VIP badge updates ──
-        const handleVipChange = (e) => {
-            console.log('[ThreePillHeader] 🚌 VIP status change event received:', e.detail);
-            if (e.detail?.vipGranted) {
-                setIsVip(true);
-            }
-        };
-
         loadUser();
-        window.addEventListener('profile-updated', handleProfileUpdate);
-        window.addEventListener('diamond-balance-refresh', refreshBalance);
-        window.addEventListener('vip-status-changed', handleVipChange);
-
-        return () => {
-            mounted = false;
-            window.removeEventListener('profile-updated', handleProfileUpdate);
-            window.removeEventListener('diamond-balance-refresh', refreshBalance);
-            window.removeEventListener('vip-status-changed', handleVipChange);
-            if (notifChannel) supabase.removeChannel(notifChannel);
-        };
-    }, [user?.id]);
+        return () => { mounted = false; };
+    }, []);
 
     const handleBack = () => {
         if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -458,9 +361,6 @@ export default function ThreePillHeader({
 
             {/* Spacer to push content below fixed header */}
             <div style={{ height: headerHeight }} />
-
-            {/* Live Help Panel */}
-            <LiveHelpPanel {...liveHelp} />
 
             <DiamondWalletModal
                 isOpen={isWalletOpen}

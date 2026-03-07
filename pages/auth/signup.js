@@ -5,7 +5,6 @@
    Last Deploy: 2026-01-12 01:18:00 - OTP Code Input Active
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -99,8 +98,7 @@ export default function SignUpPage() {
     const [isReferralCode, setIsReferralCode] = useState(false); // true if input looks like a referral code
 
     // Auto-fill promo/referral code from ?ref= or ?promo= query parameter
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         if (router.isReady) {
             const { ref, promo } = router.query;
             if (ref && !formData.promoCode) {
@@ -109,24 +107,22 @@ export default function SignUpPage() {
                 setFormData(prev => ({ ...prev, promoCode: String(promo).toUpperCase() }));
             }
         }
-    return () => _c.abort();
-  }, [router.isReady]);
+    }, [router.isReady]);
 
     // Override global html/body background for Facebook Dark theme
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         const style = document.createElement('style');
         style.id = 'signup-bg-override';
         style.textContent = 'html, body { background: #18191A !important; }';
         document.head.appendChild(style);
-        return () => { _c.abort();
+        return () => {
             const el = document.getElementById('signup-bg-override');
             if (el) el.remove();
-        };}, []);
+        };
+    }, []);
 
     // Check alias availability with debounce (3-20 characters allowed)
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         // Must be 3-20 characters
         if (formData.pokerAlias.length < 3) {
             setAliasAvailable(null);
@@ -185,7 +181,8 @@ export default function SignUpPage() {
             }
         }, 500);
 
-        return () => clearTimeout(timeout);}, [formData.pokerAlias]);
+        return () => clearTimeout(timeout);
+    }, [formData.pokerAlias]);
 
     // Format phone number
     const formatPhone = (value) => {
@@ -275,20 +272,17 @@ export default function SignUpPage() {
     };
 
     // Reset phone verification if phone number changes
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         if (phoneVerified || phoneOtpSent) {
             setPhoneVerified(false);
             setPhoneOtpSent(false);
             setPhoneOtp('');
             setPhoneError('');
         }
-    return () => _c.abort();
-  }, [formData.phone]);
+    }, [formData.phone]);
 
     // Check promo or referral code validity with debounce
-    useEffect(() => {    const _c = new AbortController();
-
+    useEffect(() => {
         // Reset all states when input changes
         setPromoValid(null);
         setPromoError('');
@@ -353,7 +347,8 @@ export default function SignUpPage() {
             }
         }, 600);
 
-        return () => clearTimeout(timeout);}, [formData.promoCode]);
+        return () => clearTimeout(timeout);
+    }, [formData.promoCode]);
 
     // Validate email format
     const isValidEmail = (email) => {
@@ -497,7 +492,7 @@ export default function SignUpPage() {
                         .from('user_diamond_balance')
                         .upsert({
                             user_id: authData.user.id,
-                            balance: 500, // Welcome Package — 500 diamonds
+                            balance: 300, // Starting diamonds bonus
                             created_at: new Date().toISOString(),
                             updated_at: new Date().toISOString(),
                         }, {
@@ -531,7 +526,7 @@ export default function SignUpPage() {
                             username: formData.pokerAlias,
                             player_number: nextPlayerNumber,
                             xp_total: 100, // Starting XP bonus
-                            diamonds: 500, // Welcome Package — 500 diamonds
+                            diamonds: 300, // Starting diamonds bonus
                             diamond_multiplier: 1.0,
                             streak_count: 0,
                             skill_tier: 'Newcomer',
@@ -555,7 +550,7 @@ export default function SignUpPage() {
                                 username: formData.pokerAlias,
                                 player_number: nextPlayerNumber,
                                 xp_total: 100,
-                                diamonds: 500, // Welcome Package — 500 diamonds
+                                diamonds: 300,
                                 diamond_multiplier: 1.0,
                                 streak_count: 0,
                                 skill_tier: 'Newcomer',
@@ -593,31 +588,15 @@ export default function SignUpPage() {
             // Redeem promo code if provided and valid
             if (formData.promoCode && promoValid && authData.user && !isReferralCode) {
                 try {
-                    // BUG #2 FIX: Get session token — redeem-promo-code API requires Bearer auth
-                    const promoSession = authData.session || (await supabase.auth.getSession()).data?.session;
-                    const redeemRes = await fetch('/api/promo/redeem-promo-code', {
+                    await fetch('/api/promo/redeem-promo-code', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(promoSession?.access_token ? { Authorization: `Bearer ${promoSession.access_token}` } : {}),
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             code: formData.promoCode,
+                            userId: authData.user.id,
                         }),
                     });
-                    const redeemData = await redeemRes.json();
-                    if (redeemRes.ok && redeemData.success) {
-                        console.log('Promo code redeemed:', formData.promoCode, redeemData.message);
-                        // Dispatch bus events for real-time UI updates
-                        if (typeof window !== 'undefined') {
-                            window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
-                            if (['vip_trial', 'vip_days', 'lifetime_commander_club_vip'].includes(redeemData.type)) {
-                                window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
-                            }
-                        }
-                    } else {
-                        console.warn('Promo redemption failed:', redeemData.error || 'Unknown error');
-                    }
+                    console.log('Promo code redeemed:', formData.promoCode);
                 } catch (promoErr) {
                     console.error('Promo redemption error (non-blocking):', promoErr);
                 }
@@ -626,25 +605,15 @@ export default function SignUpPage() {
             // Award referral bonus to referrer if referral code was used
             if (isReferralCode && referralValid && referralDetails && authData.user) {
                 try {
-                    // BUG #10 FIX: Get session token — referral API requires Bearer auth
-                    const refSession = authData.session || (await supabase.auth.getSession()).data?.session;
-                    const refRes = await fetch('/api/rewards/referral', {
+                    await fetch('/api/rewards/referral', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(refSession?.access_token ? { Authorization: `Bearer ${refSession.access_token}` } : {}),
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             referrerId: referralDetails.referrerId,
                             referredUserId: authData.user.id,
                         }),
                     });
-                    const refData = await refRes.json();
-                    if (refRes.ok && refData.success) {
-                        console.log('Referral reward sent to:', referralDetails.referrerId, refData.message);
-                    } else {
-                        console.warn('Referral reward failed:', refData.error || 'Unknown error');
-                    }
+                    console.log('Referral reward sent to:', referralDetails.referrerId);
                 } catch (refErr) {
                     console.error('Referral reward error (non-blocking):', refErr);
                 }
@@ -653,14 +622,6 @@ export default function SignUpPage() {
             // Check if email confirmation is required
             if (authData.user && !authData.session) {
                 // Email confirmation required - show pending screen
-                // BUG #5 FIX: Save promo code for deferred redemption in callback
-                // There's no session yet, so redeem-promo-code would fail with 401.
-                // Callback.js will pick this up after email verification.
-                if (formData.promoCode && promoValid && !isReferralCode) {
-                    try {
-                        localStorage.setItem('sp-pending-promo-code', formData.promoCode);
-                    } catch (e) { /* localStorage unavailable — promo will be lost */ }
-                }
                 setStep('email_pending');
             } else {
                 // Email already confirmed or auto-confirmed - show success
@@ -754,7 +715,7 @@ export default function SignUpPage() {
                 {/* Auth Card */}
                 <div style={styles.authCard}>
                     <div style={styles.logoSection}>
-                        <img src="/smarter-poker-logo.jpg" alt="Smarter.Poker" style={styles.logoImage}  loading="lazy" />
+                        <img src="/smarter-poker-logo.jpg" alt="Smarter.Poker" style={styles.logoImage} />
                         <h1 style={styles.title}>
                             {step === 'info' && 'Create Account'}
                             {step === 'email_pending' && 'Verify Your Email'}
