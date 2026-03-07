@@ -12,6 +12,7 @@ import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import { Building2, Calendar, Layers, Clock, ChevronLeft, ChevronRight, Shield, Link2, AlertCircle } from 'lucide-react';
 import SkeletonLight from '../../src/components/ui/SkeletonLight';
 
@@ -508,14 +509,14 @@ export default function MyVenuesPage() {
 
     // Get session once, redirect if unauthenticated
     useEffect(() => {
-        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-            if (!session?.user) {
-                router.push('/login?redirect=/hub/my-venues');
-            } else {
-                setUser(session.user);
-                setToken(session.access_token);
-            }
-        });
+        const authUser = getAuthUser();
+        const tok = getAccessToken();
+        if (!authUser || !tok) {
+            router.push('/login?redirect=/hub/my-venues');
+        } else {
+            setUser(authUser);
+            setToken(tok);
+        }
     }, []);
 
     // SWR-backed venues + email matches — fires once token is known
