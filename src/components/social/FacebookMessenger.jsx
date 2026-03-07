@@ -439,7 +439,7 @@ export const ConversationList = ({
 
             {/* Footer */}
             <div className="conv-footer">
-                <a href="/messenger" className="see-all-link">See All In Messenger</a>
+                <a href="/hub/messenger" className="see-all-link">See All In Messenger</a>
             </div>
 
             <style>{`

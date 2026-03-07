@@ -541,7 +541,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
                         Maybe Later
                     </button>
                     <button
-                        onClick={() => router.push('/hub/store?tab=vip')}
+                        onClick={() => router.push('/hub/diamond-store?tab=vip')}
                         style={{
                             flex: 1,
                             padding: '14px 24px',

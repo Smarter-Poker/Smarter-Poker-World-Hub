@@ -1452,7 +1452,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 5, isVIP = false }) {
                         Maybe Later
                     </button>
                     <a
-                        href="/hub/store?tab=vip"
+                        href="/hub/diamond-store?tab=vip"
                         style={{
                             flex: 1,
                             padding: '14px 24px',

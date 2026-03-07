@@ -77,7 +77,7 @@ export default function JarvisDashboard() {
                     ) : !user ? (
                         <div style={styles.emptyState}>
                             <p>Sign In To See Your Personalized Insights</p>
-                            <Link href="/hub/login" style={styles.signInBtn}>Sign In</Link>
+                            <Link href="/auth/login" style={styles.signInBtn}>Sign In</Link>
                         </div>
                     ) : (
                         <div style={styles.dashboard}>
