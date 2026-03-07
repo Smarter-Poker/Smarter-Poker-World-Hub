@@ -145,6 +145,71 @@ if (typeof window !== 'undefined') {
       // Silently swallow — this is Supabase auth-js lock cleanup, not a real error
     }
   }, true); // 'true' = capture phase, fires before React's handler
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GLOBAL AUTH FETCH INTERCEPTOR — Auto-inject JWT for all /api/ calls
+  // ═══════════════════════════════════════════════════════════════════════════
+  // This wraps window.fetch to automatically add the Authorization: Bearer header
+  // to ALL internal API route calls (/api/*). This prevents 401 errors caused by
+  // pages that forget to include the JWT token in their fetch requests.
+  // Existing Authorization headers are preserved (not overwritten).
+  // ═══════════════════════════════════════════════════════════════════════════
+  const _originalFetch = window.fetch;
+  window.fetch = function patchedFetch(input, init) {
+    // Determine the URL from the input
+    let url = '';
+    if (typeof input === 'string') {
+      url = input;
+    } else if (input instanceof Request) {
+      url = input.url;
+    } else if (input?.toString) {
+      url = input.toString();
+    }
+
+    // Only intercept internal /api/ calls (not external Supabase REST calls)
+    const isInternalApi = url.startsWith('/api/') || url.startsWith(window.location.origin + '/api/');
+
+    if (isInternalApi) {
+      // Check if Authorization header is already present
+      const existingHeaders = init?.headers || {};
+      let hasAuthHeader = false;
+
+      if (existingHeaders instanceof Headers) {
+        hasAuthHeader = existingHeaders.has('Authorization');
+      } else if (Array.isArray(existingHeaders)) {
+        hasAuthHeader = existingHeaders.some(([key]) => key.toLowerCase() === 'authorization');
+      } else if (typeof existingHeaders === 'object') {
+        hasAuthHeader = Object.keys(existingHeaders).some(k => k.toLowerCase() === 'authorization');
+      }
+
+      // If no Authorization header, inject one from localStorage
+      if (!hasAuthHeader) {
+        try {
+          const authData = localStorage.getItem('smarter-poker-auth');
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            const token = parsed?.access_token;
+            if (token) {
+              init = init || {};
+              if (existingHeaders instanceof Headers) {
+                existingHeaders.set('Authorization', `Bearer ${token}`);
+                init.headers = existingHeaders;
+              } else if (typeof existingHeaders === 'object' && !Array.isArray(existingHeaders)) {
+                init.headers = { ...existingHeaders, 'Authorization': `Bearer ${token}` };
+              } else {
+                init.headers = { 'Authorization': `Bearer ${token}` };
+              }
+            }
+          }
+        } catch (e) {
+          // Silently fail — don't break the fetch if localStorage read fails
+        }
+      }
+    }
+
+    return _originalFetch.call(window, input, init);
+  };
+  console.log('[ANTIGRAVITY] Global auth fetch interceptor installed');
 }
 
 // Dynamic import to avoid SSR issues with celebration animations
