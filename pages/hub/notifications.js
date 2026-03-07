@@ -104,9 +104,9 @@ export default function NotificationsPage() {
                             .select('id, username, full_name, avatar_url')
                             .in('id', actorIds)
                             .limit(50) // notification profiles;
-                        (profilesById || []).forEach(p => {
-                            profileById[p.id] = p;
-                        });
+                            (profilesById || []).forEach(p => {
+                                profileById[p.id] = p;
+                            });
                     }
 
                     if (actorNames.length > 0) {
@@ -114,9 +114,9 @@ export default function NotificationsPage() {
                             .select('id, username, full_name, avatar_url')
                             .in('full_name', actorNames)
                             .limit(50) // notification profiles;
-                        (profilesByName || []).forEach(p => {
-                            if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                        });
+                            (profilesByName || []).forEach(p => {
+                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                            });
                     }
 
                     // Merge actor data
@@ -156,15 +156,15 @@ export default function NotificationsPage() {
         fetchNotifications();
         return () => controller.abort();
     }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!userId) return;
-    const _ch = supabase
-      .channel(`notifs:${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`notifs:${user.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     const markAsRead = async (id) => {
         await supabase.from('notifications').update({ read: true }).eq('id', id);
@@ -391,7 +391,7 @@ export default function NotificationsPage() {
                                                 width: 56, height: 56, borderRadius: '50%',
                                                 objectFit: 'cover', border: '2px solid #ddd'
                                             }}
-                                         loading="lazy" />
+                                            loading="lazy" />
                                         <div style={{
                                             position: 'absolute', bottom: -2, right: -2,
                                             width: 24, height: 24, borderRadius: '50%',
