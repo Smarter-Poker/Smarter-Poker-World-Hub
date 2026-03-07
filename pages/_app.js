@@ -95,7 +95,9 @@ import { useJarvis } from '../src/world/components/Jarvis/useJarvis';
 // CACHE BUSTER — Clears stale caches on new deploys
 // Uses build timestamp to detect version changes
 // ═══════════════════════════════════════════════════════════════════════════
-const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_ID || process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString();
+const BUILD_VERSION = process.env.NEXT_PUBLIC_BUILD_ID
+  || (typeof window !== 'undefined' && window.__NEXT_DATA__?.buildId)
+  || 'stable'; // CRITICAL: Never use Date.now() — it changes every load and triggers cache clears every time
 
 if (typeof window !== 'undefined') {
   const CACHE_VERSION_KEY = 'smarter_poker_cache_version';
