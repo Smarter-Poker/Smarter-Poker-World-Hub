@@ -15,6 +15,7 @@ import Head from 'next/head';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { supabase } from '../../../../src/lib/supabase';
 import { busEmit } from '../../../../src/engine/EventBus';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 // Villain avatars in seat order (1-8)
 const VILLAIN_AVATARS = [
@@ -141,6 +142,7 @@ function Card({ rank, suit, isRed, size = 'normal' }) {
 
 export default function TrainingArenaPage() {
     const router = useRouter();
+    useTrainingBus('training-arena');
     if (!router.isReady) return null;
     const { gameId, level = 1 } = router.query;
 

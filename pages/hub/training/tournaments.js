@@ -16,8 +16,10 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TournamentsPage() {
+    useTrainingBus('tournaments');
     const [user, setUser] = useState(null);
     const [activeTab, setActiveTab] = useState('live'); // 'live', 'upcoming', 'completed'
     const [registering, setRegistering] = useState(null);

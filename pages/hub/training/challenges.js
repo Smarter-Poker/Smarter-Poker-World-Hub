@@ -16,8 +16,10 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function ChallengesPage() {
+    useTrainingBus('challenges');
     const [user, setUser] = useState(null);
     const [claiming, setClaiming] = useState(null);
 

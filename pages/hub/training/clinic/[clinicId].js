@@ -16,6 +16,7 @@ import { getClinicById, getRemediationXPMultiplier } from '../../../../src/data/
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
 import feedback, { EFFECT_STYLES, screenEffects } from '../../../../src/engine/HapticsFeedback';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 // Constants
 const TIME_PER_QUESTION = 21;
@@ -25,6 +26,7 @@ export default function ClinicPlayPage() {
     const router = useRouter();
     if (!router.isReady) return null;
     const { clinicId } = router.query;
+    const bus = useTrainingBus('clinic', { clinicId });
     const { recordSession } = useTrainingProgress();
     const iframeRef = useRef(null);
 

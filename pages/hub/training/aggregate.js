@@ -11,6 +11,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -38,6 +39,7 @@ const POSITIONS = [
 // ═══════════════════════════════════════════════════════════════════════════
 export default function AggregateReports() {
     const router = useRouter();
+    useTrainingBus('aggregate-reports');
     const [gameType, setGameType] = useState('hu_cash');
     const [stackDepth, setStackDepth] = useState(100);
     const [heroPosition, setHeroPosition] = useState('');

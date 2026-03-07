@@ -13,8 +13,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function JarvisDashboard() {
+    useTrainingBus('jarvis-dashboard');
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [insights, setInsights] = useState(null);
