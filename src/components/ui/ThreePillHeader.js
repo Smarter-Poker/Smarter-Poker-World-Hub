@@ -65,6 +65,9 @@ export default function ThreePillHeader({
     // Global Avatar State (instant caching)
     const { user: contextUser, avatar: contextAvatar } = useAvatar();
 
+    // Global Unread Messages State
+    const { unreadCount } = useUnreadCount();
+
     // Derived values to prevent "flash of missing data" on mount
     const displayAvatar = user?.avatar || contextAvatar?.url || contextUser?.user_metadata?.avatar_url;
 
