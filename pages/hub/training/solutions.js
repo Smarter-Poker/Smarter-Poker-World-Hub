@@ -2,8 +2,13 @@
  * 🔍 SOLUTIONS BROWSER — GTO Wizard-Style Solver Strategy Browser
  * ═══════════════════════════════════════════════════════════════════════════
  * Browse pre-solved GTO solutions from the PIO solver database.
- * Select game format, stack depth, and position to view optimal strategies.
- * Click any spot to see the full 13×13 range grid with action frequencies.
+ * Phase 15 Features:
+ *   - Game Tree Explorer with Node Breadcrumbs
+ *   - Card Selector Modal for Turn/River navigation
+ *   - Hand Classification Sidebar (Made Hands / Draws / Air)
+ *   - Runout Heatmap (Hot/Cold turn card analysis)
+ *   - Range vs Range Equity Matchup bar
+ *   - Action/Classification color mode toggle
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
@@ -12,6 +17,10 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
+import CardSelectorModal from '../../../src/components/training/CardSelectorModal';
+import RunoutHeatmap from '../../../src/components/training/RunoutHeatmap';
+import EquityMatchup from '../../../src/components/training/EquityMatchup';
+import { classifyAllHands, groupByClassification, getAllClassifications } from '../../../src/utils/pokerHandEvaluator';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -34,6 +43,14 @@ const STACK_DEPTHS = {
 };
 
 const POSITIONS = ['BTN', 'SB', 'BB', 'CO', 'HJ', 'MP', 'UTG'];
+
+const ACTION_COLORS = {
+    'r': '#ef4444', 'R': '#ef4444',
+    'b': '#ef4444', 'B': '#ef4444',
+    'c': '#22c55e', 'C': '#22c55e',
+    'x': '#3b82f6', 'X': '#3b82f6',
+    'f': '#64748b', 'F': '#64748b',
+};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BOARD CARD COMPONENT
@@ -84,13 +101,11 @@ function SpotCard({ spot, isSelected, onClick }) {
                 transition: 'all 0.2s ease',
             }}
         >
-            {/* Board Cards */}
             <div style={{ display: 'flex', gap: 2 }}>
                 {(spot.board || []).map((card, i) => (
                     <CardDisplay key={i} card={card} size={22} />
                 ))}
             </div>
-            {/* Info */}
             <div style={{ flex: 1 }}>
                 <div style={{
                     fontSize: 12, fontWeight: 700, color: isSelected ? '#00d4ff' : '#e2e8f0',
@@ -103,6 +118,128 @@ function SpotCard({ spot, isSelected, onClick }) {
                 </div>
             </div>
         </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLASSIFICATION SIDEBAR
+// ═══════════════════════════════════════════════════════════════════════════
+
+function ClassificationSidebar({ groups, actions }) {
+    if (!groups || groups.length === 0) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            style={{
+                width: 240, maxHeight: 500, overflowY: 'auto',
+                background: 'linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 12, padding: 12,
+            }}
+        >
+            <div style={{
+                fontSize: 11, fontWeight: 700, color: '#64748b',
+                textTransform: 'uppercase', letterSpacing: 1,
+                marginBottom: 10, fontFamily: "'Orbitron', monospace",
+            }}>
+                Hand Classes
+            </div>
+
+            {groups.map(g => (
+                <div key={g.classification} style={{
+                    marginBottom: 10, padding: '8px 10px',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: 8,
+                    borderLeft: `3px solid ${g.color}`,
+                }}>
+                    <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        marginBottom: 4,
+                    }}>
+                        <span style={{
+                            fontSize: 11, fontWeight: 700, color: g.color,
+                        }}>
+                            {g.label}
+                        </span>
+                        <span style={{
+                            fontSize: 9, color: '#64748b',
+                            background: 'rgba(255,255,255,0.04)',
+                            padding: '1px 6px', borderRadius: 8,
+                        }}>
+                            {g.handCount} hands
+                        </span>
+                    </div>
+                    {/* Action Summary */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                        {Object.entries(g.actionSummary || {})
+                            .filter(([_, pct]) => pct > 0)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([action, pct]) => (
+                                <span key={action} style={{
+                                    fontSize: 9, fontWeight: 600,
+                                    color: ACTION_COLORS[action] || '#888',
+                                    background: 'rgba(255,255,255,0.04)',
+                                    padding: '1px 5px', borderRadius: 4,
+                                }}>
+                                    {action.toUpperCase()} {pct}%
+                                </span>
+                            ))}
+                    </div>
+                </div>
+            ))}
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NODE BREADCRUMB
+// ═══════════════════════════════════════════════════════════════════════════
+
+function NodeBreadcrumb({ treePath, onNavigateBack }) {
+    if (!treePath || treePath.length === 0) return null;
+
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 12px',
+            background: 'rgba(255,255,255,0.03)',
+            borderRadius: 8, marginBottom: 12,
+            overflowX: 'auto',
+            border: '1px solid rgba(255,255,255,0.06)',
+        }}>
+            <span style={{
+                fontSize: 9, fontWeight: 700, color: '#64748b',
+                textTransform: 'uppercase', letterSpacing: 1,
+                whiteSpace: 'nowrap',
+                fontFamily: "'Orbitron', monospace",
+            }}>
+                TREE
+            </span>
+            {treePath.map((node, i) => (
+                <React.Fragment key={i}>
+                    <span style={{ color: '#475569', fontSize: 12 }}>›</span>
+                    <button
+                        onClick={() => onNavigateBack(i)}
+                        style={{
+                            background: i === treePath.length - 1
+                                ? 'rgba(0,212,255,0.15)'
+                                : 'rgba(255,255,255,0.04)',
+                            border: i === treePath.length - 1
+                                ? '1px solid rgba(0,212,255,0.3)'
+                                : '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: 6, padding: '3px 8px',
+                            color: i === treePath.length - 1 ? '#00d4ff' : '#94a3b8',
+                            cursor: 'pointer', fontSize: 10, fontWeight: 600,
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {node.label}
+                    </button>
+                </React.Fragment>
+            ))}
+        </div>
     );
 }
 
@@ -130,6 +267,20 @@ export default function SolutionsBrowser() {
     const [spotDetail, setSpotDetail] = useState(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
+    // Phase 15: Color mode & classification
+    const [colorMode, setColorMode] = useState('action');
+    const [classificationData, setClassificationData] = useState(null);
+    const [classificationGroups, setClassificationGroups] = useState([]);
+
+    // Phase 15: Game Tree Explorer
+    const [treePath, setTreePath] = useState([]);
+    const [showCardSelector, setShowCardSelector] = useState(false);
+
+    // Phase 15: Runout Heatmap
+    const [activeTab, setActiveTab] = useState('grid'); // 'grid' | 'runout'
+    const [runoutData, setRunoutData] = useState({});
+    const [loadingRunout, setLoadingRunout] = useState(false);
+
     // Available stack depths for current game type
     const availableStacks = useMemo(() => STACK_DEPTHS[gameType] || [100], [gameType]);
 
@@ -137,12 +288,36 @@ export default function SolutionsBrowser() {
     useEffect(() => {
         const stacks = STACK_DEPTHS[gameType] || [100];
         if (!stacks.includes(stackDepth)) {
-            setStackDepth(stacks[stacks.length - 1]); // Default to deepest
+            setStackDepth(stacks[stacks.length - 1]);
         }
         setPage(1);
         setSelectedSpot(null);
         setSpotDetail(null);
+        setTreePath([]);
+        setClassificationData(null);
+        setClassificationGroups([]);
+        setRunoutData({});
+        setActiveTab('grid');
     }, [gameType]);
+
+    // Compute classification when spot detail changes
+    useEffect(() => {
+        if (spotDetail?.board && spotDetail.board.length >= 3) {
+            try {
+                const classified = classifyAllHands(spotDetail.board);
+                setClassificationData(classified);
+                const groups = groupByClassification(classified, spotDetail.gridData);
+                setClassificationGroups(groups);
+            } catch (e) {
+                console.error('[Solutions] Classification error:', e);
+                setClassificationData(null);
+                setClassificationGroups([]);
+            }
+        } else {
+            setClassificationData(null);
+            setClassificationGroups([]);
+        }
+    }, [spotDetail]);
 
     // Fetch spots list
     const fetchSpots = useCallback(async () => {
@@ -179,11 +354,19 @@ export default function SolutionsBrowser() {
     const loadSpotDetail = useCallback(async (spotId) => {
         setLoadingDetail(true);
         setSelectedSpot(spotId);
+        setActiveTab('grid');
+        setRunoutData({});
         try {
             const res = await fetch(`/api/training/browse-solutions?spotId=${spotId}`);
             const data = await res.json();
             if (data.success && data.spot) {
                 setSpotDetail(data.spot);
+                // Initialize tree path with root node
+                setTreePath([{
+                    label: `${data.spot.heroPosition} • ${data.spot.board?.join(' ')}`,
+                    spotDetail: data.spot,
+                    spotId,
+                }]);
             }
         } catch (err) {
             console.error('[Solutions] Detail fetch error:', err);
@@ -191,6 +374,81 @@ export default function SolutionsBrowser() {
             setLoadingDetail(false);
         }
     }, []);
+
+    // Phase 15: Navigate to child node (tree hopping)
+    const navigateToChild = useCallback(async (nextCard) => {
+        if (!spotDetail?.scenarioHash) return;
+        setLoadingDetail(true);
+        setShowCardSelector(false);
+
+        try {
+            const params = new URLSearchParams({
+                scenarioHash: spotDetail.scenarioHash,
+                nextCard,
+            });
+            const res = await fetch(`/api/training/tree-navigate?${params}`);
+            const data = await res.json();
+
+            if (data.success && data.childSpot) {
+                setSpotDetail(data.childSpot);
+                setTreePath(prev => [...prev, {
+                    label: `${nextCard.toUpperCase()} → ${data.childSpot.heroPosition}`,
+                    spotDetail: data.childSpot,
+                    scenarioHash: data.childSpot.scenarioHash,
+                }]);
+                setActiveTab('grid');
+                setRunoutData({});
+            } else {
+                console.warn('[Solutions] No child node found for', nextCard);
+            }
+        } catch (err) {
+            console.error('[Solutions] Tree navigate error:', err);
+        } finally {
+            setLoadingDetail(false);
+        }
+    }, [spotDetail]);
+
+    // Navigate back in tree
+    const navigateBack = useCallback((index) => {
+        if (index < treePath.length - 1) {
+            const node = treePath[index];
+            setTreePath(prev => prev.slice(0, index + 1));
+            if (node.spotDetail) {
+                setSpotDetail(node.spotDetail);
+                setActiveTab('grid');
+                setRunoutData({});
+            }
+        }
+    }, [treePath]);
+
+    // Phase 15: Fetch runout data
+    const fetchRunoutData = useCallback(async () => {
+        if (!spotDetail?.scenarioHash) return;
+        setLoadingRunout(true);
+        try {
+            const res = await fetch(`/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`);
+            const data = await res.json();
+            if (data.success) {
+                setRunoutData(data.runouts || {});
+            }
+        } catch (err) {
+            console.error('[Solutions] Runout fetch error:', err);
+        } finally {
+            setLoadingRunout(false);
+        }
+    }, [spotDetail?.scenarioHash]);
+
+    // Auto-fetch runout when switching to runout tab
+    useEffect(() => {
+        if (activeTab === 'runout' && Object.keys(runoutData).length === 0 && spotDetail) {
+            fetchRunoutData();
+        }
+    }, [activeTab, runoutData, spotDetail, fetchRunoutData]);
+
+    // Dead cards for card selector
+    const deadCards = useMemo(() => {
+        return spotDetail?.board || [];
+    }, [spotDetail]);
 
     return (
         <>
@@ -240,7 +498,6 @@ export default function SolutionsBrowser() {
 
                     {/* Filters Row */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {/* Game Type Pills */}
                         {GAME_TYPES.map(gt => (
                             <button
                                 key={gt.value}
@@ -260,7 +517,7 @@ export default function SolutionsBrowser() {
                     </div>
 
                     {/* Stack Depth + Position Row */}
-                    <div style={{ display: 'flex', gap: 12, marginTop: 10, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
                                 Stack:
@@ -397,10 +654,11 @@ export default function SolutionsBrowser() {
                         )}
                     </div>
 
-                    {/* Right: Range Grid Detail */}
+                    {/* Right: Detail Panel */}
                     <div style={{
                         flex: 1, padding: '24px 32px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        overflowY: 'auto',
                     }}>
                         {!spotDetail && !loadingDetail ? (
                             <div style={{
@@ -430,18 +688,25 @@ export default function SolutionsBrowser() {
                             </div>
                         ) : spotDetail ? (
                             <motion.div
-                                key={spotDetail.id}
+                                key={spotDetail.id || spotDetail.scenarioHash}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                style={{ width: '100%', maxWidth: 700 }}
+                                style={{ width: '100%', maxWidth: 900 }}
                             >
+                                {/* Node Breadcrumb */}
+                                <NodeBreadcrumb
+                                    treePath={treePath}
+                                    onNavigateBack={navigateBack}
+                                />
+
                                 {/* Spot Header */}
                                 <div style={{
-                                    display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20,
+                                    display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12,
                                     padding: '16px 20px',
                                     background: 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(124,58,237,0.05))',
                                     borderRadius: 12,
                                     border: '1px solid rgba(0,212,255,0.15)',
+                                    flexWrap: 'wrap',
                                 }}>
                                     <div style={{ display: 'flex', gap: 4 }}>
                                         {(spotDetail.board || []).map((card, i) => (
@@ -459,10 +724,7 @@ export default function SolutionsBrowser() {
                                             {spotDetail.stackDepth}BB {spotDetail.gameType} • {spotDetail.handCount} hands in range
                                         </div>
                                     </div>
-                                    <div style={{
-                                        marginLeft: 'auto',
-                                        display: 'flex', gap: 6,
-                                    }}>
+                                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                         {(spotDetail.actions || []).map(a => (
                                             <span key={a} style={{
                                                 padding: '3px 10px', borderRadius: 12,
@@ -477,17 +739,189 @@ export default function SolutionsBrowser() {
                                     </div>
                                 </div>
 
-                                {/* Range Grid */}
-                                <RangeGrid
-                                    gridData={spotDetail.gridData}
-                                    actions={spotDetail.actions}
-                                    cellSize={34}
-                                />
+                                {/* Range Equity Matchup */}
+                                {spotDetail.rangeEquity && (
+                                    <div style={{ marginBottom: 12 }}>
+                                        <EquityMatchup
+                                            heroEquity={spotDetail.rangeEquity.hero}
+                                            villainEquity={spotDetail.rangeEquity.villain}
+                                            heroPosition={spotDetail.heroPosition || 'Hero'}
+                                            villainPosition="Villain"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Tab Switcher + Color Mode Toggle */}
+                                <div style={{
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    marginBottom: 12,
+                                    flexWrap: 'wrap', gap: 8,
+                                }}>
+                                    {/* View Tabs */}
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                        {[
+                                            { key: 'grid', label: '13×13 Grid' },
+                                            { key: 'runout', label: 'Runout Analysis' },
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.key}
+                                                onClick={() => setActiveTab(tab.key)}
+                                                style={{
+                                                    padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                                                    cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                                                    background: activeTab === tab.key
+                                                        ? 'linear-gradient(135deg, #00d4ff, #7c3aed)'
+                                                        : 'rgba(255,255,255,0.06)',
+                                                    color: activeTab === tab.key ? '#fff' : '#94a3b8',
+                                                }}
+                                            >
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Color Mode Toggle + Tree Navigate */}
+                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                        {activeTab === 'grid' && (
+                                            <div style={{
+                                                display: 'flex',
+                                                background: 'rgba(255,255,255,0.04)',
+                                                borderRadius: 8,
+                                                overflow: 'hidden',
+                                                border: '1px solid rgba(255,255,255,0.06)',
+                                            }}>
+                                                {[
+                                                    { key: 'action', label: 'Action' },
+                                                    { key: 'classification', label: 'Hand Type' },
+                                                ].map(mode => (
+                                                    <button
+                                                        key={mode.key}
+                                                        onClick={() => setColorMode(mode.key)}
+                                                        style={{
+                                                            padding: '4px 10px', fontSize: 10, fontWeight: 600,
+                                                            cursor: 'pointer', border: 'none',
+                                                            background: colorMode === mode.key
+                                                                ? 'rgba(0,212,255,0.2)'
+                                                                : 'transparent',
+                                                            color: colorMode === mode.key ? '#00d4ff' : '#64748b',
+                                                            transition: 'all 0.15s',
+                                                        }}
+                                                    >
+                                                        {mode.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Navigate to Next Street */}
+                                        {spotDetail.board && spotDetail.board.length < 5 && (
+                                            <button
+                                                onClick={() => setShowCardSelector(true)}
+                                                style={{
+                                                    padding: '5px 12px', borderRadius: 8,
+                                                    fontSize: 11, fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    border: '1px solid rgba(0,212,255,0.3)',
+                                                    background: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(124,58,237,0.05))',
+                                                    color: '#00d4ff',
+                                                    transition: 'all 0.15s',
+                                                }}
+                                            >
+                                                {spotDetail.board.length === 3 ? '→ Turn' : '→ River'}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Main Content Area */}
+                                {activeTab === 'grid' ? (
+                                    <div style={{
+                                        display: 'flex', gap: 16,
+                                        alignItems: 'flex-start',
+                                        justifyContent: 'center',
+                                    }}>
+                                        {/* Range Grid */}
+                                        <RangeGrid
+                                            gridData={spotDetail.gridData}
+                                            actions={spotDetail.actions}
+                                            cellSize={34}
+                                            classificationData={classificationData}
+                                            colorMode={colorMode}
+                                        />
+
+                                        {/* Classification Sidebar (when in classification mode) */}
+                                        {colorMode === 'classification' && classificationGroups.length > 0 && (
+                                            <ClassificationSidebar
+                                                groups={classificationGroups}
+                                                actions={spotDetail.actions}
+                                            />
+                                        )}
+                                    </div>
+                                ) : activeTab === 'runout' ? (
+                                    <RunoutHeatmap
+                                        runoutData={runoutData}
+                                        deadCards={deadCards}
+                                        loading={loadingRunout}
+                                        onCardClick={(card) => navigateToChild(card)}
+                                    />
+                                ) : null}
+
+                                {/* Action Buttons (for tree navigation) */}
+                                {activeTab === 'grid' && spotDetail.actions && spotDetail.actions.length > 0 && (
+                                    <div style={{
+                                        marginTop: 16, padding: '12px 16px',
+                                        background: 'rgba(255,255,255,0.02)',
+                                        borderRadius: 10,
+                                        border: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        <div style={{
+                                            fontSize: 10, fontWeight: 700, color: '#64748b',
+                                            textTransform: 'uppercase', letterSpacing: 1,
+                                            marginBottom: 8,
+                                            fontFamily: "'Orbitron', monospace",
+                                        }}>
+                                            Navigate Action →
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                            {spotDetail.actions.map(action => (
+                                                <button
+                                                    key={action}
+                                                    onClick={() => {
+                                                        if (spotDetail.board && spotDetail.board.length < 5) {
+                                                            setShowCardSelector(true);
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        padding: '6px 16px', borderRadius: 8,
+                                                        fontSize: 12, fontWeight: 700,
+                                                        cursor: 'pointer',
+                                                        border: `1px solid ${(ACTION_COLORS[action] || '#888') + '55'}`,
+                                                        background: `${(ACTION_COLORS[action] || '#888')}15`,
+                                                        color: ACTION_COLORS[action] || '#888',
+                                                        transition: 'all 0.15s',
+                                                        fontFamily: "'Orbitron', monospace",
+                                                    }}
+                                                >
+                                                    {action}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </motion.div>
                         ) : null}
                     </div>
                 </div>
             </div>
+
+            {/* Card Selector Modal */}
+            <CardSelectorModal
+                isOpen={showCardSelector}
+                onClose={() => setShowCardSelector(false)}
+                onSelectCard={navigateToChild}
+                deadCards={deadCards}
+                title={spotDetail?.board?.length === 3 ? 'Select Turn Card' : 'Select River Card'}
+            />
         </>
     );
 }

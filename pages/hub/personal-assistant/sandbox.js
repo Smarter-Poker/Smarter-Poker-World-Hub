@@ -20,7 +20,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks } from '../../../src/hooks/useAssistant';
+import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks, useStudyDeck, useQuizLeaderboard } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
@@ -355,6 +355,8 @@ function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
           </button>
         ))}
       </div>
+      {/* Leaderboard */}
+      <LeaderboardCard entries={leaderboardEntries} />
     </motion.div>
   );
 }
@@ -367,6 +369,9 @@ export default function VirtualSandbox() {
   const { analyze, isAnalyzing, results, error, clearResults } = useSandboxAnalysis();
   const { archetypes } = useArchetypes();
   const { isGated, GateComponent } = useFeatureGate('personal_assistant');
+  const { studySessions } = useStudyDeck(20);
+  const { entries: leaderboardEntries } = useQuizLeaderboard(10);
+  const [studyIndex, setStudyIndex] = useState(0);
 
   // ━━━ STATE ━━━
   const [heroHand, setHeroHand] = useState({ card1: null, card2: null });
@@ -552,6 +557,29 @@ export default function VirtualSandbox() {
     }
   }, []);
 
+  // Phase 4: Share link hydration — read URL query params on mount
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query;
+    if (!q.h && !q.p && !q.b) return; // No share params
+    const hand = q.h || '';
+    if (hand.length >= 4) {
+      setHeroHand({ card1: hand.substring(0, 2), card2: hand.substring(2, 4) });
+    }
+    if (q.p) setHeroPosition(q.p);
+    if (q.s) setHeroStack(Number(q.s) || 100);
+    if (q.g) setGameType(q.g);
+    if (q.pot) { skipPotCalcRef.current = true; setPotSize(Number(q.pot) || 6); }
+    if (q.b) {
+      const cards = q.b.includes(',') ? q.b.split(',').filter(Boolean) : q.b.match(/.{1,2}/g) || [];
+      setBoard({ flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null });
+    }
+    // Clean URL after hydration (remove query params without navigation)
+    if (typeof window !== 'undefined' && (q.h || q.b)) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [router.isReady]);
+
   // BUS LISTENER — broadcast sandbox data changes to other pages
   useEffect(() => {
     if (results && typeof window !== 'undefined') {
@@ -704,14 +732,20 @@ export default function VirtualSandbox() {
   // Run analysis
   const runAnalysis = async () => {
     if (!heroHand.card1 || !heroHand.card2) return;
-    await analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+    await analyze({
+      heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard',
+      exploitMode, villainArchetype: villains[0]?.archetype?.id, bubbleFactor: gameType === 'tournament' ? bubbleFactor : undefined,
+    });
     setShowResults(true); // auto-open fullscreen analysis popup
   };
 
   // Position comparison (Feature #11)
   const runPositionComparison = async (pos) => {
     setComparePosition(pos);
-    await analyze({ heroHand, heroPosition: pos, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+    await analyze({
+      heroHand, heroPosition: pos, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard',
+      exploitMode, villainArchetype: villains[0]?.archetype?.id, bubbleFactor: gameType === 'tournament' ? bubbleFactor : undefined,
+    });
   };
 
   const resetAll = () => {
@@ -1156,6 +1190,14 @@ export default function VirtualSandbox() {
                 </div>
               )}
 
+              {/* ICM-Adjusted EV (Tournament mode with bubble factor) */}
+              {results.icmAdjusted && results.icmEV && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 12, padding: '6px 10px', borderRadius: '8px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.15)' }}>
+                  <span style={{ fontSize: '10px', color: '#fde68a', fontWeight: '700', textTransform: 'uppercase' }}>ICM EV ({results.bubbleFactor?.toFixed(1)}x)</span>
+                  <span style={{ fontSize: '13px', fontWeight: '700', fontFamily: "'Orbitron',monospace", color: results.icmEV.hero >= 0 ? '#4ade80' : '#fca5a5' }}>{results.icmEV.heroDisplay}</span>
+                </div>
+              )}
+
               {/* Frequency Bars */}
               <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
                 <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>GTO Frequencies</h4>
@@ -1230,6 +1272,17 @@ export default function VirtualSandbox() {
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', marginBottom: 8 }}>
                 Train This Spot
               </button>
+
+              {/* Study Replay -- Phase 3.2 */}
+              {studySessions.length > 0 && (
+                <StudyReplayCard
+                  session={studySessions[studyIndex]}
+                  index={studyIndex}
+                  total={studySessions.length}
+                  onNext={() => setStudyIndex(i => Math.min(i + 1, studySessions.length - 1))}
+                  onPrev={() => setStudyIndex(i => Math.max(i - 1, 0))}
+                />
+              )}
             </motion.div>
           </motion.div>
         )}

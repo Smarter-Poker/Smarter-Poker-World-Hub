@@ -94,7 +94,7 @@ export default function TournamentsPage() {
 
     // Request browser notification permission
     useEffect(() => {
-        if ('Notification' in window && Notification.permission === 'default') {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
     }, []);
@@ -106,12 +106,13 @@ export default function TournamentsPage() {
         return () => clearInterval(interval);
     }, [userId]);
 
-    async function loadNotifications() {
-        if (!userId) return;
+    async function loadNotifications(uid) {
+        const effectiveId = uid || userId;
+        if (!effectiveId) return;
         const { data } = await supabase
             .from('trivia_tournament_notifications')
             .select('*')
-            .eq('user_id', userId)
+            .eq('user_id', effectiveId)
             .eq('read', false)
             .order('created_at', { ascending: false })
             .limit(10);
@@ -119,7 +120,7 @@ export default function TournamentsPage() {
         if (data && data.length > 0) {
             setNotifications(data);
             // Show browser notification for unread items
-            if ('Notification' in window && Notification.permission === 'granted') {
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                 const latest = data[0];
                 new Notification('Smarter Poker Tournament', {
                     body: latest.message,
@@ -161,7 +162,7 @@ export default function TournamentsPage() {
             .select('*')
             .in('status', ['upcoming', 'active'])
             .order('start_time', { ascending: true })
-            .limit(50) // tournaments
+            .limit(50); // tournaments
 
         setTournaments(tournamentData || []);
 
@@ -192,8 +193,8 @@ export default function TournamentsPage() {
 
         setPastResults(past || []);
 
-        // Load notifications
-        await loadNotifications();
+        // Load notifications (pass user.id directly since useState hasn't propagated yet)
+        await loadNotifications(user.id);
 
         setGameState('lobby');
     }
@@ -780,11 +781,11 @@ export default function TournamentsPage() {
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
                                             <span className="panel-stat-label">YOUR SCORE</span>
-                                            <span className="panel-stat-value cyan">{score}/{questions.length}</span>
+                                            <span className="panel-stat-value cyan">{Math.round(score / 100)}/{questions.length}</span>
                                         </div>
                                         <div className="panel-stat-row">
-                                            <span className="panel-stat-label">CORRECT</span>
-                                            <span className="panel-stat-value green">{score} Questions</span>
+                                            <span className="panel-stat-label">POINTS</span>
+                                            <span className="panel-stat-value green">{score}</span>
                                         </div>
                                         <div className="panel-stat-divider" />
                                         <div className="panel-stat-row">
@@ -798,6 +799,9 @@ export default function TournamentsPage() {
                                     </div>
                                 </div>
                             </div>
+                            {/* Navigation buttons */}
+                            <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); loadData(); }} aria-label="Back To Lobby" />
+                            <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                         </div>
                     )}
                 </div>
@@ -1390,6 +1394,31 @@ export default function TournamentsPage() {
                     height: auto;
                     display: block;
                     border-radius: 4px;
+                }
+
+                /* Invisible hitboxes over baked-in buttons */
+                .result-play-again-hitbox {
+                    position: absolute;
+                    bottom: 8%;
+                    left: 5%;
+                    width: 45%;
+                    height: 9%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 10;
+                }
+
+                .result-back-hitbox {
+                    position: absolute;
+                    bottom: 8%;
+                    right: 5%;
+                    width: 45%;
+                    height: 9%;
+                    background: transparent;
+                    border: none;
+                    cursor: pointer;
+                    z-index: 10;
                 }
 
                 .result-panel-content {

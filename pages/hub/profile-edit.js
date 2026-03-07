@@ -8,12 +8,13 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { claimReward } from '../../src/lib/claimReward';
 import { useRouter } from 'next/router';
+import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -21,6 +22,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 // God-Mode Stack
 import { useProfileStore } from '../../src/stores/profileStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import { staggerContainer, staggerItem } from '../../src/utils/animations';
 import toast from '../../src/stores/toastStore';
 
 // Light Theme Colors
@@ -54,7 +56,7 @@ function Avatar({ src, size = 120, onUpload }) {
                 src={src || '/default-avatar.png'}
                 alt="Profile"
                 style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-                loading="lazy" />
+            />
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
             <div style={{
                 position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: '50%',
@@ -330,26 +332,29 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // Get authenticated user from Supabase session
+                // FIXED: Check BOTH storage key formats:
+                // 1. New unified key: 'smarter-poker-auth' (from supabase.ts)
+                // 2. Legacy Supabase keys: 'sb-*-auth-token'
                 let authUser = null;
-                try {
-                    const { data: { user: gu } } = await supabase.auth.getUser();
-                    authUser = gu;
-                } catch (_) { /* AbortError on Safari */ }
 
-                // Fallback 1: recover from session if getUser threw
-                if (!authUser) {
+                // First, try the new unified storage key
+                const unifiedToken = localStorage.getItem('smarter-poker-auth');
+                if (unifiedToken) {
                     try {
-                        const { data: { session } } = await supabase.auth.getSession();
-                        authUser = session?.user || null;
-                    } catch (_) { /* ignore */ }
+                        const tokenData = JSON.parse(unifiedToken);
+                        authUser = tokenData?.user || null;
+                    } catch (e) { /* ignore parse errors */ }
                 }
 
-                // Fallback 2: read directly from localStorage (bypasses navigator.locks AbortError)
+                // Fallback: check legacy Supabase keys
                 if (!authUser) {
-                    try {
-                        authUser = getAuthUser();
-                    } catch (_) { /* ignore */ }
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        try {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            authUser = tokenData?.user || null;
+                        } catch (e) { /* ignore parse errors */ }
+                    }
                 }
 
                 if (authUser) {
@@ -391,15 +396,24 @@ export default function ProfilePage() {
                         const friendsData = friendsRes.ok ? await friendsRes.json() : [];
 
                         // Count followers
-                        const followersRes = await fetch(`${supabaseUrl}/rest/v1/follows?following_id=eq.${authUser.id}&select=id`, { headers });
+                        const followersRes = await fetch(
+                            `${supabaseUrl}/rest/v1/follows?following_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
                         const followersData = followersRes.ok ? await followersRes.json() : [];
 
                         // Count following
-                        const followingRes = await fetch(`${supabaseUrl}/rest/v1/follows?follower_id=eq.${authUser.id}&select=id`, { headers });
+                        const followingRes = await fetch(
+                            `${supabaseUrl}/rest/v1/follows?follower_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
                         const followingData = followingRes.ok ? await followingRes.json() : [];
 
                         // Count posts
-                        const postsRes = await fetch(`${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&select=id`, { headers });
+                        const postsRes = await fetch(
+                            `${supabaseUrl}/rest/v1/social_posts?author_id=eq.${authUser.id}&select=id`,
+                            { headers }
+                        );
                         const postsData = postsRes.ok ? await postsRes.json() : [];
 
                         setSocialStats({
@@ -604,6 +618,7 @@ export default function ProfilePage() {
                 }
             }
         } catch (deleteErr) {
+            console.warn('Storage delete error (may not exist):', deleteErr);
             // Continue anyway - file might already be deleted
         }
 
@@ -624,8 +639,6 @@ export default function ProfilePage() {
     };
 
     const handleSave = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!user) return;
         setSaving(true);
         setMessage('');
@@ -963,7 +976,7 @@ export default function ProfilePage() {
                                                 objectFit: 'cover', marginBottom: 8,
                                                 border: '2px solid #eee'
                                             }}
-                                            loading="lazy" />
+                                        />
                                         <div style={{
                                             fontSize: 13, fontWeight: 600, color: C.text,
                                             maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
@@ -1054,7 +1067,7 @@ export default function ProfilePage() {
                                             marginBottom: 8,
                                             background: 'transparent'
                                         }}
-                                        loading="lazy" />
+                                    />
                                     <div style={{
                                         fontSize: 12,
                                         fontWeight: 600,
@@ -1215,7 +1228,7 @@ export default function ProfilePage() {
                                             width: '100%', height: 'auto',
                                             display: 'block'
                                         }}
-                                        loading="lazy" />
+                                    />
                                     {photo.content && (
                                         <div style={{
                                             padding: '12px 16px', color: 'white',
@@ -1362,7 +1375,7 @@ export default function ProfilePage() {
                                                     src={live.thumbnail_url}
                                                     alt={live.title}
                                                     style={{ width: '100%', height: 'auto', display: 'block' }}
-                                                    loading="lazy" />
+                                                />
                                             ) : (
                                                 <div style={{
                                                     width: '100%', height: '100%',

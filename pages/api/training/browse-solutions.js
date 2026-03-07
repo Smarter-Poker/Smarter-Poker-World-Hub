@@ -122,6 +122,26 @@ export default async function handler(req, res) {
             // Get EV data if available
             const handEVs = spot.hand_evs || {};
 
+            // Calculate range equity from hand EVs and frequencies
+            let heroEqSum = 0;
+            let villainEqSum = 0;
+            let eqCount = 0;
+            const allHands2 = getAllHandNotations();
+            allHands2.forEach(hand => {
+                const ev = handEVs[hand];
+                if (ev !== undefined && ev !== null && gridData[hand]) {
+                    // Positive EV = Hero advantage, scale to 0-100 equity
+                    const handEq = Math.max(0, Math.min(100, 50 + (ev * 2)));
+                    heroEqSum += handEq;
+                    villainEqSum += (100 - handEq);
+                    eqCount++;
+                }
+            });
+            const rangeEquity = eqCount > 0 ? {
+                hero: Math.round((heroEqSum / eqCount) * 10) / 10,
+                villain: Math.round((villainEqSum / eqCount) * 10) / 10,
+            } : { hero: 50, villain: 50 };
+
             return res.status(200).json({
                 success: true,
                 spot: {
@@ -135,6 +155,7 @@ export default async function handler(req, res) {
                     gridData,
                     handEVs,
                     handCount: Object.keys(gridData).filter(h => gridData[h] !== null).length,
+                    rangeEquity,
                 },
             });
         }

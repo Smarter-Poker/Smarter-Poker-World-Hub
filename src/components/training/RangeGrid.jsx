@@ -16,6 +16,7 @@
 
 import React, { useState, useMemo, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getClassificationColor, getClassificationMeta } from '../../utils/pokerHandEvaluator';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -90,9 +91,14 @@ function getDominantAction(handFreqs) {
 }
 
 // Cell component
-const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size }) => {
-    const { color, opacity, isMixed, maxFreq } = getDominantAction(freqs);
+const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode }) => {
+    const { color: actionColor, opacity: actionOpacity, isMixed, maxFreq } = getDominantAction(freqs);
     const hasData = freqs !== null && freqs !== undefined;
+
+    // Classification mode: use hand classification color
+    const useClassification = colorMode === 'classification' && classificationInfo;
+    const color = useClassification ? (classificationInfo.color || getClassificationColor(classificationInfo.classification)) : actionColor;
+    const opacity = useClassification ? 0.85 : actionOpacity;
 
     return (
         <div
@@ -251,7 +257,7 @@ function HandDetail({ hand, freqs, onClose }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false }) {
+export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action' }) {
     const [selectedHand, setSelectedHand] = useState(null);
 
     // heroGlow keyframes injected once
@@ -275,6 +281,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
             for (let c = 0; c < 13; c++) {
                 const hand = getHandNotation(r, c);
                 const freqs = gridData?.[hand] || null;
+                const classInfo = classificationData?.[hand] || null;
                 cells.push(
                     <GridCell
                         key={hand}
@@ -285,13 +292,15 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         isHero={heroHand === hand}
                         onClick={handleCellClick}
                         size={cellSize}
+                        classificationInfo={classInfo}
+                        colorMode={colorMode}
                     />
                 );
             }
             rows.push(cells);
         }
         return rows;
-    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand]);
+    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode]);
 
     // Get action legend
     const activeActions = useMemo(() => {

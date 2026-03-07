@@ -511,6 +511,147 @@ export function useBookmarks(limit = 15) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// useStudyDeck — Fetch previous analyses with full_analysis for study replay
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useStudyDeck(limit = 20) {
+  const [studySessions, setStudySessions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchStudySessions = useCallback(async () => {
+    try {
+      const user = getAuthUser();
+      if (!user) { setStudySessions([]); setIsLoading(false); return; }
+
+      const { data, error } = await supabase
+        .from('sandbox_results')
+        .select(`
+          id,
+          primary_action,
+          primary_frequency,
+          full_analysis,
+          confidence,
+          created_at,
+          sandbox_sessions!inner (
+            hero_hand,
+            hero_position,
+            hero_stack_bb,
+            game_type,
+            board_flop,
+            board_turn,
+            board_river
+          )
+        `)
+        .not('full_analysis', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('[useStudyDeck] Query error:', error.message);
+        setStudySessions([]);
+      } else {
+        const formatted = (data || []).map(r => ({
+          id: r.id,
+          label: `${r.sandbox_sessions?.hero_position || '?'} ${r.sandbox_sessions?.hero_hand || '??'} on ${r.sandbox_sessions?.board_flop || 'Preflop'}`,
+          hero_position: r.sandbox_sessions?.hero_position,
+          hero_hand: r.sandbox_sessions?.hero_hand,
+          primary_action: r.primary_action,
+          full_analysis: typeof r.full_analysis === 'string' ? JSON.parse(r.full_analysis) : r.full_analysis,
+          confidence: r.confidence,
+          date: r.created_at,
+        }));
+        setStudySessions(formatted);
+      }
+    } catch (err) {
+      console.error('[useStudyDeck] Error:', err);
+      setStudySessions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [limit]);
+
+  useEffect(() => {
+    fetchStudySessions();
+    if (typeof window === 'undefined') return;
+    const handleUpdate = () => fetchStudySessions();
+    window.addEventListener('pa-data-updated', handleUpdate);
+    return () => window.removeEventListener('pa-data-updated', handleUpdate);
+  }, [fetchStudySessions]);
+
+  return { studySessions, isLoading, refetch: fetchStudySessions };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// useQuizLeaderboard — Aggregate quiz results for leaderboard display
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function useQuizLeaderboard(limit = 10) {
+  const [entries, setEntries] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchLeaderboard() {
+      try {
+        // Query all quiz results, group by user client-side
+        const { data, error } = await supabase
+          .from('sandbox_quiz_results')
+          .select('user_id, is_correct, created_at')
+          .order('created_at', { ascending: false })
+          .limit(500);
+
+        if (error || !data || data.length === 0) {
+          setEntries([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Aggregate per user
+        const userMap = {};
+        data.forEach(r => {
+          if (!r.user_id) return;
+          if (!userMap[r.user_id]) {
+            userMap[r.user_id] = { correct: 0, total: 0, streak: 0, currentStreak: 0 };
+          }
+          const u = userMap[r.user_id];
+          u.total += 1;
+          if (r.is_correct) {
+            u.correct += 1;
+            u.currentStreak += 1;
+            if (u.currentStreak > u.streak) u.streak = u.currentStreak;
+          } else {
+            u.currentStreak = 0;
+          }
+        });
+
+        // Sort by accuracy (min 3 attempts)
+        const sorted = Object.entries(userMap)
+          .filter(([, v]) => v.total >= 3)
+          .map(([userId, v]) => ({
+            userId,
+            name: `Player ${userId.substring(0, 6)}`,
+            accuracy: Math.round(v.correct / v.total * 100),
+            total: v.total,
+            streak: v.streak,
+          }))
+          .sort((a, b) => b.accuracy - a.accuracy || b.total - a.total)
+          .slice(0, limit);
+
+        setEntries(sorted);
+      } catch (err) {
+        console.error('[useQuizLeaderboard] Error:', err);
+        setEntries([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchLeaderboard();
+  }, [limit]);
+
+  return { entries, isLoading };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // useLeakDetection — Trigger leak detection analysis
 // ═══════════════════════════════════════════════════════════════════════════
 

@@ -4,20 +4,20 @@
    Last Updated: 2026-01-29 - Avatar race condition fix deployed
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import dynamic from 'next/dynamic';
-const CustomAvatarBuilder = dynamic(() => import('../../src/components/avatars/CustomAvatarBuilder'), { ssr: false });
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import { useTheme } from '../../src/providers/ThemeProvider';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
-import { getAuthUser } from '../../src/lib/authUtils';
+import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
 // God-Mode Stack
+import { useSettingsStore } from '../../src/stores/settingsStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -79,7 +79,7 @@ export default function SettingsPage() {
     const router = useRouter();
     const { avatar, isVip, user: contextUser, initializing } = useAvatar();
     const [userProfile, setUserProfile] = useState(null);
-    const [localUser, setLocalUser] = useState(null); // Fallback if context not ready
+    const [localUser, setLocalUser] = useState(null); //  Fallback from localStorage
     const [activeSection, setActiveSection] = useState('account');
     const [saved, setSaved] = useState(false);
     const [showAvatarBuilder, setShowAvatarBuilder] = useState(false);
@@ -127,18 +127,35 @@ export default function SettingsPage() {
     // Menu config
     const menuConfig = getMenuConfig('settings', user, {}, {});
 
-    // Load user from Supabase session if not available from context
+    //  BULLETPROOF: Read user from localStorage immediately (same as UniversalHeader)
     useEffect(() => {
-        if (!contextUser) {
-            supabase.auth.getUser().then(({ data: { user } }) => {
-                if (user) setLocalUser(user);
-            }).catch(() => {
-                // Fallback: read directly from localStorage (bypasses AbortError)
-                try {
-                    const fallbackUser = getAuthUser();
-                    if (fallbackUser) setLocalUser(fallbackUser);
-                } catch (_) { /* ignore */ }
-            });
+        if (typeof window !== 'undefined' && !contextUser) {
+            try {
+                // Check explicit storage key first
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
+                    const tokenData = JSON.parse(explicitAuth);
+                    if (tokenData?.user) {
+                        setLocalUser(tokenData.user);
+                        console.log('[Settings] User loaded from localStorage:', tokenData.user.email);
+                    }
+                }
+                // Fallback to legacy sb-* keys
+                if (!localUser) {
+                    const sbKeys = Object.keys(localStorage).filter(
+                        k => k.startsWith('sb-') && k.endsWith('-auth-token')
+                    );
+                    if (sbKeys.length > 0) {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                        if (tokenData?.user) {
+                            setLocalUser(tokenData.user);
+                            console.log('[Settings] User loaded from legacy auth key:', tokenData.user.email);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('[Settings] Error reading localStorage:', e);
+            }
         }
     }, [contextUser]);
 
@@ -225,8 +242,6 @@ export default function SettingsPage() {
 
     // Track current session function
     const trackCurrentSession = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!user?.id) return;
 
         try {
@@ -254,8 +269,6 @@ export default function SettingsPage() {
     }, [show2FAModal]);
 
     const setup2FA = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         setLoadingMFA(true);
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -284,8 +297,6 @@ export default function SettingsPage() {
     };
 
     const verify2FA = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (verificationCode.length !== 6) {
             alert('Please enter a valid 6-digit code');
             return;
@@ -324,8 +335,6 @@ export default function SettingsPage() {
     };
 
     const disable2FA = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!confirm('Are you sure you want to disable 2FA? This will make your account less secure.')) {
             return;
         }
@@ -377,8 +386,6 @@ export default function SettingsPage() {
     };
 
     const saveSettings = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!user?.id) return;
 
         const { error } = await supabase
@@ -398,8 +405,6 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         try {
             await supabase.auth.signOut();
             // Force hard redirect to clear all cached state
@@ -412,8 +417,6 @@ export default function SettingsPage() {
     };
 
     const exportData = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         try {
             // TODO: Implement data export API endpoint
             alert('Data export requested! You will receive an email when your data is ready.');
@@ -424,8 +427,6 @@ export default function SettingsPage() {
     };
 
     const handleDeleteAccount = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -454,8 +455,6 @@ export default function SettingsPage() {
 
     // ── PROMO CODE FUNCTIONS ──
     const loadPromoHistory = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!user?.id) return;
         setPromoHistoryLoading(true);
         try {
@@ -463,8 +462,7 @@ export default function SettingsPage() {
                 .from('promo_code_redemptions')
                 .select('*, promo_codes(code, description, reward_type, reward_value)')
                 .eq('user_id', user.id)
-                .order('redeemed_at', { ascending: false })
-                .limit(50) // promo history;
+                .order('redeemed_at', { ascending: false });
             if (!error && data) setPromoHistory(data);
         } catch (err) {
             console.error('[Settings] Error loading promo history:', err);
@@ -483,8 +481,6 @@ export default function SettingsPage() {
 
     // ── BILLING DATA LOADER ──
     const loadBillingData = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!user?.id) return;
         setBillingLoading(true);
         try {
@@ -527,8 +523,6 @@ export default function SettingsPage() {
     }, [activeSection, user?.id]);
 
     const redeemPromoCode = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!promoCode.trim()) return;
         setPromoLoading(true);
         setPromoResult(null);
@@ -583,7 +577,7 @@ export default function SettingsPage() {
                 canonical="/hub/settings"
                 noindex={true}
             >
-
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
             </SEOHead>
 
             <div className="settings-page" style={styles.container}>
@@ -684,7 +678,8 @@ export default function SettingsPage() {
                                                         <img
                                                             src={displayAvatar}
                                                             alt="Your Avatar"
-                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                        />
                                                     ) : (
                                                         <img
                                                             src={defaultPlaceholder}
@@ -777,7 +772,8 @@ export default function SettingsPage() {
                                                             <img
                                                                 src={avatarData.image_url}
                                                                 alt={`Avatar ${index + 1}`}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            />
                                                             {isActive && (
                                                                 <div style={{
                                                                     position: 'absolute',
@@ -1883,8 +1879,7 @@ export default function SettingsPage() {
                                                     const { data, error } = await supabase
                                                         .from('hand_histories')
                                                         .select('*')
-                                                        .eq('user_id', user.id)
-                                                        .limit(50) // hand history;
+                                                        .eq('user_id', user.id);
                                                     const rows = data || [];
                                                     if (rows.length === 0) { alert('No hand history data found.'); return; }
                                                     const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
@@ -2419,7 +2414,7 @@ export default function SettingsPage() {
                                     ) : qrCode ? (
                                         <>
                                             <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Scan With Your Authenticator App</div>
-                                            <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} loading="lazy" />
+                                            <img src={qrCode} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
                                             <p style={{ fontSize: 12, color: '#666', marginTop: 12 }}>
                                                 Manual Entry Key: {manualEntryKey || 'Loading...'}
                                             </p>
