@@ -383,8 +383,8 @@ export default function HamburgerMenu({
                         }}
                     >
                         <img
-                            src={user.avatar || user.user_metadata?.avatar_url || '/default-avatar.png'}
-                            alt={user.name || user.user_metadata?.full_name || 'User'}
+                            src={user.avatar || '/default-avatar.png'}
+                            alt={user.name}
                             style={{
                                 width: 48,
                                 height: 48,

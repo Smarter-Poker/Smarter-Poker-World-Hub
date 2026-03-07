@@ -13,7 +13,6 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useLiveHelp } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
@@ -88,19 +87,9 @@ export default function ThreePillHeader({
                 if (authUser) {
                     setUser(authUser);
 
-                    // Get access token for JWT auth
-                    let accessToken = null;
-                    try {
-                        const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-                        accessToken = authData?.access_token || null;
-                    } catch (e) { }
-
                     const response = await fetch('/api/user/get-header-stats', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ userId: authUser.id }),
                     });
                     const result = await response.json();

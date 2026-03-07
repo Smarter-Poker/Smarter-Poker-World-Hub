@@ -7,7 +7,6 @@
 import { createClient } from '@supabase/supabase-js';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,33 +14,29 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
     if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
         // Get authenticated user from session
         const authHeader = req.headers.authorization;
         if (!authHeader) {
-            return res.status(401).json({ success: false, error: 'Not authenticated' });
+            return res.status(401).json({ error: 'Not authenticated' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
         if (userError || !user) {
-            return res.status(401).json({ success: false, error: 'Invalid session' });
+            return res.status(401).json({ error: 'Invalid session' });
         }
 
         // SECURITY: Require current TOTP code OR a valid backup code to disable 2FA.
         // Without this, a stolen session token can silently disable 2FA.
         const { code } = req.body;
         if (!code || (code.length !== 6 && code.length !== 8)) {
-            return res.status(400).json({ success: false, error: 'Current 2FA code or backup code required to disable 2FA' });
+            return res.status(400).json({ error: 'Current 2FA code or backup code required to disable 2FA' });
         }
 
         // Get stored MFA secret
@@ -52,7 +47,7 @@ export default async function handler(req, res) {
             .single();
 
         if (mfaError || !mfaData || !mfaData.enabled) {
-            return res.status(404).json({ success: false, error: '2FA is not enabled on this account' });
+            return res.status(404).json({ error: '2FA is not enabled on this account' });
         }
 
         let verified = false;
@@ -84,7 +79,7 @@ export default async function handler(req, res) {
         }
 
         if (!verified) {
-            return res.status(400).json({ success: false, error: 'Invalid 2FA code. Please enter your current authenticator code or a backup code.' });
+            return res.status(400).json({ error: 'Invalid 2FA code. Please enter your current authenticator code or a backup code.' });
         }
 
         // Code verified — disable 2FA
@@ -98,7 +93,7 @@ export default async function handler(req, res) {
 
         if (updateError) {
             console.error('Error disabling 2FA:', updateError);
-            return res.status(500).json({ success: false, error: 'Failed to disable 2FA' });
+            return res.status(500).json({ error: 'Failed to disable 2FA' });
         }
 
         return res.status(200).json({
@@ -108,6 +103,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('2FA disable error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 }

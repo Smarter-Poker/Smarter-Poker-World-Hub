@@ -12,33 +12,29 @@ const supabase = createClient(
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
 
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
-
 export default async function handler(req, res) {
-  if (!applyRateLimit(req, res, LIMITS.auth)) return;
-
     if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
         const { code } = req.body;
 
         if (!code || code.length !== 6) {
-            return res.status(400).json({ success: false, error: 'Invalid verification code' });
+            return res.status(400).json({ error: 'Invalid verification code' });
         }
 
         // Get authenticated user from session
         const authHeader = req.headers.authorization;
         if (!authHeader) {
-            return res.status(401).json({ success: false, error: 'Not authenticated' });
+            return res.status(401).json({ error: 'Not authenticated' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
         if (userError || !user) {
-            return res.status(401).json({ success: false, error: 'Invalid session' });
+            return res.status(401).json({ error: 'Invalid session' });
         }
 
         // Get stored secret
@@ -49,7 +45,7 @@ export default async function handler(req, res) {
             .single();
 
         if (mfaError || !mfaData) {
-            return res.status(404).json({ success: false, error: '2FA not set up. Call /api/auth/mfa/setup first.' });
+            return res.status(404).json({ error: '2FA not set up. Call /api/auth/mfa/setup first.' });
         }
 
         // Verify the code
@@ -61,7 +57,7 @@ export default async function handler(req, res) {
         });
 
         if (!verified) {
-            return res.status(400).json({ success: false, error: 'Invalid verification code' });
+            return res.status(400).json({ error: 'Invalid verification code' });
         }
 
         // Generate backup codes (10 codes)
@@ -86,7 +82,7 @@ export default async function handler(req, res) {
 
         if (updateError) {
             console.error('Error enabling 2FA:', updateError);
-            return res.status(500).json({ success: false, error: 'Failed to enable 2FA' });
+            return res.status(500).json({ error: 'Failed to enable 2FA' });
         }
 
         // Return backup codes (only time they're shown unhashed)
@@ -97,6 +93,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('2FA verification error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 }

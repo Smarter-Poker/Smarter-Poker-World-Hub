@@ -9,32 +9,27 @@
  */
 import { createClient } from '@supabase/supabase-js';
 
-import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-const { hashEmail } = require('../../../src/lib/antiAbuse');
-
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 export default async function handler(req, res) {
-    if (!applyRateLimit(req, res, LIMITS.auth)) return;
-
     if (req.method !== 'DELETE') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     // ── AUTH CHECK ──
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-        return res.status(401).json({ success: false, error: 'Not authenticated' });
+        return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
-        return res.status(401).json({ success: false, error: 'Invalid or expired session' });
+        return res.status(401).json({ error: 'Invalid or expired session' });
     }
 
     try {
@@ -46,13 +41,12 @@ export default async function handler(req, res) {
             .from('club_members')
             .select('club_id, chip_balance, locked_chips')
             .eq('user_id', userId)
-            .or('chip_balance.gt.0,locked_chips.gt.0')
-            .limit(200);
+            .or('chip_balance.gt.0,locked_chips.gt.0');
 
         if (activeBalances?.length > 0) {
             const totalChips = activeBalances.reduce((sum, m) => sum + (m.chip_balance || 0) + (m.locked_chips || 0), 0);
             return res.status(400).json({
-                success: false, error: 'Cannot delete account with active chip balances',
+                error: 'Cannot delete account with active chip balances',
                 details: `You have ${totalChips.toLocaleString()} chips across ${activeBalances.length} club(s). Please cash out or contact your agent first.`,
                 clubs_with_balance: activeBalances.length,
             });
@@ -68,7 +62,7 @@ export default async function handler(req, res) {
 
         if (activeAgent?.length > 0) {
             return res.status(400).json({
-                success: false, error: 'Cannot delete account while active as an agent',
+                error: 'Cannot delete account while active as an agent',
                 details: 'Please have the club owner remove your agent role first.',
             });
         }
@@ -77,12 +71,11 @@ export default async function handler(req, res) {
         const { data: ownedClubs } = await supabaseAdmin
             .from('clubs')
             .select('id, name')
-            .eq('owner_id', userId)
-            .limit(100);
+            .eq('owner_id', userId);
 
         if (ownedClubs?.length > 0) {
             return res.status(400).json({
-                success: false, error: 'Cannot delete account while you own clubs',
+                error: 'Cannot delete account while you own clubs',
                 details: `You own ${ownedClubs.length} club(s): ${ownedClubs.map(c => c.name).join(', ')}. Transfer ownership or delete the club(s) first.`,
                 clubs_owned: ownedClubs.length,
             });
@@ -92,12 +85,11 @@ export default async function handler(req, res) {
         const { data: ownedUnions } = await supabaseAdmin
             .from('unions')
             .select('id, name')
-            .eq('owner_id', userId)
-            .limit(50);
+            .eq('owner_id', userId);
 
         if (ownedUnions?.length > 0) {
             return res.status(400).json({
-                success: false, error: 'Cannot delete account while you own unions',
+                error: 'Cannot delete account while you own unions',
                 details: `You own ${ownedUnions.length} union(s): ${ownedUnions.map(u => u.name).join(', ')}. Transfer ownership first.`,
                 unions_owned: ownedUnions.length,
             });
@@ -116,58 +108,7 @@ export default async function handler(req, res) {
             .delete()
             .eq('user_id', userId);
 
-        // ═══════════════════════════════════════════════════════════════
-        // 🛡️ ANTI-ABUSE: Record deletion fingerprint before wiping data
-        // This record survives account deletion and prevents re-signup
-        // farming of Welcome Package diamonds and VIP.
-        // ═══════════════════════════════════════════════════════════════
-        try {
-            const emailHash = hashEmail(user.email);
-            if (emailHash) {
-                // Upsert: create if first time, update if re-deleting
-                const { data: existing } = await supabaseAdmin
-                    .from('signup_abuse_log')
-                    .select('id, deleted_account_count, abuse_flags')
-                    .eq('email_hash', emailHash)
-                    .single();
-
-                if (existing) {
-                    const currentFlags = existing.abuse_flags || [];
-                    currentFlags.push({
-                        reason: 'account_deleted',
-                        at: new Date().toISOString(),
-                        user_id: userId,
-                    });
-
-                    await supabaseAdmin
-                        .from('signup_abuse_log')
-                        .update({
-                            deleted_account_count: (existing.deleted_account_count || 0) + 1,
-                            last_deleted_at: new Date().toISOString(),
-                            user_id: null, // Clear user_id since account is being deleted
-                            abuse_flags: currentFlags,
-                        })
-                        .eq('id', existing.id);
-                } else {
-                    // No existing record — create one (e.g., account created before anti-abuse was deployed)
-                    await supabaseAdmin
-                        .from('signup_abuse_log')
-                        .insert({
-                            email_hash: emailHash,
-                            raw_email: user.email,
-                            user_id: null,
-                            deleted_account_count: 1,
-                            last_deleted_at: new Date().toISOString(),
-                            welcome_package_granted: true, // Assume they got it
-                            abuse_flags: [{ reason: 'account_deleted', at: new Date().toISOString(), user_id: userId }],
-                        });
-                }
-            }
-            console.log(`[ANTI-ABUSE] Recorded deletion fingerprint for ${user.email}`);
-        } catch (abuseErr) {
-            console.warn('[ANTI-ABUSE] Failed to record deletion (table may not exist yet):', abuseErr.message);
-        }
-        // ═══════════════════════════════════════════════════════════════
+        // ── 1. Delete user profile data ──
         // Remove diamond balance
         await supabaseAdmin
             .from('user_diamond_balance')
@@ -234,6 +175,7 @@ export default async function handler(req, res) {
             // Profile data is already gone — log but don't block
         }
 
+        console.log('[delete-account] Account deleted for user:', userId);
 
         return res.status(200).json({
             success: true,
@@ -242,6 +184,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('[delete-account] Error:', error);
-        return res.status(500).json({ success: false, error: 'Failed to delete account. Please contact support.' });
+        return res.status(500).json({ error: 'Failed to delete account. Please contact support.' });
     }
 }

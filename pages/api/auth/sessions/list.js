@@ -34,8 +34,7 @@ export default async function handler(req, res) {
             .from('user_sessions')
             .select('*')
             .eq('user_id', user.id)
-            .order('last_active', { ascending: false })
-                .limit(50);
+            .order('last_active', { ascending: false });
 
         if (sessionsError) {
             console.error('Error fetching sessions:', sessionsError);

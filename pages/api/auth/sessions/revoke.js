@@ -4,7 +4,6 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { createClient } from '@supabase/supabase-js';
-import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,32 +11,28 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
-
     if (req.method !== 'POST') {
-        return res.status(405).json({ success: false, error: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
         const { sessionId } = req.body;
 
         if (!sessionId) {
-            return res.status(400).json({ success: false, error: 'Session ID required' });
+            return res.status(400).json({ error: 'Session ID required' });
         }
 
         // Get authenticated user from session
         const authHeader = req.headers.authorization;
         if (!authHeader) {
-            return res.status(401).json({ success: false, error: 'Not authenticated' });
+            return res.status(401).json({ error: 'Not authenticated' });
         }
 
         const token = authHeader.replace('Bearer ', '');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
         if (userError || !user) {
-            return res.status(401).json({ success: false, error: 'Invalid session' });
+            return res.status(401).json({ error: 'Invalid session' });
         }
 
         // Delete the session (RLS ensures user can only delete their own)
@@ -49,7 +44,7 @@ export default async function handler(req, res) {
 
         if (deleteError) {
             console.error('Error revoking session:', deleteError);
-            return res.status(500).json({ success: false, error: 'Failed to revoke session' });
+            return res.status(500).json({ error: 'Failed to revoke session' });
         }
 
         return res.status(200).json({
@@ -59,6 +54,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error('Session revoke error:', error);
-        return res.status(500).json({ success: false, error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 }
