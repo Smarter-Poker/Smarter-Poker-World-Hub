@@ -160,7 +160,23 @@ export default function UniversalHeader({
     const { unreadCount } = useUnreadCount();
 
     // Derived values — use mounted guard for client-only values to prevent hydration mismatch
-    const displayAvatar = mounted ? (user?.avatar || contextUser?.user_metadata?.avatar_url || contextAvatar?.imageUrl) : null;
+    // Priority: API-fetched avatar → auth metadata → cached localStorage → context avatar (but NOT generic presets)
+    const displayAvatar = mounted ? (() => {
+        // Layer 1: API-fetched profile avatar_url (set by get-header-stats)
+        if (user?.avatar) return user.avatar;
+        // Layer 2: Auth metadata avatar_url
+        if (contextUser?.user_metadata?.avatar_url) return contextUser.user_metadata.avatar_url;
+        // Layer 3: localStorage cached avatar from a previous successful load
+        try {
+            const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+            if (cached?.avatar && !cached.avatar.includes('/avatars/free/')) return cached.avatar;
+        } catch (_) { }
+        // Layer 4: AvatarContext imageUrl — but skip generic preset avatars (shark, etc.)
+        if (contextAvatar?.imageUrl && !contextAvatar.imageUrl.includes('/avatars/free/')) return contextAvatar.imageUrl;
+        // Layer 5: Any avatar at all (including presets) — better than nothing
+        if (contextAvatar?.imageUrl) return contextAvatar.imageUrl;
+        return null;
+    })() : null;
     const isVipDisplay = mounted ? (isVip || contextVip) : false;
 
     // Live Help state
