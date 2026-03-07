@@ -35,7 +35,9 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    const { gameId, userId, level = 1, engineType = 'PIO' } = req.query;
+    const { gameId, level = 1, engineType = 'PIO' } = req.query;
+    // BUG FIX: was reading userId from query — IDOR; use JWT identity instead
+    const userId = _authUser.id;
 
     if (!gameId) {
         return res.status(400).json({ success: false, error: 'gameId required' });
