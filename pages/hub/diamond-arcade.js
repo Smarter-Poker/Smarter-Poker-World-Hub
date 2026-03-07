@@ -369,8 +369,8 @@ export default function DiamondArcade() {
             let authHeaders = { 'Content-Type': 'application/json' };
             try {
                 const token = getAccessToken();
-                if (session?.access_token) {
-                    authHeaders['Authorization'] = `Bearer ${session.access_token}`;
+                if (token) {
+                    authHeaders['Authorization'] = `Bearer ${token}`;
                 }
             } catch (_) { }
 
