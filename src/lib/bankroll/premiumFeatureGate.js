@@ -36,8 +36,10 @@ export async function checkBankrollProAccess(userId) {
                 // Try to include session token for authenticated call
                 const headers = {};
                 try {
-                    const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-                    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                    if (typeof window !== 'undefined') {
+                        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
+                        if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+                    }
                 } catch (_) { }
                 const resp = await fetch(`/api/vip/check-status?userId=${userId}`, { signal: controller.signal, headers });
                 clearTimeout(timeoutId);
@@ -164,13 +166,16 @@ export async function purchaseBankrollProAccess(userId) {
     }
 
     // Log transaction
-    await supabase.from('diamond_transactions').insert({
+    const { error: txnError } = await supabase.from('diamond_transactions').insert({
         user_id: userId,
         amount: -cost,
         transaction_type: 'feature_unlock',
         description: 'Bankroll Manager Pro - 24 Hour Access',
         metadata: { feature_key: 'bankroll_pro' }
     });
+    if (txnError) {
+        console.error('[BankrollProGate] Diamond transaction failed:', txnError.message);
+    }
 
     // Grant access
     const { error: accessError } = await supabase
@@ -184,10 +189,13 @@ export async function purchaseBankrollProAccess(userId) {
 
     if (accessError) {
         // Refund on failure
-        await supabase
+        const { error: refundErr } = await supabase
             .from('profiles')
             .update({ diamonds: currentBalance })
             .eq('id', userId);
+        if (refundErr) {
+            console.error('[BankrollProGate] Refund failed:', refundErr.message);
+        }
         return { success: false, error: 'Failed to grant access' };
     }
 

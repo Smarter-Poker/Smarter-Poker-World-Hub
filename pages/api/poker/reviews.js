@@ -135,10 +135,17 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const { review_id, user_id } = req.query;
+      // CRITICAL FIX #1: Require JWT auth instead of query param user_id
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required for delete' });
+      const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+      if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      if (!review_id || !user_id) {
-        return res.status(400).json({ success: false, error: 'review_id and user_id are required' });
+      const { review_id } = req.query;
+      const user_id = authUser.id;
+
+      if (!review_id) {
+        return res.status(400).json({ success: false, error: 'review_id is required' });
       }
 
       const { data, error } = await supabase

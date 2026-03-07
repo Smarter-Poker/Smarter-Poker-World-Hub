@@ -102,7 +102,9 @@ export default async function handler(req, res) {
                     onConflict: 'user_id,game_id'
                 });
 
+            // HIGH FIX #3: Add error logging to empty error handler
             if (upsertError) {
+                console.error('[Session] Upsert error:', upsertError.message);
             }
         }
 

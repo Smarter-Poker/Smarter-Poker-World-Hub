@@ -108,9 +108,11 @@ export default function CommanderHub() {
   // Realtime listener — live updates for index.js
   // NOTE: user object not available here — use a stable channel name
   useEffect(() => {
+    const user = getAuthUser();
+    if (!user?.id) return;
     const ch = supabase
       .channel('cmd-home-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist' }, () => { fetchVenues(); fetchMyWaitlists(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `user_id=eq.${user.id}` }, () => { fetchVenues(); fetchMyWaitlists(); })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_games' }, () => { fetchVenues(); fetchLiveGames(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };

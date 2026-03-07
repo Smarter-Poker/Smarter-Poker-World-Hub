@@ -152,6 +152,8 @@ class AutoPoster {
             if (!error && data) {
                 results.push(data);
                 console.log(`📅 Scheduled: ${content.author_alias} for ${currentTime.toLocaleString()}`);
+            } else {
+                console.error('[AutoPoster] Batch insert failed:', error?.message || 'No data returned');
             }
 
             currentTime = new Date(currentTime.getTime() + delay * 60 * 1000);

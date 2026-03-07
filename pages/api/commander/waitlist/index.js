@@ -199,7 +199,8 @@ export default async function handler(req, res) {
         p_stakes: stakes
       });
 
-    const position = positionError ? 1 : positionResult;
+    // HIGH FIX #1: Add proper null check for RPC result
+    const position = positionError || !positionResult ? 1 : positionResult;
 
     // Calculate estimated wait time
     const estimated_wait_minutes = position * AVERAGE_WAIT_PER_POSITION;

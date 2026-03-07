@@ -279,8 +279,8 @@ export default function ClubArenaPage() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`club-arena-hub:${user?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clubs' }, () => {})
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members' }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clubs', filter: `owner_id=eq.${user.id}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${user.id}` }, () => {})
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);

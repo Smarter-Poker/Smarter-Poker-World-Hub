@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { useEffect } from 'react';
 
 export const usePerformanceStore = create((set, get) => ({
     metrics: {
@@ -103,14 +104,22 @@ export const usePerformanceStore = create((set, get) => ({
 export function usePageLoadTracking(pageName) {
     const trackPageLoad = usePerformanceStore((s) => s.trackPageLoad);
 
-    if (typeof window !== 'undefined') {
-        const startTime = performance.now();
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
 
-        window.addEventListener('load', () => {
+        const startTime = performance.now();
+        const handler = () => {
             const loadTime = performance.now() - startTime;
             trackPageLoad(pageName, loadTime);
-        }, { once: true });
-    }
+        };
+
+        window.addEventListener('load', handler, { once: true });
+
+        // Cleanup: remove listener if component unmounts before page load
+        return () => {
+            window.removeEventListener('load', handler);
+        };
+    }, [pageName, trackPageLoad]);
 }
 
 export default usePerformanceStore;

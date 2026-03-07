@@ -860,7 +860,7 @@ class LobbyManager {
             sb.from('tables').update({
               hands_dealt: table.handCount || 0,
               updated_at: new Date().toISOString(),
-            }).eq('id', config.tableId).then(() => { });
+            }).eq('id', config.tableId).then(() => { }).catch((err) => console.error('[LobbyManager] Table stats update failed:', err));
           });
         }
       } catch (_) {

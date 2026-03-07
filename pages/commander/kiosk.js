@@ -130,6 +130,11 @@ export default function MembershipKiosk() {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader }
       });
+      // HIGH FIX #2e: Add response.ok check before .json()
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const json = await res.json();
       if (json.success && json.data) {
         // Extract unique game_type + stakes combos from current waitlist
@@ -170,6 +175,11 @@ export default function MembershipKiosk() {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader }
       });
+      // HIGH FIX #2f: Add response.ok check before .json()
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const json = await res.json();
       if (json.success && json.data) {
         const q = query.toLowerCase();
@@ -221,6 +231,11 @@ export default function MembershipKiosk() {
         headers: { 'Content-Type': 'application/json', 'x-staff-session': staffHeader },
         body: JSON.stringify({ qr_code: scanQR.trim(), venue_id: venueId })
       });
+      // HIGH FIX #2g: Add response.ok check before .json()
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const json = await res.json();
       if (!json.success || !json.data?.member) {
         setScanError('Card not recognized. Please try again or search by name.');
@@ -234,6 +249,11 @@ export default function MembershipKiosk() {
         const wlRes = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
           headers: { 'x-staff-session': staffHeader }
         });
+        // HIGH FIX #2h: Add response.ok check before .json()
+        if (!wlRes.ok) {
+          const errorText = await wlRes.text().catch(() => 'Unknown error');
+          throw new Error(`HTTP ${wlRes.status}: ${errorText}`);
+        }
         const wlData = await wlRes.json();
         if (wlData.success && wlData.data) {
           const memberName = (member.name || `${member.first_name} ${member.last_name}`).toLowerCase().trim();
@@ -280,6 +300,11 @@ export default function MembershipKiosk() {
       const res = await fetch(`/api/commander/waitlist?venue_id=${venueId}`, {
         headers: { 'x-staff-session': staffHeader }
       });
+      // HIGH FIX #2i: Add response.ok check before .json()
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const json = await res.json();
       if (json.success && json.data) {
         const qLower = q.toLowerCase();

@@ -103,6 +103,12 @@ export default function VenueOnboardingPage() {
         body: JSON.stringify(formData)
       });
 
+      // HIGH FIX #2d: Add response.ok check before .json()
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+
       const data = await res.json();
       if (data.success) {
         setSubmitted(true);

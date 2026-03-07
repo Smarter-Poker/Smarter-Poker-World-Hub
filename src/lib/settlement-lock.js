@@ -44,17 +44,19 @@ export async function checkSettlementLock(supabase, clubId) {
     const unlockTime = new Date(club.settlement_locked_until);
     if (unlockTime <= new Date()) {
       // Lock expired — clear it
-      await supabase
+      const { error: unlockErr } = await supabase
         .from('clubs')
         .update({ settlement_locked: false, settlement_locked_until: null })
         .eq('id', clubId);
+      if (unlockErr) console.error('[SettlementLock] Club unlock failed:', unlockErr.message);
 
       // Also deactivate settlement_locks record
-      await supabase
+      const { error: lockErr } = await supabase
         .from('settlement_locks')
         .update({ is_active: false, unlocked_at: new Date().toISOString() })
         .eq('club_id', clubId)
         .eq('is_active', true);
+      if (lockErr) console.error('[SettlementLock] Lock deactivation failed:', lockErr.message);
 
       return { locked: false };
     }

@@ -299,7 +299,7 @@ export default function SocialPageDetail() {
     const _ch = supabase
       .channel(`social-page:${pageId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_page_posts', filter: `page_id=eq.${pageId}` }, () => {})
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_interactions', filter: `page_id=eq.${pageId}` }, () => {})
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [pageId]);

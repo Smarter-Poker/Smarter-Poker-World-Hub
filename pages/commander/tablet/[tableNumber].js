@@ -107,6 +107,11 @@ export default function TabletDisplay() {
         try {
             const url = `/api/commander/dealer/tablet-data?table=${tableNumber}${venueId ? `&venue_id=${venueId}` : ''}`;
             const res = await fetch(url);
+            // HIGH FIX #2a: Add response.ok check before .json()
+            if (!res.ok) {
+                const errorText = await res.text().catch(() => 'Unknown error');
+                throw new Error(`HTTP ${res.status}: ${errorText}`);
+            }
             const json = await res.json();
             if (json.success) {
                 setData(json.data);
@@ -209,6 +214,7 @@ export default function TabletDisplay() {
                 event: '*',
                 schema: 'public',
                 table: 'commander_games',
+                filter: `venue_id=eq.${venueId}`,
             }, () => fetchData())
             .on('postgres_changes', {
                 // Tournament players moved by auto-break: new entrant has to_table = this table.

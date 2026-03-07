@@ -80,6 +80,7 @@ export async function getOrCreateLocation(
     .maybeSingle();
 
   if (error) throw error;
+  if (!newLoc) throw new Error('Failed to create location');
   return newLoc.id;
 }
 

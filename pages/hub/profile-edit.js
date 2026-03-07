@@ -564,6 +564,11 @@ export default function ProfilePage() {
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
                 body: formData,
             });
+            // HIGH FIX #2j: Add response.ok check before .json()
+            if (!uploadRes.ok) {
+                const errorText = await uploadRes.text().catch(() => 'Unknown error');
+                throw new Error(`HTTP ${uploadRes.status}: ${errorText}`);
+            }
             const uploadJson = await uploadRes.json();
 
             if (!uploadJson.success || !uploadJson.url) {

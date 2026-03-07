@@ -32,6 +32,11 @@ export default function WaitlistStatus() {
     if (!id) return;
     try {
       const res = await fetch(`/api/commander/waitlist/${id}`);
+      // HIGH FIX #2b: Add response.ok check before .json()
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const json = await res.json();
       if (!json.success) {
         setError('Entry not found');
@@ -42,6 +47,11 @@ export default function WaitlistStatus() {
 
       // Get position in waitlist
       const listRes = await fetch('/api/commander/waitlist');
+      // HIGH FIX #2c: Add response.ok check before .json()
+      if (!listRes.ok) {
+        const errorText = await listRes.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${listRes.status}: ${errorText}`);
+      }
       const listJson = await listRes.json();
       if (listJson.success) {
         const waiting = (listJson.data || [])
@@ -71,7 +81,7 @@ export default function WaitlistStatus() {
     if (!id) return;
     const channel = supabase
       .channel(`waitlist-status-${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist' }, () => fetchStatus())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `id=eq.${id}` }, () => fetchStatus())
       .subscribe();
     channelRef.current = channel;
     return () => {

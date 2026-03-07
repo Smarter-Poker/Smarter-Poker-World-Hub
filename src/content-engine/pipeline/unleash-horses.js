@@ -212,8 +212,8 @@ async function postForHorse(horse, attemptNumber = 1) {
             .select()
             .maybeSingle();
 
-        if (postError) {
-            console.log(`   ❌ Post failed: ${postError.message}`);
+        if (postError || !post) {
+            console.log(`   ❌ Post failed: ${postError?.message || 'No data returned'}`);
             return { success: false, reason: 'post_failed' };
         }
 

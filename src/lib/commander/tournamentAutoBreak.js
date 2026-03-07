@@ -222,7 +222,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
 
         // ── Release the broken table (ONLY if all players successfully moved) ──
         if (errors.length === 0) {
-            await supabase
+            const { error: releaseErr } = await supabase
                 .from('commander_tables')
                 .update({
                     mode: 'inactive',
@@ -234,6 +234,9 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
                 .eq('venue_id', tournament.venue_id)
                 .eq('tournament_id', tournamentId)
                 .eq('table_number', breakCandidate.table_number);
+            if (releaseErr) {
+                console.error(`[auto-break] Table ${breakCandidate.table_number} release failed:`, releaseErr.message);
+            }
         } else {
             console.warn(`[auto-break] Table ${breakCandidate.table_number} not released because ${errors.length} player moves failed.`);
         }

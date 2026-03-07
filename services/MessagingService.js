@@ -535,6 +535,7 @@ class MessagingService {
                     event: 'INSERT',
                     schema: 'public',
                     table: 'social_message_reads',
+                    filter: `message_id=in(SELECT id FROM social_messages WHERE conversation_id=eq.${conversationId})`,
                 },
                 (payload) => {
                     callbacks.onReadReceipt?.(payload.new);
@@ -564,14 +565,23 @@ class MessagingService {
      * Subscribe to all user's conversations
      */
     subscribeToUserMessages(userId, callbacks = {}) {
+        const channelKey = `user:${userId}:messages`;
+
+        // Unsubscribe from existing if any
+        if (this.subscriptions.has(channelKey)) {
+            const existing = this.subscriptions.get(channelKey);
+            supabase.removeChannel(existing);
+        }
+
         const channel = supabase
-            .channel(`user:${userId}:messages`)
+            .channel(channelKey)
             .on(
                 'postgres_changes',
                 {
                     event: '*',
                     schema: 'public',
                     table: 'social_messages',
+                    filter: `conversation_id=in(SELECT id FROM social_conversation_participants WHERE user_id=eq.${userId})`,
                 },
                 (payload) => {
                     callbacks.onMessage?.(payload);
@@ -579,7 +589,7 @@ class MessagingService {
             )
             .subscribe();
 
-        this.subscriptions.set(`user:${userId}`, channel);
+        this.subscriptions.set(channelKey, channel);
         return channel;
     }
 
