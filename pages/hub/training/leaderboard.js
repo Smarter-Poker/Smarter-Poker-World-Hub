@@ -14,8 +14,10 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 export default function TrainingLeaderboard() {
+    useTrainingBus('training-leaderboard');
     const [user, setUser] = useState(null);
     const { filters, setFilter } = usePersistedFilters('training-leaderboard', {
         timeframe: 'all-time',

@@ -727,6 +727,7 @@ export default function VirtualSandbox() {
         hero_position: heroPosition, hero_stack: heroStack, game_type: gameType,
         board_flop: board.flop.join(''), board_turn: board.turn, board_river: board.river,
         villains: JSON.stringify(villains), action_history: JSON.stringify(actionHistory),
+        pot_size_bb: potSize,
         label: `${heroPosition} ${heroHand.card1 || '?'}${heroHand.card2 || '?'} on ${board.flop.join('')}`,
       });
       if (error) {

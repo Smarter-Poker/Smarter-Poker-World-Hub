@@ -13,8 +13,11 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 export default function TrainingProgress() {
+    useTrainingBus('training-progress');
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -32,20 +35,20 @@ export default function TrainingProgress() {
     useEffect(() => {
         loadProgress();
     }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`train-progress:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {
-        loadProgress();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'training_streaks', filter: `user_id=eq.${user?.id}` }, () => {
-        loadProgress();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`train-progress:${user?.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {
+                loadProgress();
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'training_streaks', filter: `user_id=eq.${user?.id}` }, () => {
+                loadProgress();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     const loadProgress = async () => {
         try {
@@ -102,7 +105,7 @@ export default function TrainingProgress() {
                     accuracy: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
                     total: data.total
                 }))
-                .filter(area => Area.accuracy < 70 && area.total >= 5)
+                .filter(area => area.accuracy < 70 && area.total >= 5)
                 .sort((a, b) => a.accuracy - b.accuracy);
 
             // Fetch streak data

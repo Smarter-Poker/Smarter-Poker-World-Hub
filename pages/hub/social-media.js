@@ -4267,6 +4267,16 @@ export default function SocialMediaPage() {
                 } else {
                     console.log('[Social] No authenticated user found');
                 }
+                // Hydrate feed from cache for instant render
+                try {
+                    const feedCacheRaw = localStorage.getItem('sp-feed-cache');
+                    if (feedCacheRaw) {
+                        const feedCache = JSON.parse(feedCacheRaw);
+                        if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
+                            setPosts(feedCache.posts);
+                        }
+                    }
+                } catch { /* cache miss */ }
                 await loadFeed();
                 // Load live streams
                 try {
@@ -4672,6 +4682,14 @@ export default function SocialMediaPage() {
                     setPosts(prev => [...prev, ...formattedPosts]);
                 } else {
                     setPosts(formattedPosts);
+                    // Cache first 20 posts for instant render on next visit
+                    try {
+                        const cacheSlice = formattedPosts.slice(0, 20);
+                        localStorage.setItem('sp-feed-cache', JSON.stringify({
+                            _cachedAt: Date.now(),
+                            posts: cacheSlice,
+                        }));
+                    } catch { /* quota exceeded */ }
                 }
             }
         } catch (e) { console.error('Feed error:', e); }

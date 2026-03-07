@@ -12,6 +12,7 @@ import useSWR from 'swr';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const RARITY_COLORS = {
     common: '#9ca3af',
@@ -29,6 +30,7 @@ const CATEGORY_ICONS = {
 };
 
 export default function TrainingAchievements() {
+    useTrainingBus('achievements');
     const [user, setUser] = useState(null);
     const [activeCategory, setActiveCategory] = useState('all');
 

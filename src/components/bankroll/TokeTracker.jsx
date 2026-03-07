@@ -1882,8 +1882,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 loadError={loadError}
                 onViewReport={handleViewReport}
                 onSaveEdit={async (gigId, form) => {
-                    if (!userId) { toast.error('You must be logged in'); return; }
-                    if (!form.venue_name.trim()) { toast.error('Venue name is required'); return; }
+                    if (!userId) { toast.error('You must be logged in'); throw new Error('Not logged in'); }
+                    if (!form.venue_name.trim()) { toast.error('Venue name is required'); throw new Error('Venue required'); }
                     await updateGig(userId, gigId, { ...form, hourly_rate: parseFloat(form.hourly_rate) || 0 });
                     toast.success('Event updated!');
                     await loadData();

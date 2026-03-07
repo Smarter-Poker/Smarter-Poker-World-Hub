@@ -17,7 +17,6 @@ function CompletedEventsList({
     isLoading,
     loadError,
     onViewReport,
-    onEditGig,
     onSaveEdit,
     onDeleteGig,
     styles,
@@ -36,8 +35,12 @@ function CompletedEventsList({
     };
 
     const handleSave = async (gigId) => {
-        await onSaveEdit(gigId, completedEditForm);
-        setEditingCompletedGig(null);
+        try {
+            await onSaveEdit(gigId, completedEditForm);
+            setEditingCompletedGig(null);
+        } catch (err) {
+            // Keep form open on failure — parent shows toast
+        }
     };
 
     return (

@@ -16,6 +16,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { busEmit } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // Milestone definitions (must match API)
 const STREAK_MILESTONES = [
@@ -29,6 +30,7 @@ const STREAK_MILESTONES = [
 ];
 
 export default function StreaksPage() {
+    useTrainingBus('streaks');
     const [user, setUser] = useState(null);
     const [claiming, setClaiming] = useState(null);
 

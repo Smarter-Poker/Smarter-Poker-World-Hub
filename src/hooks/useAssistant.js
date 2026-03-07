@@ -466,7 +466,7 @@ export function useBookmarks(limit = 15) {
 
       const { data, error } = await supabase
         .from('sandbox_bookmarks')
-        .select('id, hero_hand, hero_position, hero_stack, game_type, board_flop, board_turn, board_river, villains, action_history, label, created_at')
+        .select('id, hero_hand, hero_position, hero_stack, game_type, board_flop, board_turn, board_river, villains, action_history, pot_size_bb, label, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(limit);
