@@ -105,7 +105,7 @@ export default function PlayerHomeGamesHub() {
   const loadGames = async(signal) => {
     setIsLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
 
       const token = _session?.access_token;
       const res = await fetch('/api/commander/home-games/groups?visibility=public,friends', {
@@ -126,7 +126,7 @@ export default function PlayerHomeGamesHub() {
     if (!joinCode.trim()) return;
 
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
 
       const token = _session?.access_token;
       if (!token) {
@@ -158,7 +158,7 @@ export default function PlayerHomeGamesHub() {
   const loadDiscoverGames = async(signal) => {
     setDiscoverLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
 
       const token = _session?.access_token;
       const res = await fetch('/api/commander/home-games/discover?type=groups&limit=20', {
@@ -178,7 +178,7 @@ export default function PlayerHomeGamesHub() {
   const loadCalendarEvents = async(signal) => {
     setCalendarLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
 
       const token = _session?.access_token;
       const res = await fetch('/api/commander/home-games/events?limit=100', {
@@ -196,7 +196,7 @@ export default function PlayerHomeGamesHub() {
   };
 
   const handleJoinGame = async (game) => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
 
     const token = _session?.access_token;
     if (!token) {

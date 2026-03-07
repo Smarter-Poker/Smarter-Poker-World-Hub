@@ -204,7 +204,7 @@ async function postForHorse(horse, attemptNumber = 1) {
                 visibility: 'public'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (postError) {
             console.log(`   ❌ Post failed: ${postError.message}`);
@@ -222,7 +222,7 @@ async function postForHorse(horse, attemptNumber = 1) {
                 expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (storyError) {
             console.log(`   ⚠️ Story failed: ${storyError.message}`);

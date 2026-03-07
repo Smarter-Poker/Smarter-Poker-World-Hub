@@ -34,7 +34,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
         .select('id')
         .eq('user_id', userId)
         .eq('search_query', searchQuery)
-        .single();
+        .maybeSingle();
 
     if (existing) {
         // Update searched_at timestamp
@@ -43,7 +43,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
             .update({ searched_at: new Date().toISOString() })
             .eq('id', existing.id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error updating search history:', error);
@@ -63,7 +63,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
             filters: searchData.filters || null
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding search history:', error);

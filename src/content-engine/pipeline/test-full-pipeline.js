@@ -153,7 +153,7 @@ async function testFullPipeline() {
                 visibility: 'public'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (postError) {
             console.error('Post creation failed:', postError.message);
@@ -172,7 +172,7 @@ async function testFullPipeline() {
                 expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (storyError) {
             console.error('Story creation failed:', storyError.message);

@@ -191,7 +191,7 @@ export async function updateLevelProgress(
             updated_at: new Date().toISOString()
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error updating progress:', error);
@@ -311,7 +311,7 @@ export async function submitAnswer(params: {
             played_at: new Date().toISOString()
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error submitting answer:', error);

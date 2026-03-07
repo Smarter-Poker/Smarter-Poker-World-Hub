@@ -95,7 +95,7 @@ async function publishDailyContent() {
             .from('profiles')
             .select('id, username, full_name')
             .eq('id', SYSTEM_ACCOUNT_UUID)
-            .single();
+            .maybeSingle();
 
         if (accountError || !systemAccount) {
             throw new Error(`System account not found: ${accountError?.message}`);
@@ -118,7 +118,7 @@ async function publishDailyContent() {
                 created_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (postError) {
             throw new Error(`Failed to create post: ${postError.message}`);

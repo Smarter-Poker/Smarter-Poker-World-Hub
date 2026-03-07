@@ -205,7 +205,7 @@ class BravoScraper {
             .ilike('name', `%${room.name.split(' ')[0]}%`)
             .eq('state', room.state)
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (venueError || !venue) {
             this.log('⚠️', `Could not find venue ${room.name} in database`);

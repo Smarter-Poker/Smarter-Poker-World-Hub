@@ -290,7 +290,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     (async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/services');
     })();
@@ -306,7 +306,7 @@ export default function ServicesPage() {
   }, [user?.id]);
 
   const { data: swrData, isLoading: loading, mutate: refreshServices } = useSWR('/api/commander/sessions/current', async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
@@ -325,7 +325,7 @@ export default function ServicesPage() {
 
   async function handleSubmitRequest(request) {
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch('/api/commander/services/request', {
         method: 'POST',
@@ -351,7 +351,7 @@ export default function ServicesPage() {
 
   async function handleCancelRequest(requestId) {
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       await fetch(`/api/commander/services/${requestId}`, {
         method: 'DELETE',

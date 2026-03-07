@@ -145,7 +145,7 @@ export default function PlayerWaitlistPage() {
     } catch (_) { /* localStorage unavailable */ }
 
     // 2. Session path: supabase.auth.getSession (handles refresh, slower on first call)
-    const { data: { session: _authSession } } = await supabase.auth.getSession();
+    const _authSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     if (_authSession?.access_token) return _authSession.access_token;
 
     // 3. Legacy fallback: sb-*-auth-token keys (backwards compat)

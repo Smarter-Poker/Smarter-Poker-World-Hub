@@ -20,7 +20,7 @@ export async function getPokerNearMePreferences(userId) {
             .from('profiles')
             .select('poker_near_me_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

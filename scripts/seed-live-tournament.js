@@ -145,7 +145,7 @@ const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
             },
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (tErr) {
         console.error('❌ Tournament create error:', tErr.message);

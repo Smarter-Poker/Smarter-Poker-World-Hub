@@ -77,7 +77,7 @@ async function testVideoPost() {
             }
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (postError) {
         console.log(`\n❌ Post error: ${postError.message}`);

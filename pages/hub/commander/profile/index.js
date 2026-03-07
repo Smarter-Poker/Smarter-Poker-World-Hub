@@ -11,6 +11,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
 import { getSafeUser } from '../../../../src/lib/authUtils';
+import { getAuthUser } from '../../../../src/lib/authUtils';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -77,7 +78,7 @@ export default function PlayerProfilePage() {
   useEffect(() => {
     const _c = new AbortController();
     (async () => {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       const token = _session?.access_token;
       if (!token) router.push('/auth/login?redirect=/hub/commander/profile');
     })();
@@ -85,7 +86,7 @@ export default function PlayerProfilePage() {
   }, [router]);
 
   const { data: swrData, isLoading: loading, mutate: refreshProfile } = useSWR('/api/commander/profile', async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
@@ -121,7 +122,7 @@ export default function PlayerProfilePage() {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-        const user = await getSafeUser(supabase);
+        const user = getAuthUser();
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
           const json = await res.json();

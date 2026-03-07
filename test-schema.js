@@ -3,8 +3,8 @@ require('dotenv').config({ path: '.env.local' });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 async function createTables() {
-    const { data: profile } = await supabase.from('profiles').select('id').eq('email', 'johndonnahue4485@yahoo.com').single();
-    const { data: venue } = await supabase.from('poker_venues').select('id').eq('claimed_by', profile.id).single();
+    const { data: profile } = await supabase.from('profiles').select('id').eq('email', 'johndonnahue4485@yahoo.com').maybeSingle();
+    const { data: venue } = await supabase.from('poker_venues').select('id').eq('claimed_by', profile.id).maybeSingle();
     console.log('Venue ID:', venue.id);
 
     // Check existing tables in commander_tables
@@ -23,7 +23,7 @@ async function createTables() {
             table_name: `Table ${i}`,
             max_seats: 9,
             status: 'available'
-        }).select().single();
+        }).select().maybeSingle();
         if (error) console.error(`Error creating Table ${i}:`, error.message);
         else console.log(`✅ Created Table ${i} (id: ${data.id})`);
     }

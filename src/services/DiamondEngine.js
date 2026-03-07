@@ -44,7 +44,7 @@ class DiamondEngineSupabase {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', this.userId)
-                .single();
+                .maybeSingle();
 
             if (error) {
                 console.error('Error fetching balance:', error);
@@ -78,7 +78,7 @@ class DiamondEngineSupabase {
                 .from('profiles')
                 .select('is_vip')
                 .eq('id', this.userId)
-                .single();
+                .maybeSingle();
 
             if (error) {
                 console.error('[DiamondEngine] VIP check error:', error);
@@ -268,7 +268,7 @@ class DiamondEngineSupabase {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', this.userId)
-                .single();
+                .maybeSingle();
 
             const current = profile?.diamonds || 0;
             if (current < amount) {
@@ -308,7 +308,7 @@ class DiamondEngineSupabase {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', this.userId)
-                .single();
+                .maybeSingle();
 
             const current = profile?.diamonds || 0;
             const newBalance = current + amount;

@@ -34,7 +34,7 @@ export async function getChartById(id) {
             .from('memory_charts_gold')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         return { data, error };
     } catch (err) {
@@ -80,7 +80,7 @@ export async function createChart(chartData) {
             .from('memory_charts_gold')
             .insert([chartData])
             .select()
-            .single();
+            .maybeSingle();
 
         return { data, error };
     } catch (err) {
@@ -108,7 +108,7 @@ export async function updateChart(id, chartData) {
             .update(chartData)
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         return { data, error };
     } catch (err) {
@@ -129,7 +129,7 @@ export async function deleteChart(id) {
             .delete()
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         return { data, error };
     } catch (err) {

@@ -89,7 +89,7 @@ export default function ResponsibleGamingPage() {
 
   useEffect(() => {
     (async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/responsible-gaming');
     })();
@@ -98,7 +98,7 @@ export default function ResponsibleGamingPage() {
   const { isLoading: loading, mutate: refreshSettings } = useSWR(
     '/api/commander/responsible-gaming/limits',
     async (url) => {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       if (!token) return null;
       const h = { Authorization: `Bearer ${token}` };
@@ -122,7 +122,7 @@ export default function ResponsibleGamingPage() {
   async function handleSaveLimits(signal) {
     setSaving(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch('/api/commander/responsible-gaming/limits', {
         method: 'PUT',
@@ -153,7 +153,7 @@ export default function ResponsibleGamingPage() {
 
     setSaving(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch('/api/commander/responsible-gaming/exclusion', {
         method: 'POST',

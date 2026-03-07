@@ -12,7 +12,7 @@ async function findAndReset() {
     const { data, error } = await supabase.auth.admin.listUsers();
 
     // To avoid pagination, let's just query the public.profiles table to get the ID!
-    const { data: profile } = await supabase.from('profiles').select('id, email').eq('email', 'johndonnahue4485@yahoo.com').single();
+    const { data: profile } = await supabase.from('profiles').select('id, email').eq('email', 'johndonnahue4485@yahoo.com').maybeSingle();
 
     if (profile) {
         console.log("Found profile ID:", profile.id);

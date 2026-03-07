@@ -558,7 +558,7 @@ export default function ProfilePage() {
             formData.append('folder', 'covers');
             formData.append('prefix', user.id);
 
-            const { data: { session: _coverSess } } = await supabase.auth.getSession();
+            const _coverSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
                 headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},

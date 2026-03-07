@@ -20,7 +20,7 @@ export async function getMemoryGamesPreferences(userId) {
             .from('profiles')
             .select('memory_games_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

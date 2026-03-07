@@ -99,7 +99,7 @@ async function postNewsToHorse() {
             visibility: 'public'
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Post error:', error.message);

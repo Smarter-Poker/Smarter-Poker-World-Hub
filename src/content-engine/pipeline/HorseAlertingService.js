@@ -50,7 +50,7 @@ class HorseAlertingService {
                     context
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 console.error('Failed to log error:', error.message);
@@ -308,7 +308,7 @@ class ClipUsageTracker {
                 success: true
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Failed to record clip usage:', error.message);

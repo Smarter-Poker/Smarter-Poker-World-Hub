@@ -12,7 +12,7 @@ async function checkPosts() {
         .from('social_posts')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error:', error);

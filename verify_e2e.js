@@ -69,14 +69,14 @@ async function run() {
     const { data: webIns, error: webErr } = await supabase
         .from('commander_waitlist')
         .insert({ venue_id: VENUE_ID, game_type: 'nlh', stakes: '1/2', player_name: '__VERIFY_WEB__', position: 999, signup_method: 'web', status: 'waiting' })
-        .select().single();
+        .select().maybeSingle();
     ok('web signup_method accepted', !!webIns && !webErr, webErr?.message);
     if (webIns) cleanupIds.waitlist.push(webIns.id);
 
     const { error: badErr } = await supabase
         .from('commander_waitlist')
         .insert({ venue_id: VENUE_ID, game_type: 'nlh', stakes: '1/2', player_name: '__VERIFY_BAD__', position: 998, signup_method: 'INVALID', status: 'waiting' })
-        .select().single();
+        .select().maybeSingle();
     ok('invalid signup_method rejected', !!badErr);
 
     // ═══════════════════════════════════════
@@ -85,7 +85,7 @@ async function run() {
     console.log('\n3. CHECKED_IN_AT LIFECYCLE');
     if (webIns) {
         const ts = new Date().toISOString();
-        const { data: patched } = await supabase.from('commander_waitlist').update({ checked_in_at: ts }).eq('id', webIns.id).select().single();
+        const { data: patched } = await supabase.from('commander_waitlist').update({ checked_in_at: ts }).eq('id', webIns.id).select().maybeSingle();
         ok('PATCH sets checked_in_at', patched?.checked_in_at != null);
         // Reset for later auto-delete test
         await supabase.from('commander_waitlist').update({ checked_in_at: null }).eq('id', webIns.id);
@@ -108,19 +108,19 @@ async function run() {
     // 5a: Expired entry (no check-in) → SHOULD be deleted
     const { data: expired } = await supabase.from('commander_waitlist')
         .insert({ venue_id: VENUE_ID, game_type: 'nlh', stakes: '88/88', player_name: '__VERIFY_EXPIRED__', position: 997, signup_method: 'web', status: 'waiting', created_at: oldTime })
-        .select().single();
+        .select().maybeSingle();
     ok('Expired test entry created', !!expired);
 
     // 5b: Checked-in entry (old) → should NOT be deleted
     const { data: checkedIn } = await supabase.from('commander_waitlist')
         .insert({ venue_id: VENUE_ID, game_type: 'nlh', stakes: '87/87', player_name: '__VERIFY_SAFE__', position: 996, signup_method: 'web', status: 'waiting', created_at: oldTime, checked_in_at: new Date().toISOString() })
-        .select().single();
+        .select().maybeSingle();
     ok('Checked-in test entry created', !!checkedIn);
 
     // 5c: Walk-in entry (old) → should NOT be deleted
     const { data: walkIn } = await supabase.from('commander_waitlist')
         .insert({ venue_id: VENUE_ID, game_type: 'nlh', stakes: '86/86', player_name: '__VERIFY_WALKIN__', position: 995, signup_method: 'walk_in', status: 'waiting', created_at: oldTime })
-        .select().single();
+        .select().maybeSingle();
     ok('Walk-in test entry created', !!walkIn);
 
     // Run cleanup (same as API)
@@ -161,7 +161,7 @@ async function run() {
             membership_status: 'active', member_type: 'player',
             notes: 'Auto-registered via web waitlist sign-up'
         })
-        .select().single();
+        .select().maybeSingle();
     ok('Member INSERT succeeds', !!newMember && !memInsErr, memInsErr?.message);
     if (newMember) cleanupIds.members.push(newMember.id);
 
@@ -252,7 +252,7 @@ async function run() {
     const pid = '00000000-0000-0000-0000-000000000099';
     const { data: d1 } = await supabase.from('commander_waitlist')
         .insert({ venue_id: VENUE_ID, game_type: 'nlh', stakes: '85/85', player_name: '__DUP__', position: 994, player_id: pid, signup_method: 'web', status: 'waiting' })
-        .select().single();
+        .select().maybeSingle();
     if (d1) cleanupIds.waitlist.push(d1.id);
 
     const { data: dupCheck } = await supabase.from('commander_waitlist')

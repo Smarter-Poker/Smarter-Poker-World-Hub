@@ -46,7 +46,7 @@ class AutoPoster {
             .from('seeded_content')
             .insert(postData)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Post failed:', error);
@@ -108,7 +108,7 @@ class AutoPoster {
             .from('seeded_content')
             .insert(postData)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Video post failed:', error);
@@ -147,7 +147,7 @@ class AutoPoster {
                     scheduled_for: currentTime.toISOString()
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (!error) {
                 results.push(data);

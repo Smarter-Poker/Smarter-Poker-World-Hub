@@ -38,7 +38,7 @@ export async function addVideoFavorite(userId, videoId, videoData = {}) {
             thumbnail_url: videoData.thumbnail || null
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding video favorite:', error);
@@ -80,7 +80,7 @@ export async function isVideoFavorited(userId, videoId) {
         .select('id')
         .eq('user_id', userId)
         .eq('video_id', videoId)
-        .single();
+        .maybeSingle();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
         console.error('Error checking video favorite:', error);

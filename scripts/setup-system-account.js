@@ -58,7 +58,7 @@ async function executeSetup() {
                     email_verified: true
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (insertError) {
                 throw new Error(`Failed to create account: ${insertError.message}`);
@@ -73,7 +73,7 @@ async function executeSetup() {
             .from('profiles')
             .select('id, username, full_name, xp_total')
             .eq('id', SYSTEM_UUID)
-            .single();
+            .maybeSingle();
 
         if (verifyError || !verified) {
             throw new Error('System account not accessible');

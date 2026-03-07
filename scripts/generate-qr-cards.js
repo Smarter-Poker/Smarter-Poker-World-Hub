@@ -100,7 +100,7 @@ const VENUE_ID = 1996;
                     .from('commander_members')
                     .select('qr_code')
                     .eq('id', d.member_id)
-                    .single();
+                    .maybeSingle();
                 if (mem && mem.qr_code) {
                     memberQr = mem.qr_code;
                 } else if (mem) {
@@ -174,7 +174,7 @@ const VENUE_ID = 1996;
                         notes: 'Staff member — dealer (test QR)',
                     })
                     .select('id')
-                    .single();
+                    .maybeSingle();
 
                 if (insertErr) {
                     console.error(`  ❌ Failed to create dealer record: ${insertErr.message}`);

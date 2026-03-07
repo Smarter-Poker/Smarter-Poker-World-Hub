@@ -30,7 +30,7 @@ export const messengerPreferences = {
                     .from('profiles')
                     .select('messenger_preferences')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (data?.messenger_preferences) {
                     return data.messenger_preferences;
@@ -103,7 +103,7 @@ export const friendPreferences = {
                     .from('profiles')
                     .select('friend_preferences')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (data?.friend_preferences) {
                     return data.friend_preferences;
@@ -170,7 +170,7 @@ export const reelsPreferences = {
                     .from('profiles')
                     .select('reels_preferences')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (data?.reels_preferences) {
                     return data.reels_preferences;
@@ -239,7 +239,7 @@ export const storePreferences = {
                     .from('profiles')
                     .select('store_preferences')
                     .eq('id', userId)
-                    .single();
+                    .maybeSingle();
 
                 if (data?.store_preferences) {
                     return data.store_preferences;
@@ -316,7 +316,7 @@ export const wishlistService = {
                     product_price: product.price
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return data;
@@ -348,7 +348,7 @@ export const wishlistService = {
                 .select('id')
                 .eq('user_id', userId)
                 .eq('product_id', productId)
-                .single();
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
             return !!data;
@@ -392,7 +392,7 @@ export const savedReelsService = {
                     reel_id: reelId
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return data;
@@ -424,7 +424,7 @@ export const savedReelsService = {
                 .select('id')
                 .eq('user_id', userId)
                 .eq('reel_id', reelId)
-                .single();
+                .maybeSingle();
 
             if (error && error.code !== 'PGRST116') throw error;
             return !!data;

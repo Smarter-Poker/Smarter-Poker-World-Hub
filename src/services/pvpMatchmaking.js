@@ -19,7 +19,7 @@ export async function joinMatchmakingQueue(userId, stakeAmount) {
             .select('*')
             .eq('user_id', userId)
             .eq('status', 'waiting')
-            .single();
+            .maybeSingle();
 
         if (existing) {
             // Already in queue, return existing entry
@@ -39,7 +39,7 @@ export async function joinMatchmakingQueue(userId, stakeAmount) {
                 expires_at: expiresAt.toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 
@@ -87,7 +87,7 @@ export async function findMatch(userId, stakeAmount) {
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: true })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (error || !opponent) {
             return null; // No match found
@@ -98,7 +98,7 @@ export async function findMatch(userId, stakeAmount) {
             .from('profiles')
             .select('id, username')
             .eq('id', opponent.user_id)
-            .single();
+            .maybeSingle();
 
         // Get opponent's PvP stats
         const { data: wins } = await supabase
@@ -135,7 +135,7 @@ export async function findMatch(userId, stakeAmount) {
                 created_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (matchError) throw matchError;
 
@@ -229,7 +229,7 @@ export async function submitMatchScore(matchId, playerId, score, isPlayer1) {
             .from('trivia_pvp_matches')
             .select('*')
             .eq('id', matchId)
-            .single();
+            .maybeSingle();
 
         if (match?.player1_score !== null && match?.player2_score !== null) {
             // Both players finished, determine winner
@@ -276,7 +276,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
             .from('profiles')
             .select('diamonds')
             .eq('id', winnerId)
-            .single();
+            .maybeSingle();
 
         // Award winner the pot minus rake
         // Both players already had stakes deducted when joining

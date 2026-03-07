@@ -125,7 +125,7 @@ export default function PlayerTournamentsHub() {
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
 
   const { data: swrData, isLoading, mutate: refreshTournaments } = useSWR('/api/commander/tournaments?status=active', async (url) => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     const [tourRes, myRes] = await Promise.all([
       fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
@@ -141,7 +141,7 @@ export default function PlayerTournamentsHub() {
   const loadTournaments = () => refreshTournaments();
 
   const handleRegister = async (tournament) => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) {
       router.push('/auth/login?redirect=/hub/commander/tournaments');

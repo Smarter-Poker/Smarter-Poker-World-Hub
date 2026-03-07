@@ -20,7 +20,7 @@ export async function getTriviaPreferences(userId) {
             .from('profiles')
             .select('trivia_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

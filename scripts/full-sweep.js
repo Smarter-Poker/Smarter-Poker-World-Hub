@@ -345,7 +345,7 @@ async function main() {
                 .from('trivia_questions')
                 .select('id, options')
                 .eq('id', fid)
-                .single();
+                .maybeSingle();
 
             if (!q) continue;
 

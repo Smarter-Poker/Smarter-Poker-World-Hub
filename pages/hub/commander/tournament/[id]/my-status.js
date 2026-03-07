@@ -37,7 +37,7 @@ export default function MyTournamentStatus() {
     const fetchData = useCallback(async () => {
         if (!id) return;
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             if (!session?.access_token) {
                 router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/my-status`);
                 return;
@@ -152,7 +152,7 @@ export default function MyTournamentStatus() {
         setSharingStory(true);
         setStoryShared(false);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             if (!session?.access_token) return;
 
             const res = await fetch(`/api/commander/tournaments/${id}/story`, {
@@ -185,7 +185,7 @@ export default function MyTournamentStatus() {
         setError(null);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const res = await fetch(`/api/commander/tournaments/${id}/my-chips`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },

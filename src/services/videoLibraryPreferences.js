@@ -20,7 +20,7 @@ export async function getVideoLibraryPreferences(userId) {
             .from('profiles')
             .select('video_library_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

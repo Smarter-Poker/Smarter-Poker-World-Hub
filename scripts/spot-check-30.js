@@ -11,7 +11,7 @@ const CATS = ['poker_history', 'famous_hands', 'player_profiles', 'rule_knowledg
 
 async function main() {
     // Verify the question that appeared to have 3 options
-    const { data: verify } = await s.from('trivia_questions').select('id, options').eq('id', '37ceeadf-2ef2-4102-b9c7-37f063c02ee2').single();
+    const { data: verify } = await s.from('trivia_questions').select('id, options').eq('id', '37ceeadf-2ef2-4102-b9c7-37f063c02ee2').maybeSingle();
     if (verify) {
         console.log(`Verify Q 37ceeadf: ${verify.options.length} options`);
         verify.options.forEach((o, i) => console.log(`  ${i}: ${o.substring(0, 60)}`));

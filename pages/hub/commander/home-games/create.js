@@ -81,7 +81,7 @@ export default function CreateHomeGamePage() {
     setError(null);
 
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       if (!token) {
         router.push('/auth/login?redirect=/hub/commander/home-games/create');
@@ -556,7 +556,7 @@ export default function CreateHomeGamePage() {
                 onSubmit={async (eventData) => {
                   setEventSubmitting(true);
                   try {
-                    const { data: { session: _session } } = await supabase.auth.getSession();
+                    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
                     const res = await fetch('/api/commander/home-games/events', {
                       method: 'POST',

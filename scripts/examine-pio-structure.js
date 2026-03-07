@@ -23,7 +23,7 @@ async function examineFullStructure() {
         .from('solved_spots_gold')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('❌ Error:', error.message);

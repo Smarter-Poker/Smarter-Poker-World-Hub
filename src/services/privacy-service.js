@@ -23,7 +23,7 @@ export async function canSendFriendRequest(targetUserId) {
             .from('profiles')
             .select('friend_preferences')
             .eq('id', targetUserId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[Privacy] Error checking friend request permission:', error);
@@ -52,7 +52,7 @@ export async function shouldShowOnlineStatus(targetUserId) {
             .from('profiles')
             .select('friend_preferences')
             .eq('id', targetUserId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[Privacy] Error checking online status visibility:', error);
@@ -79,7 +79,7 @@ export async function shouldShowActiveStatus(targetUserId) {
             .from('profiles')
             .select('messenger_preferences')
             .eq('id', targetUserId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[Privacy] Error checking active status visibility:', error);
@@ -109,7 +109,7 @@ export async function canSendMessage(senderId, receiverId) {
             .select('id')
             .or(`and(user_id.eq.${senderId},friend_id.eq.${receiverId}),and(user_id.eq.${receiverId},friend_id.eq.${senderId})`)
             .eq('status', 'accepted')
-            .single();
+            .maybeSingle();
 
         // If they're friends, always allow
         if (friendship) {
@@ -121,7 +121,7 @@ export async function canSendMessage(senderId, receiverId) {
             .from('profiles')
             .select('messenger_preferences')
             .eq('id', receiverId)
-            .single();
+            .maybeSingle();
 
         if (profileError) {
             console.error('[Privacy] Error checking message permission:', profileError);
@@ -184,7 +184,7 @@ export async function isUserBlocked(blockerId, targetId) {
             .select('id')
             .eq('blocker_id', blockerId)
             .eq('blocked_id', targetId)
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
             console.error('[Privacy] Error checking block status:', error);

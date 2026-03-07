@@ -86,7 +86,7 @@ export default function LeagueDetailPage() {
   // Get current user ID from Supabase session (set by useEffect below)
   const [currentUserId, setCurrentUserId] = React.useState(null);
   React.useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
       if (session?.user?.id) setCurrentUserId(session.user.id);
     });
   }, []);
@@ -94,7 +94,7 @@ export default function LeagueDetailPage() {
   // SWR — parallel fetch of league details + standings
   const swrKey = id ? `/api/commander/leagues/${id}` : null;
   const { data: swrData, isLoading: loading, mutate: refreshLeague } = useSWR(swrKey, async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const [leagueRes, standingsRes] = await Promise.all([
@@ -116,7 +116,7 @@ export default function LeagueDetailPage() {
   async function handleJoinLeague(signal) {
     setJoining(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       const token = _session?.access_token;
       if (!token) {
         router.push(`/auth/login?redirect=/hub/commander/leagues/${id}`);

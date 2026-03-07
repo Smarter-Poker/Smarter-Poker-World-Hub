@@ -472,7 +472,7 @@ class VideoClipper {
                         visibility: 'public'
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (reelError) {
                     console.error(`Reel record creation failed: ${reelError.message}`);

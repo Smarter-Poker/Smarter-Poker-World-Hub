@@ -107,7 +107,7 @@ export default function LeaguesPage() {
   const [filter, setFilter] = useState('all');
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/leagues', async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     const [allRes, myRes] = await Promise.all([
       fetch('/api/commander/leagues'),

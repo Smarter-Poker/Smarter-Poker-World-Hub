@@ -43,7 +43,7 @@ async function testSystemPost() {
             .from('profiles')
             .select('*')
             .eq('id', SYSTEM_ACCOUNT_UUID)
-            .single();
+            .maybeSingle();
 
         if (accountError || !systemAccount) {
             console.error('❌ System account not found!');
@@ -81,7 +81,7 @@ Stay sharp. Stay profitable. 💎`;
                 created_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (postError) {
             console.error('❌ Failed to create post!');

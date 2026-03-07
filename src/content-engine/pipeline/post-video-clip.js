@@ -114,7 +114,7 @@ async function postVideoClipToHorse() {
             visibility: 'public'
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (postErr) {
         console.error('❌ Post creation failed:', postErr.message);

@@ -30,7 +30,7 @@ const getAuthToken = async () => {
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
         return session?.access_token || null;
     } catch (_) {
         return null;
@@ -134,7 +134,7 @@ export default function UnionDashboard() {
 
     // Auth
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
             if (session?.user) setUser(session.user);
             else {
                 // Fallback: try localStorage directly

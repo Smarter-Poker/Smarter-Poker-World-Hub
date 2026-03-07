@@ -1208,7 +1208,7 @@ export default function MessengerPage() {
 
         async function checkPendingCalls(signal) {
             try {
-                const { data: { session: pendingSession } } = await supabase.auth.getSession();
+                const pendingSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
                     headers: pendingSession?.access_token ? { Authorization: `Bearer ${pendingSession.access_token}` } : {},
                 });
@@ -1431,7 +1431,7 @@ export default function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            supabase.auth.getSession().then(({ data: { session: cancelSession } }) => {
+            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((cancelSession) => {
                 fetch('/api/calls/cancel', {
                     method: 'POST',
                     headers: {
@@ -1478,7 +1478,7 @@ export default function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            supabase.auth.getSession().then(({ data: { session: declineSession } }) => {
+            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((declineSession) => {
                 fetch('/api/calls/cancel', {
                     method: 'POST',
                     headers: {
@@ -1661,7 +1661,7 @@ export default function MessengerPage() {
         try {
 
             // Use API route to bypass RLS issues
-            const { data: { session: msgSession } } = await supabase.auth.getSession();
+            const msgSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const response = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {
@@ -1681,7 +1681,7 @@ export default function MessengerPage() {
 
             // Mark as read - use API with service role to bypass RLS
             try {
-                const { data: { session: readSession } } = await supabase.auth.getSession();
+                const readSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 await fetch('/api/messenger/mark-read', {
                     method: 'POST',
                     headers: {
@@ -1805,7 +1805,7 @@ export default function MessengerPage() {
             setMessages(prev => [...prev, typingMsg]);
 
             try {
-                const { data: { session: jarvisSession } } = await supabase.auth.getSession();
+                const jarvisSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 const response = await fetch('/api/geeves/chat', {
                     method: 'POST',
                     headers: {
@@ -2278,7 +2278,7 @@ export default function MessengerPage() {
 
             // 📱 Create pending call in database (for offline users)
             try {
-                const { data: { session: callSession } } = await supabase.auth.getSession();
+                const callSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 await fetch('/api/calls/create', {
                     method: 'POST',
                     headers: {
@@ -2391,7 +2391,7 @@ export default function MessengerPage() {
 
         // Cancel any pending call in database (in case call wasn't answered)
         if (activeConversation?.otherUser?.id && user?.id) {
-            supabase.auth.getSession().then(({ data: { session: endSession } }) => {
+            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((endSession) => {
                 fetch('/api/calls/cancel', {
                     method: 'POST',
                     headers: {

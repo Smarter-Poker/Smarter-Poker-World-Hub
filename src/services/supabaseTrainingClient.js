@@ -29,7 +29,7 @@ export async function fetchScenario(scenarioId) {
             .from('training_scenarios')
             .select('*')
             .eq('id', scenarioId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[TrainingClient] Supabase error:', error);
@@ -94,7 +94,7 @@ export async function fetchRandomScenarioForGame(gameId) {
             .select('*')
             .eq('game_id', gameId)
             .range(randomOffset, randomOffset)
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return { success: false, error: 'Failed to fetch random scenario' };

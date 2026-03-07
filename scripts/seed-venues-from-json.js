@@ -88,7 +88,7 @@ async function main() {
             .select('id')
             .eq('name', venue.name)
             .eq('state', venue.state)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             // Update existing venue with scraper data

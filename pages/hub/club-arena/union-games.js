@@ -33,7 +33,7 @@ const getToken = async () => {
     }
   } catch (_) { /* incognito / quota */ }
   // 2. Slow path: supabase session (handles refresh)
-  const { data: { session } } = await supabase.auth.getSession();
+  const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
   return session?.access_token || '';
 };
 
@@ -76,7 +76,7 @@ export default function UnionGames() {
   const [searchQuery, setSearchQuery] = useState(''); // filter tournaments/tables by name
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
       if (session?.user) setUser(session.user);
       else {
         // Fallback: try localStorage directly

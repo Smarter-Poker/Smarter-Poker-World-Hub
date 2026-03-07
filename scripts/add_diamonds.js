@@ -4,7 +4,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseKey) { console.error('No service key available in env'); process.exit(1); }
 const supabase = createClient(supabaseUrl, supabaseKey);
 async function run() {
-    const { data, error } = await supabase.from('profiles').select('id, email, diamonds').eq('email', 'daniel@bekavactrading.com').single();
+    const { data, error } = await supabase.from('profiles').select('id, email, diamonds').eq('email', 'daniel@bekavactrading.com').maybeSingle();
     if (error) {
         console.error(error);
     } else {

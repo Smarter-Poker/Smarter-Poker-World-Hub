@@ -26,7 +26,7 @@ async function generateDailyChallenge() {
         .from('training_daily_challenges')
         .select('id')
         .eq('challenge_date', today)
-        .single();
+        .maybeSingle();
 
     if (existing) {
         console.log(`Challenge for ${today} already exists`);

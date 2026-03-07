@@ -17,6 +17,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
+import { getAuthUser } from '../../../src/lib/authUtils';
 
 const C = {
     bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B',
@@ -476,7 +477,7 @@ export default function UserProfilePage() {
             const { signal } = controller;
             try {
                 // Get current user
-                const user = await getSafeUser(supabase);
+                const user = getAuthUser();
                 if (user) setCurrentUser(user);
 
                 // Fetch the profile by username

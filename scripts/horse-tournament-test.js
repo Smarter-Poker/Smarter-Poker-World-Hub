@@ -90,7 +90,7 @@ async function main() {
                 created_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (createErr) {
             console.error('❌ Error creating tournament:', createErr.message);
@@ -109,7 +109,7 @@ async function main() {
             .in('status', ['upcoming', 'active'])
             .order('start_time', { ascending: true })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (!existing) {
             console.error('❌ No upcoming/active tournament found. Use --create-tournament to create one.');
@@ -153,7 +153,7 @@ async function main() {
             .from('profiles')
             .select('diamonds')
             .eq('id', horse.id)
-            .single();
+            .maybeSingle();
 
         const newBalance = (freshProfile?.diamonds || 1000) - ENTRY_FEE;
         await supabase
@@ -318,7 +318,7 @@ async function playAllRounds(tournamentId) {
             .select('*')
             .eq('tournament_id', tournamentId)
             .eq('round_number', roundNumber)
-            .single();
+            .maybeSingle();
 
         if (!round) {
             console.log(`   No round ${roundNumber} found — tournament may be complete.`);
@@ -377,10 +377,10 @@ async function playAllRounds(tournamentId) {
         for (const m of updatedMatchups) {
             if (m.is_bye) {
                 const byePlayer = m.player1_id || m.player2_id;
-                const { data: p } = await supabase.from('profiles').select('username').eq('id', byePlayer).single();
+                const { data: p } = await supabase.from('profiles').select('username').eq('id', byePlayer).maybeSingle();
                 console.log(`      BYE: ${p?.username || 'Unknown'} advances`);
             } else {
-                const { data: wp } = await supabase.from('profiles').select('username').eq('id', m.winner_id).single();
+                const { data: wp } = await supabase.from('profiles').select('username').eq('id', m.winner_id).maybeSingle();
                 console.log(`      ${m.player1_score} vs ${m.player2_score} → ${wp?.username || 'Unknown'} wins`);
             }
         }
@@ -389,7 +389,7 @@ async function playAllRounds(tournamentId) {
         // Check if final round
         if (winners.length <= 1) {
             console.log(`\n   🏆 TOURNAMENT COMPLETE!`);
-            const { data: wp } = await supabase.from('profiles').select('username').eq('id', winners[0]).single();
+            const { data: wp } = await supabase.from('profiles').select('username').eq('id', winners[0]).maybeSingle();
             console.log(`   🥇 Champion: ${wp?.username || 'Unknown'}\n`);
 
             // Get tournament for prize calc
@@ -397,7 +397,7 @@ async function playAllRounds(tournamentId) {
                 .from('trivia_tournaments')
                 .select('*')
                 .eq('id', tournamentId)
-                .single();
+                .maybeSingle();
 
             // Get entries ranked
             const { data: entries } = await supabase
@@ -442,7 +442,7 @@ async function playAllRounds(tournamentId) {
                     .from('profiles')
                     .select('diamonds, username')
                     .eq('id', entry.user_id)
-                    .single();
+                    .maybeSingle();
 
                 if (profile) {
                     await supabase

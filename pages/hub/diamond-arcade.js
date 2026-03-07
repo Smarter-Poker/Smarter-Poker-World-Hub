@@ -18,7 +18,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser } from '../../src/lib/authUtils';
+import { getSafeUser , getAuthUser } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -210,7 +210,7 @@ export default function DiamondArcade() {
     }, []);
 
     async function loadUser() {
-        const user = await getSafeUser(supabase);
+        const user = getAuthUser();
         if (user) {
             setUser(user);
             loadUserStats(user.id);
@@ -354,7 +354,7 @@ export default function DiamondArcade() {
             // Get auth token for secure server-side verification
             let authHeaders = { 'Content-Type': 'application/json' };
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 if (session?.access_token) {
                     authHeaders['Authorization'] = `Bearer ${session.access_token}`;
                 }

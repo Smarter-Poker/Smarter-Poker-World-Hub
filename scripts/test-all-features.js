@@ -105,7 +105,7 @@ async function runTests() {
                 visibility: 'public'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             if (error.message.includes('policy') || error.code === '42501') {

@@ -42,7 +42,7 @@ async function ingestVideos() {
 
         let { data: author } = await supabase
             .from('content_authors')
-            .select('id, profile_id') // We need profile_id for foreign keys usually
+            .select('id, profile_id')
             .ilike('name', '%PokerNews%')
             .not('profile_id', 'is', null)
             .maybeSingle();
@@ -52,9 +52,9 @@ async function ingestVideos() {
             const { data: fallback } = await supabase
                 .from('content_authors')
                 .select('id, profile_id')
-                .not('profile_id', 'is', null) // Ensure we get one with a profile
+                .not('profile_id', 'is', null)
                 .limit(1)
-                .single();
+                .maybeSingle();
             author = fallback;
         }
 

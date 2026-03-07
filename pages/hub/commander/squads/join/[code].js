@@ -20,7 +20,7 @@ export default function SquadJoinPage() {
   useEffect(() => {
     (async () => {
       if (!code) return;
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       const token = _session?.access_token;
       if (!token) {
         router.push(`/auth/login?redirect=/hub/commander/squads/join/${code}`);
@@ -32,7 +32,7 @@ export default function SquadJoinPage() {
 
   async function fetchSquad(signal) {
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -54,7 +54,7 @@ export default function SquadJoinPage() {
   async function handleJoin(signal) {
     setJoining(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/home-games/join/${code}`, {
         method: 'POST',

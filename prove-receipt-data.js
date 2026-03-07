@@ -20,7 +20,7 @@ async function proveDataWiring() {
         .from('commander_tournaments')
         .select('*, poker_venues(name, city, state)')
         .eq('id', TOURN_ID)
-        .single();
+        .maybeSingle();
 
     // 2. Perform the actual Registration (simulates the POST to /api/commander/tournaments/[id]/register)
     const { data: entryData, error: regError } = await supabase
@@ -32,7 +32,7 @@ async function proveDataWiring() {
             status: 'registered'
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (regError) {
         if (regError.code === '23505') {
@@ -54,7 +54,7 @@ async function proveDataWiring() {
         }
     }
 
-    const entry = entryData || (await supabase.from('commander_tournament_entries').select('*').eq('tournament_id', TOURN_ID).eq('player_id', PLAYER_ID).single()).data;
+    const entry = entryData || (await supabase.from('commander_tournament_entries').select('*').eq('tournament_id', TOURN_ID).eq('player_id', PLAYER_ID).maybeSingle()).data;
 
     // 3. Generate the exact HTML string the frontend generates
     const html = buildReceiptHtml({

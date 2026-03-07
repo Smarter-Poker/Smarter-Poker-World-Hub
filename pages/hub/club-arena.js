@@ -25,7 +25,7 @@ const getAuthToken = async () => {
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
     try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
         return session?.access_token || null;
     } catch (_) {
         return null;
@@ -334,7 +334,7 @@ export default function ClubArenaPage() {
     async function loadUserData(signal) {
         try {
             // Fast auth via Supabase session (no localStorage digging)
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const authUser = session?.user || null;
 
             if (authUser) {

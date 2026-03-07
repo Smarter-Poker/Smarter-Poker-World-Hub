@@ -23,7 +23,7 @@ async function fixSystemAvatar() {
         .from('profiles')
         .select('id, username, full_name, avatar_url')
         .eq('id', SYSTEM_UUID)
-        .single();
+        .maybeSingle();
 
     if (fetchError) {
         console.error('❌ Error fetching system account:', fetchError.message);
@@ -41,7 +41,7 @@ async function fixSystemAvatar() {
         .update({ avatar_url: '/smarter-poker-logo.png' })
         .eq('id', SYSTEM_UUID)
         .select()
-        .single();
+        .maybeSingle();
 
     if (updateError) {
         console.error('❌ Error updating avatar:', updateError.message);

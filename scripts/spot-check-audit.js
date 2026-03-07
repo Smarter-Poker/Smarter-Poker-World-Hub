@@ -16,7 +16,7 @@ async function main() {
         '10c1bc01-c267-4414-9d29-15d4141fa66a', // "not 1971"
     ];
     for (const id of factIds) {
-        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).single();
+        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).maybeSingle();
         if (!q) continue;
         console.log(`ID: ${id}`);
         console.log(`Q: ${q.question}`);
@@ -32,7 +32,7 @@ async function main() {
         'c4851141-e6e9-4602-9530-e9646bfa4b9c', // hero QJ vs board T
     ];
     for (const id of rankIds) {
-        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).single();
+        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).maybeSingle();
         if (!q) continue;
         console.log(`ID: ${id}`);
         console.log(`Q: ${q.question}`);
@@ -48,7 +48,7 @@ async function main() {
         '4594ca3e-14ba-4aaf-8d5d-e5cf0369e3f5', // 0 board cards match
     ];
     for (const id of flushIds) {
-        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).single();
+        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).maybeSingle();
         if (!q) continue;
         console.log(`ID: ${id}`);
         console.log(`Q: ${q.question}`);
@@ -64,7 +64,7 @@ async function main() {
         'dbd91ee4-603f-488f-a20f-08034eb02232',
     ];
     for (const id of riverIds) {
-        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).single();
+        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).maybeSingle();
         if (!q) continue;
         console.log(`ID: ${id}`);
         console.log(`Q: ${q.question}`);
@@ -94,7 +94,7 @@ async function main() {
         'a3b0c1d6-16bc-4452-bebe-3c74979b2896',
     ];
     for (const id of colIds) {
-        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).single();
+        const { data: q } = await s.from('trivia_questions').select('*').eq('id', id).maybeSingle();
         if (!q) continue;
         console.log(`ID: ${id}`);
         console.log(`Q: ${q.question}`);

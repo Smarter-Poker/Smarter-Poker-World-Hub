@@ -116,7 +116,7 @@ const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
                 .eq('venue_id', VENUE_ID)
                 .ilike('first_name', seat.player_name.split(' ')[0])
                 .ilike('last_name', seat.player_name.split(' ').slice(1).join(' '))
-                .single();
+                .maybeSingle();
 
             const { error } = await sb.from('commander_table_sessions').insert({
                 venue_id: VENUE_ID,

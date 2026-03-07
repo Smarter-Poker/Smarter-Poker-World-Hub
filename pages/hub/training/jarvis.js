@@ -33,7 +33,7 @@ export default function JarvisDashboard() {
             setUser(authUser);
 
             if (authUser) {
-                const { data: { session: _jSess } } = await supabase.auth.getSession();
+                const _jSess = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                 const token = _jSess?.access_token || '';
                 const response = await fetch(`/api/jarvis/user-insights`, {
                     headers: { 'Authorization': `Bearer ${token}` }

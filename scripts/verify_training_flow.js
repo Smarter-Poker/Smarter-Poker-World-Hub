@@ -109,7 +109,7 @@ async function runSmokeTest() {
             is_active: true
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (leakInsertError) {
         console.error('❌ Failed to insert leak:', leakInsertError.message);
@@ -146,7 +146,7 @@ async function runSmokeTest() {
             }
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (xpInsertError) {
         console.error('❌ Failed to insert XP log:', xpInsertError.message);

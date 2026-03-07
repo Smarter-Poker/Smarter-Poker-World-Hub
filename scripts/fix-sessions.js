@@ -79,7 +79,7 @@ const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
                 .eq('venue_id', VENUE_ID)
                 .ilike('first_name', nameParts[0])
                 .ilike('last_name', nameParts.slice(1).join(' '))
-                .single();
+                .maybeSingle();
 
             inserts.push({
                 venue_id: VENUE_ID,

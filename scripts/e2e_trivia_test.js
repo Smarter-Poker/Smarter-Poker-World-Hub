@@ -119,7 +119,7 @@ function warn(label) { warnings++; console.log(`  ⚠️  ${label}`); }
     // ═══════════════════════════════════════════════════
     console.log('\n━━━ TEST 4: Diamond Balance ━━━');
 
-    const { data: profile } = await sb.from('profiles').select('diamonds').eq('id', TEST_USER_ID).single();
+    const { data: profile } = await sb.from('profiles').select('diamonds').eq('id', TEST_USER_ID).maybeSingle();
     if (!profile) { fail('Cannot find test user profile'); }
     else { ok(`Test user diamond balance: ${profile.diamonds}`); }
 

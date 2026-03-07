@@ -16,7 +16,7 @@ export default function PokerLobbyPage() {
 
   useEffect(() => {
     const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       if (session?.user) {
         setUserId(session.user.id);
       } else {

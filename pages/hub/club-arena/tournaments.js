@@ -23,7 +23,7 @@ const STATUS_COLORS = {
 // BUG #148 FIX: supabase.auth.session?.() is v1 API — returns undefined in v2.
 // Migrated to async getSession() so tournament API calls include a valid token.
 async function api(action, params) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
   return fetch('/api/club-arena/tournaments', {
     method: 'POST',
     headers: {
@@ -56,7 +56,7 @@ export default function TournamentsPage() {
 
   // Auth
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
       if (session?.user) setUser(session.user);
       else router.push('/auth/login');
     });
@@ -540,7 +540,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
   // Find user's assigned table
   const goToTable = async () => {
     try {
-      const { data: { session: goSession } } = await supabase.auth.getSession();
+      const goSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       const res = await fetch('/api/poker/engine/tournament', {
         method: 'POST', headers: {
           'Content-Type': 'application/json',

@@ -14,7 +14,7 @@ async function diagnose() {
         .from('profiles')
         .select('*')
         .eq('id', '00000000-0000-0000-0000-000000000001')
-        .single();
+        .maybeSingle();
 
     console.log('1. Checking author profile (00000000-0000-0000-0000-000000000001):');
     if (profileError) {
@@ -30,7 +30,7 @@ async function diagnose() {
         .from('social_posts')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (postError) {
         console.log('   Error:', postError.message);

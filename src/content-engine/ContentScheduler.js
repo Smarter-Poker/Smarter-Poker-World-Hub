@@ -119,7 +119,7 @@ class ContentScheduler {
                         scheduled_for: slot.scheduledTime.toISOString()
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (contentError) {
                     console.error('Content insert error:', contentError);

@@ -82,7 +82,7 @@ export default function PlayerRewardsPage() {
     (async () => {
       const _c = new AbortController();
   
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       const token = _session?.access_token;
       if (!token) router.push('/auth/login?redirect=/hub/commander/rewards');
       return () => _c.abort();
@@ -100,7 +100,7 @@ export default function PlayerRewardsPage() {
   }, [user?.id]);
 
   const { data: swrData, isLoading: loading, mutate: refreshRewards } = useSWR('/api/commander/comps/balances', async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) return null;
     const h = { Authorization: `Bearer ${token}` };
@@ -151,7 +151,7 @@ export default function PlayerRewardsPage() {
     const finalAmount = Math.min(parsed, balance);
 
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch('/api/commander/comps/redeem', {
         method: 'POST',

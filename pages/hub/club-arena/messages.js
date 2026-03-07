@@ -10,7 +10,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser } from '../../../src/lib/authUtils';
+import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { createMultiDeviceAuthListener, persistSession } from '../../../src/utils/authGuard';
@@ -370,7 +370,7 @@ export default function ClubMessages() {
     useEffect(() => {
         async function init(signal) {
             try {
-                const authUser = await getSafeUser(supabase);
+                const authUser = getAuthUser();
 
                 if (authUser) {
                     const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).maybeSingle();
@@ -500,7 +500,7 @@ export default function ClubMessages() {
         if (!user?.id) return;
 
         try {
-            const { data: { session: convSession } } = await supabase.auth.getSession();
+            const convSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const resp = await fetch('/api/messenger/get-conversations', {
                 method: 'POST',
                 headers: {
@@ -780,7 +780,7 @@ export default function ClubMessages() {
 
         // Background call to mark as read
         if (user?.id) {
-            supabase.auth.getSession().then(({ data: { session: readSession } }) => {
+            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((readSession) => {
                 fetch('/api/messenger/mark-read', {
                     method: 'POST',
                     headers: {
@@ -793,7 +793,7 @@ export default function ClubMessages() {
         }
 
         try {
-            const { data: { session: msgSession } } = await supabase.auth.getSession();
+            const msgSession = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             const resp = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {

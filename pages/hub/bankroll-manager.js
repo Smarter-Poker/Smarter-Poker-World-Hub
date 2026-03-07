@@ -1572,7 +1572,7 @@ export default function BankrollManagerPage() {
                     <button
                       onClick={async () => {
                         try {
-                          const { data: { session } } = await supabase.auth.getSession();
+                          const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
                           const token = session?.access_token;
                           const res = await fetch('/api/bankroll/export-pdf', {
                             headers: { Authorization: `Bearer ${token}` }

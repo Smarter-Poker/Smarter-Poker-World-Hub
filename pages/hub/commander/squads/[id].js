@@ -79,7 +79,7 @@ export default function SquadDetailPage() {
 
   useEffect(() => {
     (async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/squads/${id}`);
@@ -170,7 +170,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/squads/${id}/submit`, {
         method: 'POST',
@@ -201,7 +201,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/squads/${id}/members/${memberId}`, {
         method: 'DELETE',
@@ -224,7 +224,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/squads/${id}`, {
         method: 'DELETE',
@@ -251,7 +251,7 @@ export default function SquadDetailPage() {
 
     setActionLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/squads/${id}/leave`, {
         method: 'POST',

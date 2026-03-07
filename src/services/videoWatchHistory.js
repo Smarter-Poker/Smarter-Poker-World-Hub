@@ -38,7 +38,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
         .select('id')
         .eq('user_id', userId)
         .eq('video_id', videoId)
-        .single();
+        .maybeSingle();
 
     if (existing) {
         // Update watched_at timestamp
@@ -47,7 +47,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
             .update({ watched_at: new Date().toISOString() })
             .eq('id', existing.id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error updating watch history:', error);
@@ -68,7 +68,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
             thumbnail_url: videoData.thumbnail || null
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding to watch history:', error);
@@ -106,7 +106,7 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
         .select('id, watch_duration_seconds')
         .eq('user_id', userId)
         .eq('video_id', videoId)
-        .single();
+        .maybeSingle();
 
     if (existing) {
         // Update with additional duration
@@ -119,7 +119,7 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             })
             .eq('id', existing.id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error updating watch duration:', error);
@@ -147,7 +147,7 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             watch_duration_seconds: additionalSeconds
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding watch duration:', error);

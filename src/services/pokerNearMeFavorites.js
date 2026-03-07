@@ -38,7 +38,7 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
             venue_state: venueData.state || null
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding venue favorite:', error);
@@ -75,7 +75,7 @@ export async function isVenueFavorited(userId, venueId) {
         .select('id')
         .eq('user_id', userId)
         .eq('venue_id', venueId)
-        .single();
+        .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
         console.error('Error checking venue favorite:', error);

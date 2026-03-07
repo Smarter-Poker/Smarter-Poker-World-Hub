@@ -86,7 +86,7 @@ export default function ClubArenaTable() {
 
   // Auth guard
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
       if (session?.user) setUser(session.user);
       else router.push('/auth/login');
     });
@@ -115,7 +115,7 @@ export default function ClubArenaTable() {
       }
 
       // 2. Get auth token
-      const { data: { session } } = await supabase.auth.getSession();
+      const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
       const token = session?.access_token;
 
       // 3. Connect to engine with retry backoff

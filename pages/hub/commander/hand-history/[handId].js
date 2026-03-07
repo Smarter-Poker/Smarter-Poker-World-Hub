@@ -142,7 +142,7 @@ export default function HandDetailPage() {
   async function fetchHand(signal) {
     setLoading(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/hands/${handId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -162,7 +162,7 @@ export default function HandDetailPage() {
   async function handleAnalyze(signal) {
     setAnalyzing(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch(`/api/commander/hands/${handId}/analyze`, {
         method: 'POST',

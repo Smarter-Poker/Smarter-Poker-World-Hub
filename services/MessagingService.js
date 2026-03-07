@@ -65,7 +65,7 @@ class MessagingService {
             .from('social_messaging_settings')
             .upsert(defaults)
             .select()
-            .single();
+            .maybeSingle();
 
         return data || defaults;
     }
@@ -95,7 +95,7 @@ class MessagingService {
                 updated_at: new Date().toISOString(),
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Failed to update settings:', error);

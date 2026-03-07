@@ -23,7 +23,7 @@ async function testDailyChallenge() {
         .from('memory_daily_challenges')
         .select('*')
         .eq('challenge_date', challengeDate)
-        .single();
+        .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {
         console.error('Error checking existing:', checkError);
@@ -110,7 +110,7 @@ async function testDailyChallenge() {
             bonus_reward: bonusReward
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (insertError) {
         console.error('\n❌ Insert error:', insertError);

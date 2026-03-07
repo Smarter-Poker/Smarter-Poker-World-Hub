@@ -47,14 +47,14 @@ export default function ProfileSettingsPage() {
 
   useEffect(() => {
     (async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/profile/settings');
     })();
   }, [router]);
 
   const { isLoading: loading } = useSWR('/api/commander/profile', async (url) => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) return null;
     return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -70,7 +70,7 @@ export default function ProfileSettingsPage() {
   async function handleSave(signal) {
     setSaving(true);
     try {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       const res = await fetch('/api/commander/profile', {
         method: 'PATCH',

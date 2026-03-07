@@ -20,7 +20,7 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
             .eq('venue_id', 1996)
             .eq('player_name', name)
             .eq('status', 'active')
-            .single();
+            .maybeSingle();
 
         if (session) {
             // Update to table 15
@@ -35,7 +35,7 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
                 .eq('venue_id', 1996)
                 .ilike('first_name', name.split(' ')[0])
                 .ilike('last_name', name.split(' ').slice(1).join(' '))
-                .single();
+                .maybeSingle();
 
             await sb.from('commander_table_sessions').insert({
                 venue_id: 1996,

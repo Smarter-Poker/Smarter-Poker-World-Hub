@@ -17,7 +17,7 @@ export async function getUserAvatar(userId) {
             .select('*')
             .eq('user_id', userId)
             .eq('is_active', true)
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
             // PGRST116 is "no rows returned" - not an error for new users
@@ -159,7 +159,7 @@ export async function generateCustomAvatar(userId, prompt, isVip = false, photoF
                 prompt: prompt || 'Generated from photo'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (galleryError) {
             console.error('Gallery save error:', galleryError);
@@ -284,7 +284,7 @@ export async function isAvatarUnlocked(userId, avatarId) {
             .select('id')
             .eq('user_id', userId)
             .eq('avatar_id', avatarId)
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') throw error;
 
@@ -339,7 +339,7 @@ export async function unlockAvatar(userId, avatarId, method = 'vip_purchase') {
                 unlock_method: method
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

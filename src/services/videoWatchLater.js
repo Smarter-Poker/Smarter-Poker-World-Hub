@@ -37,7 +37,7 @@ export async function addToWatchLater(userId, videoId, videoData = {}) {
             thumbnail_url: videoData.thumbnail || null
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding to watch later:', error);
@@ -74,7 +74,7 @@ export async function isInWatchLater(userId, videoId) {
         .select('id')
         .eq('user_id', userId)
         .eq('video_id', videoId)
-        .single();
+        .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
         console.error('Error checking watch later:', error);

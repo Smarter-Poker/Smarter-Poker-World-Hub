@@ -10,6 +10,7 @@ import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
+import { getAuthUser } from '../../../src/lib/authUtils';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
@@ -87,12 +88,12 @@ export default function CommanderHub() {
     // Check if user has a club page
     (async () => {
       try {
-        const { data: { session: _session } } = await supabase.auth.getSession();
+        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
         if (!token) return;
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-        const user = await getSafeUser(supabase);
+        const user = getAuthUser();
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
           const json = await res.json();

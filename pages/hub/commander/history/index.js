@@ -87,7 +87,7 @@ export default function PlayerHistoryPage() {
   // Auth redirect
   useEffect(() => {
     (async () => {
-    const { data: { session: _session } } = await supabase.auth.getSession();
+    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
     if (!token) router.push('/auth/login?redirect=/hub/commander/history');
     })();
@@ -97,7 +97,7 @@ export default function PlayerHistoryPage() {
   const { data: swrData, isLoading: loading } = useSWR(
     `/api/commander/sessions?period=${filter}`,
     async (url) => {
-      const { data: { session: _session } } = await supabase.auth.getSession();
+      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
     const token = _session?.access_token;
       return fetch(url, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())

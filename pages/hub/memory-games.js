@@ -2551,7 +2551,7 @@ export default function MemoryGamesPage() {
 
         try {
             // Get auth token for API call
-            const { data: { session } } = await supabase.auth.getSession();
+            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
             if (!session?.access_token) {
                 alert('Please log in to upgrade to VIP!');
                 return;

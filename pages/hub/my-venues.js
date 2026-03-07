@@ -508,7 +508,7 @@ export default function MyVenuesPage() {
 
     // Get session once, redirect if unauthenticated
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
             if (!session?.user) {
                 router.push('/login?redirect=/hub/my-venues');
             } else {

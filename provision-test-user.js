@@ -7,7 +7,7 @@ async function provisionUser() {
     const email = 'johndonnahue4485@yahoo.com';
     console.log(`Provisioning ${email}...`);
 
-    const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).single();
+    const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
     if (!profile) return console.log('User not found!');
 
     await supabase.from('profiles').update({
@@ -18,7 +18,7 @@ async function provisionUser() {
         vip_expires_at: null
     }).eq('id', profile.id);
 
-    let { data: venue } = await supabase.from('poker_venues').select('*').eq('claimed_by', profile.id).single();
+    let { data: venue } = await supabase.from('poker_venues').select('*').eq('claimed_by', profile.id).maybeSingle();
 
     if (!venue) {
         console.log('Creating venue...');
@@ -31,12 +31,12 @@ async function provisionUser() {
             state: 'NV',
             is_active: true,
             commander_enabled: true
-        }).select().single();
+        }).select().maybeSingle();
         if (venueErr) console.error('Error creating venue:', venueErr);
         venue = newVenue;
     }
 
-    const { data: sub } = await supabase.from('commander_subscriptions').select('*').eq('owner_id', profile.id).single();
+    const { data: sub } = await supabase.from('commander_subscriptions').select('*').eq('owner_id', profile.id).maybeSingle();
 
     if (!sub && venue) {
         console.log('Creating Commander Subscription...');

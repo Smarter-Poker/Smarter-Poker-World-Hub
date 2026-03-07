@@ -809,7 +809,7 @@ async function main() {
         if (fixableIds.length > 0) {
             console.log(`\n🔧 Fixing ${fixableIds.length} prefix-only issues...`);
             for (const id of fixableIds) {
-                const { data: q } = await s.from('trivia_questions').select('options').eq('id', id).single();
+                const { data: q } = await s.from('trivia_questions').select('options').eq('id', id).maybeSingle();
                 if (q) {
                     const fixed = q.options.map(o => o.replace(/^[A-Da-d][.)]\s*/, ''));
                     await s.from('trivia_questions').update({ options: fixed }).eq('id', id);

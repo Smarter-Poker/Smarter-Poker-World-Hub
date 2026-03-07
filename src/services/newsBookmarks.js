@@ -38,7 +38,7 @@ export async function addNewsBookmark(userId, articleId, articleData = {}) {
             thumbnail_url: articleData.thumbnail || null
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('Error adding news bookmark:', error);
@@ -75,7 +75,7 @@ export async function isArticleBookmarked(userId, articleId) {
         .select('id')
         .eq('user_id', userId)
         .eq('article_id', articleId)
-        .single();
+        .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
         console.error('Error checking news bookmark:', error);

@@ -31,7 +31,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
         .from('profiles')
         .select('id, username, diamonds')
         .ilike('username', '%daniel%')
-        .single();
+        .maybeSingle();
 
     if (profile) {
         console.log(`\n=== TEST USER ===`);
@@ -52,7 +52,7 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABA
             .from('trivia_streaks')
             .select('*')
             .eq('user_id', profile.id)
-            .single();
+            .maybeSingle();
         console.log(`  User streak: ${streak ? JSON.stringify(streak) : 'none'}`);
     }
 

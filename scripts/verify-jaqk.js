@@ -162,7 +162,7 @@ function check(label, condition, detail) {
 
     // ═══ 11. VENUE SETTINGS ═══
     console.log('\n── 11. VENUE SETTINGS ──');
-    const { data: vs } = await sb.from('commander_venue_settings').select('*').eq('venue_id', VENUE_ID).single();
+    const { data: vs } = await sb.from('commander_venue_settings').select('*').eq('venue_id', VENUE_ID).maybeSingle();
     check('Venue settings exist', !!vs, 'no venue settings row');
     check('Time billing rate set', vs?.time_billing_rate > 0, 'rate: ' + vs?.time_billing_rate);
 

@@ -696,7 +696,7 @@ export default function VirtualSandbox() {
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
   const saveBookmark = async () => {
     try {
-      const user = await getSafeUser(supabase);
+      const user = getAuthUser();
       if (!user) {
         setSaveStatus('error');
         setTimeout(() => setSaveStatus(null), 2000);

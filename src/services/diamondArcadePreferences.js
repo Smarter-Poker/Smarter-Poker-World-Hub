@@ -20,7 +20,7 @@ export async function getDiamondArcadePreferences(userId) {
             .from('profiles')
             .select('diamond_arcade_preferences')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 
