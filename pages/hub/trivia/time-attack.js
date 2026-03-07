@@ -545,7 +545,21 @@ export default function TimeAttackPage() {
                 }
 
                 .complete-screen {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 1000;
+                    background: rgba(0, 0, 0, 0.88);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
                     text-align: center;
+                    animation: resultFadeIn 0.4s ease;
+                }
+
+                @keyframes resultFadeIn {
+                    from { opacity: 0; transform: scale(0.92); }
+                    to { opacity: 1; transform: scale(1); }
                 }
 
                 .complete-screen h1 {
