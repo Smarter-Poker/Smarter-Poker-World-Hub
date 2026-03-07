@@ -207,6 +207,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     // Day-close notes
     const [closeDayNotes, setCloseDayNotes] = useState('');
     const [createError, setCreateError] = useState(null);
+    const [isCreating, setIsCreating] = useState(false);
 
     // Green celebration flash after closing a day
     const [showCelebration, setShowCelebration] = useState(false);
@@ -509,7 +510,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     // ── GIG CRUD Handlers ──
     const handleCreateGig = async (e) => {
         if (e?.preventDefault) e.preventDefault();
-        setCreateError(null); // Clear any previous error
+        if (isCreating) return; // Prevent double-clicks
+        setCreateError(null);
+        setIsCreating(true);
         console.log('[TokeTracker] handleCreateGig fired', { venue_name: newGig.venue_name, userId });
 
         if (!newGig.venue_name.trim()) {
@@ -592,6 +595,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
+            // "Already active" — just load the existing event instead of showing error
+            if (err?.message?.includes('already have an active')) {
+                toast('You already have an active event — loading it now', { icon: 'ℹ️' });
+                setShowCreateForm(false);
+                await loadData();
+                setIsCreating(false);
+                return;
+            }
             // AbortError: silently retry once after 1s — never show to user
             if (isAbortError(err)) {
                 console.debug('[TokeTracker] createGig aborted — auto-retrying in 1s');
@@ -613,10 +624,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         toast.error(retryErr.message || 'Failed to create event — check your connection and try again', 5000);
                     }
                 }
+                setIsCreating(false);
                 return;
             }
             console.error('[TokeTracker] Failed to create gig:', err);
             toast.error(err.message || 'Failed to create event — check your connection and try again', 5000);
+        } finally {
+            setIsCreating(false);
         }
     };
 
@@ -1680,7 +1694,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         />
 
                         <div style={styles.formActions}>
-                            <button type="button" onClick={handleCreateGig} style={styles.formSubmitBtn}>Start Event</button>
+                            <button type="button" onClick={handleCreateGig} disabled={isCreating} style={{ ...styles.formSubmitBtn, opacity: isCreating ? 0.6 : 1, cursor: isCreating ? 'not-allowed' : 'pointer' }}>{isCreating ? 'Creating...' : 'Start Event'}</button>
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
                         {createError && (

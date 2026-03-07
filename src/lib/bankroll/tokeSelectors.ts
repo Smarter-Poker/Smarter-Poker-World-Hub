@@ -252,14 +252,16 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
-    const safePokerVenueId = gig.poker_venue_id && uuidRegex.test(String(gig.poker_venue_id)) ? gig.poker_venue_id : null;
 
     const isAbortErr = (e: any) => e?.name === 'AbortError' || (e?.message || '').includes('aborted');
 
-    // Custom abort-resilient insert loop (withRetry uses 200ms delay which is too short for AbortError recovery)
+    // Custom abort-resilient insert loop
     let lastErr: any;
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
+            // ═══ SCHEMA-VERIFIED INSERT ═══
+            // Only insert columns that EXIST in the toke_gigs table
+            // Removed: venue_type, poker_venue_id, latitude, longitude (do NOT exist in schema)
             const { data: row, error } = await supabase
                 .from('toke_gigs')
                 .insert({
@@ -267,10 +269,6 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
                     venue_name: gig.venue_name,
                     venue_address: gig.venue_address || null,
                     location_id: safeLocationId,
-                    venue_type: gig.venue_type || 'casino',
-                    poker_venue_id: safePokerVenueId,
-                    latitude: gig.latitude || null,
-                    longitude: gig.longitude || null,
                     start_date: gig.start_date || new Date().toISOString().split('T')[0],
                     hourly_rate: gig.hourly_rate || 0,
                     notes: gig.notes || null,
@@ -287,7 +285,6 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
         } catch (err: any) {
             lastErr = err;
             if (isAbortErr(err) && attempt < 2) {
-                // AbortError: wait 1.5s for the abort signal window to pass, then retry
                 console.warn(`[createGig] AbortError on attempt ${attempt + 1}, retrying in 1.5s...`);
                 await new Promise(r => setTimeout(r, 1500));
                 continue;
