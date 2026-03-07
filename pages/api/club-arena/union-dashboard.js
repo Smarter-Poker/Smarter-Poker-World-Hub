@@ -67,7 +67,7 @@ export default async function handler(req, res) {
         .from('clubs')
         .select('id, name, club_id, member_count, chip_treasury, total_rake, owner_id, settings, created_at')
         .in('id', clubIds)
-            .limit(100);
+        .limit(200); // BUG FIX: was 100, but union_clubs limit is 200 → agents in clubs 101+ showed "Unknown Club"
       clubs = clubData || [];
     }
 
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
         .select('*')
         .in('club_id', clubIds)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50); // Raised from 20 — with 10+ clubs, 20 periods is ~2 per club
       periods = periodData || [];
     }
 

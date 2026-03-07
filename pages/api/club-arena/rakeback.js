@@ -121,11 +121,24 @@ export default async function handler(req, res) {
         .eq('user_id', user.id)
         .single();
 
-      if (!member) return res.status(403).json({ success: false, error: 'Not a club member' });
+      // Union admin fallback — union admins are not club members but can manage rakeback
+      let effectiveRole = member?.role || null;
+      if (!member) {
+        const { data: clubInfo } = await supabaseAdmin
+          .from('clubs').select('union_id').eq('id', clubId).single();
+        if (clubInfo?.union_id) {
+          const { data: ua } = await supabaseAdmin
+            .from('union_admins').select('role')
+            .eq('union_id', clubInfo.union_id).eq('user_id', user.id).single();
+          if (ua) effectiveRole = 'owner'; // union admins get full access
+        }
+      }
+
+      if (!effectiveRole) return res.status(403).json({ success: false, error: 'Not authorized for this club' });
 
       // ─── OPEN NEW PERIOD ───
       if (action === 'open') {
-        if (!['owner', 'admin'].includes(member.role)) {
+        if (!['owner', 'admin'].includes(effectiveRole)) {
           return res.status(403).json({ success: false, error: 'Only owners/admins can open rakeback periods' });
         }
 
@@ -160,8 +173,9 @@ export default async function handler(req, res) {
 
       // ─── CLOSE PERIOD (calculate rakeback for all players) ───
       if (action === 'close') {
-        if (!['owner', 'admin'].includes(member.role)) {
+        if (!['owner', 'admin'].includes(effectiveRole)) {
           return res.status(403).json({ success: false, error: 'Only owners/admins can close rakeback periods' });
+        }
         }
 
         // Find open period

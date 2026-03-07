@@ -70,17 +70,17 @@ const StatCard = ({ label, value, color, sub }) => (
     </div>
 );
 
-const TABS = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'clubs', label: 'Clubs' },
-    { id: 'agents', label: 'Agents' },
-    { id: 'games', label: 'Games' },
-    { id: 'settlement', label: 'Settlement' },
-    { id: 'mint', label: 'Mint Chips' },
-    { id: 'bbj', label: 'BBJ' },
-    { id: 'admins', label: 'Admins' },
-    { id: 'manage_clubs', label: 'Manage Clubs' },
-    { id: 'settings', label: 'Settings' },
+const ALL_TABS = [
+    { id: 'overview', label: 'Overview', leadOnly: false },
+    { id: 'clubs', label: 'Clubs', leadOnly: false },
+    { id: 'agents', label: 'Agents', leadOnly: false },
+    { id: 'games', label: 'Games', leadOnly: false },
+    { id: 'settlement', label: 'Settlement', leadOnly: false },
+    { id: 'mint', label: 'Mint Chips', leadOnly: false },
+    { id: 'bbj', label: 'BBJ', leadOnly: false },
+    { id: 'admins', label: 'Admins', leadOnly: true },
+    { id: 'manage_clubs', label: 'Manage Clubs', leadOnly: true },
+    { id: 'settings', label: 'Settings', leadOnly: true },
 ];
 
 export default function UnionDashboard() {
@@ -111,6 +111,9 @@ export default function UnionDashboard() {
     const [addClubId, setAddClubId] = useState('');
     // Admin management state
     const [addAdminId, setAddAdminId] = useState('');
+    const [adminSearch, setAdminSearch] = useState('');
+    const [adminSearchResults, setAdminSearchResults] = useState([]);
+    const [adminSearching, setAdminSearching] = useState(false);
     // Settings state
     const [unionName, setUnionName] = useState('');
     const [unionDesc, setUnionDesc] = useState('');
@@ -392,6 +395,20 @@ export default function UnionDashboard() {
     }
 
     const { union, stats, clubs, agents, recentPeriods } = dashboard;
+    const isLead = dashboard.adminRole === 'union_lead';
+    const TABS = ALL_TABS.filter(t => !t.leadOnly || isLead);
+
+    // Admin user search handler
+    const handleAdminSearch = async (q) => {
+        setAdminSearch(q);
+        if (q.trim().length < 2) { setAdminSearchResults([]); return; }
+        setAdminSearching(true);
+        try {
+            const r = await apiCall('/api/club-arena/manage-union', { action: 'search_user', unionId: unionIdParam, query: q });
+            setAdminSearchResults(r.users || []);
+        } catch (_) { setAdminSearchResults([]); }
+        finally { setAdminSearching(false); }
+    };
 
     return (
         <div style={{ background: FB.background, minHeight: '100vh' }}>
@@ -502,19 +519,29 @@ export default function UnionDashboard() {
                         ) : clubs.filter(cl => !clubSearch || (cl.name || '').toLowerCase().includes(clubSearch.toLowerCase())).map(club => (
                             <div key={club.id} style={{
                                 background: FB.cardBg, borderRadius: 12, padding: 16,
-                                border: `1px solid ${FB.border}`, cursor: 'pointer',
-                            }} onClick={() => router.push(`/hub/club-arena/lobby?club=${club.id}`)}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                border: `1px solid ${FB.border}`,
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                                     <div>
                                         <div style={{ fontSize: 16, fontWeight: 700, color: FB.textPrimary }}>{club.name}</div>
                                         <div style={{ fontSize: 12, color: FB.textSecondary }}>Code: {club.club_id}</div>
                                     </div>
-                                    <div style={{ fontSize: 12, color: FB.primary }}>View →</div>
+                                    {/* Both action buttons: Admin Panel (management) + Lobby (player view) */}
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button onClick={() => router.push(`/hub/club-arena/admin?club=${club.id}`)}
+                                            style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                            Admin Panel
+                                        </button>
+                                        <button onClick={() => router.push(`/hub/club-arena/lobby?club=${club.id}`)}
+                                            style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                            Lobby
+                                        </button>
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.textSecondary }}>
-                                    <span> {club.member_count || 0} members</span>
-                                    <span> {(club.chip_treasury || 0).toLocaleString()} treasury</span>
-                                    <span> {(club.total_rake || 0).toLocaleString()} rake</span>
+                                    <span>👥 {club.member_count || 0} members</span>
+                                    <span>🏦 {(club.chip_treasury || 0).toLocaleString()} treasury</span>
+                                    <span>🎰 {(club.total_rake || 0).toLocaleString()} rake</span>
                                 </div>
                             </div>
                         ))}
@@ -548,10 +575,10 @@ export default function UnionDashboard() {
                                 <div key={agent.id} style={{
                                     background: FB.cardBg, borderRadius: 12, padding: 14,
                                     border: `1px solid ${agent.status === 'suspended' ? 'rgba(250,56,62,0.4)' : FB.border}`,
-                                    opacity: agent.status === 'suspended' ? 0.8 : 1,
+                                    opacity: agent.status === 'suspended' ? 0.85 : 1,
                                 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                             <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
                                                 {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0, 8)}
                                             </span>
@@ -562,23 +589,32 @@ export default function UnionDashboard() {
                                                 {agent.is_prepaid ? 'Prepaid' : 'Credit'}
                                             </span>
                                         </div>
-                                        <span style={{
-                                            fontSize: 11, color: agent.status === 'active' ? FB.success : FB.danger,
-                                            fontWeight: 700,
-                                        }}>
-                                            {agent.status === 'suspended' ? '🚫 SUSPENDED' : '● active'}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <span style={{
+                                                fontSize: 11, color: agent.status === 'active' ? FB.success : FB.danger,
+                                                fontWeight: 700,
+                                            }}>
+                                                {agent.status === 'suspended' ? '🚫 SUSPENDED' : '● active'}
+                                            </span>
+                                            {/* Navigate to club admin panel for this agent's club */}
+                                            <button
+                                                onClick={() => router.push(`/hub/club-arena/admin?club=${agent.club_id}`)}
+                                                style={{ background: 'transparent', color: FB.primary, border: `1px solid ${FB.primary}`, borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                                Manage →
+                                            </button>
+                                        </div>
                                     </div>
                                     <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
-                                        Club: {clubName} · Commission: {((agent.commission_rate || 0) * 100).toFixed(0)}%
+                                        Club: <span style={{ color: FB.textPrimary }}>{clubName}</span>
+                                        {' · '}Commission: <span style={{ color: FB.gold }}>{((agent.commission_rate || 0) * 100).toFixed(0)}%</span>
                                     </div>
                                     <div style={{ display: 'flex', gap: 14, fontSize: 12, color: FB.textSecondary, flexWrap: 'wrap' }}>
-                                        <span>{agent.active_player_count || 0} players</span>
-                                        <span>{(agent.weekly_rake_generated || 0).toLocaleString()} wk rake</span>
-                                        <span>{(agent.lifetime_earnings || 0).toLocaleString()} lifetime</span>
+                                        <span>👤 {agent.active_player_count || 0} players</span>
+                                        <span>📈 {(agent.weekly_rake_generated || 0).toLocaleString()} wk rake</span>
+                                        <span>💎 {(agent.lifetime_earnings || 0).toLocaleString()} lifetime</span>
                                         {!agent.is_prepaid && (agent.credit_used || 0) > 0 && (
                                             <span style={{ color: (agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 ? FB.danger : FB.textSecondary, fontWeight: (agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 ? 700 : 400 }}>
-                                                Credit: {(agent.credit_used || 0).toLocaleString()} / {(agent.credit_limit || 0).toLocaleString()}
+                                                💳 {(agent.credit_used || 0).toLocaleString()} / {(agent.credit_limit || 0).toLocaleString()} credit
                                                 {(agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 && ' ⚠️'}
                                             </span>
                                         )}
@@ -868,23 +904,71 @@ export default function UnionDashboard() {
                 {/* ═══ ADMINS TAB ═══ */}
                 {activeTab === 'admins' && (
                     <div>
-                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}`, marginBottom: 16 }}>
-                            <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Add Union Admin</h3>
-                            <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>Enter a user UUID to grant union admin access.</p>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                <input value={addAdminId} onChange={e => setAddAdminId(e.target.value)}
-                                    placeholder="User UUID" style={{ flex: 1, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }} />
-                                <button onClick={async () => {
-                                    if (!addAdminId.trim()) { showToast('Enter a user ID', 'error'); return; }
-                                    try {
-                                        const r = await apiCall('/api/club-arena/manage-union', { action: 'add_admin', unionId: unionIdParam, adminUserId: addAdminId.trim() });
-                                        showToast(`Added admin: ${r.admin?.display_name || r.admin?.username || addAdminId}`);
-                                        setAddAdminId('');
-                                        loadDashboard();
-                                    } catch (e) { showToast(e.message, 'error'); }
-                                }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Add Admin</button>
+                        {isLead && (
+                            <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}`, marginBottom: 16 }}>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Add Union Admin</h3>
+                                <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>Search by username to grant union admin access.</p>
+
+                                {/* Username search input */}
+                                <div style={{ position: 'relative', marginBottom: 8 }}>
+                                    <input
+                                        value={adminSearch}
+                                        onChange={e => handleAdminSearch(e.target.value)}
+                                        placeholder="Search by username..."
+                                        style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, boxSizing: 'border-box' }}
+                                    />
+                                    {adminSearching && (
+                                        <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: FB.textSecondary }}>searching...</div>
+                                    )}
+                                </div>
+
+                                {/* Search results */}
+                                {adminSearchResults.length > 0 && (
+                                    <div style={{ background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, marginBottom: 8, overflow: 'hidden' }}>
+                                        {adminSearchResults.map(u => (
+                                            <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${FB.border}` }}>
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary }}>{u.display_name || u.username}</div>
+                                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>@{u.username}</div>
+                                                </div>
+                                                <button onClick={async () => {
+                                                    try {
+                                                        const r = await apiCall('/api/club-arena/manage-union', { action: 'add_admin', unionId: unionIdParam, adminUserId: u.id });
+                                                        showToast(`Added admin: ${r.admin?.display_name || r.admin?.username || u.username}`);
+                                                        setAdminSearch('');
+                                                        setAdminSearchResults([]);
+                                                        loadDashboard();
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                                    Add
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {adminSearch.length >= 2 && !adminSearching && adminSearchResults.length === 0 && (
+                                    <div style={{ fontSize: 12, color: FB.textSecondary, padding: '8px 0' }}>No users found matching "{adminSearch}"</div>
+                                )}
+
+                                {/* Fallback: manual UUID entry */}
+                                <details style={{ marginTop: 8 }}>
+                                    <summary style={{ fontSize: 11, color: FB.textSecondary, cursor: 'pointer' }}>Add by UUID (advanced)</summary>
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                        <input value={addAdminId} onChange={e => setAddAdminId(e.target.value)}
+                                            placeholder="User UUID" style={{ flex: 1, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13 }} />
+                                        <button onClick={async () => {
+                                            if (!addAdminId.trim()) { showToast('Enter a user ID', 'error'); return; }
+                                            try {
+                                                const r = await apiCall('/api/club-arena/manage-union', { action: 'add_admin', unionId: unionIdParam, adminUserId: addAdminId.trim() });
+                                                showToast(`Added admin: ${r.admin?.display_name || r.admin?.username || addAdminId}`);
+                                                setAddAdminId('');
+                                                loadDashboard();
+                                            } catch (e) { showToast(e.message, 'error'); }
+                                        }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Add</button>
+                                    </div>
+                                </details>
                             </div>
-                        </div>
+                        )}
                         <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Current Admins</h3>
                         {(dashboard.admins || []).length === 0 ? (
                             <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 20 }}>No admins found.</div>
@@ -898,10 +982,10 @@ export default function UnionDashboard() {
                                         {admin.profile?.display_name || admin.profile?.username || admin.user_id.slice(0, 8)}
                                     </div>
                                     <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                                        Role: <span style={{ color: admin.role === 'union_lead' ? FB.gold : FB.primary }}>{admin.role === 'union_lead' ? 'Union Lead' : admin.role === 'union_admin' ? 'Union Admin' : admin.role}</span>
+                                        Role: <span style={{ color: admin.role === 'union_lead' ? FB.gold : FB.primary }}>{admin.role === 'union_lead' ? '👑 Union Lead' : '🛡 Union Admin'}</span>
                                     </div>
                                 </div>
-                                {admin.role !== 'union_lead' && (
+                                {isLead && admin.role !== 'union_lead' && (
                                     <button onClick={async () => {
                                         if (confirmRemoveAdmin !== admin.user_id) {
                                             setConfirmRemoveAdmin(admin.user_id);
@@ -927,15 +1011,22 @@ export default function UnionDashboard() {
                 {activeTab === 'settings' && (
                     <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
                         <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 16 }}>Union Settings</h3>
+                        {!isLead && (
+                            <div style={{ background: 'rgba(245,166,35,0.1)', borderRadius: 8, padding: '10px 14px', marginBottom: 16, border: '1px solid rgba(245,166,35,0.2)', fontSize: 13, color: FB.orange }}>
+                                🔒 Settings changes require Union Lead access. You can view but not edit.
+                            </div>
+                        )}
                         <div style={{ marginBottom: 16 }}>
                             <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Union Name</label>
                             <input value={unionName} onChange={e => setUnionName(e.target.value)}
-                                style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                disabled={!isLead}
+                                style={{ width: '100%', background: isLead ? FB.background : '#2a2b2c', color: isLead ? FB.textPrimary : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', cursor: isLead ? 'text' : 'not-allowed' }} />
                         </div>
                         <div style={{ marginBottom: 16 }}>
                             <label style={{ fontSize: 12, color: FB.textSecondary, display: 'block', marginBottom: 4 }}>Description</label>
                             <textarea value={unionDesc} onChange={e => setUnionDesc(e.target.value)} rows={3}
-                                style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }} />
+                                disabled={!isLead}
+                                style={{ width: '100%', background: isLead ? FB.background : '#2a2b2c', color: isLead ? FB.textPrimary : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', resize: 'vertical', cursor: isLead ? 'text' : 'not-allowed' }} />
                         </div>
 
                         {/* Rake Routing Info */}
@@ -949,10 +1040,14 @@ export default function UnionDashboard() {
                         {/* Union Rake Hold Rate */}
                         <div style={{ marginBottom: 16 }}>
                             <label style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, display: 'block', marginBottom: 4 }}>Union Rake Hold Rate (%)</label>
-                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 6 }}>Percentage of total rake retained by the union before distributing to clubs/agents.</div>
+                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 6 }}>Percentage of total rake retained by the union before distributing to clubs/agents. Max 50%.</div>
                             <input type="number" value={unionHoldRate} onChange={e => setUnionHoldRate(e.target.value)}
+                                disabled={!isLead}
                                 min="0" max="50" step="1" placeholder="10"
-                                style={{ width: 120, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                style={{ width: 120, background: isLead ? FB.background : '#2a2b2c', color: isLead ? FB.textPrimary : FB.textSecondary, border: `1px solid ${parseFloat(unionHoldRate) > 50 ? FB.danger : FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', cursor: isLead ? 'text' : 'not-allowed' }} />
+                            {parseFloat(unionHoldRate) > 50 && (
+                                <div style={{ fontSize: 11, color: FB.danger, marginTop: 4 }}>⚠️ Cannot exceed 50%</div>
+                            )}
                         </div>
 
                         {/* BBJ Split Config */}
@@ -962,17 +1057,20 @@ export default function UnionDashboard() {
                                 <div>
                                     <label style={{ fontSize: 11, color: '#FFD700', display: 'block', marginBottom: 2 }}>Main BBJ %</label>
                                     <input type="number" value={bbjMainPct} onChange={e => setBbjMainPct(e.target.value)}
-                                        min="0" max="100" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                        disabled={!isLead}
+                                        min="0" max="100" style={{ width: '100%', background: isLead ? FB.background : '#2a2b2c', color: isLead ? FB.textPrimary : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', cursor: isLead ? 'text' : 'not-allowed' }} />
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 11, color: '#C0C0C0', display: 'block', marginBottom: 2 }}>Backup BBJ %</label>
                                     <input type="number" value={bbjBackupPct} onChange={e => setBbjBackupPct(e.target.value)}
-                                        min="0" max="100" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                        disabled={!isLead}
+                                        min="0" max="100" style={{ width: '100%', background: isLead ? FB.background : '#2a2b2c', color: isLead ? FB.textPrimary : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', cursor: isLead ? 'text' : 'not-allowed' }} />
                                 </div>
                                 <div>
                                     <label style={{ fontSize: 11, color: '#4BB543', display: 'block', marginBottom: 2 }}>Promo Fund %</label>
                                     <input type="number" value={bbjPromoPct} onChange={e => setBbjPromoPct(e.target.value)}
-                                        min="0" max="100" style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box' }} />
+                                        disabled={!isLead}
+                                        min="0" max="100" style={{ width: '100%', background: isLead ? FB.background : '#2a2b2c', color: isLead ? FB.textPrimary : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, boxSizing: 'border-box', cursor: isLead ? 'text' : 'not-allowed' }} />
                                 </div>
                             </div>
                             {(parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0)) !== 100 && (
@@ -982,30 +1080,34 @@ export default function UnionDashboard() {
                             )}
                         </div>
 
-                        <button onClick={async () => {
-                            const total = parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0);
-                            if (total !== 100) { showToast('BBJ split must total 100%', 'error'); return; }
-                            try {
-                                await apiCall('/api/club-arena/manage-union', {
-                                    action: 'update_settings',
-                                    unionId: unionIdParam,
-                                    name: unionName,
-                                    description: unionDesc,
-                                    settings: {
-                                        ...dashboard?.union?.settings,
-                                        union_rake_hold: parseFloat(unionHoldRate || '10') / 100,
-                                        bbj_main_pct: parseInt(bbjMainPct),
-                                        bbj_backup_pct: parseInt(bbjBackupPct),
-                                        bbj_promo_pct: parseInt(bbjPromoPct),
-                                    },
-                                });
-                                showToast('Settings saved');
-                                loadDashboard();
-                            } catch (e) { showToast(e.message, 'error'); }
-                        }} style={{
-                            width: '100%', background: FB.primary, color: '#fff', border: 'none',
-                            borderRadius: 10, padding: '12px', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-                        }}>Save Settings</button>
+                        {isLead && (
+                            <button onClick={async () => {
+                                const holdVal = parseFloat(unionHoldRate || '10');
+                                if (holdVal > 50) { showToast('Union rake hold cannot exceed 50%', 'error'); return; }
+                                const total = parseInt(bbjMainPct || 0) + parseInt(bbjBackupPct || 0) + parseInt(bbjPromoPct || 0);
+                                if (total !== 100) { showToast('BBJ split must total 100%', 'error'); return; }
+                                try {
+                                    await apiCall('/api/club-arena/manage-union', {
+                                        action: 'update_settings',
+                                        unionId: unionIdParam,
+                                        name: unionName,
+                                        description: unionDesc,
+                                        settings: {
+                                            ...dashboard?.union?.settings,
+                                            union_rake_hold: holdVal / 100,
+                                            bbj_main_pct: parseInt(bbjMainPct),
+                                            bbj_backup_pct: parseInt(bbjBackupPct),
+                                            bbj_promo_pct: parseInt(bbjPromoPct),
+                                        },
+                                    });
+                                    showToast('Settings saved');
+                                    loadDashboard();
+                                } catch (e) { showToast(e.message, 'error'); }
+                            }} style={{
+                                width: '100%', background: FB.primary, color: '#fff', border: 'none',
+                                borderRadius: 10, padding: '12px', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                            }}>Save Settings</button>
+                        )}
                     </div>
                 )}
 

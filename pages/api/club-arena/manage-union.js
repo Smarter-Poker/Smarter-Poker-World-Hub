@@ -262,6 +262,66 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // SEARCH USER — find user by username/display_name for admin addition
+    // No union_lead requirement — any union admin can search
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'search_user') {
+      const { query: searchQuery } = req.body;
+      if (!searchQuery?.trim() || searchQuery.trim().length < 2) {
+        return res.status(400).json({ success: false, error: 'query must be at least 2 characters' });
+      }
+      const term = searchQuery.trim().replace(/%/g, '\\%'); // escape wildcards
+      const { data: profiles } = await supabaseAdmin
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .or(`username.ilike.%${term}%,display_name.ilike.%${term}%`)
+        .limit(10);
+
+      return res.status(200).json({ success: true, users: profiles || [] });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // UPDATE CLUB COMMISSION — change a specific club's commission rate
+    // union_lead only
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'update_club_commission') {
+      if (!clubId) return res.status(400).json({ success: false, error: 'clubId required' });
+      if (callerAdmin.role !== 'union_lead') {
+        return res.status(403).json({ success: false, error: 'Only union owner can update club commission rates' });
+      }
+
+      const newRate = parseFloat(req.body.commissionRate);
+      if (isNaN(newRate) || newRate < 0.01 || newRate > 1.0) {
+        return res.status(400).json({ success: false, error: 'commissionRate must be between 0.01 (1%) and 1.0 (100%)' });
+      }
+
+      // Verify club is actually in this union (IDOR guard)
+      const { data: uc } = await supabaseAdmin
+        .from('union_clubs')
+        .select('club_id')
+        .eq('union_id', unionId)
+        .eq('club_id', clubId)
+        .single();
+
+      if (!uc) return res.status(404).json({ success: false, error: 'Club not found in this union' });
+
+      // Update both union_clubs join table AND clubs table (keep in sync)
+      await supabaseAdmin
+        .from('union_clubs')
+        .update({ club_commission_rate: newRate })
+        .eq('union_id', unionId)
+        .eq('club_id', clubId);
+
+      await supabaseAdmin
+        .from('clubs')
+        .update({ club_commission_rate: newRate })
+        .eq('id', clubId)
+        .eq('union_id', unionId); // IDOR guard: only update clubs in this union
+
+      return res.status(200).json({ success: true, commissionRate: newRate });
+    }
+
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-union]', err);
