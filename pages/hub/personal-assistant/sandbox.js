@@ -180,12 +180,12 @@ function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
       style={{
-        position: 'absolute', zIndex: 60, background: '#0f172a',
-        border: '1px solid rgba(255,255,255,0.15)', borderRadius: '12px',
-        padding: '12px', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', maxWidth: '340px',
+        position: 'absolute', zIndex: 60, background: '#242526',
+        border: '1px solid #3A3B3C', borderRadius: '10px',
+        padding: '8px', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', maxWidth: '320px',
       }}>
       {SUITS.map(suit => (
-        <div key={suit.code} style={{ display: 'flex', gap: '3px', marginBottom: '4px', justifyContent: 'center' }}>
+        <div key={suit.code} style={{ display: 'flex', gap: '2px', marginBottom: '2px', justifyContent: 'center' }}>
           {RANKS.map(rank => {
             const card = `${rank}${suit.code}`;
             const used = usedCards.includes(card);
@@ -193,7 +193,7 @@ function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
             return (
               <button key={card} onClick={() => !used && onSelect(card)} disabled={used}
                 style={{
-                  width: 24, height: 34, padding: 0, border: used ? '1px solid #333' : '1px solid #555',
+                  width: 22, height: 30, padding: 0, border: used ? '1px solid #333' : '1px solid #555',
                   borderRadius: 3, cursor: used ? 'not-allowed' : 'pointer', overflow: 'hidden',
                   opacity: used ? 0.2 : 1, background: '#fff', transition: 'all 0.1s',
                 }}
@@ -207,7 +207,7 @@ function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
         </div>
       ))}
       <button onClick={onClose} style={{
-        marginTop: '6px', width: '100%', padding: '5px', borderRadius: '6px', fontSize: '11px',
+        marginTop: '4px', width: '100%', padding: '5px', borderRadius: '6px', fontSize: '11px',
         background: 'rgba(239,68,68,0.15)', border: 'none', color: '#fca5a5', cursor: 'pointer',
       }}>Close Deck</button>
     </motion.div>
@@ -383,6 +383,7 @@ export default function VirtualSandbox() {
   const [selectedHeatmapAction, setSelectedHeatmapAction] = useState(null);
   const [comparePosition, setComparePosition] = useState(null);
   const [bookmarks, setBookmarks] = useState([]);
+  const [showResults, setShowResults] = useState(false); // fullscreen analysis popup
 
   // Check first visit for onboarding
   useEffect(() => {
@@ -453,17 +454,37 @@ export default function VirtualSandbox() {
     setPotSize(Math.round(pot * 10) / 10);
   }, [actionHistory, heroStack]);
 
-  // Deck card selection handler
+  // Deck card selection handler — keeps deck open for multi-card flop selection (#6)
   const handleDeckSelect = (card) => {
-    if (deckTarget === 'hero1') setHeroHand(h => ({ ...h, card1: card }));
-    else if (deckTarget === 'hero2') setHeroHand(h => ({ ...h, card2: card }));
-    else if (deckTarget === 'board') {
-      if (board.flop.length < 3) setBoard(b => ({ ...b, flop: [...b.flop, card] }));
-      else if (!board.turn) setBoard(b => ({ ...b, turn: card }));
-      else if (!board.river) setBoard(b => ({ ...b, river: card }));
+    if (deckTarget === 'hero1') {
+      setHeroHand(h => ({ ...h, card1: card }));
+      setShowDeck(false);
+      setDeckTarget(null);
+    } else if (deckTarget === 'hero2') {
+      setHeroHand(h => ({ ...h, card2: card }));
+      setShowDeck(false);
+      setDeckTarget(null);
+    } else if (deckTarget === 'board') {
+      setBoard(prev => {
+        if (prev.flop.length < 3) {
+          const newFlop = [...prev.flop, card];
+          // Keep deck open until all 3 flop cards are picked
+          if (newFlop.length >= 3) {
+            setTimeout(() => { setShowDeck(false); setDeckTarget(null); }, 150);
+          }
+          return { ...prev, flop: newFlop };
+        } else if (!prev.turn) {
+          setShowDeck(false);
+          setDeckTarget(null);
+          return { ...prev, turn: card };
+        } else if (!prev.river) {
+          setShowDeck(false);
+          setDeckTarget(null);
+          return { ...prev, river: card };
+        }
+        return prev;
+      });
     }
-    setShowDeck(false);
-    setDeckTarget(null);
   };
 
   // Random board (Feature #8) — exclude only hero cards, not current board
@@ -527,6 +548,7 @@ export default function VirtualSandbox() {
   const runAnalysis = async () => {
     if (!heroHand.card1 || !heroHand.card2) return;
     await analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+    setShowResults(true); // auto-open fullscreen analysis popup
   };
 
   // Position comparison (Feature #11)
@@ -552,7 +574,7 @@ export default function VirtualSandbox() {
   ) : null;
 
   return (
-    <div className="sandbox-page" style={{ minHeight: '100vh', background: '#0a0a1a', color: '#e2e8f0', fontFamily: "'Inter',-apple-system,sans-serif" }}>
+    <div className="sandbox-page" style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "'Inter',-apple-system,sans-serif" }}>
       {/* Onboarding Tour */}
       <OnboardingTour isVisible={showTour} step={tourStep}
         onClose={dismissTour} onNext={() => setTourStep(s => s + 1)} />
@@ -612,26 +634,27 @@ export default function VirtualSandbox() {
 
       {/* HEADER */}
       <div className="sandbox-header" style={{
-        padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)',
-        background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(10,10,26,0.95) 100%)',
+        padding: '12px 20px', borderBottom: '1px solid #3A3B3C',
+        background: '#242526',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button onClick={() => router.push('/hub/personal-assistant')} aria-label="Back"
-              style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#94a3b8', cursor: 'pointer', fontSize: 14 }}>←</button>
+              style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#B0B3B8', cursor: 'pointer', fontSize: 14 }}>←</button>
             <div>
               <h1 style={{
                 fontSize: 18, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
                 background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
               }}>
                 Virtual Sandbox</h1>
-              <p style={{ color: '#64748b', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>
+              <p style={{ color: '#B0B3B8', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>
             </div>
           </div>
           <div className="sandbox-header-actions" style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
-            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.1)', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.2)'}`, color: saveStatus === 'saved' ? '#4ade80' : '#fde68a', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
-            {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', cursor: 'pointer', minHeight: 36 }}>Share</button>}
+            <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
+            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
+            {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
+            {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
             <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
           </div>
         </div>
@@ -646,7 +669,7 @@ export default function VirtualSandbox() {
       />
 
       {/* MAIN LAYOUT — Mobile-first responsive */}
-      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: results ? '1fr 400px' : '1fr', gap: '20px' }}>
+      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
         {/* LEFT — Setup + Table */}
         <div>
           {/* Visual Poker Table */}
@@ -670,30 +693,24 @@ export default function VirtualSandbox() {
           <EquityDisplay heroHand={heroHand} board={board} />
 
           {/* Your Hand */}
-          <div id="hero-setup" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
-            <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
+          <div id="hero-setup" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
-              <span style={{ color: '#64748b', fontSize: 12, minWidth: 45 }}>Hand:</span>
+              <span style={{ color: '#B0B3B8', fontSize: 12, minWidth: 45 }}>Hand:</span>
               <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
               <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
               <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
-              {/* Hand Strength Badge (Improvement #3) */}
-              {getHandStrength(heroHand) && (
-                <span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 10, fontWeight: 700, background: `${getHandStrength(heroHand).color}20`, border: `1px solid ${getHandStrength(heroHand).color}40`, color: getHandStrength(heroHand).color, marginLeft: 'auto' }}>
-                  {getHandStrength(heroHand).label}
-                </span>
-              )}
             </div>
             <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
               <div>
-                <label style={{ color: '#64748b', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
+                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
                 <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
                   {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ color: '#64748b', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
+                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
                 <input type="text" inputMode="numeric" pattern="[0-9]*"
                   value={heroStack}
                   onChange={e => {
@@ -701,12 +718,12 @@ export default function VirtualSandbox() {
                     setHeroStack(val === 0 ? '' : val);
                   }}
                   onBlur={() => setHeroStack(h => h || 100)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ color: '#64748b', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
+                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
                 <select value={gameType} onChange={e => setGameType(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
                   {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
                 </select>
               </div>
@@ -714,11 +731,11 @@ export default function VirtualSandbox() {
           </div>
 
           {/* Board Builder */}
-          <div id="board-builder" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
+          <div id="board-builder" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
+              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
               <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(139,92,246,0.15)', border: 'none', color: '#c4b5fd', cursor: 'pointer' }}>Random</button>
+                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>Random</button>
                 {board.flop.length === 3 && !board.river && (
                   <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
                     Deal {!board.turn ? 'Turn' : 'River'} ▸
@@ -729,34 +746,24 @@ export default function VirtualSandbox() {
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
               {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
               {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
-              {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: 'rgba(255,255,255,0.1)', margin: '0 2px' }} />}
+              {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: '#3A3B3C', margin: '0 2px' }} />}
               {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
               {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
             </div>
-            {board.flop.length === 0 && (
-              <div style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {[{ l: 'AKT', c: ['Ad', 'Kh', 'Tc'] }, { l: '7-5-3', c: ['7s', '5s', '3s'] }, { l: 'QQ8', c: ['Qd', 'Qh', '8c'] }, { l: '987', c: ['9h', '8d', '7c'] }].map((p, i) => (
-                    <button key={i} onClick={() => setBoard({ flop: p.c, turn: null, river: null })}
-                      style={{ padding: '4px 10px', borderRadius: 6, fontSize: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#94a3b8', cursor: 'pointer' }}>{p.l}</button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Quick Scenario Presets (Improvement #2) */}
             {!heroHand.card1 && board.flop.length === 0 && (
-              <div style={{ background: 'rgba(59,130,246,0.05)', borderRadius: 10, border: '1px solid rgba(59,130,246,0.1)', padding: '12px', marginBottom: '12px' }}>
-                <div style={{ color: '#93c5fd', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
+              <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '12px', marginTop: '10px' }}>
+                <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                   {QUICK_PRESETS.map((preset, i) => (
                     <button key={i} onClick={() => {
                       setHeroHand(preset.hand); setHeroPosition(preset.position);
                       setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
                       setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
-                    }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#cbd5e1', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'rgba(59,130,246,0.1)'}
-                      onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}>
+                    }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(35,116,225,0.15)'}
+                      onMouseOut={e => e.currentTarget.style.background = '#3A3B3C'}>
                       {preset.label}
                     </button>
                   ))}
@@ -765,20 +772,20 @@ export default function VirtualSandbox() {
             )}</div>
 
           {/* Villains */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)', padding: '14px', marginBottom: '12px' }}>
+          <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
+              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
               <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
                 disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
             </div>
             {villains.map((v, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
                 <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
                   {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
                 <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' }}>
+                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
                   {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
                 <input type="text" inputMode="numeric" pattern="[0-9]*"
@@ -794,9 +801,9 @@ export default function VirtualSandbox() {
                     u[i] = { ...u[i], stack: v.stack || 100 };
                     setVillains(u);
                   }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0', width: '100%', boxSizing: 'border-box' }} />
+                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', width: '100%', boxSizing: 'border-box' }} />
                 <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
-                  style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#334155' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
+                  style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#4E4F50' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
               </div>
             ))}
           </div>

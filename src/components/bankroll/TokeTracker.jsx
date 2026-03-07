@@ -723,11 +723,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         try {
             await endDown(endingDown.id, tokeAmt);
             toast.success('Down ended');
+            await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             if (!isAbortError(err)) toast.error(err.message || 'Failed to end down');
+            // Still reload data to resync after optimistic update
+            await loadData();
         }
-        await loadData();
-        window.dispatchEvent(new CustomEvent('toke-data-updated'));
     };
 
     // Legacy direct-end (called from non-dealing downs like break/brush when no toke needed)
@@ -822,18 +824,20 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         setShowCelebration(true);
         setTimeout(() => setShowCelebration(false), 1800);
         try {
-            await closeDay(currentDay.id);
-            // Save notes if any
+            // Save notes BEFORE closing (prevents race condition / data loss)
             if (closeDayNotes.trim()) {
                 await supabase.from('toke_gig_days').update({ notes: closeDayNotes.trim() }).eq('id', currentDay.id);
             }
+            await closeDay(currentDay.id);
             toast.success(`Day ${currentDay.day_number} closed! 🎉`);
             setCloseDayNotes('');
+            await loadData();
+            window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             if (!isAbortError(err)) toast.error(err.message || 'Failed to close day');
+            // Still reload to resync after optimistic update
+            await loadData();
         }
-        await loadData();
-        window.dispatchEvent(new CustomEvent('toke-data-updated'));
     };
 
     const handleStartNewDay = async () => {
