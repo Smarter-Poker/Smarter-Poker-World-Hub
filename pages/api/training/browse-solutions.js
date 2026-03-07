@@ -70,6 +70,12 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
+    // BUG FIX: No auth — paid GTO solver database exposed without gate
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
     try {
         const {
             gameType = 'hu_cash',
