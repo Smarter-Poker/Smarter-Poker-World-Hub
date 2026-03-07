@@ -1077,6 +1077,47 @@ export default function VirtualSandbox() {
               potSize={potSize} />
           </div>
 
+          {/* Pot Size — Editable per-street */}
+          <div className="pot-size-editor" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Pot Size (BB)</h3>
+              <button onClick={() => { skipPotCalcRef.current = false; setActionHistory([...actionHistory]); }}
+                style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', touchAction: 'manipulation' }}>Auto-Calc</button>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
+              <input
+                type="text" inputMode="decimal" pattern="[0-9.]*"
+                className="pot-input"
+                value={potSize}
+                onChange={e => {
+                  const val = parseFloat(e.target.value.replace(/[^\d.]/g, ''));
+                  skipPotCalcRef.current = true;
+                  setPotSize(isNaN(val) ? '' : val);
+                }}
+                onBlur={() => { if (!potSize && potSize !== 0) setPotSize(1.5); }}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 8, fontSize: 16, fontWeight: 700,
+                  background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB',
+                  fontFamily: "'Orbitron',monospace", textAlign: 'center',
+                  minHeight: 44, touchAction: 'manipulation', boxSizing: 'border-box',
+                }}
+              />
+              <span style={{ color: '#65676B', fontSize: 12, fontWeight: 700, minWidth: 24 }}>BB</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {[3, 6, 10, 15, 20, 30, 50].map(p => (
+                <button key={p} onClick={() => { skipPotCalcRef.current = true; setPotSize(p); }}
+                  style={{
+                    padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                    background: potSize === p ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                    border: `1px solid ${potSize === p ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
+                    color: potSize === p ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
+                    touchAction: 'manipulation', minHeight: 32,
+                  }}>{p}</button>
+              ))}
+            </div>
+          </div>
+
           {/* Run Analysis */}
           <div id="run-analysis">
             <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
