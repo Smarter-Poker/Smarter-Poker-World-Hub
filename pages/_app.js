@@ -482,9 +482,55 @@ export default function App({ Component, pageProps }) {
   const { isOpen: isJarvisOpen, onClose: onJarvisClose } = useJarvis();
   const isCommander = router.asPath.startsWith('/commander');
 
+  // Determine if this route requires global capitalization per User specification
+  const path = router.asPath.split('?')[0];
+
+  // Do NOT capitalize specific poker/trainer tool screens where exact statistical/range string casing (e.g., AQs, cbet, EV) is mathematically critical
+  const isPokerTool = path.includes('/training') || path.includes('/gto') || path.includes('/solver') || path.includes('/sandbox');
+
+  // Apply to Settings, Hub, Commander, Club Arena, and Union screens
+  const shouldCapitalize = (
+    path.includes('/settings') ||
+    path.startsWith('/hub') ||
+    path.startsWith('/commander') ||
+    path.includes('/club') ||
+    path.includes('/union')
+  ) && !isPokerTool;
+
   return (
     <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
-      <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable}`} style={{ minHeight: '100vh' }}>
+      <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`} style={{ minHeight: '100vh' }}>
+        {shouldCapitalize && (
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .capitalize-world p, 
+              .capitalize-world span, 
+              .capitalize-world div, 
+              .capitalize-world a, 
+              .capitalize-world h1, 
+              .capitalize-world h2, 
+              .capitalize-world h3, 
+              .capitalize-world h4, 
+              .capitalize-world h5, 
+              .capitalize-world h6, 
+              .capitalize-world button, 
+              .capitalize-world li, 
+              .capitalize-world label {
+                text-transform: capitalize !important;
+              }
+
+              /* Protect user inputs and system globals from capitalization */
+              .capitalize-world input, 
+              .capitalize-world textarea, 
+              .capitalize-world select, 
+              .capitalize-world [contenteditable="true"], 
+              .capitalize-world .no-capitalize,
+              .capitalize-world .no-capitalize * {
+                text-transform: none !important;
+              }
+            `
+          }} />
+        )}
         <>
           {/* PWA Manifest — route-based: Commander gets its own manifest/icon/title */}
           <Head>

@@ -393,7 +393,7 @@ export default function UniversalHeader({
                         cached.diamonds = result.profile.diamonds;
                         localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
                     } catch (_) { }
-                    console.log('[UniversalHeader] 💎 Balance refreshed:', result.profile.diamonds);
+                    console.log('[UniversalHeader] Diamond Balance refreshed:', result.profile.diamonds);
                 }
             } catch (e) {
                 console.warn('[UniversalHeader] Balance refresh failed:', e.message);
@@ -402,6 +402,77 @@ export default function UniversalHeader({
 
         window.addEventListener('diamond-balance-refresh', refreshBalance);
         return () => window.removeEventListener('diamond-balance-refresh', refreshBalance);
+    }, [user?.id]);
+
+    // ── TIER 1: Diamond Balance Realtime Sync ──
+    // Listens to profile updates on diamonds field and syncs across all tabs
+    useEffect(() => {
+        if (!user?.id) return;
+        let diamondChannel = null;
+        let diamondBc = null;
+
+        const refreshDiamondBalance = async () => {
+            try {
+                let accessToken = null;
+                try {
+                    const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                    accessToken = authData?.access_token || null;
+                } catch (e) { }
+
+                const response = await fetch('/api/user/get-header-stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                    },
+                    body: JSON.stringify({ userId: user.id }),
+                });
+                const result = await response.json();
+                if (result.success && result.profile) {
+                    setStats({ diamonds: result.profile.diamonds });
+                    try {
+                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+                        cached.diamonds = result.profile.diamonds;
+                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
+                    } catch (_) { }
+                }
+            } catch (e) {
+                console.warn('[UniversalHeader] Diamond sync refresh failed:', e.message);
+            }
+        };
+
+        // Supabase realtime: listen for profile updates on this user
+        diamondChannel = supabase
+            .channel(`diamonds:${user.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'profiles',
+                filter: `id=eq.${user.id}`
+            }, (payload) => {
+                if (payload.new.diamonds !== undefined) {
+                    setStats({ diamonds: payload.new.diamonds });
+                    try {
+                        const cached = JSON.parse(localStorage.getItem('sp-cached-header-user') || '{}');
+                        cached.diamonds = payload.new.diamonds;
+                        localStorage.setItem('sp-cached-header-user', JSON.stringify(cached));
+                    } catch (_) { }
+                }
+            })
+            .subscribe();
+
+        // BroadcastChannel: cross-tab sync
+        try {
+            diamondBc = new BroadcastChannel('smarter_poker_diamond_sync');
+            diamondBc.onmessage = () => {
+                refreshDiamondBalance();
+            };
+        } catch (e) { }
+
+        return () => {
+            if (diamondChannel) supabase.removeChannel(diamondChannel);
+            try { diamondBc?.close(); } catch (e) { }
+        };
     }, [user?.id]);
 
     // ── VIP status bus listener — updates VIP badge in real time ──
