@@ -111,19 +111,13 @@ export default async function handler(req, res) {
             : 0;
 
         // Query all child spots for possible runout cards
-        // The board portion is the last section of the hash
-        const hashParts = scenarioHash.split('_');
-        const boardPart = hashParts[hashParts.length - 1];
-        const hashPrefix = hashParts.slice(0, -1).join('_');
-
-        // Fetch all children (current board + 1 card = 2 more chars)
-        const childBoardLength = (boardPart?.length || 0) + 2;
-        const pattern = `${hashPrefix}_%`;
+        // A child has the same scenario_hash but with 2 more characters (one more card)
+        // Use the full current hash + 2 wildcard chars for precision
 
         const { data: childSpots, error } = await supabase
             .from('solved_spots_gold')
             .select('scenario_hash, strategy_matrix, hand_evs')
-            .ilike('scenario_hash', pattern)
+            .ilike('scenario_hash', `${scenarioHash}__`)
             .limit(200);
 
         if (error) {

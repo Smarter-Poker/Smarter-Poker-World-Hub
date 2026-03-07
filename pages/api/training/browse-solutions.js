@@ -132,8 +132,7 @@ export default async function handler(req, res) {
             let heroEqSum = 0;
             let villainEqSum = 0;
             let eqCount = 0;
-            const allHands2 = getAllHandNotations();
-            allHands2.forEach(hand => {
+            allHands.forEach(hand => {
                 const ev = handEVs[hand];
                 if (ev !== undefined && ev !== null && gridData[hand]) {
                     // Positive EV = Hero advantage, scale to 0-100 equity

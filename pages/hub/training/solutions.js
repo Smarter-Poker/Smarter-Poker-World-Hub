@@ -20,7 +20,7 @@ import RangeGrid from '../../../src/components/training/RangeGrid';
 import CardSelectorModal from '../../../src/components/training/CardSelectorModal';
 import RunoutHeatmap from '../../../src/components/training/RunoutHeatmap';
 import EquityMatchup from '../../../src/components/training/EquityMatchup';
-import { classifyAllHands, groupByClassification, getAllClassifications } from '../../../src/utils/pokerHandEvaluator';
+import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG

@@ -88,14 +88,21 @@ export default async function handler(req, res) {
                 .eq('scenario_hash', childHash)
                 .single();
 
-            // If exact match fails, try fuzzy (ilike) — hash format may vary
+            // If exact match fails, try with appended card directly to the board part
             if (!childSpot) {
-                const { data: fuzzySpots } = await supabase
+                // Some hashes might have different separators or formats
+                // Try the child hash with underscore separation in case board is a separate segment
+                const hashParts = scenarioHash.split('_');
+                const boardSegment = hashParts[hashParts.length - 1];
+                const prefix = hashParts.slice(0, -1).join('_');
+                const altChildHash = `${prefix}_${boardSegment}${cardStr}`;
+
+                const { data: altSpots } = await supabase
                     .from('solved_spots_gold')
                     .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
-                    .ilike('scenario_hash', `%${scenarioHash}%${cardStr}%`)
+                    .eq('scenario_hash', altChildHash)
                     .limit(1);
-                childSpot = fuzzySpots?.[0] || null;
+                childSpot = altSpots?.[0] || null;
             }
 
             if (childSpot) {
@@ -149,11 +156,11 @@ export default async function handler(req, res) {
         const currentBoard = parseBoardFromHash(scenarioHash);
         const boardStr = currentBoard.join('').toLowerCase();
 
-        // Query all spots that start with the same hash prefix but have more board cards
+        // Query all spots that have the same hash prefix with exactly 2 more chars (1 card)
         const { data: childSpots, error } = await supabase
             .from('solved_spots_gold')
             .select('scenario_hash')
-            .ilike('scenario_hash', `%${boardStr}__`) // 2 more chars = 1 more card
+            .ilike('scenario_hash', `${scenarioHash}__`)
             .limit(100);
 
         if (error) {

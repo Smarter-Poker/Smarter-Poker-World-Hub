@@ -90,13 +90,14 @@ function countSuits(cards) {
 /** Check if there's a straight using 5 cards (considers A-low straight) */
 function hasStraight(allValues) {
     const unique = [...new Set(allValues)].sort((a, b) => b - a);
-    // Check for A-low straight (A-2-3-4-5)
-    if (unique.includes(12)) unique.push(-1); // Ace as low
+    // Check for A-low straight (A-2-3-4-5) — push AFTER sorting
+    const withWheel = [...unique];
+    if (withWheel.includes(12)) withWheel.push(-1);
 
-    for (let i = 0; i <= unique.length - 5; i++) {
+    for (let i = 0; i <= withWheel.length - 5; i++) {
         let consecutive = 1;
         for (let j = 1; j < 5; j++) {
-            if (unique[i] - j === unique[i + j]) {
+            if (withWheel[i] - j === withWheel[i + j]) {
                 consecutive++;
             } else break;
         }
@@ -227,24 +228,17 @@ export function evaluateHand(holeCards, board) {
             heroPairs.push(c.value);
         }
     }
-    if (holeValues[0] === holeValues[1] && heroPairs.length === 0) {
-        // Pocket pair + board pair = two pair check
-        const boardPairExists = Object.values(boardRankCounts).some(c => c >= 2);
-        // Skip — this would need hero to pair a board card too
-    }
     const uniqueHeroPairs = [...new Set(heroPairs)];
     if (uniqueHeroPairs.length >= 2) {
         return { classification: 'TWO_PAIR', subType: 'Two Pair', rank: 14, category: 'made' };
     }
-    // Pocket pair + one board pair
+    // Pocket pair (not hitting board) + one hero card pairing with board = Two Pair
     if (holeValues[0] === holeValues[1] && uniqueHeroPairs.length === 0) {
-        const pocketVal = holeValues[0];
-        // If pocket pair doesn't hit board but there's still a board pair, it's overpair/underpair, not two pair
-    }
-    // One pair from hole card + pocket pair (doesn't match board)
-    if (uniqueHeroPairs.length === 1 && holeValues[0] === holeValues[1]) {
-        // Pocket pair that doesn't hit board + another card that hits board → Two Pair
-        // Actually this is impossible: if pocket pair, both values are same
+        // Check if there's a board pair that gives us two pair
+        const boardPairExists = Object.values(boardRankCounts).some(c => c >= 2);
+        if (boardPairExists) {
+            return { classification: 'TWO_PAIR', subType: 'Two Pair (Pocket + Board)', rank: 14, category: 'made' };
+        }
     }
 
     // ONE PAIR using hero cards

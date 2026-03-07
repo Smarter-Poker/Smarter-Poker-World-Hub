@@ -97,7 +97,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
 
     // Classification mode: use hand classification color
     const useClassification = colorMode === 'classification' && classificationInfo;
-    const color = useClassification ? (classificationInfo.color || getClassificationColor(classificationInfo.classification)) : actionColor;
+    const color = useClassification ? getClassificationColor(classificationInfo.classification) : actionColor;
     const opacity = useClassification ? 0.85 : actionOpacity;
 
     return (
