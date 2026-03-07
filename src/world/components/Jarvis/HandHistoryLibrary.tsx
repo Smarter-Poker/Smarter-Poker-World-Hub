@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+// @ts-ignore - JS module
 import { getSafeUser } from '../../../lib/authUtils';
 
 interface SavedHand {
