@@ -168,11 +168,53 @@ export async function notifyPerfectRound(userId, gameName, perfectCount) {
     });
 }
 
+/**
+ * Notify user of upcoming tournament
+ */
+export async function notifyTournamentReminder(userId, tournament, reminderType = '1h') {
+    const timeLabel = reminderType === '24h' ? 'tomorrow' : 'in 1 hour';
+    const flight = tournament.flight_label ? ` (${tournament.flight_label})` : '';
+    return sendPushNotification({
+        userId,
+        title: `TOURNAMENT ${reminderType === '24h' ? 'TOMORROW' : 'STARTING SOON'}`,
+        message: `${tournament.name}${flight} starts ${timeLabel}!`,
+        url: '/hub/my-tournaments',
+        data: {
+            type: 'tournament_reminder',
+            tournamentId: tournament.id,
+            reminderType
+        }
+    });
+}
+
+/**
+ * Notify user of multi-day flight resume
+ */
+export async function notifyFlightResume(userId, tournament, nextFlightTime) {
+    const resumeStr = new Date(nextFlightTime).toLocaleString('en-US', {
+        weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true
+    });
+    const flight = tournament.flight_label || 'Next Day';
+    return sendPushNotification({
+        userId,
+        title: 'FLIGHT RESUMES',
+        message: `${tournament.name} - ${flight} resumes ${resumeStr}. Bring your bag!`,
+        url: '/hub/my-tournaments',
+        data: {
+            type: 'flight_resume',
+            tournamentId: tournament.id,
+            resumeTime: nextFlightTime
+        }
+    });
+}
+
 export default {
     notifyAchievementUnlock,
     notifyChallengeComplete,
     notifyStreakMilestone,
     notifyLeaderboardRank,
     notifyDailyBonus,
-    notifyPerfectRound
+    notifyPerfectRound,
+    notifyTournamentReminder,
+    notifyFlightResume
 };

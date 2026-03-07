@@ -4,11 +4,11 @@
  * Step 2: Customize tournament details
  * UI: Dark industrial sci-fi gaming theme, no emojis, Inter font
  */
-import { memo,  useState, useEffect } from 'react';
+import { memo, useState, useEffect } from 'react';
 import {
   X, Trophy, Calendar, DollarSign, Users, Clock, Loader2,
   ChevronLeft, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
-  Check, Settings, Layers
+  Check, Settings, Layers, CalendarDays
 } from 'lucide-react';
 import BlindStructureEditor from '../tournaments/BlindStructureEditor';
 import {
@@ -74,6 +74,12 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
   const [printPlayerReceipt, setPrintPlayerReceipt] = useState(true);
   const [printDealerReceipt, setPrintDealerReceipt] = useState(true);
   const [printCageReceipt, setPrintCageReceipt] = useState(true);
+
+  // Multi-day flight settings
+  const [isMultiDay, setIsMultiDay] = useState(false);
+  const [totalDays, setTotalDays] = useState(2);
+  const [flightLabel, setFlightLabel] = useState('Day 1A');
+  const [resumeTime, setResumeTime] = useState('');
 
   // Club Page sync
   const [postToClubPage, setPostToClubPage] = useState(true);
@@ -155,6 +161,11 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
         bounty_amount: (tournamentType === 'bounty' || tournamentType === 'pko') ? bountyAmount : null,
         status: 'scheduled',
         broadcast_to_smarter: true,
+        is_multi_day: isMultiDay,
+        total_days: isMultiDay ? totalDays : 1,
+        current_day: 1,
+        flight_label: isMultiDay ? flightLabel : null,
+        resume_time: isMultiDay && resumeTime ? new Date(resumeTime).toISOString() : null,
         settings: {
           receipts: {
             player: printPlayerReceipt,
@@ -234,6 +245,10 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
     setAllowsRebuys(false);
     setAllowsAddon(false);
     setBountyAmount(0);
+    setIsMultiDay(false);
+    setTotalDays(2);
+    setFlightLabel('Day 1A');
+    setResumeTime('');
     setPrintPlayerReceipt(true);
     setPrintDealerReceipt(true);
     setPrintCageReceipt(true);
@@ -644,6 +659,72 @@ function CreateTournamentModal({ isOpen, onClose, onSubmit, venueId }) {
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* Multi-Day Event Toggle */}
+            <div className="p-3 bg-[#0D192E] rounded-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-[#F59E0B]" />
+                  <div>
+                    <p className="text-sm font-medium text-white">Multi-Day Event</p>
+                    <p className="text-xs text-[#64748B]">Enable Flights And Bag-And-Tag</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMultiDay(!isMultiDay)}
+                  className={`w-10 h-6 rounded-full transition-colors ${isMultiDay ? 'bg-[#F59E0B]' : 'bg-[#1E3A5F]'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${isMultiDay ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                </button>
+              </div>
+              {isMultiDay && (
+                <div className="space-y-3 pt-2 border-t border-[#1E3A5F]">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-[#64748B]">Total Days</label>
+                      <div className="grid grid-cols-3 gap-1 mt-1">
+                        {[2, 3, 4].map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => setTotalDays(d)}
+                            className={`h-8 rounded text-sm font-medium transition-colors ${totalDays === d
+                              ? 'bg-[#F59E0B] text-white'
+                              : 'bg-[#132240] text-white hover:bg-[#1E3A5F]'
+                              }`}
+                          >
+                            {d} Days
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-[#64748B]">Flight Label</label>
+                      <input
+                        type="text"
+                        value={flightLabel}
+                        onChange={(e) => setFlightLabel(e.target.value)}
+                        placeholder="e.g., Day 1A"
+                        className="cmd-input w-full h-8 text-sm mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#64748B]">Day 2 Resume Time</label>
+                    <input
+                      type="datetime-local"
+                      value={resumeTime}
+                      onChange={(e) => setResumeTime(e.target.value)}
+                      className="cmd-input w-full h-10 mt-1"
+                    />
+                  </div>
+                  <p className="text-xs text-[#F59E0B]/80">
+                    Players will be notified when the next flight resumes. Bag-and-tag chip counts can be recorded from the Tournament Manager.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Post to Club Page Toggle */}
