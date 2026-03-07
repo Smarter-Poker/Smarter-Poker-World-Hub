@@ -7,18 +7,18 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-// TODO: SupabaseProvider and SocialOrbProvider don't exist - using direct supabase client instead
-// import { useSupabase } from '../../providers/SupabaseProvider';
-// import { useSocialOrb } from '../../providers/SocialOrbProvider';
 import { SocialCard } from './SocialCard';
 import { ChallengeCard } from './ChallengeCard';
 import { ShareScoreCard } from './ShareScoreCard';
 import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
-// TODO: SocialService and types don't exist - needs module creation
-// import { SocialService } from '../SocialService';
-// import { FEED_FILTERS, initialFeedState } from '../types';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { claimReward } from '../../lib/claimReward';
+
+// TODO: Module dependencies missing:
+// - SupabaseProvider: import { useSupabase } from '../../providers/SupabaseProvider'
+// - SocialOrbProvider: import { useSocialOrb } from '../../providers/SocialOrbProvider'
+// - SocialService: import { SocialService } from '../SocialService'
+// - types: import { FEED_FILTERS, initialFeedState } from '../types'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 EXTENDED FEED FILTERS
@@ -56,11 +56,13 @@ export const EnhancedSpatialFeed = ({
     const observerRef = useRef(null);
     const loadMoreRef = useRef(null);
 
+    // TODO: SocialService doesn't exist - needs module creation
     // Social service instance
-    const socialService = useMemo(() => {
-        if (!supabase) return null;
-        return new SocialService(supabase);
-    }, [supabase]);
+    // const socialService = useMemo(() => {
+    //     if (!supabase) return null;
+    //     return new SocialService(supabase);
+    // }, [supabase]);
+    const socialService = null;
 
     // ─────────────────────────────────────────────────────────────────────────
     // 📰 LOAD FEED
