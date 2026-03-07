@@ -131,9 +131,9 @@ function HelpTip({ text }) {
   const [show, setShow] = useState(false);
   return (
     <span style={{ position: 'relative', display: 'inline-flex', marginLeft: 4 }}>
-      <span onClick={() => setShow(!show)} style={{ cursor: 'pointer', color: '#475569', fontSize: 10, width: 14, height: 14, borderRadius: '50%', border: '1px solid #334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>?</span>
+      <span onClick={() => setShow(!show)} style={{ cursor: 'pointer', color: '#65676B', fontSize: 10, width: 14, height: 14, borderRadius: '50%', border: '1px solid #4E4F50', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>?</span>
       {show && (
-        <div onClick={() => setShow(false)} style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, padding: '8px 12px', background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 11, color: '#cbd5e1', whiteSpace: 'nowrap', zIndex: 50, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', textTransform: 'none', maxWidth: 220, lineHeight: 1.4 }}>{text}</div>
+        <div onClick={() => setShow(false)} style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', marginBottom: 6, padding: '8px 12px', background: '#242526', border: '1px solid #3A3B3C', borderRadius: 8, fontSize: 11, color: '#E4E6EB', whiteSpace: 'nowrap', zIndex: 50, boxShadow: '0 8px 24px rgba(0,0,0,0.4)', textTransform: 'none', maxWidth: 220, lineHeight: 1.4 }}>{text}</div>
       )}
     </span>
   );
@@ -146,7 +146,7 @@ function LoadingSkeleton() {
   return (
     <div style={{ padding: '16px' }}>
       {[100, 80, 60, 90, 70].map((w, i) => (
-        <div key={i} className="skeleton-pulse" style={{ height: i === 0 ? 60 : 16, width: `${w}%`, background: 'rgba(255,255,255,0.05)', borderRadius: 8, marginBottom: 12 }} />
+        <div key={i} className="skeleton-pulse" style={{ height: i === 0 ? 60 : 16, width: `${w}%`, background: '#3A3B3C', borderRadius: 8, marginBottom: 12 }} />
       ))}
     </div>
   );
@@ -233,8 +233,8 @@ function CardSlot({ card, onClick, onRemove, label }) {
   return (
     <button onClick={onClick} style={{
       width: 40, height: 56, borderRadius: 6, cursor: 'pointer',
-      background: 'rgba(255,255,255,0.05)', border: '2px dashed rgba(255,255,255,0.15)',
-      color: '#475569', fontSize: '9px', fontWeight: '600', display: 'flex',
+      background: '#3A3B3C', border: '2px dashed #4E4F50',
+      color: '#65676B', fontSize: '9px', fontWeight: '600', display: 'flex',
       alignItems: 'center', justifyContent: 'center',
     }}>{label || '+'}</button>
   );
@@ -278,10 +278,10 @@ function EquityDisplay({ heroHand, board }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px',
-      background: 'rgba(255,255,255,0.03)', borderRadius: '8px', marginBottom: '8px',
+      background: '#242526', borderRadius: '8px', marginBottom: '8px',
     }}>
-      <span style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Equity</span>
-      <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+      <span style={{ fontSize: '10px', color: '#B0B3B8', textTransform: 'uppercase', fontWeight: '700' }}>Equity</span>
+      <div style={{ flex: 1, height: '6px', background: '#3A3B3C', borderRadius: '3px', overflow: 'hidden' }}>
         <div style={{ width: `${estimate}%`, height: '100%', background: color, borderRadius: '3px', transition: 'width 0.5s' }} />
       </div>
       <span style={{ fontSize: '13px', fontWeight: '700', color, fontFamily: "'Orbitron',monospace" }}>{estimate}%</span>
@@ -644,7 +644,7 @@ export default function VirtualSandbox() {
             <div>
               <h1 style={{
                 fontSize: 18, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+                background: 'linear-gradient(135deg, #2374E1, #4599FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
               }}>
                 Virtual Sandbox</h1>
               <p style={{ color: '#B0B3B8', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>

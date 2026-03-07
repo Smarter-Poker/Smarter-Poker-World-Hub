@@ -13,6 +13,46 @@ import { supabase } from '../supabase';
 // ─── Retry Utility — imported from shared module ────────
 import { withRetry } from './retryUtils';
 
+// ─── Direct Fetch Helpers (bypass Supabase client AbortError) ────────
+function getPostgrestConfig() {
+    const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    let accessToken = anonKey;
+    try {
+        const authRaw = typeof window !== 'undefined' ? localStorage.getItem('smarter-poker-auth') : null;
+        if (authRaw) {
+            const parsed = JSON.parse(authRaw);
+            const token = parsed?.access_token || parsed?.session?.access_token;
+            if (token) accessToken = token;
+        }
+    } catch (_) { }
+    return { url, anonKey, accessToken };
+}
+
+function postgrestHeaders(anonKey: string, accessToken: string) {
+    return {
+        'apikey': anonKey,
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+    };
+}
+
+async function postgrestGet<T>(path: string, timeoutMs = 8000): Promise<T> {
+    const { url, anonKey, accessToken } = getPostgrestConfig();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    const res = await fetch(`${url}${path}`, {
+        headers: postgrestHeaders(anonKey, accessToken),
+        signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+        const text = await res.text().catch(() => 'Unknown error');
+        throw new Error(`PostgREST GET failed (${res.status}): ${text}`);
+    }
+    return res.json();
+}
+
 // ─── Types ──────────────────────────────────────────────────────────
 
 export interface TokeGig {
@@ -130,23 +170,20 @@ function decorateDay(day: TokeGigDay, downs: TokeDown[], expenses: TokeExpense[]
  */
 export async function fetchGigs(userId: string): Promise<TokeGig[]> {
     return withRetry(async () => {
-        // Fetch all gigs in one query
-        const { data, error } = await supabase
-            .from('toke_gigs')
-            .select('*')
-            .eq('user_id', userId)
-            .neq('status', 'deleted')
-            .order('start_date', { ascending: false });
+        // Direct PostgREST fetch (immune to AbortError from Supabase client)
+        const gigs = await postgrestGet<any[]>(
+            `/rest/v1/toke_gigs?user_id=eq.${userId}&status=neq.deleted&order=start_date.desc`
+        );
 
-        if (error) throw error;
-        if (!data || data.length === 0) return [];
+        if (!gigs || gigs.length === 0) return [];
 
-        const gigIds = data.map(g => g.id);
+        const gigIds = gigs.map(g => g.id);
+        const idList = gigIds.map(id => `"${id}"`).join(',');
 
-        // Two bulk queries instead of 2×N per-gig queries
-        const [{ data: allDownsRaw }, { data: allExpsRaw }] = await Promise.all([
-            supabase.from('toke_downs').select('*').in('gig_id', gigIds),
-            supabase.from('toke_expenses').select('*').in('gig_id', gigIds), // full row needed for category breakdown
+        // Bulk fetch downs and expenses in parallel
+        const [allDownsRaw, allExpsRaw] = await Promise.all([
+            postgrestGet<any[]>(`/rest/v1/toke_downs?gig_id=in.(${idList})&select=*`),
+            postgrestGet<any[]>(`/rest/v1/toke_expenses?gig_id=in.(${idList})&select=*`),
         ]);
 
         const downsByGig = new Map<string, TokeDown[]>();
@@ -160,7 +197,7 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
             expsByGig.get(e.gig_id)!.push(e);
         }
 
-        return data.map(gig => {
+        return gigs.map(gig => {
             const allDowns = downsByGig.get(gig.id) || [];
             const allExps = expsByGig.get(gig.id) || [];
             const dealingDowns = allDowns.filter(d => d.down_type === 'cash' || d.down_type === 'tournament' || d.down_type === 'brush');
@@ -170,8 +207,8 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
                 totalDowns: dealingDowns.length,
                 totalHoursWorked: computeTotalHours(allDowns),
                 totalExpenses: allExps.reduce((s, e) => s + (e.amount || 0), 0),
-                downs: allDowns,       // ← attached for client-side analytics
-                expenses: allExps,     // ← attached for client-side analytics
+                downs: allDowns,
+                expenses: allExps,
             };
         });
     });
@@ -182,37 +219,26 @@ export async function fetchGigs(userId: string): Promise<TokeGig[]> {
  */
 export async function getActiveGig(userId: string): Promise<TokeGig | null> {
     return withRetry(async () => {
-        const { data, error } = await supabase
-            .from('toke_gigs')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('status', 'active')
-            .limit(1)
-            .maybeSingle();
+        // Direct PostgREST fetch — immune to AbortError
+        const gigs = await postgrestGet<any[]>(
+            `/rest/v1/toke_gigs?user_id=eq.${userId}&status=eq.active&limit=1`
+        );
 
-        if (error) throw error;
-        if (!data) return null;
+        if (!gigs || gigs.length === 0) return null;
+        const data = gigs[0];
 
-        // Load all days
-        const { data: daysRaw } = await supabase
-            .from('toke_gig_days')
-            .select('*')
-            .eq('gig_id', data.id)
-            .order('day_number', { ascending: true });
-
-        // Load all downs for the whole gig
-        const { data: downs } = await supabase
-            .from('toke_downs')
-            .select('*')
-            .eq('gig_id', data.id)
-            .order('started_at', { ascending: true });
-
-        // Load all expenses for the whole gig
-        const { data: expenses } = await supabase
-            .from('toke_expenses')
-            .select('*')
-            .eq('gig_id', data.id)
-            .order('created_at', { ascending: false });
+        // Load days, downs, and expenses in parallel
+        const [daysRaw, downs, expenses] = await Promise.all([
+            postgrestGet<any[]>(
+                `/rest/v1/toke_gig_days?gig_id=eq.${data.id}&order=day_number.asc`
+            ),
+            postgrestGet<any[]>(
+                `/rest/v1/toke_downs?gig_id=eq.${data.id}&order=started_at.asc`
+            ),
+            postgrestGet<any[]>(
+                `/rest/v1/toke_expenses?gig_id=eq.${data.id}&order=created_at.desc`
+            ),
+        ]);
 
         const allDowns = (downs || []) as TokeDown[];
         const allExpenses = (expenses || []) as TokeExpense[];
