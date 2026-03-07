@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 
 const FB = {
@@ -57,10 +58,9 @@ export default function TournamentsPage() {
 
   // Auth
   useEffect(() => {
-    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-      if (session?.user) setUser(session.user);
-      else router.push('/auth/login');
-    });
+    const authUser = getAuthUser();
+    if (authUser) setUser(authUser);
+    else router.push('/auth/login');
   }, []);
 
   // Load data
