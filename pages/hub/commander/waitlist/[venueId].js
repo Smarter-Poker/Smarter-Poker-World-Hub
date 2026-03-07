@@ -88,7 +88,7 @@ export default function PlayerWaitlistPage() {
       }
 
       // Fetch my entries
-      const token = getAuthToken();
+      const token = await getAuthToken();
       if (token) {
         const myRes = await fetch('/api/commander/waitlist/my', {
           headers: { Authorization: `Bearer ${token}` },
@@ -161,7 +161,7 @@ export default function PlayerWaitlistPage() {
 
   // Join a single game
   async function handleJoinGame(gameType, stakes) {
-    const token = getAuthToken();
+    const token = await getAuthToken();
     if (!token) {
       router.push(`/auth/login?redirect=/hub/commander/waitlist/${venueId}`);
       return;
@@ -206,7 +206,7 @@ export default function PlayerWaitlistPage() {
   }
 
   async function handleLeaveWaitlist(entryId) {
-    const token = getAuthToken();
+    const token = await getAuthToken();
     if (!token) return;
     try {
       const res = await fetch(`/api/commander/waitlist/${entryId}`, {

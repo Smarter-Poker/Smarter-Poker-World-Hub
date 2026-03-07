@@ -45,7 +45,7 @@ Hero tanks... and calls.
 Villain shows A♠Q♣ (air)
 
 💰 Hero wins $1,607`,
-        analysis: 'Villain's line screams missed AQ/ AJ.The overbet shove is desperation.Trust your read.'
+        analysis: "Villain's line screams missed AQ/AJ. The overbet shove is desperation. Trust your read."
     },
 {
     id: 'hand_sick_bluff_1',

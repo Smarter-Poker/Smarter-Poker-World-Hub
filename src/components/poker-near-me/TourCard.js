@@ -1,3 +1,5 @@
+import React from 'react';
+
 /**
  * TourCard - Poker tour card for Poker Near Me page
  */
