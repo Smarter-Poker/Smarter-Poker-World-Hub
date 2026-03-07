@@ -473,6 +473,26 @@ export default function UserProfilePage() {
     useEffect(() => {
         if (!username) return;
 
+        // --- PHASE 1: SWR CACHE HYDRATION (Instant Render) ---
+        const CACHE_KEY = `sp-profile-cache-${username}`;
+        try {
+            const cachedData = localStorage.getItem(CACHE_KEY);
+            if (cachedData) {
+                const parsed = JSON.parse(cachedData);
+                if (parsed.profile) setProfile(parsed.profile);
+                if (parsed.stats) setStats(parsed.stats);
+                if (parsed.friends) setFriends(parsed.friends);
+                if (parsed.posts) setPosts(parsed.posts);
+                if (parsed.photos) setPhotos(parsed.photos);
+                if (parsed.videos) setVideos(parsed.videos);
+                if (parsed.reels) setReels(parsed.reels);
+                setLoading(false); // Zero-delay render achieved!
+            }
+        } catch (e) {
+            console.warn('SWR Cache Hydration error:', e);
+        }
+
+        // --- PHASE 2: BACKGROUND STALE-WHILE-REVALIDATE FETCH ---
         const fetchProfile = async () => {
             const controller = new AbortController();
             const { signal } = controller;
@@ -629,6 +649,27 @@ export default function UserProfilePage() {
                         .then(function (r) { return r.json(); })
                         .then(function (j) { if (j.success) setPokerFollowing(j.data || []); })
                         .catch(function () { });
+                }
+
+                // --- SWR CACHE SAVE ---
+                try {
+                    const cachePayload = {
+                        profile: data || null,
+                        stats: {
+                            friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : 0,
+                            following: followingRes.count || 0,
+                            followers: followersRes.count || 0,
+                            posts: postsRes.count || 0
+                        },
+                        friends: friendsWithMutual || [],
+                        posts: userPosts || [],
+                        photos: photoList || [],
+                        videos: userVideos || [],
+                        reels: userReels || []
+                    };
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
+                } catch (cacheErr) {
+                    console.warn('Failed to save SWR cache payload', cacheErr);
                 }
 
             } catch (e) {

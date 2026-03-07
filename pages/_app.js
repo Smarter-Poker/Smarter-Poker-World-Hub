@@ -516,6 +516,8 @@ export default function App({ Component, pageProps }) {
               .capitalize-world .btn,
               .capitalize-world .button-text {
                 text-transform: capitalize !important;
+                white-space: normal !important;
+                word-wrap: break-word !important;
               }
 
               /* Protect user inputs and system globals from capitalization */
