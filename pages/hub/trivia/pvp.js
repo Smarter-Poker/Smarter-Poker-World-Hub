@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import {
     joinMatchmakingQueue,
     leaveMatchmakingQueue,
@@ -45,6 +46,7 @@ function shuffleOptions(questions) {
 
 export default function PvPPage() {
     const router = useRouter();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, searching, battle, waiting, result
     const [userId, setUserId] = useState(null);
     const [username, setUsername] = useState('');
@@ -76,6 +78,7 @@ export default function PvPPage() {
     const horseAnswersRef = useRef([]);
 
     useEffect(() => {
+        if (authLoading) return;
         loadUserData();
 
         return () => {
@@ -86,7 +89,7 @@ export default function PvPPage() {
                 clearTimeout(searchTimeout.current);
             }
         };
-    }, []);
+    }, [avatarUser?.id, authLoading]);
 
     // Timer effect
     useEffect(() => {
@@ -112,7 +115,7 @@ export default function PvPPage() {
     }, [isTimerRunning, showResult, currentQuestionIndex]);
 
     async function loadUserData() {
-        const user = getAuthUser();
+        const user = avatarUser || getAuthUser();
         if (!user) {
             router.push('/hub/trivia');
             return;
@@ -666,7 +669,7 @@ export default function PvPPage() {
                 description="Challenge Other Players To Head-to-head Poker Trivia Battles. Prove Who Knows Poker Best."
                 canonical="/hub/trivia/pvp"
             >
-                
+
             </SEOHead>
 
             <div className="pvp-page">
@@ -717,7 +720,7 @@ export default function PvPPage() {
                                     src="/trivia/panels/panel-finding.jpg"
                                     alt=""
                                     className="result-panel-bg"
-                                 loading="lazy" />
+                                    loading="lazy" />
                                 {/* Record positioned in upper area */}
                                 <div className="finding-record-zone">
                                     <span className="finding-record">{stats.wins}W - {stats.losses}L</span>
@@ -841,7 +844,7 @@ export default function PvPPage() {
                                     src={result.won || result.tied ? '/trivia/panels/panel-win.jpg' : '/trivia/panels/panel-defeat.jpg'}
                                     alt=""
                                     className="result-panel-bg"
-                                 loading="lazy" />
+                                    loading="lazy" />
                                 {/* Win/Loss record in the top header bar */}
                                 <div className="result-score-zone">
                                     <div className="panel-stats">

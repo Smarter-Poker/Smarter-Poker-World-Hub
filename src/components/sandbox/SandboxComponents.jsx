@@ -733,7 +733,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score }
     const actions = ['Check', 'Call', 'Bet Small', 'Bet Medium', 'Bet Large', 'Raise', 'Fold', 'All-In'];
 
     if (revealed) {
-        const isCorrect = userGuess && correctAction && userGuess.toLowerCase().includes(correctAction.toLowerCase().split(' ')[0]);
+        const isCorrect = userGuess && correctAction && correctAction.length > 0 && userGuess.toLowerCase().includes(correctAction.toLowerCase().split(' ')[0]);
         return (
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}

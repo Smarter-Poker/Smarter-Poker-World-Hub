@@ -502,7 +502,7 @@ export default function VirtualSandbox() {
     setUserGuess(guess);
     setQuizRevealed(true);
     const correctLabel = results?.optimalAction?.label || '';
-    const isCorrect = guess.toLowerCase().includes(correctLabel.toLowerCase().split(' ')[0]);
+    const isCorrect = correctLabel.length > 0 && guess.toLowerCase().includes(correctLabel.toLowerCase().split(' ')[0]);
     setQuizScore(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
       total: prev.total + 1,

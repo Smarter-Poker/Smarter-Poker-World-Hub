@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -47,6 +48,7 @@ const QUESTIONS_PER_SESSION = 21; // 3 per category, 7 categories
 
 export default function MixedModePage() {
     const router = useRouter();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [isVip, setIsVip] = useState(false);
@@ -81,8 +83,9 @@ export default function MixedModePage() {
     const timerRef = useRef(null);
 
     useEffect(() => {
+        if (authLoading) return;
         async function initialize() {
-            const user = getAuthUser();
+            const user = avatarUser || getAuthUser();
             if (!user) {
                 router.push('/hub/trivia');
                 return;

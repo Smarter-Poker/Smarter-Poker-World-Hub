@@ -975,7 +975,9 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
           <span style={{
             background: STATUS_COLORS[t.status] || FB.dim, color: '#fff', fontSize: 10,
             fontWeight: 700, padding: '3px 10px', borderRadius: 4, textTransform: 'uppercase',
-          }}>{t.status?.replace(/_/g, ' ')}</span>        {/* Info table */}
+          }}>{t.status?.replace(/_/g, ' ')}</span>
+        </div>
+        {/* Info table */}
         <div style={{ background: FB.bg, borderRadius: 8, padding: 12, marginBottom: 16 }}>
           {rows.map(([k, v], i) => (
             <div key={i} style={{

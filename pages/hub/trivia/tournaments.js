@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -32,6 +33,7 @@ function shuffleOptions(questions) {
 
 export default function TournamentsPage() {
     const router = useRouter();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
     const [userId, setUserId] = useState(null);
     const [userDiamonds, setUserDiamonds] = useState(0);
     const [tournaments, setTournaments] = useState([]);
@@ -60,11 +62,12 @@ export default function TournamentsPage() {
     const timerRef = useRef(null);
 
     useEffect(() => {
+        if (authLoading) return;
         loadData();
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, []);
+    }, [avatarUser?.id, authLoading]);
 
     // Timer effect
     useEffect(() => {
@@ -135,7 +138,7 @@ export default function TournamentsPage() {
     }
 
     async function loadData() {
-        const user = getAuthUser();
+        const user = avatarUser || getAuthUser();
         if (!user) {
             router.push('/hub/trivia');
             return;
@@ -464,7 +467,7 @@ export default function TournamentsPage() {
                 description="Enter Poker Trivia Tournaments. Compete Against The Community For Diamonds, XP, And Leaderboard Glory."
                 canonical="/hub/trivia/tournaments"
             >
-                
+
             </SEOHead>
 
             <div className="tournaments-page">
@@ -772,7 +775,7 @@ export default function TournamentsPage() {
                                     src="/trivia/panels/panel-win.jpg"
                                     alt=""
                                     className="result-panel-bg"
-                                 loading="lazy" />
+                                    loading="lazy" />
                                 <div className="result-panel-content">
                                     <div className="panel-stats">
                                         <div className="panel-stat-row">
