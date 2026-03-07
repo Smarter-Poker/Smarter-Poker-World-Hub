@@ -345,14 +345,17 @@ export default async function handler(req, res) {
       const toRefund = registrations || [];
 
       // Refund each player by releasing their chip lock
+      // Only refund if buy_in_amount > 0 — in 'scheduled' state no chips are locked yet
       const refundResults = await Promise.allSettled(
         toRefund.map(async (reg) => {
-          await supabaseAdmin.rpc('unlock_chips_from_table', {
-            p_user_id: reg.user_id,
-            p_club_id: tourn.club_id,
-            p_table_id: tournamentId,
-            p_amount: reg.buy_in_amount || 0,
-          });
+          if ((reg.buy_in_amount || 0) > 0) {
+            await supabaseAdmin.rpc('unlock_chips_from_table', {
+              p_user_id: reg.user_id,
+              p_club_id: tourn.club_id,
+              p_table_id: tournamentId,
+              p_amount: reg.buy_in_amount,
+            });
+          }
           await supabaseAdmin
             .from('tournament_registrations')
             .update({ status: 'refunded' })
@@ -419,6 +422,10 @@ export default async function handler(req, res) {
       if (!table || !clubIds.includes(table.club_id)) {
         return res.status(404).json({ success: false, error: 'Table not found in union' });
       }
+      // Server-side guard: refuse to close table with active players
+      if ((table.current_players || 0) > 0) {
+        return res.status(400).json({ success: false, error: `Cannot close table: ${table.current_players} player(s) still seated` });
+      }
 
       const { error } = await supabaseAdmin
         .from('tables')
@@ -427,6 +434,69 @@ export default async function handler(req, res) {
 
       if (error) throw error;
       return res.json({ success: true });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // GET TOURNAMENT DETAILS (registrations + profiles)
+    // ════════════════════════════════════════════════════════════
+    if (action === 'get_tournament_details') {
+      const { tournamentId } = params;
+      if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
+
+      // Verify tournament belongs to a union club
+      const { data: tourn } = await supabaseAdmin
+        .from('club_tournaments')
+        .select('id, club_id')
+        .eq('id', tournamentId)
+        .maybeSingle();
+
+      if (!tourn || !clubIds.includes(tourn.club_id)) {
+        return res.status(404).json({ success: false, error: 'Tournament not found in union' });
+      }
+
+      const { data: regs, error: regErr } = await supabaseAdmin
+        .from('tournament_registrations')
+        .select('user_id, club_id, status, registered_at, finish_position, payout_amount')
+        .eq('tournament_id', tournamentId)
+        .in('status', ['registered', 'playing', 'eliminated', 'winner'])
+        .order('registered_at')
+        .limit(500);
+
+      if (regErr) throw regErr;
+
+      // Enrich with profiles
+      const userIds = [...new Set((regs || []).map(r => r.user_id))];
+      let profileMap = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabaseAdmin
+          .from('profiles')
+          .select('id, username, display_name')
+          .in('id', userIds)
+          .limit(500);
+        for (const p of (profiles || [])) profileMap[p.id] = p;
+      }
+
+      const enriched = (regs || []).map(r => ({
+        ...r,
+        display_name: profileMap[r.user_id]?.display_name || profileMap[r.user_id]?.username || null,
+      }));
+
+      return res.json({ success: true, registrations: enriched });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // GET BBJ STATUS
+    // ════════════════════════════════════════════════════════════
+    if (action === 'get_bbj_status') {
+      // Call RPC server-side with service role (full auth, bypasses RLS)
+      const { data, error: rpcErr } = await supabaseAdmin.rpc('get_union_bbj_status', {
+        p_union_id: unionId,
+      });
+      if (rpcErr) {
+        console.warn('[union-games] get_bbj_status rpc failed:', rpcErr.message);
+        return res.status(200).json({ success: true, data: null, rpcNotAvailable: true });
+      }
+      return res.json({ success: true, data });
     }
 
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
