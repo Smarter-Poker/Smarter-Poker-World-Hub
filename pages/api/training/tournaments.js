@@ -33,26 +33,30 @@ export default async function handler(req, res) {
         try {
             // Single tournament with entries leaderboard
             if (tournamentId) {
-                const { data: tournament } = await supabase
-                    .from('training_tournaments')
-                    .select('*')
-                    .eq('id', tournamentId)
-                    .maybeSingle();
+                // Parallel fetch: tournament details and entries are independent
+                const [tournamentResult, entriesResult] = await Promise.all([
+                    supabase
+                        .from('training_tournaments')
+                        .select('*')
+                        .eq('id', tournamentId)
+                        .maybeSingle(),
+                    supabase
+                        .from('training_tournament_entries')
+                        .select(`
+                            *,
+                            profiles:user_id (username, avatar_url)
+                        `)
+                        .eq('tournament_id', tournamentId)
+                        .order('score', { ascending: false })
+                        .limit(100)
+                ]);
+
+                const { data: tournament } = tournamentResult;
+                const { data: entries } = entriesResult;
 
                 if (!tournament) {
                     return res.status(404).json({ success: false, error: 'Tournament not found' });
                 }
-
-                // Get entries with user info
-                const { data: entries } = await supabase
-                    .from('training_tournament_entries')
-                    .select(`
-                        *,
-                        profiles:user_id (username, avatar_url)
-                    `)
-                    .eq('tournament_id', tournamentId)
-                    .order('score', { ascending: false })
-                    .limit(100);
 
                 // Check if user is registered
                 let userEntry = null;

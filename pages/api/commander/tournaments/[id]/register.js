@@ -75,15 +75,38 @@ async function handleRegister(req, res, tournamentId) {
       });
     }
 
-    // Check if already registered (exclude cancelled/eliminated — they can re-register)
-    const { data: existing } = await supabase
-      .from('commander_tournament_entries')
-      .select('id, status')
-      .eq('tournament_id', tournamentId)
-      .eq('player_id', player_id)
-      .not('status', 'in', '("eliminated","cancelled")')
-      .maybeSingle();
+    // Parallel validation: existing registration, capacity, exclusions, and spending limits
+    const [existingResult, capacityResult, exclusionResult, limitsResult] = await Promise.all([
+      supabase
+        .from('commander_tournament_entries')
+        .select('id, status')
+        .eq('tournament_id', tournamentId)
+        .eq('player_id', player_id)
+        .not('status', 'in', '("eliminated","cancelled")')
+        .maybeSingle(),
+      supabase
+        .from('commander_tournament_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('tournament_id', tournamentId)
+        .in('status', ['registered', 'seated', 'active'])
+        .limit(100),
+      supabase
+        .from('commander_self_exclusions')
+        .select('id, exclusion_type, expires_at')
+        .eq('player_id', player_id)
+        .or(`venue_id.eq.${tournament.venue_id},scope.eq.network`)
+        .is('lifted_at', null)
+        .or('expires_at.is.null,expires_at.gt.now()')
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('commander_spending_limits')
+        .select('daily_limit')
+        .eq('player_id', player_id)
+        .maybeSingle()
+    ]);
 
+    const { data: existing } = existingResult;
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -91,14 +114,7 @@ async function handleRegister(req, res, tournamentId) {
       });
     }
 
-    // Check capacity (Only count players physically occupying or waiting for a seat)
-    const { count } = await supabase
-      .from('commander_tournament_entries')
-      .select('id', { count: 'exact', head: true })
-      .eq('tournament_id', tournamentId)
-      .in('status', ['registered', 'seated', 'active'])
-      .limit(100);
-
+    const { count } = capacityResult;
     if (tournament.max_entries && count >= tournament.max_entries) {
       return res.status(400).json({
         success: false,
@@ -106,17 +122,7 @@ async function handleRegister(req, res, tournamentId) {
       });
     }
 
-    // Check responsible gaming - self-exclusions
-    const { data: exclusion } = await supabase
-      .from('commander_self_exclusions')
-      .select('id, exclusion_type, expires_at')
-      .eq('player_id', player_id)
-      .or(`venue_id.eq.${tournament.venue_id},scope.eq.network`)
-      .is('lifted_at', null)
-      .or('expires_at.is.null,expires_at.gt.now()')
-      .limit(1)
-      .maybeSingle();
-
+    const { data: exclusion } = exclusionResult;
     if (exclusion) {
       return res.status(403).json({
         success: false,
@@ -129,12 +135,7 @@ async function handleRegister(req, res, tournamentId) {
       });
     }
 
-    // Check spending limits
-    const { data: limits } = await supabase
-      .from('commander_spending_limits')
-      .select('daily_limit')
-      .eq('player_id', player_id)
-      .maybeSingle();
+    const { data: limits } = limitsResult;
 
     if (limits?.daily_limit) {
       // Get today's tournament registrations total
