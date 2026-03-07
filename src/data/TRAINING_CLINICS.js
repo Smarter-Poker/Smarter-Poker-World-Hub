@@ -29,7 +29,7 @@ export const TRAINING_CLINICS = [
     {
         id: 'clinic-01',
         name: 'The Iron Wall',
-        title: 'Defending the Big Blind',
+        title: 'Defending the Big-Blind',
         subtitle: 'Clinic #1: Defense',
         category: 'DEFENSE',
         targetLeak: 'FOLD_TO_AGGRESSION',
@@ -53,7 +53,7 @@ export const TRAINING_CLINICS = [
             // Data-Driven GameLoop fields
             topology: 9,              // 9-max table
             buttonPosition: 6,        // BTN at seat 6
-            heroPosition: 'BB',       // Hero in Big Blind
+            heroPosition: 'BB',       // Hero in Big-Blind
             effectiveStacks: {
                 hero: 40,
                 villains: [45, 38, 52, 40, 35, 40, 42]  // UTG→SB stacks
@@ -153,7 +153,7 @@ export const TRAINING_CLINICS = [
             // Data-Driven GameLoop fields
             topology: 6,              // 6-max table
             buttonPosition: 4,        // BTN at seat 4
-            heroPosition: 'BB',       // Hero in Big Blind
+            heroPosition: 'BB',       // Hero in Big-Blind
             effectiveStacks: {
                 hero: 45,
                 villains: [50, 42, 55, 38]  // UTG→SB stacks
@@ -473,7 +473,7 @@ export const TRAINING_CLINICS = [
                     { id: 'L3Q02', heroCards: ['Jc', 'Ts'], position: 'BB', stackDepth: 8, villainAction: 'SB Completes (Final Table)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'JTs vs limp at FT = shove. Punish passivity.' },
                     { id: 'L3Q03', heroCards: ['Ks', 'Kd'], position: 'SB', stackDepth: 25, villainAction: 'BTN Raises 2.5BB (Final Table)', correctAction: 'raise', lawId: 'LAW_06', explanation: 'KK at FT = 3-bet always. Max value from premium.' },
                     { id: 'L3Q04', heroCards: ['9h', '9d'], position: 'CO', stackDepth: 15, villainAction: '3 Left, Chip Leader Opens', correctAction: 'fold', lawId: 'LAW_07', explanation: '99 vs chip leader at 3-handed = fold. ICM suicide.' },
-                    { id: 'L3Q05', heroCards: ['Ac', '8c'], position: 'BTN', stackDepth: 20, villainAction: 'Heads Up (Big Blind)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A8s heads up = raise. Aggression wins HU.' },
+                    { id: 'L3Q05', heroCards: ['Ac', '8c'], position: 'BTN', stackDepth: 20, villainAction: 'Heads Up (Big-Blind)', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A8s heads up = raise. Aggression wins HU.' },
                     { id: 'L3Q06', heroCards: ['Qh', 'Qd'], position: 'SB', stackDepth: 30, villainAction: 'Now Heads Up', correctAction: 'raise', lawId: 'LAW_06', explanation: 'QQ HU in SB = raise. Premium + aggression.' },
                     { id: 'L3Q07', heroCards: ['7d', '6d'], position: 'BTN', stackDepth: 45, villainAction: 'Heads Up (Villain Limps)', correctAction: 'raise', lawId: 'LAW_01', explanation: '76s HU vs limp = raise. Punish passive play.' },
                     { id: 'L3Q08', heroCards: ['As', '2s'], position: 'SB', stackDepth: 12, villainAction: 'Heads Up Only', correctAction: 'raise', lawId: 'LAW_01', explanation: 'A2s HU with 12BB = shove. Any ace is strong.' },

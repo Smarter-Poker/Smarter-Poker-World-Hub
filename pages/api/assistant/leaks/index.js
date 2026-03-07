@@ -175,7 +175,7 @@ export default async function handler(req, res) {
             user_id: userId,
             leak_type: 'cbetting_too_frequently',
             leak_category: 'training',
-            situation_class: 'IP PFR vs Big Blind on Dynamic Boards',
+            situation_class: 'IP PFR vs Big-Blind on Dynamic Boards',
             status: 'improving',
             confidence: 'high',
             avg_ev_loss_bb: 0.09,
@@ -189,7 +189,7 @@ export default async function handler(req, res) {
               { date: '2025-11', value: 75 },
               { date: '2025-12', value: 68 }
             ],
-            explanation: "You c-bet too frequently on coordinated/dynamic flops where the Big Blind has a significant range and nut advantage.",
+            explanation: "You c-bet too frequently on coordinated/dynamic flops where the Big-Blind has a significant range and nut advantage.",
             why_leaking_ev: "C-betting your entire range on boards favoring the defender exposes you to check-raises, forcing you to over-fold hands with equity.",
             recommended_drill: "Dynamic Flop Hand Reading"
           },

@@ -128,7 +128,7 @@ function usePlayMode() {
         const pos = POSITIONS_6MAX[Math.floor(Math.random() * POSITIONS_6MAX.length)];
 
         // Blinds
-        const blindsPot = 1.5; // 0.5 SB + 1 BB
+        const blindsPot = 1.5; // 0.5 SB + 1BB
 
         setHeroCards(hero);
         setHeroPosition(pos);

@@ -19,8 +19,8 @@ const NEW_CATEGORIES = [
         name: 'MTT Situations',
         subcategories: [
             'Bubble play and ICM pressure',
-            'Short stack strategy (10-15 BB)',
-            'Medium stack strategy (25-40 BB)',
+            'Short stack strategy (10-15BB)',
+            'Medium stack strategy (25-40BB)',
             'Big stack bullying',
             'Final table dynamics',
             'Pay jump considerations',

@@ -4,7 +4,7 @@
  * Lets users configure their training session before starting:
  * - Game Type: Cash / MTT / Spins
  * - Position: BTN / SB / BB / CO / HJ / UTG / MP
- * - Stack Depth: 20-200 BB
+ * - Stack Depth: 20-200BB
  * - Street Focus: Flop / Turn / River / All
  *
  * The config gets passed to DeterministicGTOEngine to filter solver data.
@@ -29,24 +29,24 @@ const POSITIONS = {
 
 const STACK_DEPTHS = {
     cash: [
-        { value: 20, label: '20 BB', desc: 'Short Stack' },
-        { value: 40, label: '40 BB', desc: 'Medium' },
-        { value: 60, label: '60 BB', desc: 'Standard' },
-        { value: 100, label: '100 BB', desc: 'Deep' },
-        { value: 200, label: '200 BB', desc: 'Ultra Deep' },
+        { value: 20, label: '20BB', desc: 'Short Stack' },
+        { value: 40, label: '40BB', desc: 'Medium' },
+        { value: 60, label: '60BB', desc: 'Standard' },
+        { value: 100, label: '100BB', desc: 'Deep' },
+        { value: 200, label: '200BB', desc: 'Ultra Deep' },
     ],
     mtt: [
-        { value: 10, label: '10 BB', desc: 'Push/Fold' },
-        { value: 20, label: '20 BB', desc: 'Short' },
-        { value: 40, label: '40 BB', desc: 'Medium' },
-        { value: 60, label: '60 BB', desc: 'Deep' },
-        { value: 100, label: '100 BB', desc: 'Chip Leader' },
+        { value: 10, label: '10BB', desc: 'Push/Fold' },
+        { value: 20, label: '20BB', desc: 'Short' },
+        { value: 40, label: '40BB', desc: 'Medium' },
+        { value: 60, label: '60BB', desc: 'Deep' },
+        { value: 100, label: '100BB', desc: 'Chip Leader' },
     ],
     spins: [
-        { value: 10, label: '10 BB', desc: 'Hyper' },
-        { value: 20, label: '20 BB', desc: 'Turbo' },
-        { value: 40, label: '40 BB', desc: 'Normal' },
-        { value: 60, label: '60 BB', desc: 'Deep' },
+        { value: 10, label: '10BB', desc: 'Hyper' },
+        { value: 20, label: '20BB', desc: 'Turbo' },
+        { value: 40, label: '40BB', desc: 'Normal' },
+        { value: 60, label: '60BB', desc: 'Deep' },
     ],
 };
 

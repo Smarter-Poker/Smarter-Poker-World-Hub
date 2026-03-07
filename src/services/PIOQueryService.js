@@ -283,7 +283,7 @@ export class PIOQueryService {
             'mtt-009': { id: 'mtt-009', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_chipev', pioStackDepth: 20 }, // Resteal
             'mtt-010': { id: 'mtt-010', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 40 }, // Ante Play
             'mtt-011': { id: 'mtt-011', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_icm', pioStackDepth: 60 }, // Pay Jump
-            'mtt-012': { id: 'mtt-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 80 }, // Big Blind Defense
+            'mtt-012': { id: 'mtt-012', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_9max_chipev', pioStackDepth: 80 }, // Big-Blind Defense
             'mtt-013': { id: 'mtt-013', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_6max_icm', pioStackDepth: 40 }, // Chipleader
             'mtt-014': { id: 'mtt-014', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_3max_chipev', pioStackDepth: 20 }, // 3-Max Blitz
             'mtt-015': { id: 'mtt-015', sourceOfTruth: 'PioSOLVER', pioGameType: 'mtt_hu_chipev', pioStackDepth: 40 }, // Heads Up Duel

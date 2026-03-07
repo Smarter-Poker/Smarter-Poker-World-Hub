@@ -1258,7 +1258,7 @@ class GameController {
       const seatSlot = emptySeats.shift();
       if (!seatSlot) break;
 
-      // Calculate buy-in (100bb standard, or max they have if < 100bb)
+      // Calculate buy-in (100BB standard, or max they have if < 100BB)
       const idealBuyIn = bigBlind * 100;
       const buyIn = Math.min(idealBuyIn, horse.balance);
 

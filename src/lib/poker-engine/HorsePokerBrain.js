@@ -1139,8 +1139,8 @@ function getPLOLimperIsolation(numLimpers, preflopStrength, position, isIP, bb, 
     const isolateThreshold = isIP ? 65 : 72; // IP: isolate more often
     if (preflopStrength < isolateThreshold) return { shouldIsolate: false, isolateSize: 0 };
 
-    // Standard isolation sizing: 3bb + 1bb per limper
-    // Example: 1 limper = 4bb, 2 limpers = 5bb, 3 limpers = 6bb
+    // Standard isolation sizing: 3BB + 1BB per limper
+    // Example: 1 limper = 4BB, 2 limpers = 5BB, 3 limpers = 6BB
     const baseSize = 3 + numLimpers;
     const isolateSize = Math.round(baseSize * bb);
     const clamped = Math.max(raiseAction?.minAmount || isolateSize, Math.min(isolateSize, raiseAction?.maxAmount || isolateSize));
@@ -1196,7 +1196,7 @@ function getPLOLateSessionAdjustment(sessionMinutes, opponentLosses) {
     }
 
     // Tilt indicator: losing big + long session = desperate/tilting
-    const isLosingBig = (opponentLosses || 0) >= 50; // 50bb+ down
+    const isLosingBig = (opponentLosses || 0) >= 50; // 50BB+ down
 
     if (sessionMinutes >= 180 && isLosingBig) {
         // Deep tilt: value-bet much thinner, call down looser
@@ -1832,7 +1832,7 @@ function getPLOVarianceProtection(sessionMetrics) {
 // ── 4h. BLIND DEFENSE STRATEGY ──
 /**
  * Specific strategy for defending the SB and BB in PLO.
- * BB has the best odds to defend (already invested 1bb);
+ * BB has the best odds to defend (already invested 1BB);
  * SB is the worst position (must act first post-flop).
  * @param {string} position - 'SB' | 'BB'
  * @param {number} strength - Preflop hand strength
@@ -1886,7 +1886,7 @@ function getPLOBlindDefense(position, strength, toCall, bb, potSize, numPlayers,
 // ─────────────────────────────────────────────────────────────────────────────
 // PHASE 5 — ELITE PINNACLE LAYER
 // Card removal, runout quality, exploitation profiles, pot manipulation,
-// ICM bubble, river floats, deep-stack (200bb+), squeeze plays.
+// ICM bubble, river floats, deep-stack (200BB+), squeeze plays.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ── 5a. CARD REMOVAL EFFECTS (ADVANCED BLOCKERS) ──
@@ -2112,7 +2112,7 @@ function getPLORiverFloat(madeHand, straightOuts, flushOuts, street, isIP, numPl
 
 // ── 5g. DEEP STACK ADJUSTMENTS (200BB+) ──
 /**
- * Very deep stacked PLO (200bb+) is fundamentally different:
+ * Very deep stacked PLO (200BB+) is fundamentally different:
  * - Set-mining becomes profitable (big implied odds)
  * - Drawing hands gain enormous value
  * - Premium hands must play bigger pots to avoid losing equity to runouts
@@ -2124,7 +2124,7 @@ function getPLODeepStackAdjustments(stackBB) {
     if (stackBB < 150) return { isDeepStack: false, preflopRangeExpansion: 0, impliedOddsBonus: 0, drawValueBonus: 0 };
 
     // How deep are we?
-    const deepnessMultiplier = Math.min((stackBB - 100) / 200, 1.0); // 0 at 100bb, 1.0 at 300bb+
+    const deepnessMultiplier = Math.min((stackBB - 100) / 200, 1.0); // 0 at 100BB, 1.0 at 300BB+
 
     // Expand preflop opening range (connected hands are more valuable deep)
     const preflopRangeExpansion = Math.round(deepnessMultiplier * 12); // Up to +12 strength points
@@ -2603,17 +2603,17 @@ function detectPLOBetSizingTell(opponentBetFraction, opponentRead, street) {
 function getPLOStackPreservation(stackBB, startingStackBB) {
     const stackRatio = stackBB / Math.max(startingStackBB, 1);
 
-    // Critical: under 10bb — must shove or fold, no more post-flop play
+    // Critical: under 10BB — must shove or fold, no more post-flop play
     if (stackBB <= 10) {
         return { isShort: true, isCritical: true, reshoveRange: 60, preservationFactor: 1.60 };
     }
 
-    // Short: 10-20bb — tight is right, only strong hands
+    // Short: 10-20BB — tight is right, only strong hands
     if (stackBB <= 20) {
         return { isShort: true, isCritical: false, reshoveRange: 72, preservationFactor: 1.35 };
     }
 
-    // Moderate: 20-35bb — cautious play, avoid marginal flips
+    // Moderate: 20-35BB — cautious play, avoid marginal flips
     if (stackBB <= 35) {
         return { isShort: false, isCritical: false, reshoveRange: 80, preservationFactor: 1.15 };
     }
@@ -3295,7 +3295,7 @@ function getPLOBlindBattleStrategy(position, strength, isSBvsBBSituation, wasPFR
 
     if (position === 'BB') {
         // BB defends vs SB steal: getting great pot odds, defend wide
-        // SB raise is usually a small raise (2-2.5bb) so BB's pot odds are excellent
+        // SB raise is usually a small raise (2-2.5BB) so BB's pot odds are excellent
         const defendThreshold = potOdds <= 0.22 ? 28 : potOdds <= 0.28 ? 38 : 48;
         return {
             openThreshold: 28,          // BB can lead/donk wider vs a wide SB range
@@ -3773,7 +3773,7 @@ function getPLOEquityConfidence({
 /**
  * LAST LINE OF DEFENSE: Sanity-check any proposed action before returning it.
  * Catches obvious errors that could leak chips (e.g. folding when we can check,
- * overbetting all-in when holding 12bb, calling pot-sized with 20% equity).
+ * overbetting all-in when holding 12BB, calling pot-sized with 20% equity).
  * This function OVERRIDES a proposed decision if it's clearly wrong.
  * @param {Object} proposedAction - { type, amount }
  * @param {Object} context - All relevant decision context
@@ -3808,7 +3808,7 @@ function auditPLODecision(proposedAction, {
         return { type, amount: Math.min(amount, safeMax) };
     }
 
-    // Audit 5: Extremely short stack (< 6bb) — must go all-in or fold (no partial bets)
+    // Audit 5: Extremely short stack (< 6BB) — must go all-in or fold (no partial bets)
     if (stackBB <= 6 && toCall > 0 && equityFinal >= 45) {
         return { type: 'all_in' }; // Shove with any reasonable equity
     }
@@ -3848,7 +3848,7 @@ function getPLOPreflopAction(strength, canCheck, canCall, canRaise, raiseAction,
     const posBonus = isIP ? 8 : isBB ? 5 : 0;
     const adjStrength = strength + posBonus;
 
-    // PLO push/fold: ≤12bb
+    // PLO push/fold: ≤12BB
     if (stackBB <= 12) {
         return adjStrength >= 50 ? { type: 'all_in' } : (canCheck ? { type: 'check' } : { type: 'fold' });
     }
@@ -4014,7 +4014,7 @@ function makePLOFallbackDecision(profileId, state, legalActions) {
     const straightDraw = countStraightOuts(holeRanks, boardRanks);
     const backdoorOuts = countBackdoorOuts(holeCards, boardCards);
 
-    // ── Phase 5: Deep stack adjustments (200bb+) ──
+    // ── Phase 5: Deep stack adjustments (200BB+) ──
     const deepStack = getPLODeepStackAdjustments(stackBB);
 
     // ── Phase 5: Card removal effects ──
@@ -5315,7 +5315,7 @@ function getRiverStrategy(handStrength, potOdds, canBet, facingBet, aggressionBi
 
 // --- #31: Deep Stack Adjustments ---
 /**
- * Adjust preflop strategy for deep stacks (200bb+).
+ * Adjust preflop strategy for deep stacks (200BB+).
  * @param {number} stackBB - Stack in big blinds
  * @param {string} handStr - Hand string (e.g., 'AKs')
  * @returns {{ widentRange: boolean, impliedOddsBonus: number, suitedBonus: number }}
@@ -7065,7 +7065,7 @@ async function processHandResult(handData, bb = 2) {
         const chipDelta = player.chipDelta || 0;
 
         // ─── AUDIT 14: COLLUSION / CHIP DUMPING GUARD ───
-        // If the horse lost a huge pot (>40bb), track who won it.
+        // If the horse lost a huge pot (>40BB), track who won it.
         // If the SAME human stacks them 3 times, the horse flees the table.
         if (!won && chipDelta < -(bb * 40)) {
             const opps = winners.map(w => String(w.playerId));
@@ -7608,19 +7608,19 @@ function getAdaptiveStrategy(profileId) {
 
     const winRate = stats.totalWonBB / stats.handsPlayed;
 
-    // Running very hot (> 10bb/100): tighten up, protect winnings
+    // Running very hot (> 10BB/100): tighten up, protect winnings
     if (winRate > 0.10) {
         return { rangeAdjust: -5, aggressionAdjust: -3, reason: 'protecting_profit' };
     }
-    // Running warm (5-10bb/100): slightly tighter
+    // Running warm (5-10BB/100): slightly tighter
     if (winRate > 0.05) {
         return { rangeAdjust: -2, aggressionAdjust: -1, reason: 'slight_lock_up' };
     }
-    // Running cold (-5 to -10bb/100): loosen slightly to find spots
+    // Running cold (-5 to -10BB/100): loosen slightly to find spots
     if (winRate < -0.05 && winRate >= -0.10) {
         return { rangeAdjust: 3, aggressionAdjust: 2, reason: 'finding_spots' };
     }
-    // Running very cold (< -10bb/100): getting exploited, adjust
+    // Running very cold (< -10BB/100): getting exploited, adjust
     if (winRate < -0.10) {
         return { rangeAdjust: 5, aggressionAdjust: 4, reason: 'adjusting_to_table' };
     }
@@ -7643,7 +7643,7 @@ function getRecommendedStake(bankroll, gameType = 'Cash') {
         return { maxBuyIn, recommendedBlinds: null, reason: `tournament_buyIn_${maxBuyIn}` };
     }
 
-    // Cash game: 25 buy-in rule (100bb per buy-in)
+    // Cash game: 25 buy-in rule (100BB per buy-in)
     const maxBBBankroll = bankroll / 25;
     const maxBB = maxBBBankroll / 100;
 
@@ -7765,15 +7765,15 @@ function getDynamicRebuyStrategy(profileId, currentStack, bb, buyInsUsed, tableA
         return { shouldRebuy: false, reason: 'max_buyins_reached', amount: 0 };
     }
 
-    // Short stacked (< 30bb): rebuy to max
+    // Short stacked (< 30BB): rebuy to max
     if (stackBB < 30) {
-        // Rebuy amount: top up to 100bb or table average, whichever is higher
+        // Rebuy amount: top up to 100BB or table average, whichever is higher
         const targetStack = Math.max(100 * bb, tableAvgStack);
         const rebuyAmount = targetStack - currentStack;
         return { shouldRebuy: true, reason: 'short_stacked', amount: Math.round(rebuyAmount) };
     }
 
-    // Medium stack (30-60bb): rebuy if table average is much higher
+    // Medium stack (30-60BB): rebuy if table average is much higher
     if (stackBB < 60 && tableAvgStack > currentStack * 1.5) {
         const rebuyAmount = tableAvgStack - currentStack;
         return { shouldRebuy: true, reason: 'below_table_average', amount: Math.round(rebuyAmount) };
@@ -7832,7 +7832,7 @@ async function saveKeyHand(handData, bb = 2) {
     try {
         if (!handData?.result) return false;
 
-        // Only save hands with significant action (>10bb pot)
+        // Only save hands with significant action (>10BB pot)
         const potBB = (handData.result.pot || 0) / bb;
         if (potBB < 10) return false;
 
@@ -8011,7 +8011,7 @@ async function warmGTOCache() {
 
         const positions = ['BTN', 'CO', 'HJ', 'SB', 'BB', 'UTG', 'MP'];
         const topologies = ['6-Max'];
-        const depths = ['100bb'];
+        const depths = ['100BB'];
 
         let loaded = 0;
         for (const pos of positions) {

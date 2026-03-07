@@ -54,7 +54,7 @@ export default async function handler(req, res) {
             frequency = 85,
             explanation = '',
             gtoApproach = '',
-            evValue = '+1.50bb',
+            evValue = '+1.50BB',
             evDescription = '',
             alternateLines = [],
         } = req.body;
@@ -145,7 +145,7 @@ CONTENT SECTIONS (4 metal-framed cards with dark backgrounds):
 - Header: "$ EV Analysis" with arrow icon
 - Large "${evValue}" in ${evColor} with glow
 - Text: "${evDescription}"
-- Highlight "expected value", "+1.50 big blinds", "pot equity" in cyan/green
+- Highlight "expected value", "+1.50BB", "pot equity" in cyan/green
 
 4. ALTERNATE LINES SECTION:
 - Header: "Y 2 Alternate Lines" with arrow icon

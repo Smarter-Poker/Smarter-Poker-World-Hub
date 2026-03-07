@@ -12,9 +12,9 @@ const generateQuestions = (gameId, category, count = 20) => {
         potSize: 12 + i,
         board: ['As', 'Kd', '7h'], // Placeholder board
         heroHand: ['Ah', 'Kh'],    // Placeholder hand
-        heroStack: 20,   // Default 20 BB
-        villainStack: 20, // Default 20 BB
-        action: 'Hero is BTN. CO opens 2.5bb. Hero?',
+        heroStack: 20,   // Default 20BB
+        villainStack: 20, // Default 20BB
+        action: 'Hero is BTN. CO opens 2.5BB. Hero?',
         options: [
             { id: 'fold', text: 'Fold', isCorrect: false, frequency: 0 },
             { id: 'call', text: 'Call', isCorrect: false, frequency: 15 },
@@ -24,7 +24,7 @@ const generateQuestions = (gameId, category, count = 20) => {
         explanation: `This is a standard value 3-bet configuration for ${category} strategy in this specific spot.`,
         // GTO Strategy breakdown
         gtoStrategy: {
-            primary: 'Raise to 8bb',
+            primary: 'Raise to 8BB',
             frequency: 85,
             reasoning: 'AKs is a premium hand that plays well as a 3-bet. We have blockers to AA/KK and excellent playability postflop.',
         },

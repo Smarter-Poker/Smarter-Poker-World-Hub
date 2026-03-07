@@ -1183,7 +1183,7 @@ export default function TrainingPage() {
                                         <span style={{ fontSize: 16, fontWeight: 700, color: '#4ade80' }}>Last Session Recap</span>
                                     </div>
                                     <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 12 }}>
-                                        "Strong performance in MTTS, but work on Big Blind defense."
+                                        "Strong performance in MTTS, but work on Big-Blind defense."
                                     </div>
                                     <div style={{ display: 'flex', gap: 12 }}>
                                         <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 8 }}>

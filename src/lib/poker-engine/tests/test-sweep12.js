@@ -94,7 +94,7 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 4: Module 4 — Pattern Exploitation Detector ---');
 
-    // Simulate a human exploiting via c-bets for 6 BB
+    // Simulate a human exploiting via c-bets for 6BB
     const pMap = Brain.patternProfitMap;
     if (!pMap.has(HORSE)) pMap.set(HORSE, new Map());
     pMap.get(HORSE).set(HUMAN, { cbet: 6, check_raise: 0, float: 0, bluff: 0, totalProfit: 6 });

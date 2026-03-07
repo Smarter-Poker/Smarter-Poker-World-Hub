@@ -402,8 +402,8 @@ class LobbyManager {
    * @param {string} [filters.clubId]
    * @param {string} [filters.variant]
    * @param {string} [filters.bettingStructure]
-   * @param {number} [filters.minStakes] - Min big blind
-   * @param {number} [filters.maxStakes] - Max big blind
+   * @param {number} [filters.minStakes] - Min Big-Blind
+   * @param {number} [filters.maxStakes] - Max Big-Blind
    * @param {boolean} [filters.hasOpenSeats]
    * @returns {Array}
    */
@@ -731,8 +731,8 @@ class LobbyManager {
           const dealtPlayerIds = (data.players || []).map(p => p.id);
 
           // Calculate BBJ fee using tier-based config
-          // Fee is in BB units (e.g. 0.25 BB for Small stakes), applied per hand
-          // Only charged if pot ≥ 10 BB and 4+ players dealt
+          // Fee is in BB units (e.g. 0.25BB for Small stakes), applied per hand
+          // Only charged if pot ≥ 10BB and 4+ players dealt
           const bbjContribution = calculateBBJFee(
             config.bigBlind,
             data.potTotal || 0,

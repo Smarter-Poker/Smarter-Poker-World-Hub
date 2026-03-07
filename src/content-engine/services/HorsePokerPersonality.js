@@ -473,7 +473,7 @@ export function makeDecision(profileId, gameState) {
 /**
  * Check if horse should sit at this table
  * @param {string} profileId - Horse profile UUID
- * @param {number} stakes - Table stakes (big blind amount)
+ * @param {number} stakes - Table stakes (Big-Blind amount)
  * @param {number} currentPlayers - Number of players at table
  * @returns {Object} Decision and reasoning
  */

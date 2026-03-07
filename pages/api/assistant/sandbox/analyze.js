@@ -457,7 +457,7 @@ function parsePreflopChart(chart, heroHandNotation) {
       ],
       optimalAction: { id: 'fold', label: 'Fold', frequency: 100, color: '#ef4444' },
       isMixed: false,
-      ev: { hero: 0, heroDisplay: '0.00 BB', max: 0, min: 0, avg: 0, evLoss: 0 },
+      ev: { hero: 0, heroDisplay: '0.00BB', max: 0, min: 0, avg: 0, evLoss: 0 },
     };
   }
 

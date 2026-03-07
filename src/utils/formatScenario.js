@@ -7,9 +7,9 @@
 
 const POSITION_MAP = {
     'BTN': 'Button',
-    'SB': 'Small Blind',
-    'BB': 'Big Blind',
-    'UTG': 'Under the Gun',
+    'SB': 'Small-Blind',
+    'BB': 'Big-Blind',
+    'UTG': 'Under-the-Gun',
     'MP': 'Middle Position',
     'CO': 'Cutoff',
     'HJ': 'Hijack',

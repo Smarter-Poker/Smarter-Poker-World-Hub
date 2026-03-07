@@ -19,8 +19,8 @@ import GTOScenarioDisplay from './GTOScenarioDisplay';
 function formatPokerText(text) {
     if (!text) return text;
     return text
-        // Add space before BB when preceded by a number (e.g., "31BB" → "31 BB")
-        .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1 BB')
+        // Add space before BB when preceded by a number (e.g., "31BB" → "31BB")
+        .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1BB')
         // Capitalize poker position abbreviations
         .replace(/\b(btn|Btn)\b/gi, 'BTN')
         .replace(/\b(sb|Sb|sB)\b/g, 'SB')
@@ -339,16 +339,16 @@ export default function StrategyTrivia({ mode }) {
                     id: 'mtt-fb-1',
                     category: 'mtt_situations',
                     difficulty: 'medium',
-                    question: 'You have 15 BB on the bubble with AKo in the CO. UTG (40 BB) opens 2.5x. Best action?',
-                    options: ['Fold', 'Call', 'Shove', '3-Bet to 7 BB'],
+                    question: 'You have 15BB on the bubble with AKo in the CO. UTG (40BB) opens 2.5x. Best action?',
+                    options: ['Fold', 'Call', 'Shove', '3-Bet to 7BB'],
                     correct_index: 2,
-                    explanation: 'With 15 BB and AKo, shoving exploits fold equity and ICM pressure on the opener.'
+                    explanation: 'With 15BB and AKo, shoving exploits fold equity and ICM pressure on the opener.'
                 },
                 {
                     id: 'mtt-fb-2',
                     category: 'mtt_situations',
                     difficulty: 'hard',
-                    question: 'Final table, 5 players left. You have 25 BB, chip leader has 60 BB. What adjustment should you make?',
+                    question: 'Final table, 5 players left. You have 25BB, chip leader has 60BB. What adjustment should you make?',
                     options: ['Play tighter overall', 'Attack short stacks only', 'Play your normal game', 'Attack the chip leader'],
                     correct_index: 0,
                     explanation: 'With pay jumps imminent, playing tighter preserves equity against short stacks who will bust.'
@@ -359,7 +359,7 @@ export default function StrategyTrivia({ mode }) {
                     id: 'cash-fb-1',
                     category: 'cash_game_situations',
                     difficulty: 'medium',
-                    question: 'You have 100 BB with 77 in MP. UTG opens 3x. What factor most influences your decision?',
+                    question: 'You have 100BB with 77 in MP. UTG opens 3x. What factor most influences your decision?',
                     options: ['Stack depth', 'Position', 'Table image', 'All equally important'],
                     correct_index: 0,
                     explanation: 'Set-mining profitability is directly tied to stack depth - you need implied odds.'
@@ -368,10 +368,10 @@ export default function StrategyTrivia({ mode }) {
                     id: 'cash-fb-2',
                     category: 'cash_game_situations',
                     difficulty: 'hard',
-                    question: 'Deep 250 BB effective. You 3-bet with AQs, villain 4-bets. Pot is 45 BB. Best action?',
+                    question: 'Deep 250BB effective. You 3-bet with AQs, villain 4-bets. Pot is 45BB. Best action?',
                     options: ['Fold', 'Call', '5-Bet shove', '5-Bet small'],
                     correct_index: 1,
-                    explanation: 'With 250 BB stacks, AQs plays well deep and 5-betting turns your hand into a bluff.'
+                    explanation: 'With 250BB stacks, AQs plays well deep and 5-betting turns your hand into a bluff.'
                 }
             ],
             icm: [
@@ -379,7 +379,7 @@ export default function StrategyTrivia({ mode }) {
                     id: 'icm-fb-1',
                     category: 'icm_chip_ev',
                     difficulty: 'hard',
-                    question: 'Bubble situation: you have 20 BB, shortest stack has 5 BB. Chip EV says shove, but what about ICM?',
+                    question: 'Bubble situation: you have 20BB, shortest stack has 5BB. Chip EV says shove, but what about ICM?',
                     options: ['ICM always agrees with chip EV', 'ICM says fold more often', 'ICM says shove more often', 'ICM is irrelevant here'],
                     correct_index: 1,
                     explanation: 'ICM pressure makes you fold more than chip EV suggests - short stack elimination increases equity.'

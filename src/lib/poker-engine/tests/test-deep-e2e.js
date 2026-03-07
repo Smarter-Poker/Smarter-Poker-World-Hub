@@ -252,12 +252,12 @@ function assert(condition, label) {
     // ═══════════════════════════════════════════
     console.log('\n--- TEST 8: Dynamic Rebuy Logic ---');
 
-    const rebuy1 = Brain.getDynamicRebuyStrategy('test', 20, 2, 1, 200); // 10bb = short
-    assert(rebuy1.shouldRebuy === true, `10bb short-stack triggers rebuy (reason: ${rebuy1.reason})`);
+    const rebuy1 = Brain.getDynamicRebuyStrategy('test', 20, 2, 1, 200); // 10BB = short
+    assert(rebuy1.shouldRebuy === true, `10BB short-stack triggers rebuy (reason: ${rebuy1.reason})`);
     assert(rebuy1.amount > 0, `Rebuy has positive amount: ${rebuy1.amount}`);
 
-    const rebuy2 = Brain.getDynamicRebuyStrategy('test', 200, 2, 1, 200); // 100bb = fine
-    assert(rebuy2.shouldRebuy === false, `100bb adequate stack = no rebuy`);
+    const rebuy2 = Brain.getDynamicRebuyStrategy('test', 200, 2, 1, 200); // 100BB = fine
+    assert(rebuy2.shouldRebuy === false, `100BB adequate stack = no rebuy`);
 
     const rebuy3 = Brain.getDynamicRebuyStrategy('test', 20, 2, 3, 200); // 3 buyins used
     assert(rebuy3.shouldRebuy === false, `Max buyins reached = no rebuy`);

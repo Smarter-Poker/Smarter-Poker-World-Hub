@@ -16,7 +16,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 
 // ===== PRESET TEMPLATES =====
-// All templates use BB Ante (ante = big blind) and 10-min breaks every ~2 hours
+// All templates use BB Ante (ante = Big-Blind) and 10-min breaks every ~2 hours
 // All templates support 40 levels to cover any tournament length
 const STRUCTURE_TEMPLATES = {
   turbo: {

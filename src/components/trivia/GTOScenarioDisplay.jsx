@@ -20,7 +20,7 @@ const JARVIS_AVATAR = '/images/jarvis-avatar.png';
 const formatPokerText = (text) => {
     if (!text) return text;
     return text
-        .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1 BB')
+        .replace(/(\d+)\s*(BB|bb|Bb|bB)/g, '$1BB')
         .replace(/\b(btn|Btn)\b/gi, 'BTN')
         .replace(/\b(sb|Sb|sB)\b/g, 'SB')
         .replace(/\b(utg|Utg)\b/gi, 'UTG')

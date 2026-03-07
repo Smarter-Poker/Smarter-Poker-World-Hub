@@ -11,7 +11,7 @@
  * MTT: All SNG settings PLUS: Private, Short Description, Accelerated MTT,
  *      All-in or Fold, Custom Rebuy/Re-entry, Number of Rebuys, Add-on,
  *      Add-on Break Length, KO Bounty, GTD Prize Pool, Final Table Deal,
- *      Big Blind Ante, Authorized to Register, Late Registration level,
+ *      Big-Blind Ante, Authorized to Register, Late Registration level,
  *      Early Bird Registration, Bubble Protection, Featured Tournament,
  *      Player Number (min-max), Multi-Day MTT, Start Time, Tournament Schedule,
  *      Synchronized Breaks, Restart Tournament
@@ -413,7 +413,7 @@ export default function CreateTournamentModal({ club, onClose, onCreated, apiCal
                 <Slider label="GTD Amount" value={t.gtdAmount} onChange={v => set('gtdAmount', v)} min={0} max={100000} step={100} />
               )}
               <Toggle label="Final Table Deal" value={t.finalTableDeal} onChange={v => set('finalTableDeal', v)} help />
-              <Toggle label="Big Blind Ante" value={t.bigBlindAnte} onChange={v => set('bigBlindAnte', v)} />
+              <Toggle label="Big-Blind Ante" value={t.bigBlindAnte} onChange={v => set('bigBlindAnte', v)} />
               <Toggle label="Authorized to Register" value={t.authorizedToRegister} onChange={v => set('authorizedToRegister', v)} />
             </>
           )}

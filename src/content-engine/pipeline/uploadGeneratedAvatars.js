@@ -28,7 +28,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Directory where generated avatars are stored
-const AVATARS_DIR = '/Users/smarter.poker/.gemini/antigravity/brain/0a6ef17e-e0ca-427c-82bb-bc22ebc45d87';
+const AVATARS_DIR = '/Users/smarter.poker/.gemini/antigravity/brain/0a6ef17e-e0ca-427c-82BB-bc22ebc45d87';
 
 /**
  * Extract horse name from filename

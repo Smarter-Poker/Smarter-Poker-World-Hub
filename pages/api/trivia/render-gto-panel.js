@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         const gtoApproach = CATEGORY_APPROACHES[category] || CATEGORY_APPROACHES['gto_theory'];
 
         // Generate EV value based on difficulty
-        const evValue = difficulty === 'hard' ? '+1.75bb' : difficulty === 'medium' ? '+1.25bb' : '+0.85bb';
+        const evValue = difficulty === 'hard' ? '+1.75BB' : difficulty === 'medium' ? '+1.25BB' : '+0.85BB';
 
         // Generate alternate lines from other options
         const alternateLines = options

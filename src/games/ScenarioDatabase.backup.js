@@ -32,7 +32,7 @@ export const LEVEL_CONFIG = {
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_1_SCENARIOS = [
     {
-        id: 'l1-utg-100bb', level: 1, title: 'UTG Open (100bb)', position: 'UTG', stackDepth: 100,
+        id: 'l1-utg-100BB', level: 1, title: 'UTG Open (100BB)', position: 'UTG', stackDepth: 100,
         description: 'The Tightest Opening Range. Only Premium Hands.',
         tip: 'Focus On Pairs TT+, Broadway Suited, And Strong Offsuit Broadways.',
         solution: {
@@ -46,7 +46,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-100bb', level: 1, title: 'MP Open (100bb)', position: 'MP', stackDepth: 100,
+        id: 'l1-mp-100BB', level: 1, title: 'MP Open (100BB)', position: 'MP', stackDepth: 100,
         description: 'Slightly Wider Than UTG. Add Some Suited Connectors.',
         tip: 'Include 66, More Suited Ax, And K9s+.',
         solution: {
@@ -61,7 +61,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-100bb', level: 1, title: 'HJ Open (100bb)', position: 'HJ', stackDepth: 100,
+        id: 'l1-hj-100BB', level: 1, title: 'HJ Open (100BB)', position: 'HJ', stackDepth: 100,
         description: 'The Widest Early Position. Transition to Late Position Opens.',
         tip: 'Add 55, 44, More Offsuit Broadways, And Suited Gappers.',
         solution: {
@@ -79,8 +79,8 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-utg-50bb', level: 1, title: 'UTG Open (50bb)', position: 'UTG', stackDepth: 50,
-        description: 'Shorter Stack UTG Range. Tighter Than 100bb.',
+        id: 'l1-utg-50BB', level: 1, title: 'UTG Open (50BB)', position: 'UTG', stackDepth: 50,
+        description: 'Shorter Stack UTG Range. Tighter Than 100BB.',
         tip: 'Cut Some Suited Connectors, Focus On High Card Strength.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -93,7 +93,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-utg-200bb', level: 1, title: 'UTG Open (200bb)', position: 'UTG', stackDepth: 200,
+        id: 'l1-utg-200BB', level: 1, title: 'UTG Open (200BB)', position: 'UTG', stackDepth: 200,
         description: 'Deep Stack UTG. Can Add More Speculative Hands.',
         tip: 'Add Small Pairs And More Suited Connectors For Implied Odds.',
         solution: {
@@ -107,9 +107,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-50bb', level: 1, title: 'MP Open (50bb)', position: 'MP', stackDepth: 50,
+        id: 'l1-mp-50BB', level: 1, title: 'MP Open (50BB)', position: 'MP', stackDepth: 50,
         description: 'Middle Position with Shorter Stack.',
-        tip: 'Slightly Wider Than UTG 50bb, But Still Tight.',
+        tip: 'Slightly Wider Than UTG 50BB, But Still Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
@@ -122,7 +122,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-200bb', level: 1, title: 'MP Open (200bb)', position: 'MP', stackDepth: 200,
+        id: 'l1-mp-200BB', level: 1, title: 'MP Open (200BB)', position: 'MP', stackDepth: 200,
         description: 'Deep Stack Middle Position.',
         tip: 'Add More Suited Hands And Small Pairs.',
         solution: {
@@ -138,7 +138,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-50bb', level: 1, title: 'HJ Open (50bb)', position: 'HJ', stackDepth: 50,
+        id: 'l1-hj-50BB', level: 1, title: 'HJ Open (50BB)', position: 'HJ', stackDepth: 50,
         description: 'Hijack with Shorter Stack.',
         tip: 'Wider Than MP, But Not As Wide As 100BB HJ.',
         solution: {
@@ -154,7 +154,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-200bb', level: 1, title: 'HJ Open (200bb)', position: 'HJ', stackDepth: 200,
+        id: 'l1-hj-200BB', level: 1, title: 'HJ Open (200BB)', position: 'HJ', stackDepth: 200,
         description: 'Deep Stack Hijack.',
         tip: 'Very Wide Range With Deep Stacks.',
         solution: {
@@ -173,7 +173,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     // Additional UTG variations
     {
-        id: 'l1-utg-30bb', level: 1, title: 'UTG Open (30bb)', position: 'UTG', stackDepth: 30,
+        id: 'l1-utg-30BB', level: 1, title: 'UTG Open (30BB)', position: 'UTG', stackDepth: 30,
         description: 'Short Stack UTG. Very Tight Range.',
         tip: 'Premium Hands Only. No Speculative Plays.',
         solution: {
@@ -185,9 +185,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-30bb', level: 1, title: 'MP Open (30bb)', position: 'MP', stackDepth: 30,
+        id: 'l1-mp-30BB', level: 1, title: 'MP Open (30BB)', position: 'MP', stackDepth: 30,
         description: 'Short Stack Middle Position.',
-        tip: 'Slightly Wider Than UTG 30bb.',
+        tip: 'Slightly Wider Than UTG 30BB.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise',
@@ -199,9 +199,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-30bb', level: 1, title: 'HJ Open (30bb)', position: 'HJ', stackDepth: 30,
+        id: 'l1-hj-30BB', level: 1, title: 'HJ Open (30BB)', position: 'HJ', stackDepth: 30,
         description: 'Short Stack Hijack.',
-        tip: 'Wider Than MP 30bb, But Still Relatively Tight.',
+        tip: 'Wider Than MP 30BB, But Still Relatively Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
@@ -215,7 +215,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     // UTG+1 scenarios
     {
-        id: 'l1-utg1-100bb', level: 1, title: 'UTG+1 Open (100bb)', position: 'UTG+1', stackDepth: 100,
+        id: 'l1-utg1-100BB', level: 1, title: 'UTG+1 Open (100BB)', position: 'UTG+1', stackDepth: 100,
         description: 'One Seat After UTG. Slightly Wider.',
         tip: 'Add A Few More Suited Hands Than UTG.',
         solution: {
@@ -230,9 +230,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-utg1-50bb', level: 1, title: 'UTG+1 Open (50bb)', position: 'UTG+1', stackDepth: 50,
+        id: 'l1-utg1-50BB', level: 1, title: 'UTG+1 Open (50BB)', position: 'UTG+1', stackDepth: 50,
         description: 'UTG+1 with Shorter Stack.',
-        tip: 'Tighter Than 100bb, But Wider Than UTG 50bb.',
+        tip: 'Tighter Than 100BB, But Wider Than UTG 50BB.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise',
@@ -244,7 +244,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-lj-100bb', level: 1, title: 'LJ Open (100bb)', position: 'LJ', stackDepth: 100,
+        id: 'l1-lj-100BB', level: 1, title: 'LJ Open (100BB)', position: 'LJ', stackDepth: 100,
         description: 'Lojack (MP2). Between MP and HJ.',
         tip: 'Wider Than MP, Narrower Than HJ.',
         solution: {
@@ -262,8 +262,8 @@ export const LEVEL_1_SCENARIOS = [
     },
     // Ante vs No Ante scenarios
     {
-        id: 'l1-utg-100bb-ante', level: 1, title: 'UTG Open (100bb, Ante)', position: 'UTG', stackDepth: 100,
-        description: 'UTG with Big Blind Ante. Slightly Wider.',
+        id: 'l1-utg-100BB-ante', level: 1, title: 'UTG Open (100BB, Ante)', position: 'UTG', stackDepth: 100,
+        description: 'UTG with Big-Blind Ante. Slightly Wider.',
         tip: 'Ante Makes Stealing More Profitable. Add A Few More Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -277,7 +277,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-100bb-ante', level: 1, title: 'MP Open (100bb, Ante)', position: 'MP', stackDepth: 100,
+        id: 'l1-mp-100BB-ante', level: 1, title: 'MP Open (100BB, Ante)', position: 'MP', stackDepth: 100,
         description: 'Middle Position with Ante.',
         tip: 'Ante Increases Pot Odds. Open Wider.',
         solution: {
@@ -328,8 +328,8 @@ export const LEVEL_1_SCENARIOS = [
     },
     // Tournament vs Cash
     {
-        id: 'l1-utg-mtt-20bb', level: 1, title: 'UTG Open (MTT, 20bb)', position: 'UTG', stackDepth: 20,
-        description: 'Tournament UTG with 20bb. Push/fold Territory.',
+        id: 'l1-utg-mtt-20BB', level: 1, title: 'UTG Open (MTT, 20BB)', position: 'UTG', stackDepth: 20,
+        description: 'Tournament UTG with 20BB. Push/fold Territory.',
         tip: 'Very Tight. Only Premium Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -340,9 +340,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-mtt-20bb', level: 1, title: 'MP Open (MTT, 20bb)', position: 'MP', stackDepth: 20,
-        description: 'Tournament MP with 20bb.',
-        tip: 'Slightly Wider Than UTG 20bb.',
+        id: 'l1-mp-mtt-20BB', level: 1, title: 'MP Open (MTT, 20BB)', position: 'MP', stackDepth: 20,
+        description: 'Tournament MP with 20BB.',
+        tip: 'Slightly Wider Than UTG 20BB.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise',
@@ -353,8 +353,8 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-mtt-20bb', level: 1, title: 'HJ Open (MTT, 20bb)', position: 'HJ', stackDepth: 20,
-        description: 'Tournament HJ with 20bb.',
+        id: 'l1-hj-mtt-20BB', level: 1, title: 'HJ Open (MTT, 20BB)', position: 'HJ', stackDepth: 20,
+        description: 'Tournament HJ with 20BB.',
         tip: 'Wider Than MP, But Still Relatively Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -373,7 +373,7 @@ export const LEVEL_1_SCENARIOS = [
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_2_SCENARIOS = [
     {
-        id: 'l2-co-100bb', level: 2, title: 'CO Open (100bb)', position: 'CO', stackDepth: 100,
+        id: 'l2-co-100BB', level: 2, title: 'CO Open (100BB)', position: 'CO', stackDepth: 100,
         description: 'Cutoff is Where Ranges Explode. Open Very Wide.',
         tip: 'All Pairs, Most Suited Hands, Broadway Offsuit To K9o.',
         solution: {
@@ -392,7 +392,7 @@ export const LEVEL_2_SCENARIOS = [
         }
     },
     {
-        id: 'l2-btn-100bb', level: 2, title: 'BTN Open (100bb)', position: 'BTN', stackDepth: 100,
+        id: 'l2-btn-100BB', level: 2, title: 'BTN Open (100BB)', position: 'BTN', stackDepth: 100,
         description: 'The Widest Opener! Position is Everything.',
         tip: 'Almost Any Suited Hand, All Pairs, Most Broadway Offsuit.',
         solution: {
@@ -415,8 +415,8 @@ export const LEVEL_2_SCENARIOS = [
         }
     },
     {
-        id: 'l2-sb-steal', level: 2, title: 'SB Steal vs BB (100bb)', position: 'SB', stackDepth: 100,
-        description: 'Stealing From Small Blind. Very Wide but Vulnerable.',
+        id: 'l2-sb-steal', level: 2, title: 'SB Steal vs BB (100BB)', position: 'SB', stackDepth: 100,
+        description: 'Stealing From Small-Blind. Very Wide but Vulnerable.',
         tip: 'Wide Linear Range-high Cards And Suited Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -627,7 +627,7 @@ export const SPOT_SCENARIOS = [
         initialPot: 5.5,
         stackDepth: 100,
         blinds: '0.5/1',
-        history: ['Hero (BTN) raises to 2.5bb', 'Villain (BB) calls 1.5bb'],
+        history: ['Hero (BTN) raises to 2.5BB', 'Villain (BB) calls 1.5BB'],
         tree: {
             id: 'root',
             street: 'flop',
@@ -698,7 +698,7 @@ export const SPOT_SCENARIOS = [
         initialPot: 20,
         stackDepth: 100,
         blinds: '0.5/1',
-        history: ['Villain (BTN) raises 2.5bb', 'Hero (SB) raises to 9bb', 'Villain calls'],
+        history: ['Villain (BTN) raises 2.5BB', 'Hero (SB) raises to 9BB', 'Villain calls'],
         tree: {
             id: 'root',
             street: 'flop',

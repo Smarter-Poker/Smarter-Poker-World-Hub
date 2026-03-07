@@ -9,9 +9,9 @@
 
 const VALID_POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'MP', 'MP+1', 'HJ', 'CO', 'BTN', 'SB', 'BB', 'EP', 'LP'];
 const SPELLED_OUT_POSITIONS = [
-    'under the gun', 'under-the-gun', 'middle position',
+    'Under-the-Gun', 'under-the-gun', 'middle position',
     'hijack', 'hi-jack', 'cutoff', 'cut-off', 'cut off',
-    'button', 'small blind', 'big blind',
+    'button', 'Small-Blind', 'Big-Blind',
     'early position', 'late position',
     'on the button', 'in the blinds',
     'in the sb', 'in the bb', 'in the co', 'on the btn',

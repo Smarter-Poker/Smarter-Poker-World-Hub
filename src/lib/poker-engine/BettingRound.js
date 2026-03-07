@@ -132,7 +132,7 @@ class BettingRound {
 
   /**
    * Build the order of players to act.
-   * Preflop: Start after big blind (UTG), end at big blind.
+   * Preflop: Start after Big-Blind (UTG), end at Big-Blind.
    * Postflop: Start at first active player after dealer, end at dealer.
    * @private
    */

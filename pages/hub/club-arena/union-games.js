@@ -859,8 +859,8 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
         })}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {F('Small Blind', 'smallBlind', 'number')}
-          {F('Big Blind', 'bigBlind', 'number')}
+          {F('Small-Blind', 'smallBlind', 'number')}
+          {F('Big-Blind', 'bigBlind', 'number')}
         </div>
         {F('Ante', 'ante', 'number')}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>

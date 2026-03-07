@@ -58,7 +58,7 @@ class GameStateMachine {
    * @param {number} config.smallBlind
    * @param {number} config.bigBlind
    * @param {number} [config.ante] - Per-player ante (in BBA mode, BB posts ante × numPlayers)
-   * @param {boolean} [config.bigBlindAnte] - Big Blind Ante mode: BB posts full table ante
+   * @param {boolean} [config.bigBlindAnte] - Big-Blind Ante mode: BB posts full table ante
    * @param {number} [config.rakePercent] - Rake percentage
    * @param {number} [config.rakeCap] - Maximum rake per pot
    * @param {boolean} [config.runItTwice] - Allow run-it-twice
@@ -479,7 +479,7 @@ class GameStateMachine {
   // ============ PRIVATE: BLIND POSTING ============
 
   /**
-   * Post small blind, big blind, and antes.
+   * Post Small-Blind, Big-Blind, and antes.
    * @private
    */
   _postBlinds() {
@@ -506,7 +506,7 @@ class GameStateMachine {
       }
     }
 
-    // Post small blind
+    // Post Small-Blind
     if (sbPlayer) {
       const sbAmount = Math.min(smallBlind, sbPlayer.stack);
       sbPlayer.stack -= sbAmount;
@@ -518,7 +518,7 @@ class GameStateMachine {
       }
     }
 
-    // Post big blind
+    // Post Big-Blind
     if (bbPlayer) {
       const bbAmount = Math.min(bigBlind, bbPlayer.stack);
       bbPlayer.stack -= bbAmount;
@@ -1913,7 +1913,7 @@ class GameStateMachine {
    * Check if a showdown qualifies for Bad Beat Jackpot.
    * 
    * BBJ Rules (from RakeConfig):
-   *   - Pot must be ≥ 10 BB
+   *   - Pot must be ≥ 10BB
    *   - 4+ players must have been dealt in preflop
    *   - Not available for Double/Triple Board games
    *   - If run it multiple times, only first runout counts
@@ -1934,7 +1934,7 @@ class GameStateMachine {
     const bb = this.config.bigBlind || 2;
     const potTotal = this.potCalculator.totalPot;
 
-    // Must have 4+ players dealt and pot ≥ 10 BB
+    // Must have 4+ players dealt and pot ≥ 10BB
     if (totalDealt < 4) return null;
     if (potTotal < bb * 10) return null;
 
@@ -2093,11 +2093,11 @@ class GameStateMachine {
     // Button
     positions[buttonIdx] = 'btn';
 
-    // Small Blind (next after button)
+    // Small-Blind (next after button)
     const sbIdx = (buttonIdx + 1) % n;
     positions[sbIdx] = 'sb';
 
-    // Big Blind (next after SB)
+    // Big-Blind (next after SB)
     const bbIdx = (sbIdx + 1) % n;
     positions[bbIdx] = 'bb';
 

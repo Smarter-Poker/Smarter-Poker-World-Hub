@@ -182,7 +182,7 @@ function buildAdaptivePrompt(weakness) {
 
 REQUIREMENTS:
 - Position: ${position} (the player's weak spot)
-- Stack Depth: 100bb (standard)
+- Stack Depth: 100BB (standard)
 - Include 15-25 hands in the solution
 - Mix of raises, calls, and folds appropriate for the position
 - Make it challenging but educational

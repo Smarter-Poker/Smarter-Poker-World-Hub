@@ -154,7 +154,7 @@ export default function TrainingArenaPage() {
     const [pot, setPot] = useState(0);
     const [heroStack, setHeroStack] = useState(45);
     const [villainStacks] = useState([32, 28, 55, 41, 38, 62, 29, 51]);
-    const [question, setQuestion] = useState("You Are On The Button (Last To Act). The Player To Your Right Bets 2.5 Big Blinds. What Is Your Best Move?");
+    const [question, setQuestion] = useState("You Are On The Button (Last To Act). The Player To Your Right Bets 2.5BB. What Is Your Best Move?");
 
     useEffect(() => {
         const init = async () => {
@@ -382,7 +382,7 @@ export default function TrainingArenaPage() {
                 <div className="action-bar">
                     <button className="action-btn fold" onClick={() => handleAction('FOLD')}>Fold</button>
                     <button className="action-btn call" onClick={() => handleAction('CALL')}>Call</button>
-                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8bb</button>
+                    <button className="action-btn raise" onClick={() => handleAction('RAISE')}>Raise to 8BB</button>
                     <button className="action-btn allin" onClick={() => handleAction('ALLIN')}>All-In</button>
                 </div>
             </div>

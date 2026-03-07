@@ -36,7 +36,7 @@ export const POKER_LAWS = {
         shortName: 'Blind Defense',
         category: 'DEFENSE',
         description: 'The BB Has Odds to Call with a Wide Range Against Single Raises.',
-        violation: 'Over-folding the big blind to steals.',
+        violation: 'Over-folding the Big-Blind to steals.',
         quickFix: 'Defend ~60% of hands in BB vs BTN open.',
         relatedClinics: ['clinic-01', 'clinic-03', 'clinic-17']
     },

@@ -9,7 +9,7 @@
  *   - BBJ pool allocation: Main 40% / BackUp 30% / Promotional 30%
  * 
  * BBJ RULES:
- *   - Pot must be >= 10 BB
+ *   - Pot must be >= 10BB
  *   - 4+ players must be dealt in preflop
  *   - Not available for Double/Triple Board games
  *   - If run it multiple times, only first runout counts
@@ -209,7 +209,7 @@ function findScheduleMatch(smallBlind, bigBlind) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// HELPER: Get tier config for a given big blind size (fallback)
+// HELPER: Get tier config for a given Big-Blind size (fallback)
 // ═══════════════════════════════════════════════════════════
 function getTierForBB(bigBlind) {
   const bb = parseFloat(bigBlind) || 0;

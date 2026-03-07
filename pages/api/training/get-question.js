@@ -558,7 +558,7 @@ async function generateChartQuestionWithGrok(gameId, level, game, gameConfig) {
         const grok = getGrokClient();
 
         const gameName = game?.name || 'Push/Fold Training';
-        const stackDepth = gameConfig?.stackDepth || '10-15bb';
+        const stackDepth = gameConfig?.stackDepth || '10-15BB';
         const playerCount = gameConfig?.players || 9;
         const format = gameConfig?.format || '9-Max Tournament';
 
@@ -601,7 +601,7 @@ Generate in this EXACT JSON format (no markdown, no code blocks):
 }
 
 IMPORTANT: 
-- Use realistic stack sizes between 1-20 big blinds
+- Use realistic stack sizes between 1-20BB
 - Hero hand should be a decision point (not obvious like AA or 72o)
 - Include ICM context when appropriate (bubble, pay jumps, etc.)
 - Difficulty: ${level}/10`;
@@ -858,7 +858,7 @@ Make the scenario realistic and the options psychologically distinct.`;
         // Get player count and format from game config
         const playerCount = gameConfig?.players || 6;
         const gameFormat = gameConfig?.format || '6-Max Cash';
-        const stackDepth = gameConfig?.stackDepth || '100bb';
+        const stackDepth = gameConfig?.stackDepth || '100BB';
 
         // Map game type to readable format with accurate player count
         const gameTypeDisplay = gameType === 'tournament'
@@ -893,7 +893,7 @@ Generate in this EXACT JSON format (no markdown, no code blocks):
   "source": "GROK_GTO",
   "heroCards": ["Ah", "Ks"],
   "boardCards": ["Jh", "7s", "2d"],
-  "question": "You hold AhKs on Jh7s2d. BTN opens, BB calls. Pot is 12bb. What is the GTO play?",
+  "question": "You hold AhKs on Jh7s2d. BTN opens, BB calls. Pot is 12BB. What is the GTO play?",
   "scenario": {
     "heroPosition": "BTN",
     "heroStack": 100,
@@ -1093,15 +1093,15 @@ function getHardcodedQuestion(engineType, level, gameType) {
                     villainStack: 100,
                     pot: 4.5,
                     board: '',
-                    action: 'UTG raises to 3bb',
+                    action: 'UTG raises to 3BB',
                     gameType: '6-Max Cash'
                 },
                 heroCards: ['Ac', 'Ks'],
-                question: 'You are on the Button with AcKs. UTG raises to 3bb. What is the optimal play?',
+                question: 'You are on the Button with AcKs. UTG raises to 3BB. What is the optimal play?',
                 options: [
                     { id: 'a', text: 'Fold' },
                     { id: 'b', text: 'Call' },
-                    { id: 'c', text: '3-bet to 9bb' },
+                    { id: 'c', text: '3-bet to 9BB' },
                     { id: 'd', text: 'All-In' },
                 ],
                 correctAnswer: 'c',
@@ -1117,19 +1117,19 @@ function getHardcodedQuestion(engineType, level, gameType) {
                     villainStack: 30,
                     pot: 4,
                     board: '',
-                    action: 'BTN raises to 2.5bb',
+                    action: 'BTN raises to 2.5BB',
                     gameType: 'MTT'
                 },
                 heroCards: ['Qh', 'Jd'],
-                question: 'You are in the BB with 25bb. BTN opens to 2.5bb. SB folds. You have QJo. What is your play?',
+                question: 'You are in the BB with 25BB. BTN opens to 2.5BB. SB folds. You have QJo. What is your play?',
                 options: [
                     { id: 'a', text: 'Fold' },
                     { id: 'b', text: 'Call' },
-                    { id: 'c', text: '3-bet to 8bb' },
+                    { id: 'c', text: '3-bet to 8BB' },
                     { id: 'd', text: 'All-In' },
                 ],
                 correctAnswer: 'b',
-                explanation: 'With QJo and 25bb, calling is preferred to close the action. 3-betting leaves you committed.',
+                explanation: 'With QJo and 25BB, calling is preferred to close the action. 3-betting leaves you committed.',
             },
         ],
         CHART: [
@@ -1148,7 +1148,7 @@ function getHardcodedQuestion(engineType, level, gameType) {
                     stackBB: 10
                 },
                 heroCards: ['As', '5s'],
-                question: 'You have 10bb in the SB with A5s. It folds to you. Should you push or fold?',
+                question: 'You have 10BB in the SB with A5s. It folds to you. Should you push or fold?',
                 options: [
                     { id: 'a', text: 'Push' },
                     { id: 'b', text: 'Fold' },
@@ -1156,7 +1156,7 @@ function getHardcodedQuestion(engineType, level, gameType) {
                     { id: 'd', text: 'Min-raise' },
                 ],
                 correctAnswer: 'a',
-                explanation: 'A5s is a clear push from SB with 10bb according to push/fold charts.',
+                explanation: 'A5s is a clear push from SB with 10BB according to push/fold charts.',
             },
         ],
         SCENARIO: [

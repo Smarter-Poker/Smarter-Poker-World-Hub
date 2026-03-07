@@ -66,7 +66,7 @@ TOURNAMENT STRATEGY:
 - ICM: Independent Chip Model, tournament equity vs chip equity
 - Bubble: Tighten up with medium stacks, pressure with big stacks
 - Final table: ICM pressure increases, adjust ranges significantly
-- Short stack: Push/fold charts, 10-15bb is critical zone
+- Short stack: Push/fold charts, 10-15BB is critical zone
 
 CASH GAME STRATEGY:
 - Position is paramount: play tighter early, wider late
@@ -126,7 +126,7 @@ function extractTags(question) {
     // Position tags
     if (q.includes('button') || q.includes('btn')) tags.push('button');
     if (q.includes('cutoff') || q.includes('co')) tags.push('cutoff');
-    if (q.includes('utg') || q.includes('under the gun')) tags.push('utg');
+    if (q.includes('utg') || q.includes('Under-the-Gun')) tags.push('utg');
     if (q.includes('blind') || q.includes('sb') || q.includes('bb')) tags.push('blinds');
 
     // Game type tags

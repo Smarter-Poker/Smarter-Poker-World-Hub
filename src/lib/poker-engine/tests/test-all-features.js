@@ -198,10 +198,10 @@ assert(rv2.action === 'fold', '#30b Weak river fold vs bet');
 
 // #31 Deep stack adjustments
 const ds1 = Brain.getDeepStackAdjustment(100);
-assert(ds1.widenRange === false, '#31a 100bb = no deep adjustment');
+assert(ds1.widenRange === false, '#31a 100BB = no deep adjustment');
 const ds2 = Brain.getDeepStackAdjustment(250);
-assert(ds2.widenRange === true, '#31b 250bb = widen range');
-assert(ds2.impliedOddsBonus > 0, '#31c 250bb implied odds bonus (bonus=' + ds2.impliedOddsBonus + ')');
+assert(ds2.widenRange === true, '#31b 250BB = widen range');
+assert(ds2.impliedOddsBonus > 0, '#31c 250BB implied odds bonus (bonus=' + ds2.impliedOddsBonus + ')');
 
 // #32 Bet sizing trees
 const bs1 = Brain.getOptimalBetSize('quads', 'flop', 100, false);

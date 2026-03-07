@@ -242,7 +242,7 @@ const CONTENT_TEMPLATES = {
             "when to slow play vs fast play",
             "exploiting tight players preflop",
             "river bet sizing for value",
-            "defending your big blind",
+            "defending your Big-Blind",
             "position awareness in cash games",
             "stack-to-pot ratio decisions"
         ]
@@ -258,7 +258,7 @@ const CONTENT_TEMPLATES = {
             "Playing AA after the flop comes all low cards",
             "Turning your hand into a bluff with missed draws",
             "Multiway pot with top pair weak kicker",
-            "Short stack decisions with 15 big blinds",
+            "Short stack decisions with 15BB",
             "Three-way all-in scenario in a tournament"
         ]
     },

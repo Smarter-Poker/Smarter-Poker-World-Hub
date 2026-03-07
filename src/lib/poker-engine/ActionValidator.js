@@ -175,7 +175,7 @@ class ActionValidator {
     
     switch (this.bettingStructure) {
       case BETTING_STRUCTURES.NO_LIMIT:
-        // Min raise: Must raise by at least the last raise size (or big blind for first action)
+        // Min raise: Must raise by at least the last raise size (or Big-Blind for first action)
         minRaise = isOpening ? this.bigBlind : Math.max(lastRaiseSize, this.bigBlind);
         // Max raise: All remaining chips
         maxRaise = chipsAfterCall;

@@ -94,7 +94,7 @@ export default function StructureDisplay() {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {/* Column headers */}
           <div className="grid grid-cols-[60px_1fr_1fr_1fr_80px] gap-4 px-4 py-2 text-sm text-white/40 uppercase tracking-wider border-b border-white/10 sticky top-0 bg-black z-10">
-            <span>Level</span><span>Small Blind</span><span>Big Blind</span><span>Ante</span><span className="text-right">Duration</span>
+            <span>Level</span><span>Small-Blind</span><span>Big-Blind</span><span>Ante</span><span className="text-right">Duration</span>
           </div>
 
           <div className="space-y-0.5 pt-1">

@@ -46,7 +46,7 @@ export default function TrainingTableDemo() {
                 questionNumber={1}
                 totalQuestions={20}
                 gameTitle="ICM FUNDAMENTALS"
-                questionText="You Are On The Button (Last To Act). The Player To Your Right Bets 2.5 Big Blinds. What Is Your Best Move?"
+                questionText="You Are On The Button (Last To Act). The Player To Your Right Bets 2.5BB. What Is Your Best Move?"
                 xp={1250}
                 diamonds={500}
                 onFold={() => console.log('FOLD')}

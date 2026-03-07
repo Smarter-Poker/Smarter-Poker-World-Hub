@@ -21,7 +21,7 @@ export default function AdvancedSolverMimicryUI({ question, onAnswer, showFeedba
     const metadata = question.metadata || {};
     const {
         solverFrequency = '65%',
-        evDifference = '+0.12bb',
+        evDifference = '+0.12BB',
         rangeStrength = 'Medium',
         mixedStrategy = true
     } = metadata;

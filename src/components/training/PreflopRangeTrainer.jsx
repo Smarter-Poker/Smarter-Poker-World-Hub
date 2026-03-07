@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { classifyMove, CLASSIFICATION_CONFIG } from '../../hooks/useGTOWScore';
 
 // ═══ STANDARD GTO PREFLOP RANGES (RFI — Raise First In) ═══
-// These are simplified solver-derived open-raising ranges by position (6-max, 100bb)
+// These are simplified solver-derived open-raising ranges by position (6-max, 100BB)
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 // Frequency: 1.0 = always raise, 0.5 = mixed (raise 50%), 0 = fold

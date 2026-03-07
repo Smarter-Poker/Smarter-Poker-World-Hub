@@ -32,7 +32,7 @@ export const LEVEL_CONFIG = {
 // ═══════════════════════════════════════════════════════════════════════════
 export const LEVEL_1_SCENARIOS = [
     {
-        id: 'l1-utg-100bb', level: 1, title: 'UTG Open (100bb)', position: 'UTG', stackDepth: 100,
+        id: 'l1-utg-100BB', level: 1, title: 'UTG Open (100BB)', position: 'UTG', stackDepth: 100,
         description: 'The Tightest Opening Range. Only Premium Hands.',
         tip: 'Focus On Pairs TT+, Broadway Suited, And Strong Offsuit Broadways.',
         solution: {
@@ -46,7 +46,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-100bb', level: 1, title: 'MP Open (100bb)', position: 'MP', stackDepth: 100,
+        id: 'l1-mp-100BB', level: 1, title: 'MP Open (100BB)', position: 'MP', stackDepth: 100,
         description: 'Slightly Wider Than UTG. Add Some Suited Connectors.',
         tip: 'Include 66, More Suited Ax, And K9s+.',
         solution: {
@@ -61,7 +61,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-100bb', level: 1, title: 'HJ Open (100bb)', position: 'HJ', stackDepth: 100,
+        id: 'l1-hj-100BB', level: 1, title: 'HJ Open (100BB)', position: 'HJ', stackDepth: 100,
         description: 'The Widest Early Position. Transition to Late Position Opens.',
         tip: 'Add 55, 44, More Offsuit Broadways, And Suited Gappers.',
         solution: {
@@ -79,8 +79,8 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-utg-50bb', level: 1, title: 'UTG Open (50bb)', position: 'UTG', stackDepth: 50,
-        description: 'Shorter Stack UTG Range. Tighter Than 100bb.',
+        id: 'l1-utg-50BB', level: 1, title: 'UTG Open (50BB)', position: 'UTG', stackDepth: 50,
+        description: 'Shorter Stack UTG Range. Tighter Than 100BB.',
         tip: 'Cut Some Suited Connectors, Focus On High Card Strength.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -93,7 +93,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-utg-200bb', level: 1, title: 'UTG Open (200bb)', position: 'UTG', stackDepth: 200,
+        id: 'l1-utg-200BB', level: 1, title: 'UTG Open (200BB)', position: 'UTG', stackDepth: 200,
         description: 'Deep Stack UTG. Can Add More Speculative Hands.',
         tip: 'Add Small Pairs And More Suited Connectors For Implied Odds.',
         solution: {
@@ -107,9 +107,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-50bb', level: 1, title: 'MP Open (50bb)', position: 'MP', stackDepth: 50,
+        id: 'l1-mp-50BB', level: 1, title: 'MP Open (50BB)', position: 'MP', stackDepth: 50,
         description: 'Middle Position with Shorter Stack.',
-        tip: 'Slightly Wider Than UTG 50bb, But Still Tight.',
+        tip: 'Slightly Wider Than UTG 50BB, But Still Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
@@ -122,7 +122,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-200bb', level: 1, title: 'MP Open (200bb)', position: 'MP', stackDepth: 200,
+        id: 'l1-mp-200BB', level: 1, title: 'MP Open (200BB)', position: 'MP', stackDepth: 200,
         description: 'Deep Stack Middle Position.',
         tip: 'Add More Suited Hands And Small Pairs.',
         solution: {
@@ -138,7 +138,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-50bb', level: 1, title: 'HJ Open (50bb)', position: 'HJ', stackDepth: 50,
+        id: 'l1-hj-50BB', level: 1, title: 'HJ Open (50BB)', position: 'HJ', stackDepth: 50,
         description: 'Hijack with Shorter Stack.',
         tip: 'Wider Than MP, But Not As Wide As 100BB HJ.',
         solution: {
@@ -154,7 +154,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-200bb', level: 1, title: 'HJ Open (200bb)', position: 'HJ', stackDepth: 200,
+        id: 'l1-hj-200BB', level: 1, title: 'HJ Open (200BB)', position: 'HJ', stackDepth: 200,
         description: 'Deep Stack Hijack.',
         tip: 'Very Wide Range With Deep Stacks.',
         solution: {
@@ -173,7 +173,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     // Additional UTG variations
     {
-        id: 'l1-utg-30bb', level: 1, title: 'UTG Open (30bb)', position: 'UTG', stackDepth: 30,
+        id: 'l1-utg-30BB', level: 1, title: 'UTG Open (30BB)', position: 'UTG', stackDepth: 30,
         description: 'Short Stack UTG. Very Tight Range.',
         tip: 'Premium Hands Only. No Speculative Plays.',
         solution: {
@@ -185,9 +185,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-30bb', level: 1, title: 'MP Open (30bb)', position: 'MP', stackDepth: 30,
+        id: 'l1-mp-30BB', level: 1, title: 'MP Open (30BB)', position: 'MP', stackDepth: 30,
         description: 'Short Stack Middle Position.',
-        tip: 'Slightly Wider Than UTG 30bb.',
+        tip: 'Slightly Wider Than UTG 30BB.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise',
@@ -199,9 +199,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-30bb', level: 1, title: 'HJ Open (30bb)', position: 'HJ', stackDepth: 30,
+        id: 'l1-hj-30BB', level: 1, title: 'HJ Open (30BB)', position: 'HJ', stackDepth: 30,
         description: 'Short Stack Hijack.',
-        tip: 'Wider Than MP 30bb, But Still Relatively Tight.',
+        tip: 'Wider Than MP 30BB, But Still Relatively Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise', '66': 'raise',
@@ -215,7 +215,7 @@ export const LEVEL_1_SCENARIOS = [
     },
     // UTG+1 scenarios
     {
-        id: 'l1-utg1-100bb', level: 1, title: 'UTG+1 Open (100bb)', position: 'UTG+1', stackDepth: 100,
+        id: 'l1-utg1-100BB', level: 1, title: 'UTG+1 Open (100BB)', position: 'UTG+1', stackDepth: 100,
         description: 'One Seat After UTG. Slightly Wider.',
         tip: 'Add A Few More Suited Hands Than UTG.',
         solution: {
@@ -230,9 +230,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-utg1-50bb', level: 1, title: 'UTG+1 Open (50bb)', position: 'UTG+1', stackDepth: 50,
+        id: 'l1-utg1-50BB', level: 1, title: 'UTG+1 Open (50BB)', position: 'UTG+1', stackDepth: 50,
         description: 'UTG+1 with Shorter Stack.',
-        tip: 'Tighter Than 100bb, But Wider Than UTG 50bb.',
+        tip: 'Tighter Than 100BB, But Wider Than UTG 50BB.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise',
@@ -244,7 +244,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-lj-100bb', level: 1, title: 'LJ Open (100bb)', position: 'LJ', stackDepth: 100,
+        id: 'l1-lj-100BB', level: 1, title: 'LJ Open (100BB)', position: 'LJ', stackDepth: 100,
         description: 'Lojack (MP2). Between MP and HJ.',
         tip: 'Wider Than MP, Narrower Than HJ.',
         solution: {
@@ -262,8 +262,8 @@ export const LEVEL_1_SCENARIOS = [
     },
     // Ante vs No Ante scenarios
     {
-        id: 'l1-utg-100bb-ante', level: 1, title: 'UTG Open (100bb, Ante)', position: 'UTG', stackDepth: 100,
-        description: 'UTG with Big Blind Ante. Slightly Wider.',
+        id: 'l1-utg-100BB-ante', level: 1, title: 'UTG Open (100BB, Ante)', position: 'UTG', stackDepth: 100,
+        description: 'UTG with Big-Blind Ante. Slightly Wider.',
         tip: 'Ante Makes Stealing More Profitable. Add A Few More Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -277,7 +277,7 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-100bb-ante', level: 1, title: 'MP Open (100bb, Ante)', position: 'MP', stackDepth: 100,
+        id: 'l1-mp-100BB-ante', level: 1, title: 'MP Open (100BB, Ante)', position: 'MP', stackDepth: 100,
         description: 'Middle Position with Ante.',
         tip: 'Ante Increases Pot Odds. Open Wider.',
         solution: {
@@ -328,8 +328,8 @@ export const LEVEL_1_SCENARIOS = [
     },
     // Tournament vs Cash
     {
-        id: 'l1-utg-mtt-20bb', level: 1, title: 'UTG Open (MTT, 20bb)', position: 'UTG', stackDepth: 20,
-        description: 'Tournament UTG with 20bb. Push/fold Territory.',
+        id: 'l1-utg-mtt-20BB', level: 1, title: 'UTG Open (MTT, 20BB)', position: 'UTG', stackDepth: 20,
+        description: 'Tournament UTG with 20BB. Push/fold Territory.',
         tip: 'Very Tight. Only Premium Hands.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -340,9 +340,9 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-mp-mtt-20bb', level: 1, title: 'MP Open (MTT, 20bb)', position: 'MP', stackDepth: 20,
-        description: 'Tournament MP with 20bb.',
-        tip: 'Slightly Wider Than UTG 20bb.',
+        id: 'l1-mp-mtt-20BB', level: 1, title: 'MP Open (MTT, 20BB)', position: 'MP', stackDepth: 20,
+        description: 'Tournament MP with 20BB.',
+        tip: 'Slightly Wider Than UTG 20BB.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
             '99': 'raise', '88': 'raise', '77': 'raise',
@@ -353,8 +353,8 @@ export const LEVEL_1_SCENARIOS = [
         }
     },
     {
-        id: 'l1-hj-mtt-20bb', level: 1, title: 'HJ Open (MTT, 20bb)', position: 'HJ', stackDepth: 20,
-        description: 'Tournament HJ with 20bb.',
+        id: 'l1-hj-mtt-20BB', level: 1, title: 'HJ Open (MTT, 20BB)', position: 'HJ', stackDepth: 20,
+        description: 'Tournament HJ with 20BB.',
         tip: 'Wider Than MP, But Still Relatively Tight.',
         solution: {
             'AA': 'raise', 'KK': 'raise', 'QQ': 'raise', 'JJ': 'raise', 'TT': 'raise',
@@ -411,7 +411,7 @@ export const SPOT_SCENARIOS = [
         initialPot: 5.5,
         stackDepth: 100,
         blinds: '0.5/1',
-        history: ['Hero (BTN) raises to 2.5bb', 'Villain (BB) calls 1.5bb'],
+        history: ['Hero (BTN) raises to 2.5BB', 'Villain (BB) calls 1.5BB'],
         tree: {
             id: 'root',
             street: 'flop',
@@ -482,7 +482,7 @@ export const SPOT_SCENARIOS = [
         initialPot: 20,
         stackDepth: 100,
         blinds: '0.5/1',
-        history: ['Villain (BTN) raises 2.5bb', 'Hero (SB) raises to 9bb', 'Villain calls'],
+        history: ['Villain (BTN) raises 2.5BB', 'Hero (SB) raises to 9BB', 'Villain calls'],
         tree: {
             id: 'root',
             street: 'flop',
@@ -553,9 +553,9 @@ export const SPOT_SCENARIOS = [
 export const LEVEL_2_SCENARIOS = [
     {
         "id": "l2-scenario-0",
-        "title": "CO Open 20bb 9-max",
-        "description": "This range represents a GTO opening strategy from the Cutoff position with a 20bb stack in a 9-max format. It balances aggression and tightness given the shallow stack depth and position.",
-        "tip": "With a 20bb stack, prioritize hands with strong post-flop playability and avoid speculative hands that are easily dominated.",
+        "title": "CO Open 20BB 9-max",
+        "description": "This range represents a GTO opening strategy from the Cutoff position with a 20BB stack in a 9-max format. It balances aggression and tightness given the shallow stack depth and position.",
+        "tip": "With a 20BB stack, prioritize hands with strong post-flop playability and avoid speculative hands that are easily dominated.",
         "solution": {
             "55": "raise",
             "66": "raise",
@@ -602,9 +602,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-1",
-        "title": "BTN Open 20bb 6-max",
-        "description": "This range represents a GTO-based opening strategy from the Button in a 6-max game with a 20bb stack depth. It balances aggression with playability given the shallow stacks.",
-        "tip": "With a 20bb stack, prioritize hands with strong post-flop playability and avoid speculative hands that struggle in short-stack scenarios.",
+        "title": "BTN Open 20BB 6-max",
+        "description": "This range represents a GTO-based opening strategy from the Button in a 6-max game with a 20BB stack depth. It balances aggression with playability given the shallow stacks.",
+        "tip": "With a 20BB stack, prioritize hands with strong post-flop playability and avoid speculative hands that struggle in short-stack scenarios.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -679,9 +679,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-2",
-        "title": "SB Open 20bb MTT",
-        "description": "This range represents a GTO-based opening strategy from the Small Blind with a 20bb stack in a multi-table tournament. It accounts for the short stack depth and the need for a tighter, more aggressive range.",
-        "tip": "With a 20bb stack in the SB, focus on raising strong hands to build the pot or shove directly with marginal hands to maximize fold equity; avoid limping as it reduces your ability to apply pressure.",
+        "title": "SB Open 20BB MTT",
+        "description": "This range represents a GTO-based opening strategy from the Small-Blind with a 20BB stack in a multi-table tournament. It accounts for the short stack depth and the need for a tighter, more aggressive range.",
+        "tip": "With a 20BB stack in the SB, focus on raising strong hands to build the pot or shove directly with marginal hands to maximize fold equity; avoid limping as it reduces your ability to apply pressure.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -750,8 +750,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-3",
-        "title": "CO Open 30bb 9-max",
-        "description": "This range represents a GTO-based opening strategy from the Cutoff position with a 30bb stack in a 9-max format. It balances aggression with playable hands to maximize EV against competent opponents.",
+        "title": "CO Open 30BB 9-max",
+        "description": "This range represents a GTO-based opening strategy from the Cutoff position with a 30BB stack in a 9-max format. It balances aggression with playable hands to maximize EV against competent opponents.",
         "tip": "Focus on playing a tighter range than in later positions due to the increased number of players behind you, and adjust based on table dynamics and stack sizes.",
         "solution": {
             "55": "raise",
@@ -800,8 +800,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-4",
-        "title": "BTN Open 30bb 6-max",
-        "description": "This range represents a GTO-based opening strategy from the Button in a 6-max game with 30bb stacks. It is designed to balance aggression and playability at a shallow stack depth.",
+        "title": "BTN Open 30BB 6-max",
+        "description": "This range represents a GTO-based opening strategy from the Button in a 6-max game with 30BB stacks. It is designed to balance aggression and playability at a shallow stack depth.",
         "tip": "Focus on hands with strong post-flop playability and avoid marginal hands that can be easily dominated, especially with shorter stacks.",
         "solution": {
             "22": "raise",
@@ -978,9 +978,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-5",
-        "title": "SB Open 30bb MTT",
-        "description": "This range represents a GTO-based opening strategy from the Small Blind in a multi-table tournament with a 30bb stack depth. It accounts for the positional disadvantage and shorter stack size.",
-        "tip": "Be cautious with marginal hands in the Small Blind due to poor post-flop playability; prioritize strong hands and speculative suited connectors that can make strong hands.",
+        "title": "SB Open 30BB MTT",
+        "description": "This range represents a GTO-based opening strategy from the Small-Blind in a multi-table tournament with a 30BB stack depth. It accounts for the positional disadvantage and shorter stack size.",
+        "tip": "Be cautious with marginal hands in the Small-Blind due to poor post-flop playability; prioritize strong hands and speculative suited connectors that can make strong hands.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -1050,8 +1050,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-6",
-        "title": "CO Open 50bb 9-max",
-        "description": "This range represents a GTO-based opening strategy from the Cutoff (CO) position in a 9-max game with 50bb stack depth. It balances value hands and bluffs to maintain unpredictability.",
+        "title": "CO Open 50BB 9-max",
+        "description": "This range represents a GTO-based opening strategy from the Cutoff (CO) position in a 9-max game with 50BB stack depth. It balances value hands and bluffs to maintain unpredictability.",
         "tip": "Focus on playing a tighter range than in later positions like the Button, but still include some speculative hands to exploit weaker players in the blinds.",
         "solution": {
             "22": "raise",
@@ -1133,8 +1133,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-7",
-        "title": "BTN Open 50bb 6-max",
-        "description": "This range represents the optimal opening strategy from the Button in a 6-max game with 50bb stacks. It is designed to maximize EV by balancing value hands and bluffs.",
+        "title": "BTN Open 50BB 6-max",
+        "description": "This range represents the optimal opening strategy from the Button in a 6-max game with 50BB stacks. It is designed to maximize EV by balancing value hands and bluffs.",
         "tip": "From the Button, widen your opening range significantly due to positional advantage, but remain mindful of stack depth and potential 3-bet pressure from the blinds.",
         "solution": {
             "22": "raise",
@@ -1311,9 +1311,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-8",
-        "title": "SB Open 50bb MTT",
-        "description": "This range represents a GTO-based opening strategy from the Small Blind in a multi-table tournament with a 50bb stack depth. It accounts for the positional disadvantage and the need for a tighter range compared to later positions.",
-        "tip": "Focus on playing strong hands and suited connectors from the Small Blind to mitigate the positional disadvantage, and be prepared to fold to 3-bets with marginal hands.",
+        "title": "SB Open 50BB MTT",
+        "description": "This range represents a GTO-based opening strategy from the Small-Blind in a multi-table tournament with a 50BB stack depth. It accounts for the positional disadvantage and the need for a tighter range compared to later positions.",
+        "tip": "Focus on playing strong hands and suited connectors from the Small-Blind to mitigate the positional disadvantage, and be prepared to fold to 3-bets with marginal hands.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -1380,8 +1380,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-9",
-        "title": "CO Open 100bb 9-max",
-        "description": "This range represents a GTO-based opening strategy from the Cutoff position in a 9-max game with 100bb stacks. It balances value hands and bluffs to maintain an unexploitable frequency.",
+        "title": "CO Open 100BB 9-max",
+        "description": "This range represents a GTO-based opening strategy from the Cutoff position in a 9-max game with 100BB stacks. It balances value hands and bluffs to maintain an unexploitable frequency.",
         "tip": "Focus on playing a slightly tighter range than in later positions like the Button, prioritizing strong hands and suited connectors while avoiding weak offsuit hands that are easily dominated.",
         "solution": {
             "22": "raise",
@@ -1453,8 +1453,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-10",
-        "title": "BTN Open 100bb 6-max",
-        "description": "This range represents a GTO opening strategy from the Button in a 6-max game with 100bb stacks. It is designed to maximize EV by balancing value hands and bluffs.",
+        "title": "BTN Open 100BB 6-max",
+        "description": "This range represents a GTO opening strategy from the Button in a 6-max game with 100BB stacks. It is designed to maximize EV by balancing value hands and bluffs.",
         "tip": "From the Button, play a wide range due to positional advantage, but be mindful of stack depth and opponent tendencies when facing 3-bets.",
         "solution": {
             "22": "raise",
@@ -1631,9 +1631,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-11",
-        "title": "SB Open 100bb MTT",
-        "description": "This range represents a GTO-based opening strategy from the Small Blind in a multi-table tournament with 100bb stacks. It accounts for the positional disadvantage and the need for a tighter range compared to later positions.",
-        "tip": "Focus on playing strong hands and suited connectors from the Small Blind due to poor post-flop playability; avoid marginal offsuit hands to minimize losses in this position.",
+        "title": "SB Open 100BB MTT",
+        "description": "This range represents a GTO-based opening strategy from the Small-Blind in a multi-table tournament with 100BB stacks. It accounts for the positional disadvantage and the need for a tighter range compared to later positions.",
+        "tip": "Focus on playing strong hands and suited connectors from the Small-Blind due to poor post-flop playability; avoid marginal offsuit hands to minimize losses in this position.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -1698,8 +1698,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-12",
-        "title": "CO Open 200bb 9-max",
-        "description": "This range represents a GTO opening strategy from the Cutoff (CO) position in a 9-max game with 200bb effective stacks. It balances value and bluff hands to maximize EV against competent opponents.",
+        "title": "CO Open 200BB 9-max",
+        "description": "This range represents a GTO opening strategy from the Cutoff (CO) position in a 9-max game with 200BB effective stacks. It balances value and bluff hands to maximize EV against competent opponents.",
         "tip": "Focus on playing a slightly tighter range than in later positions, prioritizing strong hands and suited connectors while avoiding marginal offsuit hands to reduce reverse implied odds.",
         "solution": {
             "22": "raise",
@@ -1783,8 +1783,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-13",
-        "title": "BTN Open 200bb 6-max",
-        "description": "This range represents a GTO opening strategy from the Button in a 6-max game with 200bb stacks. It is designed to maximize EV by balancing value hands and bluffs in a wide range due to favorable position.",
+        "title": "BTN Open 200BB 6-max",
+        "description": "This range represents a GTO opening strategy from the Button in a 6-max game with 200BB stacks. It is designed to maximize EV by balancing value hands and bluffs in a wide range due to favorable position.",
         "tip": "From the Button, play a wide range due to positional advantage, but be mindful of stack depth and adjust aggression based on opponents' tendencies.",
         "solution": {
             "22": "raise",
@@ -1961,9 +1961,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-14",
-        "title": "SB Open 200bb MTT",
-        "description": "This range represents a GTO-based opening strategy from the Small Blind in a multi-table tournament with a deep stack of 200 big blinds. It accounts for position and stack depth to balance aggression and caution.",
-        "tip": "From the Small Blind, play a tighter range than other positions due to being out of position post-flop, but leverage the deep stacks to include some speculative hands for potential high implied odds.",
+        "title": "SB Open 200BB MTT",
+        "description": "This range represents a GTO-based opening strategy from the Small-Blind in a multi-table tournament with a deep stack of 200BB. It accounts for position and stack depth to balance aggression and caution.",
+        "tip": "From the Small-Blind, play a tighter range than other positions due to being out of position post-flop, but leverage the deep stacks to include some speculative hands for potential high implied odds.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -2027,9 +2027,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-15",
-        "title": "CO Open 20bb 9-max",
-        "description": "This range represents a GTO opening strategy from the Cutoff (CO) position with a 20bb stack in a 9-max format. It is designed to balance aggression and caution given the shallow stack depth and position.",
-        "tip": "With a 20bb stack, prioritize hands with strong playability post-flop and avoid speculative hands that can get you in trouble with limited stack depth.",
+        "title": "CO Open 20BB 9-max",
+        "description": "This range represents a GTO opening strategy from the Cutoff (CO) position with a 20BB stack in a 9-max format. It is designed to balance aggression and caution given the shallow stack depth and position.",
+        "tip": "With a 20BB stack, prioritize hands with strong playability post-flop and avoid speculative hands that can get you in trouble with limited stack depth.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -2081,9 +2081,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-16",
-        "title": "BTN Open 20bb 6-max",
-        "description": "This range represents a GTO opening strategy from the Button in a 6-max game with a 20bb stack depth. It is designed to balance aggression and playability in a short-stack scenario.",
-        "tip": "With a shallow stack of 20bb, prioritize hands with strong equity and playability, and be prepared to shove or fold to 3-bets with most of your range.",
+        "title": "BTN Open 20BB 6-max",
+        "description": "This range represents a GTO opening strategy from the Button in a 6-max game with a 20BB stack depth. It is designed to balance aggression and playability in a short-stack scenario.",
+        "tip": "With a shallow stack of 20BB, prioritize hands with strong equity and playability, and be prepared to shove or fold to 3-bets with most of your range.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -2224,9 +2224,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-17",
-        "title": "SB Open 20bb MTT",
-        "description": "This range represents a GTO-based opening strategy from the Small Blind with a 20bb stack in a multi-table tournament. It accounts for the short stack depth and the need for a tighter, more aggressive range.",
-        "tip": "With a 20bb stack in the SB, prioritize hands with strong post-flop playability and avoid speculative hands due to limited implied odds.",
+        "title": "SB Open 20BB MTT",
+        "description": "This range represents a GTO-based opening strategy from the Small-Blind with a 20BB stack in a multi-table tournament. It accounts for the short stack depth and the need for a tighter, more aggressive range.",
+        "tip": "With a 20BB stack in the SB, prioritize hands with strong post-flop playability and avoid speculative hands due to limited implied odds.",
         "solution": {
             "55": "raise",
             "66": "raise",
@@ -2273,9 +2273,9 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-18",
-        "title": "CO Open 30bb 9-max",
-        "description": "This range represents a GTO-based opening strategy from the Cutoff position with a 30bb stack in a 9-max format. It balances aggression with caution given the stack depth and position.",
-        "tip": "Focus on playing a tighter range than in deeper stacks due to the 30bb depth, prioritizing strong hands and suited connectors with post-flop playability while avoiding marginal hands that can be easily dominated.",
+        "title": "CO Open 30BB 9-max",
+        "description": "This range represents a GTO-based opening strategy from the Cutoff position with a 30BB stack in a 9-max format. It balances aggression with caution given the stack depth and position.",
+        "tip": "Focus on playing a tighter range than in deeper stacks due to the 30BB depth, prioritizing strong hands and suited connectors with post-flop playability while avoiding marginal hands that can be easily dominated.",
         "solution": {
             "22": "raise",
             "33": "raise",
@@ -2337,8 +2337,8 @@ export const LEVEL_2_SCENARIOS = [
     },
     {
         "id": "l2-scenario-19",
-        "title": "BTN Open 30bb 6-max",
-        "description": "This range represents a GTO-based opening strategy from the Button in a 6-max game with a 30bb stack depth. It balances aggression with playability given the shorter stack size.",
+        "title": "BTN Open 30BB 6-max",
+        "description": "This range represents a GTO-based opening strategy from the Button in a 6-max game with a 30BB stack depth. It balances aggression with playability given the shorter stack size.",
         "tip": "Focus on hands with strong post-flop playability and avoid marginal hands that can be easily dominated, especially with a shallower stack.",
         "solution": {
             "22": "raise",
@@ -2487,8 +2487,8 @@ export const LEVEL_2_SCENARIOS = [
 export const LEVEL_3_SCENARIOS = [
     {
         "id": "l3-scenario-0",
-        "title": "BB Defense vs UTG Open 30bb",
-        "description": "This range represents the Big Blind's defense strategy against an Under the Gun open with a stack depth of 30 big blinds. It balances calling and raising to exploit typical UTG ranges while maintaining defensibility.",
+        "title": "BB Defense vs UTG Open 30BB",
+        "description": "This range represents the Big-Blind's defense strategy against an Under-the-Gun open with a stack depth of 30BB. It balances calling and raising to exploit typical UTG ranges while maintaining defensibility.",
         "tip": "Focus on defending with strong hands and speculative hands that can realize equity, while folding weaker offsuit hands to avoid being dominated.",
         "solution": {
             "22": "call",
@@ -2550,8 +2550,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-1",
-        "title": "BB Defense vs MP Open 30bb 6-max",
-        "description": "This range represents a GTO-based defense strategy for the Big Blind against a Middle Position open with 30bb effective stacks. It balances calling and raising frequencies to remain unexploitable.",
+        "title": "BB Defense vs MP Open 30BB 6-max",
+        "description": "This range represents a GTO-based defense strategy for the Big-Blind against a Middle Position open with 30BB effective stacks. It balances calling and raising frequencies to remain unexploitable.",
         "tip": "Focus on defending with hands that have good post-flop playability and mix in aggressive 3-bets with strong hands and selected bluffs to apply pressure.",
         "solution": {
             "22": "call",
@@ -2728,8 +2728,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-2",
-        "title": "BB Defense vs HJ Open 30bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Hijack open with a 30bb stack depth in a 6-max game. It balances value and bluff hands to optimize EV against a typical HJ opening range.",
+        "title": "BB Defense vs HJ Open 30BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Hijack open with a 30BB stack depth in a 6-max game. It balances value and bluff hands to optimize EV against a typical HJ opening range.",
         "tip": "Focus on defending with hands that have good playability post-flop and mix in some speculative hands to prevent being exploited, while folding weaker offsuit hands.",
         "solution": {
             "22": "call",
@@ -2857,8 +2857,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-3",
-        "title": "BB Defense vs CO Open 30bb 6-max",
-        "description": "This range represents a GTO-based defense strategy for the Big Blind against a Cutoff open at 30bb stack depth. It balances calling and raising frequencies to remain unexploitable.",
+        "title": "BB Defense vs CO Open 30BB 6-max",
+        "description": "This range represents a GTO-based defense strategy for the Big-Blind against a Cutoff open at 30BB stack depth. It balances calling and raising frequencies to remain unexploitable.",
         "tip": "Focus on defending with a mix of strong hands and speculative hands that can realize equity, while raising with premium hands and some strong suited connectors to apply pressure.",
         "solution": {
             "22": "call",
@@ -2986,8 +2986,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-4",
-        "title": "BB Defense vs BTN Open 30bb 6-max",
-        "description": "This range represents a GTO-based defense strategy for the Big Blind against a Button open with a 30bb stack depth. It balances calling and raising frequencies to exploit typical BTN opening ranges while maintaining unexploitable play.",
+        "title": "BB Defense vs BTN Open 30BB 6-max",
+        "description": "This range represents a GTO-based defense strategy for the Big-Blind against a Button open with a 30BB stack depth. It balances calling and raising frequencies to exploit typical BTN opening ranges while maintaining unexploitable play.",
         "tip": "Focus on defending with hands that have good post-flop playability and mix in aggressive 3-bets with strong hands and selected bluffs to pressure the BTN's wide range.",
         "solution": {
             "22": "call",
@@ -3164,8 +3164,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-5",
-        "title": "BB Defense vs SB Open 30bb 6-max",
-        "description": "This range represents a GTO-based defense strategy for the Big Blind against a Small Blind open with a 30bb stack depth. It balances calling, raising, and folding to optimize EV against an aggressive SB range.",
+        "title": "BB Defense vs SB Open 30BB 6-max",
+        "description": "This range represents a GTO-based defense strategy for the Big-Blind against a Small-Blind open with a 30BB stack depth. It balances calling, raising, and folding to optimize EV against an aggressive SB range.",
         "tip": "Focus on defending with a polarized raising range and a wide calling range to exploit SB's wide opening frequency while maintaining balance against potential 3-bets.",
         "solution": {
             "22": "call",
@@ -3342,8 +3342,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-6",
-        "title": "BB Defense vs UTG Open 50bb",
-        "description": "This range represents the Big Blind's optimal defense strategy against an Under the Gun open with a 50bb stack depth. It balances value hands and bluffs to maintain an unexploitable frequency.",
+        "title": "BB Defense vs UTG Open 50BB",
+        "description": "This range represents the Big-Blind's optimal defense strategy against an Under-the-Gun open with a 50BB stack depth. It balances value hands and bluffs to maintain an unexploitable frequency.",
         "tip": "Focus on defending with strong hands and speculative hands that can realize equity, while folding weaker offsuit hands to avoid being dominated.",
         "solution": {
             "22": "call",
@@ -3452,8 +3452,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-7",
-        "title": "BB Defense vs MP Open 50bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Middle Position open at 50bb stack depth in a 6-max game. It balances value hands and bluffs to maintain an optimal frequency against MP's opening range.",
+        "title": "BB Defense vs MP Open 50BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Middle Position open at 50BB stack depth in a 6-max game. It balances value hands and bluffs to maintain an optimal frequency against MP's opening range.",
         "tip": "Focus on defending with hands that have good post-flop playability and mix in some speculative hands to prevent being exploited by aggressive MP opens.",
         "solution": {
             "22": "call",
@@ -3581,8 +3581,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-8",
-        "title": "BB Defense vs HJ Open 50bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Hijack open with 50bb stacks in a 6-max game. It balances calling and raising frequencies to optimize EV against a standard HJ opening range.",
+        "title": "BB Defense vs HJ Open 50BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Hijack open with 50BB stacks in a 6-max game. It balances calling and raising frequencies to optimize EV against a standard HJ opening range.",
         "tip": "Focus on defending with hands that have good playability post-flop and mix in aggressive 3-bets with strong hands and selected bluffs to prevent being exploited.",
         "solution": {
             "22": "call",
@@ -3759,8 +3759,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-9",
-        "title": "CO Open 50bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Cutoff open at 50bb stack depth in a 6-max game. It balances value hands and bluffs to maintain an optimal frequency against a standard CO opening range.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Cutoff open at 50BB stack depth in a 6-max game. It balances value hands and bluffs to maintain an optimal frequency against a standard CO opening range.",
         "tip": "Focus on defending with hands that have good playability post-flop and mix in some speculative hands to prevent being exploited by aggressive CO opens.",
         "solution": {
             "22": "call",
@@ -3937,8 +3937,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-10",
-        "title": "BB Defense vs BTN Open 50bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Button open with a 50bb stack depth in a 6-max game. It balances calling and raising frequencies to exploit typical Button opening ranges while maintaining defensibility.",
+        "title": "BB Defense vs BTN Open 50BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Button open with a 50BB stack depth in a 6-max game. It balances calling and raising frequencies to exploit typical Button opening ranges while maintaining defensibility.",
         "tip": "Focus on defending with a polarized raising range including strong hands and speculative suited connectors, while calling with medium-strength hands to control the pot.",
         "solution": {
             "22": "call",
@@ -4079,8 +4079,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-11",
-        "title": "BB Defense vs SB Open 50bb 6-max",
-        "description": "This range represents a GTO-based defense strategy for the Big Blind against a Small Blind open at 50bb stack depth in a 6-max game. It balances value hands and bluffs to optimize EV against an aggressive opponent.",
+        "title": "BB Defense vs SB Open 50BB 6-max",
+        "description": "This range represents a GTO-based defense strategy for the Big-Blind against a Small-Blind open at 50BB stack depth in a 6-max game. It balances value hands and bluffs to optimize EV against an aggressive opponent.",
         "tip": "Focus on defending with a polarized range of strong value hands and speculative hands with good playability, while folding weaker offsuit hands to avoid being dominated.",
         "solution": {
             "22": "call",
@@ -4257,8 +4257,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-12",
-        "title": "BB Defense vs UTG Open 100bb",
-        "description": "This range represents the Big Blind's defense strategy against an Under the Gun open with 100bb stacks. It balances calling and raising frequencies to exploit typical UTG ranges while maintaining unexploitable play.",
+        "title": "BB Defense vs UTG Open 100BB",
+        "description": "This range represents the Big-Blind's defense strategy against an Under-the-Gun open with 100BB stacks. It balances calling and raising frequencies to exploit typical UTG ranges while maintaining unexploitable play.",
         "tip": "Focus on defending with strong hands and speculative hands that can realize equity, while folding weaker offsuit hands to avoid being dominated against UTG's tight range.",
         "solution": {
             "22": "call",
@@ -4323,8 +4323,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-13",
-        "title": "BB Defense vs MP Open 100bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Middle Position open with 100bb stacks in a 6-max game. It balances value hands and bluffs to maintain an optimal frequency against MP's range.",
+        "title": "BB Defense vs MP Open 100BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Middle Position open with 100BB stacks in a 6-max game. It balances value hands and bluffs to maintain an optimal frequency against MP's range.",
         "tip": "Focus on defending with hands that have good playability post-flop, such as suited connectors and strong broadways, while folding weaker offsuit hands to avoid being dominated.",
         "solution": {
             "22": "call",
@@ -4452,8 +4452,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-15",
-        "title": "BB Defense vs CO Open 100bb 6-max",
-        "description": "This range represents the Big Blind's optimal defense strategy against a Cutoff open at 100bb stack depth in a 6-max game. It balances value hands and bluffs to maintain an unexploitable frequency.",
+        "title": "BB Defense vs CO Open 100BB 6-max",
+        "description": "This range represents the Big-Blind's optimal defense strategy against a Cutoff open at 100BB stack depth in a 6-max game. It balances value hands and bluffs to maintain an unexploitable frequency.",
         "tip": "Focus on defending with hands that have good post-flop playability and mix in some speculative hands to prevent being too predictable against an aggressive CO.",
         "solution": {
             "22": "call",
@@ -4630,8 +4630,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-16",
-        "title": "BB Defense vs BTN Open 100bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Button open with 100bb stacks in a 6-max game. It balances calling and raising frequencies to exploit typical BTN opening ranges while maintaining defensibility.",
+        "title": "BB Defense vs BTN Open 100BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Button open with 100BB stacks in a 6-max game. It balances calling and raising frequencies to exploit typical BTN opening ranges while maintaining defensibility.",
         "tip": "Focus on defending with hands that have good playability post-flop and mix in aggressive 3-bets with strong hands and selected bluffs to prevent being exploited.",
         "solution": {
             "22": "call",
@@ -4808,8 +4808,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-17",
-        "title": "BB Defense vs SB Open 100bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Small Blind open at 100bb stack depth in a 6-max game. It balances calling and raising frequencies to exploit typical SB ranges while maintaining defensibility.",
+        "title": "BB Defense vs SB Open 100BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Small-Blind open at 100BB stack depth in a 6-max game. It balances calling and raising frequencies to exploit typical SB ranges while maintaining defensibility.",
         "tip": "Focus on defending with hands that have good playability post-flop and mix in aggressive 3-bets with strong hands and selected bluffs to prevent exploitation.",
         "solution": {
             "22": "call",
@@ -4983,8 +4983,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-18",
-        "title": "BB Defense vs UTG Open 200bb",
-        "description": "This range represents the Big Blind's defense strategy against an Under the Gun open with a deep stack of 200 big blinds. It balances calling and raising frequencies to exploit tendencies while remaining unexploitable.",
+        "title": "BB Defense vs UTG Open 200BB",
+        "description": "This range represents the Big-Blind's defense strategy against an Under-the-Gun open with a deep stack of 200BB. It balances calling and raising frequencies to exploit tendencies while remaining unexploitable.",
         "tip": "Focus on defending with a polarized raising range including strong hands and speculative suited connectors, while calling with medium-strength hands to control the pot.",
         "solution": {
             "22": "call",
@@ -5161,8 +5161,8 @@ export const LEVEL_3_SCENARIOS = [
     },
     {
         "id": "l3-scenario-19",
-        "title": "BB Defense vs MP Open 200bb 6-max",
-        "description": "This range represents the Big Blind's defense strategy against a Middle Position open with a deep stack of 200 big blinds. It balances calling and raising frequencies to exploit MP's range while maintaining defensibility.",
+        "title": "BB Defense vs MP Open 200BB 6-max",
+        "description": "This range represents the Big-Blind's defense strategy against a Middle Position open with a deep stack of 200BB. It balances calling and raising frequencies to exploit MP's range while maintaining defensibility.",
         "tip": "Focus on defending with a polarized raising range including strong hands and speculative suited connectors, while calling with a wide range of playable hands to see flops deep-stacked.",
         "solution": {
             "22": "call",
@@ -5346,8 +5346,8 @@ export const LEVEL_3_SCENARIOS = [
 export const LEVEL_4_SCENARIOS = [
     {
         "id": "l4-scenario-0",
-        "title": "IP 3-Bet Range at 30bb Stack Depth",
-        "description": "This range represents a GTO-based 3-bet strategy from an in-position (IP) spot with a 30bb effective stack. It balances value hands and bluffs to maximize EV against a standard opening range.",
+        "title": "IP 3-Bet Range at 30BB Stack Depth",
+        "description": "This range represents a GTO-based 3-bet strategy from an in-position (IP) spot with a 30BB effective stack. It balances value hands and bluffs to maximize EV against a standard opening range.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have good blockers and post-flop playability.",
         "solution": {
             "99": "raise",
@@ -5381,9 +5381,9 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-1",
-        "title": "OOP 3-Bet vs CO Open at 30bb 6-max",
-        "description": "This range represents an optimal out-of-position 3-bet strategy against a cutoff open with 30 big blind stacks in a 6-max game. It balances value and bluffs to maintain unexploitable frequencies.",
-        "tip": "Focus on polarizing your 3-bet range OOP with strong value hands and well-selected bluffs that have blockers and post-flop playability, while considering stack depth constraints at 30bb.",
+        "title": "OOP 3-Bet vs CO Open at 30BB 6-max",
+        "description": "This range represents an optimal out-of-position 3-bet strategy against a cutoff open with 30BB stacks in a 6-max game. It balances value and bluffs to maintain unexploitable frequencies.",
+        "tip": "Focus on polarizing your 3-bet range OOP with strong value hands and well-selected bluffs that have blockers and post-flop playability, while considering stack depth constraints at 30BB.",
         "solution": {
             "22": "call",
             "33": "call",
@@ -5437,8 +5437,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-2",
-        "title": "Squeeze Range 30bb 6-max",
-        "description": "This range represents a GTO-based squeezing strategy with 30bb stacks in a 6-max game, applicable both in-position (IP) and out-of-position (OOP). It balances value hands and bluffs to exploit multi-way pots after an open and a call.",
+        "title": "Squeeze Range 30BB 6-max",
+        "description": "This range represents a GTO-based squeezing strategy with 30BB stacks in a 6-max game, applicable both in-position (IP) and out-of-position (OOP). It balances value hands and bluffs to exploit multi-way pots after an open and a call.",
         "tip": "Focus on polarizing your range with strong value hands and well-selected bluffs that have good blockers and playability, while considering stack-to-pot ratio for post-flop play.",
         "solution": {
             "22": "fold",
@@ -5615,8 +5615,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-3",
-        "title": "3-Bet vs Limpers 30bb 6-max",
-        "description": "This range is designed for a 3-bet scenario against limpers with a 30bb stack depth, balancing value and bluffs in both in-position (IP) and out-of-position (OOP) contexts. It assumes a 6-max table with typical player tendencies.",
+        "title": "3-Bet vs Limpers 30BB 6-max",
+        "description": "This range is designed for a 3-bet scenario against limpers with a 30BB stack depth, balancing value and bluffs in both in-position (IP) and out-of-position (OOP) contexts. It assumes a 6-max table with typical player tendencies.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have blockers or post-flop playability, while folding weaker hands to avoid overcommitting with marginal holdings at this stack depth.",
         "solution": {
             "22": "fold",
@@ -5793,8 +5793,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-4",
-        "title": "CO Open 50bb 6-max IP 3-Bet",
-        "description": "This range represents the GTO 3-bet strategy from in-position (IP) against a Cutoff (CO) open at 50bb stack depth in a 6-max game. It balances value hands and bluffs to maintain an unexploitable frequency.",
+        "title": "CO Open 50BB 6-max IP 3-Bet",
+        "description": "This range represents the GTO 3-bet strategy from in-position (IP) against a Cutoff (CO) open at 50BB stack depth in a 6-max game. It balances value hands and bluffs to maintain an unexploitable frequency.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have good blockers and playability, while folding marginal hands to avoid over-bluffing.",
         "solution": {
             "22": "call",
@@ -5847,8 +5847,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-5",
-        "title": "CO Open 50bb 6-max OOP 3-Bet",
-        "description": "This range represents a GTO 3-bet strategy from out of position against a cutoff (CO) open at 50bb stack depth in a 6-max game. It balances value and bluff hands to maintain an unexploitable frequency.",
+        "title": "CO Open 50BB 6-max OOP 3-Bet",
+        "description": "This range represents a GTO 3-bet strategy from out of position against a cutoff (CO) open at 50BB stack depth in a 6-max game. It balances value and bluff hands to maintain an unexploitable frequency.",
         "tip": "Focus on a polarized range with strong value hands and well-selected bluffs that have blockers to opponent's continuing range, while considering position disadvantage.",
         "solution": {
             "99": "raise",
@@ -5878,8 +5878,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-6",
-        "title": "Squeeze vs CO Open and BTN Call 50bb 6-max",
-        "description": "This scenario focuses on constructing a GTO 3-bet squeeze range from the Small Blind or Big Blind against a Cutoff open and Button call at 50bb stack depth. The goal is to balance value and bluff hands for optimal pressure.",
+        "title": "Squeeze vs CO Open and BTN Call 50BB 6-max",
+        "description": "This scenario focuses on constructing a GTO 3-bet squeeze range from the Small-Blind or Big-Blind against a Cutoff open and Button call at 50BB stack depth. The goal is to balance value and bluff hands for optimal pressure.",
         "tip": "Focus on a polarized range with strong value hands and well-selected bluffs that have blockers to opponents' calling ranges, while avoiding over-bluffing in multiway spots.",
         "solution": {
             "99": "raise",
@@ -5915,8 +5915,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-7",
-        "title": "3-Bet vs Limpers 50bb IP & OOP",
-        "description": "This range is designed for 3-betting against limpers with a 50bb stack depth, applicable both in position (IP) and out of position (OOP). It balances value hands and bluffs to maintain an unexploitable strategy.",
+        "title": "3-Bet vs Limpers 50BB IP & OOP",
+        "description": "This range is designed for 3-betting against limpers with a 50BB stack depth, applicable both in position (IP) and out of position (OOP). It balances value hands and bluffs to maintain an unexploitable strategy.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and speculative bluffs, while considering position and limper tendencies to adjust sizing and frequency.",
         "solution": {
             "22": "call",
@@ -5970,8 +5970,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-8",
-        "title": "CO vs BTN 3-Bet IP 100bb 6-max",
-        "description": "This range represents the GTO 3-bet strategy from the Cutoff (CO) when facing a Button (BTN) open at 100bb stack depth in a 6-max game. It balances value and bluff hands for optimal in-position play.",
+        "title": "CO vs BTN 3-Bet IP 100BB 6-max",
+        "description": "This range represents the GTO 3-bet strategy from the Cutoff (CO) when facing a Button (BTN) open at 100BB stack depth in a 6-max game. It balances value and bluff hands for optimal in-position play.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have good blockers and playability post-flop.",
         "solution": {
             "99": "raise",
@@ -6007,8 +6007,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-9",
-        "title": "OOP 3-Bet vs CO Open at 100bb",
-        "description": "This range represents a GTO 3-bet strategy from out of position against a Cutoff open at 100bb stack depth in a 6-max game. It balances value and bluffs to maintain an unexploitable frequency.",
+        "title": "OOP 3-Bet vs CO Open at 100BB",
+        "description": "This range represents a GTO 3-bet strategy from out of position against a Cutoff open at 100BB stack depth in a 6-max game. It balances value and bluffs to maintain an unexploitable frequency.",
         "tip": "Focus on polarizing your 3-bet range OOP by including strong value hands and suitable bluffs with blockers, while folding or calling with medium-strength hands to avoid being dominated.",
         "solution": {
             "99": "raise",
@@ -6038,8 +6038,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-10",
-        "title": "Squeeze Range 100bb 6-max",
-        "description": "This scenario covers the GTO 3-bet squeeze range at 100bb stack depth in a 6-max game, applicable both in-position (IP) and out-of-position (OOP). It assumes a standard open and a call, prompting a squeeze opportunity.",
+        "title": "Squeeze Range 100BB 6-max",
+        "description": "This scenario covers the GTO 3-bet squeeze range at 100BB stack depth in a 6-max game, applicable both in-position (IP) and out-of-position (OOP). It assumes a standard open and a call, prompting a squeeze opportunity.",
         "tip": "Focus on a polarized range when squeezing, including strong value hands and well-selected bluffs with blockers to maximize fold equity.",
         "solution": {
             "99": "raise",
@@ -6070,8 +6070,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-11",
-        "title": "3-Bet vs Limpers 100bb 6-max",
-        "description": "This range represents a GTO 3-bet strategy against limpers at 100bb stack depth in a 6-max game, balancing value and bluffs for both in-position (IP) and out-of-position (OOP) scenarios.",
+        "title": "3-Bet vs Limpers 100BB 6-max",
+        "description": "This range represents a GTO 3-bet strategy against limpers at 100BB stack depth in a 6-max game, balancing value and bluffs for both in-position (IP) and out-of-position (OOP) scenarios.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have good playability post-flop, while considering your position relative to the limper.",
         "solution": {
             "22": "call",
@@ -6123,8 +6123,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-12",
-        "title": "IP 3-Bet vs BTN Open at 200bb 6-max",
-        "description": "This range represents the optimal 3-bet strategy when in position (IP) against a Button (BTN) open at 200bb stack depth. It balances value hands and bluffs to maximize EV in a deep-stacked scenario.",
+        "title": "IP 3-Bet vs BTN Open at 200BB 6-max",
+        "description": "This range represents the optimal 3-bet strategy when in position (IP) against a Button (BTN) open at 200BB stack depth. It balances value hands and bluffs to maximize EV in a deep-stacked scenario.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have good blockers and post-flop playability, while considering stack depth for speculative hands.",
         "solution": {
             "99": "raise",
@@ -6165,8 +6165,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-13",
-        "title": "OOP 3-Bet vs CO Open 200bb 6-max",
-        "description": "This range represents an optimal 3-bet strategy when out of position against a Cutoff open at 200bb stack depth in a 6-max game. It balances value and bluffs to maximize EV.",
+        "title": "OOP 3-Bet vs CO Open 200BB 6-max",
+        "description": "This range represents an optimal 3-bet strategy when out of position against a Cutoff open at 200BB stack depth in a 6-max game. It balances value and bluffs to maximize EV.",
         "tip": "Focus on a polarized range with strong value hands and suitable bluffs that have good playability post-flop, while avoiding marginal hands that can be easily dominated.",
         "solution": {
             "99": "raise",
@@ -6201,8 +6201,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-14",
-        "title": "Squeeze Range 200bb 6-max",
-        "description": "This range represents a GTO-based squeezing strategy at 200bb stack depth in a 6-max game, balancing value and bluffs when facing an open and a call.",
+        "title": "Squeeze Range 200BB 6-max",
+        "description": "This range represents a GTO-based squeezing strategy at 200BB stack depth in a 6-max game, balancing value and bluffs when facing an open and a call.",
         "tip": "Focus on polarizing your squeezing range with strong value hands and well-selected bluffs that have good blockers and playability post-flop.",
         "solution": {
             "99": "raise",
@@ -6237,8 +6237,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-15",
-        "title": "3-Bet vs Limpers 200bb 6-max",
-        "description": "This range is designed for 3-betting against limpers in a 6-max game with 200bb stacks, balancing value and bluffs for both in-position (IP) and out-of-position (OOP) scenarios. It accounts for deep stack play and the tendency of limpers to have wider, weaker ranges.",
+        "title": "3-Bet vs Limpers 200BB 6-max",
+        "description": "This range is designed for 3-betting against limpers in a 6-max game with 200BB stacks, balancing value and bluffs for both in-position (IP) and out-of-position (OOP) scenarios. It accounts for deep stack play and the tendency of limpers to have wider, weaker ranges.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and speculative bluffs that can dominate limpers' weak holdings, while avoiding marginal hands that play poorly post-flop.",
         "solution": {
             "99": "raise",
@@ -6280,8 +6280,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-16",
-        "title": "CO vs BTN 3-Bet IP 30bb 6-max",
-        "description": "This range represents the GTO 3-bet strategy from the Cutoff (CO) when facing a Button (BTN) open with 30bb effective stacks in a 6-max game. It focuses on a balanced mix of value and bluff hands in position.",
+        "title": "CO vs BTN 3-Bet IP 30BB 6-max",
+        "description": "This range represents the GTO 3-bet strategy from the Cutoff (CO) when facing a Button (BTN) open with 30BB effective stacks in a 6-max game. It focuses on a balanced mix of value and bluff hands in position.",
         "tip": "Focus on polarizing your 3-bet range with strong value hands and well-selected bluffs that have good blockers and playability, while folding marginal hands to avoid being dominated.",
         "solution": {
             "99": "raise",
@@ -6310,9 +6310,9 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-17",
-        "title": "OOP 3-Bet vs CO Open at 30bb 6-max",
-        "description": "This range represents an optimal 3-bet strategy when out of position against a cutoff open with 30 big blind stacks in a 6-max game. It balances value and bluffs to maintain unexploitable frequencies.",
-        "tip": "Focus on a polarized range with strong value hands and well-selected bluffs that have good blockers and post-flop playability, while considering stack depth constraints at 30bb.",
+        "title": "OOP 3-Bet vs CO Open at 30BB 6-max",
+        "description": "This range represents an optimal 3-bet strategy when out of position against a cutoff open with 30BB stacks in a 6-max game. It balances value and bluffs to maintain unexploitable frequencies.",
+        "tip": "Focus on a polarized range with strong value hands and well-selected bluffs that have good blockers and post-flop playability, while considering stack depth constraints at 30BB.",
         "solution": {
             "99": "raise",
             "AA": "raise",
@@ -6340,8 +6340,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-18",
-        "title": "Squeeze Range 30bb 6-max",
-        "description": "This range represents a GTO-based squeezing strategy with 30bb stacks in a 6-max game, applicable both in-position (IP) and out-of-position (OOP). It balances value hands and bluffs to exploit multi-way pots after an open and a call.",
+        "title": "Squeeze Range 30BB 6-max",
+        "description": "This range represents a GTO-based squeezing strategy with 30BB stacks in a 6-max game, applicable both in-position (IP) and out-of-position (OOP). It balances value hands and bluffs to exploit multi-way pots after an open and a call.",
         "tip": "Focus on hands with strong equity and blockers when squeezing, and adjust your bluffing frequency based on opponents' tendencies to fold to aggression.",
         "solution": {
             "55": "call",
@@ -6390,8 +6390,8 @@ export const LEVEL_4_SCENARIOS = [
     },
     {
         "id": "l4-scenario-19",
-        "title": "3-Bet vs Limpers 30bb IP & OOP",
-        "description": "This range is designed for 3-betting against limpers with a 30bb stack depth, applicable both in position (IP) and out of position (OOP). It balances value hands and bluffs to maximize EV in short-stack scenarios.",
+        "title": "3-Bet vs Limpers 30BB IP & OOP",
+        "description": "This range is designed for 3-betting against limpers with a 30BB stack depth, applicable both in position (IP) and out of position (OOP). It balances value hands and bluffs to maximize EV in short-stack scenarios.",
         "tip": "Focus on a polarized range with strong value hands and suited connectors or gappers as bluffs to exploit limpers' weak ranges, while adjusting frequencies based on position and stack depth.",
         "solution": {
             "99": "raise",
@@ -6440,8 +6440,8 @@ export const LEVEL_4_SCENARIOS = [
 export const LEVEL_5_SCENARIOS = [
     {
         "id": "l5-scenario-0",
-        "title": "CO Open 50bb 6-max Flatting Range IP",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 50bb stacks, playing in position. It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 50BB 6-max Flatting Range IP",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 50BB stacks, playing in position. It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong playability post-flop and mix in some traps like slow-played premiums to disguise your range.",
         "solution": {
             "22": "call",
@@ -6512,8 +6512,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-1",
-        "title": "CO Open 50bb 6-max Flatting Range OOP",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 50bb stacks, playing out of position. It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 50BB 6-max Flatting Range OOP",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 50BB stacks, playing out of position. It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong post-flop playability and avoid over-calling with dominated hands that can be easily exploited.",
         "solution": {
             "22": "fold",
@@ -6690,8 +6690,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-2",
-        "title": "CO Open 50bb 6-max Set Mining",
-        "description": "This range focuses on flatting from the cutoff with a 50bb stack in a 6-max game, emphasizing set mining and speculative hands against an early position raise. It balances value hands and traps for post-flop playability.",
+        "title": "CO Open 50BB 6-max Set Mining",
+        "description": "This range focuses on flatting from the cutoff with a 50BB stack in a 6-max game, emphasizing set mining and speculative hands against an early position raise. It balances value hands and traps for post-flop playability.",
         "tip": "Focus on hands with strong implied odds for set mining and suited connectors for multi-way pots, while avoiding easily dominated hands.",
         "solution": {
             "22": "call",
@@ -6744,8 +6744,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-3",
-        "title": "CO Open 50bb 6-max Trap Hands",
-        "description": "This range focuses on flatting from the Cutoff with trap hands against a raise at 50bb stack depth in a 6-max game. The goal is to balance value hands with deceptive strong hands to exploit opponents.",
+        "title": "CO Open 50BB 6-max Trap Hands",
+        "description": "This range focuses on flatting from the Cutoff with trap hands against a raise at 50BB stack depth in a 6-max game. The goal is to balance value hands with deceptive strong hands to exploit opponents.",
         "tip": "Focus on flatting with hands that can dominate weaker value hands or have strong post-flop playability, while avoiding over-calling with marginal holdings.",
         "solution": {
             "AA": "call",
@@ -6762,8 +6762,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-4",
-        "title": "CO Open 100bb 6-max IP Flat",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 100bb stacks, playing in position. It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 100BB 6-max IP Flat",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 100BB stacks, playing in position. It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong playability post-flop and mix in some traps like slow-played premiums to disguise your range.",
         "solution": {
             "22": "call",
@@ -6834,8 +6834,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-5",
-        "title": "CO Open 100bb 6-max Flatting Range OOP",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 100bb stacks, playing out of position (OOP). It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 100BB 6-max Flatting Range OOP",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 100BB stacks, playing out of position (OOP). It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on hands with good post-flop playability and avoid over-calling with dominated hands; mix in some strong traps to balance your range.",
         "solution": {
             "55": "call",
@@ -6885,8 +6885,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-6",
-        "title": "Set Mining Flatting Range 100bb 6-max",
-        "description": "This range focuses on flatting with pocket pairs for set mining purposes in a 100bb stack depth scenario from a late position against an early position raise. The goal is to balance value hands with speculative hands that can flop strong sets.",
+        "title": "Set Mining Flatting Range 100BB 6-max",
+        "description": "This range focuses on flatting with pocket pairs for set mining purposes in a 100BB stack depth scenario from a late position against an early position raise. The goal is to balance value hands with speculative hands that can flop strong sets.",
         "tip": "Focus on flatting pocket pairs with good implied odds to hit sets, while folding weaker pairs in less favorable positions or against tighter ranges.",
         "solution": {
             "22": "call",
@@ -6935,8 +6935,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-7",
-        "title": "CO Flatting Range vs BTN Raise 100bb 6-max",
-        "description": "This range focuses on flatting from the Cutoff against a Button raise at 100bb stack depth, incorporating value hands and traps. The goal is to balance strong hands with deceptive plays to maximize value.",
+        "title": "CO Flatting Range vs BTN Raise 100BB 6-max",
+        "description": "This range focuses on flatting from the Cutoff against a Button raise at 100BB stack depth, incorporating value hands and traps. The goal is to balance strong hands with deceptive plays to maximize value.",
         "tip": "Focus on flatting hands that play well post-flop and can trap opponents, while avoiding over-calling with marginal hands that are easily dominated.",
         "solution": {
             "22": "call",
@@ -6986,8 +6986,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-8",
-        "title": "CO Open 200bb 6-max IP Flat",
-        "description": "This range represents the GTO flatting strategy when facing a cutoff open in a 6-max game with 200bb stacks, playing in position. It includes a mix of value hands and traps to balance the range.",
+        "title": "CO Open 200BB 6-max IP Flat",
+        "description": "This range represents the GTO flatting strategy when facing a cutoff open in a 6-max game with 200BB stacks, playing in position. It includes a mix of value hands and traps to balance the range.",
         "tip": "Focus on flatting hands with strong playability and potential to dominate the opponent's range, while mixing in some traps to avoid being too predictable.",
         "solution": {
             "55": "call",
@@ -7037,8 +7037,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-9",
-        "title": "CO Open 200bb 6-max Flatting Range OOP",
-        "description": "This range represents the optimal flatting strategy when facing a Cutoff (CO) open in a 6-max game with 200bb stacks, playing out of position (OOP). It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 200BB 6-max Flatting Range OOP",
+        "description": "This range represents the optimal flatting strategy when facing a Cutoff (CO) open in a 6-max game with 200BB stacks, playing out of position (OOP). It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong playability post-flop and avoid over-calling with marginal hands that are easily dominated.",
         "solution": {
             "22": "call",
@@ -7095,8 +7095,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-10",
-        "title": "Set Mining with 200bb Stacks in 6-max",
-        "description": "This range focuses on flatting hands for set mining with deep stacks of 200bb in a 6-max game. It includes pocket pairs with implied odds to hit sets and some speculative hands as traps.",
+        "title": "Set Mining with 200BB Stacks in 6-max",
+        "description": "This range focuses on flatting hands for set mining with deep stacks of 200BB in a 6-max game. It includes pocket pairs with implied odds to hit sets and some speculative hands as traps.",
         "tip": "Focus on flatting pocket pairs to mine sets with deep stacks, as the implied odds are favorable; mix in some strong suited hands as traps to balance your range.",
         "solution": {
             "22": "call",
@@ -7144,8 +7144,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-11",
-        "title": "CO Open 200bb 6-max Flatting Range (Trap Hands)",
-        "description": "This range focuses on flatting from the Cutoff position with a deep stack of 200bb in a 6-max game, emphasizing trap hands to balance value and deception. It assumes a standard open from an earlier position.",
+        "title": "CO Open 200BB 6-max Flatting Range (Trap Hands)",
+        "description": "This range focuses on flatting from the Cutoff position with a deep stack of 200BB in a 6-max game, emphasizing trap hands to balance value and deception. It assumes a standard open from an earlier position.",
         "tip": "Focus on flatting with strong but not premium hands to disguise your strength and induce mistakes post-flop, while balancing with some speculative hands.",
         "solution": {
             "77": "call",
@@ -7189,8 +7189,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-12",
-        "title": "CO Open 50bb 6-max IP Flat",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 50bb stacks, playing in position. It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 50BB 6-max IP Flat",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 50BB stacks, playing in position. It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong playability post-flop and mix in some traps like slow-played premiums to disguise your range.",
         "solution": {
             "22": "call",
@@ -7261,8 +7261,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-13",
-        "title": "CO Open 50bb 6-max Flatting Range OOP",
-        "description": "This range represents the optimal flatting strategy when facing a Cutoff (CO) open in a 6-max game with 50bb stacks, playing out of position. It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 50BB 6-max Flatting Range OOP",
+        "description": "This range represents the optimal flatting strategy when facing a Cutoff (CO) open in a 6-max game with 50BB stacks, playing out of position. It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on hands with good playability post-flop and avoid over-calling with dominated hands that can be easily exploited.",
         "solution": {
             "22": "call",
@@ -7319,8 +7319,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-14",
-        "title": "CO Open 50bb 6-max Set Mining Flatting Range",
-        "description": "This range focuses on flatting from the Cutoff (CO) with a 50bb stack in a 6-max game, targeting set mining opportunities and including some value and trap hands. It balances between playable hands and speculative ones for implied odds.",
+        "title": "CO Open 50BB 6-max Set Mining Flatting Range",
+        "description": "This range focuses on flatting from the Cutoff (CO) with a 50BB stack in a 6-max game, targeting set mining opportunities and including some value and trap hands. It balances between playable hands and speculative ones for implied odds.",
         "tip": "Focus on flatting pocket pairs for set mining with good implied odds, and mix in some strong suited hands as traps or for value, while folding weaker hands that don't justify the odds.",
         "solution": {
             "22": "call",
@@ -7374,8 +7374,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-15",
-        "title": "CO Open 50bb 6-max Flatting Range with Traps",
-        "description": "This range focuses on flatting from the Cutoff position with a 50bb stack in a 6-max game, incorporating value hands and trap hands to balance the range. It assumes a standard open from an earlier position.",
+        "title": "CO Open 50BB 6-max Flatting Range with Traps",
+        "description": "This range focuses on flatting from the Cutoff position with a 50BB stack in a 6-max game, incorporating value hands and trap hands to balance the range. It assumes a standard open from an earlier position.",
         "tip": "Mix in trap hands like strong pairs to disguise your range and avoid being too predictable with only medium-strength hands when flatting.",
         "solution": {
             "AA": "call",
@@ -7404,8 +7404,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-16",
-        "title": "CO Open 100bb 6-max IP Flat",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 100bb stacks, playing in position (IP). It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 100BB 6-max IP Flat",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open in a 6-max game with 100BB stacks, playing in position (IP). It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong playability post-flop and mix in some traps like slow-played premiums to disguise your range.",
         "solution": {
             "22": "call",
@@ -7476,8 +7476,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-17",
-        "title": "CO Open 100bb 6-max Flatting Range OOP",
-        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open at 100bb stack depth in a 6-max game, playing out of position (OOP). It balances value hands and traps to maintain unpredictability.",
+        "title": "CO Open 100BB 6-max Flatting Range OOP",
+        "description": "This range represents the optimal flatting strategy when facing a cutoff (CO) open at 100BB stack depth in a 6-max game, playing out of position (OOP). It balances value hands and traps to maintain unpredictability.",
         "tip": "Focus on flatting hands with strong post-flop playability and mix in some traps like slow-played premiums to disguise your range; avoid over-calling with marginal hands OOP.",
         "solution": {
             "22": "call",
@@ -7548,8 +7548,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-18",
-        "title": "Set Mining Flatting Range 100bb 6-max",
-        "description": "This range focuses on flatting with pocket pairs for set mining purposes in a 100bb deep stack scenario from a late position against an early position open. It balances value hands with speculative hands to maximize implied odds.",
+        "title": "Set Mining Flatting Range 100BB 6-max",
+        "description": "This range focuses on flatting with pocket pairs for set mining purposes in a 100BB deep stack scenario from a late position against an early position open. It balances value hands with speculative hands to maximize implied odds.",
         "tip": "Focus on flatting pocket pairs with high implied odds to hit sets, while folding weaker pairs that cannot profitably call due to insufficient stack depth or poor post-flop playability.",
         "solution": {
             "22": "call",
@@ -7570,8 +7570,8 @@ export const LEVEL_5_SCENARIOS = [
     },
     {
         "id": "l5-scenario-19",
-        "title": "CO Flatting Range vs BTN Raise 100bb 6-max",
-        "description": "This range focuses on flatting from the Cutoff against a Button raise with 100bb stacks in a 6-max game, incorporating value hands and traps. The goal is to balance strong hands with deceptive plays to exploit opponents.",
+        "title": "CO Flatting Range vs BTN Raise 100BB 6-max",
+        "description": "This range focuses on flatting from the Cutoff against a Button raise with 100BB stacks in a 6-max game, incorporating value hands and traps. The goal is to balance strong hands with deceptive plays to exploit opponents.",
         "tip": "Mix in trap hands like strong pairs and suited connectors to disguise your range and maximize value against aggressive Button players.",
         "solution": {
             "77": "call",
@@ -7624,8 +7624,8 @@ export const LEVEL_5_SCENARIOS = [
 export const LEVEL_6_SCENARIOS = [
     {
         "id": "l6-scenario-0",
-        "title": "4-Bet Value Range at 30bb Stack Depth",
-        "description": "This range focuses on a polarized 4-bet strategy for value at 30bb stack depth. It includes strong hands that can confidently 5-bet or call a 5-bet shove.",
+        "title": "4-Bet Value Range at 30BB Stack Depth",
+        "description": "This range focuses on a polarized 4-bet strategy for value at 30BB stack depth. It includes strong hands that can confidently 5-bet or call a 5-bet shove.",
         "tip": "Focus on a polarized range with premium hands for value, avoiding marginal hands that can be dominated or are vulnerable to 5-bet shoves.",
         "solution": {
             "AA": "raise",
@@ -7638,8 +7638,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-1",
-        "title": "4-Bet Bluff Range at 30bb Stack Depth",
-        "description": "This range focuses on 4-bet bluffing with a polarized strategy at 30bb stack depth. It balances value hands with carefully selected bluffs to maximize pressure on opponents.",
+        "title": "4-Bet Bluff Range at 30BB Stack Depth",
+        "description": "This range focuses on 4-bet bluffing with a polarized strategy at 30BB stack depth. It balances value hands with carefully selected bluffs to maximize pressure on opponents.",
         "tip": "Focus on using hands with blockers to opponent's value range (like A-high and K-high hands) for bluffs, while maintaining a strong value core to avoid over-bluffing.",
         "solution": {
             "AA": "raise",
@@ -7663,8 +7663,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-2",
-        "title": "5-Bet Shove Range at 30bb Stack Depth",
-        "description": "This range represents a GTO-based 5-bet shove strategy with 30bb stacks, focusing on polarized hands for maximum pressure. It is designed for a 4-bet/5-bet polarization scenario.",
+        "title": "5-Bet Shove Range at 30BB Stack Depth",
+        "description": "This range represents a GTO-based 5-bet shove strategy with 30BB stacks, focusing on polarized hands for maximum pressure. It is designed for a 4-bet/5-bet polarization scenario.",
         "tip": "Focus on shoving with a polarized range of strong value hands and well-selected bluffs to balance your frequencies and exploit opponents who over-fold.",
         "solution": {
             "AA": "raise",
@@ -7680,8 +7680,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-3",
-        "title": "4-Bet vs 3-Bet at 30bb Stack Depth",
-        "description": "This range represents a GTO 4-bet strategy against a 3-bet with 30bb stacks, focusing on polarization between strong value hands and bluffs. The goal is to balance value and bluff ratios while maintaining unexploitable frequencies.",
+        "title": "4-Bet vs 3-Bet at 30BB Stack Depth",
+        "description": "This range represents a GTO 4-bet strategy against a 3-bet with 30BB stacks, focusing on polarization between strong value hands and bluffs. The goal is to balance value and bluff ratios while maintaining unexploitable frequencies.",
         "tip": "Focus on polarizing your 4-bet range with strong value hands and well-selected bluffs that have blockers to opponent's strong hands, while folding marginal hands that are not profitable to continue with at this stack depth.",
         "solution": {
             "22": "fold",
@@ -7744,8 +7744,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-4",
-        "title": "CO Open 50bb 4-Bet Value Range",
-        "description": "This range represents a polarized 4-bet value strategy from the Cutoff position with 50bb stacks in a 6-max game. It focuses on strong value hands to maximize pressure on opponents.",
+        "title": "CO Open 50BB 4-Bet Value Range",
+        "description": "This range represents a polarized 4-bet value strategy from the Cutoff position with 50BB stacks in a 6-max game. It focuses on strong value hands to maximize pressure on opponents.",
         "tip": "Focus on a polarized range with strong value hands for 4-betting, while being prepared to 5-bet shove with top-tier hands if faced with aggression.",
         "solution": {
             "AA": "raise",
@@ -7759,8 +7759,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-5",
-        "title": "CO Open 50bb 4-Bet Bluff vs 3-Bet",
-        "description": "This range represents a polarized 4-bet bluffing strategy from the Cutoff (CO) with 50bb stacks in a 6-max game facing a 3-bet. The focus is on balancing value hands with strong bluffs to maximize pressure.",
+        "title": "CO Open 50BB 4-Bet Bluff vs 3-Bet",
+        "description": "This range represents a polarized 4-bet bluffing strategy from the Cutoff (CO) with 50BB stacks in a 6-max game facing a 3-bet. The focus is on balancing value hands with strong bluffs to maximize pressure.",
         "tip": "Focus on selecting bluffs with blockers to opponent's value range (like Axs and Kxs) and maintain a polarized strategy by avoiding medium-strength hands.",
         "solution": {
             "AA": "raise",
@@ -7782,8 +7782,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-6",
-        "title": "CO Open 50bb 5-Bet Shove vs 4-Bet",
-        "description": "This range represents a GTO 5-bet shove strategy from the Cutoff position with 50bb stacks in a 6-max game facing a 4-bet. The focus is on polarized hands for maximum pressure.",
+        "title": "CO Open 50BB 5-Bet Shove vs 4-Bet",
+        "description": "This range represents a GTO 5-bet shove strategy from the Cutoff position with 50BB stacks in a 6-max game facing a 4-bet. The focus is on polarized hands for maximum pressure.",
         "tip": "Focus on shoving with strong value hands and well-selected bluffs to maintain balance; avoid over-bluffing with marginal hands at this stack depth.",
         "solution": {
             "AA": "raise",
@@ -7800,8 +7800,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-7",
-        "title": "CO vs BTN 4-Bet at 50bb 6-Max",
-        "description": "This range represents a GTO 4-bet strategy from the Cutoff (CO) facing a 3-bet from the Button (BTN) at 50bb stack depth. It focuses on a polarized 4-bet/5-bet range to maximize pressure and balance.",
+        "title": "CO vs BTN 4-Bet at 50BB 6-Max",
+        "description": "This range represents a GTO 4-bet strategy from the Cutoff (CO) facing a 3-bet from the Button (BTN) at 50BB stack depth. It focuses on a polarized 4-bet/5-bet range to maximize pressure and balance.",
         "tip": "Focus on polarizing your 4-bet range with strong value hands and well-selected bluffs, while calling with hands that play well post-flop and folding weaker holdings.",
         "solution": {
             "22": "fold",
@@ -7978,8 +7978,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-8",
-        "title": "CO vs BTN 4-Bet Value Range at 100bb",
-        "description": "This range represents a polarized 4-bet value strategy from the Cutoff (CO) facing a 3-bet from the Button (BTN) with 100bb stacks. It focuses on strong value hands to maximize pressure.",
+        "title": "CO vs BTN 4-Bet Value Range at 100BB",
+        "description": "This range represents a polarized 4-bet value strategy from the Cutoff (CO) facing a 3-bet from the Button (BTN) with 100BB stacks. It focuses on strong value hands to maximize pressure.",
         "tip": "Focus on a polarized range with strong value hands for 4-betting, balancing with appropriate bluffs in other scenarios to avoid being exploitable.",
         "solution": {
             "AA": "raise",
@@ -7992,8 +7992,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-9",
-        "title": "4-Bet Bluff Polarization at 100bb",
-        "description": "This scenario focuses on constructing a polarized 4-bet bluffing range at 100bb stack depth. The goal is to balance value hands with strong bluffs to maximize pressure on opponents.",
+        "title": "4-Bet Bluff Polarization at 100BB",
+        "description": "This scenario focuses on constructing a polarized 4-bet bluffing range at 100BB stack depth. The goal is to balance value hands with strong bluffs to maximize pressure on opponents.",
         "tip": "When 4-betting as a bluff, select hands with strong blockers and good playability post-flop, while maintaining a balanced ratio with your value range.",
         "solution": {
             "AA": "raise",
@@ -8018,8 +8018,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-10",
-        "title": "5-Bet Shove Range at 100bb Stack Depth",
-        "description": "This range represents a GTO-based 5-bet shove strategy at 100bb stack depth, focusing on polarized hands for maximum pressure against a 4-bet. It balances value hands with strong bluffs to optimize risk-reward.",
+        "title": "5-Bet Shove Range at 100BB Stack Depth",
+        "description": "This range represents a GTO-based 5-bet shove strategy at 100BB stack depth, focusing on polarized hands for maximum pressure against a 4-bet. It balances value hands with strong bluffs to optimize risk-reward.",
         "tip": "Focus on polarizing your 5-bet shove range with premium value hands and select bluffs that have good blockers and equity when called.",
         "solution": {
             "AA": "raise",
@@ -8034,8 +8034,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-11",
-        "title": "4-Bet vs 3-Bet at 100bb Stack Depth",
-        "description": "This scenario focuses on constructing a polarized 4-bet range against a 3-bet at 100bb stack depth. The range prioritizes strong value hands and suitable bluffs for maximum pressure.",
+        "title": "4-Bet vs 3-Bet at 100BB Stack Depth",
+        "description": "This scenario focuses on constructing a polarized 4-bet range against a 3-bet at 100BB stack depth. The range prioritizes strong value hands and suitable bluffs for maximum pressure.",
         "tip": "Focus on polarizing your 4-bet range with premium hands for value and blockers as bluffs, while folding marginal hands to avoid overcommitting.",
         "solution": {
             "99": "call",
@@ -8063,8 +8063,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-12",
-        "title": "4-Bet Value Range at 30bb Stack Depth",
-        "description": "This range represents a polarized 4-bet value strategy at 30bb stack depth, focusing on strong hands to maximize value against opponent's calling and 5-betting ranges.",
+        "title": "4-Bet Value Range at 30BB Stack Depth",
+        "description": "This range represents a polarized 4-bet value strategy at 30BB stack depth, focusing on strong hands to maximize value against opponent's calling and 5-betting ranges.",
         "tip": "Focus on a polarized range with premium hands for value, balancing with strategic bluffs in other scenarios to avoid being too predictable.",
         "solution": {
             "AA": "raise",
@@ -8077,8 +8077,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-13",
-        "title": "CO 4-Bet Bluff vs BTN 3-Bet at 30bb",
-        "description": "This scenario focuses on constructing a polarized 4-bet bluff range from the Cutoff (CO) against a Button (BTN) 3-bet with 30bb effective stacks. The goal is to balance value hands with strong bluffs.",
+        "title": "CO 4-Bet Bluff vs BTN 3-Bet at 30BB",
+        "description": "This scenario focuses on constructing a polarized 4-bet bluff range from the Cutoff (CO) against a Button (BTN) 3-bet with 30BB effective stacks. The goal is to balance value hands with strong bluffs.",
         "tip": "Focus on selecting bluffs with blockers to opponent's value hands (like A5s or K9s) and maintain a polarized range by avoiding medium-strength hands.",
         "solution": {
             "AA": "raise",
@@ -8098,8 +8098,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-14",
-        "title": "5-Bet Shove Range at 30bb Stack Depth",
-        "description": "This range represents a GTO-based 5-bet shove strategy with 30bb stacks, focusing on polarized hands for maximum pressure. It applies to a 4-bet override scenario where shoving is the optimal response.",
+        "title": "5-Bet Shove Range at 30BB Stack Depth",
+        "description": "This range represents a GTO-based 5-bet shove strategy with 30BB stacks, focusing on polarized hands for maximum pressure. It applies to a 4-bet override scenario where shoving is the optimal response.",
         "tip": "Focus on a polarized range with strong value hands and selected bluffs to balance your shoving frequency, ensuring you are not over-bluffing or under-bluffing against a competent opponent.",
         "solution": {
             "AA": "raise",
@@ -8119,8 +8119,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-15",
-        "title": "4-Bet vs 3-Bet at 30bb Stack Depth",
-        "description": "This scenario focuses on constructing a polarized 4-bet range against a 3-bet with 30bb stacks. The range prioritizes strong value hands and selective bluffs for balance.",
+        "title": "4-Bet vs 3-Bet at 30BB Stack Depth",
+        "description": "This scenario focuses on constructing a polarized 4-bet range against a 3-bet with 30BB stacks. The range prioritizes strong value hands and selective bluffs for balance.",
         "tip": "Focus on polarizing your 4-bet range with premium hands for value and suited connectors or gappers as bluffs to maintain balance and exploit fold equity.",
         "solution": {
             "22": "fold",
@@ -8179,8 +8179,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-16",
-        "title": "CO Open 50bb 6-max 4-Bet Value Range",
-        "description": "This range represents a polarized 4-bet value strategy from the Cutoff position with 50bb stacks in a 6-max game. It focuses on strong value hands to maximize pressure on opponents.",
+        "title": "CO Open 50BB 6-max 4-Bet Value Range",
+        "description": "This range represents a polarized 4-bet value strategy from the Cutoff position with 50BB stacks in a 6-max game. It focuses on strong value hands to maximize pressure on opponents.",
         "tip": "Focus on a polarized range with strong value hands for 4-betting, while being prepared to 5-bet shove with top-tier hands against aggression.",
         "solution": {
             "AA": "raise",
@@ -8194,8 +8194,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-17",
-        "title": "CO Open 50bb 4-Bet Bluff Polarization",
-        "description": "This scenario focuses on a 4-bet bluff strategy from the Cutoff position with 50bb stacks in a 6-max game. The range is polarized to include strong value hands and strategic bluffs.",
+        "title": "CO Open 50BB 4-Bet Bluff Polarization",
+        "description": "This scenario focuses on a 4-bet bluff strategy from the Cutoff position with 50BB stacks in a 6-max game. The range is polarized to include strong value hands and strategic bluffs.",
         "tip": "Focus on polarizing your 4-bet range by including both premium hands for value and suited connectors or Ace-high hands with blockers as bluffs to balance your frequencies.",
         "solution": {
             "AA": "raise",
@@ -8217,8 +8217,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-18",
-        "title": "CO Open 50bb 5-Bet Shove vs 4-Bet",
-        "description": "This scenario focuses on a 5-bet shove response from the Cutoff position with 50bb stacks after facing a 4-bet. The range is polarized to maximize value and pressure.",
+        "title": "CO Open 50BB 5-Bet Shove vs 4-Bet",
+        "description": "This scenario focuses on a 5-bet shove response from the Cutoff position with 50BB stacks after facing a 4-bet. The range is polarized to maximize value and pressure.",
         "tip": "Focus on a polarized range with strong value hands and selected bluffs to balance your 5-bet shoves, ensuring you are not over-bluffing at this stack depth.",
         "solution": {
             "AA": "raise",
@@ -8235,8 +8235,8 @@ export const LEVEL_6_SCENARIOS = [
     },
     {
         "id": "l6-scenario-19",
-        "title": "CO Open vs 3-Bet 50bb 6-max 4-Bet Polarization",
-        "description": "This scenario focuses on a 4-bet strategy from the Cutoff (CO) position against a 3-bet at 50bb stack depth in a 6-max game. The range is polarized to maximize pressure with strong value hands and well-selected bluffs.",
+        "title": "CO Open vs 3-Bet 50BB 6-max 4-Bet Polarization",
+        "description": "This scenario focuses on a 4-bet strategy from the Cutoff (CO) position against a 3-bet at 50BB stack depth in a 6-max game. The range is polarized to maximize pressure with strong value hands and well-selected bluffs.",
         "tip": "Focus on polarizing your 4-bet range by including the strongest value hands and bluffs with blockers to opponent's calling range, while folding marginal hands to avoid over-bluffing.",
         "solution": {
             "77": "call",
@@ -8274,8 +8274,8 @@ export const LEVEL_6_SCENARIOS = [
 export const LEVEL_7_SCENARIOS = [
     {
         "id": "l7-scenario-0",
-        "title": "CO Open 50bb 6-max Monotone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a monotone flop after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value and bluffs on a coordinated board texture.",
+        "title": "CO Open 50BB 6-max Monotone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a monotone flop after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value and bluffs on a coordinated board texture.",
         "tip": "On monotone flops, prioritize c-betting with strong hands and nutted draws while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "22": "fold",
@@ -8452,8 +8452,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-1",
-        "title": "CO Open 50bb 6-max Two-tone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a two-tone flop after opening from the cutoff in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs based on board texture.",
+        "title": "CO Open 50BB 6-max Two-tone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a two-tone flop after opening from the cutoff in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs based on board texture.",
         "tip": "On two-tone flops, prioritize c-betting with strong top pairs, overpairs, and nutted draws while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "55": "call",
@@ -8516,8 +8516,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-2",
-        "title": "CO Open 50bb 6-max Rainbow Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a rainbow flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs effectively.",
+        "title": "CO Open 50BB 6-max Rainbow Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a rainbow flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs effectively.",
         "tip": "On rainbow flops, prioritize c-betting with strong top pairs and overpairs while mixing in some bluffs with backdoor equity or gutshots to maintain balance.",
         "solution": {
             "22": "fold",
@@ -8588,8 +8588,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-3",
-        "title": "CO Open 50bb 6-max Paired Flop C-Bet Strategy",
-        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
+        "title": "CO Open 50BB 6-max Paired Flop C-Bet Strategy",
+        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
         "tip": "On paired flops, prioritize c-betting with strong value hands like overpairs and trips, while mixing in some bluffs with high equity draws or backdoor potential to maintain balance.",
         "solution": {
             "77": "raise",
@@ -8644,8 +8644,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-4",
-        "title": "CO Open 50bb 6-max Connected Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs on a board that offers many straight and flush draw possibilities.",
+        "title": "CO Open 50BB 6-max Connected Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs on a board that offers many straight and flush draw possibilities.",
         "tip": "On connected flops, prioritize c-betting with strong hands and semi-bluffs that have equity, while folding weaker hands that lack potential to improve or apply pressure.",
         "solution": {
             "55": "call",
@@ -8706,8 +8706,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-5",
-        "title": "CO Open 50bb 6-max Dry Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs effectively.",
+        "title": "CO Open 50BB 6-max Dry Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs effectively.",
         "tip": "On dry flops, prioritize c-betting with strong value hands and select bluffs with blockers to opponent's calling range, while checking back marginal hands to control the pot.",
         "solution": {
             "22": "call",
@@ -8799,8 +8799,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-6",
-        "title": "CO Open 50bb 6-max Wet Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a wet flop texture from the cutoff position in a 6-max game with 50bb stacks. The wet board increases the likelihood of draws, requiring a balanced approach to betting and checking.",
+        "title": "CO Open 50BB 6-max Wet Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a wet flop texture from the cutoff position in a 6-max game with 50BB stacks. The wet board increases the likelihood of draws, requiring a balanced approach to betting and checking.",
         "tip": "On wet flops, prioritize c-betting with strong hands and polarized bluffs while checking back medium-strength hands to avoid being exploited by frequent raises.",
         "solution": {
             "22": "fold",
@@ -8977,8 +8977,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-7",
-        "title": "CO Open 50bb 6-max Monotone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a monotone flop from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture.",
+        "title": "CO Open 50BB 6-max Monotone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a monotone flop from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture.",
         "tip": "On monotone flops, prioritize c-betting with strong made hands, nut flush draws, and some backdoor equity hands to maintain a balanced range, while checking weaker hands to avoid over-bluffing.",
         "solution": {
             "22": "fold",
@@ -9155,8 +9155,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-8",
-        "title": "CO Open 50bb 6-max Two-tone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a two-tone flop from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture.",
+        "title": "CO Open 50BB 6-max Two-tone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a two-tone flop from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture.",
         "tip": "On two-tone flops, prioritize c-betting with strong hands and semi-bluffs that have equity, while folding weaker hands without backdoor potential or showdown value.",
         "solution": {
             "55": "call",
@@ -9222,8 +9222,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-9",
-        "title": "CO Open 50bb 6-max Rainbow Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a rainbow flop texture from the Cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture.",
+        "title": "CO Open 50BB 6-max Rainbow Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a rainbow flop texture from the Cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture.",
         "tip": "On rainbow flops, prioritize c-betting with strong top pairs and overpairs, while mixing in some bluffs with backdoor equity or high card strength to maintain balance.",
         "solution": {
             "55": "call",
@@ -9290,8 +9290,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-10",
-        "title": "CO Open 50bb 6-max Paired Flop C-Bet Strategy",
-        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
+        "title": "CO Open 50BB 6-max Paired Flop C-Bet Strategy",
+        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
         "tip": "On paired flops, prioritize c-betting with strong value hands like overpairs and trips, while mixing in some bluffs with high equity hands like suited connectors or backdoor draws to maintain balance.",
         "solution": {
             "77": "raise",
@@ -9352,8 +9352,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-11",
-        "title": "CO Open 50bb 6-max Connected Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs on a board that favors calling ranges.",
+        "title": "CO Open 50BB 6-max Connected Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs on a board that favors calling ranges.",
         "tip": "On connected flops, prioritize c-betting with strong top pairs, overpairs, and draws while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "22": "fold",
@@ -9530,8 +9530,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-12",
-        "title": "CO Open 50bb 6-max Dry Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value and bluff c-bets on a low-connectivity board.",
+        "title": "CO Open 50BB 6-max Dry Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value and bluff c-bets on a low-connectivity board.",
         "tip": "On dry flops, prioritize c-betting with strong value hands and a polarized range of bluffs, while checking back medium-strength hands to avoid over-bluffing.",
         "solution": {
             "88": "raise",
@@ -9570,8 +9570,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-13",
-        "title": "CO Open 50bb 6-max Wet Flop C-Bet Strategy",
-        "description": "This scenario focuses on c-bet frequencies on a wet flop texture after opening from the Cutoff in a 6-max game with 50bb stacks. The wet board increases the likelihood of draws, requiring a balanced approach to c-betting.",
+        "title": "CO Open 50BB 6-max Wet Flop C-Bet Strategy",
+        "description": "This scenario focuses on c-bet frequencies on a wet flop texture after opening from the Cutoff in a 6-max game with 50BB stacks. The wet board increases the likelihood of draws, requiring a balanced approach to c-betting.",
         "tip": "On wet flops, reduce c-bet frequency to avoid over-bluffing; prioritize strong hands and draws for betting while checking back marginal hands to control the pot.",
         "solution": {
             "22": "call",
@@ -9637,8 +9637,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-14",
-        "title": "CO Open 50bb 6-max Monotone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a monotone flop after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture.",
+        "title": "CO Open 50BB 6-max Monotone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a monotone flop after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture.",
         "tip": "On monotone flops, prioritize c-betting with strong hands and nutted draws while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "22": "call",
@@ -9727,8 +9727,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-15",
-        "title": "CO Open 50bb 6-max Two-tone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a two-tone flop from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs based on board texture.",
+        "title": "CO Open 50BB 6-max Two-tone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a two-tone flop from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs based on board texture.",
         "tip": "On two-tone flops, prioritize c-betting with strong top pairs, overpairs, and nutted draws while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "22": "fold",
@@ -9799,8 +9799,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-16",
-        "title": "CO Open 50bb 6-max Rainbow Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a rainbow flop after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs on a disconnected board texture.",
+        "title": "CO Open 50BB 6-max Rainbow Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a rainbow flop after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs on a disconnected board texture.",
         "tip": "On rainbow flops, prioritize c-betting with strong top pairs and overpairs while mixing in some bluffs with high equity hands like gutshots and backdoor draws to maintain balance.",
         "solution": {
             "22": "call",
@@ -9871,8 +9871,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-17",
-        "title": "CO Open 50bb 6-max Paired Flop C-Bet Strategy",
-        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
+        "title": "CO Open 50BB 6-max Paired Flop C-Bet Strategy",
+        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
         "tip": "On paired flops, prioritize c-betting with strong overpairs and hands that can improve to trips or better, while mixing in some bluffs with high equity draws.",
         "solution": {
             "88": "raise",
@@ -9923,8 +9923,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-18",
-        "title": "CO Open 50bb 6-max Connected Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs effectively.",
+        "title": "CO Open 50BB 6-max Connected Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs effectively.",
         "tip": "On connected flops, prioritize c-betting with strong top pairs, overpairs, and draws, while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "55": "call",
@@ -9984,8 +9984,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-19",
-        "title": "CO Open 50bb 6-max Dry Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value and bluff c-bets on a board with low connectivity and flush potential.",
+        "title": "CO Open 50BB 6-max Dry Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value and bluff c-bets on a board with low connectivity and flush potential.",
         "tip": "On dry flops, prioritize c-betting with strong top pairs and overpairs for value, while mixing in some bluffs with high equity hands like gutshots and backdoor draws to maintain balance.",
         "solution": {
             "22": "call",
@@ -10050,8 +10050,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-20",
-        "title": "CO Open 50bb 6-max Wet Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a wet flop texture from the cutoff position in a 6-max game with 50bb stacks. The wet board increases the likelihood of draws, requiring a balanced c-bet strategy.",
+        "title": "CO Open 50BB 6-max Wet Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a wet flop texture from the cutoff position in a 6-max game with 50BB stacks. The wet board increases the likelihood of draws, requiring a balanced c-bet strategy.",
         "tip": "On wet flops, balance your c-bet range by including strong made hands, semi-bluffs with equity, and some bluffs, while checking back hands with showdown value that are vulnerable to raises.",
         "solution": {
             "22": "call",
@@ -10126,8 +10126,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-21",
-        "title": "CO Open 50bb 6-max Monotone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a monotone flop after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture.",
+        "title": "CO Open 50BB 6-max Monotone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a monotone flop after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture.",
         "tip": "On monotone flops, prioritize c-betting with strong top pairs, overpairs, and nut flush draws, while mixing in some speculative hands as bluffs to maintain balance.",
         "solution": {
             "22": "fold",
@@ -10304,8 +10304,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-22",
-        "title": "CO Open 50bb 6-max Two-tone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a two-tone flop from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs based on board texture.",
+        "title": "CO Open 50BB 6-max Two-tone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a two-tone flop from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs based on board texture.",
         "tip": "On two-tone flops, prioritize c-betting with strong top pairs, overpairs, and nutted draws while mixing in some speculative hands as bluffs to maintain balance.",
         "solution": {
             "22": "fold",
@@ -10482,8 +10482,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-23",
-        "title": "CO Open 50bb 6-max Rainbow Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a rainbow flop after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs on a disconnected board texture.",
+        "title": "CO Open 50BB 6-max Rainbow Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a rainbow flop after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs on a disconnected board texture.",
         "tip": "On rainbow flops, prioritize c-betting with strong top pairs and overpairs while mixing in some speculative hands as bluffs to maintain balance.",
         "solution": {
             "22": "fold",
@@ -10554,8 +10554,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-24",
-        "title": "CO Open 50bb 6-max Paired Flop C-Bet Strategy",
-        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
+        "title": "CO Open 50BB 6-max Paired Flop C-Bet Strategy",
+        "description": "This scenario focuses on c-bet frequencies on a paired flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture and opponent tendencies.",
         "tip": "On paired flops, prioritize c-betting with strong value hands and selective bluffs that can improve to strong hands, while checking back marginal hands to control the pot.",
         "solution": {
             "55": "raise",
@@ -10613,8 +10613,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-25",
-        "title": "CO Open 50bb 6-max Connected Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board connectivity.",
+        "title": "CO Open 50BB 6-max Connected Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a connected flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board connectivity.",
         "tip": "On connected flops, prioritize c-betting with strong top pairs, overpairs, and draws, while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "55": "call",
@@ -10675,8 +10675,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-26",
-        "title": "CO Open 50bb 6-max Dry Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value and bluff c-bets on a low-connectivity board.",
+        "title": "CO Open 50BB 6-max Dry Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a dry flop texture from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value and bluff c-bets on a low-connectivity board.",
         "tip": "On dry flops, prioritize c-betting with strong top pairs and overpairs for value, while including some bluffs with high equity hands like suited connectors or backdoor draws to maintain balance.",
         "solution": {
             "55": "call",
@@ -10737,8 +10737,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-27",
-        "title": "CO Open 50bb 6-max Wet Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a wet flop texture from the cutoff position in a 6-max game with 50bb stacks. The wet board increases the likelihood of draws, requiring a balanced approach to c-betting.",
+        "title": "CO Open 50BB 6-max Wet Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a wet flop texture from the cutoff position in a 6-max game with 50BB stacks. The wet board increases the likelihood of draws, requiring a balanced approach to c-betting.",
         "tip": "On wet flops, prioritize c-betting with strong made hands and semi-bluffs with good equity, while checking back weaker hands to avoid over-bluffing.",
         "solution": {
             "55": "call",
@@ -10799,8 +10799,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-28",
-        "title": "CO Open 50bb 6-max Monotone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a monotone flop from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs while considering board texture.",
+        "title": "CO Open 50BB 6-max Monotone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a monotone flop from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs while considering board texture.",
         "tip": "On monotone flops, prioritize c-betting with strong hands and nutted draws while mixing in some bluffs with backdoor equity to maintain balance.",
         "solution": {
             "22": "fold",
@@ -10977,8 +10977,8 @@ export const LEVEL_7_SCENARIOS = [
     },
     {
         "id": "l7-scenario-29",
-        "title": "CO Open 50bb 6-max Two-tone Flop C-Bet",
-        "description": "This scenario focuses on c-bet frequencies on a two-tone flop after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs based on board texture.",
+        "title": "CO Open 50BB 6-max Two-tone Flop C-Bet",
+        "description": "This scenario focuses on c-bet frequencies on a two-tone flop after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs based on board texture.",
         "tip": "On two-tone flops, prioritize c-betting with strong top pairs, overpairs, and nutted draws while mixing in some speculative hands as bluffs to maintain balance.",
         "solution": {
             "22": "fold",
@@ -11162,8 +11162,8 @@ export const LEVEL_7_SCENARIOS = [
 export const LEVEL_8_SCENARIOS = [
     {
         "id": "l8-scenario-0",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel and check decisions after opening from the Cutoff in a 50bb 6-max game. The player faces a decision on whether to continue aggression or check back on the turn.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel and check decisions after opening from the Cutoff in a 50BB 6-max game. The player faces a decision on whether to continue aggression or check back on the turn.",
         "tip": "Balance your turn barrels by mixing strong value hands with bluffs that have equity or blockers, while checking back medium-strength hands to control the pot.",
         "solution": {
             "22": "call",
@@ -11235,8 +11235,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-1",
-        "title": "CO Open 50bb 6-max Turn Check",
-        "description": "This scenario focuses on turn check decisions after opening from the cutoff in a 6-max game with 50bb stacks. The goal is to balance barreling and checking frequencies on the turn.",
+        "title": "CO Open 50BB 6-max Turn Check",
+        "description": "This scenario focuses on turn check decisions after opening from the cutoff in a 6-max game with 50BB stacks. The goal is to balance barreling and checking frequencies on the turn.",
         "tip": "When checking on the turn, prioritize hands with showdown value but limited potential to improve, while mixing in some strong hands to protect your checking range.",
         "solution": {
             "55": "check",
@@ -11296,8 +11296,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-2",
-        "title": "CO Open 50bb 6-max Turn Raise",
-        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 50bb 6-max game. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Raise",
+        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 50BB 6-max game. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
         "tip": "Balance your raising range with strong value hands and semi-bluffs that have equity and blockers, while calling with medium-strength hands to control the pot.",
         "solution": {
             "22": "fold",
@@ -11474,8 +11474,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-3",
-        "title": "CO Open 50bb 6-max Turn Call",
-        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 50bb 6-max game. The goal is to balance value and bluff-catching hands against a bet on the turn.",
+        "title": "CO Open 50BB 6-max Turn Call",
+        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 50BB 6-max game. The goal is to balance value and bluff-catching hands against a bet on the turn.",
         "tip": "Focus on calling with hands that have decent equity or showdown value, while folding weaker hands that cannot improve or withstand further aggression.",
         "solution": {
             "55": "call",
@@ -11530,8 +11530,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-4",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The opponent has called your flop continuation bet, and you must decide whether to double barrel or check on the turn.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The opponent has called your flop continuation bet, and you must decide whether to double barrel or check on the turn.",
         "tip": "Balance your turn barrels by mixing strong value hands with bluffs that have equity, while checking back medium-strength hands to control the pot.",
         "solution": {
             "22": "call",
@@ -11595,8 +11595,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-5",
-        "title": "CO Open 50bb 6-max Turn Check",
-        "description": "This scenario focuses on turn check decisions after opening from the cutoff in a 50bb 6-max game. The goal is to balance barreling and checking with a polarized range.",
+        "title": "CO Open 50BB 6-max Turn Check",
+        "description": "This scenario focuses on turn check decisions after opening from the cutoff in a 50BB 6-max game. The goal is to balance barreling and checking with a polarized range.",
         "tip": "When checking on the turn, ensure your range includes both strong value hands for protection and bluffs with equity to maintain balance against aggressive opponents.",
         "solution": {
             "22": "call",
@@ -11659,8 +11659,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-6",
-        "title": "CO Open 50bb 6-max Turn Raise",
-        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Raise",
+        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
         "tip": "Focus on balancing your raising range with strong value hands and well-structured bluffs that have equity or blockers, while calling with medium-strength hands to control the pot.",
         "solution": {
             "22": "fold",
@@ -11837,8 +11837,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-7",
-        "title": "CO Open 50bb 6-max Turn Call",
-        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 50bb 6-max game. The player faces a bet on the turn and must decide whether to call, raise, or fold.",
+        "title": "CO Open 50BB 6-max Turn Call",
+        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 50BB 6-max game. The player faces a bet on the turn and must decide whether to call, raise, or fold.",
         "tip": "Balance your calling range by including strong made hands, draws with good equity, and some bluff-catchers to avoid being exploited by aggressive opponents.",
         "solution": {
             "55": "call",
@@ -11897,8 +11897,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-8",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50bb 6-max game and facing a call from the Button. The board texture and opponent's tendencies influence the double barrel strategy.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50BB 6-max game and facing a call from the Button. The board texture and opponent's tendencies influence the double barrel strategy.",
         "tip": "Balance your turn barreling range by including strong value hands, semi-bluffs with equity, and some bluffs to maintain unpredictability against observant opponents.",
         "solution": {
             "22": "call",
@@ -11971,8 +11971,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-9",
-        "title": "CO Open 50bb 6-max Turn Check",
-        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50bb 6-max game. The goal is to balance barreling and checking with a polarized range.",
+        "title": "CO Open 50BB 6-max Turn Check",
+        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50BB 6-max game. The goal is to balance barreling and checking with a polarized range.",
         "tip": "When checking on the turn, ensure your range includes strong hands for protection and bluffs with equity to maintain balance against aggressive opponents.",
         "solution": {
             "22": "fold",
@@ -12149,8 +12149,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-10",
-        "title": "CO Open 50bb 6-max Turn Raise",
-        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Raise",
+        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
         "tip": "Focus on raising with strong value hands and balanced bluffs that have equity or blockers, while calling with medium-strength hands to control the pot.",
         "solution": {
             "22": "fold",
@@ -12327,8 +12327,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-11",
-        "title": "CO Open 50bb 6-max Turn Call",
-        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The opponent has bet, and we must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Call",
+        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The opponent has bet, and we must decide whether to raise, call, or fold.",
         "tip": "Balance your turn calling range by including strong value hands, semi-bluffs with equity, and some speculative hands to protect against over-bluffing by the opponent.",
         "solution": {
             "22": "fold",
@@ -12505,8 +12505,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-12",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The board texture and opponent tendencies are considered for a balanced double barrel strategy.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The board texture and opponent tendencies are considered for a balanced double barrel strategy.",
         "tip": "Balance your turn barrels by mixing strong value hands with semi-bluffs that have equity, while checking back hands with showdown value but limited potential to improve.",
         "solution": {
             "22": "call",
@@ -12573,8 +12573,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-13",
-        "title": "CO Open 50bb 6-max Turn Check",
-        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50bb 6-max game. The opponent has checked to you on the turn, and you must decide whether to barrel or check back.",
+        "title": "CO Open 50BB 6-max Turn Check",
+        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50BB 6-max game. The opponent has checked to you on the turn, and you must decide whether to barrel or check back.",
         "tip": "Balance your checking range with strong hands for protection and weaker hands to control the pot, while barreling with polarized hands that can apply maximum pressure.",
         "solution": {
             "22": "check",
@@ -12637,8 +12637,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-14",
-        "title": "CO Open 50bb 6-max Turn Raise",
-        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 50bb 6-max game. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Raise",
+        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 50BB 6-max game. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
         "tip": "Focus on balancing your raising range with strong value hands and well-structured bluffs, while considering blockers and board texture to maintain an unexploitable strategy.",
         "solution": {
             "22": "fold",
@@ -12698,8 +12698,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-15",
-        "title": "CO Open 50bb 6-max Turn Call",
-        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 50bb 6-max game. The player faces a bet on the turn and must decide whether to call, raise, or fold.",
+        "title": "CO Open 50BB 6-max Turn Call",
+        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 50BB 6-max game. The player faces a bet on the turn and must decide whether to call, raise, or fold.",
         "tip": "Balance your calling range on the turn by including strong made hands, draws with good equity, and some bluff-catchers to avoid being exploited by aggressive opponents.",
         "solution": {
             "55": "call",
@@ -12758,8 +12758,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-16",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50bb 6-max game and facing a call from the Button. The board texture and opponent's tendencies are considered for a balanced double barrel strategy.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50BB 6-max game and facing a call from the Button. The board texture and opponent's tendencies are considered for a balanced double barrel strategy.",
         "tip": "Balance your turn barrels by mixing strong value hands with semi-bluffs that have equity, while checking back hands with showdown value or low equity.",
         "solution": {
             "22": "call",
@@ -12825,8 +12825,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-17",
-        "title": "CO Open 50bb 6-max Turn Check",
-        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50bb 6-max game. The goal is to balance barreling and checking with a polarized range.",
+        "title": "CO Open 50BB 6-max Turn Check",
+        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50BB 6-max game. The goal is to balance barreling and checking with a polarized range.",
         "tip": "When checking on the turn, ensure your range includes strong hands for protection and bluffs with equity to maintain balance against aggressive opponents.",
         "solution": {
             "22": "fold",
@@ -13003,8 +13003,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-18",
-        "title": "CO Open 50bb 6-max Turn Raise",
-        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Raise",
+        "description": "This scenario focuses on turn raise decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
         "tip": "Balance your raising range with strong value hands and semi-bluffs that have equity and blockers, while calling with medium-strength hands and folding weak hands with poor playability.",
         "solution": {
             "22": "fold",
@@ -13181,8 +13181,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-19",
-        "title": "CO Open 50bb 6-max Turn Call",
-        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The goal is to balance value and bluff-catching hands against a balanced opponent.",
+        "title": "CO Open 50BB 6-max Turn Call",
+        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The goal is to balance value and bluff-catching hands against a balanced opponent.",
         "tip": "Focus on calling with hands that have decent equity or showdown value, while folding marginal hands that are easily dominated or have poor playability on the river.",
         "solution": {
             "55": "call",
@@ -13233,8 +13233,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-20",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50bb 6-max game and facing a call from the Button. The board texture and opponent tendencies influence the optimal double barrel frequency.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50BB 6-max game and facing a call from the Button. The board texture and opponent tendencies influence the optimal double barrel frequency.",
         "tip": "Balance your turn barreling range by including strong value hands, semi-bluffs with equity, and some bluffs with blockers to opponent's strong hands, while checking back hands with showdown value but limited potential to improve.",
         "solution": {
             "22": "call",
@@ -13301,8 +13301,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-21",
-        "title": "CO Open 50bb 6-max Turn Check",
-        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50bb 6-max game. The goal is to balance barreling and checking with a polarized range.",
+        "title": "CO Open 50BB 6-max Turn Check",
+        "description": "This scenario focuses on turn check decisions after opening from the Cutoff in a 50BB 6-max game. The goal is to balance barreling and checking with a polarized range.",
         "tip": "When checking on the turn, ensure your range includes strong value hands for protection and bluffs with equity to maintain balance against aggressive opponents.",
         "solution": {
             "22": "fold",
@@ -13479,8 +13479,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-22",
-        "title": "CO Open 50bb 6-max Turn Raise",
-        "description": "This scenario focuses on turn raise decisions after opening from the cutoff in a 50bb 6-max game. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Raise",
+        "description": "This scenario focuses on turn raise decisions after opening from the cutoff in a 50BB 6-max game. The opponent has bet into you on the turn, and you must decide whether to raise, call, or fold.",
         "tip": "Focus on raising with strong value hands and well-structured bluffs that have equity or blockers, while balancing your calling range with medium-strength hands.",
         "solution": {
             "22": "fold",
@@ -13657,8 +13657,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-23",
-        "title": "CO Open 50bb 6-max Turn Call",
-        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 6-max game with 50bb stacks. The opponent has bet, and we must decide whether to raise, call, or fold.",
+        "title": "CO Open 50BB 6-max Turn Call",
+        "description": "This scenario focuses on turn call decisions after opening from the Cutoff in a 6-max game with 50BB stacks. The opponent has bet, and we must decide whether to raise, call, or fold.",
         "tip": "Balance your turn calling range by including strong value hands, some medium-strength hands with showdown value, and a few speculative hands with potential to improve, while folding weaker hands that cannot withstand further aggression.",
         "solution": {
             "22": "fold",
@@ -13835,8 +13835,8 @@ export const LEVEL_8_SCENARIOS = [
     },
     {
         "id": "l8-scenario-24",
-        "title": "CO Open 50bb 6-max Double Barrel Turn",
-        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50bb 6-max game and facing a call from the Button. The board texture and runout influence double barreling frequencies.",
+        "title": "CO Open 50BB 6-max Double Barrel Turn",
+        "description": "This scenario focuses on turn barrel/check decisions after opening from the Cutoff in a 50BB 6-max game and facing a call from the Button. The board texture and runout influence double barreling frequencies.",
         "tip": "Balance your turn barreling range by including strong value hands, semi-bluffs with equity, and some bluffs to maintain unpredictability against competent opponents.",
         "solution": {
             "22": "call",
@@ -13909,8 +13909,8 @@ export const LEVEL_8_SCENARIOS = [
 export const LEVEL_9_SCENARIOS = [
     {
         "id": "l9-scenario-0",
-        "title": "CO Open 50bb 6-max River Value Bet",
-        "description": "This scenario focuses on the river betting strategy for a 50bb stack in a 6-max game from the Cutoff position. The goal is to balance value bets and bluffs optimally.",
+        "title": "CO Open 50BB 6-max River Value Bet",
+        "description": "This scenario focuses on the river betting strategy for a 50BB stack in a 6-max game from the Cutoff position. The goal is to balance value bets and bluffs optimally.",
         "tip": "Focus on polarizing your river betting range by betting strong value hands and well-selected bluffs while checking medium-strength hands to maintain balance.",
         "solution": {
             "99": "raise",
@@ -13945,8 +13945,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-1",
-        "title": "CO Open 50bb 6-max River Bluff",
-        "description": "This scenario focuses on constructing a balanced river bluffing range from the Cutoff position in a 6-max game with 50bb stacks. The goal is to maintain an optimal value-to-bluff ratio against a competent opponent.",
+        "title": "CO Open 50BB 6-max River Bluff",
+        "description": "This scenario focuses on constructing a balanced river bluffing range from the Cutoff position in a 6-max game with 50BB stacks. The goal is to maintain an optimal value-to-bluff ratio against a competent opponent.",
         "tip": "When bluffing on the river, ensure your range includes enough missed draws and blockers to key value hands to maintain balance, while avoiding over-bluffing against calling stations.",
         "solution": {
             "77": "call",
@@ -13999,8 +13999,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-2",
-        "title": "CO Open 50bb 6-max River Check-Call",
-        "description": "This scenario focuses on the river check-call strategy from the Cutoff position in a 6-max game with 50bb stacks after opening preflop. The goal is to balance value and bluff-catching hands against a strong betting range.",
+        "title": "CO Open 50BB 6-max River Check-Call",
+        "description": "This scenario focuses on the river check-call strategy from the Cutoff position in a 6-max game with 50BB stacks after opening preflop. The goal is to balance value and bluff-catching hands against a strong betting range.",
         "tip": "Focus on calling with hands that have showdown value but are not strong enough to raise, while folding hands that are too weak to beat bluffs. Ensure your calling range protects against over-bluffing by the opponent.",
         "solution": {
             "22": "fold",
@@ -14177,8 +14177,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-3",
-        "title": "CO Open 50bb 6-max River Check-Raise",
-        "description": "This scenario focuses on the river check-raise strategy from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value and bluff ratios effectively.",
+        "title": "CO Open 50BB 6-max River Check-Raise",
+        "description": "This scenario focuses on the river check-raise strategy from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value and bluff ratios effectively.",
         "tip": "When check-raising on the river, ensure your range includes strong value hands and well-selected bluffs to maintain balance and exploit opponents' tendencies to over-fold or over-call.",
         "solution": {
             "22": "fold",
@@ -14355,8 +14355,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-4",
-        "title": "CO Open 50bb 6-max River Value Bet",
-        "description": "This scenario focuses on the river betting strategy from the Cutoff position in a 6-max game with 50bb stacks. The goal is to balance value bets and bluffs optimally.",
+        "title": "CO Open 50BB 6-max River Value Bet",
+        "description": "This scenario focuses on the river betting strategy from the Cutoff position in a 6-max game with 50BB stacks. The goal is to balance value bets and bluffs optimally.",
         "tip": "Focus on polarizing your river betting range by including strong value hands and bluffs with blockers to opponent's calling range, while checking medium-strength hands.",
         "solution": {
             "AA": "raise",
@@ -14388,8 +14388,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-5",
-        "title": "CO Open 50bb 6-max River Bluff",
-        "description": "This scenario focuses on constructing a balanced river bluffing range from the cutoff position in a 6-max game with 50bb stacks. The goal is to maintain an optimal value-to-bluff ratio on the river.",
+        "title": "CO Open 50BB 6-max River Bluff",
+        "description": "This scenario focuses on constructing a balanced river bluffing range from the cutoff position in a 6-max game with 50BB stacks. The goal is to maintain an optimal value-to-bluff ratio on the river.",
         "tip": "Balance your river bluffs by selecting hands with blockers to opponent's value range and missed draws that have no showdown value, while ensuring your bluffs are credible given the board texture.",
         "solution": {
             "77": "call",
@@ -14450,8 +14450,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-6",
-        "title": "CO Open 50bb 6-max River Check-Call",
-        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50bb stacks. The goal is to balance value and bluff-catching hands against a strong betting range.",
+        "title": "CO Open 50BB 6-max River Check-Call",
+        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50BB stacks. The goal is to balance value and bluff-catching hands against a strong betting range.",
         "tip": "Focus on calling with hands that have showdown value but are not strong enough to raise, while folding weaker hands that cannot beat the opponent's value range.",
         "solution": {
             "22": "fold",
@@ -14628,8 +14628,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-7",
-        "title": "River Check-Raise in CO vs BTN 50bb 6-max",
-        "description": "This scenario focuses on constructing a balanced river check-raise range for the Cutoff (CO) against a Button (BTN) bet after checking the river. The goal is to optimize value and bluff ratios in a 50bb 6-max game.",
+        "title": "River Check-Raise in CO vs BTN 50BB 6-max",
+        "description": "This scenario focuses on constructing a balanced river check-raise range for the Cutoff (CO) against a Button (BTN) bet after checking the river. The goal is to optimize value and bluff ratios in a 50BB 6-max game.",
         "tip": "Balance your check-raise range with strong value hands and well-selected bluffs that have blockers to opponent's value range, while maintaining a proper ratio to avoid being exploited.",
         "solution": {
             "22": "fold",
@@ -14695,8 +14695,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-8",
-        "title": "CO Open 50bb 6-max River Value Bet",
-        "description": "This scenario focuses on constructing a balanced river value betting range from the cutoff position in a 6-max game with 50bb stacks. The goal is to optimize value bets while maintaining a proper bluff-to-value ratio.",
+        "title": "CO Open 50BB 6-max River Value Bet",
+        "description": "This scenario focuses on constructing a balanced river value betting range from the cutoff position in a 6-max game with 50BB stacks. The goal is to optimize value bets while maintaining a proper bluff-to-value ratio.",
         "tip": "Focus on betting strong made hands for value while mixing in a precise number of bluffs to remain unexploitable; ensure your sizing and frequencies align with GTO principles.",
         "solution": {
             "88": "raise",
@@ -14745,8 +14745,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-9",
-        "title": "CO Open 50bb 6-max River Bluff",
-        "description": "This scenario focuses on optimal river bluffing ratios from the Cutoff position in a 6-max game with 50bb stacks after opening preflop. The goal is to balance value bets and bluffs on the river.",
+        "title": "CO Open 50BB 6-max River Bluff",
+        "description": "This scenario focuses on optimal river bluffing ratios from the Cutoff position in a 6-max game with 50BB stacks after opening preflop. The goal is to balance value bets and bluffs on the river.",
         "tip": "Maintain a balanced bluff-to-value ratio on the river by selecting hands with blockers to opponent's value range and avoiding over-bluffing with pure air.",
         "solution": {
             "66": "call",
@@ -14795,8 +14795,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-10",
-        "title": "CO Open 50bb 6-max River Check-Call",
-        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50bb stacks after opening preflop. The goal is to balance value and bluff-catching hands against a competent opponent.",
+        "title": "CO Open 50BB 6-max River Check-Call",
+        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50BB stacks after opening preflop. The goal is to balance value and bluff-catching hands against a competent opponent.",
         "tip": "Focus on calling with hands that have showdown value but are not strong enough to raise, while folding marginal hands that cannot beat a value bet. Ensure your calling range includes enough bluff-catchers to prevent being exploited.",
         "solution": {
             "22": "fold",
@@ -14973,8 +14973,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-11",
-        "title": "River Check-Raise in CO vs BTN 50bb 6-max",
-        "description": "This scenario focuses on constructing a balanced river check-raise range for the Cutoff (CO) against the Button (BTN) in a 50bb 6-max game. The goal is to optimize value and bluff ratios on the river after checking.",
+        "title": "River Check-Raise in CO vs BTN 50BB 6-max",
+        "description": "This scenario focuses on constructing a balanced river check-raise range for the Cutoff (CO) against the Button (BTN) in a 50BB 6-max game. The goal is to optimize value and bluff ratios on the river after checking.",
         "tip": "Balance your check-raise range with strong value hands and well-selected bluffs that have blockers to opponent's value range, while maintaining an appropriate frequency to avoid being exploited.",
         "solution": {
             "22": "fold",
@@ -15151,8 +15151,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-12",
-        "title": "CO Open 50bb 6-max River Value Bet",
-        "description": "This scenario focuses on constructing a balanced river value betting range from the Cutoff position in a 6-max game with 50bb stacks. The goal is to optimize value bets while maintaining a proper bluff-to-value ratio.",
+        "title": "CO Open 50BB 6-max River Value Bet",
+        "description": "This scenario focuses on constructing a balanced river value betting range from the Cutoff position in a 6-max game with 50BB stacks. The goal is to optimize value bets while maintaining a proper bluff-to-value ratio.",
         "tip": "Ensure your river betting range includes strong value hands and a balanced number of bluffs to prevent being exploited; polarize your range by betting only the top of your value hands and the bottom of your missed draws.",
         "solution": {
             "22": "call",
@@ -15261,8 +15261,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-13",
-        "title": "CO Open 50bb 6-max River Bluff",
-        "description": "This scenario focuses on constructing a balanced river bluffing range from the cutoff position in a 6-max game with 50bb stacks. The goal is to maintain an optimal value-to-bluff ratio on the river.",
+        "title": "CO Open 50BB 6-max River Bluff",
+        "description": "This scenario focuses on constructing a balanced river bluffing range from the cutoff position in a 6-max game with 50BB stacks. The goal is to maintain an optimal value-to-bluff ratio on the river.",
         "tip": "Ensure your bluffing frequency aligns with pot odds to make your opponent indifferent to calling, and prioritize hands with blockers to opponent's value range for bluffs.",
         "solution": {
             "22": "call",
@@ -15423,8 +15423,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-14",
-        "title": "CO Open 50bb 6-max River Check-Call",
-        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50bb stacks after opening preflop. The goal is to balance value and bluff-catching hands against a strong opponent range.",
+        "title": "CO Open 50BB 6-max River Check-Call",
+        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50BB stacks after opening preflop. The goal is to balance value and bluff-catching hands against a strong opponent range.",
         "tip": "Focus on calling with hands that have showdown value but are not strong enough to raise, while folding weaker hands that cannot beat common value bets.",
         "solution": {
             "22": "fold",
@@ -15601,8 +15601,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-15",
-        "title": "River Check-Raise in CO vs BTN 50bb 6-max",
-        "description": "This scenario focuses on constructing a balanced river check-raise range for value and bluffs when playing from the Cutoff against the Button in a 6-max game with 50bb stacks. The goal is to optimize value-to-bluff ratios on the river after checking.",
+        "title": "River Check-Raise in CO vs BTN 50BB 6-max",
+        "description": "This scenario focuses on constructing a balanced river check-raise range for value and bluffs when playing from the Cutoff against the Button in a 6-max game with 50BB stacks. The goal is to optimize value-to-bluff ratios on the river after checking.",
         "tip": "Balance your check-raise range with strong value hands and well-selected bluffs that have blockers to opponent's calling range, while maintaining a polarized strategy to maximize pressure.",
         "solution": {
             "99": "raise",
@@ -15649,8 +15649,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-16",
-        "title": "CO Open 50bb 6-max River Value Bet",
-        "description": "This scenario focuses on constructing a balanced river value betting range from the Cutoff position in a 6-max game with 50bb stacks. The goal is to optimize value bets while maintaining a proper bluff-to-value ratio.",
+        "title": "CO Open 50BB 6-max River Value Bet",
+        "description": "This scenario focuses on constructing a balanced river value betting range from the Cutoff position in a 6-max game with 50BB stacks. The goal is to optimize value bets while maintaining a proper bluff-to-value ratio.",
         "tip": "Ensure your river value betting range includes strong made hands and a balanced number of bluffs to prevent being exploited by opponents adjusting to over-betting or under-betting.",
         "solution": {
             "77": "call",
@@ -15680,8 +15680,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-17",
-        "title": "CO Open 50bb 6-max River Bluff",
-        "description": "This scenario focuses on constructing a balanced river bluffing range from the Cutoff position in a 6-max game with 50bb stacks. The goal is to maintain an optimal value-to-bluff ratio on the river.",
+        "title": "CO Open 50BB 6-max River Bluff",
+        "description": "This scenario focuses on constructing a balanced river bluffing range from the Cutoff position in a 6-max game with 50BB stacks. The goal is to maintain an optimal value-to-bluff ratio on the river.",
         "tip": "Balance your river bluffs by selecting hands with blockers to opponent's value range and missed draws that have no showdown value, while avoiding over-bluffing with marginal hands.",
         "solution": {
             "66": "call",
@@ -15744,8 +15744,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-18",
-        "title": "CO Open 50bb 6-max River Check-Call",
-        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50bb stacks after opening preflop. The goal is to balance value and bluff-catching hands against a competent opponent.",
+        "title": "CO Open 50BB 6-max River Check-Call",
+        "description": "This scenario focuses on the river check-call strategy from the cutoff position in a 6-max game with 50BB stacks after opening preflop. The goal is to balance value and bluff-catching hands against a competent opponent.",
         "tip": "Focus on calling with hands that have showdown value but are not strong enough to raise, while folding marginal hands that cannot beat a value bet. Ensure your calling range includes enough bluff-catchers to prevent exploitation.",
         "solution": {
             "22": "fold",
@@ -15922,8 +15922,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l9-scenario-19",
-        "title": "River Check-Raise in CO vs BTN 50bb 6-max",
-        "description": "This scenario focuses on constructing a balanced check-raise range on the river when playing from the Cutoff against the Button in a 50bb 6-max game. The goal is to optimize value and bluff ratios for maximum EV.",
+        "title": "River Check-Raise in CO vs BTN 50BB 6-max",
+        "description": "This scenario focuses on constructing a balanced check-raise range on the river when playing from the Cutoff against the Button in a 50BB 6-max game. The goal is to optimize value and bluff ratios for maximum EV.",
         "tip": "Balance your check-raise range with strong value hands and well-selected bluffs that have blockers to opponent's value range, while maintaining a polarized strategy.",
         "solution": {
             "22": "fold",
@@ -15989,8 +15989,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-0",
-        "title": "CO Open 50bb 6-max",
-        "description": "This range represents a GTO opening strategy from the Cutoff position in a 6-max game with 50bb effective stacks. It balances value and bluff hands to maintain unpredictability.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This range represents a GTO opening strategy from the Cutoff position in a 6-max game with 50BB effective stacks. It balances value and bluff hands to maintain unpredictability.",
         "tip": "Mix your frequencies with weaker hands to avoid being exploited, and adjust based on table dynamics while maintaining a balanced range.",
         "solution": {
             "22": "raise",
@@ -16073,8 +16073,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-1",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50bb effective stacks. The range is designed to balance value and bluff hands at indifference points.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50BB effective stacks. The range is designed to balance value and bluff hands at indifference points.",
         "tip": "Mix your frequencies with weaker hands to maintain balance, and adjust based on opponent tendencies while protecting your range with blockers.",
         "solution": {
             "22": "raise",
@@ -16162,8 +16162,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-2",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is designed for a 50bb stack in a 6-max game from the Cutoff (CO) position, adjusted exploitatively against a passive table. It widens slightly to capitalize on weaker opponents.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is designed for a 50BB stack in a 6-max game from the Cutoff (CO) position, adjusted exploitatively against a passive table. It widens slightly to capitalize on weaker opponents.",
         "tip": "Focus on value-heavy hands but include more speculative hands to exploit passive players who over-fold to aggression.",
         "solution": {
             "22": "raise",
@@ -16258,8 +16258,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-3",
-        "title": "CO Open 50bb 6-max",
-        "description": "This range represents a GTO-based opening strategy from the Cutoff position in a 6-max game with 50bb effective stacks. It balances value and bluff hands to maintain unpredictability.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This range represents a GTO-based opening strategy from the Cutoff position in a 6-max game with 50BB effective stacks. It balances value and bluff hands to maintain unpredictability.",
         "tip": "Mix your frequencies with weaker hands to avoid being exploitable, and adjust based on table dynamics while maintaining a balanced range.",
         "solution": {
             "22": "raise",
@@ -16342,8 +16342,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-4",
-        "title": "CO Open 50bb 6-max Indifference Point",
-        "description": "This scenario represents the GTO opening range from the Cutoff position in a 6-max game with 50bb stacks, focusing on indifference points for mixed strategies. The range balances value and bluffs to make opponents indifferent to calling or folding.",
+        "title": "CO Open 50BB 6-max Indifference Point",
+        "description": "This scenario represents the GTO opening range from the Cutoff position in a 6-max game with 50BB stacks, focusing on indifference points for mixed strategies. The range balances value and bluffs to make opponents indifferent to calling or folding.",
         "tip": "Mix your frequencies with marginal hands to prevent opponents from exploiting your range; use blockers to select optimal bluffing hands.",
         "solution": {
             "22": "raise",
@@ -16412,8 +16412,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-5",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, adjusted exploitatively against passive opponents. It widens slightly to capitalize on their tendencies to over-fold.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, adjusted exploitatively against passive opponents. It widens slightly to capitalize on their tendencies to over-fold.",
         "tip": "Against passive players, increase aggression with a wider range, but maintain balance to avoid becoming predictable.",
         "solution": {
             "22": "raise",
@@ -16489,8 +16489,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-6",
-        "title": "CO Open 50bb 6-max",
-        "description": "This range represents a GTO-based opening strategy from the Cutoff position in a 6-max game with 50 big blind stacks. It incorporates mixed frequencies for certain hands to balance aggression and defense.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This range represents a GTO-based opening strategy from the Cutoff position in a 6-max game with 50BB stacks. It incorporates mixed frequencies for certain hands to balance aggression and defense.",
         "tip": "Adjust your raising frequency based on table dynamics and opponent tendencies, while maintaining a balanced range to avoid being exploited.",
         "solution": {
             "22": "raise",
@@ -16557,8 +16557,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-7",
-        "title": "CO Open 50bb 6-max Indifference Point",
-        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50bb effective stacks, focusing on indifference points for mixed strategies. The range balances value and bluffs to remain unexploitable.",
+        "title": "CO Open 50BB 6-max Indifference Point",
+        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50BB effective stacks, focusing on indifference points for mixed strategies. The range balances value and bluffs to remain unexploitable.",
         "tip": "Mix your frequencies with weaker hands at indifference points to prevent opponents from exploiting your tendencies; use a randomizer for borderline hands.",
         "solution": {
             "22": "raise",
@@ -16635,8 +16635,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-8",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, adjusted for exploitative tendencies against weaker opponents. It widens slightly to capitalize on passive play in the blinds.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, adjusted for exploitative tendencies against weaker opponents. It widens slightly to capitalize on passive play in the blinds.",
         "tip": "Focus on value-heavy hands but include more speculative hands to exploit opponents who over-fold or play too passively post-flop.",
         "solution": {
             "22": "raise",
@@ -16712,8 +16712,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-9",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50bb effective stacks. It incorporates mixed frequencies for certain hands to balance the range.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50BB effective stacks. It incorporates mixed frequencies for certain hands to balance the range.",
         "tip": "Focus on balancing your range by mixing raises with some calls or folds on marginal hands to avoid being too predictable, especially against observant opponents.",
         "solution": {
             "22": "raise",
@@ -16780,8 +16780,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-10",
-        "title": "CO Open 50bb 6-max Indifference Point",
-        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, focusing on indifference points for mixed strategies. The range balances value and bluffs to make opponents indifferent to calling or folding.",
+        "title": "CO Open 50BB 6-max Indifference Point",
+        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, focusing on indifference points for mixed strategies. The range balances value and bluffs to make opponents indifferent to calling or folding.",
         "tip": "Mix your frequencies with weaker hands at indifference points to prevent exploitation, and adjust based on opponent tendencies while maintaining balance.",
         "solution": {
             "22": "raise",
@@ -16854,8 +16854,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-11",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, adjusted exploitatively against passive opponents. It widens slightly to capitalize on their tendencies to over-fold.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, adjusted exploitatively against passive opponents. It widens slightly to capitalize on their tendencies to over-fold.",
         "tip": "Against passive players, increase aggression with marginal hands, but maintain balance to avoid becoming too predictable.",
         "solution": {
             "22": "raise",
@@ -16931,8 +16931,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-12",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50bb effective stacks. It incorporates mixed frequencies for certain hands to balance the range.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50BB effective stacks. It incorporates mixed frequencies for certain hands to balance the range.",
         "tip": "Focus on balancing your range by mixing raise and fold actions with weaker hands to avoid being too predictable, while prioritizing strong hands for value.",
         "solution": {
             "22": "raise",
@@ -16999,8 +16999,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-13",
-        "title": "CO Open 50bb 6-max Indifference Point",
-        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50bb effective stacks, focusing on indifference points to balance raising and folding. The range is designed to be unexploitable against optimal opponents.",
+        "title": "CO Open 50BB 6-max Indifference Point",
+        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50BB effective stacks, focusing on indifference points to balance raising and folding. The range is designed to be unexploitable against optimal opponents.",
         "tip": "Mix your frequencies at indifference points to prevent opponents from exploiting your tendencies; use a randomizer for close decisions between raising and folding.",
         "solution": {
             "22": "raise",
@@ -17068,8 +17068,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-14",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range represents an exploitative adjustment for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, tailored to exploit specific opponent tendencies. It assumes opponents are overly passive post-flop, allowing for a wider opening range.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range represents an exploitative adjustment for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, tailored to exploit specific opponent tendencies. It assumes opponents are overly passive post-flop, allowing for a wider opening range.",
         "tip": "Widen your opening range in the CO against passive opponents, but be prepared to adjust if they start defending more aggressively or 3-betting frequently.",
         "solution": {
             "22": "raise",
@@ -17147,8 +17147,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-15",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50 big blind stacks. It incorporates mixed frequencies for certain hands to balance the range.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50BB stacks. It incorporates mixed frequencies for certain hands to balance the range.",
         "tip": "Focus on balancing your range by mixing raises with some calls or folds on marginal hands to avoid being predictable, especially against observant opponents.",
         "solution": {
             "22": "raise",
@@ -17217,8 +17217,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-16",
-        "title": "CO Open 50bb 6-max Indifference Point",
-        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, focusing on indifference points to balance raising and folding. The range is designed to be unexploitable against optimal opponents.",
+        "title": "CO Open 50BB 6-max Indifference Point",
+        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, focusing on indifference points to balance raising and folding. The range is designed to be unexploitable against optimal opponents.",
         "tip": "Mix your frequencies with marginal hands at indifference points to prevent opponents from exploiting your tendencies; use a randomizer for hands with close EV between raise and fold.",
         "solution": {
             "22": "raise",
@@ -17296,8 +17296,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-17",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, adjusted exploitatively against passive opponents. It widens slightly to capitalize on their tendencies to over-fold.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, adjusted exploitatively against passive opponents. It widens slightly to capitalize on their tendencies to over-fold.",
         "tip": "Against passive opponents, increase aggression with a wider range of hands, but maintain balance to avoid becoming too predictable.",
         "solution": {
             "22": "raise",
@@ -17391,8 +17391,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-18",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50 big blind stacks. It incorporates mixed frequencies for a balanced strategy.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50BB stacks. It incorporates mixed frequencies for a balanced strategy.",
         "tip": "Focus on balancing your range by mixing raises with strong hands and speculative hands, while folding weaker holdings to avoid being exploited.",
         "solution": {
             "22": "raise",
@@ -17475,8 +17475,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-19",
-        "title": "CO Open 50bb 6-max Indifference Point",
-        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50bb effective stacks, focusing on indifference points to balance raising and folding frequencies. The range is designed to be unexploitable against optimal opponents.",
+        "title": "CO Open 50BB 6-max Indifference Point",
+        "description": "This scenario represents the GTO range for opening from the Cutoff (CO) position in a 6-max game with 50BB effective stacks, focusing on indifference points to balance raising and folding frequencies. The range is designed to be unexploitable against optimal opponents.",
         "tip": "Mix your frequencies with weaker hands at indifference points to prevent opponents from exploiting your range; use a randomizer for hands on the margin.",
         "solution": {
             "22": "raise",
@@ -17543,8 +17543,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-20",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, adjusted exploitatively against a passive table. The range tightens slightly to capitalize on opponents' tendencies to over-fold.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, adjusted exploitatively against a passive table. The range tightens slightly to capitalize on opponents' tendencies to over-fold.",
         "tip": "Focus on value-heavy hands and reduce speculative plays, as passive opponents are less likely to apply pressure post-flop.",
         "solution": {
             "55": "raise",
@@ -17591,8 +17591,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-21",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50 big blind stacks. It incorporates mixed frequencies for optimal balance.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents a GTO opening range from the Cutoff position in a 6-max game with 50BB stacks. It incorporates mixed frequencies for optimal balance.",
         "tip": "Focus on balancing your range with a mix of strong value hands and speculative hands to remain unpredictable while maintaining equity.",
         "solution": {
             "22": "raise",
@@ -17669,8 +17669,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-22",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario focuses on the Cutoff (CO) opening range at 50 big blinds in a 6-max game, balancing value and bluffs to achieve indifference points against a competent opponent. The range is designed for optimal mixed strategies.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario focuses on the Cutoff (CO) opening range at 50BB in a 6-max game, balancing value and bluffs to achieve indifference points against a competent opponent. The range is designed for optimal mixed strategies.",
         "tip": "Mix your frequencies with weaker hands to prevent being exploited, and ensure your value-to-bluff ratio aligns with pot odds to make opponents indifferent to calling or folding.",
         "solution": {
             "22": "raise",
@@ -17748,8 +17748,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-23",
-        "title": "CO Open 50bb 6-max Exploitative Adjustment",
-        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50bb stacks, adjusted exploitatively against passive opponents. The range widens slightly to capitalize on weaker players folding too often.",
+        "title": "CO Open 50BB 6-max Exploitative Adjustment",
+        "description": "This range is for opening from the Cutoff (CO) position in a 6-max game with 50BB stacks, adjusted exploitatively against passive opponents. The range widens slightly to capitalize on weaker players folding too often.",
         "tip": "Increase aggression with marginal hands against passive opponents, but maintain balance to avoid being overly predictable.",
         "solution": {
             "22": "raise",
@@ -17817,8 +17817,8 @@ export const LEVEL_9_SCENARIOS = [
     },
     {
         "id": "l10-scenario-24",
-        "title": "CO Open 50bb 6-max",
-        "description": "This scenario represents the GTO opening range from the Cutoff position in a 6-max game with 50 big blind stacks. It incorporates mixed strategies for balanced play.",
+        "title": "CO Open 50BB 6-max",
+        "description": "This scenario represents the GTO opening range from the Cutoff position in a 6-max game with 50BB stacks. It incorporates mixed strategies for balanced play.",
         "tip": "Focus on balancing your range by mixing raises with strong hands and speculative hands, while folding weaker holdings to avoid being exploited.",
         "solution": {
             "22": "raise",

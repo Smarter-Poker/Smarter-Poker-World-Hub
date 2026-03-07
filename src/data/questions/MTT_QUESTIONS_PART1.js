@@ -101,7 +101,7 @@ export const MTT_QUESTIONS_PART1 = {
         },
         {
             id: 8,
-            title: 'Big Blind Special',
+            title: 'Big-Blind Special',
             situation: 'Bubble. 15BB in BB. SB (22BB) completes. You have 6♣5♣. Flop: 7♠4♥2♣.',
             heroCards: ['6c', '5c'],
             board: ['7s', '4h', '2c'],

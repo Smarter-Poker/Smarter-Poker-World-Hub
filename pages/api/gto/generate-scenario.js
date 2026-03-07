@@ -17,7 +17,7 @@ const POSITION_CONFIGS = {
     1: ['UTG', 'MP', 'HJ'],           // Beginner - Early positions only
     2: ['UTG', 'MP', 'HJ', 'CO'],     // Add cutoff
     3: ['UTG', 'MP', 'HJ', 'CO', 'BTN'], // Add button
-    4: ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'], // Add small blind
+    4: ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'], // Add Small-Blind
     5: ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'], // All positions
     6: ['CO', 'BTN', 'SB', 'BB'],     // Late position focus
     7: ['SB', 'BB'],                  // Blind battles

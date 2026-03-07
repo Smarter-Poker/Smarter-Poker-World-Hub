@@ -170,10 +170,10 @@ export default function TrainingSettingsMenu({ onClose }) {
                     {/* Info Text */}
                     <div style={styles.infoBox}>
                         <p style={styles.infoText}>
-                            <strong>Beginner:</strong> "Your Chips: 150bb"
+                            <strong>Beginner:</strong> "Your Chips: 150BB"
                         </p>
                         <p style={styles.infoText}>
-                            <strong>Pro:</strong> "Effective Stack: 150bb"
+                            <strong>Pro:</strong> "Effective Stack: 150BB"
                         </p>
                     </div>
                 </div>

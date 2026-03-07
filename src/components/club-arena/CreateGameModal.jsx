@@ -18,7 +18,7 @@
  * MTT Images 9-12:
  *   All SNG + Private, Description, Accelerated, All-in or Fold,
  *   Rebuy/Re-entry, Add-on, KO Bounty, GTD Prize, Final Table Deal,
- *   Big Blind Ante, Auth to Register, Late Reg, Early Bird, Bubble,
+ *   Big-Blind Ante, Auth to Register, Late Reg, Early Bird, Bubble,
  *   Featured, Player Count, Multi-Day, Start Time, Schedule, Breaks
  */
 
@@ -378,7 +378,7 @@ function CashTab({ t, set, variant }) {
         onMinChange={v => set('minBuyInBB', v)} onMaxChange={v => set('maxBuyInBB', v)}
         min={5} max={500} suffix=" BB" />
       <Slider label="Ante" value={t.ante} onChange={v => set('ante', v)} min={0} max={10} step={0.5}
-        format={v => `${v} Big Blind`} />
+        format={v => `${v} Big-Blind`} />
 
       {/* ── PLAYER REQUIREMENTS (Image 3) ── */}
       <SectionHeader label="Player Requirements" />
@@ -416,7 +416,7 @@ function CashTab({ t, set, variant }) {
       <InputRow label="Rake %" value={t.rakePercent} onChange={v => set('rakePercent', v)}
         type="number" placeholder="Auto" suffix="%" />
       <Slider label="FeeCap" value={t.feeCap} onChange={v => set('feeCap', v)} min={0} max={10} step={0.5}
-        format={v => `${v} x Big Blind`} />
+        format={v => `${v} x Big-Blind`} />
       <InputRow label="BBJ Fee" value={t.bbjPercent} onChange={v => set('bbjPercent', v)}
         type="number" placeholder="Auto" suffix="BB" />
 
@@ -576,7 +576,7 @@ function MttTab({ t, set }) {
         <Slider label="GTD Amount" value={t.gtdAmount} onChange={v => set('gtdAmount', v)} min={0} max={100000} step={100} />
       )}
       <Toggle label="Final Table Deal" value={t.finalTableDeal} onChange={v => set('finalTableDeal', v)} help />
-      <Toggle label="Big Blind Ante" value={t.bigBlindAnte} onChange={v => set('bigBlindAnte', v)} />
+      <Toggle label="Big-Blind Ante" value={t.bigBlindAnte} onChange={v => set('bigBlindAnte', v)} />
       <Toggle label="Authorized to Register" value={t.authorizedToRegister} onChange={v => set('authorizedToRegister', v)} />
 
       {/* ── Blind Structure (Image 11 bottom) ── */}

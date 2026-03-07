@@ -61,7 +61,7 @@ export default function TripCostCalculator({ venues = [], userLocation }) {
         // Buy-in estimate from stakes
         const stakeParts = stakes.split('/').map(Number);
         const bigBlind = stakeParts[1] || stakeParts[0] || 2;
-        const typicalBuyIn = bigBlind * 100; // 100bb buy-in
+        const typicalBuyIn = bigBlind * 100; // 100BB buy-in
         const buyInSpend = typicalBuyIn * sessionsPerDay * days;
 
         // Hotel

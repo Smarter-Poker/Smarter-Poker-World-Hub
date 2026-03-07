@@ -141,10 +141,10 @@ function assert(condition, label) {
     // TEST 6: MODULE 22 — Isolation Sizing Tell Tracker
     // ═══════════════════════════════════════════════════════════════
     console.log('\n--- TEST 6: Module 22 — recordIsoSize / isMechanicalIsolator ---');
-    // Simulate mechanical isolator (always raises exactly 4bb)
+    // Simulate mechanical isolator (always raises exactly 4BB)
     for (let i = 0; i < 6; i++) Brain.recordIsoSize(HUMAN, 4.0);
     const mechResult = Brain.isMechanicalIsolator(HUMAN);
-    assert(mechResult.isMechanical === true, 'Human always iso-raising 4bb = mechanical');
+    assert(mechResult.isMechanical === true, 'Human always iso-raising 4BB = mechanical');
     assert(mechResult.avgSize === 4.0, `Avg iso size = 4.0 (got: ${mechResult.avgSize})`);
     assert(mechResult.stdDev < 0.1, `StdDev < 0.1 (got: ${mechResult.stdDev.toFixed(4)})`);
 

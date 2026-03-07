@@ -91,7 +91,7 @@ const DEFAULT_TABLE = {
   runItMode: 'none', // none | player_choice | mandatory_twice | mandatory_thrice
   // ── Rake/Fee (Image 5) ──
   rakePercent: '',
-  feeCap: 3, // x Big Blind
+  feeCap: 3, // x Big-Blind
   bbjPercent: '',
   // ── Agent Restrictions (Image 5) ──
   sameAgentDownlineLimit: 0, // 0 = no limit
@@ -458,7 +458,7 @@ export default function CreateTableModal({ club, onClose, onCreated, apiCall }) 
             onMinChange={v => set('minBuyInBB', v)} onMaxChange={v => set('maxBuyInBB', v)}
             min={5} max={500} suffix=" BB" />
           <SliderRow label="Ante" value={t.ante} onChange={v => set('ante', v)} min={0} max={10} step={0.5}
-            format={v => `${v} Big Blind`} />
+            format={v => `${v} Big-Blind`} />
 
           {/* ── PLAYER REQUIREMENTS (Image 3) ── */}
           <SectionHeader label="Player Requirements" />
@@ -496,7 +496,7 @@ export default function CreateTableModal({ club, onClose, onCreated, apiCall }) 
           <InputRow label="Rake %" value={t.rakePercent} onChange={v => set('rakePercent', v)}
             type="number" placeholder="Auto" suffix="%" />
           <SliderRow label="FeeCap" value={t.feeCap} onChange={v => set('feeCap', v)} min={0} max={10} step={0.5}
-            format={v => `${v} x Big Blind`} />
+            format={v => `${v} x Big-Blind`} />
           <InputRow label="BBJ Fee" value={t.bbjPercent} onChange={v => set('bbjPercent', v)}
             type="number" placeholder="Auto" suffix="BB" />
 

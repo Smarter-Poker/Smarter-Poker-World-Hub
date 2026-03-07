@@ -29,7 +29,7 @@ const QUALIFYING_HANDS = {
 };
 
 const GENERAL_RULES = [
-  'Pot must be equal to or bigger than 10 BBs',
+  'Pot must be equal to or bigger than 10BB',
   '4 players must be dealt in preflop',
   'In case of running it multiple times, only the first runout counts',
   'The Bad Beat Jackpot option is not available for Double and Triple Board games',

@@ -350,9 +350,9 @@ const SEAT_CONFIGS = {
 // Position name mapping for display
 const POSITION_NAMES = {
     'BTN': 'Button',
-    'SB': 'Small Blind',
-    'BB': 'Big Blind',
-    'UTG': 'Under the Gun',
+    'SB': 'Small-Blind',
+    'BB': 'Big-Blind',
+    'UTG': 'Under-the-Gun',
     'UTG+1': 'UTG+1',
     'MP': 'Middle Position',
     'MP+1': 'MP+1',
@@ -971,7 +971,7 @@ function UniversalDynamicTable({
     const generateVillainStack = useMemo(() => {
         return (seatIndex) => {
             const seed = (questionNumber || 1) * 13 + seatIndex * 7;
-            const variance = (seed % 40) - 20; // ±20 BB variance around hero stack
+            const variance = (seed % 40) - 20; // ±20BB variance around hero stack
             return Math.max(5, Math.round((heroStack || 100) + variance));
         };
     }, [questionNumber, heroStack]);

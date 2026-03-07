@@ -16,15 +16,15 @@ const POSITION_OPTIONS = [
     { value: 'HJ', label: 'HJ (Hijack)' },
     { value: 'CO', label: 'CO (Cutoff)' },
     { value: 'BTN', label: 'BTN (Button)' },
-    { value: 'SB', label: 'SB (Small Blind)' },
-    { value: 'BB', label: 'BB (Big Blind)' },
+    { value: 'SB', label: 'SB (Small-Blind)' },
+    { value: 'BB', label: 'BB (Big-Blind)' },
 ];
 
 const STACK_DEPTH_OPTIONS = [
     { value: 0, label: 'All Stack Depths' },
     { value: 20, label: '20BB (Short)' },
-    { value: 30, label: '30bb' },
-    { value: 50, label: '50bb' },
+    { value: 30, label: '30BB' },
+    { value: 50, label: '50BB' },
     { value: 100, label: '100BB (Deep)' },
     { value: 200, label: '200BB (Very Deep)' },
 ];

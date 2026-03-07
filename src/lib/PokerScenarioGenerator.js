@@ -49,7 +49,7 @@ export function generateLevel(levelNum) {
     const players = POSITIONS.map((position, idx) => ({
         id: position === 'BTN' ? 'hero' : `v${idx + 1}`,
         position,
-        stack: 20 + Math.floor(rng() * 40), // 20-60 BB
+        stack: 20 + Math.floor(rng() * 40), // 20-60BB
         avatar: AVATARS[idx],
         folded: false,
         bet: 0
@@ -134,7 +134,7 @@ function generateActionLog(players, levelNum, rng) {
     }
 
     // Raise from CO (player to Hero's right)
-    const raiseSize = 2.5 + (rng() * 2); // 2.5-4.5 BB
+    const raiseSize = 2.5 + (rng() * 2); // 2.5-4.5BB
     log.push({
         type: 'bet',
         playerId: 'v8', // CO

@@ -298,7 +298,7 @@ function tc() { return { bigBlind: 2, variant: 'plo4' }; }
         }
     }, 2);
 
-    // Record enough losses to cross the 20bb threshold for boost
+    // Record enough losses to cross the 20BB threshold for boost
     Brain.recordChipLeak(leakHorse, leakTbl2, 'multiway_topset', 25);
     const leakBoosts2 = Brain.getChipLeakBoosts(leakHorse, leakTbl2);
     assert(leakBoosts2.multiwayBoost === 8, `BUG-9b: 4-player loss triggers multiway boost=8 (got: ${leakBoosts2.multiwayBoost})`);

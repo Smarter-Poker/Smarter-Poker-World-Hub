@@ -34,7 +34,7 @@ export default function PokerRoomDemo() {
     };
 
     const handleRaise = () => {
-        addLog('Action: RAISE to 8bb');
+        addLog('Action: RAISE to 8BB');
         console.log('Raise clicked');
     };
 
@@ -51,7 +51,7 @@ export default function PokerRoomDemo() {
         <div className="w-full h-screen overflow-hidden">
             <PokerGame
                 gameTitle="ICM FUNDAMENTALS"
-                questionText="You Are On The Button (Last To Act). The Player To Your Right Bets 2.5 Big Blinds. What Is Your Best Move?"
+                questionText="You Are On The Button (Last To Act). The Player To Your Right Bets 2.5BB. What Is Your Best Move?"
                 questionNumber={1}
                 totalQuestions={20}
                 heroStack={45}
