@@ -685,6 +685,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         const currentDay = activeGig.days?.find(d => !d.ended_at) || null;
         if (!currentDay) { toast.error('Close the current day first, then start a new day.'); return; }
         try {
+            // Auto-end any currently active down (dealer can edit toke later)
+            const activeDown = currentDay.downs?.find(d => !d.ended_at);
+            if (activeDown) {
+                await endDown(activeDown.id, activeDown.toke_amount || 0);
+                if (downTimerRef.current) clearTimeout(downTimerRef.current);
+                if (timerTickRef.current) clearInterval(timerTickRef.current);
+                setTimerActive(false);
+            }
             const gameType = downForm.down_type === 'cash'
                 ? downForm.cash_variant
                 : downForm.game_type || null;
@@ -693,8 +701,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 tournament_name: downForm.down_type === 'tournament' ? downForm.tournament_name : null,
                 table_number: downForm.table_number || null,
                 game_type: gameType,
-                tournament_buyin: downForm.down_type === 'tournament' && downForm.tournament_buyin
-                    ? parseFloat(downForm.tournament_buyin) : null,
+                cash_stakes: downForm.down_type === 'cash' ? downForm.cash_stakes : null,
             });
             toast.success(`${DOWN_TYPE_LABELS[downForm.down_type]} down started!`);
             setShowAddDown(false);
@@ -1922,25 +1929,41 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                             {/* Game Type Input Zone */}
                             {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <div style={{ position: 'absolute', top: '55%', left: '7%', width: '86%', height: '9%', display: 'flex' }}>
+                                <div style={{ position: 'absolute', top: '52%', left: '5%', width: '90%', height: '10%', display: 'flex', alignItems: 'center', gap: 6 }}>
                                     {downForm.down_type === 'cash' ? (
-                                        <select
-                                            className="toke-img-map-element"
-                                            value={downForm.cash_variant}
-                                            onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}
-                                            style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
-                                        >
-                                            <option value="Holdem">Holdem</option>
-                                            <option value="PLO">PLO</option>
-                                            <option value="Mixed">Mixed</option>
-                                        </select>
+                                        <>
+                                            <select
+                                                className="toke-img-map-element"
+                                                value={downForm.cash_variant}
+                                                onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}
+                                                style={{ ...styles.imgMapInput, flex: 1, textAlign: 'center', paddingLeft: 4 }}
+                                            >
+                                                <option value="Holdem">Holdem</option>
+                                                <option value="PLO">PLO</option>
+                                                <option value="Mixed">Mixed</option>
+                                            </select>
+                                            <select
+                                                className="toke-img-map-element"
+                                                value={downForm.cash_stakes}
+                                                onChange={e => setDownForm({ ...downForm, cash_stakes: e.target.value })}
+                                                style={{ ...styles.imgMapInput, flex: 1, textAlign: 'center', paddingLeft: 4 }}
+                                            >
+                                                <option value="1/2">1/2</option>
+                                                <option value="1/3">1/3</option>
+                                                <option value="2/5">2/5</option>
+                                                <option value="5/10">5/10</option>
+                                                <option value="10/20">10/20</option>
+                                                <option value="25/50">25/50</option>
+                                            </select>
+                                        </>
                                     ) : (
                                         <input
                                             type="text"
                                             className="toke-img-map-element"
                                             value={downForm.tournament_name || ''}
                                             onChange={e => setDownForm({ ...downForm, tournament_name: e.target.value })}
-                                            style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
+                                            placeholder="Game Type"
+                                            style={{ ...styles.imgMapInput, flex: 1, textAlign: 'center', paddingLeft: 4 }}
                                         />
                                     )}
                                 </div>
@@ -1948,13 +1971,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                             {/* Table Number Input Zone */}
                             {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <div style={{ position: 'absolute', top: '70%', left: '7%', width: '86%', height: '9%', display: 'flex' }}>
+                                <div style={{ position: 'absolute', top: '67%', left: '5%', width: '90%', height: '10%', display: 'flex', alignItems: 'center' }}>
                                     <input
                                         type="text"
                                         className="toke-img-map-element"
                                         value={downForm.table_number || ''}
                                         onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
-                                        style={{ ...styles.imgMapInput, textAlign: 'left', paddingLeft: 12 }}
+                                        placeholder="Table #"
+                                        style={{ ...styles.imgMapInput, textAlign: 'center', paddingLeft: 4 }}
                                     />
                                 </div>
                             )}
@@ -1974,27 +1998,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             />
                         </motion.div>
 
-                        {/* Tournament Buy-In — OUTSIDE image overlay (normal flow, no overlap) */}
-                        {downForm.down_type === 'tournament' && (
-                            <div style={{ padding: '10px 16px 2px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                <label style={{ fontSize: 11, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Buy-In Amount (optional)</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: 14, color: '#B0B3B8' }}>$</span>
-                                    <input
-                                        type="number"
-                                        value={downForm.tournament_buyin || ''}
-                                        onChange={e => setDownForm({ ...downForm, tournament_buyin: e.target.value })}
-                                        placeholder="E.g. 200"
-                                        style={{ ...styles.formInput, flex: 1, padding: '8px 12px', fontSize: 14 }}
-                                    />
-                                    {downForm.tournament_buyin && parseFloat(downForm.tournament_buyin) > 0 && (
-                                        <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                            Tracked For Analysis
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        {/* Tournament Buy-In removed per user request — dealers type game type only */}
                     </motion.div>
                 )}
             </AnimatePresence>
