@@ -18,13 +18,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser, getAuthUser } from '../../src/lib/authUtils';
-import { useAvatar } from '../../src/contexts/AvatarContext';
-import UniversalHeader from '../../src/components/ui/UniversalHeader';
-import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
-import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import { getDiamondArcadePreferences, updateDiamondArcadePreferences } from '../../src/services/diamondArcadePreferences';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getSafeUser, getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import {
     ARCADE_GAMES,
     generateHandSnapQuestion,
@@ -395,10 +389,33 @@ export default function DiamondArcade() {
                     startGame('hand-snap');
                 }, 1500);
             } else {
-                // Queued - poll for a match
+                // Queued - start polling AND subscribe realtime for instant match notification
                 setDuelResult({ queued: true, message: json.message || 'Searching...' });
                 const queueId = json.queue_id;
                 const pollStart = Date.now();
+
+                // Realtime channel: fires instantly when duel_queue row changes to 'matched'
+                const duelChannel = supabase
+                    .channel(`duel-queue:${queueId}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE', schema: 'public', table: 'duel_queue',
+                        filter: `id=eq.${queueId}`,
+                    }, (payload) => {
+                        if (payload.new?.status === 'matched') {
+                            clearInterval(duelPollRef.current);
+                            duelPollRef.current = null;
+                            supabase.removeChannel(duelChannel);
+                            setBalance(prev => prev - (costs[duelType] || 25));
+                            setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
+                            setTimeout(() => {
+                                setDuelSearching(null);
+                                setDuelResult(null);
+                                startGame('hand-snap');
+                            }, 1500);
+                        }
+                    })
+                    .subscribe();
+
                 if (duelPollRef.current) clearInterval(duelPollRef.current);
                 duelPollRef.current = setInterval(async () => {
                     try {
@@ -407,6 +424,7 @@ export default function DiamondArcade() {
                         if (pollJson.status === 'matched') {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
+                            supabase.removeChannel(duelChannel);
                             setBalance(prev => prev - (costs[duelType] || 25));
                             busEmit.diamondsSpent(costs[duelType] || 25, `Arcade Duel: ${duelType}`);
                             setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
@@ -418,6 +436,7 @@ export default function DiamondArcade() {
                         } else if (Date.now() - pollStart >= 30000) {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
+                            supabase.removeChannel(duelChannel);
                             setDuelResult({ error: 'No opponent found. Entry fee refunded.' });
                             setDuelSearching(null);
                             setTimeout(() => setDuelResult(null), 3000);
@@ -426,6 +445,7 @@ export default function DiamondArcade() {
                         console.error('Duel poll error:', pollErr);
                         clearInterval(duelPollRef.current);
                         duelPollRef.current = null;
+                        supabase.removeChannel(duelChannel);
                         setDuelResult({ error: 'Matchmaking failed. Try again.' });
                         setDuelSearching(null);
                         setTimeout(() => setDuelResult(null), 3000);
