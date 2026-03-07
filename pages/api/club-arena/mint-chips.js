@@ -24,9 +24,10 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { clubId, amount, notes } = req.body;
-  if (!clubId || !amount || amount <= 0) {
-    return res.status(400).json({ success: false, error: 'clubId and positive amount required' });
+  const { clubId, amount: rawAmount, notes } = req.body;
+  const amount = Math.floor(Number(rawAmount));
+  if (!clubId || !Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000) {
+    return res.status(400).json({ success: false, error: 'clubId and valid positive amount required' });
   }
 
   // BUG #153 FIX: Verify caller is club owner or union admin
