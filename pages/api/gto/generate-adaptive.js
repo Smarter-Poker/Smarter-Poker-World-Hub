@@ -34,11 +34,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { userId } = req.body;
-
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'userId required' });
-        }
+        const userId = _authUser.id; // Trust JWT, not client-supplied body
 
         // First, get the user's weak spots
         const weakSpots = await fetchWeakSpots(userId);
