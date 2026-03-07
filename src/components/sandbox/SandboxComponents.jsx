@@ -8,7 +8,7 @@
  * - TreeVisualization
  * - OnboardingTour
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SocialService } from '../../services/SocialService';
 import { supabase } from '../../lib/supabase';
@@ -22,8 +22,9 @@ const BET_ACTIONS = [
     { id: 'fold', label: 'Fold' }, { id: 'check', label: 'Check' },
     { id: 'call', label: 'Call' }, { id: 'bet_33', label: 'Bet 33%' },
     { id: 'bet_50', label: 'Bet 50%' }, { id: 'bet_66', label: 'Bet 66%' },
-    { id: 'bet_100', label: 'Bet Pot' }, { id: 'raise', label: 'Raise' },
-    { id: 'allin', label: 'All-In' },
+    { id: 'bet_75', label: 'Bet 75%' }, { id: 'bet_100', label: 'Bet Pot' },
+    { id: 'bet_150', label: 'Bet 150%' }, { id: 'raise', label: 'Raise' },
+    { id: 'allin', label: 'All-In' }, { id: 'custom', label: 'Custom...' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -34,20 +35,20 @@ export function FrequencyBar({ action, isOptimal }) {
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{ marginBottom: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <span style={{
-                    color: isOptimal ? '#22c55e' : '#94a3b8', fontSize: '13px',
+                    color: isOptimal ? '#22c55e' : '#B0B3B8', fontSize: '13px',
                     fontWeight: isOptimal ? '700' : '500', display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                     {isOptimal && <span style={{ color: '#22c55e', fontSize: '10px' }}></span>}
                     {action.label}
                 </span>
                 <span style={{
-                    color: isOptimal ? '#22c55e' : '#cbd5e1', fontSize: '13px',
+                    color: isOptimal ? '#22c55e' : '#E4E6EB', fontSize: '13px',
                     fontWeight: '700', fontFamily: "'Orbitron', monospace",
                 }}>
                     {action.frequency}%
                 </span>
             </div>
-            <div style={{ height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '8px', background: '#3A3B3C', borderRadius: '4px', overflow: 'hidden' }}>
                 <motion.div
                     initial={{ width: 0 }} animate={{ width: `${action.frequency}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
@@ -55,7 +56,7 @@ export function FrequencyBar({ action, isOptimal }) {
                         height: '100%', borderRadius: '4px',
                         background: isOptimal
                             ? 'linear-gradient(90deg, #22c55e, #4ade80)'
-                            : `linear-gradient(90deg, ${action.color || '#3b82f6'}, ${action.color || '#3b82f6'}88)`,
+                            : `linear-gradient(90deg, ${action.color || '#2374E1'}, ${action.color || '#2374E1'}88)`,
                     }}
                 />
             </div>
@@ -110,12 +111,12 @@ export function RangeMatrix({ rangeHeatmap, selectedAction }) {
             {hoveredHand && rangeHeatmap.data[hoveredHand] && (
                 <div style={{
                     position: 'absolute', bottom: -55, left: '50%', transform: 'translateX(-50%)',
-                    background: '#0f172a', border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '8px', padding: '6px 10px', zIndex: 10, whiteSpace: 'nowrap', fontSize: '11px', color: '#e2e8f0',
+                    background: '#242526', border: '1px solid #3A3B3C',
+                    borderRadius: '8px', padding: '6px 10px', zIndex: 10, whiteSpace: 'nowrap', fontSize: '11px', color: '#E4E6EB',
                 }}>
                     <strong>{hoveredHand}</strong>
                     {rangeHeatmap.actions?.slice(0, 4).map(a => (
-                        <span key={a.id} style={{ marginLeft: '8px', color: a.id === actionId ? '#22c55e' : '#94a3b8' }}>
+                        <span key={a.id} style={{ marginLeft: '8px', color: a.id === actionId ? '#22c55e' : '#B0B3B8' }}>
                             {a.label}: {rangeHeatmap.data[hoveredHand][a.id] ?? 0}%
                         </span>
                     ))}
@@ -181,7 +182,7 @@ export function BoardTextureHUD({ texture }) {
                     {texture.isWet && <span style={{ fontSize: '10px', color: texture.textColor }}>W</span>}
                 </div>
             </div>
-            <p style={{ color: '#cbd5e1', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{texture.strategy}</p>
+            <p style={{ color: '#E4E6EB', fontSize: '11px', margin: 0, lineHeight: 1.4 }}>{texture.strategy}</p>
         </motion.div>
     );
 }
@@ -192,12 +193,24 @@ export function BoardTextureHUD({ texture }) {
 export function ActionHistoryBuilder({ actions, onAdd, onRemove, potSize }) {
     const [adding, setAdding] = useState(false);
     const [newAction, setNewAction] = useState({ position: 'BTN', action: 'bet_66' });
-    const sty = { padding: '6px 10px', borderRadius: '6px', fontSize: '12px', background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', color: '#e2e8f0' };
+    const [customPct, setCustomPct] = useState(75);
+    const sty = { padding: '6px 10px', borderRadius: '6px', fontSize: '12px', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' };
+
+    const handleAdd = () => {
+        let label;
+        if (newAction.action === 'custom') {
+            label = `Bet ${customPct}%`;
+        } else {
+            label = BET_ACTIONS.find(b => b.id === newAction.action)?.label;
+        }
+        onAdd({ ...newAction, action: newAction.action === 'custom' ? `bet_${customPct}` : newAction.action, label });
+        setAdding(false);
+    };
 
     return (
-        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <h4 style={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
+                <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
                     Action History
                 </h4>
                 <span style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', fontFamily: "'Orbitron',monospace", background: 'rgba(34,197,94,0.1)', color: '#4ade80' }}>
@@ -207,30 +220,38 @@ export function ActionHistoryBuilder({ actions, onAdd, onRemove, potSize }) {
             {actions.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
                     {actions.map((a, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '5px', fontSize: '10px', background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}>
-                            <span style={{ fontWeight: '700', color: '#93c5fd' }}>{a.position}</span>
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '3px 8px', borderRadius: '5px', fontSize: '10px', background: '#3A3B3C', color: '#E4E6EB' }}>
+                            <span style={{ fontWeight: '700', color: '#4599FF' }}>{a.position}</span>
                             <span>{a.label}</span>
-                            <button onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', padding: '0 2px' }}>×</button>
+                            <button onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', padding: '0 2px' }}>x</button>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div style={{ color: '#475569', fontSize: '11px', marginBottom: '8px', fontStyle: 'italic' }}>No actions — build the betting line</div>
+                <div style={{ color: '#65676B', fontSize: '11px', marginBottom: '8px', fontStyle: 'italic' }}>No actions -- build the betting line</div>
             )}
             {adding ? (
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <select value={newAction.position} onChange={e => setNewAction({ ...newAction, position: e.target.value })} style={sty}>
                         {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                     </select>
                     <select value={newAction.action} onChange={e => setNewAction({ ...newAction, action: e.target.value })} style={sty}>
                         {BET_ACTIONS.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
                     </select>
-                    <button onClick={() => { onAdd({ ...newAction, label: BET_ACTIONS.find(b => b.id === newAction.action)?.label }); setAdding(false); }}
+                    {newAction.action === 'custom' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 100%', marginTop: '4px' }}>
+                            <input type="range" min="10" max="200" step="5" value={customPct}
+                                onChange={e => setCustomPct(Number(e.target.value))}
+                                style={{ flex: 1, accentColor: '#8b5cf6' }} />
+                            <span style={{ color: '#c4b5fd', fontSize: '12px', fontWeight: '700', minWidth: '40px' }}>{customPct}%</span>
+                        </div>
+                    )}
+                    <button onClick={handleAdd}
                         style={{ ...sty, background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.3)', color: '#4ade80', cursor: 'pointer', fontWeight: '600' }}>OK</button>
                     <button onClick={() => setAdding(false)} style={{ ...sty, background: 'rgba(239,68,68,0.1)', border: 'none', color: '#fca5a5', cursor: 'pointer' }}>X</button>
                 </div>
             ) : (
-                <button onClick={() => setAdding(true)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.15)', color: '#94a3b8', cursor: 'pointer', width: '100%' }}>
+                <button onClick={() => setAdding(true)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '11px', background: '#3A3B3C', border: '1px dashed #4E4F50', color: '#B0B3B8', cursor: 'pointer', width: '100%' }}>
                     + Add Action
                 </button>
             )}
@@ -248,8 +269,8 @@ export function SizingSensitivity({ results }) {
     if (betActions.length === 0) return null;
 
     return (
-        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
-            <h4 style={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
+        <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
+            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
                 Sizing Sensitivity
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(sizes.length, 6)}, 1fr)`, gap: '4px' }}>
@@ -259,14 +280,14 @@ export function SizingSensitivity({ results }) {
                     return (
                         <div key={size} style={{ textAlign: 'center' }}>
                             <div style={{
-                                height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px',
+                                height: '40px', background: '#242526', borderRadius: '4px',
                                 position: 'relative', overflow: 'hidden',
                             }}>
                                 <motion.div initial={{ height: 0 }} animate={{ height: `${freq}%` }}
-                                    style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: freq > 30 ? '#3b82f6' : '#1e40af', borderRadius: '4px' }} />
+                                    style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: freq > 30 ? '#2374E1' : '#1a5db8', borderRadius: '4px' }} />
                             </div>
-                            <div style={{ fontSize: '9px', color: '#64748b', marginTop: '3px' }}>{size}</div>
-                            <div style={{ fontSize: '10px', color: '#cbd5e1', fontWeight: '600' }}>{freq}%</div>
+                            <div style={{ fontSize: '9px', color: '#B0B3B8', marginTop: '3px' }}>{size}</div>
+                            <div style={{ fontSize: '10px', color: '#E4E6EB', fontWeight: '600' }}>{freq}%</div>
                         </div>
                     );
                 })}
@@ -283,25 +304,25 @@ export function TreeVisualization({ actions }) {
     const total = actions.reduce((s, a) => s + (a.frequency || 0), 0) || 100;
 
     return (
-        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
-            <h4 style={{ color: '#94a3b8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
+        <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '12px' }}>
+            <h4 style={{ color: '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>
                 Decision Tree
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {/* Root node */}
                 <div style={{
                     padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700',
-                    background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#93c5fd', marginBottom: '8px',
+                    background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', marginBottom: '8px',
                 }}>Hero Decision</div>
                 {/* Branches */}
                 <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                     {actions.filter(a => a.frequency > 0).map((action, i) => (
                         <div key={action.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <div style={{ width: '1px', height: '16px', background: action.color || '#3b82f6' }} />
+                            <div style={{ width: '1px', height: '16px', background: action.color || '#2374E1' }} />
                             <div style={{
                                 padding: '5px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
-                                background: `${action.color || '#3b82f6'}22`, border: `1px solid ${action.color || '#3b82f6'}44`,
-                                color: action.color || '#93c5fd', textAlign: 'center', minWidth: '50px',
+                                background: `${action.color || '#2374E1'}22`, border: `1px solid ${action.color || '#2374E1'}44`,
+                                color: action.color || '#4599FF', textAlign: 'center', minWidth: '50px',
                             }}>
                                 <div>{action.label}</div>
                                 <div style={{ fontSize: '11px', fontWeight: '700', marginTop: '2px' }}>{action.frequency}%</div>
@@ -342,27 +363,27 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
                 <motion.div
                     initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
                     style={{
-                        background: '#1a1a2e', border: '1px solid rgba(59,130,246,0.3)',
+                        background: '#242526', border: '1px solid #3A3B3C',
                         borderRadius: '16px', padding: '24px', maxWidth: '380px', width: '90%',
                         boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
                     }}
                 >
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#e2e8f0', marginBottom: '8px', fontFamily: "'Orbitron',sans-serif" }}>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', marginBottom: '8px', fontFamily: "'Orbitron',sans-serif" }}>
                         {current.title}
                     </div>
-                    <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px' }}>
+                    <p style={{ color: '#B0B3B8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 16px' }}>
                         {current.text}
                     </p>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#64748b', fontSize: '11px' }}>{step + 1} of {TOUR_STEPS.length}</span>
+                        <span style={{ color: '#65676B', fontSize: '11px' }}>{step + 1} of {TOUR_STEPS.length}</span>
                         <div style={{ display: 'flex', gap: '8px' }}>
                             <button onClick={onClose} style={{
                                 padding: '6px 14px', borderRadius: '8px', fontSize: '12px',
-                                background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', cursor: 'pointer',
+                                background: 'none', border: '1px solid #3A3B3C', color: '#B0B3B8', cursor: 'pointer',
                             }}>Skip</button>
                             <button onClick={() => step < TOUR_STEPS.length - 1 ? onNext() : onClose()} style={{
                                 padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600',
-                                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none', color: '#fff', cursor: 'pointer',
+                                background: 'linear-gradient(135deg, #2374E1, #4599FF)', border: 'none', color: '#fff', cursor: 'pointer',
                             }}>{step < TOUR_STEPS.length - 1 ? 'Next →' : 'Get Started'}</button>
                         </div>
                     </div>
@@ -372,9 +393,9 @@ export function OnboardingTour({ isVisible, onClose, onNext, step = 0 }) {
     );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 // SHARE MODAL
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
     if (!isOpen || !results) return null;
 
@@ -444,23 +465,23 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
             <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} style={{
-                background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)',
+                background: '#242526', border: '1px solid #3A3B3C',
                 borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '90%',
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#e2e8f0' }}>Share Analysis</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '18px' }}>×</button>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#E4E6EB' }}>Share Analysis</h3>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', cursor: 'pointer', fontSize: '18px' }}>×</button>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '12px', color: '#cbd5e1', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                <div style={{ background: '#3A3B3C', borderRadius: '10px', padding: '12px', marginBottom: '16px', fontSize: '12px', color: '#E4E6EB', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
                     {shareText}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                     {channels.map((ch, idx) => (
                         <button key={ch.label} onClick={ch.onClick} disabled={isPosting && idx === 0} style={{
                             padding: '10px', borderRadius: '10px', fontSize: '13px', fontWeight: '600',
-                            background: idx === 0 ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'rgba(255,255,255,0.05)',
-                            border: idx === 0 ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                            color: '#e2e8f0', cursor: isPosting && idx === 0 ? 'wait' : 'pointer',
+                            background: idx === 0 ? 'linear-gradient(135deg, #2374E1, #4599FF)' : '#3A3B3C',
+                            border: idx === 0 ? 'none' : '1px solid #4E4F50',
+                            color: '#E4E6EB', cursor: isPosting && idx === 0 ? 'wait' : 'pointer',
                             opacity: isPosting && idx === 0 ? 0.7 : 1,
                             gridColumn: idx === 0 ? '1 / -1' : 'auto'
                         }}>{ch.label}</button>
@@ -468,5 +489,116 @@ export function ShareAnalysisModal({ isOpen, onClose, results, scenario }) {
                 </div>
             </motion.div>
         </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STREET TIMELINE — Multi-Street Story Mode
+// Shows how GTO strategy evolves across streets
+// ═══════════════════════════════════════════════════════════════════════════
+export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) {
+    if (!streetHistory || streetHistory.length === 0) return null;
+
+    const streets = ['Flop', 'Turn', 'River'];
+    return (
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '6px' }}>
+            {streetHistory.map((entry, i) => {
+                const isActive = activeStreet === i;
+                const streetLabel = streets[i] || `Street ${i + 1}`;
+                return (
+                    <button key={i} onClick={() => onSelectStreet(i)} style={{
+                        flex: 1, padding: '8px 6px', borderRadius: '8px', border: 'none',
+                        background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                        cursor: 'pointer', textAlign: 'center',
+                        borderBottom: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+                    }}>
+                        <div style={{ fontSize: '10px', fontWeight: '700', color: isActive ? '#93c5fd' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            {streetLabel}
+                        </div>
+                        {entry.results && (
+                            <>
+                                <div style={{ fontSize: '11px', fontWeight: '600', color: isActive ? '#e2e8f0' : '#94a3b8', marginTop: '2px' }}>
+                                    {entry.results.optimalAction?.label || '--'}
+                                </div>
+                                <div style={{ fontSize: '9px', color: entry.results.ev?.hero >= 0 ? '#4ade80' : '#f87171', marginTop: '1px' }}>
+                                    {entry.results.ev?.heroDisplay || ''}
+                                </div>
+                            </>
+                        )}
+                    </button>
+                );
+            })}
+            {streetHistory.length < 3 && (
+                <div style={{ flex: 1, padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                    <div style={{ fontSize: '10px', color: '#475569' }}>{streets[streetHistory.length] || 'Next'}</div>
+                    <div style={{ fontSize: '9px', color: '#334155', marginTop: '2px' }}>Deal to unlock</div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EQUITY GAUGE — Circular arc showing hero equity
+// ═══════════════════════════════════════════════════════════════════════════
+export function EquityGauge({ equity, label }) {
+    if (equity == null) return null;
+
+    const pct = Math.max(0, Math.min(100, equity));
+    const color = pct >= 60 ? '#22c55e' : pct >= 45 ? '#fbbf24' : '#ef4444';
+    const circumference = 2 * Math.PI * 36;
+    const offset = circumference - (pct / 100) * circumference;
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', marginBottom: '10px' }}>
+            <svg width="48" height="48" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                <circle cx="40" cy="40" r="36" fill="none" stroke={color} strokeWidth="6"
+                    strokeDasharray={circumference} strokeDashoffset={offset}
+                    strokeLinecap="round" transform="rotate(-90 40 40)"
+                    style={{ transition: 'stroke-dashoffset 0.5s ease' }} />
+                <text x="40" y="44" textAnchor="middle" fill={color} fontSize="16" fontWeight="700" fontFamily="'Orbitron', monospace">
+                    {Math.round(pct)}
+                </text>
+            </svg>
+            <div>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#e2e8f0' }}>Equity</div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>{label || `${Math.round(pct)}% vs random`}</div>
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYSIS SKELETON — Loading animation during analysis
+// ═══════════════════════════════════════════════════════════════════════════
+export function AnalysisSkeleton() {
+    const pulseStyle = {
+        background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s infinite',
+        borderRadius: '6px',
+    };
+
+    return (
+        <div style={{ padding: '16px' }}>
+            <style>{`@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
+            {/* Action bar skeleton */}
+            <div style={{ ...pulseStyle, height: '28px', marginBottom: '12px', width: '60%' }} />
+            {/* Frequency bars */}
+            {[1, 0.7, 0.4, 0.2].map((w, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{ ...pulseStyle, height: '14px', width: '50px' }} />
+                    <div style={{ ...pulseStyle, height: '14px', flex: 1, maxWidth: `${w * 100}%` }} />
+                </div>
+            ))}
+            {/* EV display skeleton */}
+            <div style={{ ...pulseStyle, height: '40px', marginTop: '16px', width: '80%' }} />
+            {/* Heatmap skeleton */}
+            <div style={{ ...pulseStyle, height: '120px', marginTop: '12px' }} />
+            <div style={{ textAlign: 'center', color: '#475569', fontSize: '11px', marginTop: '12px' }}>
+                Analyzing hand...
+            </div>
+        </div>
     );
 }

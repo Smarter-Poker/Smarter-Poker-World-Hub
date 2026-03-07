@@ -25,11 +25,12 @@ import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { calculateEquity } from '../../../src/lib/sandbox/EquityEngine';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import {
   FrequencyBar, RangeMatrix, classifyBoardTexture, BoardTextureHUD,
   ActionHistoryBuilder, SizingSensitivity, TreeVisualization,
-  OnboardingTour, ShareAnalysisModal,
+  OnboardingTour, ShareAnalysisModal, StreetTimeline, EquityGauge, AnalysisSkeleton,
 } from '../../../src/components/sandbox/SandboxComponents';
 
 // ═══════════════════════════════════════════════════════════════
@@ -385,6 +386,56 @@ export default function VirtualSandbox() {
   const [bookmarks, setBookmarks] = useState([]);
   const [showResults, setShowResults] = useState(false); // fullscreen analysis popup
 
+  // Phase 1: Multi-Street Story Mode
+  const [streetHistory, setStreetHistory] = useState([]);
+  const [activeStreet, setActiveStreet] = useState(0);
+
+  // Phase 1: Undo stack
+  const undoStackRef = useRef([]);
+  const pushUndo = () => {
+    undoStackRef.current.push({
+      heroHand: { ...heroHand }, heroPosition, heroStack, board: { ...board, flop: [...board.flop] },
+      actionHistory: [...actionHistory], villains: villains.map(v => ({ ...v })),
+    });
+    if (undoStackRef.current.length > 20) undoStackRef.current.shift();
+  };
+  const popUndo = () => {
+    const prev = undoStackRef.current.pop();
+    if (!prev) return;
+    setHeroHand(prev.heroHand);
+    setHeroPosition(prev.heroPosition);
+    setHeroStack(prev.heroStack);
+    setBoard(prev.board);
+    setActionHistory(prev.actionHistory);
+    setVillains(prev.villains);
+  };
+
+  // Phase 1: Equity calculation
+  const [equity, setEquity] = useState(null);
+  useEffect(() => {
+    if (!heroHand.card1 || !heroHand.card2) { setEquity(null); return; }
+    const heroCards = [heroHand.card1, heroHand.card2];
+    const boardCards = [...(board.flop || [])];
+    if (board.turn) boardCards.push(board.turn);
+    if (board.river) boardCards.push(board.river);
+    // Run equity calc in a timeout so it doesn't block UI
+    const t = setTimeout(() => {
+      try {
+        const eq = calculateEquity(heroCards, boardCards, 1500);
+        setEquity(eq);
+      } catch (e) { setEquity(null); }
+    }, 100);
+    return () => clearTimeout(t);
+  }, [heroHand.card1, heroHand.card2, board]);
+
+  // Phase 1: Deal + Analyze for multi-street
+  const dealAndAnalyze = () => {
+    if (results) {
+      setStreetHistory(prev => [...prev, { street: currentStreet, board: { ...board, flop: [...board.flop] }, results }]);
+    }
+    dealNextStreet();
+  };
+
   // Check first visit for onboarding
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -655,6 +706,7 @@ export default function VirtualSandbox() {
             <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
             {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
             {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
+            <button onClick={popUndo} disabled={undoStackRef.current.length === 0} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#B0B3B8', cursor: undoStackRef.current.length === 0 ? 'default' : 'pointer', minHeight: 36 }}>Undo</button>
             <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
           </div>
         </div>
@@ -682,195 +734,205 @@ export default function VirtualSandbox() {
               heroStack={heroStack}
               villains={villains}
               street={currentStreet}
-              boardTexture={boardTexture}
             />
           </div>
-
-          {/* Board Texture HUD */}
-          <BoardTextureHUD texture={boardTexture} />
-
-          {/* Equity Display */}
-          <EquityDisplay heroHand={heroHand} board={board} />
-
-          {/* Your Hand */}
-          <div id="hero-setup" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
-              <span style={{ color: '#B0B3B8', fontSize: 12, minWidth: 45 }}>Hand:</span>
-              <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
-              <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
-              <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
-            </div>
-            <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
-                <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={heroStack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    setHeroStack(val === 0 ? '' : val);
-                  }}
-                  onBlur={() => setHeroStack(h => h || 100)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
-                <select value={gameType} onChange={e => setGameType(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Board Builder */}
-          <div id="board-builder" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>Random</button>
-                {board.flop.length === 3 && !board.river && (
-                  <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
-                    Deal {!board.turn ? 'Turn' : 'River'} ▸
-                  </button>
-                )}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
-              {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
-              {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
-              {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: '#3A3B3C', margin: '0 2px' }} />}
-              {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
-              {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
-            </div>
-
-            {/* Quick Scenario Presets (Improvement #2) */}
-            {!heroHand.card1 && board.flop.length === 0 && (
-              <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '12px', marginTop: '10px' }}>
-                <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  {QUICK_PRESETS.map((preset, i) => (
-                    <button key={i} onClick={() => {
-                      setHeroHand(preset.hand); setHeroPosition(preset.position);
-                      setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
-                      setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
-                    }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'rgba(35,116,225,0.15)'}
-                      onMouseOut={e => e.currentTarget.style.background = '#3A3B3C'}>
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}</div>
-
-          {/* Villains */}
-          <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
-              <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
-                disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
-            </div>
-            {villains.map((v, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
-                <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={v.stack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    const u = [...villains];
-                    u[i] = { ...u[i], stack: val === 0 ? '' : val };
-                    setVillains(u);
-                  }}
-                  onBlur={() => {
-                    const u = [...villains];
-                    u[i] = { ...u[i], stack: v.stack || 100 };
-                    setVillains(u);
-                  }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', width: '100%', boxSizing: 'border-box' }} />
-                <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
-                  style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#4E4F50' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Action History */}
-          <div id="action-history">
-            <ActionHistoryBuilder actions={actionHistory}
-              onAdd={a => setActionHistory([...actionHistory, a])}
-              onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
-              potSize={potSize} />
-          </div>
-
-          {/* Run Analysis */}
-          <div id="run-analysis">
-            <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
-              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-              style={{
-                width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
-                cursor: isAnalyzing ? 'wait' : 'pointer',
-                background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
-                color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
-                fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
-                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
-              }}>
-              {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
-            </motion.button>
-          </div>
-
-          {/* Position Comparison — Feature #11 */}
-          {results && (
-            <div style={{ marginTop: '12px', background: '#242526', borderRadius: 10, padding: '12px' }}>
-              <h4 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                {POSITIONS.map(p => {
-                  const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
-                  return (
-                    <button key={p}
-                      onClick={() => {
-                        if (p === heroPosition) {
-                          setComparePosition(null);
-                          analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
-                        } else {
-                          runPositionComparison(p);
-                        }
-                      }}
-                      disabled={isAnalyzing}
-                      style={{
-                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                        background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-                        border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
-                        cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
-                      }}>{p}</button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div style={{ marginTop: '10px', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12 }}>
-              {error}
-            </div>
-          )}
+          {/* Equity Gauge — Phase 1 */}
+          <EquityGauge equity={equity?.heroEquity} label={equity ? `${equity.heroEquity}% vs random hand` : null} />
+          boardTexture={boardTexture}
+            />
         </div>
-      </div>
 
-      {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */}
+        {/* Board Texture HUD */}
+        <BoardTextureHUD texture={boardTexture} />
+
+        {/* Equity Display */}
+        <EquityDisplay heroHand={heroHand} board={board} />
+
+        {/* Your Hand */}
+        <div id="hero-setup" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+          <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
+            <span style={{ color: '#B0B3B8', fontSize: 12, minWidth: 45 }}>Hand:</span>
+            <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
+            <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
+            <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
+          </div>
+          <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            <div>
+              <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
+              <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
+              <input type="text" inputMode="numeric" pattern="[0-9]*"
+                value={heroStack}
+                onChange={e => {
+                  const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                  setHeroStack(val === 0 ? '' : val);
+                }}
+                onBlur={() => setHeroStack(h => h || 100)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
+              <select value={gameType} onChange={e => setGameType(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Board Builder */}
+        <div id="board-builder" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>Random</button>
+              {board.flop.length === 3 && !board.river && (
+                <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
+                  Deal {!board.turn ? 'Turn' : 'River'}
+                </button>
+              )}
+              {results && board.flop.length === 3 && !board.river && (
+                <button onClick={() => { pushUndo(); dealAndAnalyze(); }} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(59,130,246,0.15)', border: 'none', color: '#93c5fd', cursor: 'pointer' }}>
+                  Deal + Analyze
+                </button>
+              )}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
+            {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
+            {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
+            {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: '#3A3B3C', margin: '0 2px' }} />}
+            {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
+            {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
+          </div>
+
+          {/* Quick Scenario Presets (Improvement #2) */}
+          {!heroHand.card1 && board.flop.length === 0 && (
+            <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '12px', marginTop: '10px' }}>
+              <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                {QUICK_PRESETS.map((preset, i) => (
+                  <button key={i} onClick={() => {
+                    setHeroHand(preset.hand); setHeroPosition(preset.position);
+                    setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
+                    setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
+                  }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(35,116,225,0.15)'}
+                    onMouseOut={e => e.currentTarget.style.background = '#3A3B3C'}>
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}</div>
+
+        {/* Villains */}
+        <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
+            <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
+              disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
+          </div>
+          {villains.map((v, i) => (
+            <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
+              <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
+                style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
+                style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+              <input type="text" inputMode="numeric" pattern="[0-9]*"
+                value={v.stack}
+                onChange={e => {
+                  const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                  const u = [...villains];
+                  u[i] = { ...u[i], stack: val === 0 ? '' : val };
+                  setVillains(u);
+                }}
+                onBlur={() => {
+                  const u = [...villains];
+                  u[i] = { ...u[i], stack: v.stack || 100 };
+                  setVillains(u);
+                }}
+                style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', width: '100%', boxSizing: 'border-box' }} />
+              <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
+                style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#4E4F50' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Action History */}
+        <div id="action-history">
+          <ActionHistoryBuilder actions={actionHistory}
+            onAdd={a => setActionHistory([...actionHistory, a])}
+            onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
+            potSize={potSize} />
+        </div>
+
+        {/* Run Analysis */}
+        <div id="run-analysis">
+          <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
+            whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+            style={{
+              width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
+              cursor: isAnalyzing ? 'wait' : 'pointer',
+              background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
+              color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
+              fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
+              boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
+            }}>
+            {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
+          </motion.button>
+          {isAnalyzing && <AnalysisSkeleton />}
+        </div>
+
+        {/* Position Comparison — Feature #11 */}
+        {results && (
+          <div style={{ marginTop: '12px', background: '#242526', borderRadius: 10, padding: '12px' }}>
+            <h4 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {POSITIONS.map(p => {
+                const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
+                return (
+                  <button key={p}
+                    onClick={() => {
+                      if (p === heroPosition) {
+                        setComparePosition(null);
+                        analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+                      } else {
+                        runPositionComparison(p);
+                      }
+                    }}
+                    disabled={isAnalyzing}
+                    style={{
+                      padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                      border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
+                      cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
+                    }}>{p}</button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ marginTop: '10px', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12 }}>
+            {error}
+          </div>
+        )}
+      </div>
+    </div>
+
+      {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */ }
       <AnimatePresence>
         {results && showResults && (
           <motion.div
@@ -903,8 +965,11 @@ export default function VirtualSandbox() {
                   background: '#3A3B3C', border: 'none', borderRadius: '50%',
                   width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: '#E4E6EB', fontSize: 18, cursor: 'pointer',
-                }}>×</button>
+                }}>x</button>
               </div>
+
+              {/* Street Timeline — Phase 1 */}
+              <StreetTimeline streetHistory={streetHistory} activeStreet={activeStreet} onSelectStreet={setActiveStreet} />
 
               {/* Plain-English Summary */}
               {getResultsSummary(results) && (
@@ -1109,6 +1174,6 @@ export default function VirtualSandbox() {
           animation: analyze-pulse 1.5s ease-in-out infinite;
         }
       `}</style>
-    </div>
+    </div >
   );
 }
