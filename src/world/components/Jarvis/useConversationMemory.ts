@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { getSafeUser } from '../../../../lib/authUtils';
+import { getSafeUser } from '../../../lib/authUtils';
 
 interface ConversationMessage {
     id: string;

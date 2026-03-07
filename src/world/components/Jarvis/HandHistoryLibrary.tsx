@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { getSafeUser } from '../../../../lib/authUtils';
+import { getSafeUser } from '../../../lib/authUtils';
 
 interface SavedHand {
     id: string;

@@ -19,7 +19,6 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { supabase as rawSupabase } from './supabase';
-import { getSafeUser } from './authUtils';
 
 // Error message shown when dangerous methods are called
 const DANGEROUS_METHOD_ERROR = (method: string) => `
@@ -90,8 +89,7 @@ export default safeSupabase;
    
    BEFORE (dangerous):
    import { supabase } from '@/lib/supabase';
-import { getSafeUser } from './authUtils';
-   const user = await getSafeUser(supabase);
+   const { data: { user } } = await supabase.auth.getUser();
    
    AFTER (safe):
    import { getAuthUser } from '@/lib/authUtils';
