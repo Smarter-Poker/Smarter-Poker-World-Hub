@@ -12,7 +12,7 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../src/lib/supabase';
 
 const CARDS = [
     {
@@ -62,10 +62,6 @@ export default function TokeTrackerLanding() {
     // Load preferences from Supabase
     useEffect(() => {
         if (!userId) return;
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
         supabase.from('profiles').select('settings').eq('id', userId).single()
             .then(({ data }) => {
                 if (data?.settings?.tokeTracker) {
@@ -91,10 +87,7 @@ export default function TokeTrackerLanding() {
         // Persist to Supabase
         if (!userId) return;
         try {
-            const supabase = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-            );
+
             const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;

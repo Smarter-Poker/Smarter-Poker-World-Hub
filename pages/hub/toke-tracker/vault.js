@@ -15,12 +15,7 @@ import DealerVault from '../../../src/components/bankroll/DealerVault';
 import TaxSummaryModal from '../../../src/components/bankroll/TaxSummaryModal';
 import { fetchGigs } from '../../../src/lib/bankroll/tokeSelectors';
 import { HubErrorBoundary } from '../../../src/components/ui/HubErrorBoundary';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { supabase } from '../../../src/lib/supabase';
 
 export default function DealerVaultPage() {
     const router = useRouter();
@@ -100,7 +95,6 @@ export default function DealerVaultPage() {
         try { localStorage.setItem('toke-tracker-prefs', JSON.stringify(newPrefs)); } catch { }
         if (!userId) return;
         try {
-            const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
             const { data: profile } = await supabase.from('profiles').select('settings').eq('id', userId).single();
             const settings = profile?.settings || {};
             settings.tokeTracker = newPrefs;

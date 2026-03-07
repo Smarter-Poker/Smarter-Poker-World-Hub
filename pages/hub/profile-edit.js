@@ -53,7 +53,7 @@ function Avatar({ src, size = 120, onUpload }) {
                 src={src || '/default-avatar.png'}
                 alt="Profile"
                 style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}
-             loading="lazy" />
+                loading="lazy" />
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
             <div style={{
                 position: 'absolute', bottom: 4, right: 4, width: 32, height: 32, borderRadius: '50%',
@@ -330,7 +330,19 @@ export default function ProfilePage() {
         const fetchUser = async () => {
             try {
                 // Get authenticated user from Supabase session
-                const { data: { user: authUser } } = await supabase.auth.getUser();
+                let authUser = null;
+                try {
+                    const { data: { user: gu } } = await supabase.auth.getUser();
+                    authUser = gu;
+                } catch (_) { /* AbortError on Safari */ }
+
+                // Fallback: recover from session if getUser threw
+                if (!authUser) {
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        authUser = session?.user || null;
+                    } catch (_) { /* ignore */ }
+                }
 
                 if (authUser) {
                     setUser(authUser);
@@ -943,7 +955,7 @@ export default function ProfilePage() {
                                                 objectFit: 'cover', marginBottom: 8,
                                                 border: '2px solid #eee'
                                             }}
-                                         loading="lazy" />
+                                            loading="lazy" />
                                         <div style={{
                                             fontSize: 13, fontWeight: 600, color: C.text,
                                             maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
@@ -1034,7 +1046,7 @@ export default function ProfilePage() {
                                             marginBottom: 8,
                                             background: 'transparent'
                                         }}
-                                     loading="lazy" />
+                                        loading="lazy" />
                                     <div style={{
                                         fontSize: 12,
                                         fontWeight: 600,
@@ -1195,7 +1207,7 @@ export default function ProfilePage() {
                                             width: '100%', height: 'auto',
                                             display: 'block'
                                         }}
-                                     loading="lazy" />
+                                        loading="lazy" />
                                     {photo.content && (
                                         <div style={{
                                             padding: '12px 16px', color: 'white',
@@ -1342,7 +1354,7 @@ export default function ProfilePage() {
                                                     src={live.thumbnail_url}
                                                     alt={live.title}
                                                     style={{ width: '100%', height: 'auto', display: 'block' }}
-                                                 loading="lazy" />
+                                                    loading="lazy" />
                                             ) : (
                                                 <div style={{
                                                     width: '100%', height: '100%',

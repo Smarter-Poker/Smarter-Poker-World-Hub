@@ -19,7 +19,19 @@ export default function ProfileRedirect() {
         const redirectToProfile = async () => {
             try {
                 // Get authenticated user from Supabase session
-                const { data: { user: authUser } } = await supabase.auth.getUser();
+                let authUser = null;
+                try {
+                    const { data: { user: gu } } = await supabase.auth.getUser();
+                    authUser = gu;
+                } catch (_) { /* AbortError on Safari */ }
+
+                // Fallback: recover from session if getUser threw
+                if (!authUser) {
+                    try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        authUser = session?.user || null;
+                    } catch (_) { /* ignore */ }
+                }
 
                 if (!authUser) {
                     // Not logged in, redirect to login
