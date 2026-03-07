@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAuthUser } from '../../../../src/lib/authUtils';
 
 const MultiTableView = dynamic(
   () => import('../../../../src/components/poker/MultiTableView'),
@@ -86,10 +87,9 @@ export default function ClubArenaTable() {
 
   // Auth guard
   useEffect(() => {
-    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-      if (session?.user) setUser(session.user);
-      else router.push('/auth/login');
-    });
+    const authUser = getAuthUser();
+    if (authUser) setUser(authUser);
+    else router.push('/auth/login');
   }, []);
 
   // Engine connect with retry
