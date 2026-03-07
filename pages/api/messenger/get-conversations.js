@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 // Use service role to bypass RLS
 const supabaseAdmin = createClient(
@@ -14,21 +15,26 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // ── Auth: verify JWT identity ──
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
-    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-
-    const userId = user.id; // From JWT, NOT body
+    // ── HARDENED Auth: local JWT decode (no GoTrue network call) + fallback ──
+    const localUser = getServerUser(req);
+    let userId;
+    if (localUser) {
+        userId = localUser.id;
+    } else {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+        const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+        userId = user.id;
+    }
 
 
     try {
@@ -37,7 +43,7 @@ export default async function handler(req, res) {
             .from('social_conversation_participants')
             .select('conversation_id, last_read_at')
             .eq('user_id', userId)
-                .limit(100);
+            .limit(100);
 
         if (partError) {
             console.error('[GET-CONVERSATIONS] Participation query error:', partError);
@@ -56,7 +62,7 @@ export default async function handler(req, res) {
             .select('id, last_message_at, last_message_preview, is_group')
             .in('id', conversationIds)
             .order('last_message_at', { ascending: false })
-                .limit(100);
+            .limit(100);
 
         if (convError) {
             console.error('[GET-CONVERSATIONS] Conversation query error:', convError);
@@ -74,7 +80,7 @@ export default async function handler(req, res) {
                     .select('user_id')
                     .eq('conversation_id', conv.id)
                     .neq('user_id', userId)
-                        .limit(100);
+                    .limit(100);
 
                 let otherUser = null;
                 if (otherParticipants?.[0]?.user_id) {

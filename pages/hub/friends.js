@@ -59,7 +59,7 @@ function Avatar({ src, name, size = 60, hasStory = false }) {
                     objectFit: 'cover',
                     border: hasStory ? `3px solid ${C.card}` : 'none'
                 }}
-             loading="lazy" />
+                loading="lazy" />
         </div>
     );
 }
@@ -606,16 +606,16 @@ export default function FriendsPage() {
 
         return () => clearTimeout(timer);
     }, [searchQuery, user?.id]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!userId) return;
-    const _ch = supabase
-      .channel(`friends:${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `user_id=eq.${userId}` }, () => {})
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${userId}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`friends:${user.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `user_id=eq.${user.id}` }, () => { })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${user.id}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════
     // HANDLERS

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,7 +14,7 @@ const CORS_HEADERS = {
 };
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -25,12 +26,18 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // ── Auth: verify JWT identity ──
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
-  const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
-  if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
-  const authenticatedUserId = user.id;
+  // ── HARDENED Auth: local JWT decode (no GoTrue network call) + fallback ──
+  const localUser = getServerUser(req);
+  let authenticatedUserId;
+  if (localUser) {
+    authenticatedUserId = localUser.id;
+  } else {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+    authenticatedUserId = user.id;
+  }
 
   try {
     if (req.method === 'POST') {
@@ -84,7 +91,7 @@ export default async function handler(req, res) {
         .from('page_followers')
         .select('page_type, page_id')
         .eq('user_id', user_id)
-            .limit(100);
+        .limit(100);
 
       if (followError) {
         console.error('Error fetching follows:', followError);
@@ -125,7 +132,7 @@ export default async function handler(req, res) {
         .select('notification_id')
         .eq('user_id', user_id)
         .in('notification_id', notificationIds)
-            .limit(100);
+        .limit(100);
 
       if (readError) {
         console.error('Error fetching read status:', readError);
@@ -159,7 +166,7 @@ export default async function handler(req, res) {
           .from('page_followers')
           .select('page_type, page_id')
           .eq('user_id', user_id)
-              .limit(100);
+          .limit(100);
 
         if (followError) {
           console.error('Error fetching follows:', followError);
@@ -179,7 +186,7 @@ export default async function handler(req, res) {
           .from('page_notifications')
           .select('id')
           .or(orConditions)
-              .limit(100);
+          .limit(100);
 
         if (notifError) {
           console.error('Error fetching notifications:', notifError);
@@ -198,7 +205,7 @@ export default async function handler(req, res) {
           .select('notification_id')
           .eq('user_id', user_id)
           .in('notification_id', allNotifIds)
-              .limit(100);
+          .limit(100);
 
         if (existingError) {
           console.error('Error fetching existing reads:', existingError);
@@ -207,7 +214,7 @@ export default async function handler(req, res) {
 
         const alreadyRead = new Set((existingReads || []).map((r) => r.notification_id));
         const unreadIds = allNotifIds.filter((id) => !alreadyRead.has(id))
-            .limit(100);
+          .limit(100);
 
         if (unreadIds.length === 0) {
           return res.status(200).json({ success: true, marked: 0 });
