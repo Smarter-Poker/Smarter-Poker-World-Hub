@@ -161,7 +161,18 @@ export default function NotificationsPage() {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`notifs:${user.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, (payload) => {
+                // Prepend new notification to the list in real-time
+                if (payload.new) {
+                    const n = payload.new;
+                    setNotifications(prev => [{
+                        ...n,
+                        _source: 'social',
+                        actor_name: n.title || 'New Notification',
+                        actor_avatar_url: null,
+                    }, ...prev]);
+                }
+            })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);

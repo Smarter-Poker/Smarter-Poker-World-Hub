@@ -184,7 +184,6 @@ export default function UniversalHeader({
 
     useEffect(() => {
         let notifChannel = null;
-        let messageChannel = null;
         let mounted = true; // Prevent state updates after unmount
 
         const loadUser = async () => {

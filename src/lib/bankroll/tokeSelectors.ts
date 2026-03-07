@@ -239,26 +239,31 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
  * Create a new gig AND auto-create Day 1
  */
 export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<TokeGig> {
-    // Check for existing active gig — but don't let an abort kill the whole create flow
+    const isAbortErr = (e: any) => e?.name === 'AbortError' || (e?.message || '').includes('aborted');
+
+    // Fast active-gig check — NO withRetry, just a single quick query with a 3s timeout
+    // If this aborts or times out, we skip the check and let the insert proceed
     try {
-        const existing = await getActiveGig(userId);
-        if (existing) throw new Error('You already have an active event. Complete or delete it first.');
+        const checkResult = await Promise.race([
+            supabase.from('toke_gigs').select('id').eq('user_id', userId).eq('status', 'active').limit(1).maybeSingle(),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+        ]);
+        if ((checkResult as any)?.data) {
+            throw new Error('You already have an active event. Complete or delete it first.');
+        }
     } catch (checkErr: any) {
-        // If it's an "already have active" error, re-throw it
         if (checkErr?.message?.includes('already have an active')) throw checkErr;
-        // If it's an abort/network error, log and proceed (optimistic — the insert will also fail if there's a real problem)
-        console.warn('[createGig] Active gig check failed (proceeding):', checkErr?.message);
+        // Abort/timeout/network error — skip check, proceed to insert
+        console.warn('[createGig] Active check skipped:', checkErr?.message);
     }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
     const safePokerVenueId = gig.poker_venue_id && uuidRegex.test(String(gig.poker_venue_id)) ? gig.poker_venue_id : null;
 
-    const isAbortErr = (e: any) => e?.name === 'AbortError' || (e?.message || '').includes('aborted');
-
-    // Abort-resilient insert loop
+    // Insert with 2 retries, 1s delay — fast fail, no long hangs
     let lastErr: any;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 2; attempt++) {
         try {
             const { data: row, error } = await supabase
                 .from('toke_gigs')
@@ -282,16 +287,18 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
             if (error) throw error;
 
             // Success — auto-create Day 1
-            await createDay(userId, row.id, 1);
+            try { await createDay(userId, row.id, 1); } catch (dayErr) {
+                console.warn('[createGig] Day 1 creation failed (non-fatal):', dayErr);
+            }
             return row;
         } catch (err: any) {
             lastErr = err;
-            if (isAbortErr(err) && attempt < 2) {
-                console.warn(`[createGig] AbortError on attempt ${attempt + 1}, retrying in 1.5s...`);
-                await new Promise(r => setTimeout(r, 1500));
+            if (isAbortErr(err) && attempt < 1) {
+                console.warn(`[createGig] AbortError attempt ${attempt + 1}, retrying in 1s...`);
+                await new Promise(r => setTimeout(r, 1000));
                 continue;
             }
-            if (!isAbortErr(err)) throw err; // real error — throw immediately
+            if (!isAbortErr(err)) throw err;
         }
     }
     throw lastErr;

@@ -623,40 +623,19 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            // "Already active" — just load the existing event instead of showing error
+            // "Already active" — just load the existing event
             if (err?.message?.includes('already have an active')) {
                 toast('You already have an active event — loading it now', { icon: 'ℹ️' });
                 setShowCreateForm(false);
                 await loadData();
-                setIsCreating(false);
-                return;
+            } else if (isAbortError(err)) {
+                // AbortError after all retries exhausted — tell user to try again
+                console.error('[TokeTracker] createGig aborted after all retries');
+                toast.error('Connection interrupted — please try again', 5000);
+            } else {
+                console.error('[TokeTracker] createGig failed:', err);
+                toast.error(err.message || 'Failed to create event', 5000);
             }
-            // AbortError: silently retry once after 1s — never show to user
-            if (isAbortError(err)) {
-                console.debug('[TokeTracker] createGig aborted — auto-retrying in 1s');
-                try {
-                    await new Promise(r => setTimeout(r, 1000));
-                    await createGig(actualUserId, {
-                        ...newGig,
-                        hourly_rate: parseFloat(newGig.hourly_rate) || 0,
-                    });
-                    toast.success('Event started!');
-                    setShowCreateForm(false);
-                    setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
-                    await requestNotificationPermission();
-                    await loadData();
-                    window.dispatchEvent(new CustomEvent('toke-data-updated'));
-                } catch (retryErr) {
-                    if (!isAbortError(retryErr)) {
-                        console.error('[TokeTracker] createGig retry failed:', retryErr);
-                        toast.error(retryErr.message || 'Failed to create event — check your connection and try again', 5000);
-                    }
-                }
-                setIsCreating(false);
-                return;
-            }
-            console.error('[TokeTracker] Failed to create gig:', err);
-            toast.error(err.message || 'Failed to create event — check your connection and try again', 5000);
         } finally {
             setIsCreating(false);
         }

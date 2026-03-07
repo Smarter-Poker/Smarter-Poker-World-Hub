@@ -21,6 +21,7 @@ import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { supabase } from '../../lib/supabase';
 import { getSafeUser, getAuthUser } from '../../lib/authUtils';
+import { LiveHelpPanel } from '../../world/components/Geeves';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -48,6 +49,7 @@ export default function ThreePillHeader({
     const [notificationCount, setNotificationCount] = useState(0);
     const [showFullDiamonds, setShowFullDiamonds] = useState(false);
     const [isWalletOpen, setIsWalletOpen] = useState(false);
+    const [isVip, setIsVip] = useState(false);
     const [headerHeight, setHeaderHeight] = useState(80);
     const imgRef = useRef(null);
 
@@ -55,7 +57,8 @@ export default function ThreePillHeader({
     const { unreadCount = 0 } = useUnreadCount() || {};
 
     // Global Avatar State (instant caching)
-    const { user: contextUser, avatar: contextAvatar } = useAvatar();
+    const { user: contextUser, avatar: contextAvatar, isVip: contextVip } = useAvatar();
+    const isVipDisplay = isVip || contextVip;
 
     // Derived values to prevent "flash of missing data" on mount
     const displayAvatar = contextAvatar?.imageUrl || user?.avatar || contextUser?.user_metadata?.avatar_url;
@@ -71,6 +74,7 @@ export default function ThreePillHeader({
 
     useEffect(() => {
         let mounted = true;
+        let notifChannel = null;
 
         const loadUser = async () => {
             try {
@@ -89,8 +93,10 @@ export default function ThreePillHeader({
                     const result = await response.json();
 
                     if (result.success && result.profile && mounted) {
-                        const { diamonds, avatar_url, full_name, username } = result.profile;
+                        const { diamonds, avatar_url, full_name, username, is_vip } = result.profile;
                         setStats({ diamonds });
+                        setIsVip(!!is_vip);
+                        try { localStorage.setItem('sp-vip-status', String(!!is_vip)); } catch (_) { }
                         setUser(prev => {
                             const nextUser = {
                                 ...prev,
@@ -106,6 +112,29 @@ export default function ThreePillHeader({
                             setNotificationCount(result.notificationCount);
                         }
                     }
+
+                    // REAL-TIME: Subscribe to new notifications for live badge updates
+                    notifChannel = supabase
+                        .channel('3pill-header-notifications')
+                        .on('postgres_changes', {
+                            event: 'INSERT',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, () => {
+                            setNotificationCount(prev => prev + 1);
+                        })
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'notifications',
+                            filter: `user_id=eq.${authUser.id}`
+                        }, (payload) => {
+                            if (payload.new.read && !payload.old.read) {
+                                setNotificationCount(prev => Math.max(0, prev - 1));
+                            }
+                        })
+                        .subscribe();
                 }
             } catch (e) {
                 console.error('[ThreePillHeader] Error:', e);
@@ -142,7 +171,6 @@ export default function ThreePillHeader({
 
             // Otherwise fetch fresh from server
             try {
-                // Determine user ID from local state
                 let currentUserId = user?.id;
                 if (!currentUserId) {
                     const supaUser = await getSafeUser(supabase);
@@ -163,14 +191,25 @@ export default function ThreePillHeader({
             } catch (err) { console.error('[ThreePillHeader] Failed to refresh balance:', err); }
         };
 
+        // ── VIP status bus listener — real-time VIP badge updates ──
+        const handleVipChange = (e) => {
+            console.log('[ThreePillHeader] 🚌 VIP status change event received:', e.detail);
+            if (e.detail?.vipGranted) {
+                setIsVip(true);
+            }
+        };
+
         loadUser();
         window.addEventListener('profile-updated', handleProfileUpdate);
         window.addEventListener('diamond-balance-refresh', refreshBalance);
+        window.addEventListener('vip-status-changed', handleVipChange);
 
         return () => {
             mounted = false;
             window.removeEventListener('profile-updated', handleProfileUpdate);
             window.removeEventListener('diamond-balance-refresh', refreshBalance);
+            window.removeEventListener('vip-status-changed', handleVipChange);
+            if (notifChannel) supabase.removeChannel(notifChannel);
         };
     }, [user?.id]);
 
@@ -419,6 +458,9 @@ export default function ThreePillHeader({
 
             {/* Spacer to push content below fixed header */}
             <div style={{ height: headerHeight }} />
+
+            {/* Live Help Panel */}
+            <LiveHelpPanel {...liveHelp} />
 
             <DiamondWalletModal
                 isOpen={isWalletOpen}
