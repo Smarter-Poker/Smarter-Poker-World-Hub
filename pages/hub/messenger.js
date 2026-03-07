@@ -13,7 +13,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser, getAuthUser } from '../../src/lib/authUtils';
+import { getSafeUser, getAuthUser, getAccessToken } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -1431,15 +1431,10 @@ export default function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((cancelSession) => {
-                fetch('/api/calls/cancel', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(cancelSession?.access_token ? { Authorization: `Bearer ${cancelSession.access_token}` } : {}),
-                    },
-                    body: JSON.stringify({ callId: incomingCall.pendingCallId }),
-                }).catch(() => { });
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
             }).catch(() => { });
         }
 
@@ -1478,15 +1473,10 @@ export default function MessengerPage() {
 
         // Cancel pending call in database
         if (incomingCall.pendingCallId) {
-            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((declineSession) => {
-                fetch('/api/calls/cancel', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(declineSession?.access_token ? { Authorization: `Bearer ${declineSession.access_token}` } : {}),
-                    },
-                    body: JSON.stringify({ callId: incomingCall.pendingCallId }),
-                }).catch(() => { });
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({ callId: incomingCall.pendingCallId }),
             }).catch(() => { });
         }
 
@@ -2391,18 +2381,13 @@ export default function MessengerPage() {
 
         // Cancel any pending call in database (in case call wasn't answered)
         if (activeConversation?.otherUser?.id && user?.id) {
-            Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((endSession) => {
-                fetch('/api/calls/cancel', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(endSession?.access_token ? { Authorization: `Bearer ${endSession.access_token}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        callerId: user.id,
-                        calleeId: activeConversation.otherUser.id
-                    }),
-                }).catch(() => { });
+            fetch('/api/calls/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body: JSON.stringify({
+                    callerId: user.id,
+                    calleeId: activeConversation.otherUser.id
+                }),
             }).catch(() => { });
         }
 
