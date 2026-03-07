@@ -249,10 +249,10 @@ export default function PersonalAssistantPage() {
             id="hotspot-jarvis"
             style={{
               ...S.jarvisHotspot,
-              top: '81.2%', left: '80.8%', width: '8.2%', height: '8.2%',
+              top: '82.0%', left: '81.5%', width: '7.5%', height: '7.5%',
             }}
           >
-            <Image src="/images/jarvis-avatar-circle.png" alt="Jarvis AI" width={200} height={200} />
+            <Image src="/images/jarvis-avatar-circle.png" alt="Jarvis AI" width={200} height={200} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
           </div>
         </div>
 

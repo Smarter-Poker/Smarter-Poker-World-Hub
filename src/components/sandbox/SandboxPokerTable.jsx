@@ -96,9 +96,10 @@ export default function SandboxPokerTable({
 
     return (
         <div style={{
-            position: 'relative', width: '100%', paddingBottom: '60%',
+            position: 'relative', width: '100%', maxWidth: 600, margin: '0 auto',
+            paddingBottom: '60%',
             overflow: 'visible',
-            background: 'radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, #1a1a2e 90%)',
+            background: 'radial-gradient(ellipse 85% 65% at 50% 42%, #0d1210 0%, #151a1d 40%, #18191A 90%)',
             borderRadius: 12,
         }}>
             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-16%' }}>
@@ -188,10 +189,10 @@ export default function SandboxPokerTable({
                                 position: 'absolute', top: pos.top, left: pos.left,
                                 transform: badgeTransform, zIndex: 2,
                                 display: 'flex', flexDirection: badgeDirection, alignItems: 'center', gap: 6,
-                                background: 'rgba(36,37,38,0.9)',
+                                background: 'rgba(36,37,38,0.95)',
                                 borderRadius: 10,
                                 padding: '4px 8px 4px 4px',
-                                border: `2px solid ${seat.isHero ? 'rgba(59,130,246,0.7)' : 'rgba(24,119,242,0.5)'}`,
+                                border: `2px solid ${seat.isHero ? 'rgba(35,116,225,0.7)' : '#3A3B3C'}`,
                                 backdropFilter: 'blur(6px)',
                                 minWidth: 60,
                             }}>

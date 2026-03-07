@@ -90,7 +90,7 @@ function getDominantAction(handFreqs) {
 }
 
 // Cell component
-const GridCell = memo(({ hand, handType, freqs, isSelected, onClick, size }) => {
+const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size }) => {
     const { color, opacity, isMixed, maxFreq } = getDominantAction(freqs);
     const hasData = freqs !== null && freqs !== undefined;
 
@@ -108,15 +108,16 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, onClick, size }) => 
                 fontFamily: "'Inter', sans-serif",
                 cursor: hasData ? 'pointer' : 'default',
                 borderRadius: 2,
-                border: isSelected ? '2px solid #00d4ff' : '1px solid rgba(255,255,255,0.08)',
+                border: isHero ? '2px solid #00d4ff' : isSelected ? '2px solid #00d4ff' : '1px solid rgba(255,255,255,0.08)',
                 backgroundColor: hasData ? color : '#0d0d1a',
                 opacity: hasData ? opacity : 0.2,
                 color: hasData ? '#fff' : '#444',
                 position: 'relative',
                 transition: 'all 0.15s ease',
-                transform: isSelected ? 'scale(1.15)' : 'scale(1)',
-                zIndex: isSelected ? 10 : 1,
-                boxShadow: isSelected ? '0 0 12px rgba(0, 212, 255, 0.5)' : 'none',
+                transform: isHero ? 'scale(1.2)' : isSelected ? 'scale(1.15)' : 'scale(1)',
+                zIndex: isHero ? 20 : isSelected ? 10 : 1,
+                boxShadow: isHero ? '0 0 16px rgba(0, 212, 255, 0.7)' : isSelected ? '0 0 12px rgba(0, 212, 255, 0.5)' : 'none',
+                animation: isHero ? 'heroGlow 1.5s ease-in-out infinite alternate' : 'none',
             }}
         >
             {hand}
@@ -250,7 +251,7 @@ function HandDetail({ hand, freqs, onClose }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect }) {
+export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false }) {
     const [selectedHand, setSelectedHand] = useState(null);
 
     const handleCellClick = useCallback((hand) => {
@@ -273,6 +274,7 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         handType={getHandType(r, c)}
                         freqs={freqs}
                         isSelected={selectedHand === hand}
+                        isHero={heroHand === hand}
                         onClick={handleCellClick}
                         size={cellSize}
                     />

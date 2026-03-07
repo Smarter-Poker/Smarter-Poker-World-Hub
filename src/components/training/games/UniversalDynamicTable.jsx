@@ -13,6 +13,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import RangeGrid from '../RangeGrid';
 import {
     MOVE_CLASSIFICATIONS,
     CLASSIFICATION_CONFIG,
@@ -1821,14 +1822,73 @@ function UniversalDynamicTable({
                             </div>
                         )}
 
-                        {/* F1: Range Matrix Viewer */}
-                        {question?.rawFrequencies && (
-                            <RangeMatrixViewer
-                                rawFrequencies={question.rawFrequencies}
-                                correctAnswer={correctAnswer}
-                                show={true}
-                            />
-                        )}
+                        {/* F1: Interactive Range Grid — GTO Wizard-style 13×13 */}
+                        {question?.rawFrequencies && (() => {
+                            // Transform rawFrequencies { action: { hand: freq } } → gridData { hand: { action: freq% } }
+                            const actions = Object.keys(question.rawFrequencies);
+                            const gridData = {};
+                            const allRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+                            for (let r = 0; r < 13; r++) {
+                                for (let c = 0; c < 13; c++) {
+                                    let hand;
+                                    if (r === c) hand = allRanks[r] + allRanks[c];
+                                    else if (r < c) hand = allRanks[r] + allRanks[c] + 's';
+                                    else hand = allRanks[c] + allRanks[r] + 'o';
+                                    const handFreqs = {};
+                                    let hasAny = false;
+                                    actions.forEach(action => {
+                                        const freq = question.rawFrequencies[action]?.[hand];
+                                        if (freq !== undefined && freq > 0) {
+                                            handFreqs[action] = Math.round(freq * 1000) / 10;
+                                            hasAny = true;
+                                        }
+                                    });
+                                    gridData[hand] = hasAny ? handFreqs : null;
+                                }
+                            }
+                            // Derive hero hand notation from question data
+                            const heroCards = question?.heroCards || question?.cards;
+                            let heroHand = null;
+                            if (heroCards && heroCards.length >= 2) {
+                                const r1 = heroCards[0]?.[0]?.toUpperCase();
+                                const r2 = heroCards[1]?.[0]?.toUpperCase();
+                                if (r1 && r2) {
+                                    const s1 = heroCards[0]?.[1];
+                                    const s2 = heroCards[1]?.[1];
+                                    const ranks = 'AKQJT98765432';
+                                    const i1 = ranks.indexOf(r1);
+                                    const i2 = ranks.indexOf(r2);
+                                    if (i1 >= 0 && i2 >= 0) {
+                                        if (r1 === r2) heroHand = r1 + r2;
+                                        else if (s1 === s2) heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 's';
+                                        else heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 'o';
+                                    }
+                                }
+                            }
+                            return (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    transition={{ duration: 0.3, delay: 0.35 }}
+                                    style={{ marginTop: 8 }}
+                                >
+                                    <div style={{
+                                        fontSize: 9, fontWeight: 700, color: '#64748b',
+                                        letterSpacing: 1.2, textTransform: 'uppercase',
+                                        marginBottom: 6, textAlign: 'center',
+                                    }}>
+                                        GTO Range Matrix {heroHand && <span style={{ color: '#00d4ff' }}>• Your Hand: {heroHand}</span>}
+                                    </div>
+                                    <RangeGrid
+                                        gridData={gridData}
+                                        actions={actions}
+                                        cellSize={20}
+                                        heroHand={heroHand}
+                                        compact={true}
+                                    />
+                                </motion.div>
+                            );
+                        })()}
 
                         {/* UI-2: Next Hand / Continue Hand button */}
                         {onNextHand ? (

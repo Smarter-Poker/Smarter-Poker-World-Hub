@@ -823,10 +823,10 @@ export default function VirtualSandbox() {
               style={{
                 width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
                 cursor: isAnalyzing ? 'wait' : 'pointer',
-                background: (!heroHand.card1 || !heroHand.card2) ? 'rgba(255,255,255,0.05)' : isAnalyzing ? 'rgba(59,130,246,0.3)' : 'linear-gradient(135deg,#3b82f6,#8b5cf6)',
-                color: (!heroHand.card1 || !heroHand.card2) ? '#475569' : '#fff',
+                background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
+                color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
                 fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
-                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(59,130,246,0.3)',
+                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
               }}>
               {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
             </motion.button>
@@ -834,8 +834,8 @@ export default function VirtualSandbox() {
 
           {/* Position Comparison — Feature #11 */}
           {results && (
-            <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px' }}>
-              <h4 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
+            <div style={{ marginTop: '12px', background: '#242526', borderRadius: 10, padding: '12px' }}>
+              <h4 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                 {POSITIONS.map(p => {
                   const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
@@ -852,8 +852,8 @@ export default function VirtualSandbox() {
                       disabled={isAnalyzing}
                       style={{
                         padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                        background: isCurrentTarget ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.05)',
-                        border: '1px solid rgba(255,255,255,0.1)', color: isCurrentTarget ? '#93c5fd' : '#94a3b8',
+                        background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                        border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
                         cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
                       }}>{p}</button>
                   );
@@ -868,23 +868,47 @@ export default function VirtualSandbox() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* RIGHT — Results Panel */}
-        <AnimatePresence>
-          {results && (
-            <motion.div id="results-panel" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 40 }}
+      {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */}
+      <AnimatePresence>
+        {results && showResults && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 100,
+              background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+              overflowY: 'auto', padding: '40px 20px',
+            }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowResults(false); }}
+          >
+            <motion.div
+              id="results-panel"
+              initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               style={{
-                background: 'rgba(255,255,255,0.02)', borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.06)', padding: '16px',
-                position: 'sticky', top: 16, maxHeight: 'calc(100vh - 32px)', overflowY: 'auto',
-              }}>
-              <h3 style={{ color: '#94a3b8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>
-                Analysis Results {comparePosition ? `(${comparePosition})` : ''}
-              </h3>
+                background: '#242526', borderRadius: 16,
+                border: '1px solid #3A3B3C', padding: '24px',
+                width: '100%', maxWidth: 600,
+                boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
+              }}
+            >
+              {/* Close button */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ color: '#E4E6EB', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>
+                  Analysis Results {comparePosition ? `(${comparePosition})` : ''}
+                </h3>
+                <button onClick={() => setShowResults(false)} style={{
+                  background: '#3A3B3C', border: 'none', borderRadius: '50%',
+                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#E4E6EB', fontSize: 18, cursor: 'pointer',
+                }}>×</button>
+              </div>
 
-              {/* Plain-English Summary (Improvement #6) */}
+              {/* Plain-English Summary */}
               {getResultsSummary(results) && (
-                <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: '#cbd5e1', textTransform: 'none' }}>
+                <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: '#E4E6EB', textTransform: 'none' }}>
                   {getResultsSummary(results)}
                 </div>
               )}
@@ -893,20 +917,20 @@ export default function VirtualSandbox() {
               {sourceBadge && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ padding: '4px 12px', borderRadius: 16, fontSize: 11, fontWeight: 700, background: sourceBadge.bg, border: `1px solid ${sourceBadge.border}`, color: sourceBadge.text }}>{sourceBadge.label}</div>
-                  <span style={{ fontSize: 10, color: '#64748b' }}>{results.source}</span>
+                  <span style={{ fontSize: 10, color: '#B0B3B8' }}>{results.source}</span>
                 </div>
               )}
 
               {/* Optimal Action */}
               {results.optimalAction && (
                 <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '12px', marginBottom: 12, textAlign: 'center' }}>
-                  <div style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  <div style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
                     {results.isMixed ? 'Primary (Mixed)' : 'Optimal (Pure)'}
                   </div>
                   <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Orbitron',sans-serif", color: results.optimalAction.color || '#22c55e' }}>
                     {results.optimalAction.label}
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f0' }}>{results.optimalAction.frequency}%</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>{results.optimalAction.frequency}%</div>
                 </div>
               )}
 
@@ -916,10 +940,10 @@ export default function VirtualSandbox() {
                   {[
                     { l: 'Hand EV', v: results.ev.heroDisplay, c: results.ev.hero >= 0 ? '#22c55e' : '#ef4444' },
                     { l: 'EV Loss', v: results.ev.evLoss > 0 ? `-${results.ev.evLoss.toFixed(2)}` : '0.00', c: results.ev.evLoss > 0 ? '#ef4444' : '#22c55e' },
-                    { l: 'Avg EV', v: `${results.ev.avg >= 0 ? '+' : ''}${results.ev.avg.toFixed(2)}`, c: '#94a3b8' },
+                    { l: 'Avg EV', v: `${results.ev.avg >= 0 ? '+' : ''}${results.ev.avg.toFixed(2)}`, c: '#B0B3B8' },
                   ].map((item, i) => (
-                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>{item.l}</div>
+                    <div key={i} style={{ background: '#3A3B3C', borderRadius: 6, padding: '8px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 9, color: '#B0B3B8', textTransform: 'uppercase' }}>{item.l}</div>
                       <div style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Orbitron',monospace", color: item.c, marginTop: 2 }}>{item.v}</div>
                     </div>
                   ))}
@@ -927,8 +951,8 @@ export default function VirtualSandbox() {
               )}
 
               {/* Frequency Bars */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
-                <h4 style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>GTO Frequencies</h4>
+              <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+                <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>GTO Frequencies</h4>
                 {results.actions?.map(a => <FrequencyBar key={a.id} action={a} isOptimal={a.isOptimal} />)}
               </div>
 
@@ -940,17 +964,17 @@ export default function VirtualSandbox() {
 
               {/* Explanation */}
               {results.explanation && (
-                <div style={{ background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)', borderRadius: 8, padding: '10px', marginBottom: 12 }}>
-                  <div style={{ color: '#64748b', fontSize: 10, marginBottom: 4, textTransform: 'uppercase' }}>Analysis</div>
-                  <p style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5, margin: 0 }}>{results.explanation}</p>
+                <div style={{ background: 'rgba(35,116,225,0.06)', border: '1px solid rgba(35,116,225,0.15)', borderRadius: 8, padding: '10px', marginBottom: 12 }}>
+                  <div style={{ color: '#B0B3B8', fontSize: 10, marginBottom: 4, textTransform: 'uppercase' }}>Analysis</div>
+                  <p style={{ color: '#E4E6EB', fontSize: 12, lineHeight: 1.5, margin: 0 }}>{results.explanation}</p>
                 </div>
               )}
 
               {/* Range Matrix */}
               {results.rangeHeatmap && (
-                <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
+                <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <h4 style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontWeight: 700 }}>
+                    <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontWeight: 700 }}>
                       Range Heatmap ({results.rangeHeatmap.totalHands})
                     </h4>
                     <div style={{ display: 'flex', gap: '3px' }}>
@@ -958,8 +982,8 @@ export default function VirtualSandbox() {
                         <button key={a.id} onClick={() => setSelectedHeatmapAction(a.id)}
                           style={{
                             padding: '2px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600, border: 'none', cursor: 'pointer',
-                            background: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)',
-                            color: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? '#93c5fd' : '#64748b',
+                            background: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? 'rgba(35,116,225,0.3)' : '#242526',
+                            color: (selectedHeatmapAction || results.rangeHeatmap.actions[0]?.id) === a.id ? '#4599FF' : '#B0B3B8',
                           }}>{a.label}</button>
                       ))}
                     </div>
@@ -980,9 +1004,9 @@ export default function VirtualSandbox() {
                 </button>
               )}
             </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&display=swap');
@@ -1055,11 +1079,7 @@ export default function VirtualSandbox() {
             padding: 16px !important;
             min-height: 52px !important;
           }
-          #results-panel {
-            position: static !important;
-            max-height: none !important;
-          }
-          /* Bigger card picker on mobile (Improvement #4) */
+          /* Bigger card picker on mobile */
           .sandbox-page .deck-picker-card {
             width: 36px !important;
             height: 50px !important;
@@ -1073,7 +1093,7 @@ export default function VirtualSandbox() {
           }
         }
 
-        /* Pulsing animation for loading (Improvement #5) */
+        /* Pulsing animation for loading */
         @keyframes skeleton-pulse {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 0.6; }
@@ -1082,8 +1102,8 @@ export default function VirtualSandbox() {
           animation: skeleton-pulse 1.5s ease-in-out infinite;
         }
         @keyframes analyze-pulse {
-          0%, 100% { box-shadow: 0 4px 20px rgba(59,130,246,0.3); }
-          50% { box-shadow: 0 4px 30px rgba(59,130,246,0.6); }
+          0%, 100% { box-shadow: 0 4px 20px rgba(35,116,225,0.3); }
+          50% { box-shadow: 0 4px 30px rgba(35,116,225,0.6); }
         }
         .analyzing-pulse {
           animation: analyze-pulse 1.5s ease-in-out infinite;
