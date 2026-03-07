@@ -6,7 +6,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Trophy, Users, DollarSign, Clock, Play, Pause, SkipForward,
-  UserPlus, UserMinus, Award, Settings, RefreshCw, AlertCircle
+  UserPlus, UserMinus, Award, Settings, RefreshCw, AlertCircle,
+  PackageCheck, CalendarDays
 } from 'lucide-react';
 import TournamentClock from './TournamentClock';
 import TournamentEntryList from './TournamentEntryList';
@@ -39,6 +40,7 @@ export default function TournamentManager({
   onAddon,
   onUpdateChips,
   onUpdatePayout,
+  onBagAndTag,
   isStaff = true,
   isLoading = false
 }) {
@@ -46,6 +48,8 @@ export default function TournamentManager({
   const [registerName, setRegisterName] = useState('');
   const [registerPhone, setRegisterPhone] = useState('');
   const [showRegisterForm, setShowRegisterForm] = useState(false);
+  const [showBagTag, setShowBagTag] = useState(false);
+  const [bagTagChips, setBagTagChips] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
 
   const statusStyle = STATUS_STYLES[tournament?.status] || STATUS_STYLES.scheduled;
@@ -106,6 +110,11 @@ export default function TournamentManager({
               >
                 {statusStyle.label}
               </span>
+              {tournament.is_multi_day && tournament.flight_label && (
+                <span className="px-2 py-1 rounded text-xs font-medium bg-[#F59E0B]/20 text-[#F59E0B]">
+                  {tournament.flight_label}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-[#64748B]">
               <span className="flex items-center gap-1">
@@ -130,6 +139,16 @@ export default function TournamentManager({
               >
                 <UserPlus size={16} />
                 Register Player
+              </button>
+            )}
+            {tournament.is_multi_day && isLive && isStaff && (
+              <button
+                onClick={() => setShowBagTag(!showBagTag)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white"
+                style={{ backgroundColor: '#F59E0B' }}
+              >
+                <PackageCheck size={16} />
+                Bag & Tag
               </button>
             )}
             <button
@@ -209,11 +228,10 @@ export default function TournamentManager({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === tab.key
-                  ? 'bg-[#132240] text-[#22D3EE]'
-                  : 'text-[#64748B] hover:text-white'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.key
+                ? 'bg-[#132240] text-[#22D3EE]'
+                : 'text-[#64748B] hover:text-white'
+                }`}
             >
               <Icon size={16} />
               {tab.label}
@@ -225,6 +243,57 @@ export default function TournamentManager({
       {/* Tab Content */}
       {activeTab === 'overview' && (
         <div className="space-y-4">
+          {/* Bag & Tag Panel (Multi-Day) */}
+          {showBagTag && tournament.is_multi_day && (
+            <div className="cmd-panel p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-white flex items-center gap-2">
+                  <PackageCheck size={18} className="text-[#F59E0B]" />
+                  Bag & Tag — End of {tournament.flight_label || `Day ${tournament.current_day || 1}`}
+                </h3>
+                {tournament.resume_time && (
+                  <span className="text-xs text-[#F59E0B]">
+                    Resumes: {new Date(tournament.resume_time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {activeEntries.map(entry => (
+                  <div key={entry.id} className="flex items-center gap-3 p-2 rounded-lg bg-[#0B1426]">
+                    <span className="text-sm text-white font-medium flex-1">
+                      {entry.player_name || 'Unknown'}
+                    </span>
+                    <input
+                      type="number"
+                      placeholder="Chip Count"
+                      value={bagTagChips[entry.id] || ''}
+                      onChange={(e) => setBagTagChips(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                      className="w-32 cmd-input text-center text-sm"
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  const chipCounts = activeEntries.map(e => ({
+                    entry_id: e.id,
+                    player_name: e.player_name || 'Unknown',
+                    chip_count: parseInt(bagTagChips[e.id]) || 0,
+                    bagged_at: new Date().toISOString(),
+                  }));
+                  onBagAndTag?.(chipCounts);
+                  setShowBagTag(false);
+                }}
+                disabled={actionLoading}
+                className="mt-3 w-full cmd-btn flex items-center justify-center gap-2 text-sm font-medium text-white"
+                style={{ backgroundColor: '#F59E0B' }}
+              >
+                <PackageCheck size={16} />
+                Save Bag & Tag Counts ({activeEntries.length} players)
+              </button>
+            </div>
+          )}
+
           {/* Clock Controls (if live) */}
           {isLive && isStaff && (
             <div className="cmd-panel p-4">
@@ -393,7 +462,7 @@ export default function TournamentManager({
                       style={{
                         backgroundColor: index === 0 ? '#F59E0B' :
                           index === 1 ? '#9CA3AF' :
-                          index === 2 ? '#B45309' : '#6B7280'
+                            index === 2 ? '#B45309' : '#6B7280'
                       }}
                     >
                       {index + 1}

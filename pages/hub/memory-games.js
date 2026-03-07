@@ -37,6 +37,7 @@ import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { busEmit } from '../../src/engine/EventBus';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -165,10 +166,12 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userI
             setStreak(prev => prev + 1);
             setMaxStreak(prev => Math.max(prev, streak + 1));
             SoundEngine.play('correct');
+            busEmit.decisionCorrect(streak + 1);
         } else {
             setStreak(0);
             setLives(prev => prev - 1);
             SoundEngine.play('wrong');
+            busEmit.decisionIncorrect(true);
         }
 
         setGameState('revealed');
@@ -460,10 +463,12 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
             setStreak(prev => prev + 1);
             setTimeRemaining(prev => Math.min(prev + TIME_BONUS, 60000)); // Cap at 60s
             SoundEngine.play('correct');
+            busEmit.decisionCorrect(streak + 1);
         } else {
             setStreak(0);
             setTimeRemaining(prev => Math.max(prev - TIME_PENALTY, 0));
             SoundEngine.play('wrong');
+            busEmit.decisionIncorrect(true);
         }
 
         setHandsCompleted(newHandsCompleted);
@@ -833,9 +838,11 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
             setStreak(prev => prev + 1);
             setCorrectAnswers(prev => prev + 1);
             SoundEngine.play('correct');
+            busEmit.decisionCorrect(streak + 1);
         } else {
             setStreak(0);
             SoundEngine.play('wrong');
+            busEmit.decisionIncorrect(true);
         }
 
         setGameState('revealed');
@@ -1128,10 +1135,12 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
             setStreak(prev => prev + 1);
             setScore(prev => prev + points + (streak * 50));
             SoundEngine.play('correct');
+            busEmit.decisionCorrect(streak + 1);
         } else {
             setStreak(0);
             setScore(prev => prev + points);
             SoundEngine.play('wrong');
+            busEmit.decisionIncorrect(true);
         }
 
         setGameState('revealed');

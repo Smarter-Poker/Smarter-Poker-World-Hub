@@ -399,7 +399,6 @@ export default function VirtualSandbox() {
   const [board, setBoard] = useState({ flop: [], turn: null, river: null });
   const [actionHistory, setActionHistory] = useState([]);
   const [potSize, setPotSize] = useState(6);
-  const skipPotCalcRef = useRef(false); // Bug 14 fix: prevent pot size race on session restore
 
   // UI State
   const [deckTarget, setDeckTarget] = useState(null); // 'hero1','hero2','board'
@@ -587,7 +586,7 @@ export default function VirtualSandbox() {
     if (q.p) setHeroPosition(q.p);
     if (q.s) setHeroStack(Number(q.s) || 100);
     if (q.g) setGameType(q.g);
-    if (q.pot) { skipPotCalcRef.current = true; setPotSize(Number(q.pot) || 6); }
+    if (q.pot) { setPotSize(Number(q.pot) || 6); }
     if (q.b) {
       const cards = q.b.includes(',') ? q.b.split(',').filter(Boolean) : q.b.match(/.{1,2}/g) || [];
       setBoard({ flop: cards.slice(0, 3), turn: cards[3] || null, river: cards[4] || null });
@@ -635,27 +634,8 @@ export default function VirtualSandbox() {
     return c;
   }, [board]);
 
-  // Pot calculation
-  useEffect(() => {
-    // Bug 14 fix: skip recalc when restoring from session
-    if (skipPotCalcRef.current) {
-      skipPotCalcRef.current = false;
-      return;
-    }
-    let pot = 1.5;
-    actionHistory.forEach(a => {
-      if (a.action === 'call') pot += pot * 0.5;
-      else if (a.action === 'raise') pot += pot * 1.5;
-      else if (a.action === 'allin') pot = heroStack * 2;
-      else if (a.action === 'check' || a.action === 'fold') { /* no change */ }
-      else if (a.action && a.action.startsWith('bet_')) {
-        // Parse any bet_XX format (bet_33, bet_50, bet_66, bet_75, bet_100, bet_150, etc.)
-        const pct = parseInt(a.action.split('_')[1], 10);
-        if (!isNaN(pct) && pct > 0) pot += pot * (pct / 100);
-      }
-    });
-    setPotSize(Math.round(pot * 10) / 10);
-  }, [actionHistory, heroStack]);
+  // Removed old full-recalc useEffect to allow manual sticky pot sizes.
+  // Pot size is now incrementally updated in the handleActionAdd/Remove functions.
 
   // Deck card selection handler — keeps deck open for multi-card flop selection (#6)
   const handleDeckSelect = (card) => {
@@ -1072,8 +1052,25 @@ export default function VirtualSandbox() {
           {/* Action History */}
           <div id="action-history">
             <ActionHistoryBuilder actions={actionHistory}
-              onAdd={a => setActionHistory([...actionHistory, a])}
-              onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
+              onAdd={a => {
+                let addedToPot = 0;
+                if (a.action === 'call') addedToPot = potSize * 0.5;
+                else if (a.action === 'raise') addedToPot = potSize * 1.5;
+                else if (a.action === 'allin') addedToPot = heroStack * 2 - potSize;
+                else if (a.action && a.action.startsWith('bet_')) {
+                  const pct = parseInt(a.action.split('_')[1], 10);
+                  if (!isNaN(pct)) addedToPot = potSize * (pct / 100);
+                }
+                const actionWithPot = { ...a, potBefore: potSize };
+                setActionHistory([...actionHistory, actionWithPot]);
+                setPotSize(Math.round((potSize + addedToPot) * 10) / 10);
+              }}
+              onRemove={i => {
+                if (i === actionHistory.length - 1 && actionHistory[i].potBefore !== undefined) {
+                  setPotSize(actionHistory[i].potBefore);
+                }
+                setActionHistory(actionHistory.filter((_, j) => j !== i));
+              }}
               potSize={potSize} />
           </div>
 
@@ -1081,7 +1078,19 @@ export default function VirtualSandbox() {
           <div className="pot-size-editor" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Pot Size (BB)</h3>
-              <button onClick={() => { skipPotCalcRef.current = false; setActionHistory([...actionHistory]); }}
+              <button onClick={() => {
+                let p = 1.5;
+                actionHistory.forEach(a => {
+                  if (a.action === 'call') p += p * 0.5;
+                  else if (a.action === 'raise') p += p * 1.5;
+                  else if (a.action === 'allin') p = heroStack * 2;
+                  else if (a.action && a.action.startsWith('bet_')) {
+                    const pct = parseInt(a.action.split('_')[1], 10);
+                    if (!isNaN(pct) && pct > 0) p += p * (pct / 100);
+                  }
+                });
+                setPotSize(Math.round(p * 10) / 10);
+              }}
                 style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', touchAction: 'manipulation' }}>Auto-Calc</button>
             </div>
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
@@ -1106,7 +1115,7 @@ export default function VirtualSandbox() {
             </div>
             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {[3, 6, 10, 15, 20, 30, 50].map(p => (
-                <button key={p} onClick={() => { skipPotCalcRef.current = true; setPotSize(p); }}
+                <button key={p} onClick={() => { setPotSize(p); }}
                   style={{
                     padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                     background: potSize === p ? 'rgba(35,116,225,0.2)' : '#3A3B3C',

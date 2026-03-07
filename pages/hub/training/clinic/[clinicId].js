@@ -96,6 +96,9 @@ export default function ClinicPlayPage() {
             setCorrectCount(prev => prev + 1);
             setStreak(prev => prev + 1);
 
+            // Broadcast decision Correct
+            bus.emitDecisionCorrect();
+
             // Apply clinic XP multiplier
             const baseXP = 100;
             const earned = Math.round(baseXP * xpMultiplier);
@@ -103,8 +106,11 @@ export default function ClinicPlayPage() {
         } else {
             feedback.incorrect();
             setStreak(0);
+
+            // Broadcast decision Incorrect
+            bus.emitDecisionIncorrect();
         }
-    }, [showResult, xpMultiplier]);
+    }, [showResult, xpMultiplier, bus]);
 
     // Next question
     const handleNext = useCallback(() => {

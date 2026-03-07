@@ -62,6 +62,7 @@ import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
 import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
+import { useFeedPrefetchObserver } from '../../src/hooks/useProfilePrefetch';
 
 // God-Mode Stack
 import { useSocialStore } from '../../src/stores/socialStore';
@@ -3917,6 +3918,10 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
 
 export default function SocialMediaPage() {
     const router = useRouter();
+
+    // Auto-prefetch profile data when posts scroll into view
+    useFeedPrefetchObserver();
+
     // Zustand Global State (replaces UI-related useState)
     const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
     const setSidebarOpen = useSocialStore((s) => s.setSidebarOpen);

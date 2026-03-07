@@ -611,6 +611,8 @@ export async function createDoubleDown(
         tournament_name: lastDown.tournament_name,
         table_number: lastDown.table_number,
         tournament_buyin: lastDown.tournament_buyin || null, // preserve buy-in for analysis continuity
+        cash_stakes: lastDown.cash_stakes || null,         // preserve stakes
+        cash_variant: lastDown.cash_variant || null,       // preserve variant
         is_double_down: true,
     });
 }

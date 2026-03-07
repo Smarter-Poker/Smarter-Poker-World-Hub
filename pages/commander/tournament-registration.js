@@ -10,6 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Search, Users, Loader2, CheckCircle2, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import EventBus, { busEmit } from '../../src/engine/EventBus';
 
 export default function TournamentRegistration() {
     const router = useRouter();
@@ -307,6 +308,10 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
 
             setMessage({ type: 'success', text: `${selectedPlayer.player_name} registered for ${selectedTournament.name || 'Tournament'}${buyinAmount > 0 ? ` — $${buyinAmount} buy-in` : ''}` });
             broadcastChange('tournaments');
+
+            // Emit celebration for local UI
+            busEmit.celebration();
+
             setSelectedPlayer(null);
             setSelectedTournament(null);
         } catch (err) {
@@ -322,7 +327,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
     return (
         <CommanderLayout title="Tournament Registration" backHref="/commander/cashier">
             <SEOHead title="Commander — Tournament Registration" description="Register players for tournaments." noindex={true} />
-            <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), -apple-system, sans-serif" , padding: '16px' }}>
+            <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), -apple-system, sans-serif", padding: '16px' }}>
 
                 {/* Message Toast */}
                 {message && (
