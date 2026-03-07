@@ -15,9 +15,16 @@ export default async function handler(req, res) {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Auth guard
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ error: 'Invalid token' });
+    const userId = authUser.id; // Trust JWT, not client-supplied value
+
     if (req.method === 'POST') {
-        const { userId, scenarioHash, userAction, correctAction, isCorrect } = req.body;
-        if (!userId || !scenarioHash || !userAction || !correctAction) {
+        const { scenarioHash, userAction, correctAction, isCorrect } = req.body;
+        if (!scenarioHash || !userAction || !correctAction) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
@@ -45,8 +52,6 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-        const { userId } = req.query;
-        if (!userId) return res.status(400).json({ error: 'userId required' });
 
         try {
             const { data, error } = await supabase
