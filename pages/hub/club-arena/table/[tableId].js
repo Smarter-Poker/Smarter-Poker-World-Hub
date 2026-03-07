@@ -175,7 +175,9 @@ export default function ClubArenaTable() {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') console.warn('[ClubArenaTable] Realtime:', status);
+      });
 
     return () => supabase.removeChannel(ch);
   }, [tableId, initialTable]);
