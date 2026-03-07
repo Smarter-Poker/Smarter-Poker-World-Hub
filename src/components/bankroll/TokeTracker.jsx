@@ -507,7 +507,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
     // ── GIG CRUD Handlers ──
     const handleCreateGig = async (e) => {
-        e.preventDefault();
+        if (e?.preventDefault) e.preventDefault();
         console.log('[TokeTracker] handleCreateGig fired', { venue_name: newGig.venue_name, userId });
 
         if (!newGig.venue_name.trim()) {
@@ -1626,11 +1626,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
             <AnimatePresence>
                 {showCreateForm && (
-                    <motion.form
+                    <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        onSubmit={handleCreateGig}
                         style={styles.createForm}
                     >
                         <h3 style={styles.formTitle}>New Event</h3>
@@ -1677,10 +1676,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         />
 
                         <div style={styles.formActions}>
-                            <button type="submit" style={styles.formSubmitBtn}>Start Event</button>
+                            <button type="button" onClick={handleCreateGig} style={styles.formSubmitBtn}>Start Event</button>
                             <button type="button" onClick={() => setShowCreateForm(false)} style={styles.formCancelBtn}>Cancel</button>
                         </div>
-                    </motion.form>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
