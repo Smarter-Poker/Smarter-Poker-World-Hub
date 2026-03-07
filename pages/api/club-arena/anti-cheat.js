@@ -196,7 +196,7 @@ export default async function handler(req, res) {
 
         // Import game controller to issue stand_up
         const { getController } = require('../../../src/lib/poker-engine/GameController');
-        const { controller } = getController();
+        const controller = await getController();
 
         if (!controller) {
           return res.status(500).json({ error: 'Game controller not available' });

@@ -46,12 +46,17 @@ export default async function handler(req, res) {
         }
 
         // Check existing membership
-        const { data: existing } = await supabaseAdmin
+        const { data: existing, error: existingErr } = await supabaseAdmin
             .from('club_members')
             .select('id')
             .eq('club_id', club.id)
             .eq('user_id', user.id)
-            .maybeSingle()
+            .maybeSingle();
+
+        if (existingErr) {
+            console.error('[join-club] Membership check error:', existingErr);
+            return res.status(500).json({ success: false, error: 'Failed to check membership' });
+        }
 
         if (existing) {
             return res.status(409).json({ success: false, error: 'You are already a member of this club' });

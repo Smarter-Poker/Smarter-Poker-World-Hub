@@ -281,7 +281,9 @@ export default function ClubArenaPage() {
       .channel(`club-arena-hub:${user?.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clubs', filter: `owner_id=eq.${user.id}` }, () => {})
       .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${user.id}` }, () => {})
-      .subscribe();
+      .subscribe((status) => {
+        if (status !== 'SUBSCRIBED') console.warn('[ClubArenaHub] Realtime:', status);
+      });
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);
 

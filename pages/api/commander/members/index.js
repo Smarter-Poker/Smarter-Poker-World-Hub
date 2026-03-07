@@ -202,6 +202,8 @@ async function handleCreate(req, res) {
             return res.status(500).json({ success: false, error: 'Internal server error' });
         }
 
+        if (!member) return res.status(500).json({ success: false, error: 'Failed to create member' });
+
         return res.status(201).json({ success: true, data: { member } });
     } catch (err) {
         console.error('Member create exception:', err);

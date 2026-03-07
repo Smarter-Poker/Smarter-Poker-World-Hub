@@ -135,6 +135,8 @@ async function createLeaderboard(req, res) {
 
     if (error) throw error;
 
+    if (!leaderboard) return res.status(500).json({ error: 'Failed to create leaderboard' });
+
     return res.status(201).json({ leaderboard });
   } catch (error) {
     console.error('Create leaderboard error:', error);

@@ -256,6 +256,10 @@ export default function AvatarGallery({ onSelect }) {
           transform: translateY(0);
         }
 
+        .avatar-card:hover .equip-overlay {
+          opacity: 1 !important;
+        }
+
         .avatar-name {
           font-family: 'Rajdhani', sans-serif;
           font-size: 14px;
@@ -535,16 +539,9 @@ export default function AvatarGallery({ onSelect }) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: isSelected ? 1 : 0,
                         transition: 'opacity 0.2s ease',
                       }}
-                        className="equip-overlay"
-                        onMouseEnter={(e) => {
-                          if (!isSelected) e.currentTarget.style.opacity = '1';
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isSelected) e.currentTarget.style.opacity = '0';
-                        }}>
+                        className="equip-overlay">
                         <div style={{
                           padding: '8px 20px',
                           background: isSelected ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 245, 255, 0.2)',

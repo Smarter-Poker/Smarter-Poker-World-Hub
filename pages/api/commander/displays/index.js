@@ -159,6 +159,8 @@ async function handlePost(req, res) {
 
       if (error) throw error;
 
+      if (!display) return res.status(500).json({ success: false, error: 'Failed to update display' });
+
       return res.status(200).json({
         success: true,
         data: { display, updated: true }
@@ -184,6 +186,8 @@ async function handlePost(req, res) {
       .maybeSingle();
 
     if (error) throw error;
+
+    if (!display) return res.status(500).json({ success: false, error: 'Failed to create display' });
 
     return res.status(201).json({
       success: true,
