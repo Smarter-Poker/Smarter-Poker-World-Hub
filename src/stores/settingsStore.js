@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Settings Global State
@@ -21,6 +22,7 @@ export const useSettingsStore = create(
     }),
     {
       name: 'sp-settings-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         selectedSection: state.selectedSection,
       }),

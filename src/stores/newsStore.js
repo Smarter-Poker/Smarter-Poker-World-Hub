@@ -4,6 +4,7 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 export const useNewsStore = create(
     persist(
@@ -86,6 +87,7 @@ export const useNewsStore = create(
         }),
         {
             name: 'news-storage',
+            storage: getStorage(),
             partialize: (state) => ({
                 articles: state.articles,
                 videos: state.videos,

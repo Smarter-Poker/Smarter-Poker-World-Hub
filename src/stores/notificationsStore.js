@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Notifications Global State
@@ -22,6 +23,7 @@ export const useNotificationsStore = create(
     }),
     {
       name: 'sp-notifications-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         selectedFilter: state.selectedFilter,
       }),

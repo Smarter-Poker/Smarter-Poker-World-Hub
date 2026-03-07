@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Social Media Global State
@@ -28,6 +29,7 @@ export const useSocialStore = create(
     }),
     {
       name: 'sp-social-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         sidebarOpen: state.sidebarOpen,
       }),

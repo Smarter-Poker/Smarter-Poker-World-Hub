@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Reels Global State
@@ -24,6 +25,7 @@ export const useReelsStore = create(
     }),
     {
       name: 'sp-reels-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         currentReelIndex: state.currentReelIndex,
       }),

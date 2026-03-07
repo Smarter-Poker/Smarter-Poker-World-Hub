@@ -24,13 +24,15 @@ export default function MessageRequests() {
     }, []);
   // Realtime subscription — live updates
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
     const _ch = supabase
-      .channel(`msg-req:${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, () => {})
+      .channel(`msg-req:${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversations' }, () => {
+          loadRequests();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+  }, [user?.id]);
 
     const loadRequests = async () => {
         try {

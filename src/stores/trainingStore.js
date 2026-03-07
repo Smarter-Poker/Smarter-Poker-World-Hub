@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Training Hub Global State
@@ -40,6 +41,7 @@ export const useTrainingStore = create(
         }),
         {
             name: 'training-preferences',
+            storage: getStorage(),
             partialize: (state) => ({
                 soundsEnabled: state.soundsEnabled,
                 animationsEnabled: state.animationsEnabled,

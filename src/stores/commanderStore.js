@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getToken } from '../lib/commander/clientAuth';
+import { getStorage } from '../lib/storage';
 
 export const useCommanderStore = create(
   persist(
@@ -356,6 +357,7 @@ export const usePlayerCommanderStore = create(
     }),
     {
       name: 'commander-player-storage',
+      storage: getStorage(),
       partialize: (state) => ({
         favoriteVenues: state.favoriteVenues,
         recentVenues: state.recentVenues,

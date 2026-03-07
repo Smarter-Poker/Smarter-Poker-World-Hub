@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Club Arena Global State
@@ -34,6 +35,7 @@ export const useClubArenaStore = create(
     }),
     {
       name: 'sp-club-arena-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         disclaimerAccepted: state.disclaimerAccepted,
       }),

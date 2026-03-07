@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Diamond Arena Global State
@@ -22,6 +23,7 @@ export const useDiamondArenaStore = create(
     }),
     {
       name: 'sp-diamond-arena-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         showRules: state.showRules,
       }),

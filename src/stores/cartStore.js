@@ -4,6 +4,7 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 const useCartStore = create(
     persist(
@@ -91,6 +92,7 @@ const useCartStore = create(
         }),
         {
             name: 'smarter-poker-cart',
+            storage: getStorage(),
             partialize: (state) => ({ items: state.items })
         }
     )

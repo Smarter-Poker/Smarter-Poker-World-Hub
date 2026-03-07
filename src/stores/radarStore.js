@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 const useRadarStore = create(
     persist(
@@ -283,6 +284,7 @@ const useRadarStore = create(
         }),
         {
             name: 'radar-search-store',
+            storage: getStorage(),
             partialize: (state) => ({
                 mode: state.mode,
                 gameType: state.gameType,

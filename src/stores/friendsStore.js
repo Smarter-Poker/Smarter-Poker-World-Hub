@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Friends Global State
@@ -22,6 +23,7 @@ export const useFriendsStore = create(
     }),
     {
       name: 'sp-friends-prefs',
+      storage: getStorage(),
       partialize: (state) => ({
         selectedTab: state.selectedTab,
       }),

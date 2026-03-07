@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { getStorage } from '../lib/storage';
 
 /**
  * Memory Games Global State
@@ -26,6 +27,7 @@ export const useMemoryStore = create(
         }),
         {
             name: 'memory-preferences',
+            storage: getStorage(),
             partialize: (state) => ({
                 soundsEnabled: state.soundsEnabled,
                 showHints: state.showHints,
