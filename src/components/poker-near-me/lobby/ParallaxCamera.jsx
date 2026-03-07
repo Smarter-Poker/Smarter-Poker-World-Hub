@@ -28,7 +28,7 @@ export function ParallaxCamera() {
   const targetPos = useRef(new Vector3(0, BASE_Y, BASE_Z));
   const lookTarget = useRef(new Vector3(0, 0, 0));
 
-  // Mouse tracking
+  // Mouse tracking (desktop)
   useEffect(() => {
     const handleMouseMove = (e) => {
       mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -37,6 +37,20 @@ export function ParallaxCamera() {
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  // Touch tracking (mobile) — single finger parallax
+  useEffect(() => {
+    const handleTouchMove = (e) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        mouseRef.current.x = (touch.clientX / window.innerWidth) * 2 - 1;
+        mouseRef.current.y = (touch.clientY / window.innerHeight) * 2 - 1;
+      }
+    };
+
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    return () => window.removeEventListener('touchmove', handleTouchMove);
   }, []);
 
   // Device orientation (mobile)

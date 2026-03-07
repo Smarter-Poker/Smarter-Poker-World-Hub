@@ -70,9 +70,8 @@ const LOBBY_IMAGES = {
 
 export default function TriviaModePage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { mode } = router.query;
-    const { user: avatarUser } = useAvatar();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
 
     const [gameState, setGameState] = useState('loading'); // loading, ready, playing, results
     const [questions, setQuestions] = useState([]);
@@ -101,75 +100,81 @@ export default function TriviaModePage() {
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
 
+    // Wait for router to be ready before rendering content
+    if (!router.isReady) return null;
+
     // Load questions and user data
     useEffect(() => {
         if (!mode || !modeConfig) return;
+        // Wait for auth to finish loading before initializing
+        if (authLoading) return;
 
         async function initialize() {
             setGameState('loading');
             setError(null);
 
             try {
-                // Wait for reactive auth 
-                if (!avatarUser?.id) return;
+                // Try avatarUser first, then getAuthUser as fallback
+                const currentUserId = avatarUser?.id || getAuthUser()?.id || null;
 
-                const currentUserId = avatarUser.id;
-                setUserId(currentUserId);
+                if (currentUserId) {
+                    setUserId(currentUserId);
 
-                // Check VIP status
-                await DiamondEngine.init(currentUserId);
-                const vipStatus = await DiamondEngine.isVIP();
-                setIsVIP(vipStatus);
+                    // Check VIP status
+                    await DiamondEngine.init(currentUserId);
+                    const vipStatus = await DiamondEngine.isVIP();
+                    setIsVIP(vipStatus);
 
-                // Get diamonds
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', currentUserId)
-                    .single();
+                    // Get diamonds
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('diamonds')
+                        .eq('id', currentUserId)
+                        .single();
 
-                if (profile) {
-                    setUserDiamonds(profile.diamonds || 0);
-                }
-
-                // Get streak
-                const { data: streakData } = await supabase
-                    .from('trivia_streaks')
-                    .select('current_streak')
-                    .eq('user_id', currentUserId)
-                    .single();
-
-                if (streakData) {
-                    setUserStreak(streakData.current_streak || 0);
-                }
-
-                // Check arcade diamonds
-                if (mode === 'arcade') {
-                    const diamonds = userDiamonds || (await getUserDiamonds(currentUserId));
-                    if (diamonds < 10) {
-                        setError('Not enough diamonds. You need 10 diamonds to play Diamond Arcade.');
-                        setGameState('error');
-                        return;
+                    if (profile) {
+                        setUserDiamonds(profile.diamonds || 0);
                     }
-                }
 
-                // Check if daily diamonds already claimed today
-                if (mode === 'daily' && currentUserId) {
-                    const today = getTodayCST();
-                    const { data: existingPlay } = await supabase
-                        .from('daily_trivia_plays')
-                        .select('id')
+                    // Get streak
+                    const { data: streakData } = await supabase
+                        .from('trivia_streaks')
+                        .select('current_streak')
                         .eq('user_id', currentUserId)
-                        .eq('played_date', today)
-                        .limit(1);
-                    if (existingPlay && existingPlay.length > 0) {
-                        setDailyDiamondsClaimed(true);
+                        .single();
+
+                    if (streakData) {
+                        setUserStreak(streakData.current_streak || 0);
                     }
-                    // Load daily leaderboard
-                    await loadDailyLeaderboard();
+
+                    // Check arcade diamonds
+                    if (mode === 'arcade') {
+                        const diamonds = userDiamonds || (await getUserDiamonds(currentUserId));
+                        if (diamonds < 10) {
+                            setError('Not enough diamonds. You need 10 diamonds to play Diamond Arcade.');
+                            setGameState('error');
+                            return;
+                        }
+                    }
+
+                    // Check if daily diamonds already claimed today
+                    if (mode === 'daily') {
+                        const today = getTodayCST();
+                        const { data: existingPlay } = await supabase
+                            .from('daily_trivia_plays')
+                            .select('id')
+                            .eq('user_id', currentUserId)
+                            .eq('played_date', today)
+                            .limit(1);
+                        if (existingPlay && existingPlay.length > 0) {
+                            setDailyDiamondsClaimed(true);
+                        }
+                        // Load daily leaderboard
+                        await loadDailyLeaderboard();
+                    }
                 }
 
-                // Load questions
+                // Load questions (works with or without user)
                 const loadedQuestions = await loadQuestions(mode, modeConfig.questionsCount);
                 if (loadedQuestions.length === 0) {
                     setError('No questions available. Please try again later.');
@@ -193,7 +198,7 @@ export default function TriviaModePage() {
         }
 
         initialize();
-    }, [mode, modeConfig, avatarUser?.id]);
+    }, [mode, modeConfig, avatarUser?.id, authLoading]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!userId) return;

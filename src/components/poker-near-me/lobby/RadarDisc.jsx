@@ -48,7 +48,7 @@ const sweepFragmentShader = `
     float radial = smoothstep(0.5, 0.1, dist);
 
     // Final color: cyan glow in the sweep area
-    float alpha = cone * radial * 0.35;
+    float alpha = cone * radial * 0.55;
     gl_FragColor = vec4(0.43, 0.91, 0.94, alpha);
   }
 `;
@@ -139,8 +139,17 @@ function VenueMarker({ position, color = '#6ee7ef', delay = 0 }) {
 
   return (
     <mesh ref={ref} position={position}>
-      <sphereGeometry args={[0.04, 8, 8]} />
-      <meshBasicMaterial color={color} transparent opacity={0.8} />
+      <sphereGeometry args={[0.04, 12, 12]} />
+      <meshPhysicalMaterial
+        color={color}
+        emissive={color}
+        emissiveIntensity={0.9}
+        transparent
+        opacity={0.85}
+        clearcoat={0.5}
+        metalness={0.5}
+        roughness={0.3}
+      />
     </mesh>
   );
 }

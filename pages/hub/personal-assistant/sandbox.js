@@ -829,7 +829,7 @@ export default function VirtualSandbox() {
           {/* Weekly Spot Challenge -- Phase 4 */}
           <WeeklySpotBanner spot={weeklySpot} onLoad={loadWeeklySpot} />
 
-          {/* Visual Poker Table */}}
+          {/* Visual Poker Table */}
           <div className="sandbox-table-wrap" style={{ marginBottom: '16px' }}>
             <SandboxPokerTable
               heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
