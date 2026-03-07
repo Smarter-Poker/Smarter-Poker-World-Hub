@@ -7,7 +7,7 @@
  * Import from here instead of re-declaring them in every file.
  *
  * Usage:
- *   import { getToken, getStaffSession, getAuthHeaders } from '../../src/lib/commander/clientAuth';
+ *   import { getToken, getStaffSession, getAuthHeaders } from '../lib/commander/clientAuth';
  */
 
 /**

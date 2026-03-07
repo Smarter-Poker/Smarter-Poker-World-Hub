@@ -35,7 +35,7 @@
  *   useCommanderSync(venueId, fetchData, { entities: ['tables', 'games'] });
  *
  *   // Writer side — broadcast after mutation:
- *   import { broadcastChange } from '.../useCommanderSync';
+ *   import { broadcastChange } from '../lib/commander/useCommanderSync';
  *   await fetch('/api/...');
  *   broadcastChange('tables');
  */

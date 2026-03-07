@@ -1,20 +1,20 @@
 /**
  * SERVER-SIDE AUTH UTILITY
- * 
+ *
  * Extracts user identity from the JWT Authorization header.
- * 
+ *
  * WHY THIS EXISTS:
  * supabase.auth.getUser(token) makes an HTTP call to GoTrue which intermittently
  * fails on Vercel edge (timeout/network issues), causing ALL API routes to return 401.
- * 
+ *
  * This utility decodes the JWT locally (no network call) to extract the user's UUID.
  * Since API routes already use the SUPABASE_SERVICE_ROLE_KEY for all database queries
  * (bypassing RLS), we only need the user's `sub` claim from the token — not full
  * session verification.
- * 
+ *
  * USAGE:
- *   import { getServerUser } from '../../../src/lib/serverAuth';
- * 
+ *   import { getServerUser } from '../lib/serverAuth';
+ *
  *   const user = getServerUser(req);
  *   if (!user) return res.status(401).json({ error: 'Auth required' });
  *   // user.id is the UUID

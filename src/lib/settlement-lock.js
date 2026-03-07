@@ -1,18 +1,18 @@
 /**
  * Settlement Lock Checker
- * 
+ *
  * Import this in ANY API that moves chips (buyin, cashout, distribute, send, etc.)
  * Call checkSettlementLock(clubId) before processing any chip transaction.
- * 
+ *
  * During Monday 4:00-4:10 AM CST, all chip operations are frozen for settlement.
- * 
+ *
  * Usage:
- *   import { checkSettlementLock } from '../../../src/lib/settlement-lock';
- *   
+ *   import { checkSettlementLock } from '../lib/settlement-lock';
+ *
  *   // At the top of your handler:
  *   const lockCheck = await checkSettlementLock(supabase, clubId);
  *   if (lockCheck.locked) {
- *     return res.status(423).json({ 
+ *     return res.status(423).json({
  *       error: 'Club is temporarily locked for weekly settlement',
  *       locked: true,
  *       unlock_at: lockCheck.unlock_at,

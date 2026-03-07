@@ -1,10 +1,10 @@
 /**
  * 🔒 Cron Authentication Helper
  * Validates requests from external cron services (cron-job.org) and Vercel's built-in cron.
- * 
+ *
  * Usage:
- *   import { validateCronAuth } from '../../../src/utils/cron-auth';
- *   
+ *   import { validateCronAuth } from '../utils/cron-auth';
+ *
  *   export default async function handler(req, res) {
  *     if (!validateCronAuth(req)) {
  *       return res.status(401).json({ error: 'Unauthorized' });
