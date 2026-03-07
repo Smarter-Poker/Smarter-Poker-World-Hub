@@ -132,12 +132,12 @@ export default function LobbyOverlay({
       <div className="lobby-scanline" />
 
       {/* TOP BAR — Title + Search */}
-      <header className="lobby-topbar" style={{ pointerEvents: 'auto' }}>
+      <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
 
         {/* POKER NEAR ME Title */}
         <h1 className="lobby-title">POKER NEAR ME</h1>
 
-        <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
+        <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative', pointerEvents: 'auto' }}>
           <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`}>
             <svg className="lobby-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
@@ -242,7 +242,7 @@ export default function LobbyOverlay({
       </header>
 
       {/* BOTTOM DOCK */}
-      <nav className="lobby-dock" style={{ pointerEvents: 'auto' }}>
+      <nav className="lobby-dock" style={{ pointerEvents: 'none' }}>
         {DOCK_ITEMS.map((item) => {
           const isActive = activePod === item.id;
           const badge = item.id === 'alerts' ? alertCount :
@@ -252,6 +252,7 @@ export default function LobbyOverlay({
             <button
               key={item.id}
               className={`lobby-dock-btn ${isActive ? 'active' : ''}`}
+              style={{ pointerEvents: 'auto' }}
               onClick={() => onPodSelect?.(item.id)}
             >
               <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
