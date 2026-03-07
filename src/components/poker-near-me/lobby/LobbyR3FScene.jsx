@@ -1,15 +1,20 @@
 /**
  * LobbyR3FScene.jsx — The actual R3F Canvas and scene content.
  *
+ * Phase 2 upgrade:
+ *   - Vertical energy beam from center (holographic pillar)
+ *   - Exponential fog for depth atmosphere
+ *   - Enhanced Bloom with ChromaticAberration on high quality
+ *   - Floating holographic ring above pods (orbital halo)
+ *   - Improved post-processing chain
+ *
  * This component runs inside an ISOLATED React root created by LobbyScene.jsx.
  * It is completely immune to the page's hydration errors and re-render cycles.
- *
- * All R3F content lives here: Canvas, lighting, pods, particles, post-processing.
  */
 
 import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { DoubleSide, AdditiveBlending } from 'three';
+import { DoubleSide, AdditiveBlending, FogExp2 } from 'three';
 
 // Feature pod definitions — each maps to a real tab/feature
 const FEATURE_PODS = [
@@ -31,12 +36,12 @@ const POD_Y = 0.5;
 const QUALITY = {
   high: {
     dpr: 1.5,
-    particleCount: 800,
+    particleCount: 900,
     shadows: true,
   },
   medium: {
     dpr: 1.0,
-    particleCount: 500,
+    particleCount: 550,
     shadows: false,
   },
   low: {
@@ -48,6 +53,7 @@ const QUALITY = {
 
 /**
  * Post-processing effects — loaded lazily to avoid breaking R3F init.
+ * Phase 2: Added ChromaticAberration for cinematic lens feel.
  */
 function PostProcessingEffects({ quality }) {
   const [Effects, setEffects] = useState(null);
@@ -70,23 +76,30 @@ function PostProcessingEffects({ quality }) {
 
   if (!Effects) return null;
 
-  const { EffectComposer, Bloom, Vignette, ToneMapping } = Effects.rppp;
+  const { EffectComposer, Bloom, Vignette, ToneMapping, ChromaticAberration } = Effects.rppp;
   const { BlendFunction, ToneMappingMode } = Effects.pp;
 
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={quality === 'high' ? 0.12 : quality === 'medium' ? 0.18 : 0.25}
-        luminanceSmoothing={0.075}
-        intensity={quality === 'high' ? 1.4 : quality === 'medium' ? 1.0 : 0.6}
-        radius={quality === 'high' ? 0.75 : quality === 'medium' ? 0.6 : 0.4}
+        luminanceThreshold={quality === 'high' ? 0.1 : quality === 'medium' ? 0.15 : 0.22}
+        luminanceSmoothing={0.065}
+        intensity={quality === 'high' ? 1.6 : quality === 'medium' ? 1.1 : 0.65}
+        radius={quality === 'high' ? 0.8 : quality === 'medium' ? 0.65 : 0.4}
         mipmapBlur
       />
       {quality !== 'low' && (
         <Vignette
-          offset={0.3}
-          darkness={0.55}
+          offset={0.25}
+          darkness={0.6}
           blendFunction={BlendFunction.NORMAL}
+        />
+      )}
+      {quality === 'high' && ChromaticAberration && (
+        <ChromaticAberration
+          offset={[0.0015, 0.0015]}
+          radialModulation
+          modulationOffset={0.5}
         />
       )}
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
@@ -151,14 +164,14 @@ function GroundPlatform({ quality }) {
             blur={quality === 'high' ? [300, 100] : quality === 'medium' ? [200, 64] : [100, 32]}
             resolution={quality === 'high' ? 256 : quality === 'medium' ? 128 : 64}
             mixBlur={0.85}
-            mixStrength={0.4}
-            roughness={0.85}
+            mixStrength={0.45}
+            roughness={0.82}
             depthScale={0.12}
             minDepthThreshold={0.4}
             maxDepthThreshold={1.4}
             color="#061525"
-            metalness={0.9}
-            mirror={0.15}
+            metalness={0.92}
+            mirror={0.18}
           />
         ) : (
           <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} />
@@ -190,6 +203,123 @@ function GroundPlatform({ quality }) {
       </mesh>
     </group>
   );
+}
+
+/**
+ * Vertical energy beam — holographic light pillar rising from the center.
+ * Creates a sci-fi "data stream" effect above the radar disc.
+ */
+function EnergyBeam() {
+  const beamRef = useRef();
+  const ringsRef = useRef([]);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+
+    // Beam pulse
+    if (beamRef.current) {
+      beamRef.current.material.opacity = 0.08 + 0.04 * Math.sin(t * 1.5);
+    }
+
+    // Floating rings orbit upward
+    ringsRef.current.forEach((ring, i) => {
+      if (!ring) return;
+      const phase = (t * 0.3 + i * 0.33) % 1;
+      ring.position.y = phase * 6;
+      ring.scale.setScalar(0.3 + phase * 0.7);
+      ring.material.opacity = (1 - phase) * 0.15;
+      ring.rotation.y = t * 0.5 + i * 2;
+    });
+  });
+
+  return (
+    <group position={[0, -0.9, 0]}>
+      {/* Main beam cylinder — very subtle, bloom does the heavy lifting */}
+      <mesh ref={beamRef}>
+        <cylinderGeometry args={[0.08, 0.15, 8, 16, 1, true]} />
+        <meshBasicMaterial
+          color="#6ee7ef"
+          transparent
+          opacity={0.08}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+
+      {/* Outer glow cylinder */}
+      <mesh>
+        <cylinderGeometry args={[0.2, 0.4, 7, 16, 1, true]} />
+        <meshBasicMaterial
+          color="#3b82f6"
+          transparent
+          opacity={0.03}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+
+      {/* Floating ring markers ascending the beam */}
+      {[0, 1, 2].map((i) => (
+        <mesh
+          key={i}
+          ref={el => { ringsRef.current[i] = el; }}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <ringGeometry args={[0.15, 0.25, 24]} />
+          <meshBasicMaterial
+            color="#6ee7ef"
+            transparent
+            opacity={0.15}
+            blending={AdditiveBlending}
+            depthWrite={false}
+            side={DoubleSide}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Orbital halo ring — a slow-spinning holographic ring above the pod orbit.
+ */
+function OrbitalHalo() {
+  const ringRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (!ringRef.current) return;
+    const t = clock.getElapsedTime();
+    ringRef.current.rotation.z = t * 0.05;
+    ringRef.current.material.opacity = 0.06 + 0.03 * Math.sin(t * 0.8);
+  });
+
+  return (
+    <mesh ref={ringRef} position={[0, 2.5, 0]} rotation={[-Math.PI / 2.2, 0, 0]}>
+      <ringGeometry args={[5.5, 5.7, 96]} />
+      <meshBasicMaterial
+        color="#6ee7ef"
+        transparent
+        opacity={0.06}
+        blending={AdditiveBlending}
+        depthWrite={false}
+        side={DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * Scene fog setup — adds exponential fog for depth.
+ */
+function SceneFog() {
+  useFrame(({ scene }) => {
+    if (!scene.fog) {
+      scene.fog = new FogExp2('#020810', 0.035);
+    }
+  });
+  return null;
 }
 
 /**
@@ -226,11 +356,9 @@ function AdaptiveQuality({ quality, setQuality, setDpr }) {
 
 /**
  * PropsSync — reads from the propsRef to sync page-level props into R3F.
- * This bridges the gap between the page React tree and the isolated R3F root.
  */
 function PropsSync({ propsRef, onUpdate }) {
   useFrame(() => {
-    // Read latest props from ref on every frame — no re-renders needed
     const props = propsRef.current;
     if (props) onUpdate(props);
   });
@@ -270,7 +398,6 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
 
   // Sync props from page tree at 60fps via useFrame (no re-renders)
   const handlePropsUpdate = useCallback((props) => {
-    // Only trigger re-render when activePod actually changes
     setSyncedProps(prev => {
       if (prev.activePod !== props.activePod || prev.onPodClick !== props.onPodClick || prev.liveData !== props.liveData) {
         return props;
@@ -284,8 +411,11 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       {/* ═══ PROPS BRIDGE ═══ */}
       <PropsSync propsRef={propsRef} onUpdate={handlePropsUpdate} />
 
+      {/* ═══ SCENE ATMOSPHERE ═══ */}
+      <SceneFog />
+
       {/* ═══ CINEMATIC LIGHTING ═══ */}
-      <ambientLight intensity={0.25} color="#88ccdd" />
+      <ambientLight intensity={0.2} color="#88ccdd" />
       <directionalLight
         position={[5, 10, 5]}
         intensity={1.8}
@@ -296,7 +426,9 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       />
       <directionalLight position={[-5, 8, -3]} intensity={0.8} color="#6ee7ef" />
       <directionalLight position={[0, 3, -8]} intensity={0.5} color="#3b82f6" />
-      <pointLight position={[0, 5, 0]} intensity={2.0} color="#6ee7ef" distance={15} decay={2} />
+      <pointLight position={[0, 5, 0]} intensity={2.2} color="#6ee7ef" distance={15} decay={2} />
+      {/* Underlight for pod pedestals */}
+      <pointLight position={[0, -0.5, 0]} intensity={0.8} color="#ff8c00" distance={8} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
@@ -310,6 +442,12 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
           <RadarDisc liveData={syncedProps.liveData} />
         </group>
       )}
+
+      {/* ═══ VERTICAL ENERGY BEAM ═══ */}
+      <EnergyBeam />
+
+      {/* ═══ ORBITAL HALO ═══ */}
+      <OrbitalHalo />
 
       {/* ═══ FEATURE PODS ═══ */}
       {FeaturePod && FEATURE_PODS.map((pod) => (
@@ -351,7 +489,7 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
     console.log('[R3FScene] Scene children:', state.scene.children.length);
     state.gl.setClearColor(0x000000, 0);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
-    state.gl.toneMappingExposure = 1.15;
+    state.gl.toneMappingExposure = 1.2; // Slightly brighter for Phase 2
   }, []);
 
   return (
