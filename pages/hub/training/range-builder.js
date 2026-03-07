@@ -311,7 +311,7 @@ export default function RangeBuilder() {
                     </div>
 
                     {/* Position Selector */}
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
                         <span style={{
                             fontSize: 10, color: '#64748b', fontWeight: 600,
                             textTransform: 'uppercase', letterSpacing: 1, marginRight: 4,
@@ -355,7 +355,7 @@ export default function RangeBuilder() {
                         </div>
                         <div style={{
                             display: 'inline-grid',
-                            gridTemplateColumns: `repeat(13, 34px)`,
+                            gridTemplateColumns: `repeat(13, clamp(21px, 6.5vw, 34px))`,
                             gap: 1,
                             background: 'rgba(255,255,255,0.03)',
                             padding: 4, borderRadius: 8,
@@ -369,7 +369,7 @@ export default function RangeBuilder() {
                                     isDiffMode={isDiffMode}
                                     diffResult={gridDiff[hand]}
                                     onToggle={toggleHand}
-                                    size={34}
+                                    size={"clamp(21px, 6.5vw, 34px)"}
                                 />
                             ))}
                         </div>

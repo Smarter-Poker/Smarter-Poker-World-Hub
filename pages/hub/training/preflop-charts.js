@@ -290,7 +290,7 @@ export default function PreflopCharts() {
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         marginBottom: 20, flexWrap: 'wrap', gap: 12,
                     }}>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                             <span style={{
                                 fontSize: 10, color: '#64748b', fontWeight: 600,
                                 textTransform: 'uppercase', letterSpacing: 1, marginRight: 4,
@@ -347,7 +347,7 @@ export default function PreflopCharts() {
                                 style={{ overflow: 'hidden', marginBottom: 16 }}
                             >
                                 <div style={{
-                                    display: 'flex', gap: 6, alignItems: 'center',
+                                    display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', justifyContent: 'center',
                                     padding: '10px 14px',
                                     background: 'rgba(124,58,237,0.08)',
                                     borderRadius: 10,
@@ -420,7 +420,7 @@ export default function PreflopCharts() {
                                     <RangeGrid
                                         gridData={rangeData}
                                         actions={actions}
-                                        cellSize={compareMode ? 28 : 34}
+                                        cellSize={compareMode ? "clamp(20px, 6vw, 28px)" : "clamp(21px, 6.5vw, 34px)"}
                                         colorMode="action"
                                     />
                                 </motion.div>
@@ -464,7 +464,7 @@ export default function PreflopCharts() {
                                         <RangeGrid
                                             gridData={compareData}
                                             actions={compareActions}
-                                            cellSize={28}
+                                            cellSize={"clamp(20px, 6vw, 28px)"}
                                             colorMode="action"
                                         />
                                     ) : null}
