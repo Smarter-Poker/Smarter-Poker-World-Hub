@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     });
 
     const response = await client.images.generate({
-      model: 'grok-2-image-1212',
+      model: 'grok-imagine-image',
       prompt,
       n: 1,
       response_format: 'b64_json',
