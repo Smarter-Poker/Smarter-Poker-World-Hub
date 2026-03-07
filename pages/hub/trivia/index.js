@@ -113,8 +113,8 @@ export default function TriviaHubPage() {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`trivia-hub:${user?.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => { })
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${user?.id}` }, () => { loadUserData(); })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'trivia_streaks', filter: `user_id=eq.${user?.id}` }, () => { loadUserData(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);

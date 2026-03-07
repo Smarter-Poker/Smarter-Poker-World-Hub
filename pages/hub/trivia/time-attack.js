@@ -58,7 +58,7 @@ export default function TimeAttackPage() {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-ta:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadUserData(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);

@@ -100,7 +100,7 @@ export default function TriviaLeaderboard() {
         if (!currentUserId) return;
         const _ch = supabase
             .channel(`trivia-lb`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores' }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores' }, () => { loadLeaderboard(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [currentUserId]);

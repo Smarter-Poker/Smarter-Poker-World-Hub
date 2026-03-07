@@ -1467,7 +1467,7 @@ export default function PokerNearMePage() {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`pnm:${user?.id}`)
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables' }, () => { })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tables' }, () => { fetchAllData({ includeVenues: true }); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);

@@ -10,9 +10,6 @@ import { NotificationBell, NotificationsDropdown } from './SmarterPokerNotificat
 import { ChatDock, ChatWindow, ConversationList } from './SmarterPokerMessenger';
 import { supabase } from '../../lib/supabase';
 
-// TODO: SupabaseProvider missing - needs creation:
-// - useSupabase hook - @/providers/SupabaseProvider
-
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR
 // ═══════════════════════════════════════════════════════════════════════════

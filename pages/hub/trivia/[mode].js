@@ -204,7 +204,7 @@ export default function TriviaModePage() {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-mode:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${userId}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'daily_trivia_plays', filter: `user_id=eq.${userId}` }, () => { loadDailyLeaderboard(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);

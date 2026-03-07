@@ -14,12 +14,6 @@ import { HeatMapBorder, GTOMasterGlow } from './HeatMapBorder';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { claimReward } from '../../lib/claimReward';
 
-// TODO: Module dependencies missing:
-// - SupabaseProvider: import { useSupabase } from '../../providers/SupabaseProvider'
-// - SocialOrbProvider: import { useSocialOrb } from '../../providers/SocialOrbProvider'
-// - SocialService: import { SocialService } from '../SocialService'
-// - types: import { FEED_FILTERS, initialFeedState } from '../types'
-
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎯 EXTENDED FEED FILTERS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -56,12 +50,6 @@ export const EnhancedSpatialFeed = ({
     const observerRef = useRef(null);
     const loadMoreRef = useRef(null);
 
-    // TODO: SocialService doesn't exist - needs module creation
-    // Social service instance
-    // const socialService = useMemo(() => {
-    //     if (!supabase) return null;
-    //     return new SocialService(supabase);
-    // }, [supabase]);
     const socialService = null;
 
     // ─────────────────────────────────────────────────────────────────────────

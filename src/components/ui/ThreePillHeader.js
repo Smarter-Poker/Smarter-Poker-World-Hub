@@ -142,6 +142,39 @@ export default function ThreePillHeader({
                             setNotificationCount(result.notificationCount);
                         }
 
+                        // ── REAL-TIME SUPABASE SYNC (matches UniversalHeader) ──
+                        let notifChannel = supabase
+                            .channel('threepill-notifications')
+                            .on('postgres_changes', {
+                                event: 'INSERT',
+                                schema: 'public',
+                                table: 'notifications',
+                                filter: `user_id=eq.${authUser.id}`
+                            }, () => {
+                                setNotificationCount(prev => prev + 1);
+                            })
+                            .on('postgres_changes', {
+                                event: 'UPDATE',
+                                schema: 'public',
+                                table: 'notifications',
+                                filter: `user_id=eq.${authUser.id}`
+                            }, (payload) => {
+                                if (payload.new.read && !payload.old.read) {
+                                    setNotificationCount(prev => Math.max(0, prev - 1));
+                                }
+                            })
+                            .on('postgres_changes', {
+                                event: 'DELETE',
+                                schema: 'public',
+                                table: 'notifications',
+                                filter: `user_id=eq.${authUser.id}`
+                            }, (payload) => {
+                                if (!payload.old.read) {
+                                    setNotificationCount(prev => Math.max(0, prev - 1));
+                                }
+                            })
+                            .subscribe();
+
                         // ── CROSS-TAB SYNC FOR THREE-PILL HEADER ──
                         const fetchUnreadCount = async () => {
                             const { count: notifCount } = await supabase
@@ -185,6 +218,13 @@ export default function ThreePillHeader({
                     notifSyncChannel.close();
                 } catch (e) { }
             }
+            try {
+                // Must search for and remove the active channel listener
+                const activeChannel = supabase.getChannels().find(c => c.topic === 'realtime:threepill-notifications');
+                if (activeChannel) {
+                    supabase.removeChannel(activeChannel);
+                }
+            } catch (e) { }
         };
     }, []);
 

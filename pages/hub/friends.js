@@ -531,8 +531,8 @@ export default function FriendsPage() {
         if (!user?.id) return;
         const _ch = supabase
             .channel(`friends:${user.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `user_id=eq.${user.id}` }, () => { })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${user.id}` }, () => { })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `user_id=eq.${user.id}` }, () => { fetchData(); })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships', filter: `friend_id=eq.${user.id}` }, () => { fetchData(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);

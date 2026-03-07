@@ -59,7 +59,7 @@ export default function SurvivalModePage() {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-surv:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_survival_runs', filter: `user_id=eq.${userId}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_survival_runs', filter: `user_id=eq.${userId}` }, () => { loadUserData(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);

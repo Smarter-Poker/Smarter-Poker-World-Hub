@@ -101,7 +101,7 @@ export default function TriviaAchievements() {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-ach:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadAchievements(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);

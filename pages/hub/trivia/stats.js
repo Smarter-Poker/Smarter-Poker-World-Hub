@@ -88,7 +88,7 @@ export default function TriviaStats() {
         if (!userId) return;
         const _ch = supabase
             .channel(`trivia-stats:${userId}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'trivia_scores', filter: `user_id=eq.${userId}` }, () => { loadStats(); })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
     }, [userId]);
