@@ -180,9 +180,9 @@ export default async function handler(req, res) {
           .select()
           .maybeSingle();
 
-        if (createErr) {
+        if (createErr || !tournament) {
           console.error('[tournament/create]', createErr);
-          return res.status(500).json({ success: false, error: createErr.message });
+          return res.status(500).json({ success: false, error: createErr?.message || 'Failed to create tournament' });
         }
 
         return res.json({ success: true, tournament });

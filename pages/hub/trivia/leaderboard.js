@@ -11,10 +11,11 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { usePersistedState } from '../../../src/hooks/usePersistedState';
 
 export default function TriviaLeaderboard() {
     const router = useRouter();
-    const [period, setPeriod] = useState('all');
+    const [period, setPeriod] = usePersistedState('sp-filters-trivia-leaderboard', 'all');
     const [leaderboard, setLeaderboard] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState(null);

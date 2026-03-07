@@ -5,6 +5,7 @@
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -145,8 +146,18 @@ function PageCard({ page, isFollowing, onFollow, onView }) {
 export default function SocialPagesHub() {
     const router = useRouter();
     const [user, setUser] = useState(null);
-    const [tab, setTab] = useState('discover');
-    const [typeFilter, setTypeFilter] = useState('all');
+
+    // Persisted filters for tab and typeFilter
+    const { filters, setFilter } = usePersistedFilters('social-pages', {
+        tab: 'discover',
+        typeFilter: 'all'
+    });
+
+    const tab = filters.tab;
+    const typeFilter = filters.typeFilter;
+    const setTab = (val) => setFilter('tab', val);
+    const setTypeFilter = (val) => setFilter('typeFilter', val);
+
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [followingIds, setFollowingIds] = useState(new Set());

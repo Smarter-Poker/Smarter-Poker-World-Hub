@@ -106,6 +106,7 @@ async function handlePost(req, res) {
             .maybeSingle();
 
         if (error) throw error;
+        if (!data) throw new Error('Failed to create shift');
 
         return res.status(201).json({ success: true, data });
     } catch (err) {

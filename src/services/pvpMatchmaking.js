@@ -94,30 +94,46 @@ export async function findMatch(userId, stakeAmount) {
         }
 
         // Get opponent profile
-        const { data: opponentProfile } = await supabase
+        const { data: opponentProfile, error: profileError } = await supabase
             .from('profiles')
             .select('id, username')
             .eq('id', opponent.user_id)
             .maybeSingle();
 
+        if (profileError) {
+            console.warn('[PvP Matchmaking] Warning: Could not fetch opponent profile:', profileError);
+        }
+
         // Get opponent's PvP stats
-        const { data: wins } = await supabase
+        const { data: wins, error: winsError } = await supabase
             .from('trivia_pvp_matches')
             .select('id')
             .eq('winner_id', opponent.user_id);
 
-        const { data: losses } = await supabase
+        if (winsError) {
+            console.warn('[PvP Matchmaking] Warning: Could not fetch opponent wins:', winsError);
+        }
+
+        const { data: losses, error: lossesError } = await supabase
             .from('trivia_pvp_matches')
             .select('id')
             .or(`player1_id.eq.${opponent.user_id},player2_id.eq.${opponent.user_id}`)
             .neq('winner_id', opponent.user_id)
             .not('winner_id', 'is', null);
 
+        if (lossesError) {
+            console.warn('[PvP Matchmaking] Warning: Could not fetch opponent losses:', lossesError);
+        }
+
         // Load 20 random questions for the match (all categories)
-        const { data: questions } = await supabase
+        const { data: questions, error: questionsError } = await supabase
             .from('trivia_questions')
             .select('*')
             .limit(100);
+
+        if (questionsError || !questions || questions.length === 0) {
+            throw new Error('Failed to load trivia questions for match');
+        }
 
         const matchQuestions = questions
             .sort(() => Math.random() - 0.5)
@@ -137,7 +153,9 @@ export async function findMatch(userId, stakeAmount) {
             .select()
             .maybeSingle();
 
-        if (matchError) throw matchError;
+        if (matchError || !match) {
+            throw matchError || new Error('Failed to create match');
+        }
 
         // Update both queue entries to matched
         await supabase

@@ -12,6 +12,7 @@ import EventCard from '../../../../src/components/commander/home-games/EventCard
 import GroupCard from '../../../../src/components/commander/home-games/GroupCard';
 import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';
 import { supabase } from '../../../../src/lib/supabase';
+import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 
@@ -20,7 +21,10 @@ export default function PlayerHomeGamesHub() {
   const [games, setGames] = useState([]);
   const [filteredGames, setFilteredGames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+  const { filters: persistedFilters, setFilter: setPersistedFilter } = usePersistedFilters('commander-home-games', {
+    filter: 'all',
+    activeTab: 'my-games'
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -31,11 +35,16 @@ export default function PlayerHomeGamesHub() {
     daysAhead: 30
   });
   const [message, setMessage] = useState(null);
-  const [activeTab, setActiveTab] = useState('my-games');
   const [discoverGames, setDiscoverGames] = useState([]);
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
+
+  // Use persisted values for filter and activeTab
+  const filter = persistedFilters.filter;
+  const setFilter = (val) => setPersistedFilter('filter', val);
+  const activeTab = persistedFilters.activeTab;
+  const setActiveTab = (val) => setPersistedFilter('activeTab', val);
 
   useEffect(() => {    const _c = new AbortController();
 

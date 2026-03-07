@@ -72,6 +72,9 @@ export default async function handler(req, res) {
         console.error('Time session create error:', error);
         return res.status(500).json({ success: false, error: error.message });
       }
+      if (!session) {
+        return res.status(500).json({ success: false, error: 'Failed to create session' });
+      }
       return res.status(201).json({ success: true, data: session });
     }
 

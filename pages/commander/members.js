@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
  * Full member management: list, search, add, scan, detail view
  * NO EMOJIS (per /no-emoji-commander)
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import Image from 'next/image';
 import { useRouter } from 'next/router';

@@ -3,7 +3,8 @@
  * Find poker rooms, casinos, and tournaments near you
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -610,8 +611,19 @@ export default function PokerNearMePage() {
     const { user } = useAvatar();
     const userId = user?.id;
 
-    // Active tab state
-    const [activeTab, setActiveTab] = useState('venues');
+    // Active tab state — persisted with sortBy and seriesViewMode
+    const { filters: uiFilters, setFilter: setUiFilter } = usePersistedFilters('poker-near-me', {
+        activeTab: 'venues',
+        sortBy: 'default',
+        seriesViewMode: 'grid'
+    });
+
+    const activeTab = uiFilters.activeTab;
+    const sortBy = uiFilters.sortBy;
+    const seriesViewMode = uiFilters.seriesViewMode;
+    const setActiveTab = (val) => setUiFilter('activeTab', val);
+    const setSortBy = (val) => setUiFilter('sortBy', val);
+    const setSeriesViewMode = (val) => setUiFilter('seriesViewMode', val);
 
 
     // Data states
@@ -743,7 +755,6 @@ export default function PokerNearMePage() {
         }
         return {};
     });
-    const [sortBy, setSortBy] = useState('default');
     const [displayCount, setDisplayCount] = useState({ venues: PAGE_SIZE, tours: PAGE_SIZE, series: PAGE_SIZE, daily: PAGE_SIZE_DAILY, live: PAGE_SIZE_LIVE });
     const [searchHistory, setSearchHistory] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -755,7 +766,6 @@ export default function PokerNearMePage() {
     const searchDebounceRef = useRef(null);
     const searchWrapperRef = useRef(null);
     const [promotionVenueIds, setPromotionVenueIds] = useState(new Set());
-    const [seriesViewMode, setSeriesViewMode] = useState('grid'); // 'grid' or 'calendar'
 
     // Map view filters (for enhanced map-first experience)
     const [mapFilters, setMapFilters] = useState(() => {

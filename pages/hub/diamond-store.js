@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import confetti from 'canvas-confetti';
 
 // God-Mode Stack
@@ -651,8 +652,18 @@ function MerchCard({ item, onSelect }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function DiamondStorePage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState('diamonds'); // diamonds, vip, merch, rewards
-    const [rewardsSubTab, setRewardsSubTab] = useState('overview'); // overview, diamonds, eggs
+
+    // Persisted filters for activeTab and rewardsSubTab
+    const { filters, setFilter } = usePersistedFilters('diamond-store', {
+        activeTab: 'diamonds',
+        rewardsSubTab: 'overview'
+    });
+
+    const activeTab = filters.activeTab;
+    const rewardsSubTab = filters.rewardsSubTab;
+    const setActiveTab = (val) => setFilter('activeTab', val);
+    const setRewardsSubTab = (val) => setFilter('rewardsSubTab', val);
+
     const [selectedPackage, setSelectedPackage] = useState('standard');
     const [selectedVIP, setSelectedVIP] = useState('vip-monthly');
     const [isProcessing, setIsProcessing] = useState(false);

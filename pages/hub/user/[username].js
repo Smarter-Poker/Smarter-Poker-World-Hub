@@ -9,6 +9,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
+import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
 
@@ -461,8 +462,8 @@ export default function UserProfilePage() {
     const [pokerReviews, setPokerReviews] = useState([]);
     const [pokerFollowing, setPokerFollowing] = useState([]);
 
-    // Tab state
-    const [activeTab, setActiveTab] = useState('all');
+    // Tab state — persisted
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-user-profile', 'all');
     const [articleReader, setArticleReader] = useState({ open: false, url: '', title: '' });
 
     // Profile menu state

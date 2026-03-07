@@ -72,6 +72,7 @@ export default async function handler(req, res) {
                 .maybeSingle();
 
             if (error) return res.status(500).json({ success: false, error: error.message });
+            if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
             // Enrich with profile
             const { data: profile } = await supabase

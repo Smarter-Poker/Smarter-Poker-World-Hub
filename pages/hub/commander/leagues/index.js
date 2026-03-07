@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {
@@ -104,7 +105,7 @@ export default function LeaguesPage() {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = usePersistedState('sp-filters-commander-leagues', 'all');
 
   const { data: swrData, isLoading: loading } = useSWR('/api/commander/leagues', async () => {
     const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };

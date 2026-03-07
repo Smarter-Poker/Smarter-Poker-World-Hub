@@ -939,6 +939,11 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         setTourneyState(prev => ({ ...prev, ...payload.payload, _lastEvent: evt }));
       });
     }
+    tCh.on('system', {}, (status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error('[UnionTournament] Channel error:', status);
+      }
+    });
     tCh.subscribe((status) => {
       if (status !== 'SUBSCRIBED') {
         console.warn(`[UnionTournament] Broadcast channel ${t.id} status: ${status}`);
@@ -953,6 +958,11 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         filter: `id=eq.${t.id}`,
       }, (payload) => {
         setTourneyState(prev => ({ ...prev, ...payload.new }));
+      })
+      .on('system', {}, (status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[UnionTournament] Postgres channel error:', status);
+        }
       })
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') {

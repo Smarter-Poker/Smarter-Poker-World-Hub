@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -379,10 +380,19 @@ export default function VideoLibraryPage() {
     const showPlayer = useVideoLibraryStore((s) => s.showPlayer);
     const setShowPlayer = useVideoLibraryStore((s) => s.setShowPlayer);
 
+    // Persisted filters for source and type
+    const { filters, setFilter } = usePersistedFilters('video-library', {
+        selectedSource: 'ALL',
+        selectedType: 'ALL'
+    });
+
+    const selectedSource = filters.selectedSource;
+    const selectedType = filters.selectedType;
+    const setSelectedSource = (val) => setFilter('selectedSource', val);
+    const setSelectedType = (val) => setFilter('selectedType', val);
+
     // Local state (keep for data/filtering)
     const [videos, setVideos] = useState(FULL_VIDEOS);
-    const [selectedSource, setSelectedSource] = useState('ALL');
-    const [selectedType, setSelectedType] = useState('ALL'); // 'ALL', 'cash', 'tournament'
 
     // Handle query parameters for deep linking
     useEffect(() => {

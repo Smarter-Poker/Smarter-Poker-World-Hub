@@ -43,6 +43,7 @@ import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { motion, AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import confetti from 'canvas-confetti';
@@ -1847,7 +1848,7 @@ const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 
 
 function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive }) {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState('posts');
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-social-media', 'posts');
     const [posts, setPosts] = useState([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
     const [postContent, setPostContent] = useState('');

@@ -66,6 +66,7 @@ async function submitRating(req, res) {
       .maybeSingle();
 
     if (error) throw error;
+    if (!rating) throw new Error('Failed to save rating');
 
     return res.status(201).json({ success: true, data: { rating } });
   } catch (error) {

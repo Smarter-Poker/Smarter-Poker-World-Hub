@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
+import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
   return (
@@ -81,7 +82,7 @@ export default function LeagueDetailPage() {
 
   const [isJoined, setIsJoined] = useState(false);
   const [joining, setJoining] = useState(false);
-  const [activeTab, setActiveTab] = useState('standings');
+  const [activeTab, setActiveTab] = usePersistedState('sp-filters-commander-league-detail', 'standings');
 
   // Get current user ID from Supabase session (set by useEffect below)
   const [currentUserId, setCurrentUserId] = React.useState(null);

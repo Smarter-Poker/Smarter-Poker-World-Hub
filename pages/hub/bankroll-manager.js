@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../src/lib/supabase';
 import { useAvatar } from '../../src/contexts/AvatarContext';
@@ -204,8 +205,23 @@ export default function BankrollManagerPage() {
   // ═══ ACTION GATE: Users can explore dashboard, but logging/pro tools are gated ═══
   const { guardAction, UpgradePopup, isVip: isGloballyVip, hasAccess: hasProAccess, expiresAt: proExpiresAt } = useFeatureGate('bankroll_pro');
 
-  // UI State
-  const [activeSection, setActiveSection] = useState('dashboard');
+  // UI State - use persisted filters
+  const { filters, setFilter } = usePersistedFilters('bankroll-manager', {
+    activeSection: 'dashboard',
+    categoryFilter: 'all',
+    timeFilter: 'All Time',
+    chartType: 'line'
+  });
+
+  const activeSection = filters.activeSection;
+  const categoryFilter = filters.categoryFilter;
+  const timeFilter = filters.timeFilter;
+  const chartType = filters.chartType;
+
+  const setActiveSection = (val) => setFilter('activeSection', val);
+  const setCategoryFilter = (val) => setFilter('categoryFilter', val);
+  const setTimeFilter = (val) => setFilter('timeFilter', val);
+  const setChartType = (val) => setFilter('chartType', val);
 
   const [editEntry, setEditEntry] = useState(null);
 
@@ -243,9 +259,7 @@ export default function BankrollManagerPage() {
   });
 
   // Filters
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(null);
-  const [timeFilter, setTimeFilter] = useState('All Time');
   const [gameTypeFilter, setGameTypeFilter] = useState(['poker_cash', 'poker_mtt', 'casino_table', 'slots', 'sports']);
 
   // Dropdowns
@@ -253,12 +267,6 @@ export default function BankrollManagerPage() {
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [showGameTypeDropdown, setShowGameTypeDropdown] = useState(false);
   const [showChartTypeDropdown, setShowChartTypeDropdown] = useState(false);
-  const [chartType, setChartType] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('bankroll_chart_type') || 'line';
-    }
-    return 'line';
-  });
   const CHART_TYPE_LABELS = { line: 'Line Chart', bar: 'Bar Chart', donut: 'Donut Chart', stacked: 'Stacked Bar', histogram: 'Histogram', heatmap: 'Heatmap' };
   const CHART_TYPES = ['line', 'bar', 'donut', 'stacked', 'histogram', 'heatmap'];
   const handleChartTypeChange = (type) => {

@@ -571,7 +571,11 @@ export default function ClubMessages() {
                     playMessageSound();
                 }
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Messages] Message channel status: ${status}`);
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);
@@ -600,7 +604,11 @@ export default function ClubMessages() {
                 // Caller hung up before we answered
                 setIncomingCall(null);
             })
-            .subscribe();
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[Messages] Call channel status: ${status}`);
+                }
+            });
 
         return () => {
             supabase.removeChannel(callChannel);

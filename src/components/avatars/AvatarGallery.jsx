@@ -27,8 +27,8 @@ export default function AvatarGallery({ onSelect }) {
       try {
         setLoading(true);
 
-        // Load custom avatars first if VIP
-        if (user?.id && isVip) {
+        // Load custom avatars (VIP gets 5, FREE gets 1)
+        if (user?.id) {
           try {
             const customs = await getCustomAvatarGallery(user.id);
             setCustomAvatars(customs || []);
@@ -56,9 +56,9 @@ export default function AvatarGallery({ onSelect }) {
 
   async function loadAvatars() {
     try {
-      // VIP users: show ONLY VIP avatars
-      // FREE users: show ONLY FREE avatars
-      const tierFilter = isVip ? 'vip' : 'free';
+      // VIP users: show ALL avatars (VIP + FREE = 75 total)
+      // FREE users: show ONLY FREE avatars (25 total)
+      const tierFilter = isVip ? 'all' : 'free';
       const data = await getAvailableAvatars(user?.id || null, tierFilter);
 
       // All avatars are unlocked for their respective tiers
@@ -95,9 +95,14 @@ export default function AvatarGallery({ onSelect }) {
   }
 
   function handleCreateNewCustom() {
+    const maxCustomSlots = isVip ? 5 : 1;
     // Check if at limit
-    if (customAvatars.length >= 5) {
-      toast.warning('You have 5/5 custom avatars! Please delete one to create a new avatar.');
+    if (customAvatars.length >= maxCustomSlots) {
+      if (isVip) {
+        toast.warning('You have 5/5 custom avatars! Please delete one to create a new avatar.');
+      } else {
+        toast.warning('FREE users get 1 custom avatar. Upgrade to VIP for up to 5!');
+      }
       return;
     }
     setShowCustomBuilder(true);
@@ -134,12 +139,11 @@ export default function AvatarGallery({ onSelect }) {
     }
   }
 
-  // Create placeholder boxes for custom avatars (minimum 5 total for VIP)
-  // If the user has more than 5 (legacy), show all of them!
-  const customSlots = [...customAvatars];
-  const minSlots = 5;
-  while (customSlots.length < minSlots) {
-    customSlots.push(null);
+  // Create placeholder boxes for custom avatars (VIP = 5, FREE = 1)
+  const maxCustomSlots = isVip ? 5 : 1;
+  const customSlots = [];
+  for (let i = 0; i < maxCustomSlots; i++) {
+    customSlots.push(customAvatars[i] || null); // null = empty slot
   }
 
   return (
@@ -338,105 +342,105 @@ export default function AvatarGallery({ onSelect }) {
         </div>
       )}
 
-      {/* CUSTOM AVATARS SECTION (VIP ONLY) */}
-      {isVip && (
-        <div className="gallery-section">
-          <h2 className="section-title">🎨 MY CUSTOM AVATARS</h2>
-          <p className="section-subtitle">
-            {customAvatars.length} custom avatars • Create up to 5 unique AI-generated avatars
-          </p>
+      {/* CUSTOM AVATARS SECTION (VIP=5, FREE=1) */}
+      <div className="gallery-section">
+        <h2 className="section-title">🎨 MY CUSTOM {isVip ? 'AVATARS' : 'AVATAR'}</h2>
+        <p className="section-subtitle">
+          {customAvatars.length}/{maxCustomSlots} slots used • Create up to {maxCustomSlots} unique AI-generated avatar{maxCustomSlots > 1 ? 's' : ''}
+        </p>
 
-          <div className="avatar-grid">
-            {customSlots.map((customAvatar, index) => (
-              customAvatar ? (
-                <div
-                  key={customAvatar.id}
-                  className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''}`}
-                  onClick={() => handleSelectCustomAvatar(customAvatar)}
+        <div className="avatar-grid">
+          {customSlots.map((customAvatar, index) => (
+            customAvatar ? (
+              <div
+                key={customAvatar.id}
+                className={`avatar-card ${currentAvatar?.type === 'custom' && currentAvatar?.imageUrl === customAvatar.image_url ? 'selected' : ''}`}
+                onClick={() => handleSelectCustomAvatar(customAvatar)}
+              >
+                <img
+                  src={customAvatar.image_url}
+                  alt={`Custom Avatar ${index + 1}`}
+                  className="avatar-image"
+                />
+
+                {/* DELETE BUTTON */}
+                <button
+                  onClick={(e) => handleDeleteCustomAvatar(e, customAvatar.id)}
+                  style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 68, 68, 0.9)',
+                    border: '2px solid #fff',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                    zIndex: 10,
+                    transition: 'all 0.2s ease',
+                    opacity: isVip ? 1 : 0.5
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#ff0000'}
+                  onMouseOut={(e) => e.target.style.background = 'rgba(255, 68, 68, 0.9)'}
+                  title={isVip ? "Delete This Avatar" : "Delete Avatar (Warning: Cannot create another one without VIP)"}
                 >
-                  <img
-                    src={customAvatar.image_url}
-                    alt={`Custom Avatar ${index + 1}`}
-                    className="avatar-image"
-                  />
+                  ✕
+                </button>
 
-                  {/* DELETE BUTTON */}
-                  <button
-                    onClick={(e) => handleDeleteCustomAvatar(e, customAvatar.id)}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      left: '8px',
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      background: 'rgba(255, 68, 68, 0.9)',
-                      border: '2px solid #fff',
-                      color: '#fff',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                      zIndex: 10,
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseOver={(e) => e.target.style.background = '#ff0000'}
-                    onMouseOut={(e) => e.target.style.background = 'rgba(255, 68, 68, 0.9)'}
-                    title="Delete This Avatar"
-                  >
-                    ✕
-                  </button>
-
-                  <div className="avatar-info">
-                    <p className="avatar-name">{customAvatar.prompt?.substring(0, 30) || 'Custom Avatar'}</p>
-                    <p className="avatar-tier">AI Generated</p>
-                  </div>
+                <div className="avatar-info">
+                  <p className="avatar-name">{customAvatar.prompt?.substring(0, 30) || 'Custom Avatar'}</p>
+                  <p className="avatar-tier">AI Generated</p>
                 </div>
-              ) : (
-                <div
-                  key={`placeholder-${index}`}
-                  className="avatar-card placeholder"
-                  onClick={handleCreateNewCustom}
-                >
-                  <div className="placeholder-content">
-                    <div className="placeholder-icon">+</div>
-                    <div className="placeholder-text">Create Custom</div>
-                  </div>
+              </div>
+            ) : (
+              <div
+                key={`placeholder-${index}`}
+                className="avatar-card placeholder"
+                onClick={handleCreateNewCustom}
+              >
+                <div className="placeholder-content">
+                  <div className="placeholder-icon">+</div>
+                  <div className="placeholder-text">Create Custom</div>
                 </div>
-              )
-            ))}
-          </div>
-
-          {/* CREATE CUSTOM AVATAR BUTTON - ALWAYS visible for VIP */}
-          <div style={{
-            marginTop: '20px',
-            textAlign: 'center'
-          }}>
-            <button
-              onClick={handleCreateNewCustom}
-              style={{
-                padding: '15px 40px',
-                background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
-                border: 'none',
-                borderRadius: '12px',
-                color: '#fff',
-                fontFamily: "'Orbitron', sans-serif",
-                fontSize: '16px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 8, verticalAlign: 'middle' }} /> Create Custom Avatar
-            </button>
-          </div>
+              </div>
+            )
+          ))}
         </div>
-      )}
+
+        {/* CREATE CUSTOM AVATAR BUTTON - ALWAYS visible for VIP */}
+        <div style={{
+          marginTop: '20px',
+          textAlign: 'center'
+        }}>
+          <button
+            onClick={handleCreateNewCustom}
+            style={{
+              padding: '15px 40px',
+              background: 'linear-gradient(135deg, #ff00f5, #00f5ff)',
+              border: 'none',
+              borderRadius: '12px',
+              color: '#fff',
+              fontFamily: "'Orbitron', sans-serif",
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              boxShadow: '0 4px 20px rgba(255, 0, 245, 0.5)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <img src="/images/jarvis-avatar.png" alt="Jarvis" style={{ width: 20, height: 20, borderRadius: '50%', marginRight: 8, verticalAlign: 'middle' }} />
+            {isVip ? 'Create Custom Avatar' : 'Create Free AI Avatar'}
+          </button>
+        </div>
+      </div>
 
       {/* PRESET AVATARS SECTION */}
       <div className="gallery-section">

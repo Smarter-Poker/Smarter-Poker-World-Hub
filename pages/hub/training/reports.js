@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
@@ -141,7 +141,7 @@ export default function GTOReports() {
     const router = useRouter();
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState('all');
+    const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');
     const [userId, setUserId] = useState(null);
 
     // Get user ID from auth on mount

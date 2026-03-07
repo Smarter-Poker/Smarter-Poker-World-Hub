@@ -50,7 +50,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
-        return res.json({ success: true, note: data });
+        return res.json({ success: true, note: data || null });
       }
 
       // ── GET BULK — for all players at a table ────────────────
@@ -118,7 +118,7 @@ export default async function handler(req, res) {
               .eq('id', existing.id)
               .select()
               .maybeSingle();
-            if (updErr) return res.status(500).json({ success: false, error: updErr.message });
+            if (updErr || !updated) return res.status(500).json({ success: false, error: updErr?.message || 'Failed to update note' });
             return res.json({ success: true, note: updated });
           } else {
             const { data: inserted, error: insErr } = await supabaseAdmin
@@ -126,11 +126,12 @@ export default async function handler(req, res) {
               .insert(upsertData)
               .select()
               .maybeSingle();
-            if (insErr) return res.status(500).json({ success: false, error: insErr.message });
+            if (insErr || !inserted) return res.status(500).json({ success: false, error: insErr?.message || 'Failed to create note' });
             return res.json({ success: true, note: inserted });
           }
         }
 
+        if (!data) return res.status(500).json({ success: false, error: 'Failed to upsert note' });
         return res.json({ success: true, note: data });
       }
 

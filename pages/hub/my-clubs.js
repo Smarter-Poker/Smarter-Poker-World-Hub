@@ -13,6 +13,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { usePersistedState } from '../../src/hooks/usePersistedState';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { getAuthUser } from '../../src/lib/authUtils';
@@ -442,8 +443,8 @@ export default function MyClubsPage() {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 
-    // Active tab
-    const [activeTab, setActiveTab] = useState('my-clubs'); // 'my-clubs' | 'discover'
+    // Active tab — persisted
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-my-clubs', 'my-clubs');
 
     // ═══════════════════════════════════════════════════════════════════════
     // HELPER — Get user ID (authenticated or anonymous)

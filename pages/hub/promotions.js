@@ -7,6 +7,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { usePersistedState } from '../../src/hooks/usePersistedState';
 import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -54,7 +55,7 @@ function getDetailUrl(pageType, pageId) {
 
 export default function PromotionsPage() {
     const [menuOpen, setMenuOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('all');
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-promotions', 'all');
     const [searchQuery, setSearchQuery] = useState('');
     const [searchInput, setSearchInput] = useState('');
 

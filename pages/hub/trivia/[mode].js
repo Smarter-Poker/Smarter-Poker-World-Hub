@@ -5,7 +5,7 @@
 
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';

@@ -131,11 +131,13 @@ export default async function handler(req, res) {
                         .upsert({ post_id, user_id, interaction_type: 'comment' }, { onConflict: 'post_id,user_id' })
                         .select()
                         .maybeSingle();
-                    if (fbError) return res.status(500).json({ success: false, error: fbError.message });
+                    if (fbError || !fallback) return res.status(500).json({ success: false, error: fbError?.message || 'Failed to create comment' });
                     return res.status(201).json({ interaction: fallback });
                 }
                 return res.status(500).json({ success: false, error: error.message });
             }
+
+            if (!data) return res.status(500).json({ success: false, error: 'Failed to create comment' });
 
             // Update comment count on post
             await supabase.rpc('increment_post_count', { p_post_id: post_id, p_field: 'comment_count' }).catch(async () => {

@@ -74,19 +74,22 @@ export default async function handler(req, res) {
                 .select('id')
                 .maybeSingle();
 
-            if (directError) {
+            if (directError || !directPost) {
                 console.error('Create post error:', directError);
                 return res.status(500).json({ success: false, error: 'Failed to create post' });
             }
-            if (!directPost) return res.status(500).json({ success: false, error: 'Failed to create post' });
             post = directPost;
         } else {
+            if (!rpcResult) {
+                console.error('Create post error: RPC returned null');
+                return res.status(500).json({ success: false, error: 'Failed to create post' });
+            }
             post = rpcResult;
         }
 
         return res.status(200).json({
             success: true,
-            data: { post_id: post?.id || 'created' }
+            data: { post_id: post.id }
         });
     } catch (err) {
         console.error('Create post error:', err);

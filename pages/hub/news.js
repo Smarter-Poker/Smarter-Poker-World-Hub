@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
@@ -913,7 +914,17 @@ export default function NewsHub() {
 
     // Core State
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeTab, setActiveTab] = useState('all');
+
+    // Persisted filters for activeTab and activeSection
+    const { filters, setFilter } = usePersistedFilters('news', {
+        activeTab: 'all',
+        activeSection: 'news'
+    });
+
+    const activeTab = filters.activeTab;
+    const activeSection = filters.activeSection;
+    const setActiveTab = (val) => setFilter('activeTab', val);
+    const setActiveSection = (val) => setFilter('activeSection', val);
 
     // SWR-backed static data — cached 60s, survive navigation
     const jsonFetch = (url) => fetch(url).then(r => r.json());
@@ -961,7 +972,6 @@ export default function NewsHub() {
             setCategoryFilter(router.query.filter);
         }
     }, [router.query]);
-    const [activeSection, setActiveSection] = useState('news'); // 'news' or 'videos'
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
     const [subscribing, setSubscribing] = useState(false);

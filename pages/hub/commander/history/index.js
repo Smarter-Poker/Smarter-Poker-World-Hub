@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { History, Clock, DollarSign, TrendingUp } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 
 function SessionCard({ session }) {
   const checkIn = new Date(session.check_in_at);
@@ -82,7 +83,7 @@ function SessionCard({ session }) {
 export default function PlayerHistoryPage() {
   const router = useRouter();
 
-  const [filter, setFilter] = useState('all'); // 'all', 'week', 'month', 'year'
+  const [filter, setFilter] = usePersistedState('sp-filters-commander-history', 'all'); // 'all', 'week', 'month', 'year'
 
   // Auth redirect
   useEffect(() => {

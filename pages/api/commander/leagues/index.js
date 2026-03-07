@@ -133,6 +133,7 @@ async function createLeague(req, res) {
       .maybeSingle();
 
     if (error) throw error;
+    if (!league) throw new Error('Failed to create league');
 
     return res.status(201).json({ success: true, data: { league } });
   } catch (error) {

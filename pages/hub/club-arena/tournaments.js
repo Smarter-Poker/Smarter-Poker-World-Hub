@@ -112,6 +112,11 @@ export default function TournamentsPage() {
         // We use a slight delay so rapid burst AI registrations don't spam the API
         setTimeout(() => loadData(), 500);
       })
+      .on('system', {}, (status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[Tournaments] List channel error:', status);
+        }
+      })
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') {
           console.warn(`[Tournaments] List channel status: ${status}`);
@@ -514,6 +519,11 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         }
       });
     }
+    tCh.on('system', {}, (status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.error('[Tournament] Broadcast channel error:', status);
+      }
+    });
     tCh.subscribe((status) => {
       if (status !== 'SUBSCRIBED') {
         console.warn(`[Tournament] Broadcast channel ${t.id} status: ${status}`);
@@ -529,6 +539,11 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         filter: `id=eq.${t.id}`,
       }, (payload) => {
         setTourneyState(prev => ({ ...prev, ...payload.new }));
+      })
+      .on('system', {}, (status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[Tournament] Postgres channel error:', status);
+        }
       })
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') {
