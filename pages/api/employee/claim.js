@@ -42,7 +42,7 @@ export default async function handler(req, res) {
             .from('staff_claim_tokens')
             .select('*')
             .eq('token', code.toUpperCase().trim())
-            .single();
+            .maybeSingle();
 
         if (claimErr || !claim) {
             return res.status(404).json({ success: false, error: 'Invalid claim code' });

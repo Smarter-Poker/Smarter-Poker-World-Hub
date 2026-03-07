@@ -115,7 +115,7 @@ async function handlePost(req, res, staff) {
         notes: notes || null,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -103,7 +103,7 @@ async function handlePost(req, res) {
                 created_by: authResult.staff?.display_name || 'Manager'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

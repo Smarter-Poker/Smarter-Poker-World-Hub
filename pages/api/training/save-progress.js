@@ -129,7 +129,7 @@ export default async function handler(req, res) {
                 diamonds_earned: diamondsEarned
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (historyError) {
             console.error('Error saving level history:', historyError);
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
                     last_played_at: new Date().toISOString()
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (insertError) {
                 console.error('Error creating progress:', JSON.stringify(insertError, null, 2));

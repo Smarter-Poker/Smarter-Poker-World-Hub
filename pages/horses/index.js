@@ -545,7 +545,7 @@ export default function HorsesAdmin() {
         .from('content_authors')
         .insert([personaToCreate])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

@@ -162,7 +162,7 @@ async function handlePost(req, res) {
         last_heartbeat: new Date().toISOString()
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

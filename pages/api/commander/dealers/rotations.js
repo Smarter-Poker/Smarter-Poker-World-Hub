@@ -179,7 +179,7 @@ async function createRotation(req, res) {
             started_at: new Date().toISOString()
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 
@@ -268,7 +268,7 @@ async function createRotation(req, res) {
         started_at: new Date().toISOString()
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -171,7 +171,7 @@ async function handleRegister(req, res, tournamentId) {
         status: 'registered'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

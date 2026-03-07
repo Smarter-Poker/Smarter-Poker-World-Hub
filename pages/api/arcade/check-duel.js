@@ -61,7 +61,7 @@ export default async function handler(req, res) {
             .gt('expires_at', new Date().toISOString())
             .order('created_at', { ascending: true })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (opponent) {
             const now = new Date().toISOString();

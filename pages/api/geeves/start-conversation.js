@@ -50,7 +50,7 @@ export default async function handler(req, res) {
                 title: 'New Poker Conversation'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (convError) {
             throw convError;

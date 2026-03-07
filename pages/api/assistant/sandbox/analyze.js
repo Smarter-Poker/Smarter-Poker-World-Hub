@@ -818,7 +818,7 @@ export default async function handler(req, res) {
           pot_size_bb: calculatedPot,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (session) {
         await supabase.from('sandbox_results').insert({

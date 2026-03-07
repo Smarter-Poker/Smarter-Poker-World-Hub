@@ -69,7 +69,7 @@ export default async function handler(req, res) {
                     parent_id: parent_id || null
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) return res.status(500).json({ success: false, error: error.message });
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
                 .from('profiles')
                 .select('id, username, full_name, avatar_url')
                 .eq('id', user_id)
-                .single();
+                .maybeSingle();
 
             return res.status(201).json({
                 success: true,

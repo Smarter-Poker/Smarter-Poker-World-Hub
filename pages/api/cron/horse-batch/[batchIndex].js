@@ -398,7 +398,7 @@ async function postVideoClip(horse, assignedSources, horseIndex, clipType = 'spo
             clip_type: clipType,
             clip_id: clip.id || clip.video_id
         }
-    }).select().single();
+    }).select().maybeSingle();
 
     if (error) return { success: false, error: error.message };
     return { success: true, postId: post.id, type: `${clipType}_video`, caption: caption.slice(0, 50) };
@@ -462,7 +462,7 @@ async function postNewsLink(horse, horseIndex, newsType) {
             link_url: article.link,
             link_title: article.title,
             link_site_name: source.name
-        }).select().single();
+        }).select().maybeSingle();
 
         if (error) return { success: false, error: error.message };
         return { success: true, postId: post.id, type: newsType + '_news', title: article.title?.slice(0, 40) };

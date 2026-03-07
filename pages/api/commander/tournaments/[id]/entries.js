@@ -176,7 +176,7 @@ async function registerPlayer(req, res, tournamentId) {
         *,
         profiles (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

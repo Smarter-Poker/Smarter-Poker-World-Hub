@@ -194,7 +194,7 @@ async function handlePost(req, res) {
       .from('commander_tables')
       .insert(insertData)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Commander table create error:', error);

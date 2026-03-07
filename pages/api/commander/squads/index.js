@@ -55,7 +55,7 @@ async function handleCreate(req, res) {
         status: 'waiting'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

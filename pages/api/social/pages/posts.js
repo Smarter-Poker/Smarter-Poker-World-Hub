@@ -108,7 +108,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('require_post_approval, owner_id, allow_member_posts, name, avatar_url, page_type')
             .eq('id', page_id)
-            .single();
+            .maybeSingle();
 
         if (!page) return res.status(404).json({ success: false, error: 'Page not found' });
 
@@ -144,7 +144,7 @@ export default async function handler(req, res) {
                 metadata: metadata || {}
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
 
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
             .from('social_page_posts')
             .select('author_id, page_id')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 
@@ -208,7 +208,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('owner_id')
             .eq('id', post.page_id)
-            .single();
+            .maybeSingle();
         const isPageAdmin = page?.owner_id === author_id;
 
         if (!isAuthor && !isPageAdmin) {
@@ -227,7 +227,7 @@ export default async function handler(req, res) {
             .update(updates)
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true, data });
@@ -242,7 +242,7 @@ export default async function handler(req, res) {
             .from('social_page_posts')
             .select('author_id, page_id')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (!post) return res.status(404).json({ success: false, error: 'Post not found' });
 
@@ -253,7 +253,7 @@ export default async function handler(req, res) {
                 .from('social_pages')
                 .select('owner_id')
                 .eq('id', post.page_id)
-                .single();
+                .maybeSingle();
             isPageOwner = page?.owner_id === author_id;
         }
 

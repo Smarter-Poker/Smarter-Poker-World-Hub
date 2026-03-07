@@ -21,7 +21,7 @@ export async function checkBankrollProAccess(userId) {
         .from('profiles')
         .select('is_vip, diamonds')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
     if (profileError) {
         console.warn('[BankrollProGate] Profile fetch error:', profileError.message);
@@ -127,7 +127,7 @@ export async function purchaseBankrollProAccess(userId) {
         .from('profiles')
         .select('diamonds, is_vip')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
     if (profileError || !profile) {
         console.error('[BankrollProGate] Purchase: profile fetch failed:', profileError?.message);

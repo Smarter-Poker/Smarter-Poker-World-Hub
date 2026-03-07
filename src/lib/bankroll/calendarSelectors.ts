@@ -56,7 +56,7 @@ export async function createCalendarEvent(
             alert_enabled: event.alert_enabled !== false,
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw new Error(error.message);
     return data;

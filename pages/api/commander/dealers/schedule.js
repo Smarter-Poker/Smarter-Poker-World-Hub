@@ -167,7 +167,7 @@ async function handleCreate(req, res) {
         commander_dealers (id, name, skill_level),
         commander_tables (id, table_number)
       `)
-      .single();
+      .maybeSingle();
 
     if (insertError) throw insertError;
 

@@ -90,7 +90,7 @@ export default async function handler(req, res) {
                 called_by: called_by || 'tablet',
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Floor call create error:', error);

@@ -103,7 +103,7 @@ export default async function handler(req, res) {
         }
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

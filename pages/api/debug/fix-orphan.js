@@ -68,7 +68,7 @@ export default async function handler(req, res) {
                     updated_at: new Date().toISOString()
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (insertError) {
                 return res.status(500).json({

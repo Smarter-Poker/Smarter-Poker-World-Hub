@@ -130,7 +130,7 @@ async function createLeague(req, res) {
         status: status || 'active'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

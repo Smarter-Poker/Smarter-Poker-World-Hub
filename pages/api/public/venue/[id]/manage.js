@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         .eq('venue_id', parseInt(id))
         .eq('user_id', user.id)
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
     if (managerError || !manager) {
         return res.status(403).json({
@@ -77,7 +77,7 @@ async function handleGet(req, res, venueId, user, manager) {
             .from('poker_venues')
             .select('*')
             .eq('id', parseInt(venueId))
-            .single();
+            .maybeSingle();
 
         if (venueError || !venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });
@@ -185,7 +185,7 @@ async function handlePatch(req, res, venueId, user, manager) {
             .update(filteredUpdates)
             .eq('id', parseInt(venueId))
             .select()
-            .single();
+            .maybeSingle();
 
         if (updateError) {
             console.error('Error updating venue:', updateError);

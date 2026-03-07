@@ -54,7 +54,7 @@ export default async function handler(req, res) {
           settings: settings || { union_rake_hold: 0.10, default_agent_commission: 0.50, default_club_commission_rate: 0.90 },
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (createErr) throw createErr;
 

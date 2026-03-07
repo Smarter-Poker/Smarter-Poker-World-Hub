@@ -139,7 +139,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('metadata, user_id, owner_id')
             .eq('id', page_id)
-            .single();
+            .maybeSingle();
 
         if (fetchError || !page) {
             return res.status(404).json({ success: false, error: 'Page not found' });

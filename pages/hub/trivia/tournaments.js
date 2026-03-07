@@ -276,7 +276,7 @@ export default function TournamentsPage() {
                 created_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         setUserEntry(entry);
 

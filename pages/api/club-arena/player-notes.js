@@ -100,7 +100,7 @@ export default async function handler(req, res) {
             ignoreDuplicates: false,
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) {
           // Fallback: try insert then update
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
             .select('id')
             .eq('user_id', userId)
             .eq('target_user_id', targetUserId)
-            .single();
+            .maybeSingle();
 
           if (existing) {
             const { data: updated, error: updErr } = await supabaseAdmin
@@ -125,7 +125,7 @@ export default async function handler(req, res) {
               .from('player_notes')
               .insert(upsertData)
               .select()
-              .single();
+              .maybeSingle();
             if (insErr) return res.status(500).json({ success: false, error: insErr.message });
             return res.json({ success: true, note: inserted });
           }

@@ -93,7 +93,7 @@ export default async function handler(req, res) {
                     }
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (!error) {
                 results.push({ horse: horse.name, postId: post.id });

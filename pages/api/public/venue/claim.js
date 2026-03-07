@@ -62,7 +62,7 @@ async function handleGet(req, res) {
             .from('poker_venues')
             .select('id, name, is_claimed, claimed_at')
             .eq('id', parseInt(venue_id))
-            .single();
+            .maybeSingle();
 
         if (venueError || !venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });
@@ -78,7 +78,7 @@ async function handleGet(req, res) {
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
 
             userClaim = claim;
         }
@@ -92,7 +92,7 @@ async function handleGet(req, res) {
                 .eq('venue_id', parseInt(venue_id))
                 .eq('user_id', userId)
                 .eq('is_active', true)
-                .single();
+                .maybeSingle();
 
             isManager = !!manager;
         }
@@ -150,7 +150,7 @@ async function handlePost(req, res) {
             .from('poker_venues')
             .select('id, name, is_claimed, phone')
             .eq('id', parseInt(venue_id))
-            .single();
+            .maybeSingle();
 
         if (venueError || !venue) {
             return res.status(404).json({ success: false, error: 'Venue not found' });
@@ -171,7 +171,7 @@ async function handlePost(req, res) {
             .eq('venue_id', parseInt(venue_id))
             .eq('user_id', user.id)
             .in('status', ['pending', 'under_review'])
-            .single();
+            .maybeSingle();
 
         if (existingClaim) {
             return res.status(400).json({
@@ -200,7 +200,7 @@ async function handlePost(req, res) {
                 claimant_notes: notes
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (claimError) {
             console.error('Error creating claim:', claimError);

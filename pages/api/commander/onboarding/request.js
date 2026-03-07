@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         source: 'website'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       // If table doesn't exist, just log and return success

@@ -164,7 +164,7 @@ export default async function handler(req, res) {
         .from('friendships')
         .insert({ user_id: userId, friend_id, status: 'pending' })
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return res.status(201).json({ success: true, data: { friendship: data } });
     } catch (error) {

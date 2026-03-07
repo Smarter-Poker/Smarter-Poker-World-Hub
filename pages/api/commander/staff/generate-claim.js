@@ -77,7 +77,7 @@ export default async function handler(req, res) {
                 expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (insertErr) {
             console.error('Generate claim error:', insertErr);

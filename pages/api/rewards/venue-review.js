@@ -80,7 +80,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('created_at')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (userProfile?.created_at) {
             const accountAge = now - new Date(userProfile.created_at);
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .select('latitude, longitude, name')
             .eq('id', venueId)
-            .single();
+            .maybeSingle();
 
         if (!venue || !venue.latitude || !venue.longitude) {
             return res.status(200).json({

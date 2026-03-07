@@ -137,7 +137,7 @@ async function handleUpdate(req, res) {
         onConflict: 'player_id'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

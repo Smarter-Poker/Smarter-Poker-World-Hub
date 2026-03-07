@@ -55,7 +55,7 @@ export default async function handler(req, res) {
             .from('pipeline_runs')
             .insert(runData)
             .select()
-            .single();
+            .maybeSingle();
 
         if (insertError) {
             console.error('Failed to log pipeline run:', insertError);

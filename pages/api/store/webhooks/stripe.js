@@ -127,7 +127,7 @@ async function handleCheckoutCompleted(session) {
                 .eq('id', metadata.purchase_id)
                 .eq('status', 'pending') // Only update if still pending — prevents double-credit on retries
                 .select()
-                .single();
+                .maybeSingle();
 
             if (purchase) {
                 // Add diamonds to user balance
@@ -190,7 +190,7 @@ async function handleSubscriptionUpdate(subscription) {
         .from('profiles')
         .select('id')
         .eq('stripe_customer_id', customer)
-        .single();
+        .maybeSingle();
 
     if (!profile) {
         console.error(`Profile not found for customer ${customer}`);
@@ -277,7 +277,7 @@ async function handleRefund(charge) {
         .from('diamond_purchases')
         .select('*')
         .eq('stripe_payment_intent_id', payment_intent)
-        .single();
+        .maybeSingle();
 
     if (purchase) {
         await supabase

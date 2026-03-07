@@ -143,7 +143,7 @@ export default async function handler(req, res) {
                   updated_at: new Date().toISOString(),
                 })
                 .select('id, first_name, last_name, time_balance_minutes, membership_tier, membership_status, membership_expires, member_number, phone, comp_balance')
-                .single();
+                .maybeSingle();
               if (!createErr && newMember) {
                 memberByStaffId[s.id] = newMember;
               } else {

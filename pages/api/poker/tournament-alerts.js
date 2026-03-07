@@ -122,7 +122,7 @@ export default async function handler(req, res) {
                 .from('tournament_alert_preferences')
                 .upsert(prefsData, { onConflict: 'user_id' })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 // If table doesn't exist, just return success (localStorage is primary)

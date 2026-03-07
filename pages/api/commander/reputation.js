@@ -133,7 +133,7 @@ async function submitReview(req, res) {
         context: context || null
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (reviewErr) throw reviewErr;
 

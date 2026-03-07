@@ -95,7 +95,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('diamonds, username')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profileError || !profile) {
             return res.status(500).json({ success: false, error: 'Failed to fetch profile' });

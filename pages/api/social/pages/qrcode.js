@@ -41,7 +41,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('id, name, slug, avatar_url, cover_url, description, category, follower_count')
             .eq('metadata->>referral_code', ref)
-            .single();
+            .maybeSingle();
 
         if (error || !page) {
             return res.status(404).json({ success: false, error: 'Invalid referral code' });
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
         .from('social_pages')
         .select('id, name, slug, metadata')
         .eq('id', page_id)
-        .single();
+        .maybeSingle();
 
     if (error || !page) {
         return res.status(404).json({ success: false, error: 'Page not found' });

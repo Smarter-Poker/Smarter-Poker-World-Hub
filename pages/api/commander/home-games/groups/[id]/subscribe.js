@@ -90,7 +90,7 @@ async function subscribe(req, res, groupId, userId) {
         onConflict: 'user_id,group_id,device_token'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

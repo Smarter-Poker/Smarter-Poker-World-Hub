@@ -1421,7 +1421,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const handleSubmitComment = async () => {
         if (!newComment.trim() || !currentUserId) return;
         try {
-            const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').single();
+            const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').maybeSingle();
             if (!error && data) {
                 setComments(prev => [...prev, {
                     id: data.id,
@@ -4775,7 +4775,7 @@ export default function SocialMediaPage() {
 
             console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
 
-            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
+            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
 
             if (error) {
                 console.error('[Social] ❌ Supabase insert error:', error.message, error.details, error.hint, error.code);

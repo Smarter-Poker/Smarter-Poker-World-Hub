@@ -77,7 +77,7 @@ export async function getOrCreateLocation(
     .from('bankroll_locations')
     .insert(insertData)
     .select('id')
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return newLoc.id;

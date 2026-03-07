@@ -72,7 +72,7 @@ export default async function handler(req, res) {
           likes_count: 0,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating activity:', error);

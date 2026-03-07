@@ -60,7 +60,7 @@ async function handleCreate(req, res) {
         requested_by: 'player'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

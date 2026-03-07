@@ -265,7 +265,7 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('tournament_id', tournamentId)
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
 
             if (!entry) {
                 return res.status(404).json({ success: false, error: 'Entry not found' });

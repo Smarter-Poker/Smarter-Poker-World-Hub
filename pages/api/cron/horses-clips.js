@@ -545,7 +545,7 @@ async function postOriginalContent(horse) {
             visibility: 'public'
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error(`   Original post failed: ${error.message}`);

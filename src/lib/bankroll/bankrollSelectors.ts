@@ -318,7 +318,7 @@ export async function createLedgerEntry(
       expense_type: entry.expense_type,
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
@@ -359,7 +359,7 @@ export async function createRevisionEntry(
       created_at: undefined, // Let Supabase set timestamp
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -382,7 +382,7 @@ export async function updateLedgerEntry(
     .eq('id', entryId)
     .eq('user_id', userId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 
@@ -546,7 +546,7 @@ export async function createTrip(
       status: 'active',
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -571,7 +571,7 @@ export async function updateTrip(
     .eq('user_id', userId)
     .eq('id', tripId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -591,7 +591,7 @@ export async function completeTrip(userId: string, tripId: string): Promise<Trip
     .eq('id', tripId)
     .eq('status', 'active')
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -822,7 +822,7 @@ export async function createSeries(
       trip_type: 'series',
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -845,7 +845,7 @@ export async function updateSeries(
     .eq('user_id', userId)
     .eq('id', seriesId)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -862,7 +862,7 @@ export async function completeSeries(userId: string, seriesId: string): Promise<
     .eq('id', seriesId)
     .eq('status', 'active')
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -924,7 +924,7 @@ export async function updateBankrollRule(
       updated_at: new Date().toISOString(),
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -1288,7 +1288,7 @@ export async function createStakingArrangement(
       notes: arrangement.notes || null,
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data as StakingArrangement;
@@ -1307,7 +1307,7 @@ export async function updateStakingArrangement(
     })
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data as StakingArrangement;
@@ -1399,7 +1399,7 @@ export async function createStakingSession(
       makeup_after: Math.round(makeupAfter * 100) / 100,
     })
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
 

@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         priority: safePriority,
         called_by: called_by || 'staff',
         status: 'pending'
-      }).select().single();
+      }).select().maybeSingle();
 
       if (error) throw error;
 

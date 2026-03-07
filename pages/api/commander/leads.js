@@ -78,7 +78,7 @@ export default async function handler(req, res) {
         last_activity: new Date().toISOString()
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       // Table might not exist, just log and continue

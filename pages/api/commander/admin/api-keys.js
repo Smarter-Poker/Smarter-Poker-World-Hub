@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       .from('commander_api_keys')
       .insert({ venue_id: vid, name: name || 'API Key', api_key: apiKey, permissions: permissions || {}, is_active: true })
       .select()
-      .single();
+      .maybeSingle();
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { key: data } });
   }

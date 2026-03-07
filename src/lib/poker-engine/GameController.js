@@ -473,7 +473,7 @@ class GameController {
           settings: {},
         })
         .select('id')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('[GameController] DB insert failed:', error.message);
@@ -1603,7 +1603,7 @@ class GameController {
               bountyType, bountyAmount, mysteryThreshold, mysteryTiers
             },
           })
-          .select('id').single();
+          .select('id').maybeSingle();
         if (!error && data) tournamentId = data.id;
       } catch (err) { console.error('[GameController] Tournament DB insert:', err.message); }
     }

@@ -241,7 +241,7 @@ export default async function handler(req, res) {
                 .from('training_streaks')
                 .select('milestones_claimed')
                 .eq('user_id', userId)
-                .single();
+                .maybeSingle();
             
             const claimCount = (verify?.milestones_claimed || []).filter(d => d === milestoneDays).length;
             if (claimCount > 1) {

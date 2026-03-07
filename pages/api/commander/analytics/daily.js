@@ -206,7 +206,7 @@ async function calculateDailyAnalytics(req, res) {
       .from('commander_analytics_daily')
       .upsert(analytics, { onConflict: 'venue_id,date' })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

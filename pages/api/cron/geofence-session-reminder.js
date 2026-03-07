@@ -78,7 +78,7 @@ export default async function handler(req, res) {
                 .from('profiles')
                 .select('onesignal_player_id, alias')
                 .eq('id', visit.user_id)
-                .single();
+                .maybeSingle();
 
             if (!profile?.onesignal_player_id) {
                 // User doesn't have push enabled, mark as notified anyway

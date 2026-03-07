@@ -282,7 +282,7 @@ export default async function handler(req, res) {
         .from('user_leaks')
         .upsert(leak, { onConflict: 'id' })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -313,7 +313,7 @@ export default async function handler(req, res) {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

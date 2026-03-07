@@ -107,7 +107,7 @@ export default async function handler(req, res) {
             is_active: true,
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         return res.status(200).json({ success: true, item });

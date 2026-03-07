@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       .from('commander_venue_settings')
       .upsert({ venue_id: id, ...req.body }, { onConflict: 'venue_id' })
       .select()
-      .single();
+      .maybeSingle();
     if (error) return res.status(500).json({ success: false, error: error.message });
     return res.json({ success: true, data: { settings: data } });
   }

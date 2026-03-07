@@ -139,7 +139,7 @@ async function handlePost(req, res) {
         priority
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Commander service create error:', error);

@@ -42,7 +42,7 @@ export default async function handler(req, res) {
                 created_at: new Date().toISOString(),
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (clubErr) throw clubErr;
 

@@ -113,7 +113,7 @@ export default async function handler(req, res) {
                     })
                     .eq('id', existing.id)
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
                 return res.status(200).json({ success: true, data: updated, updated: true });
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
                     content: content || null
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return res.status(201).json({ success: true, data: review });

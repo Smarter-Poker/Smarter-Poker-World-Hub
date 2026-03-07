@@ -49,7 +49,7 @@ export default async function handler(req, res) {
             .from('promo_codes')
             .select('*')
             .eq('code', normalizedCode)
-            .single();
+            .maybeSingle();
 
         if (lookupError || !promo) {
             return res.status(404).json({ success: false, error: 'Invalid promo code' });

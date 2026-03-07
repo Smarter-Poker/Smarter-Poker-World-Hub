@@ -133,7 +133,7 @@ async function handlePost(req, res) {
         check_in_at: new Date().toISOString()
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Commander session create error:', error);

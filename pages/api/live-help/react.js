@@ -72,7 +72,7 @@ export default async function handler(req, res) {
                 onConflict: 'message_id,user_id'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Failed to save reaction:', error);

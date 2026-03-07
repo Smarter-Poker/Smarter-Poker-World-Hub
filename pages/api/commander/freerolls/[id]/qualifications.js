@@ -124,7 +124,7 @@ async function upsertQualification(req, res, freerollId) {
                     ignoreDuplicates: false,
                 })
                 .select()
-                .single();
+                .maybeSingle();
             qual = result.data;
             error = result.error;
         } else {
@@ -133,7 +133,7 @@ async function upsertQualification(req, res, freerollId) {
                 .from('commander_freeroll_qualifications')
                 .insert(payload)
                 .select()
-                .single();
+                .maybeSingle();
             qual = result.data;
             error = result.error;
         }

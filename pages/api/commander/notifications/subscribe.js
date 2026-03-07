@@ -121,7 +121,7 @@ async function subscribe(req, res) {
         is_active: true
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

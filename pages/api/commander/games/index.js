@@ -130,7 +130,7 @@ export default async function handler(req, res) {
         current_players: 0
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (gameError) {
       console.error('Commander game create error:', gameError);

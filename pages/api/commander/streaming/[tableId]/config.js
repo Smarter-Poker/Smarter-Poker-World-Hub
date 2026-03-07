@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         })
         .eq('table_id', tableId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       result = data;
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
           status: 'offline'
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       result = data;

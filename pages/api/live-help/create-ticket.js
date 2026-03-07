@@ -73,7 +73,7 @@ export default async function handler(req, res) {
                 status: 'open'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (ticketError) {
             console.error('Failed to create ticket:', ticketError);

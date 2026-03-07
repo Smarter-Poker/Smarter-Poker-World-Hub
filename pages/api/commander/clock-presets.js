@@ -83,7 +83,7 @@ export default async function handler(req, res) {
                     is_default: is_default || false,
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return res.status(201).json({ success: true, data });

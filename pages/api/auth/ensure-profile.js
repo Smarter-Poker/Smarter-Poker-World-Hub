@@ -114,7 +114,7 @@ export default async function handler(req, res) {
                 is_online: true
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (insertError) {
             console.error('[ANTIGRAVITY] Profile creation failed:', insertError);
@@ -129,7 +129,7 @@ export default async function handler(req, res) {
                     created_at: new Date().toISOString()
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (minimalError) {
                 return res.status(500).json({

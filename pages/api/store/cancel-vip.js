@@ -51,7 +51,7 @@ export default async function handler(req, res) {
             .in('status', ['active', 'trialing'])
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (subErr || !sub) {
             return res.status(404).json({ success: false, error: 'No active VIP subscription found' });

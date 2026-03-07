@@ -65,7 +65,7 @@ async function postNewsArticle(article) {
             link_image: article.image_url
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error(`   Post error: ${error.message}`);

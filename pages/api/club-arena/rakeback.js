@@ -166,7 +166,7 @@ export default async function handler(req, res) {
             period_start: new Date().toISOString(),
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
         return res.status(200).json({ success: true, period });

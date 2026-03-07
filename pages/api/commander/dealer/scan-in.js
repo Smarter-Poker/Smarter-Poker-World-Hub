@@ -142,7 +142,7 @@ export default async function handler(req, res) {
                         is_active: true,
                     })
                     .select('id')
-                    .single();
+                    .maybeSingle();
 
                 if (createErr) {
                     console.error('Failed to create dealer record:', createErr.message);
@@ -155,7 +155,7 @@ export default async function handler(req, res) {
                             is_active: true,
                         })
                         .select('id')
-                        .single();
+                        .maybeSingle();
                     dealerId = nd2?.id;
                 } else {
                     dealerId = newDealer.id;
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
                 started_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (rotationError) throw rotationError;
 

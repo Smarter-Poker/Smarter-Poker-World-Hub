@@ -101,7 +101,7 @@ async function createTemplate(req, res, staff) {
                     leaderboard_id: tournament.leaderboard_id
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
             return res.status(201).json({ success: true, data: { template } });
@@ -122,7 +122,7 @@ async function createTemplate(req, res, staff) {
                 max_entries, settings, leaderboard_id
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) throw error;
 

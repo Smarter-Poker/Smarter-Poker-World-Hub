@@ -178,7 +178,7 @@ async function createHighHand(req, res) {
         *,
         profiles:player_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

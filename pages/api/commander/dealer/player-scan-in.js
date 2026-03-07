@@ -245,7 +245,7 @@ export default async function handler(req, res) {
                 started_at: new Date().toISOString()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (sessionError) throw sessionError;
 

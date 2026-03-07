@@ -294,7 +294,7 @@ export default async function handler(req, res) {
         .from('poker_venues')
         .insert(venueInsert)
         .select()
-        .single();
+        .maybeSingle();
 
       if (venueError) {
         console.error('Venue creation error:', venueError);
@@ -387,7 +387,7 @@ export default async function handler(req, res) {
           trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (subError) console.error('Subscription creation error:', subError);
       subscriptionData = newSub;

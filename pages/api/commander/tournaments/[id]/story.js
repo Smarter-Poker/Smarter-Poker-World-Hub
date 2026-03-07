@@ -111,7 +111,7 @@ export default async function handler(req, res) {
                 background_color: TOURNAMENT_GRADIENTS[story_type] || TOURNAMENT_GRADIENTS.custom
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (storyErr) {
             console.error('[story.js] Failed to create story:', storyErr);

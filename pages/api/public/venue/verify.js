@@ -59,7 +59,7 @@ export default async function handler(req, res) {
             .select('*')
             .eq('id', claim_id)
             .eq('user_id', user.id)
-            .single();
+            .maybeSingle();
 
         if (claimError || !claim) {
             return res.status(404).json({ success: false, error: 'Claim not found' });

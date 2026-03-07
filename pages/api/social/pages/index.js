@@ -53,7 +53,7 @@ export default async function handler(req, res) {
                 .from('social_pages')
                 .select('*')
                 .eq('id', id)
-                .single();
+                .maybeSingle();
 
             if (error) return res.status(404).json({ success: false, error: 'Page not found' });
 
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
                     .eq('id', data.owner_id)
-                    .single();
+                    .maybeSingle();
                 owner = profile;
             }
 
@@ -92,7 +92,7 @@ export default async function handler(req, res) {
                 .from('social_pages')
                 .select('*')
                 .eq('slug', slug)
-                .single();
+                .maybeSingle();
 
             if (error) return res.status(404).json({ success: false, error: 'Page not found' });
 
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
                     .from('profiles')
                     .select('id, username, full_name, avatar_url')
                     .eq('id', data.owner_id)
-                    .single();
+                    .maybeSingle();
                 owner = profile;
             }
 
@@ -237,7 +237,7 @@ export default async function handler(req, res) {
                 metadata: { ...(metadata || {}), referral_code: referralCode }
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
 
@@ -305,7 +305,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('owner_id, name, avatar_url, cover_url, description, location_city, location_state, page_type, metadata')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (!existing || existing.owner_id !== owner_id) {
             return res.status(403).json({ success: false, error: 'Not authorized' });
@@ -316,7 +316,7 @@ export default async function handler(req, res) {
             .update({ ...updates, updated_at: new Date().toISOString() })
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
 
@@ -407,7 +407,7 @@ export default async function handler(req, res) {
             .from('social_pages')
             .select('owner_id')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (!existing || existing.owner_id !== authUser.id) {
             return res.status(403).json({ success: false, error: 'Not authorized — only the page owner can delete' });

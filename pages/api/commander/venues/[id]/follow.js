@@ -88,7 +88,7 @@ export default async function handler(req, res) {
           notify_tournaments
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

@@ -50,7 +50,7 @@ export default async function handler(req, res) {
         // Check RLS policies on profiles table
         const { data: policies, error: policyError } = await adminSupabase
             .rpc('get_policies', { table_name: 'profiles' })
-            .single();
+            .maybeSingle();
 
         return res.json({
             success: true,

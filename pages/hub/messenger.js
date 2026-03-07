@@ -1518,12 +1518,12 @@ export default function MessengerPage() {
             // PRIMARY: Use API with service_role + circuit breaker
             const result = await circuit.execute(
                 async () => {
-                    const { data: { session } } = await supabase.auth.getSession();
+                    const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
                     const resp = await fetch('/api/messenger/get-conversations', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
                         },
                         body: JSON.stringify({ userId }),
                     });

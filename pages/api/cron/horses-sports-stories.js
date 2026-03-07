@@ -139,7 +139,7 @@ async function postSportsStory(horse, storyType, content) {
             .from('stories')
             .insert([storyData])
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error(`Failed to post story for ${horse.name}:`, error);

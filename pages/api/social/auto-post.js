@@ -95,7 +95,7 @@ export default async function handler(req, res) {
                 }
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[AutoPost] Failed to create auto-post:', error.message);

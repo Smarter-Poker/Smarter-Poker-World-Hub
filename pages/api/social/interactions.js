@@ -61,8 +61,7 @@ export default async function handler(req, res) {
 
                 if (commentError && commentError.code === '42P01') {
                     // Table doesn't exist - use comment interactions instead
-                    const commentInteractions = (data || []).filter(i => i.interaction_type === 'comment')
-                        .limit(100);
+                    const commentInteractions = (data || []).filter(i => i.interaction_type === 'comment');
                     comments = commentInteractions;
                 } else if (commentData) {
                     // Enrich comments with user info
@@ -122,7 +121,7 @@ export default async function handler(req, res) {
                     parent_id: req.body.parent_id || null
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 // If table doesn't exist, fall back to interactions table
@@ -131,7 +130,7 @@ export default async function handler(req, res) {
                         .from('social_interactions')
                         .upsert({ post_id, user_id, interaction_type: 'comment' }, { onConflict: 'post_id,user_id' })
                         .select()
-                        .single();
+                        .maybeSingle();
                     if (fbError) return res.status(500).json({ success: false, error: fbError.message });
                     return res.status(201).json({ interaction: fallback });
                 }

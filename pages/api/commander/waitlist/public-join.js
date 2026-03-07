@@ -178,7 +178,7 @@ export default async function handler(req, res) {
                 estimated_wait_minutes
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (insertError) {
             console.error('Public waitlist join insert error:', insertError);

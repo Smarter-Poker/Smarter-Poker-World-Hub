@@ -66,7 +66,7 @@ export default async function handler(req, res) {
           total_charge: 0
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Time session create error:', error);

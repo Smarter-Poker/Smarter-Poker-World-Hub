@@ -82,7 +82,7 @@ export default async function handler(req, res) {
         .from('live_games')
         .insert(insertData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating live game:', error);

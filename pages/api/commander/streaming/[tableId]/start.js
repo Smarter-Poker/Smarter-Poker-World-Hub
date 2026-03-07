@@ -69,7 +69,7 @@ export default async function handler(req, res) {
         onConflict: 'table_id'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -211,7 +211,7 @@ export default async function handler(req, res) {
           rakeback_percentage: rakebackPercentage || 0,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (agentErr) throw agentErr;
 

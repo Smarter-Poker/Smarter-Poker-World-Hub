@@ -33,7 +33,7 @@ export default async function handler(req, res) {
             .from('promo_codes')
             .select('*')
             .eq('code', code.toUpperCase().trim())
-            .single();
+            .maybeSingle();
 
         if (promoError || !promo) {
             return res.status(404).json({ success: false, error: 'Invalid promo code' });
@@ -83,7 +83,7 @@ export default async function handler(req, res) {
                 user_id: userId,
             })
             .select('id')
-            .single();
+            .maybeSingle();
 
         if (redemptionErr) {
             // Unique constraint violation = already redeemed (concurrent request)
@@ -116,7 +116,7 @@ export default async function handler(req, res) {
                         .from('user_diamond_balance')
                         .select('balance')
                         .eq('user_id', userId)
-                        .single();
+                        .maybeSingle();
 
                     const newBalance = (currentBalance?.balance || 0) + promo.reward_value;
 

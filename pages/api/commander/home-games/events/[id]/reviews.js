@@ -127,7 +127,7 @@ async function handleCreate(req, res, eventId) {
         is_anonymous
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -120,7 +120,7 @@ export default async function handler(req, res) {
           *,
           author:author_id (id, display_name, avatar_url)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

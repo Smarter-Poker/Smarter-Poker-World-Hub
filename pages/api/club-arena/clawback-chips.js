@@ -184,10 +184,10 @@ export default async function handler(req, res) {
     // Read fresh balances for response
     const { data: freshPlayer } = await supabaseAdmin
       .from('club_members').select('chip_balance')
-      .eq('club_id', clubId).eq('user_id', txn.to_user_id).single();
+      .eq('club_id', clubId).eq('user_id', txn.to_user_id).maybeSingle();
     const { data: freshAgent } = await supabaseAdmin
       .from('club_members').select('chip_balance')
-      .eq('club_id', clubId).eq('user_id', user.id).single();
+      .eq('club_id', clubId).eq('user_id', user.id).maybeSingle();
 
     return res.status(200).json({
       success: true,

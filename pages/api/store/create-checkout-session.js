@@ -109,7 +109,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('stripe_customer_id, email, username')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         if (profile?.stripe_customer_id) {
             customerId = profile.stripe_customer_id;
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
                     status: 'pending'
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (purchase) {
                 sessionConfig.metadata.purchase_id = purchase.id;
@@ -317,7 +317,7 @@ export default async function handler(req, res) {
                     status: 'pending'
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (order) {
                 sessionConfig.metadata.order_id = order.id;

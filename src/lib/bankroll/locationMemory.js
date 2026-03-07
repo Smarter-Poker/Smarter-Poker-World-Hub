@@ -71,7 +71,7 @@ function getOrCreateLocation(userId_1, name_1) {
                             .eq('user_id', authUserId)
                             .ilike('name', name)
                             .limit(1)
-                            .single()];
+                            .maybeSingle()];
                 case 2:
                     existing = (_c.sent()).data;
                     if (existing)
@@ -90,7 +90,7 @@ function getOrCreateLocation(userId_1, name_1) {
                             .from('bankroll_locations')
                             .insert(insertData)
                             .select('id')
-                            .single()];
+                            .maybeSingle()];
                 case 3:
                     _a = _c.sent(), newLoc = _a.data, error = _a.error;
                     if (error)
@@ -199,7 +199,7 @@ function getLocationStats(userId, locationId) {
                         .from('bankroll_locations')
                         .select('id, name')
                         .eq('id', locationId)
-                        .single()];
+                        .maybeSingle()];
                 case 1:
                     location = (_b.sent()).data;
                     if (!location)
@@ -488,7 +488,7 @@ function detectNearbyLocation(userId_1, latitude_1, longitude_1) {
                             .gte('longitude', longitude - lonDelta)
                             .lte('longitude', longitude + lonDelta)
                             .limit(1)
-                            .single()];
+                            .maybeSingle()];
                 case 1:
                     data = (_a.sent()).data;
                     return [2 /*return*/, data || null];

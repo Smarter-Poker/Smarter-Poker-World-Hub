@@ -81,7 +81,7 @@ export default async function handler(req, res) {
                 status: 'active'
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (convError) {
             console.error('[LiveHelp] Failed to create conversation:', {
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
                 metadata: { isGreeting: true }
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (greetingError) {
             console.error('Failed to create greeting message:', greetingError);

@@ -199,7 +199,7 @@ async function saveToCache(question, answer, questionType, userId) {
             last_served_at: new Date().toISOString()
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) {
         console.error('[Geeves Cache] Failed to save:', error);

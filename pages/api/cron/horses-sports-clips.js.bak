@@ -1,0 +1,294 @@
+/**
+ * 🏈 HORSES SPORTS CLIPS CRON - NBA, NFL, MLB, NHL, Soccer
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * Horses post sports video clips from major leagues
+ * 
+ * This cron:
+ * 1. Selects random Horses to post
+ * 2. Posts sports video clips from the sports clip library
+ * 
+ * Sports clips come from:
+ * - ESPN, NBA, NFL, MLB, NHL
+ * - House of Highlights, Bleacher Report
+ * - Team channels
+ * 
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getGrokClient } from '../../../src/lib/grokClient.js';
+import {
+    applyWritingStyle,
+    getTimeOfDayEnergy,
+    shouldHorseBeActive,
+    isHorseActiveHour
+} from '../../../src/content-engine/pipeline/HorseScheduler.js';
+import * as SportsClipDeduplicationService from '../../../src/services/SportsClipDeduplicationService.js';
+
+/**
+ * Extract video ID from YouTube URL
+ */
+function extractVideoIdFromUrl(url) {
+    if (!url) return null;
+    const patterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/
+    ];
+    for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match) return match[1];
+    }
+    return null;
+}
+
+/**
+ * Convert YouTube URL to embed format
+ */
+function convertToEmbedUrl(url) {
+    if (!url) return url;
+    const videoId = extractVideoIdFromUrl(url);
+    if (!videoId) return url;
+    return `https://www.youtube.com/embed/${videoId}`;
+}
+
+// Sports caption templates
+const SPORTS_CAPTION_TEMPLATES = {
+    highlight: ["🔥 This is insane", "💯 Unreal", "Sheesh", "W"],
+    buzzer_beater: ["😱 NO WAY", "🚨 CLUTCH", "Ice in his veins", "Built different"],
+    touchdown: ["🏈 LETS GO", "💪 Touchdown baby", "W", "Huge"],
+    dunk: ["🏀 POSTER", "😤 Nasty", "Filthy", "Boom"],
+    goal: ["⚽ GOLAZO", "🔥 What a strike", "Unreal", "Banger"],
+    controversy: ["👀 Yikes", "😬 Uh oh", "Refs are blind", "No way"],
+    funny: ["😂 LMAO", "🤣 Dead", "Comedy", "Cant make this up"],
+    analysis: ["📊 Breakdown", "🧠 Smart play", "Interesting", "Good take"],
+    interview: ["💬 Real talk", "👀 Listen to this", "Facts", "He said what"],
+    playoff: ["🏆 Playoff basketball", "💪 Win or go home", "This is it", "Pressure"]
+};
+
+function getRandomSportsCaption(category) {
+    const templates = SPORTS_CAPTION_TEMPLATES[category] || SPORTS_CAPTION_TEMPLATES.highlight;
+    return templates[Math.floor(Math.random() * templates.length)];
+}
+
+// Get random sports clip from database
+async function getRandomSportsClip(excludeIds = []) {
+    try {
+        // Get a random clip from the database that hasn't been used recently
+        let query = supabase
+            .from('sports_clips')
+            .select('*');
+
+        // Only apply exclusion filter if there are IDs to exclude
+        if (excludeIds.length > 0) {
+            query = query.not('id', 'in', `(${excludeIds.join(',')})`)
+                .limit(100);
+        }
+
+        const { data: clips, error } = await query
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error || !clips || clips.length === 0) {
+            return null;
+        }
+
+        // Return a random clip from the results
+        const randomClip = clips[Math.floor(Math.random() * clips.length)];
+        return {
+            id: randomClip.id,
+            video_id: randomClip.video_id,
+            source_url: randomClip.source_url,
+            title: randomClip.title,
+            source: randomClip.source,
+            category: randomClip.category,
+            sport_type: randomClip.sport_type
+        };
+    } catch (e) {
+        console.error('   ❌ Error fetching sports clip:', e.message);
+        return null;
+    }
+}
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const grok = getGrokClient();
+
+const CONFIG = {
+    HORSES_PER_TRIGGER: 4,  // 4 sports clips per trigger
+    CLIP_COOLDOWN_HOURS: 24  // Don't reuse same clip for 24 hours
+};
+
+// Track clips used in this session
+const usedClipsThisSession = new Set();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MAIN HANDLER
+// ═══════════════════════════════════════════════════════════════════════════
+
+export default async function handler(req, res) {
+    // Verify cron secret
+    if (process.env.CRON_SECRET && req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+
+        // Get current time for per-horse scheduling
+        const now = new Date();
+        const currentMinute = now.getMinutes();
+        const currentHour = now.getHours();
+
+        // Get ALL active horses
+        const { data: allHorses } = await supabase
+            .from('content_authors')
+            .select('*')
+            .eq('is_active', true)
+            .not('profile_id', 'is', null)
+                .limit(100);
+
+        if (!allHorses?.length) {
+            return res.status(200).json({ success: true, message: 'No horses available', posted: 0 });
+        }
+
+        // FILTER: Only horses who are awake (12-hour active window)
+        const awakeHorses = allHorses.filter(horse => {
+            if (!horse.profile_id) return false;
+            return isHorseActiveHour(horse.profile_id, currentHour);
+        });
+
+        // INDIVIDUAL SCHEDULING: Each horse has their own assigned minute
+        const selectedHorses = awakeHorses.filter(horse => {
+            const isMyTime = shouldHorseBeActive(horse.profile_id, currentMinute, 7);
+            if (isMyTime) {
+            }
+            return isMyTime;
+        });
+
+        const results = [];
+        const timeEnergy = getTimeOfDayEnergy();
+
+        if (selectedHorses.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: `No horses scheduled for minute ${currentMinute}`,
+                posted: 0,
+                awakeHorses: awakeHorses.length
+            });
+        }
+
+        for (const horse of selectedHorses) {
+
+            // Get a random sports clip from database
+            const clip = await getRandomSportsClip(Array.from(usedClipsThisSession));
+
+            if (!clip) {
+                continue;
+            }
+
+            // ATOMIC RESERVATION: Try to claim this clip BEFORE posting
+            const reserved = await SportsClipDeduplicationService.markSportsClipAsPosted({
+                videoId: clip.video_id,
+                sourceUrl: clip.source_url,
+                clipSource: clip.source,
+                horseId: horse.profile_id
+            });
+
+            if (!reserved) {
+                continue;
+            }
+
+            usedClipsThisSession.add(clip.id);
+
+            // Generate caption using Grok
+            let caption = '';
+            try {
+                const templateCaption = getRandomSportsCaption(clip.category);
+
+                const prompt = `You are ${horse.alias}, a sports fan posting a ${clip.category} clip.
+React naturally to: "${clip.title}" from ${clip.source}
+
+Keep it SHORT (under 15 words). Be authentic. No hashtags. No emojis (they're added separately).
+
+Examples of good reactions:
+- "this is absolutely insane"
+- "no way this just happened"
+- "built different fr"
+- "W"
+- "sheesh"
+
+Your reaction:`;
+
+                const completion = await grok.chat.completions.create({
+                    model: 'grok-beta',
+                    messages: [{ role: 'user', content: prompt }],
+                    temperature: 0.9,
+                    max_tokens: 50
+                });
+
+                caption = completion.choices[0]?.message?.content
+                    ?.replace(/^["']|["']$/g, '')
+                    .replace(/#\w+/g, '')
+                    .trim();
+
+                // Apply horse's unique writing style
+                caption = applyWritingStyle(caption, horse.profile_id);
+            } catch (e) {
+                console.error(`   Using template caption (Grok error: ${e.message})`);
+                const templateCaption = getRandomSportsCaption(clip.category);
+                caption = applyWritingStyle(templateCaption, horse.profile_id);
+            }
+
+            // Create the post
+            // NO hardcoded emojis - let applyWritingStyle handle it naturally (5% rate)
+            const finalCaption = `${caption}\n\n${clip.source_url}`;
+
+            const { data: post, error: postError } = await supabase
+                .from('social_posts')
+                .insert({
+                    author_id: horse.profile_id,
+                    content: finalCaption,
+                    content_type: 'video',
+                    media_urls: [convertToEmbedUrl(clip.source_url)],
+                    visibility: 'public',
+                    metadata: {
+                        clip_id: clip.id,
+                        source: clip.source || 'unknown',
+                        sport_type: clip.sport_type || 'sports',
+                        category: clip.category
+                    }
+                })
+                .select('id')
+                .single();
+
+            if (postError) {
+                console.error(`   Post creation failed: ${postError.message}`);
+                continue;
+            }
+
+            results.push({
+                horse: horse.alias,
+                clip: clip.title,
+                source: clip.source,
+                success: true
+            });
+
+            // Random delay between posts
+            const delay = 1000 + Math.random() * 3000;
+            await new Promise(r => setTimeout(r, delay));
+        }
+
+
+        return res.status(200).json({
+            success: true,
+            posted: results.length,
+            results,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Cron error:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+}

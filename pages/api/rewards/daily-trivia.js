@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('created_at')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (userProfile?.created_at) {
             const accountAge = now - new Date(userProfile.created_at);

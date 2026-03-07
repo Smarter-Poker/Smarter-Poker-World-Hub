@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         .from('page_claims')
         .insert(insertData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating claim:', error);

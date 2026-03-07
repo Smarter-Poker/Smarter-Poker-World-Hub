@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         player_id
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (memberError) throw memberError;
 

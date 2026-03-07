@@ -392,7 +392,7 @@ class MessagingService {
             .eq('id', messageId)
             .eq('sender_id', userId)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Failed to edit message:', error);

@@ -157,7 +157,7 @@ export default async function handler(req, res) {
           is_published: true
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

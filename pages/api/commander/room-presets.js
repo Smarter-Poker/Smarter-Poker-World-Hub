@@ -288,7 +288,7 @@ export default async function handler(req, res) {
           created_by: staffUserId
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) return res.status(500).json({ success: false, error: error.message });
       return res.status(201).json({ success: true, data: normalizePreset(data) });

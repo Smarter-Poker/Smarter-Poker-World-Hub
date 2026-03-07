@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         earnings: 0
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (joinError) {
       console.error('Join error:', joinError);

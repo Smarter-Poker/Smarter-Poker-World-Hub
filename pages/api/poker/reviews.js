@@ -63,7 +63,7 @@ export default async function handler(req, res) {
           helpful_count: 0,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating review:', error);

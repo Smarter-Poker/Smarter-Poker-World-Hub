@@ -88,7 +88,7 @@ export default async function handler(req, res) {
                 bonus_diamonds: bonusDiamonds
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error creating daily challenge:', error);

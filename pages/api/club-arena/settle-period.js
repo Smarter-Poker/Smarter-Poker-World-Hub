@@ -143,7 +143,7 @@ export default async function handler(req, res) {
           total_player_losses: 0,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (pErr) throw pErr;
 

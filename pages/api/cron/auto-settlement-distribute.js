@@ -196,7 +196,7 @@ export default async function handler(req, res) {
                     },
                   })
                   .select('id')
-                  .single();
+                  .maybeSingle();
 
                 // Mark distribution as transferred
                 await supabaseAdmin

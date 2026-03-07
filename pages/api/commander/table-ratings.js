@@ -63,7 +63,7 @@ async function submitRating(req, res) {
         comment: comment?.trim() || null
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -206,7 +206,7 @@ export default async function handler(req, res) {
             channel: 'sms'
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (!smsError) {
           notifications.push(smsNotification);
@@ -239,7 +239,7 @@ export default async function handler(req, res) {
             channel: 'push'
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (!pushError) {
           notifications.push(pushNotification);
@@ -284,7 +284,7 @@ export default async function handler(req, res) {
             status: 'sent'
           })
           .select()
-          .single();
+          .maybeSingle();
 
         if (inAppNotification) {
           notifications.push(inAppNotification);

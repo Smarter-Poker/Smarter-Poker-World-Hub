@@ -125,7 +125,7 @@ export default async function handler(req, res) {
           .select('id')
           .eq('club_id', club.id)
           .eq('is_active', true)
-          .single();
+          .maybeSingle();
 
         if (!existingLock) {
           await supabaseAdmin.from('settlement_locks').insert({
@@ -441,7 +441,7 @@ export default async function handler(req, res) {
                   },
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
 
               // Update invoice with transfer reference
               if (txn) {

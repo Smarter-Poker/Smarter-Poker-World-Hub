@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         if (game_id) {
             // Single game with all seats
             const { data: game, error: gErr } = await supabase
-                .from('club_live_games').select('*').eq('id', game_id).single();
+                .from('club_live_games').select('*').eq('id', game_id).maybeSingle();
             if (gErr) return res.status(404).json({ success: false, error: 'Game not found' });
 
             const { data: seats } = await supabase
@@ -69,8 +69,7 @@ export default async function handler(req, res) {
             }
 
             // Enrich social seats with profile pictures
-            const socialPlayerIds = allSeats.map(s => s.player_id).filter(Boolean)
-                .limit(100);
+            const socialPlayerIds = allSeats.map(s => s.player_id).filter(Boolean);
             let socialProfilePicMap = {};
             if (socialPlayerIds.length > 0) {
                 try {
@@ -99,7 +98,7 @@ export default async function handler(req, res) {
                     .from('social_pages')
                     .select('linked_venue_id, metadata')
                     .eq('id', page_id)
-                    .single();
+                    .maybeSingle();
 
                 const rawVenueId = pageData?.linked_venue_id || pageData?.metadata?.linked_venue_id;
                 const venueId = rawVenueId ? parseInt(rawVenueId, 10) : null;
@@ -123,8 +122,7 @@ export default async function handler(req, res) {
                         const allCmdSeats = cmdSeats || [];
 
                         // Fetch profile pictures for players with Smarter.Poker accounts
-                        const playerIds = allCmdSeats.map(s => s.player_id).filter(Boolean)
-                            .limit(100);
+                        const playerIds = allCmdSeats.map(s => s.player_id).filter(Boolean);
                         let profilePicMap = {};
                         if (playerIds.length > 0) {
                             try {
@@ -138,8 +136,7 @@ export default async function handler(req, res) {
                         }
 
                         // Fetch table names for display
-                        const tableIds = cmdGames.map(g => g.table_id).filter(Boolean)
-                            .limit(100);
+                        const tableIds = cmdGames.map(g => g.table_id).filter(Boolean);
                         let tableMap = {};
                         if (tableIds.length > 0) {
                             const { data: tables } = await supabase
@@ -157,7 +154,7 @@ export default async function handler(req, res) {
                                 .from('commander_venue_settings')
                                 .select('venue_type')
                                 .eq('venue_id', venueId)
-                                .single();
+                                .maybeSingle();
                             if (venueSettings?.venue_type) venueType = venueSettings.venue_type;
                         } catch (e) { /* default to texas */ }
 
@@ -219,8 +216,7 @@ export default async function handler(req, res) {
                         const now = new Date();
 
                         const mapped = cmdGames.map(g => {
-                            const gameSeats = allCmdSeats.filter(s => s.game_id === g.id)
-                                .limit(100);
+                            const gameSeats = allCmdSeats.filter(s => s.game_id === g.id);
                             const occupiedSeats = gameSeats.filter(s => s.status === 'occupied');
                             const table = g.table_id ? tableMap[g.table_id] : null;
                             const tableName = table ? (table.table_name || `Table ${table.table_number}`) : null;
@@ -306,14 +302,14 @@ export default async function handler(req, res) {
             if (!player_id) return { allowed: false, reason: 'You must be logged in to join a game' };
             // Get the page_id for this game
             const { data: game } = await supabase
-                .from('club_live_games').select('page_id').eq('id', game_id).single();
+                .from('club_live_games').select('page_id').eq('id', game_id).maybeSingle();
             if (!game) return { allowed: false, reason: 'Game not found' };
             // Check if player follows the page
             const { data: follow } = await supabase
                 .from('social_page_followers')
                 .select('status')
                 .eq('page_id', game.page_id).eq('user_id', player_id)
-                .single();
+                .maybeSingle();
             if (!follow) return { allowed: false, reason: 'You must follow this page to join a game', code: 'NOT_FOLLOWING' };
             if (follow.status === 'pending') return { allowed: false, reason: 'Your follow request is pending approval', code: 'PENDING_APPROVAL' };
             return { allowed: true };
@@ -335,7 +331,7 @@ export default async function handler(req, res) {
             // Check seat is available
             const { data: existing } = await supabase
                 .from('club_game_seats').select('id')
-                .eq('game_id', game_id).eq('seat_number', seat_number).single();
+                .eq('game_id', game_id).eq('seat_number', seat_number).maybeSingle();
 
             if (existing) {
                 return res.status(409).json({ success: false, error: 'Seat already taken', code: 'SEAT_TAKEN' });
@@ -345,7 +341,7 @@ export default async function handler(req, res) {
             const { data: playerSeat } = await supabase
                 .from('club_game_seats').select('id')
                 .eq('game_id', game_id).eq('player_name', player_name)
-                .neq('status', 'waitlist').single();
+                .neq('status', 'waitlist').maybeSingle();
 
             if (playerSeat) {
                 return res.status(409).json({ success: false, error: 'You already have a seat in this game', code: 'ALREADY_SEATED' });
@@ -355,7 +351,7 @@ export default async function handler(req, res) {
                 .from('club_game_seats').insert({
                     game_id, seat_number, player_id: player_id || null,
                     player_name, status: 'reserved'
-                }).select().single();
+                }).select().maybeSingle();
 
             if (error) {
                 if (error.code === '23505') return res.status(409).json({ success: false, error: 'Seat already taken', code: 'SEAT_TAKEN' });
@@ -381,7 +377,7 @@ export default async function handler(req, res) {
             const { data: maxPos } = await supabase
                 .from('club_game_seats').select('waitlist_position')
                 .eq('game_id', game_id).eq('status', 'waitlist')
-                .order('waitlist_position', { ascending: false }).limit(1).single();
+                .order('waitlist_position', { ascending: false }).limit(1).maybeSingle();
 
             const nextPos = (maxPos?.waitlist_position || 0) + 1;
 
@@ -389,7 +385,7 @@ export default async function handler(req, res) {
                 .from('club_game_seats').insert({
                     game_id, seat_number: null, player_id: player_id || null,
                     player_name, status: 'waitlist', waitlist_position: nextPos
-                }).select().single();
+                }).select().maybeSingle();
 
             if (error) return res.status(500).json({ success: false, error: error.message });
             return res.status(201).json({ success: true, data, position: nextPos });
@@ -421,7 +417,7 @@ export default async function handler(req, res) {
                 stakes: stakes || '1/2', max_seats: max_seats || 9,
                 table_number: table_number || null, notes: notes || null,
                 created_by: verified_user_id, status: 'open'
-            }).select().single();
+            }).select().maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(201).json({ success: true, data });
@@ -450,7 +446,7 @@ export default async function handler(req, res) {
         if (table_number !== undefined) updates.table_number = table_number;
 
         const { data, error } = await supabase
-            .from('club_live_games').update(updates).eq('id', id).select().single();
+            .from('club_live_games').update(updates).eq('id', id).select().maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
         return res.status(200).json({ success: true, data });

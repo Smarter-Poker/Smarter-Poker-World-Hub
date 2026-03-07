@@ -750,7 +750,7 @@ export default function UserProfilePage() {
                 insertPayload.link_site_name = linkPreview.domain || null;
             }
 
-            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
+            const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().maybeSingle();
 
             if (error) {
                 console.error('Post creation error:', error);

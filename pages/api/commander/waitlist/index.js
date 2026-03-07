@@ -231,7 +231,7 @@ export default async function handler(req, res) {
         estimated_wait_minutes
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (insertError) {
       console.error('Commander waitlist insert error:', insertError);

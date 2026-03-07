@@ -277,7 +277,7 @@ async function handlePost(req, res) {
       .from('commander_staff')
       .insert(staffRecord)
       .select()
-      .single();
+      .maybeSingle();
 
     if (insertError) {
       console.error('Commander staff insert error:', insertError);

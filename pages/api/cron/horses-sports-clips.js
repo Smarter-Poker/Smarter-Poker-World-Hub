@@ -260,7 +260,7 @@ Your reaction:`;
                     }
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
 
             if (postError) {
                 console.error(`   Post creation failed: ${postError.message}`);

@@ -52,7 +52,7 @@ export default async function handler(req, res) {
                 room_name: roomName,
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[calls/create] Error:', error);

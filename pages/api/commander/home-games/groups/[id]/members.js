@@ -177,7 +177,7 @@ async function joinOrInvite(req, res, groupId) {
           *,
           profiles:user_id (id, display_name, avatar_url)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) {
         if (error.code === '23505') {
@@ -238,7 +238,7 @@ async function joinOrInvite(req, res, groupId) {
         *,
         profiles:user_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

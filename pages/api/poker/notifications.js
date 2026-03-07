@@ -69,7 +69,7 @@ export default async function handler(req, res) {
           created_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating notification:', error);
@@ -268,7 +268,7 @@ export default async function handler(req, res) {
           read_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error marking notification read:', error);

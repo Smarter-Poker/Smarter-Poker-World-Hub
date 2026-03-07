@@ -80,7 +80,7 @@ export default async function handler(req, res) {
         .from('venue_checkins')
         .insert(insertData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error creating checkin:', error);

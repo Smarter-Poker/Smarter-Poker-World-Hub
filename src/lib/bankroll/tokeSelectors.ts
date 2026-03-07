@@ -375,7 +375,7 @@ export async function updateGig(userId: string, gigId: string, updates: Partial<
         .eq('user_id', userId)
         .eq('id', gigId)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -424,7 +424,7 @@ export async function completeGig(userId: string, gigId: string, mileage = 0): P
         .eq('user_id', userId)
         .eq('id', gigId)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -519,7 +519,7 @@ export async function closeDay(dayId: string): Promise<TokeGigDay> {
         .update({ ended_at: new Date().toISOString() })
         .eq('id', dayId)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -568,7 +568,7 @@ export async function createDown(
             notes: down.notes || null,
         })
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -586,7 +586,7 @@ export async function endDown(downId: string, tokeAmount?: number): Promise<Toke
         .update(updates)
         .eq('id', downId)
         .select()
-        .single();
+        .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -622,7 +622,7 @@ export async function updateDownToke(downId: string, tokeAmount: number): Promis
         .update({ toke_amount: tokeAmount })
         .eq('id', downId)
         .select()
-        .single();
+        .maybeSingle();
     if (error) throw error;
     return data;
 }
@@ -633,7 +633,7 @@ export async function updateDownMultiplier(downId: string, multiplier: number): 
         .update({ down_multiplier: multiplier })
         .eq('id', downId)
         .select()
-        .single();
+        .maybeSingle();
     if (error) throw error;
     return data;
 }
@@ -668,7 +668,7 @@ export async function createExpense(
             receipt_url: expense.receipt_url || null,
         })
         .select()
-        .single();
+        .maybeSingle();
     if (error) throw error;
     return data;
 }
@@ -686,7 +686,7 @@ export async function getGigReport(userId: string, gigId: string) {
         .select('*')
         .eq('user_id', userId)
         .eq('id', gigId)
-        .single();
+        .maybeSingle();
 
     if (gigError) throw gigError;
 

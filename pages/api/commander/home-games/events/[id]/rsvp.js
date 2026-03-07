@@ -232,7 +232,7 @@ async function submitRsvp(req, res, eventId) {
           *,
           profiles:user_id (id, display_name, avatar_url)
         `)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       rsvp = data;

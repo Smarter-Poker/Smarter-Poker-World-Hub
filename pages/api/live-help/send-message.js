@@ -66,7 +66,7 @@ export default async function handler(req, res) {
                 content: content.trim()
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (userMsgError) {
             console.error('Failed to save user message:', userMsgError);
@@ -140,7 +140,7 @@ export default async function handler(req, res) {
                 }
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (agentMsgError) {
             console.error('Failed to save agent message:', agentMsgError);

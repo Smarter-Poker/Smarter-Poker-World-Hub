@@ -173,7 +173,7 @@ async function joinClubByCode(req, res, code) {
         onConflict: 'group_id,user_id'
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -147,7 +147,7 @@ export default async function handler(req, res) {
           }
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error(`Commander notification insert error (${channel}):`, error);

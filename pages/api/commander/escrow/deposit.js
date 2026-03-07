@@ -118,7 +118,7 @@ export default async function handler(req, res) {
         payment_reference
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

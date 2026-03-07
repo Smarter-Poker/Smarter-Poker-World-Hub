@@ -1198,7 +1198,7 @@ async function getNewsPosterId() {
         .from('profiles')
         .select('id, username')
         .eq('id', NEWS_POSTER_UUID)
-        .single();
+        .maybeSingle();
 
     if (account) {
         return account.id;
@@ -1217,7 +1217,7 @@ async function postToSocialFeed(article, newsPosterId) {
         .from('social_posts')
         .select('id')
         .like('content', `%${article.url}%`)
-        .single();
+        .maybeSingle();
 
     if (existing) return; // Already posted
 

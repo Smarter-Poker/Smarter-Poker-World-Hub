@@ -58,8 +58,7 @@ async function listEntries(req, res, leaderboardId) {
     if (error) throw error;
 
     // Enrich with member data for player_name
-    const playerIds = (entries || []).map(e => e.player_id).filter(Boolean)
-        .limit(100);
+    const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
     let memberMap = {};
     if (playerIds.length > 0) {
       const { data: members } = await supabase
@@ -156,7 +155,7 @@ async function addOrUpdateEntry(req, res, leaderboardId) {
         *,
         profiles:player_id (id, display_name, avatar_url)
       `)
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 

@@ -125,7 +125,7 @@ export default async function handler(req, res) {
         player_note: note || `Cashout request: ${amount.toLocaleString()} chips`,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (cashoutErr) {
       // Rollback: restore chips atomically

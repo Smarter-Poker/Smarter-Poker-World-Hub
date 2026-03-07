@@ -70,7 +70,7 @@ export default async function handler(req, res) {
                 session_logged: false
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('[Geofence] Insert error:', error);

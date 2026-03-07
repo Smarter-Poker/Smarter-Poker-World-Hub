@@ -46,7 +46,7 @@ export default async function handler(req, res) {
                     .update({ status: 'approved' })
                     .eq('page_id', page_id)
                     .eq('user_id', follower_id)
-                    .select().single();
+                    .select().maybeSingle();
                 if (error) return res.status(500).json({ success: false, error: error.message });
                 return res.status(200).json({ success: true, data });
             } else {
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         // Determine if page requires approval (home_game type)
         let requiresApproval = false;
         const { data: pageData } = await supabase
-            .from('social_pages').select('metadata').eq('id', page_id).single();
+            .from('social_pages').select('metadata').eq('id', page_id).maybeSingle();
         if (pageData?.metadata?.page_type === 'home_game') {
             requiresApproval = true;
         }
@@ -92,17 +92,17 @@ export default async function handler(req, res) {
                 notifications_enabled: true
             }, { onConflict: 'page_id,user_id' })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Send push notification to page owner about new follower
         try {
             const { data: ownerPage } = await supabase
-                .from('social_pages').select('owner_id, name').eq('id', page_id).single();
+                .from('social_pages').select('owner_id, name').eq('id', page_id).maybeSingle();
             if (ownerPage && ownerPage.owner_id !== user_id) {
                 const { data: followerProfile } = await supabase
-                    .from('profiles').select('username, full_name').eq('id', user_id).single();
+                    .from('profiles').select('username, full_name').eq('id', user_id).maybeSingle();
                 const followerName = followerProfile?.full_name || followerProfile?.username || 'Someone';
                 const notifTitle = requiresApproval ? '🔔 New Follow Request' : '🎉 New Follower';
                 const notifMsg = requiresApproval
@@ -142,7 +142,7 @@ export default async function handler(req, res) {
 
             // Determine if requester is page owner
             const { data: pageInfo } = await supabase
-                .from('social_pages').select('owner_id, is_public').eq('id', page_id).single();
+                .from('social_pages').select('owner_id, is_public').eq('id', page_id).maybeSingle();
             const isOwner = requester_id && pageInfo && pageInfo.owner_id === requester_id;
             const isPublicPage = pageInfo?.is_public !== false; // default to public
 

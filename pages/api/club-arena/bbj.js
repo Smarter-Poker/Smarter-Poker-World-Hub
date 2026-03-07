@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     // Verify caller is a member of this club (or union admin)
-    // HARDENED: March 7, 2026 — .single() → .maybeSingle() to prevent 500 crashes
+    // HARDENED: March 7, 2026 — .maybeSingle() → .maybeSingle() to prevent 500 crashes
     const { data: member } = await supabaseAdmin
       .from('club_members')
       .select('role')

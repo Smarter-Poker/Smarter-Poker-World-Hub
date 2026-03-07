@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         member_id,
         table_number,
         metadata: metadata || {}
-      }).select().single();
+      }).select().maybeSingle();
 
       if (error) throw error;
       return res.status(201).json({ success: true, data });

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('id, diamonds')
             .eq('id', user_id)
-            .single();
+            .maybeSingle();
 
         const cost = validTypes[duel_type];
         if (profile && (profile.diamonds || 0) < cost) {
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
                     max_rounds: duel_type === 'best-of-3' ? 3 : 1,
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (matchErr) {
                 // Tables might not exist yet - return simulated match

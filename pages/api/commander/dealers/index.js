@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .from('commander_dealers')
       .insert({ venue_id: vid, name: dealerName, employee_id, skill_level, certified_games })
       .select()
-      .single();
+      .maybeSingle();
     if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
     return res.json({ success: true, data: { dealer: data } });
   }

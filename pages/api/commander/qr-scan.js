@@ -33,7 +33,7 @@ export default async function handler(req, res) {
                 user_agent: req.headers['user-agent'] || null,
             })
             .select()
-            .single();
+            .maybeSingle();
 
         if (error) {
             return res.status(500).json({ success: false, error: 'Internal server error' });

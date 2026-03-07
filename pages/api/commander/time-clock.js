@@ -181,7 +181,7 @@ async function handlePost(req, res) {
                     clock_in: new Date().toISOString(),
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 

@@ -72,7 +72,7 @@ export default async function handler(req, res) {
                     created_at: new Date().toISOString()
                 })
                 .select('id')
-                .single();
+                .maybeSingle();
 
             if (directError) {
                 console.error('Create post error:', directError);

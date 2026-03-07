@@ -196,7 +196,7 @@ async function handlePost(req, res) {
                 venue:poker_venues(id, name, city, state)
             `)
             .eq('id', gameId)
-            .single();
+            .maybeSingle();
 
         if (fetchError) {
             console.error('Error fetching reported game:', fetchError);

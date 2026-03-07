@@ -97,7 +97,7 @@ export default async function handler(req, res) {
                     expires_at: expiresAt || null,
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 if (error.code === '23505') {
@@ -176,7 +176,7 @@ export default async function handler(req, res) {
                 .update(updates)
                 .eq('id', id)
                 .select()
-                .single();
+                .maybeSingle();
 
             if (error) {
                 if (error.code === '23505') {
