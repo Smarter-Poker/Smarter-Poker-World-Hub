@@ -139,7 +139,9 @@ function computeTotalHours(downs: TokeDown[]): number {
     for (const d of downs) {
         const start = new Date(d.started_at).getTime();
         const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
-        ms += end - start;
+        const durationMs = end - start;
+        const multiplier = d.down_multiplier || 1.0;
+        ms += (durationMs * multiplier);
     }
     return ms / (1000 * 60 * 60);
 }
