@@ -10,6 +10,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Home, Users, Calendar, Plus, Settings, UserMinus, Clock, DollarSign, Trash2, Loader2, X, Check, Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import RSVPManager from '../../../../../src/components/commander/home-games/RSVPManager';
 import { supabase } from '../../../../../src/lib/supabase';
+import { getAccessToken } from '../../../../../src/lib/authUtils';
 
 function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
   const [eventData, setEventData] = useState({
@@ -29,8 +30,7 @@ function ScheduleEventModal({ isOpen, onClose, onSubmit, group }) {
     const datetime = `${eventData.scheduled_date}T${eventData.scheduled_time}:00`;
 
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const res = await fetch('/api/commander/home-games/events', {
         method: 'POST',
         headers: {
@@ -238,8 +238,7 @@ export default function ManageHomeGamePage() {
     if (!id) return;
 
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const headers = { Authorization: `Bearer ${token}` };
 
       const fo = signal ? { headers, signal } : { headers };
@@ -280,8 +279,7 @@ export default function ManageHomeGamePage() {
 
   useEffect(() => {
     const init = async () => {
-      const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+      const token = getAccessToken();
       if (!token) {
         router.push('/auth/login');
         return;
@@ -303,8 +301,7 @@ export default function ManageHomeGamePage() {
 
   async function handleApproveMember(member) {
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       await fetch(`/api/commander/home-games/groups/${id}/members`, {
         method: 'PATCH',
         headers: {
@@ -323,8 +320,7 @@ export default function ManageHomeGamePage() {
     if (!confirm(`Remove ${member.display_name || 'this member'}?`)) return;
 
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       await fetch(`/api/commander/home-games/groups/${id}/members?member_id=${member.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -338,8 +334,7 @@ export default function ManageHomeGamePage() {
   async function loadEventRsvps(eventId) {
     setRsvpLoading(true);
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/events/${eventId}/rsvp`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -355,8 +350,7 @@ export default function ManageHomeGamePage() {
 
   async function handleRsvpAction(rsvpId, action) {
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       await fetch(`/api/commander/home-games/rsvps/${rsvpId}`, {
         method: 'PATCH',
         headers: {
@@ -375,8 +369,7 @@ export default function ManageHomeGamePage() {
     if (!confirm('Delete this scheduled game?')) return;
 
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       await fetch(`/api/commander/home-games/events/${event.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -392,8 +385,7 @@ export default function ManageHomeGamePage() {
 
     setProcessingEscrow(transaction.id);
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const res = await fetch(`/api/commander/escrow/${transaction.id}/release`, {
         method: 'POST',
         headers: {
@@ -418,8 +410,7 @@ export default function ManageHomeGamePage() {
 
     setProcessingEscrow(transaction.id);
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const res = await fetch(`/api/commander/escrow/${transaction.id}/refund`, {
         method: 'POST',
         headers: {
@@ -445,8 +436,7 @@ export default function ManageHomeGamePage() {
 
     setDeleteError(null);
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/groups/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
@@ -466,8 +456,7 @@ export default function ManageHomeGamePage() {
 
   async function handleUpdateSettings(newSettings) {
     try {
-        const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-      const token = _session?.access_token;
+        const token = getAccessToken();
       const res = await fetch(`/api/commander/home-games/groups/${id}`, {
         method: 'PATCH',
         headers: {
