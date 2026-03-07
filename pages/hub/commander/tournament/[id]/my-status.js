@@ -15,7 +15,7 @@ import SEOHead from '../../../../../src/components/seo/SEOHead';
 import TournamentStoryCard from '../../../../../src/components/social/TournamentStoryCard';
 import { Trophy, Users, Clock, Loader2, CheckCircle2, ChevronLeft, Coins, TrendingUp, Hash, Bell, Share2, Camera } from 'lucide-react';
 import useTournamentRealtime from '../../../../../src/hooks/useTournamentRealtime';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../../../src/lib/authUtils';
 
 export default function MyTournamentStatus() {
     const router = useRouter();
@@ -39,7 +39,8 @@ export default function MyTournamentStatus() {
         if (!id) return;
         try {
             const token = getAccessToken();
-            if (!session?.access_token) {
+            const authUser = getAuthUser();
+            if (!token || !authUser) {
                 router.push(`/auth/login?redirect=/hub/commander/tournament/${id}/my-status`);
                 return;
             }
@@ -56,7 +57,7 @@ export default function MyTournamentStatus() {
                     .from('commander_tournament_entries')
                     .select('*')
                     .eq('tournament_id', id)
-                    .eq('player_id', session.user.id)
+                    .eq('player_id', authUser.id)
                     .maybeSingle()
             ]);
 
