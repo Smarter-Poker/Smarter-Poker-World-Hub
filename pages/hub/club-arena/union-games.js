@@ -29,6 +29,7 @@ const getToken = () => getAccessToken();
 
 const api = async (action, params) => {
   const token = await getToken();
+  if (!token) throw new Error('Not authenticated — please log in again');
   const res = await fetch('/api/club-arena/union-games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -893,41 +894,17 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     let active = true;
     (async () => {
       try {
-        // Fetch registrations
-        const { data: regData, error: regErr } = await supabase
-          .from('tournament_registrations')
-          .select('user_id, club_id, status, registered_at, finish_position, payout_amount')
-          .eq('tournament_id', t.id)
-          .in('status', ['registered', 'playing', 'eliminated', 'winner'])
-          .order('registered_at')
-          .limit(200);
-        if (regErr) console.error('[TournamentDetail] regs fetch:', regErr);
-        if (!active) return;
-
-        const rows = regData || [];
-
-        // Enrich with display names from profiles
-        const userIds = [...new Set(rows.map(r => r.user_id))];
-        let profileMap = {};
-        if (userIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, username, display_name')
-            .in('id', userIds)
-            .limit(200);
-          for (const p of (profiles || [])) profileMap[p.id] = p;
+        // Use union-games API (service role) — avoids anon-client RLS dependency
+        const res = await api('get_tournament_details', { unionId, tournamentId: t.id });
+        if (active && res.success) {
+          setRegs(res.registrations || []);
         }
-
-        if (active) setRegs(rows.map(r => ({
-          ...r,
-          display_name: profileMap[r.user_id]?.display_name || profileMap[r.user_id]?.username || null,
-        })));
       } catch (e) {
-        console.error('[TournamentDetail] regs fetch:', e);
+        if (active) console.error('[TournamentDetail] regs fetch:', e);
       }
     })();
     return () => { active = false; };
-  }, [t.id]);
+  }, [t.id, unionId]);
 
   // Subscribe to tournament channel for live state (replaces 5s HTTP poll)
   useEffect(() => {
