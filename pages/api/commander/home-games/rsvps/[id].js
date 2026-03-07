@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { data, error } = await supabase.from('commander_home_rsvps').select('*').eq('id', id).maybeSingle();
-    if (error) return res.status(404).json({ success: false, error: 'RSVP not found' });
+    if (error || !data) return res.status(404).json({ success: false, error: 'RSVP not found' });
     return res.json({ success: true, data: { rsvp: data } });
   }
 

@@ -59,7 +59,12 @@ async function getProfile(req, res, user) {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (profileError) throw profileError;
+    if (profileError || !profile) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'PROFILE_NOT_FOUND', message: 'Profile not found' }
+      });
+    }
 
     // Get player preferences
     const { data: preferences } = await supabase

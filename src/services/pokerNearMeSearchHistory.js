@@ -50,7 +50,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
             throw error;
         }
 
-        return data;
+        return data || null;
     }
 
     // Insert new record
@@ -70,7 +70,7 @@ export async function addSearchHistory(userId, searchQuery, searchData = {}) {
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**

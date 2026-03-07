@@ -14,28 +14,59 @@ See `.agent/workflows/deploy.md` for details. **Violation of this rule causes ca
 
 ---
 
-## MANDATORY: Pre-Push Safety Checklist (ALL AGENTS — March 2026 Incident Response)
+## ABSOLUTE LAW: Code Safety Rules (ALL AGENTS — ZERO EXCEPTIONS)
 
-On March 7, 2026, a single uncalled React hook import caused 14 consecutive failed deployments
-and took down ALL pages site-wide. To prevent this from EVER happening again:
+These rules apply to ALL agents: Claude.ai, Antigravity, any AI agent working on this codebase.
+Violation of ANY rule = automatic rollback and investigation.
 
-### Before ANY commit/push, verify ALL of the following:
+### Enforced By:
+- **Local**: `.git/hooks/pre-push` (blocks pushes with violations)
+- **CI/CD**: `.github/workflows/build-safety-gate.yml` (blocks deploys on ALL branches)
+- **Post-Deploy**: Automated 5-minute verification after every deploy to main
 
-1. **No imported-but-uncalled hooks**: If you import `useXxx`, you MUST call `const { ... } = useXxx()` somewhere in the component. An unused hook import causes a ReferenceError during SSG that kills the entire build.
+### The 7 Immutable Rules:
 
-2. **No bare `createClient()` at module scope**: Any `createClient()` call at the top of a file (outside a function) MUST be guarded with `typeof window !== 'undefined'`. Without this, SSG will crash because there's no browser environment at build time.
+1. **NEVER use `.single()` on Supabase queries** — ALWAYS use `.maybeSingle()`.
+   `.single()` throws PGRST116 when 0 rows returned, crashing the entire route.
+   There are ZERO valid exceptions to this rule.
 
-3. **Use `.maybeSingle()` not `.single()`**: When querying Supabase for a row that might not exist, ALWAYS use `.maybeSingle()`. The `.single()` method throws when zero rows are found, which crashes API routes with 500 errors.
+2. **NEVER import a React hook without calling it.** If you `import { useXxx }`, you MUST
+   call `useXxx()` in the component body. Unused hook imports cause ReferenceError during
+   SSG and crash the ENTIRE build — every single page goes down.
 
-4. **Never trust `req.query.userId` or `req.body.userId`**: ALL user identity MUST come from JWT token via `supabase.auth.getUser(token)`. Query/body params are IDOR attack vectors.
+3. **NEVER use `createClient()` at module scope** without a `typeof window` guard.
+   Module-scope code runs during SSG (server-side) — browser APIs don't exist there.
 
-5. **Test the build locally**: Run `npm run build` or verify the Next.js build before pushing.
+4. **NEVER use raw `@supabase/supabase-js` import in API routes.** ALL API routes MUST
+   use `import { createClient } from 'src/lib/supabaseServerClient'` — the patched client
+   with JWT decode fallback. Raw imports bypass GoTrue resilience.
 
-### Post-Push Verification (5-minute follow-up):
-After every push, wait 5 minutes then check Vercel deployment status. If the deployment fails,
-revert immediately with `git revert HEAD && git push`.
+5. **NEVER trust `req.query.userId` or `req.body.userId`** for identity. ALL user identity
+   MUST come from JWT via `supabase.auth.getUser(token)`. Query params = IDOR attack vector.
 
-### The pre-push git hook (`.git/hooks/pre-push`) will block pushes that violate rules 1-2 above.
+6. **NEVER call `.limit()` on JavaScript arrays.** `.limit()` is a Supabase query builder
+   method. Calling it on `.filter()`, `.map()`, or `.reduce()` results throws TypeError.
+
+7. **ALWAYS verify your changes.** After ANY code modification:
+   - Run `grep -rn '.single()' --include='*.js' --include='*.jsx' pages/ src/` to confirm no `.single()` leaked back
+   - Run `npm run build` to verify compilation passes
+   - After pushing: check Vercel deployment status within 5 minutes
+
+### Post-Push Verification Protocol:
+After EVERY push to main:
+1. Wait 5 minutes for Vercel deploy
+2. Check deployment status at https://vercel.com/team/hub-vanguard
+3. Verify site loads at https://smarter.poker
+4. If deployment FAILED: `git revert HEAD && git push` IMMEDIATELY
+5. The CI/CD workflow (build-safety-gate.yml) also runs automated post-deploy checks
+
+### Incident History:
+- **March 7, 2026**: One unused hook import → 14 failed deployments → all pages down.
+  Root cause: `.single()` + unused hooks + unpatched Supabase imports cascading.
+  Resolution: 1,491 `.single()` → `.maybeSingle()` conversions, pre-push hook, CI/CD gate.
+
+### The pre-push git hook (`.git/hooks/pre-push`) enforces rules 1-2 locally.
+### The GitHub Action (`.github/workflows/build-safety-gate.yml`) enforces rules 1-4 on every push.
 
 ---
 

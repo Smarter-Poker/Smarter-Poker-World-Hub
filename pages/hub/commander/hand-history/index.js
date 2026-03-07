@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import {
   FileText,
   ChevronLeft,
@@ -150,8 +151,11 @@ export default function HandHistoryPage() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [hands, setHands] = useState([]);
   const [handsLoading, setHandsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all');
+  const { filters: _hf, setFilter: _setHF } = usePersistedFilters('commander-hand-history', { searchQuery: '', filter: 'all' });
+  const [searchQuery, setSearchQuery] = useState(_hf.searchQuery);
+  const [filter, setFilter] = useState(_hf.filter);
+  // Sync filter changes to localStorage
+  useEffect(() => { _setHF('filter', filter); }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchSessions();

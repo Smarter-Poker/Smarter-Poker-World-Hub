@@ -45,7 +45,7 @@ export async function addNewsBookmark(userId, articleId, articleData = {}) {
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**

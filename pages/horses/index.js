@@ -549,6 +549,11 @@ export default function HorsesAdmin() {
 
       if (error) throw error;
 
+      if (!data) {
+        console.error('Failed to create persona: no data returned');
+        throw new Error('Persona creation returned null');
+      }
+
       setPersonas([data, ...personas]);
       setShowCreateModal(false);
       setNewPersona({

@@ -24,7 +24,6 @@ import {
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
-import HexButton from '../../../src/components/ui/HexButton';
 import { Trophy, Gem, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 

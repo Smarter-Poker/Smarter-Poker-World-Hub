@@ -45,7 +45,7 @@ export async function addToReadLater(userId, articleId, articleData = {}) {
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**

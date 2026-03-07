@@ -7,6 +7,7 @@ import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
+import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Trophy, Clock, DollarSign, Medal, Star, Calendar } from 'lucide-react';
 import LeaderboardDisplay from '../../../../src/components/commander/leaderboards/LeaderboardDisplay';
@@ -56,8 +57,11 @@ export default function LeaderboardPage() {
   if (!router.isReady) return null;
   const { venueId } = router.query;
 
-  const [metric, setMetric] = useState('hours');
-  const [period, setPeriod] = useState('month');
+  const { filters, setFilter } = usePersistedFilters('commander-leaderboard', { metric: 'hours', period: 'month' });
+  const metric = filters.metric;
+  const period = filters.period;
+  const setMetric = (v) => setFilter('metric', v);
+  const setPeriod = (v) => setFilter('period', v);
   const [selectedLeaderboard, setSelectedLeaderboard] = useState(null);
 
   // SWR — parallel fetch, re-fires when metric/period/venueId changes

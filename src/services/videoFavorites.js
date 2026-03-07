@@ -50,7 +50,7 @@ export async function addVideoFavorite(userId, videoId, videoData = {}) {
         claimReward('/api/rewards/video-favorite', { userId, videoId }, 'Favorited a Video');
     }
 
-    return data;
+    return data || null;
 }
 
 /**

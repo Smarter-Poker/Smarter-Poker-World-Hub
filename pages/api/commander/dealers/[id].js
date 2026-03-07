@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { data, error } = await supabase.from('commander_dealers').select('*').eq('id', id).maybeSingle();
-    if (error) return res.status(404).json({ success: false, error: 'Dealer not found' });
+    if (error || !data) return res.status(404).json({ success: false, error: 'Dealer not found' });
     return res.json({ success: true, data: { dealer: data } });
   }
 
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const updates = req.body;
     delete updates.id; delete updates.venue_id;
     const { data, error } = await supabase.from('commander_dealers').update(updates).eq('id', id).select().maybeSingle();
-    if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
+    if (error || !data) return res.status(404).json({ success: false, error: 'Dealer not found' });
     return res.json({ success: true, data: { dealer: data } });
   }
 

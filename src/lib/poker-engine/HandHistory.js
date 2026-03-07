@@ -340,7 +340,7 @@ class HandHistoryQuery {
       .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data || null;
   }
 
   /**

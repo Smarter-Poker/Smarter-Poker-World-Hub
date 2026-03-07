@@ -73,7 +73,7 @@ export function useRealtimeUpdates(venueId, onUpdate, enabled = true) {
             filter: noFilter ? undefined : `venue_id=eq.${venueId}`,
           },
           (payload) => {
-            if (IS_DEV) console.debug(`[Commander RT] ${name}:`, payload.eventType);
+            if (IS_DEV) console.debug(`[Commander RT] ${name}:`, payload.event);
             onUpdateRef.current?.(name, payload);
           }
         );

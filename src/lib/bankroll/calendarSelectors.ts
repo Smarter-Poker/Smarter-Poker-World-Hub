@@ -58,7 +58,7 @@ export async function createCalendarEvent(
         .select()
         .maybeSingle();
 
-    if (error) throw new Error(error.message);
+    if (error || !data) throw new Error(error?.message || 'Failed to create calendar event');
     return data;
 }
 

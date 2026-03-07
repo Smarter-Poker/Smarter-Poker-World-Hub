@@ -54,7 +54,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
             throw error;
         }
 
-        return data;
+        return data || null;
     }
 
     // Insert new record
@@ -75,7 +75,7 @@ export async function addToWatchHistory(userId, videoId, videoData = {}) {
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**
@@ -132,7 +132,7 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
             claimReward('/api/rewards/video-watch', { userId, videoId }, 'Watched a Video (5+ min)');
         }
 
-        return data;
+        return data || null;
     }
 
     // Insert new record with duration
@@ -154,7 +154,7 @@ export async function updateWatchDuration(userId, videoId, additionalSeconds, vi
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**

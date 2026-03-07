@@ -182,7 +182,7 @@ export class BaseScraper {
                     .select('id')
                     .maybeSingle();
 
-                if (error) throw error;
+                if (error || !data) throw error || new Error('Failed to create venue');
                 this.stats.venuesCreated++;
                 return { id: data.id, action: 'created' };
             }

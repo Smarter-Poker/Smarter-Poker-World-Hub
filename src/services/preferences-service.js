@@ -319,7 +319,7 @@ export const wishlistService = {
                 .maybeSingle();
 
             if (error) throw error;
-            return data;
+            return data || null;
         } catch (error) {
             console.error('[Wishlist] Error adding to wishlist:', error);
             throw error;
@@ -395,7 +395,7 @@ export const savedReelsService = {
                 .maybeSingle();
 
             if (error) throw error;
-            return data;
+            return data || null;
         } catch (error) {
             console.error('[SavedReels] Error saving reel:', error);
             throw error;

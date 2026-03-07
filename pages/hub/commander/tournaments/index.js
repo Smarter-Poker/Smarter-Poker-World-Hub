@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
+import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import {
   Trophy, Calendar, Users, DollarSign, Clock, MapPin,
   Play, CheckCircle
@@ -121,7 +122,7 @@ function TournamentCard({ tournament, onRegister, isRegistered }) {
 export default function PlayerTournamentsHub() {
   const router = useRouter();
   const [myRegistrations, setMyRegistrations] = useState([]);
-  const [filter, setFilter] = useState('all'); // all, upcoming, live, registered
+  const [filter, setFilter] = usePersistedState('sp-filters-commander-tournaments', 'all');
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
 
   const { data: swrData, isLoading, mutate: refreshTournaments } = useSWR('/api/commander/tournaments?status=active', async (url) => {

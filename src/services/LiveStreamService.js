@@ -90,7 +90,7 @@ class LiveStreamService {
             .select()
             .maybeSingle();
 
-        if (error) throw new Error(`Failed to create stream: ${error.message}`);
+        if (error || !stream) throw new Error(`Failed to create stream: ${error?.message || 'Stream data not returned'}`);
 
         this.currentStreamId = stream.id;
 
@@ -462,7 +462,7 @@ class LiveStreamService {
             .maybeSingle();
 
         if (error) throw error;
-        return data;
+        return data || null;
     }
 }
 

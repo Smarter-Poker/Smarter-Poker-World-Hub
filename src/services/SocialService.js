@@ -576,7 +576,7 @@ export class SocialService {
                 .eq('id', clubId)
                 .maybeSingle();
             if (error) throw error;
-            return data;
+            return data || null;
         } catch (error) {
             console.warn('Club fetch failed', error);
             return null;
@@ -595,7 +595,7 @@ export class SocialService {
                 .eq('user_id', userId)
                 .maybeSingle();
             if (error) throw error;
-            return data;
+            return data || null;
         } catch (error) {
             console.error('Profile fetch error', error);
             // Return mock if needed or null

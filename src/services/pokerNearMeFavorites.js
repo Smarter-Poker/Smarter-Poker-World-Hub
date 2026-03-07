@@ -45,7 +45,7 @@ export async function addVenueFavorite(userId, venueId, venueData = {}) {
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**

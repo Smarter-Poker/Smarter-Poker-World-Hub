@@ -44,7 +44,7 @@ export async function addToWatchLater(userId, videoId, videoData = {}) {
         throw error;
     }
 
-    return data;
+    return data || null;
 }
 
 /**

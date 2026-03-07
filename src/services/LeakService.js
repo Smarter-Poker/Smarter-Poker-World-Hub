@@ -53,7 +53,7 @@ class LeakService {
                     .select()
                     .maybeSingle();
 
-                if (error) throw error;
+                if (error || !data) throw error || new Error('Failed to update leak');
                 console.log(`[LeakService] Updated leak ${leakType.id}: count=${data.count}`);
                 return data;
             } else {
@@ -71,7 +71,7 @@ class LeakService {
                     .select()
                     .maybeSingle();
 
-                if (error) throw error;
+                if (error || !data) throw error || new Error('Failed to record leak');
                 console.log(`[LeakService] Recorded new leak: ${leakType.id}`);
                 return data;
             }

@@ -3,6 +3,9 @@ import { create } from 'zustand';
 /**
  * Messenger Global State
  * Manages UI state for chat interface
+ *
+ * NO persistence — selectedConversation is live data (conversation objects),
+ * and modal states should always start closed. Nothing safe to persist here.
  */
 export const useMessengerStore = create((set) => ({
     // UI State

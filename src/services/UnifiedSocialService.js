@@ -123,7 +123,7 @@ export class UnifiedSocialService {
             .select('*')
             .maybeSingle();
 
-        if (error) throw error;
+        if (error || !data) throw error || new Error('Failed to create post');
 
         return createPost({
             ...data,
@@ -198,7 +198,7 @@ export class UnifiedSocialService {
             .select(`*, author:user_dna_profiles!author_id (username, avatar_url, current_level)`)
             .maybeSingle();
 
-        if (error) throw error;
+        if (error || !data) throw error || new Error('Failed to create comment');
         return createComment({
             ...data,
             author_username: data.author?.username,

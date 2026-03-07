@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
+import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 import {
   MapPin,
   Search,
@@ -93,7 +94,7 @@ export default function VenueDiscoveryPage() {
   const [loading, setLoading] = useState(true);
   const [venues, setVenues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all'); // 'all', 'live', 'nearby'
+  const [filter, setFilter] = usePersistedState('sp-filters-commander-venues', 'all');
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {    const _c = new AbortController();

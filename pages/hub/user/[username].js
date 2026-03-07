@@ -638,16 +638,16 @@ export default function UserProfilePage() {
 
         fetchProfile();
     }, [username]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!profileUserId) return;
-    const _ch = supabase
-      .channel(`user-profile:${profileUserId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `user_id=eq.${profileUserId}` }, () => {})
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [profileUserId]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!profile?.id) return;
+        const _ch = supabase
+            .channel(`user-profile:${profile.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, () => { })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [profile?.id]);
 
     const handleAddFriend = async () => {
         if (!currentUser || !profile) return;
@@ -755,6 +755,12 @@ export default function UserProfilePage() {
 
             if (error) {
                 console.error('Post creation error:', error);
+                setIsPosting(false);
+                return false;
+            }
+
+            if (!data) {
+                console.error('Post creation returned null');
                 setIsPosting(false);
                 return false;
             }

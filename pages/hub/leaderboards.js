@@ -10,6 +10,7 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePersistedFilters } from '../../src/hooks/usePersistedFilters';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -288,8 +289,11 @@ function ScoreBreakdown({ leader }) {
 export default function LeaderboardsPage() {
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('overall');
-    const [period, setPeriod] = useState('all');
+    const { filters, setFilter } = usePersistedFilters('leaderboards', { activeTab: 'overall', period: 'all' });
+    const activeTab = filters.activeTab;
+    const period = filters.period;
+    const setActiveTab = (v) => setFilter('activeTab', v);
+    const setPeriod = (v) => setFilter('period', v);
 
     const menuConfig = getMenuConfig('leaderboards', null, {}, {});
 

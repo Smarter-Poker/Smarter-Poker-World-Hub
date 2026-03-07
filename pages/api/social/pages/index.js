@@ -55,7 +55,7 @@ export default async function handler(req, res) {
                 .eq('id', id)
                 .maybeSingle();
 
-            if (error) return res.status(404).json({ success: false, error: 'Page not found' });
+            if (error || !data) return res.status(404).json({ success: false, error: 'Page not found' });
 
             // Get owner profile
             let owner = null;
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
                 .eq('slug', slug)
                 .maybeSingle();
 
-            if (error) return res.status(404).json({ success: false, error: 'Page not found' });
+            if (error || !data) return res.status(404).json({ success: false, error: 'Page not found' });
 
             // Enrich with owner profile (same as ID lookup)
             let owner = null;

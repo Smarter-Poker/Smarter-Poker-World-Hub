@@ -3,6 +3,9 @@ import { create } from 'zustand';
 /**
  * Profile Global State
  * Manages UI state for modals and media library
+ *
+ * NO persistence — libraryOpen is a modal state (should start closed),
+ * saving/isRefreshing are ephemeral loading flags. Nothing safe to persist here.
  */
 export const useProfileStore = create((set) => ({
     // UI State

@@ -37,7 +37,7 @@ export default async function handler(req, res) {
             // Single game with all seats
             const { data: game, error: gErr } = await supabase
                 .from('club_live_games').select('*').eq('id', game_id).maybeSingle();
-            if (gErr) return res.status(404).json({ success: false, error: 'Game not found' });
+            if (gErr || !game) return res.status(404).json({ success: false, error: 'Game not found' });
 
             const { data: seats } = await supabase
                 .from('club_game_seats').select('*').eq('game_id', game_id)
