@@ -239,69 +239,102 @@ export async function getActiveGig(userId: string): Promise<TokeGig | null> {
  * Create a new gig AND auto-create Day 1
  */
 export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<TokeGig> {
-    const isAbortErr = (e: any) => e?.name === 'AbortError' || (e?.message || '').includes('aborted');
+    // ═══════════════════════════════════════════════════════════════
+    // BYPASS THE SUPABASE JS CLIENT — it can have a corrupted internal
+    // AbortController after auth refresh, causing ALL requests to hang.
+    // We use direct fetch() to the PostgREST API instead.
+    // ═══════════════════════════════════════════════════════════════
 
-    // Fast active-gig check — NO withRetry, just a single quick query with a 3s timeout
-    // If this aborts or times out, we skip the check and let the insert proceed
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+
+    // Get the user's JWT from localStorage
+    let accessToken = supabaseAnonKey; // fallback to anon key
     try {
-        const checkResult = await Promise.race([
-            supabase.from('toke_gigs').select('id').eq('user_id', userId).eq('status', 'active').limit(1).maybeSingle(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
-        ]);
-        if ((checkResult as any)?.data) {
-            throw new Error('You already have an active event. Complete or delete it first.');
+        const authRaw = localStorage.getItem('smarter-poker-auth');
+        if (authRaw) {
+            const parsed = JSON.parse(authRaw);
+            const token = parsed?.access_token || parsed?.currentSession?.access_token || parsed?.session?.access_token;
+            if (token) accessToken = token;
         }
-    } catch (checkErr: any) {
-        if (checkErr?.message?.includes('already have an active')) throw checkErr;
-        // Abort/timeout/network error — skip check, proceed to insert
-        console.warn('[createGig] Active check skipped:', checkErr?.message);
-    }
+    } catch (_) { }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
     const safePokerVenueId = gig.poker_venue_id && uuidRegex.test(String(gig.poker_venue_id)) ? gig.poker_venue_id : null;
 
-    // Insert with 2 retries, 1s delay — fast fail, no long hangs
-    let lastErr: any;
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            const { data: row, error } = await supabase
-                .from('toke_gigs')
-                .insert({
-                    user_id: userId,
-                    venue_name: gig.venue_name,
-                    venue_address: gig.venue_address || null,
-                    location_id: safeLocationId,
-                    venue_type: gig.venue_type || 'casino',
-                    poker_venue_id: safePokerVenueId,
-                    latitude: gig.latitude || null,
-                    longitude: gig.longitude || null,
-                    start_date: gig.start_date || new Date().toISOString().split('T')[0],
-                    hourly_rate: gig.hourly_rate || 0,
-                    notes: gig.notes || null,
-                    status: 'active',
-                })
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            // Success — auto-create Day 1
-            try { await createDay(userId, row.id, 1); } catch (dayErr) {
-                console.warn('[createGig] Day 1 creation failed (non-fatal):', dayErr);
+    // Fast active-gig check via direct fetch (3s timeout)
+    try {
+        const checkCtrl = new AbortController();
+        const checkTimeout = setTimeout(() => checkCtrl.abort(), 3000);
+        const checkRes = await fetch(
+            `${supabaseUrl}/rest/v1/toke_gigs?user_id=eq.${userId}&status=eq.active&select=id&limit=1`,
+            {
+                headers: {
+                    'apikey': supabaseAnonKey,
+                    'Authorization': `Bearer ${accessToken}`,
+                },
+                signal: checkCtrl.signal,
             }
-            return row;
-        } catch (err: any) {
-            lastErr = err;
-            if (isAbortErr(err) && attempt < 1) {
-                console.warn(`[createGig] AbortError attempt ${attempt + 1}, retrying in 1s...`);
-                await new Promise(r => setTimeout(r, 1000));
-                continue;
+        );
+        clearTimeout(checkTimeout);
+        if (checkRes.ok) {
+            const rows = await checkRes.json();
+            if (rows && rows.length > 0) {
+                throw new Error('You already have an active event. Complete or delete it first.');
             }
-            if (!isAbortErr(err)) throw err;
         }
+    } catch (checkErr: any) {
+        if (checkErr?.message?.includes('already have an active')) throw checkErr;
+        console.warn('[createGig] Active check skipped:', checkErr?.message);
     }
-    throw lastErr;
+
+    // Direct insert via PostgREST with 8s timeout
+    const insertBody = {
+        user_id: userId,
+        venue_name: gig.venue_name,
+        venue_address: gig.venue_address || null,
+        location_id: safeLocationId,
+        venue_type: gig.venue_type || 'casino',
+        poker_venue_id: safePokerVenueId,
+        latitude: gig.latitude || null,
+        longitude: gig.longitude || null,
+        start_date: gig.start_date || new Date().toISOString().split('T')[0],
+        hourly_rate: gig.hourly_rate || 0,
+        notes: gig.notes || null,
+        status: 'active',
+    };
+
+    const insertCtrl = new AbortController();
+    const insertTimeout = setTimeout(() => insertCtrl.abort(), 8000);
+
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/toke_gigs`, {
+        method: 'POST',
+        headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(insertBody),
+        signal: insertCtrl.signal,
+    });
+    clearTimeout(insertTimeout);
+
+    if (!insertRes.ok) {
+        const errText = await insertRes.text().catch(() => 'Unknown error');
+        throw new Error(`Insert failed (${insertRes.status}): ${errText}`);
+    }
+
+    const rows = await insertRes.json();
+    const row = Array.isArray(rows) ? rows[0] : rows;
+    if (!row?.id) throw new Error('Insert returned no data');
+
+    // Auto-create Day 1 (non-fatal, uses regular client which is fine for background ops)
+    try { await createDay(userId, row.id, 1); } catch (dayErr) {
+        console.warn('[createGig] Day 1 creation failed (non-fatal):', dayErr);
+    }
+    return row;
 }
 
 /**
