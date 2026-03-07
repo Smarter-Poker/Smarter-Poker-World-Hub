@@ -537,7 +537,7 @@ export default function UserProfilePage() {
                 ]);
 
                 setStats({
-                    friends: friendsRes.count || 0,
+                    friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : 0,
                     following: followingRes.count || 0,
                     followers: followersRes.count || 0,
                     posts: postsRes.count || 0
