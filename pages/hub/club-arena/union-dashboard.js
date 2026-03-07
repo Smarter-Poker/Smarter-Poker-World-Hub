@@ -190,7 +190,7 @@ export default function UnionDashboard() {
     useEffect(() => {
         if (!unionIdParam || !user) return;
 
-        // Subscribe to union table changes (BBJ pools, settings)
+        // Channel 1: union-level changes (settings, BBJ balances)
         const unionChannel = supabase
             .channel(`union:${unionIdParam}`)
             .on('postgres_changes', {
@@ -211,9 +211,74 @@ export default function UnionDashboard() {
             }, () => { loadDashboard(); })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[UnionDashboard] Realtime channel status: ${status}`);
+                    console.warn(`[UnionDashboard] union channel status: ${status}`);
                 }
             });
+
+        // Channel 2: club treasury/rake changes (mint, settlements)
+        // Supabase Realtime .in() filter not supported — filter in callback
+        const clubsChannel = supabase
+            .channel(`union-clubs-data:${unionIdParam}`)
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'clubs',
+            }, (payload) => {
+                // Update matching club in place — avoids full reload for treasury ticks
+                setDashboard(prev => {
+                    if (!prev?.clubs) return prev;
+                    const clubIds = prev.clubs.map(c => c.id);
+                    if (!clubIds.includes(payload.new?.id)) return prev;
+                    return {
+                        ...prev,
+                        clubs: prev.clubs.map(c => c.id === payload.new.id ? { ...c, ...payload.new } : c),
+                    };
+                });
+            })
+            .subscribe();
+
+        // Channel 3: agent status/credit changes (suspensions, credit_used updates)
+        const agentsChannel = supabase
+            .channel(`union-agents:${unionIdParam}`)
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'agents',
+            }, (payload) => {
+                const row = payload.new || payload.old;
+                // Only reload if this agent belongs to a club in this union
+                setDashboard(prev => {
+                    if (!prev?.clubs) return prev;
+                    const clubIds = prev.clubs.map(c => c.id);
+                    if (!row?.club_id || !clubIds.includes(row.club_id)) return prev;
+                    // Patch agent in-place for UPDATE; reload for INSERT/DELETE
+                    if (payload.eventType === 'UPDATE') {
+                        return {
+                            ...prev,
+                            agents: (prev.agents || []).map(a =>
+                                a.id === payload.new.id ? { ...a, ...payload.new } : a
+                            ),
+                        };
+                    }
+                    // INSERT or DELETE → full reload
+                    loadDashboard();
+                    return prev;
+                });
+            })
+            .subscribe();
+
+        // Channel 4: settlement period changes
+        const periodsChannel = supabase
+            .channel(`union-periods:${unionIdParam}`)
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'settlement_periods',
+            }, (payload) => {
+                const row = payload.new || payload.old;
+                setDashboard(prev => {
+                    if (!prev?.clubs) return prev;
+                    const clubIds = prev.clubs.map(c => c.id);
+                    if (!row?.club_id || !clubIds.includes(row.club_id)) return prev;
+                    loadDashboard();
+                    return prev;
+                });
+            })
+            .subscribe();
 
         // Silent poll every 30s as fallback — Realtime postgres_changes handles live updates
         const poll = setInterval(async () => {
@@ -231,9 +296,12 @@ export default function UnionDashboard() {
 
         return () => {
             supabase.removeChannel(unionChannel);
+            supabase.removeChannel(clubsChannel);
+            supabase.removeChannel(agentsChannel);
+            supabase.removeChannel(periodsChannel);
             clearInterval(poll);
         };
-    }, [unionIdParam, user?.id]);
+    }, [unionIdParam, user?.id, loadDashboard]);
 
     // Mint chips
     const handleMint = async () => {
