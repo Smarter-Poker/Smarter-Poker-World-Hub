@@ -105,6 +105,7 @@ export default function UnionDashboard() {
     const [settleClubId, setSettleClubId] = useState('');
     const [settleAction, setSettleAction] = useState('open');
     const [settleProcessing, setSettleProcessing] = useState(false);
+    const [settleStatusData, setSettleStatusData] = useState(null); // result of 'status' action
 
     // Manage clubs state
     const [addClubId, setAddClubId] = useState('');
@@ -258,6 +259,14 @@ export default function UnionDashboard() {
                 action: settleAction,
             };
 
+            // Status action — display results in the panel instead of just toasting
+            if (settleAction === 'status') {
+                const statusData = await apiCall('/api/club-arena/settle-period', body);
+                setSettleStatusData({ ...statusData, clubId: settleClubId });
+                showToast('Status loaded');
+                return;
+            }
+
             // pay_all requires a periodId — fetch the most recent closed period
             if (settleAction === 'pay_all') {
                 const statusData = await apiCall('/api/club-arena/settle-period', {
@@ -272,8 +281,9 @@ export default function UnionDashboard() {
                 body.periodId = closedPeriod.id;
             }
 
-            await apiCall('/api/club-arena/settle-period', body);
-            showToast(`Settlement: ${settleAction} successful`);
+            const result = await apiCall('/api/club-arena/settle-period', body);
+            showToast(result.message || `Settlement: ${settleAction} successful`);
+            setSettleStatusData(null); // Clear status cache after any mutating action
             loadDashboard();
         } catch (err) {
             showToast(err.message || 'Settlement action failed', 'error');
@@ -371,6 +381,7 @@ export default function UnionDashboard() {
         return (
             <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
                 <SEOHead title="Union Dashboard | Club Arena" />
+                <UniversalHeader />
                 <div style={{ color: FB.danger, fontSize: 18 }}>Failed to load union dashboard</div>
                 <button onClick={() => router.push('/hub/club-arena')}
                     style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer' }}>
@@ -421,7 +432,8 @@ export default function UnionDashboard() {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                             <StatCard label="Clubs" value={stats?.totalClubs ?? 0} color={FB.primary} />
                             <StatCard label="Members" value={(stats?.totalMembers ?? 0).toLocaleString()} color={FB.textPrimary} />
-                            <StatCard label="Agents" value={stats?.totalAgents ?? 0} color={FB.orange} />
+                            <StatCard label="Active Agents" value={stats?.totalAgents ?? 0} color={FB.orange}
+                                sub={stats?.totalSuspendedAgents > 0 ? `${stats.totalSuspendedAgents} suspended` : null} />
                             <StatCard label="Agent Players" value={stats?.totalAgentPlayers ?? 0} color={FB.purple} />
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
@@ -431,6 +443,12 @@ export default function UnionDashboard() {
                             <StatCard label="Union Hold" value={(stats?.estimatedUnionHold ?? 0).toLocaleString()} color={FB.gold}
                                 sub={`${(((stats?.unionHoldRate) || 0) * 100).toFixed(0)}% of period rake`} />
                         </div>
+                        {stats?.totalCreditExposure > 0 && (
+                            <div style={{ background: 'rgba(250,56,62,0.07)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, border: '1px solid rgba(250,56,62,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 13, color: FB.textSecondary }}>⚠️ Total Agent Credit In Use</span>
+                                <span style={{ fontSize: 16, fontWeight: 800, color: FB.danger }}>{stats.totalCreditExposure.toLocaleString()}</span>
+                            </div>
+                        )}
 
                         {/* BBJ Summary — shown if any balance > 0 */}
                         {(union?.main_bbj_balance > 0 || union?.backup_bbj_balance > 0 || union?.promo_fund_balance > 0) && (
@@ -506,6 +524,11 @@ export default function UnionDashboard() {
                 {/* ═══ AGENTS TAB ═══ */}
                 {activeTab === 'agents' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {stats?.totalSuspendedAgents > 0 && (
+                            <div style={{ background: 'rgba(250,56,62,0.08)', borderRadius: 8, padding: '8px 14px', border: '1px solid rgba(250,56,62,0.2)', fontSize: 12, color: FB.danger }}>
+                                ⚠️ {stats.totalSuspendedAgents} suspended agent{stats.totalSuspendedAgents !== 1 ? 's' : ''} — outstanding credit may still be owed
+                            </div>
+                        )}
                         {agents.length > 4 && (
                             <input
                                 type="text"
@@ -519,37 +542,44 @@ export default function UnionDashboard() {
                             <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 40 }}>{agentSearch ? `No agents match "${agentSearch}"` : 'No agents across union clubs.'}</div>
                         ) : agents.filter(a => !agentSearch || (a.profile?.display_name || a.profile?.username || '').toLowerCase().includes(agentSearch.toLowerCase())).map(agent => {
                             const clubName = clubs.find(c => c.id === agent.club_id)?.name || 'Unknown Club';
+                            const tierLabel = { super_agent: 'Super Agent', agent: 'Agent', sub_agent: 'Sub Agent' }[agent.role] || agent.role || 'Agent';
+                            const tierColor = { super_agent: FB.gold, agent: FB.primary, sub_agent: FB.purple }[agent.role] || FB.primary;
                             return (
                                 <div key={agent.id} style={{
                                     background: FB.cardBg, borderRadius: 12, padding: 14,
-                                    border: `1px solid ${FB.border}`,
+                                    border: `1px solid ${agent.status === 'suspended' ? 'rgba(250,56,62,0.4)' : FB.border}`,
+                                    opacity: agent.status === 'suspended' ? 0.8 : 1,
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                        <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
                                                 {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0, 8)}
                                             </span>
-                                            <span style={{ fontSize: 12, color: FB.primary, marginLeft: 8 }}>
+                                            <span style={{ fontSize: 10, fontWeight: 700, color: tierColor, background: `${tierColor}22`, padding: '2px 6px', borderRadius: 4 }}>
+                                                {tierLabel}
+                                            </span>
+                                            <span style={{ fontSize: 10, fontWeight: 600, color: agent.is_prepaid ? FB.success : FB.orange, background: agent.is_prepaid ? 'rgba(49,162,76,0.15)' : 'rgba(245,166,35,0.15)', padding: '2px 6px', borderRadius: 4 }}>
                                                 {agent.is_prepaid ? 'Prepaid' : 'Credit'}
                                             </span>
                                         </div>
                                         <span style={{
                                             fontSize: 11, color: agent.status === 'active' ? FB.success : FB.danger,
-                                            fontWeight: 600,
+                                            fontWeight: 700,
                                         }}>
-                                            {agent.status}
+                                            {agent.status === 'suspended' ? '🚫 SUSPENDED' : '● active'}
                                         </span>
                                     </div>
                                     <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
                                         Club: {clubName} · Commission: {((agent.commission_rate || 0) * 100).toFixed(0)}%
                                     </div>
                                     <div style={{ display: 'flex', gap: 14, fontSize: 12, color: FB.textSecondary, flexWrap: 'wrap' }}>
-                                        <span>{agent.active_player_count || 0} active players</span>
+                                        <span>{agent.active_player_count || 0} players</span>
                                         <span>{(agent.weekly_rake_generated || 0).toLocaleString()} wk rake</span>
                                         <span>{(agent.lifetime_earnings || 0).toLocaleString()} lifetime</span>
-                                        {!agent.is_prepaid && agent.credit_limit > 0 && (
-                                            <span style={{ color: (agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 ? FB.danger : FB.textSecondary }}>
+                                        {!agent.is_prepaid && (agent.credit_used || 0) > 0 && (
+                                            <span style={{ color: (agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 ? FB.danger : FB.textSecondary, fontWeight: (agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 ? 700 : 400 }}>
                                                 Credit: {(agent.credit_used || 0).toLocaleString()} / {(agent.credit_limit || 0).toLocaleString()}
+                                                {(agent.credit_used || 0) > (agent.credit_limit || 0) * 0.8 && ' ⚠️'}
                                             </span>
                                         )}
                                     </div>
@@ -606,27 +636,81 @@ export default function UnionDashboard() {
                                 Settlement Actions
                             </h3>
                             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
-                                <select value={settleClubId} onChange={e => setSettleClubId(e.target.value)}
+                                <select value={settleClubId} onChange={e => { setSettleClubId(e.target.value); setSettleStatusData(null); }}
                                     style={{ flex: '1 1 200px', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13 }}>
                                     {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                                 <select value={settleAction} onChange={e => setSettleAction(e.target.value)}
-                                    style={{ flex: '0 0 120px', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13 }}>
+                                    style={{ flex: '0 0 130px', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13 }}>
+                                    <option value="status">Check Status</option>
                                     <option value="open">Open Period</option>
                                     <option value="close">Close Period</option>
-                                    <option value="pay_all">Pay All</option>
-                                    <option value="status">Status</option>
+                                    <option value="pay_all">Pay All Agents</option>
                                 </select>
                                 <button onClick={handleSettle} disabled={settleProcessing}
                                     style={{
-                                        background: FB.primary, color: '#fff', border: 'none',
-                                        borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 13,
+                                        background: settleAction === 'pay_all' ? FB.gold : FB.primary,
+                                        color: settleAction === 'pay_all' ? '#000' : '#fff',
+                                        border: 'none', borderRadius: 8, padding: '8px 20px',
+                                        fontWeight: 700, fontSize: 13,
                                         cursor: settleProcessing ? 'wait' : 'pointer', opacity: settleProcessing ? 0.6 : 1,
                                     }}>
                                     {settleProcessing ? 'Processing...' : 'Execute'}
                                 </button>
                             </div>
+                            <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                💡 Tip: Run "Check Status" first to see the current period before taking action.
+                            </div>
                         </div>
+
+                        {/* Status Panel — shown after running 'status' action */}
+                        {settleStatusData && (
+                            <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 12, padding: 16, border: '1px solid rgba(35,116,225,0.2)', marginBottom: 20 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <span style={{ fontWeight: 700, color: FB.primary, fontSize: 14 }}>
+                                        Period Status — {clubs.find(c => c.id === settleStatusData.clubId)?.name || ''}
+                                    </span>
+                                    <button onClick={() => setSettleStatusData(null)} style={{ background: 'transparent', border: 'none', color: FB.textSecondary, cursor: 'pointer', fontSize: 16 }}>✕</button>
+                                </div>
+                                {settleStatusData.currentPeriod ? (
+                                    <div>
+                                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 8 }}>
+                                            <span style={{ fontSize: 13 }}>
+                                                <span style={{ color: FB.textSecondary }}>Status: </span>
+                                                <span style={{ color: settleStatusData.currentPeriod.status === 'open' ? FB.success : FB.orange, fontWeight: 700 }}>
+                                                    {settleStatusData.currentPeriod.status?.toUpperCase()}
+                                                </span>
+                                            </span>
+                                            <span style={{ fontSize: 13 }}>
+                                                <span style={{ color: FB.textSecondary }}>Period: </span>
+                                                <span style={{ color: FB.textPrimary, fontWeight: 600 }}>#{settleStatusData.currentPeriod.period_number}</span>
+                                            </span>
+                                            <span style={{ fontSize: 13 }}>
+                                                <span style={{ color: FB.textSecondary }}>Rake: </span>
+                                                <span style={{ color: FB.gold, fontWeight: 600 }}>{(settleStatusData.currentPeriod.total_rake_collected || 0).toLocaleString()}</span>
+                                            </span>
+                                        </div>
+                                        {settleStatusData.pendingCommissions?.length > 0 && (
+                                            <div style={{ background: 'rgba(245,166,35,0.1)', borderRadius: 8, padding: 10, border: '1px solid rgba(245,166,35,0.2)' }}>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: FB.orange, marginBottom: 6 }}>
+                                                    {settleStatusData.pendingCommissions.length} Pending Commission{settleStatusData.pendingCommissions.length !== 1 ? 's' : ''}
+                                                </div>
+                                                {settleStatusData.pendingCommissions.map(c => (
+                                                    <div key={c.id} style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 2 }}>
+                                                        Agent {c.agents?.user_id?.slice(0, 8) || c.agent_id} — {(c.commission_amount || 0).toLocaleString()} chips pending
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {settleStatusData.pendingCommissions?.length === 0 && (
+                                            <div style={{ fontSize: 12, color: FB.success }}>✓ No pending commissions — all paid up.</div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: 13, color: FB.textSecondary }}>No active settlement period. Use "Open Period" to start one.</div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Recent Periods */}
                         <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>
@@ -639,7 +723,8 @@ export default function UnionDashboard() {
                             return (
                                 <div key={period.id} style={{
                                     background: FB.cardBg, borderRadius: 10, padding: 14,
-                                    border: `1px solid ${FB.border}`, marginBottom: 8,
+                                    border: `1px solid ${period.status === 'open' ? 'rgba(49,162,76,0.4)' : FB.border}`,
+                                    marginBottom: 8,
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                                         <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 13 }}>
@@ -754,7 +839,11 @@ export default function UnionDashboard() {
                             <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{club.name}</div>
-                                    <div style={{ fontSize: 12, color: FB.textSecondary }}> {club.member_count || 0} ·  {(club.chip_treasury || 0).toLocaleString()}</div>
+                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                        <span>{club.member_count || 0} members</span>
+                                        <span style={{ margin: '0 8px', color: FB.border }}>·</span>
+                                        <span>{(club.chip_treasury || 0).toLocaleString()} treasury</span>
+                                    </div>
                                 </div>
                                 <button onClick={async () => {
                                     if (confirmRemoveClub !== club.id) {

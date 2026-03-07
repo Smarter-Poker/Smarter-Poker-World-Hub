@@ -126,13 +126,23 @@ export default function AgentDashboard() {
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) setUser(session.user);
-            else router.push('/auth/login');
+            else {
+                // Fallback: try localStorage directly
+                try {
+                    const cached = localStorage.getItem('smarter-poker-auth');
+                    if (cached) {
+                        const parsed = JSON.parse(cached);
+                        if (parsed?.user) { setUser(parsed.user); return; }
+                    }
+                } catch (_) { /* ignore */ }
+                router.push('/auth/login');
+            }
         });
-    }, []);
+    }, [router]); // BUG FIX: was [] — router must be in deps
 
     // ─── Load Dashboard ─────────────────────────────────────────
     const loadDashboard = useCallback(async () => {
-        if (!user || !clubIdParam) return;
+        if (!user || !clubIdParam) { setIsLoading(false); return; } // BUG FIX: was returning without clearing skeleton
         setIsLoading(true);
         try {
             const data = await apiGet(`/api/club-arena/agent-dashboard?clubId=${clubIdParam}`);
@@ -277,6 +287,22 @@ export default function AgentDashboard() {
     };
 
     // ─── Loading / Auth gate ────────────────────────────────────
+    // No club param — show helpful error instead of blank skeleton
+    if (!isLoading && !clubIdParam) {
+        return (
+            <div style={{ background: FB.background, minHeight: '100vh' }}>
+                <SEOHead title="Agent Dashboard | Club Arena" />
+                <UniversalHeader />
+                <div style={{ textAlign: 'center', padding: '80px 20px', color: FB.textSecondary }}>
+                    <div style={{ fontSize: 18, marginBottom: 12 }}>No club specified.</div>
+                    <button onClick={() => router.push('/hub/club-arena')} style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>
+                        ← Back to Club Arena
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!user || isLoading) {
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>

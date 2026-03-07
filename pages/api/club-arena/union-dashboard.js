@@ -76,10 +76,10 @@ export default async function handler(req, res) {
     if (clubIds.length > 0) {
       const { data: agentData } = await supabaseAdmin
         .from('agents')
-        .select('id, user_id, club_id, commission_rate, is_prepaid, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
+        .select('id, user_id, club_id, role, commission_rate, is_prepaid, status, active_player_count, total_players, lifetime_earnings, weekly_rake_generated, business_balance, credit_limit, credit_used')
         .in('club_id', clubIds)
-        .eq('status', 'active')
-            .limit(100);
+        // Include suspended agents — union admin needs to see credit exposure of ALL agents
+            .limit(200);
       agents = agentData || [];
 
       // Enrich agents with profile names
@@ -134,10 +134,17 @@ export default async function handler(req, res) {
     const totalTreasury = clubs.reduce((s, c) => s + (c.chip_treasury || 0), 0);
     const totalRake = clubs.reduce((s, c) => s + (c.total_rake || 0), 0);
     const totalMembers = clubs.reduce((s, c) => s + (c.member_count || 0), 0);
-    const totalAgents = agents.length;
-    const totalAgentPlayers = agents.reduce((s, a) => s + (a.active_player_count || 0), 0);
+    const activeAgents = agents.filter(a => a.status === 'active');
+    const suspendedAgents = agents.filter(a => a.status === 'suspended');
+    const totalAgents = activeAgents.length;
+    const totalSuspendedAgents = suspendedAgents.length;
+    const totalAgentPlayers = activeAgents.reduce((s, a) => s + (a.active_player_count || 0), 0);
     const totalLifetimeEarnings = agents.reduce((s, a) => s + (a.lifetime_earnings || 0), 0);
     const totalWeeklyRake = agents.reduce((s, a) => s + (a.weekly_rake_generated || 0), 0);
+    // Total outstanding credit across ALL agents (including suspended — still owed)
+    const totalCreditExposure = agents
+      .filter(a => !a.is_prepaid)
+      .reduce((s, a) => s + (a.credit_used || 0), 0);
 
     // Use current/open period rake for hold estimate (not lifetime)
     const currentPeriodRake = periods
@@ -153,11 +160,13 @@ export default async function handler(req, res) {
         totalClubs: clubs.length,
         totalMembers,
         totalAgents,
+        totalSuspendedAgents,
         totalAgentPlayers,
         totalTreasury,
         totalRake,
         totalLifetimeEarnings,
         totalWeeklyRake,
+        totalCreditExposure,
         unionHoldRate: holdRate,
         estimatedUnionHold: Math.round(currentPeriodRake * holdRate),
         currentPeriodRake,

@@ -146,18 +146,11 @@ export default async function handler(req, res) {
 
       if (pErr) throw pErr;
 
-      // Reset all agents' weekly_rake_generated
-      const { data: agents } = await supabaseAdmin
+      // Reset all agents' weekly_rake_generated — single batch UPDATE (was serial loop, O(n) round-trips)
+      await supabaseAdmin
         .from('agents')
-        .select('id')
-        .eq('club_id', clubId)
-
-      for (const agent of (agents || [])) {
-        await supabaseAdmin
-          .from('agents')
-          .update({ weekly_rake_generated: 0 })
-          .eq('id', agent.id);
-      }
+        .update({ weekly_rake_generated: 0 })
+        .eq('club_id', clubId);
 
       return res.status(200).json({
         success: true,
@@ -507,14 +500,11 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: 'No pending commissions to pay', paid: 0 });
       }
 
-      // Mark all as paid
-      await supabaseAdmin
-        .from('commission_records')
-        .update({ status: 'paid', paid_at: now })
-        .eq('period_id', periodId)
-        .eq('status', 'pending');
+      // BUG FIX: Distribute chips FIRST, THEN mark as paid (was reversed — paid before chips delivered)
+      // This prevents commissions being marked paid when chip transfer fails.
+      const paidIds = [];
 
-      // Distribute chips to each agent and update commission_history
+      // Distribute chips to each agent
       for (const cr of pending) {
         // Get agent's user_id for chip transfer
         const { data: agentData } = await supabaseAdmin
@@ -552,7 +542,13 @@ export default async function handler(req, res) {
                 settlement_type: 'manual',
               },
             });
+
+            // Only track as paid after chips are confirmed delivered
+            paidIds.push(cr.id);
           }
+        } else {
+          // No chip transfer needed (amount is 0) — still mark as paid
+          paidIds.push(cr.id);
         }
 
         // Update commission_history
@@ -582,13 +578,28 @@ export default async function handler(req, res) {
         // not "earned" (already happened at the table).
       }
 
-      const totalPaid = pending.reduce((sum, c) => sum + c.commission_amount, 0);
+      // Now mark ONLY successfully-distributed commissions as paid
+      if (paidIds.length > 0) {
+        await supabaseAdmin
+          .from('commission_records')
+          .update({ status: 'paid', paid_at: now })
+          .in('id', paidIds)
+          .eq('status', 'pending'); // Guard: only update still-pending ones
+      }
+
+      const totalPaid = pending
+        .filter(c => paidIds.includes(c.id))
+        .reduce((sum, c) => sum + c.commission_amount, 0);
+      const skipped = pending.length - paidIds.length;
 
       return res.status(200).json({
         success: true,
-        paid: pending.length,
+        paid: paidIds.length,
+        skipped,
         totalPaid,
-        message: `${pending.length} commissions paid (${totalPaid.toLocaleString()} chips)`,
+        message: skipped > 0
+          ? `${paidIds.length}/${pending.length} commissions paid. ${skipped} skipped due to treasury shortfall.`
+          : `${paidIds.length} commissions paid (${totalPaid.toLocaleString()} chips)`,
       });
     }
 
