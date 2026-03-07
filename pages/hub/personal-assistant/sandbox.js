@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
+import { getSafeUser } from '../../../src/lib/authUtils';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import {
@@ -489,7 +490,7 @@ export default function VirtualSandbox() {
   const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
   const saveBookmark = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getSafeUser(supabase);
       if (!user) {
         setSaveStatus('error');
         setTimeout(() => setSaveStatus(null), 2000);

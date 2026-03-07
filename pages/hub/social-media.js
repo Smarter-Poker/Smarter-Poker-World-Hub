@@ -47,6 +47,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../../src/lib/supabase';
+import { getSafeUser } from '../../src/lib/authUtils';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
 import { useUnreadCount } from '../../src/hooks/useUnreadCount';
 import { StoriesBar } from '../../src/components/social/Stories';
@@ -4042,7 +4043,7 @@ export default function SocialMediaPage() {
         (async () => {
             try {
                 // Get authenticated user from Supabase session
-                const { data: { user: authUser } } = await supabase.auth.getUser();
+                const authUser = await getSafeUser(supabase);
 
                 if (authUser) {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
@@ -4341,7 +4342,7 @@ export default function SocialMediaPage() {
             if (append) setLoadingMore(true);
 
             // Get authenticated user from Supabase session
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const authUser = await getSafeUser(supabase);
 
             // Get friend IDs for prioritization
             let friendIds = [];

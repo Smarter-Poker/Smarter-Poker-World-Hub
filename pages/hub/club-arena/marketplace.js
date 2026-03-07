@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { getSafeUser } from '../../../src/lib/authUtils';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -110,7 +111,7 @@ export default function Marketplace() {
         setIsLoading(true);
         try {
             // Get authenticated user (Supabase session only)
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const authUser = await getSafeUser(supabase);
             setUser(authUser);
 
             // Get club data

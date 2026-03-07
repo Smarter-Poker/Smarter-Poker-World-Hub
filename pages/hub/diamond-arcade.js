@@ -18,6 +18,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
+import { getSafeUser } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -209,7 +210,7 @@ export default function DiamondArcade() {
     }, []);
 
     async function loadUser() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getSafeUser(supabase);
         if (user) {
             setUser(user);
             loadUserStats(user.id);

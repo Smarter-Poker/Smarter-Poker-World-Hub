@@ -20,6 +20,7 @@ import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
 import { supabase } from '../../lib/supabase';
+import { getSafeUser, getAuthUser } from '../../lib/authUtils';
 
 const formatCompact = (num) => {
     if (num < 1000) return num.toString();
@@ -73,7 +74,7 @@ export default function ThreePillHeader({
 
         const loadUser = async () => {
             try {
-                const { data: { user: authUser } } = await supabase.auth.getUser();
+                const authUser = await getSafeUser(supabase);
 
                 if (!mounted) return;
 
@@ -144,7 +145,7 @@ export default function ThreePillHeader({
                 // Determine user ID from local state
                 let currentUserId = user?.id;
                 if (!currentUserId) {
-                    const { data: { user: supaUser } } = await supabase.auth.getUser();
+                    const supaUser = await getSafeUser(supabase);
                     currentUserId = supaUser?.id;
                 }
 

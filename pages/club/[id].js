@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import { getSafeUser } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
@@ -327,7 +328,7 @@ export default function ClubPage() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const authUser = await getSafeUser(supabase);
         if (authUser) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -420,7 +421,7 @@ export default function ClubPage() {
     let activeUserId = user?.id;
     if (!activeUserId) {
       try {
-        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        const freshUser = await getSafeUser(supabase);
         if (freshUser) {
           activeUserId = freshUser.id;
           // Also populate user state so future clicks are instant

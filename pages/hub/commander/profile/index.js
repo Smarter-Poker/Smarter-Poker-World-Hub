@@ -10,6 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, ChevronRight, Settings, Bell, History, Gift, Edit2, Globe } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
+import { getSafeUser } from '../../../../src/lib/authUtils';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (
@@ -120,7 +121,7 @@ export default function PlayerProfilePage() {
       try {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getSafeUser(supabase);
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
           const json = await res.json();

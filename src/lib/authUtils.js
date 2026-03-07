@@ -58,6 +58,44 @@ export function getAuthUser() {
 }
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * BULLETPROOF USER RETRIEVAL — 3-Level Fallback Chain
+ * ═══════════════════════════════════════════════════════════════════════════
+ * 
+ * USE THIS INSTEAD OF supabase.auth.getUser() EVERYWHERE.
+ * 
+ * Level 1: supabase.auth.getUser() — network call (can fail with AbortError)
+ * Level 2: supabase.auth.getSession() — localStorage via Supabase (can fail with navigator.locks)
+ * Level 3: getAuthUser() — direct localStorage read (ALWAYS works, immune to AbortError)
+ * 
+ * Usage:
+ *   import { getSafeUser } from '@/lib/authUtils';
+ *   const user = await getSafeUser(supabase);
+ *   if (!user) { // truly not logged in }
+ */
+export async function getSafeUser(supabaseClient) {
+    // Level 1: Try supabase.auth.getUser() (network call)
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) return user;
+    } catch (_) { /* AbortError — fall through */ }
+
+    // Level 2: Try supabase.auth.getSession() (localStorage via Supabase)
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session?.user) return session.user;
+    } catch (_) { /* navigator.locks — fall through */ }
+
+    // Level 3: Direct localStorage read (NEVER fails in browser)
+    try {
+        const localUser = getAuthUser();
+        if (localUser?.id) return localUser;
+    } catch (_) { /* impossible, but safe */ }
+
+    return null; // Truly not logged in
+}
+
+/**
  * Get the current session token for authenticated requests
  * Uses explicit 'smarter-poker-auth' key (primary) with fallback to legacy sb-* keys
  */
@@ -330,6 +368,7 @@ export function clearAuth(force = false) {
 
 export default {
     getAuthUser,
+    getSafeUser,
     getSessionToken,
     getAccessToken,
     fetchWithAuth,

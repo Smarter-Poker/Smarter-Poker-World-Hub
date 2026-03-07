@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { getSafeUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
@@ -133,7 +134,7 @@ export default function PlayerStats() {
         setIsLoading(true);
         try {
             // Get authenticated user (Supabase session only)
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const authUser = await getSafeUser(supabase);
             setUser(authUser);
 
             // Get club data

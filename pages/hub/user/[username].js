@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
+import { getSafeUser } from '../../../src/lib/authUtils';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -475,7 +476,7 @@ export default function UserProfilePage() {
             const { signal } = controller;
             try {
                 // Get current user
-                const { data: { user } } = await supabase.auth.getUser();
+                const user = await getSafeUser(supabase);
                 if (user) setCurrentUser(user);
 
                 // Fetch the profile by username

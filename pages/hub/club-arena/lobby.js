@@ -8,6 +8,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { getSafeUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -207,7 +208,7 @@ export default function ClubLobby() {
         setIsLoading(true);
         try {
             // Load user (Supabase session only)
-            const { data: { user: authUser } } = await supabase.auth.getUser();
+            const authUser = await getSafeUser(supabase);
             if (authUser) setUser(authUser);
 
             // Load club by club_id

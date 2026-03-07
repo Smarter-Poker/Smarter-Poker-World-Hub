@@ -9,6 +9,7 @@ import { MapPin, Search, RefreshCw, AlertCircle, Trophy, FileText, Shield, Zap, 
 import VenueCard from '../../../src/components/commander/player/VenueCard';
 import WaitlistCard from '../../../src/components/commander/player/WaitlistCard';
 import { supabase } from '../../../src/lib/supabase';
+import { getSafeUser } from '../../../src/lib/authUtils';
 // NOTE: PushNotificationProvider removed — _app.js OneSignalProvider covers all pages globally
 
 export default function CommanderHub() {
@@ -91,7 +92,7 @@ export default function CommanderHub() {
         if (!token) return;
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getSafeUser(supabase);
         if (user) {
           const res = await fetch(`/api/social/pages?owner_id=${user.id}`);
           const json = await res.json();

@@ -53,7 +53,7 @@ export default function PWAInstallPrompt() {
   // ─── Listen for the browser 'appinstalled' event (fires after actual install) ───
   useEffect(() => {
     const onInstalled = () => {
-      localStorage.setItem('pwa_installed', 'true');
+      try { localStorage.setItem('pwa_installed', 'true'); } catch { /* ignore */ }
       setShow(false);
     };
     window.addEventListener('appinstalled', onInstalled);
