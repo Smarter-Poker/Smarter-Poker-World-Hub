@@ -436,6 +436,9 @@ export default function FriendsPage() {
         setFriendSuggestions: (val) => updatePreference('friendSuggestions', val)
     });
 
+    const FRIENDS_CACHE_KEY = 'sp-friends-cache';
+    const FRIENDS_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
     const fetchData = async () => {
         //  BULLETPROOF: Use authUtils to avoid AbortError
         const authUser = getAuthUser();
@@ -445,6 +448,29 @@ export default function FriendsPage() {
         }
         setUser(authUser);
 
+        // ── PHASE 1: Cache Hydration (instant render) ──
+        try {
+            const cachedRaw = localStorage.getItem(FRIENDS_CACHE_KEY);
+            if (cachedRaw) {
+                const cached = JSON.parse(cachedRaw);
+                if (cached._cachedAt && (Date.now() - cached._cachedAt) < FRIENDS_CACHE_TTL && cached.data) {
+                    const d = cached.data;
+                    setFriends(d.friends || []);
+                    setFriendIds(new Set(d.friendIds || []));
+                    setMyFriendIds(d.friendIds || []);
+                    setFriendRequests(d.friendRequests || []);
+                    setPendingIds(new Set((d.pendingOutgoing || []).map(r => r.friend_id)));
+                    setFollowing(d.following || []);
+                    setFollowingIds(new Set(d.followingIds || []));
+                    setFollowers(d.followers || []);
+                    setFollowerIds(new Set(d.followerIds || []));
+                    setSuggestions((d.suggestions || []).map(u => ({ ...u, mutualCount: 0 })));
+                    setLoading(false); // Instant render from cache
+                }
+            }
+        } catch { /* cache miss or corrupt — continue to API */ }
+
+        // ── PHASE 2: Background revalidation (fresh data) ──
         try {
             // Fetch ALL friends data through API (service role key, bypasses RLS)
             const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token;
@@ -480,6 +506,14 @@ export default function FriendsPage() {
 
                 // Suggestions
                 setSuggestions((d.suggestions || []).map(u => ({ ...u, mutualCount: 0 })));
+
+                // Save to cache for next visit
+                try {
+                    localStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify({
+                        _cachedAt: Date.now(),
+                        data: d,
+                    }));
+                } catch { /* quota exceeded */ }
             } else {
                 console.error('[Friends] API returned', resp.status);
             }

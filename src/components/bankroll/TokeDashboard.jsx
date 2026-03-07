@@ -411,6 +411,86 @@ function TokeDashboard({ userId, refreshTrigger }) {
                             <div style={S.chartArea}>
                                 {renderChart()}
                             </div>
+
+                            {/* ── Export Buttons ── */}
+                            {hasData && (
+                                <div style={S.exportRow}>
+                                    <button
+                                        style={S.exportBtn}
+                                        onClick={() => {
+                                            const a = analytics;
+                                            const lines = [
+                                                `TOKE ANALYTICS SUMMARY`,
+                                                `Generated: ${new Date().toLocaleDateString()}`,
+                                                ``,
+                                                `Career Tokes:   ${fmt(a.careerTokes)}`,
+                                                `Total Events:   ${a.totalEvents}`,
+                                                `Hours Worked:   ${a.totalHours}h`,
+                                                `Avg Toke/Down:  ${fmt(a.avgTokePerDown)}`,
+                                                `Best Event:     ${a.bestEvent ? `${fmt(a.bestEvent.tokes)} at ${a.bestEvent.venueName}` : '—'}`,
+                                                ``,
+                                                `Down Distribution:`,
+                                                `  Cash:       ${a.downTypes?.cash || 0}`,
+                                                `  Tournament: ${a.downTypes?.tournament || 0}`,
+                                                `  Brush:      ${a.downTypes?.brush || 0}`,
+                                                `  Break:      ${a.downTypes?.break || 0}`,
+                                            ];
+                                            if (a.monthlyTrend?.length) {
+                                                lines.push(``, `Monthly Breakdown:`);
+                                                for (const m of a.monthlyTrend) {
+                                                    if (m.tokes > 0) lines.push(`  ${m.month}: ${fmt(m.tokes)} (${m.events} event${m.events !== 1 ? 's' : ''})`);
+                                                }
+                                            }
+                                            navigator.clipboard.writeText(lines.join('\n'))
+                                                .then(() => { /* silent success toast handled by parent */ })
+                                                .catch(() => { });
+                                        }}
+                                    >
+                                        📋 Copy Summary
+                                    </button>
+                                    <button
+                                        style={{ ...S.exportBtn, ...S.exportBtnPrimary }}
+                                        onClick={() => {
+                                            const a = analytics;
+                                            const rows = [
+                                                ['Metric', 'Value'],
+                                                ['Career Tokes', a.careerTokes || 0],
+                                                ['Total Events', a.totalEvents || 0],
+                                                ['Hours Worked', a.totalHours || 0],
+                                                ['Avg Toke/Down', a.avgTokePerDown || 0],
+                                                ['Best Event Tokes', a.bestEvent?.tokes || 0],
+                                                ['Best Event Venue', a.bestEvent?.venueName || ''],
+                                                ['Cash Downs', a.downTypes?.cash || 0],
+                                                ['Tournament Downs', a.downTypes?.tournament || 0],
+                                                ['Brush Downs', a.downTypes?.brush || 0],
+                                                ['Break Downs', a.downTypes?.break || 0],
+                                            ];
+                                            if (a.eventTrend?.length) {
+                                                rows.push([], ['Event Date', 'Venue', 'Tokes', 'Hours', 'Cumulative']);
+                                                for (const e of a.eventTrend) {
+                                                    rows.push([e.date, e.venue, e.tokes, e.hours, e.cumulative]);
+                                                }
+                                            }
+                                            if (a.monthlyTrend?.length) {
+                                                rows.push([], ['Month', 'Tokes', 'Events']);
+                                                for (const m of a.monthlyTrend) {
+                                                    rows.push([m.month, m.tokes, m.events]);
+                                                }
+                                            }
+                                            const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                                            const blob = new Blob([csv], { type: 'text/csv' });
+                                            const url = URL.createObjectURL(blob);
+                                            const link = document.createElement('a');
+                                            link.href = url;
+                                            link.download = `toke-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+                                            link.click();
+                                            URL.revokeObjectURL(url);
+                                        }}
+                                    >
+                                        📄 Download CSV
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -499,6 +579,23 @@ const S = {
 
     chartArea: {
         minHeight: 200,
+    },
+    exportRow: {
+        display: 'flex', gap: 8, marginTop: 14,
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        paddingTop: 12,
+    },
+    exportBtn: {
+        flex: 1, padding: '10px 14px', fontSize: 13, fontWeight: 700,
+        borderRadius: 10, cursor: 'pointer',
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.12)',
+        color: '#94a3b8', transition: 'all 0.15s',
+    },
+    exportBtnPrimary: {
+        background: 'rgba(245,158,11,0.12)',
+        border: '1px solid rgba(245,158,11,0.35)',
+        color: '#f59e0b',
     },
 };
 

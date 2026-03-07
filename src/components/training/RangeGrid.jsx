@@ -22,7 +22,7 @@ const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 // Map action codes to colors
 const ACTION_COLORS = {
-    // Raises / Bets
+    // Raises / Bets (single-letter solver codes)
     'r': '#ef4444', 'R': '#ef4444',        // Raise = Red
     'b': '#ef4444', 'B': '#ef4444',        // Bet = Red
     'raise': '#ef4444',
@@ -36,6 +36,13 @@ const ACTION_COLORS = {
     // Folds
     'f': '#64748b', 'F': '#64748b',        // Fold = Gray
     'fold': '#64748b',
+    // Readable action names (Preflop Charts)
+    'Raise': '#22c55e',                    // RFI Raise = Green
+    'Fold': '#64748b',                     // Fold = Gray
+    'Call': '#3b82f6',                     // Call = Blue
+    '3-Bet': '#ef4444',                    // 3-Bet = Red
+    '4-Bet': '#f97316',                    // 4-Bet = Orange
+    'Push': '#ef4444',                     // Push = Red
 };
 
 // Get high-frequency action color variants
@@ -51,6 +58,13 @@ const ACTION_DISPLAY = {
     'C': { label: 'Call', short: 'C', color: '#22c55e' },
     'X': { label: 'Check', short: 'X', color: '#3b82f6' },
     'F': { label: 'Fold', short: 'F', color: '#64748b' },
+    // Readable action names (Preflop Charts)
+    'Raise': { label: 'Raise', short: 'R', color: '#22c55e' },
+    'Fold': { label: 'Fold', short: 'F', color: '#64748b' },
+    'Call': { label: 'Call', short: 'C', color: '#3b82f6' },
+    '3-Bet': { label: '3-Bet', short: '3B', color: '#ef4444' },
+    '4-Bet': { label: '4-Bet', short: '4B', color: '#f97316' },
+    'Push': { label: 'Push', short: 'P', color: '#ef4444' },
 };
 
 function getHandNotation(row, col) {

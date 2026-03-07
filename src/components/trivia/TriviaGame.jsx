@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { busEmit } from '../../engine/EventBus';
 import { Clock, ChevronRight, ChevronDown, ChevronUp, CheckCircle, XCircle, Zap, Gem, Flame, Volume2, VolumeX } from 'lucide-react';
 import HintButtons, { applyHint } from './HintButtons';
 import GhostOpponent from './GhostOpponent';
@@ -148,6 +149,7 @@ export default function TriviaGame({
             audio.correctChime();
             setShowCorrectFlash(true);
             setTimeout(() => setShowCorrectFlash(false), 500);
+            busEmit.decisionCorrect(streak + 1);
 
             const newStreak = streak + 1;
             setStreak(newStreak);
@@ -193,6 +195,8 @@ export default function TriviaGame({
             audio.wrongBuzz();
             setShowWrongShake(true);
             setTimeout(() => setShowWrongShake(false), 400);
+            busEmit.decisionIncorrect(streak);
+            busEmit.screenShake('light');
 
             // Break streak
             if (streak >= 2) {

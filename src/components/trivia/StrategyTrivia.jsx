@@ -7,6 +7,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
+import { busEmit } from '../../../src/engine/EventBus';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -467,6 +468,10 @@ export default function StrategyTrivia({ mode }) {
         const isCorrect = index === currentQuestion?.correct_index;
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
+            busEmit.decisionCorrect(correctCount + 1);
+        } else {
+            busEmit.decisionIncorrect(correctCount);
+            busEmit.screenShake('light');
         }
         setAnswers(prev => [...prev, index]);
     }
@@ -492,18 +497,20 @@ export default function StrategyTrivia({ mode }) {
         if (userId) {
             // Save score and award diamonds
             if (diamondsEarned > 0) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                if (profile) {
-                    await supabase
-                        .from('profiles')
-                        .update({ diamonds: (profile.diamonds || 0) + diamondsEarned })
-                        .eq('id', userId);
-                    setUserDiamonds((profile.diamonds || 0) + diamondsEarned);
+                try {
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: diamondsEarned,
+                        p_type: 'trivia_reward',
+                        p_description: `${config.title} reward — ${diamondsEarned}💎`,
+                        p_reference_id: null
+                    });
+                    const { data: freshProfile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
+                    busEmit.diamondsEarned(diamondsEarned, `${config.title} Reward`);
+                    if (correctCount >= questions.length) busEmit.celebration('confetti');
+                } catch (e) {
+                    console.error('[StrategyTrivia] Error awarding diamonds:', e);
                 }
             }
 
@@ -557,12 +564,22 @@ export default function StrategyTrivia({ mode }) {
             return;
         }
 
-        // Deduct diamonds
-        await supabase
-            .from('profiles')
-            .update({ diamonds: userDiamonds - LIFELINE_COST })
-            .eq('id', userId);
-        setUserDiamonds(prev => prev - LIFELINE_COST);
+        // Deduct diamonds via audit-safe RPC
+        try {
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -LIFELINE_COST,
+                p_type: 'strategy_lifeline',
+                p_description: `${config.title} 50/50 lifeline — ${LIFELINE_COST}💎`,
+                p_reference_id: null
+            });
+            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+            busEmit.diamondsSpent(LIFELINE_COST, '50/50 Lifeline');
+        } catch (e) {
+            console.error('[StrategyTrivia] 50/50 deduct failed:', e);
+            return;
+        }
 
         // Eliminate 2 wrong answers
         const correctIdx = currentQuestion.correct_index;
@@ -584,12 +601,22 @@ export default function StrategyTrivia({ mode }) {
             return;
         }
 
-        // Deduct diamonds
-        await supabase
-            .from('profiles')
-            .update({ diamonds: userDiamonds - LIFELINE_COST })
-            .eq('id', userId);
-        setUserDiamonds(prev => prev - LIFELINE_COST);
+        // Deduct diamonds via audit-safe RPC
+        try {
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -LIFELINE_COST,
+                p_type: 'strategy_lifeline',
+                p_description: `${config.title} skip question — ${LIFELINE_COST}💎`,
+                p_reference_id: null
+            });
+            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+            busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
+        } catch (e) {
+            console.error('[StrategyTrivia] Skip deduct failed:', e);
+            return;
+        }
 
         // Mark as skipped (correct to not penalize)
         setCorrectCount(prev => prev + 1);

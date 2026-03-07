@@ -18,6 +18,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
@@ -334,14 +335,19 @@ export default function EndlessModePage() {
                 alert('Not enough diamonds! You need 5💎 for an additional 50/50.');
                 return;
             }
-            // Deduct diamonds
+            // Deduct diamonds via RPC
             if (userId) {
                 try {
-                    await supabase
-                        .from('profiles')
-                        .update({ diamonds: userDiamonds - 5 })
-                        .eq('id', userId);
-                    setUserDiamonds(prev => prev - 5);
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: -5,
+                        p_type: 'endless_lifeline',
+                        p_description: 'Endless 50/50 lifeline — 5💎',
+                        p_reference_id: null
+                    });
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                    busEmit.diamondsSpent(5, '50/50 Lifeline');
                 } catch (e) {
                     console.error('Failed to deduct diamonds:', e);
                     return;
@@ -376,11 +382,16 @@ export default function EndlessModePage() {
 
         if (userId) {
             try {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: userDiamonds - LIFELINE_COST })
-                    .eq('id', userId);
-                setUserDiamonds(prev => prev - LIFELINE_COST);
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: -LIFELINE_COST,
+                    p_type: 'endless_lifeline',
+                    p_description: `Endless skip question — ${LIFELINE_COST}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
                 setLifelinesUsedThisGame(prev => prev + 1);
             } catch (e) {
                 console.error('Failed to deduct diamonds:', e);
@@ -417,11 +428,16 @@ export default function EndlessModePage() {
 
         if (userId) {
             try {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: userDiamonds - LIFELINE_COST })
-                    .eq('id', userId);
-                setUserDiamonds(prev => prev - LIFELINE_COST);
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: -LIFELINE_COST,
+                    p_type: 'endless_lifeline',
+                    p_description: `Endless double chance — ${LIFELINE_COST}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
                 setLifelinesUsedThisGame(prev => prev + 1);
             } catch (e) {
                 console.error('Failed to deduct diamonds:', e);
@@ -465,7 +481,7 @@ export default function EndlessModePage() {
 
             // Speed bonus for fast answers (under 10 seconds)
             if (answerTime < 10) {
-                const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1; // 3💎 for ≤3s, 2💎 for ≤5s, 1💎 for <10s
+                const bonus = answerTime <= 3 ? 3 : answerTime <= 5 ? 2 : 1;
                 setSpeedBonus(bonus);
                 setShowSpeedBonus(true);
                 earned += bonus;
@@ -474,6 +490,7 @@ export default function EndlessModePage() {
 
             setDiamondsEarned(prev => prev + earned);
             setStreak(prev => prev + 1);
+            busEmit.decisionCorrect(streak + 1);
 
             setTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
@@ -488,6 +505,8 @@ export default function EndlessModePage() {
                 setIsTimerRunning(true);
             }, 1000);
         } else {
+            busEmit.decisionIncorrect(streak);
+            busEmit.screenShake('medium');
             setTimeout(() => {
                 setGameState('gameover');
                 saveGameResult();
@@ -499,18 +518,18 @@ export default function EndlessModePage() {
         if (!userId) return;
 
         try {
-            // Update user diamonds
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-
-            if (profile) {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: (profile.diamonds || 0) + diamondsEarned })
-                    .eq('id', userId);
+            // Update user diamonds via audit-safe RPC
+            if (diamondsEarned > 0) {
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: diamondsEarned,
+                    p_type: 'endless_reward',
+                    p_description: `Endless mode — ${diamondsEarned}💎 (${streak} streak)`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsEarned(diamondsEarned, 'Endless Mode');
             }
 
             // Update high score if beaten

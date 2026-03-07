@@ -7,6 +7,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Gem, Shield, Ticket, Gift, Star, Zap } from 'lucide-react';
 import HexButton from '../ui/HexButton';
 import MetalFrame from '../ui/MetalFrame';
+import { busEmit } from '../../engine/EventBus';
 
 // Prize pool configuration
 const PRIZES = [
@@ -76,6 +77,11 @@ export default function PrizeWheel({
 
     const handleClaim = () => {
         if (onComplete && result) {
+            // Emit EventBus for diamond rewards
+            if (result.reward.type === 'diamonds' && result.reward.amount > 0) {
+                busEmit.diamondsEarned(result.reward.amount, 'Prize Wheel Spin');
+                busEmit.celebration('confetti');
+            }
             onComplete(result.reward);
         }
     };

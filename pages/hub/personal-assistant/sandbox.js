@@ -184,39 +184,54 @@ const RANK_MAP = { 'A': 'a', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '
 function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
   if (!isOpen) return null;
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      style={{
-        position: 'absolute', zIndex: 60, background: '#242526',
-        border: '1px solid #3A3B3C', borderRadius: '10px',
-        padding: '8px', boxShadow: '0 20px 50px rgba(0,0,0,0.6)', maxWidth: '320px',
-      }}>
-      {SUITS.map(suit => (
-        <div key={suit.code} style={{ display: 'flex', gap: '2px', marginBottom: '2px', justifyContent: 'center' }}>
-          {RANKS.map(rank => {
-            const card = `${rank}${suit.code}`;
-            const used = usedCards.includes(card);
-            const imgPath = `/cards/${SUIT_MAP[suit.code]}_${RANK_MAP[rank]}.png`;
-            return (
-              <button key={card} onClick={() => !used && onSelect(card)} disabled={used}
-                style={{
-                  width: 22, height: 30, padding: 0, border: used ? '1px solid #333' : '1px solid #555',
-                  borderRadius: 3, cursor: used ? 'not-allowed' : 'pointer', overflow: 'hidden',
-                  opacity: used ? 0.2 : 1, background: '#fff', transition: 'all 0.1s',
-                }}
-                onMouseOver={e => { if (!used) e.currentTarget.style.transform = 'scale(1.3)'; e.currentTarget.style.zIndex = 10; }}
-                onMouseOut={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.zIndex = 1; }}
-              >
-                <img src={imgPath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              </button>
-            );
-          })}
+    <>
+      {/* Backdrop — tap to close */}
+      <div className="deck-backdrop" onClick={onClose} style={{
+        position: 'fixed', inset: 0, zIndex: 59, background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+      }} />
+      <motion.div className="deck-picker-sheet" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
+          background: '#242526', borderRadius: '20px 20px 0 0',
+          border: '1px solid #3A3B3C', borderBottom: 'none',
+          padding: '12px 8px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          boxShadow: '0 -10px 40px rgba(0,0,0,0.5)',
+        }}>
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#4E4F50' }} />
         </div>
-      ))}
-      <button onClick={onClose} style={{
-        marginTop: '4px', width: '100%', padding: '5px', borderRadius: '6px', fontSize: '11px',
-        background: 'rgba(239,68,68,0.15)', border: 'none', color: '#fca5a5', cursor: 'pointer',
-      }}>Close Deck</button>
-    </motion.div>
+        <div style={{ fontSize: '11px', color: '#B0B3B8', textAlign: 'center', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select a Card</div>
+        {SUITS.map(suit => (
+          <div key={suit.code} style={{ display: 'flex', gap: '3px', marginBottom: '3px', justifyContent: 'center' }}>
+            {RANKS.map(rank => {
+              const card = `${rank}${suit.code}`;
+              const used = usedCards.includes(card);
+              const imgPath = `/cards/${SUIT_MAP[suit.code]}_${RANK_MAP[rank]}.png`;
+              return (
+                <button key={card} className="deck-picker-card" onClick={() => !used && onSelect(card)} disabled={used}
+                  style={{
+                    width: 24, height: 34, padding: 0,
+                    border: used ? '1px solid #333' : `2px solid ${suit.color}33`,
+                    borderRadius: 4, cursor: used ? 'not-allowed' : 'pointer', overflow: 'hidden',
+                    opacity: used ? 0.15 : 1, background: '#fff', transition: 'all 0.15s',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  <img src={imgPath} alt={card} style={{ width: '100%', height: '100%', objectFit: 'contain' }} loading="lazy" />
+                </button>
+              );
+            })}
+          </div>
+        ))}
+        <button onClick={onClose} style={{
+          marginTop: '8px', width: '100%', padding: '12px', borderRadius: '10px', fontSize: '14px', fontWeight: '700',
+          background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.2)',
+          color: '#4599FF', cursor: 'pointer', touchAction: 'manipulation',
+        }}>Done</button>
+      </motion.div>
+    </>
   );
 }
 
@@ -226,22 +241,23 @@ function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
 function CardSlot({ card, onClick, onRemove, label }) {
   if (card) {
     return (
-      <div style={{ position: 'relative', cursor: 'pointer' }} onClick={onRemove}>
-        <TableCard card={card} style={{ width: 40, height: 56 }} />
-        <div style={{
-          position: 'absolute', top: -4, right: -4, width: 14, height: 14,
+      <div className="card-slot" style={{ position: 'relative', cursor: 'pointer' }} onClick={onRemove}>
+        <TableCard card={card} style={{ width: 44, height: 60 }} />
+        <div className="card-slot-remove" style={{
+          position: 'absolute', top: -5, right: -5, width: 18, height: 18,
           background: '#ef4444', borderRadius: '50%', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: '#fff', fontWeight: '700',
+          alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: '#fff', fontWeight: '700',
+          touchAction: 'manipulation',
         }}>×</div>
       </div>
     );
   }
   return (
-    <button onClick={onClick} style={{
-      width: 40, height: 56, borderRadius: 6, cursor: 'pointer',
-      background: '#3A3B3C', border: '2px dashed #4E4F50',
-      color: '#65676B', fontSize: '9px', fontWeight: '600', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
+    <button className="card-slot card-slot-empty" onClick={onClick} style={{
+      width: 44, height: 60, borderRadius: 8, cursor: 'pointer',
+      background: 'rgba(35,116,225,0.06)', border: '2px dashed rgba(35,116,225,0.2)',
+      color: '#4599FF', fontSize: '10px', fontWeight: '600', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation',
     }}>{label || '+'}</button>
   );
 }
@@ -308,15 +324,15 @@ function RecentSessionsSidebar({ isOpen, onClose, onLoad, leaderboardEntries }) 
   const displayList = activeTab === 'sessions' ? sessions : bookmarks;
 
   return (
-    <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
+    <motion.div className="sessions-sidebar" initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
       style={{
-        position: 'fixed', left: 0, top: 0, bottom: 0, width: '280px', zIndex: 1000,
+        position: 'fixed', left: 0, top: 0, bottom: 0, width: '300px', zIndex: 1000,
         background: '#242526', borderRight: '1px solid #3A3B3C',
         padding: '16px', display: 'flex', flexDirection: 'column'
       }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#E4E6EB' }}>History</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', cursor: 'pointer', fontSize: '16px' }}>×</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#E4E6EB' }}>History</h3>
+        <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', color: '#E4E6EB', cursor: 'pointer', fontSize: '18px', width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>×</button>
       </div>
 
       {/* Sessions / Bookmarks Tabs */}
@@ -343,13 +359,14 @@ function RecentSessionsSidebar({ isOpen, onClose, onLoad, leaderboardEntries }) 
         ) : displayList.map((s, i) => (
           <button key={s.id || i} onClick={() => { onLoad(s); onClose(); }}
             style={{
-              width: '100%', padding: '10px', marginBottom: '6px', borderRadius: '8px', textAlign: 'left',
+              width: '100%', padding: '12px', marginBottom: '6px', borderRadius: '10px', textAlign: 'left',
               background: '#3A3B3C', border: '1px solid #4E4F50',
-              color: '#E4E6EB', cursor: 'pointer', fontSize: '12px',
+              color: '#E4E6EB', cursor: 'pointer', fontSize: '13px', minHeight: '48px',
+              touchAction: 'manipulation',
             }}
           >
             <div style={{ fontWeight: '600' }}>{s.title}</div>
-            <div style={{ color: '#B0B3B8', fontSize: '10px', marginTop: '2px' }}>
+            <div style={{ color: '#B0B3B8', fontSize: '11px', marginTop: '2px' }}>
               {s.type === 'bookmark' ? `Saved - ${s.stack}` : `${s.stack} - ${s.result || '—'}`}
             </div>
           </button>
@@ -395,6 +412,7 @@ export default function VirtualSandbox() {
   const [comparePosition, setComparePosition] = useState(null);
   const [bookmarks, setBookmarks] = useState([]);
   const [showResults, setShowResults] = useState(false); // fullscreen analysis popup
+  const [showMenu, setShowMenu] = useState(false); // mobile overflow menu
 
   // Phase 1: Multi-Street Story Mode
   const [streetHistory, setStreetHistory] = useState([]);
@@ -832,33 +850,55 @@ export default function VirtualSandbox() {
 
       {/* HEADER */}
       <div className="sandbox-header" style={{
-        padding: '12px 20px', borderBottom: '1px solid #3A3B3C',
-        background: '#242526',
+        padding: '10px 16px', borderBottom: '1px solid #3A3B3C',
+        background: '#242526', position: 'sticky', top: 0, zIndex: 50,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={() => router.push('/hub/personal-assistant')} aria-label="Back"
-              style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: '6px 10px', color: '#B0B3B8', cursor: 'pointer', fontSize: 14 }}>←</button>
+              style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: '8px 10px', color: '#B0B3B8', cursor: 'pointer', fontSize: 16, touchAction: 'manipulation', minWidth: 36, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
             <div>
               <h1 style={{
-                fontSize: 18, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
+                fontSize: 16, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
                 background: 'linear-gradient(135deg, #2374E1, #4599FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
               }}>
                 Virtual Sandbox</h1>
-              <p style={{ color: '#B0B3B8', fontSize: 11, margin: '1px 0 0' }}>Strategy Analysis Tool</p>
             </div>
           </div>
-          <div className="sandbox-header-actions" style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
-            <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
-            {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
-            {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
-            <button onClick={() => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); }} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: quizMode ? 'rgba(139,92,246,0.2)' : '#3A3B3C', border: `1px solid ${quizMode ? 'rgba(139,92,246,0.3)' : '#4E4F50'}`, color: quizMode ? '#c4b5fd' : '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Quiz</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Quiz toggle — always visible */}
+            <button onClick={() => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); }} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: '600', background: quizMode ? 'rgba(139,92,246,0.2)' : '#3A3B3C', border: `1px solid ${quizMode ? 'rgba(139,92,246,0.3)' : '#4E4F50'}`, color: quizMode ? '#c4b5fd' : '#B0B3B8', cursor: 'pointer', minHeight: 36, touchAction: 'manipulation' }}>Quiz</button>
             <AccuracyBadge stats={quizScore} />
-            <button onClick={popUndo} disabled={undoStackRef.current.length === 0} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#B0B3B8', cursor: undoStackRef.current.length === 0 ? 'default' : 'pointer', minHeight: 36 }}>Undo</button>
-            <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
+            {/* Desktop-only inline buttons */}
+            <div className="desktop-header-actions" style={{ display: 'flex', gap: '6px' }}>
+              <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
+              <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
+              {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
+              {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
+              <button onClick={popUndo} disabled={undoStackRef.current.length === 0} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#B0B3B8', cursor: undoStackRef.current.length === 0 ? 'default' : 'pointer', minHeight: 36 }}>Undo</button>
+              <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
+            </div>
+            {/* Mobile overflow button */}
+            <button className="mobile-menu-btn" onClick={() => setShowMenu(!showMenu)} style={{ display: 'none', padding: '8px', borderRadius: 8, background: showMenu ? 'rgba(35,116,225,0.2)' : '#3A3B3C', border: '1px solid #4E4F50', color: showMenu ? '#4599FF' : '#B0B3B8', cursor: 'pointer', fontSize: 18, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>⋯</button>
           </div>
         </div>
+        {/* Mobile overflow menu dropdown */}
+        <AnimatePresence>
+          {showMenu && (
+            <motion.div className="mobile-overflow-menu"
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: 'hidden', marginTop: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '4px 0' }}>
+                <button onClick={() => { setShowSessions(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Sessions</button>
+                <button onClick={() => { saveBookmark(); setShowMenu(false); }} disabled={saveStatus === 'saving'} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save'}</button>
+                {results && <button onClick={() => { setShowResults(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>View Results</button>}
+                {results && <button onClick={() => { setShowShare(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Share</button>}
+                <button onClick={() => { popUndo(); setShowMenu(false); }} disabled={undoStackRef.current.length === 0} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Undo</button>
+                <button onClick={() => { resetAll(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Reset</button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* STEP INDICATOR (Improvement #1) */}
@@ -1099,22 +1139,29 @@ export default function VirtualSandbox() {
             style={{
               position: 'fixed', inset: 0, zIndex: 100,
               background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
               display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
-              overflowY: 'auto', padding: '40px 20px',
+              overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+              padding: '20px 12px', paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
             }}
             onClick={(e) => { if (e.target === e.currentTarget) setShowResults(false); }}
           >
             <motion.div
-              id="results-panel"
+              id="results-panel" className="results-panel-inner"
               initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               style={{
-                background: '#242526', borderRadius: 16,
-                border: '1px solid #3A3B3C', padding: '24px',
+                background: '#242526', borderRadius: 20,
+                border: '1px solid #3A3B3C', padding: '20px',
                 width: '100%', maxWidth: 600,
                 boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
               }}
             >
+              {/* Drag handle (mobile affordance) */}
+              <div className="results-drag-handle" style={{ display: 'none', justifyContent: 'center', marginBottom: '10px' }}>
+                <div style={{ width: 40, height: 4, borderRadius: 2, background: '#4E4F50' }} />
+              </div>
               {/* Close button */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 style={{ color: '#E4E6EB', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>
@@ -1122,9 +1169,10 @@ export default function VirtualSandbox() {
                 </h3>
                 <button onClick={() => setShowResults(false)} style={{
                   background: '#3A3B3C', border: 'none', borderRadius: '50%',
-                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: '#E4E6EB', fontSize: 18, cursor: 'pointer',
-                }}>x</button>
+                  width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#E4E6EB', fontSize: 20, cursor: 'pointer', touchAction: 'manipulation',
+                  flexShrink: 0,
+                }}>✕</button>
               </div>
 
               {/* Street Timeline — Phase 1 */}
@@ -1303,73 +1351,138 @@ export default function VirtualSandbox() {
           text-transform: none;
         }
 
-        /* Mobile responsive */
+        /* ═══════════════════════════════════════════════ */
+        /* MOBILE OPTIMIZATION — 768px breakpoint          */
+        /* ═══════════════════════════════════════════════ */
         @media (max-width: 768px) {
+          /* --- Layout --- */
           .sandbox-main-layout {
             grid-template-columns: 1fr !important;
             padding: 10px 12px !important;
-            gap: 12px !important;
+            gap: 10px !important;
+            padding-bottom: 80px !important; /* space for sticky CTA */
           }
+
+          /* --- Header: simplified --- */
           .sandbox-header {
-            padding: 10px 12px !important;
+            padding: 8px 12px !important;
           }
           .sandbox-header > div {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
+            gap: 6px !important;
           }
           .sandbox-page h1 {
-            font-size: 16px !important;
+            font-size: 15px !important;
           }
-          .sandbox-page h3, .sandbox-page h4 {
-            font-size: 11px !important;
+          .desktop-header-actions {
+            display: none !important;
           }
-          .sandbox-header-actions {
-            flex-wrap: wrap;
-            gap: 6px !important;
-            width: 100%;
+          .mobile-menu-btn {
+            display: flex !important;
           }
-          .sandbox-header-actions button {
-            font-size: 12px !important;
-            padding: 10px 14px !important;
-            min-height: 44px !important;
-            flex: 1;
-            min-width: 70px;
+
+          /* --- Card Picker: fullscreen bottom-sheet --- */
+          .deck-picker-sheet {
+            max-height: 80vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
           }
-          .sandbox-table-wrap {
-            max-height: 220px;
-            overflow: visible;
-            border-radius: 12px;
+          .deck-picker-card {
+            width: 38px !important;
+            height: 52px !important;
+            border-radius: 5px !important;
           }
+
+          /* --- Card Slots: bigger for thumbs --- */
+          .card-slot img,
+          .card-slot-empty {
+            width: 52px !important;
+            height: 72px !important;
+          }
+          .card-slot-remove {
+            width: 22px !important;
+            height: 22px !important;
+            font-size: 13px !important;
+          }
+
+          /* --- Form Controls: 48px targets, 16px font (no iOS zoom) --- */
           .sandbox-hero-grid {
             grid-template-columns: 1fr !important;
             gap: 10px !important;
           }
           .sandbox-hero-grid select,
           .sandbox-hero-grid input {
-            font-size: 14px !important;
-            padding: 10px 12px !important;
-            min-height: 44px !important;
+            font-size: 16px !important;
+            padding: 12px !important;
+            min-height: 48px !important;
+            border-radius: 10px !important;
           }
           .sandbox-hero-grid label {
-            font-size: 12px !important;
+            font-size: 13px !important;
+          }
+
+          /* --- Analyze Button: sticky bottom CTA --- */
+          #run-analysis {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 45 !important;
+            padding: 10px 14px !important;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+            background: rgba(24, 25, 26, 0.92) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border-top: 1px solid #3A3B3C !important;
           }
           #run-analysis button {
             font-size: 16px !important;
             padding: 16px !important;
             min-height: 52px !important;
+            border-radius: 14px !important;
           }
-          /* Bigger card picker on mobile */
-          .sandbox-page .deck-picker-card {
-            width: 36px !important;
-            height: 50px !important;
+
+          /* --- Results Panel: bottom-sheet feel --- */
+          .results-panel-inner {
+            border-radius: 20px 20px 0 0 !important;
+            padding: 16px 14px !important;
+            max-height: 95vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
           }
+          .results-drag-handle {
+            display: flex !important;
+          }
+
+          /* --- Sessions Sidebar: full-width --- */
+          .sessions-sidebar {
+            width: 100vw !important;
+            padding: 16px !important;
+            padding-top: calc(16px + env(safe-area-inset-top, 0px)) !important;
+          }
+
+          /* --- Poker Table: compact --- */
+          .sandbox-table-wrap {
+            max-height: 200px;
+            overflow: visible;
+            border-radius: 12px;
+          }
+
+          /* --- Step Indicator: compact --- */
           .sandbox-steps {
             gap: 2px !important;
-            padding: 8px 10px !important;
+            padding: 6px 10px !important;
           }
           .sandbox-steps span {
-            font-size: 9px !important;
+            font-size: 10px !important;
+          }
+
+          /* --- Touch optimizations --- */
+          .sandbox-page button {
+            touch-action: manipulation;
+          }
+          .sandbox-page select {
+            touch-action: manipulation;
+            font-size: 16px !important;
           }
         }
 

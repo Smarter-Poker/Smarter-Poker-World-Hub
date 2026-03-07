@@ -14,6 +14,7 @@ import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import toast from '../../../src/stores/toastStore';
 import { supabase } from '../../../src/lib/supabase';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function ShoppingCart() {
     const [user, setUser] = useState(null);
@@ -25,24 +26,25 @@ export default function ShoppingCart() {
 
     const DIAMONDS_PER_DOLLAR = 100;
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         loadCart();
-    return () => _c.abort();
-  }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`dcart:${user?.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {
-        loadCart();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+        return () => _c.abort();
+    }, []);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`dcart:${user?.id}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {
+                loadCart();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
-    const loadCart = async(signal) => {
+    const loadCart = async (signal) => {
         try {
             const authUser = await getAuthUser();
             setUser(authUser);
@@ -134,7 +136,7 @@ export default function ShoppingCart() {
                 user_id: user.id,
                 preferences: { diamond_cart: [] },
                 updated_at: new Date().toISOString(),
-            }, { onConflict: 'user_id' }).catch(() => {});
+            }, { onConflict: 'user_id' }).catch(() => { });
         } else {
             localStorage.removeItem('diamond-store-cart');
         }
@@ -196,6 +198,7 @@ export default function ShoppingCart() {
 
             if (data.success) {
                 toast.success(`Purchased with ${data.data.diamonds_spent.toLocaleString()}💎! New balance: ${data.data.new_balance.toLocaleString()}💎`);
+                busEmit.diamondsSpent(data.data.diamonds_spent, 'Diamond Store Purchase');
                 clearCart();
                 setDiamondBalance(data.data.new_balance);
             } else {
@@ -448,7 +451,7 @@ function CartItem({ id, name, price, quantity, image, type, onUpdateQuantity, on
             layout
         >
             {image && (
-                <img src={image} alt={name} style={styles.itemImage}  loading="lazy" />
+                <img src={image} alt={name} style={styles.itemImage} loading="lazy" />
             )}
 
             <div style={styles.itemDetails}>

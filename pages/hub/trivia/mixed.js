@@ -19,6 +19,7 @@ import { Shuffle, Trophy, BookOpen, GraduationCap, Gem, CheckCircle, XCircle, Ar
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
@@ -272,6 +273,10 @@ export default function MixedModePage() {
         if (isCorrect) {
             setTotalCorrect(prev => prev + 1);
             setDiamondsEarned(prev => prev + 1); // 1 diamond per correct
+            busEmit.decisionCorrect(totalCorrect + 1);
+        } else {
+            busEmit.decisionIncorrect(totalCorrect);
+            busEmit.screenShake('light');
         }
 
         // Advance after delay
@@ -295,21 +300,19 @@ export default function MixedModePage() {
         if (!userId) return;
 
         try {
-            // Award diamonds
+            // Award diamonds via audit-safe RPC
             if (diamondsEarned > 0) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                if (profile) {
-                    await supabase
-                        .from('profiles')
-                        .update({ diamonds: (profile.diamonds || 0) + diamondsEarned })
-                        .eq('id', userId);
-                    setUserDiamonds(prev => prev + diamondsEarned);
-                }
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: diamondsEarned,
+                    p_type: 'mixed_reward',
+                    p_description: `Mixed mode — ${diamondsEarned}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsEarned(diamondsEarned, 'Mixed Mode');
+                busEmit.celebration('confetti');
             }
 
             // Update category mastery

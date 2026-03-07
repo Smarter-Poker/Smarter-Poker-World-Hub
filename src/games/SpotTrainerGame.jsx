@@ -3,7 +3,7 @@
    Multi-street decision scenarios with EV comparison
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 

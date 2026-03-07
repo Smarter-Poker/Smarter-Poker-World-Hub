@@ -15,6 +15,7 @@ import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { getGameById } from '../../../src/data/TRAINING_LIBRARY';
 import { supabase } from '../../../src/lib/supabase';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function TournamentsPage() {
     const [user, setUser] = useState(null);
@@ -22,22 +23,23 @@ export default function TournamentsPage() {
     const [registering, setRegistering] = useState(null);
 
     // Load auth user once
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         getAuthUser().then(u => setUser(u)).catch(() => { });
-    return () => _c.abort();
-  }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`train-tourn:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries', filter: `user_id=eq.${user?.id}` }, () => {
-        refreshTournaments();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id, refreshTournaments]);
+        return () => _c.abort();
+    }, []);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`train-tourn:${user?.id}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries', filter: `user_id=eq.${user?.id}` }, () => {
+                refreshTournaments();
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id, refreshTournaments]);
 
     // SWR key includes tab + user so switching tabs is instant on revisit
     const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;
@@ -68,6 +70,10 @@ export default function TournamentsPage() {
             if (data.success) {
                 alert('🎉 Registered successfully!');
                 refreshTournaments(); // Refresh
+                // Emit bus event if tournament had an entry fee
+                if (data.entryFee > 0) {
+                    busEmit.diamondsSpent(data.entryFee, 'Training Tournament Entry');
+                }
             } else {
                 alert(data.error || 'Registration failed');
             }

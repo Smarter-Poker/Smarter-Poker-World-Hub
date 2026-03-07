@@ -39,7 +39,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 });
 
 const nextConfig = {
-  reactStrictMode: true, // Re-enabled: AbortController cleanup and getAuthUser() now handle double-invoke
+  // StrictMode doubles renders/effects in dev, which doubles memory pressure on 952 pages.
+  // Keep it ON for production builds where it helps catch bugs; OFF for dev stability.
+  reactStrictMode: process.env.NODE_ENV === 'production',
   eslint: { ignoreDuringBuilds: true },
   compress: true, // Enable gzip compression for all responses
 
@@ -51,11 +53,24 @@ const nextConfig = {
     workerThreads: true,
     cpus: 4,
   },
+  // ─── Dev Server Memory Management ──────────────────────────────────────────
+  // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.
+  // Reduce buffer and disposal time to aggressively free memory as developer navigates.
+  onDemandEntries: {
+    maxInactiveAge: 30 * 1000,    // Dispose compiled pages after 30s of inactivity (default: 60s)
+    pagesBufferLength: 3,         // Only keep 3 pages hot in memory (default: 5)
+  },
   swcMinify: true, // SWC minifier uses less memory than Terser
 
   // Force complete cache invalidation - v20 Diamond Arcade Deploy
   // Build timestamp: 2026-01-24T10:00:00Z
   generateBuildId: async () => {
+    // In dev mode, use a stable ID so the .next cache persists across restarts.
+    // Without this, Date.now() forces webpack to recompile ALL 952 pages from scratch.
+    // In production (Vercel), the Git SHA is used automatically.
+    if (process.env.NODE_ENV === 'development') {
+      return 'dev-stable';
+    }
     return 'build-v20-perf-sprint-' + Date.now();
   },
 

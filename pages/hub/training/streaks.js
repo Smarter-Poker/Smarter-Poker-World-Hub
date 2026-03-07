@@ -15,6 +15,7 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // Milestone definitions (must match API)
 const STREAK_MILESTONES = [
@@ -85,6 +86,12 @@ export default function StreaksPage() {
             if (data.success) {
                 // Refresh data
                 loadStreakData();
+                // Emit EventBus for header diamond counter + celebration
+                const milestone = STREAK_MILESTONES.find(m => m.days === milestoneDays);
+                if (milestone) {
+                    busEmit.diamondsEarned(milestone.diamonds, `Streak Milestone: ${milestone.name}`);
+                    busEmit.celebration('confetti');
+                }
             }
         } catch (error) {
             console.error('Claim error:', error);

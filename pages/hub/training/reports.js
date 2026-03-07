@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -139,6 +140,7 @@ function ClassificationBar({ classifications, total }) {
 
 export default function GTOReports() {
     const router = useRouter();
+    useTrainingBus('gto-reports');
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = usePersistedState('sp-filters-training-reports', 'all');

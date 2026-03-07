@@ -20,7 +20,25 @@ import RangeGrid from '../../../src/components/training/RangeGrid';
 import CardSelectorModal from '../../../src/components/training/CardSelectorModal';
 import RunoutHeatmap from '../../../src/components/training/RunoutHeatmap';
 import EquityMatchup from '../../../src/components/training/EquityMatchup';
+import RangeReport from '../../../src/components/training/RangeReport';
+import SolverLineSummary from '../../../src/components/training/SolverLineSummary';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH HELPER — Retrieve Bearer token from localStorage
+// ═══════════════════════════════════════════════════════════════════════════
+function getAuthHeaders() {
+    try {
+        const stored = typeof window !== 'undefined'
+            ? JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')
+            : {};
+        const token = stored.access_token;
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    } catch {
+        return {};
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -82,7 +100,7 @@ function CardDisplay({ card, size = 36 }) {
 // SPOT LIST ITEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-function SpotCard({ spot, isSelected, onClick }) {
+function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark }) {
     return (
         <motion.div
             layout
@@ -117,6 +135,19 @@ function SpotCard({ spot, isSelected, onClick }) {
                     {spot.stackDepth}BB • {spot.gameType}
                 </div>
             </div>
+            {/* Bookmark star */}
+            <button
+                onClick={(e) => { e.stopPropagation(); onToggleBookmark && onToggleBookmark(spot); }}
+                style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 16, padding: 2, lineHeight: 1,
+                    color: isBookmarked ? '#fbbf24' : '#334155',
+                    transition: 'color 0.15s',
+                }}
+                title={isBookmarked ? 'Remove bookmark' : 'Bookmark this spot'}
+            >
+                {isBookmarked ? '★' : '☆'}
+            </button>
         </motion.div>
     );
 }
@@ -125,7 +156,7 @@ function SpotCard({ spot, isSelected, onClick }) {
 // CLASSIFICATION SIDEBAR
 // ═══════════════════════════════════════════════════════════════════════════
 
-function ClassificationSidebar({ groups, actions }) {
+function ClassificationSidebar({ groups, actions, lockedClassifications, onToggleLock }) {
     if (!groups || groups.length === 0) return null;
 
     return (
@@ -147,48 +178,55 @@ function ClassificationSidebar({ groups, actions }) {
                 Hand Classes
             </div>
 
-            {groups.map(g => (
-                <div key={g.classification} style={{
-                    marginBottom: 10, padding: '8px 10px',
-                    background: 'rgba(255,255,255,0.02)',
-                    borderRadius: 8,
-                    borderLeft: `3px solid ${g.color}`,
-                }}>
-                    <div style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        marginBottom: 4,
-                    }}>
-                        <span style={{
-                            fontSize: 11, fontWeight: 700, color: g.color,
+            {groups.map(g => {
+                const isLocked = lockedClassifications && lockedClassifications.includes(g.classification);
+                return (
+                    <div key={g.classification} style={{
+                        marginBottom: 10, padding: '8px 10px',
+                        background: isLocked ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.02)',
+                        borderRadius: 8,
+                        borderLeft: `3px solid ${g.color}`,
+                        cursor: 'pointer',
+                        transition: 'background 0.15s',
+                    }}
+                        onClick={() => onToggleLock && onToggleLock(g.classification)}
+                    >
+                        <div style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            marginBottom: 4,
                         }}>
-                            {g.label}
-                        </span>
-                        <span style={{
-                            fontSize: 9, color: '#64748b',
-                            background: 'rgba(255,255,255,0.04)',
-                            padding: '1px 6px', borderRadius: 8,
-                        }}>
-                            {g.handCount} hands
-                        </span>
+                            <span style={{
+                                fontSize: 11, fontWeight: 700, color: g.color,
+                            }}>
+                                {isLocked ? '✓ ' : ''}{g.label}
+                            </span>
+                            <span style={{
+                                fontSize: 9, color: '#64748b',
+                                background: 'rgba(255,255,255,0.04)',
+                                padding: '1px 6px', borderRadius: 8,
+                            }}>
+                                {g.handCount} hands
+                            </span>
+                        </div>
+                        {/* Action Summary */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {Object.entries(g.actionSummary || {})
+                                .filter(([_, pct]) => pct > 0)
+                                .sort((a, b) => b[1] - a[1])
+                                .map(([action, pct]) => (
+                                    <span key={action} style={{
+                                        fontSize: 9, fontWeight: 600,
+                                        color: ACTION_COLORS[action] || '#888',
+                                        background: 'rgba(255,255,255,0.04)',
+                                        padding: '1px 5px', borderRadius: 4,
+                                    }}>
+                                        {action.toUpperCase()} {pct}%
+                                    </span>
+                                ))}
+                        </div>
                     </div>
-                    {/* Action Summary */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                        {Object.entries(g.actionSummary || {})
-                            .filter(([_, pct]) => pct > 0)
-                            .sort((a, b) => b[1] - a[1])
-                            .map(([action, pct]) => (
-                                <span key={action} style={{
-                                    fontSize: 9, fontWeight: 600,
-                                    color: ACTION_COLORS[action] || '#888',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    padding: '1px 5px', borderRadius: 4,
-                                }}>
-                                    {action.toUpperCase()} {pct}%
-                                </span>
-                            ))}
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </motion.div>
     );
 }
@@ -248,6 +286,7 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function SolutionsBrowser() {
+    useTrainingBus('solutions-browser');
     const router = useRouter();
 
     // Filters
@@ -300,6 +339,69 @@ export default function SolutionsBrowser() {
         setActiveTab('grid');
     }, [gameType]);
 
+    // Phase 16: Range Locking
+    const [lockedClassifications, setLockedClassifications] = useState([]);
+
+    // Phase 16: Bookmarks
+    const [bookmarkedHashes, setBookmarkedHashes] = useState(new Set());
+    const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+
+    // Fetch bookmarks on mount
+    useEffect(() => {
+        async function loadBookmarks() {
+            try {
+                const res = await fetch('/api/training/bookmark-solution', {
+                    headers: getAuthHeaders(),
+                });
+                const data = await res.json();
+                if (data.success && data.bookmarks) {
+                    setBookmarkedHashes(new Set(data.bookmarks.map(b => b.scenario_hash)));
+                }
+            } catch (e) {
+                console.warn('[Solutions] Bookmarks fetch failed:', e);
+            }
+        }
+        loadBookmarks();
+    }, []);
+
+    // Toggle bookmark
+    const toggleBookmark = useCallback(async (spot) => {
+        const hash = spot.scenarioHash || spot.scenario_hash;
+        if (!hash) return;
+        const isBookmarked = bookmarkedHashes.has(hash);
+        const action = isBookmarked ? 'delete' : 'save';
+        try {
+            await fetch('/api/training/bookmark-solution', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ scenarioHash: hash, spotId: spot.id, action }),
+            });
+            setBookmarkedHashes(prev => {
+                const next = new Set(prev);
+                if (isBookmarked) next.delete(hash);
+                else next.add(hash);
+                return next;
+            });
+        } catch (e) {
+            console.warn('[Solutions] Bookmark toggle failed:', e);
+        }
+    }, [bookmarkedHashes]);
+
+    // Toggle range lock
+    const toggleClassificationLock = useCallback((classification) => {
+        setLockedClassifications(prev => {
+            if (prev.includes(classification)) {
+                return prev.filter(c => c !== classification);
+            }
+            return [...prev, classification];
+        });
+    }, []);
+
+    // Reset locked classifications when spot changes
+    useEffect(() => {
+        setLockedClassifications([]);
+    }, [spotDetail]);
+
     // Compute classification when spot detail changes
     useEffect(() => {
         if (spotDetail?.board && spotDetail.board.length >= 3) {
@@ -331,7 +433,9 @@ export default function SolutionsBrowser() {
             });
             if (position) params.set('position', position);
 
-            const res = await fetch(`/api/training/browse-solutions?${params}`);
+            const res = await fetch(`/api/training/browse-solutions?${params}`, {
+                headers: getAuthHeaders(),
+            });
             const data = await res.json();
 
             if (data.success) {
@@ -357,7 +461,9 @@ export default function SolutionsBrowser() {
         setActiveTab('grid');
         setRunoutData({});
         try {
-            const res = await fetch(`/api/training/browse-solutions?spotId=${spotId}`);
+            const res = await fetch(`/api/training/browse-solutions?spotId=${spotId}`, {
+                headers: getAuthHeaders(),
+            });
             const data = await res.json();
             if (data.success && data.spot) {
                 setSpotDetail(data.spot);
@@ -386,7 +492,9 @@ export default function SolutionsBrowser() {
                 scenarioHash: spotDetail.scenarioHash,
                 nextCard,
             });
-            const res = await fetch(`/api/training/tree-navigate?${params}`);
+            const res = await fetch(`/api/training/tree-navigate?${params}`, {
+                headers: getAuthHeaders(),
+            });
             const data = await res.json();
 
             if (data.success && data.childSpot) {
@@ -426,7 +534,9 @@ export default function SolutionsBrowser() {
         if (!spotDetail?.scenarioHash) return;
         setLoadingRunout(true);
         try {
-            const res = await fetch(`/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`);
+            const res = await fetch(`/api/training/runout-report?scenarioHash=${spotDetail.scenarioHash}`, {
+                headers: getAuthHeaders(),
+            });
             const data = await res.json();
             if (data.success) {
                 setRunoutData(data.runouts || {});
@@ -603,12 +713,51 @@ export default function SolutionsBrowser() {
                             </div>
                         ) : (
                             <>
-                                {spots.map(spot => (
+                                {/* Bookmarks Filter Toggle */}
+                                <div style={{
+                                    display: 'flex', gap: 6, padding: '4px 0 8px',
+                                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                    marginBottom: 4,
+                                }}>
+                                    <button
+                                        onClick={() => setShowBookmarksOnly(false)}
+                                        style={{
+                                            flex: 1, padding: '5px 0', borderRadius: 6, fontSize: 10,
+                                            fontWeight: 700, cursor: 'pointer', border: 'none',
+                                            background: !showBookmarksOnly ? 'rgba(0,212,255,0.15)' : 'rgba(255,255,255,0.04)',
+                                            color: !showBookmarksOnly ? '#00d4ff' : '#64748b',
+                                            transition: 'all 0.15s',
+                                            fontFamily: "'Orbitron', monospace",
+                                        }}
+                                    >
+                                        ALL SPOTS
+                                    </button>
+                                    <button
+                                        onClick={() => setShowBookmarksOnly(true)}
+                                        style={{
+                                            flex: 1, padding: '5px 0', borderRadius: 6, fontSize: 10,
+                                            fontWeight: 700, cursor: 'pointer', border: 'none',
+                                            background: showBookmarksOnly ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
+                                            color: showBookmarksOnly ? '#fbbf24' : '#64748b',
+                                            transition: 'all 0.15s',
+                                            fontFamily: "'Orbitron', monospace",
+                                        }}
+                                    >
+                                        ★ BOOKMARKS
+                                    </button>
+                                </div>
+                                {spots.filter(s => {
+                                    if (!showBookmarksOnly) return true;
+                                    const h = s.scenarioHash || s.scenario_hash;
+                                    return h && bookmarkedHashes.has(h);
+                                }).map(spot => (
                                     <SpotCard
                                         key={spot.id}
                                         spot={spot}
                                         isSelected={selectedSpot === spot.id}
                                         onClick={() => loadSpotDetail(spot.id)}
+                                        isBookmarked={bookmarkedHashes.has(spot.scenarioHash || spot.scenario_hash)}
+                                        onToggleBookmark={toggleBookmark}
                                     />
                                 ))}
 
@@ -762,6 +911,7 @@ export default function SolutionsBrowser() {
                                         {[
                                             { key: 'grid', label: '13×13 Grid' },
                                             { key: 'runout', label: 'Runout Analysis' },
+                                            { key: 'report', label: 'Range Report' },
                                         ].map(tab => (
                                             <button
                                                 key={tab.key}
@@ -835,34 +985,58 @@ export default function SolutionsBrowser() {
 
                                 {/* Main Content Area */}
                                 {activeTab === 'grid' ? (
-                                    <div style={{
-                                        display: 'flex', gap: 16,
-                                        alignItems: 'flex-start',
-                                        justifyContent: 'center',
-                                    }}>
-                                        {/* Range Grid */}
-                                        <RangeGrid
-                                            gridData={spotDetail.gridData}
-                                            actions={spotDetail.actions}
-                                            cellSize={34}
-                                            classificationData={classificationData}
-                                            colorMode={colorMode}
-                                        />
-
-                                        {/* Classification Sidebar (when in classification mode) */}
-                                        {colorMode === 'classification' && classificationGroups.length > 0 && (
-                                            <ClassificationSidebar
-                                                groups={classificationGroups}
+                                    <>
+                                        <div style={{
+                                            display: 'flex', gap: 16,
+                                            alignItems: 'flex-start',
+                                            justifyContent: 'center',
+                                        }}>
+                                            {/* Range Grid */}
+                                            <RangeGrid
+                                                gridData={spotDetail.gridData}
                                                 actions={spotDetail.actions}
+                                                cellSize={34}
+                                                classificationData={classificationData}
+                                                colorMode={colorMode}
+                                                handEVs={spotDetail.handEVs || null}
+                                                lockedClassifications={lockedClassifications}
                                             />
-                                        )}
-                                    </div>
+
+                                            {/* Classification Sidebar (when in classification mode) */}
+                                            {classificationGroups.length > 0 && (
+                                                <ClassificationSidebar
+                                                    groups={classificationGroups}
+                                                    actions={spotDetail.actions}
+                                                    lockedClassifications={lockedClassifications}
+                                                    onToggleLock={toggleClassificationLock}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* Solver Line Summary — below grid */}
+                                        <div style={{ width: '100%', maxWidth: 900, marginTop: 14 }}>
+                                            <SolverLineSummary
+                                                gridData={spotDetail.gridData}
+                                                classificationGroups={classificationGroups}
+                                                board={spotDetail.board || []}
+                                                actions={spotDetail.actions || []}
+                                                heroPosition={spotDetail.heroPosition || 'Hero'}
+                                            />
+                                        </div>
+                                    </>
                                 ) : activeTab === 'runout' ? (
                                     <RunoutHeatmap
                                         runoutData={runoutData}
                                         deadCards={deadCards}
                                         loading={loadingRunout}
                                         onCardClick={(card) => navigateToChild(card)}
+                                    />
+                                ) : activeTab === 'report' ? (
+                                    <RangeReport
+                                        classificationGroups={classificationGroups}
+                                        gridData={spotDetail.gridData || {}}
+                                        board={spotDetail.board || []}
+                                        handEVs={spotDetail.handEVs || {}}
                                     />
                                 ) : null}
 
@@ -912,7 +1086,7 @@ export default function SolutionsBrowser() {
                         ) : null}
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* Card Selector Modal */}
             <CardSelectorModal

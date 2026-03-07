@@ -4034,6 +4034,13 @@ export default function SocialMediaPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // Route prefetch — preload likely navigation targets during idle time
+    useEffect(() => {
+        router.prefetch('/hub/notifications');
+        router.prefetch('/hub/friends');
+        router.prefetch('/hub/messenger');
+    }, [router]);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // TIER 3 REALTIME: Social Feed Subscription
     // ═══════════════════════════════════════════════════════════════════════════

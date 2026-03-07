@@ -14,9 +14,9 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -116,18 +116,14 @@ export default async function handler(req, res) {
             });
 
             if (diamondErr) {
-                // Fallback: direct update if RPC not available
-                const { data: profile } = await supabaseAdmin
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', user.id)
-                    .maybeSingle();
-
-                const currentDiamonds = profile?.diamonds || 0;
-                await supabaseAdmin
-                    .from('profiles')
-                    .update({ diamonds: currentDiamonds + promo.reward_value })
-                    .eq('id', user.id);
+                // Fallback: use add_diamonds_to_balance RPC
+                await supabaseAdmin.rpc('add_diamonds_to_balance', {
+                    p_user_id: user.id,
+                    p_amount: promo.reward_value,
+                    p_type: 'promo_code',
+                    p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus'} (fallback)`,
+                    p_reference_id: `promo_${promo.id}_${user.id}`,
+                }).catch(e => console.error('[Promo] Fallback RPC also failed:', e.message));
             }
 
             reward.message = `${promo.reward_value} diamonds added to your account!`;

@@ -12,12 +12,14 @@ import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
+import { emitCacheInvalidation } from '../../../src/lib/cacheSync';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ArticleCard from '../../../src/components/social/ArticleCard';
 import ArticleReaderModal from '../../../src/components/social/ArticleReaderModal';
+import ProfileSkeleton from '../../../src/components/skeletons/ProfileSkeleton';
 import { getAuthUser } from '../../../src/lib/authUtils';
 
 const C = {
@@ -475,18 +477,25 @@ export default function UserProfilePage() {
 
         // --- PHASE 1: SWR CACHE HYDRATION (Instant Render) ---
         const CACHE_KEY = `sp-profile-cache-${username}`;
+        const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
         try {
             const cachedData = localStorage.getItem(CACHE_KEY);
             if (cachedData) {
                 const parsed = JSON.parse(cachedData);
-                if (parsed.profile) setProfile(parsed.profile);
-                if (parsed.stats) setStats(parsed.stats);
-                if (parsed.friends) setFriends(parsed.friends);
-                if (parsed.posts) setPosts(parsed.posts);
-                if (parsed.photos) setPhotos(parsed.photos);
-                if (parsed.videos) setVideos(parsed.videos);
-                if (parsed.reels) setReels(parsed.reels);
-                setLoading(false); // Zero-delay render achieved!
+                // Only hydrate if cache is still fresh
+                if (parsed._cachedAt && (Date.now() - parsed._cachedAt) < CACHE_TTL_MS) {
+                    if (parsed.profile) setProfile(parsed.profile);
+                    if (parsed.stats) setStats(parsed.stats);
+                    if (parsed.friends) setFriends(parsed.friends);
+                    if (parsed.posts) setPosts(parsed.posts);
+                    if (parsed.photos) setPhotos(parsed.photos);
+                    if (parsed.videos) setVideos(parsed.videos);
+                    if (parsed.reels) setReels(parsed.reels);
+                    setLoading(false); // Zero-delay render achieved!
+                } else {
+                    // Expired cache — remove it
+                    localStorage.removeItem(CACHE_KEY);
+                }
             }
         } catch (e) {
             console.warn('SWR Cache Hydration error:', e);
@@ -494,8 +503,11 @@ export default function UserProfilePage() {
 
         // --- PHASE 2: BACKGROUND STALE-WHILE-REVALIDATE FETCH ---
         const fetchProfile = async () => {
-            const controller = new AbortController();
-            const { signal } = controller;
+            // Track variables in outer scope for cache save
+            let finalFriends = [];
+            let finalPhotos = [];
+            let finalStats = { friends: 0, following: 0, followers: 0, posts: 0 };
+
             try {
                 // Get current user
                 const user = getAuthUser();
@@ -507,7 +519,6 @@ export default function UserProfilePage() {
                     .select('*')
                     .eq('username', username)
                     .maybeSingle();
-                // HendonMob URLs will open in ArticleReaderModal with proxy support
 
                 if (error || !data) {
                     setProfile(null);
@@ -517,13 +528,48 @@ export default function UserProfilePage() {
 
                 setProfile(data);
 
-                // Check friendship status
-                if (user) {
-                    // Check all possible friendship records between the two users
-                    const { data: f1 } = await supabase.from('friendships').select('status').eq('user_id', user.id).eq('friend_id', data.id);
-                    const { data: f2 } = await supabase.from('friendships').select('status').eq('user_id', data.id).eq('friend_id', user.id);
+                // ═══════════════════════════════════════════════════════════
+                // PARALLEL BATCH 1: Friendship + Stats (all independent)
+                // ═══════════════════════════════════════════════════════════
+                const batch1Promises = [
+                    // Stats (4 count queries)
+                    supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${data.id},friend_id.eq.${data.id}`),
+                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
+                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
+                    supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', data.id),
+                    // Friend profiles
+                    supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${data.id},friend_id.eq.${data.id}`).limit(20),
+                ];
 
-                    const allFriendships = [...(f1 || []), ...(f2 || [])];
+                // Friendship status checks (only if logged in)
+                if (user) {
+                    batch1Promises.push(
+                        supabase.from('friendships').select('status').eq('user_id', user.id).eq('friend_id', data.id),
+                        supabase.from('friendships').select('status').eq('user_id', data.id).eq('friend_id', user.id),
+                        supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted').or(`user_id.eq.${user.id},friend_id.eq.${user.id}`)
+                    );
+                }
+
+                const batch1Results = await Promise.all(batch1Promises);
+
+                const [friendsRes, followingRes, followersRes, postsRes, userFriendshipsRes, ...authResults] = batch1Results;
+
+                finalStats = {
+                    friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : 0,
+                    following: followingRes.count || 0,
+                    followers: followersRes.count || 0,
+                    posts: postsRes.count || 0
+                };
+                setStats(finalStats);
+
+                // Process friendship status
+                let myFriendIds = [];
+                if (user && authResults.length >= 3) {
+                    const f1 = authResults[0];
+                    const f2 = authResults[1];
+                    const myFriendsRes = authResults[2];
+
+                    const allFriendships = [...(f1.data || []), ...(f2.data || [])];
                     if (allFriendships.some(f => f.status === 'accepted')) {
                         setIsFriend(true);
                         setFriendRequestSent(false);
@@ -535,42 +581,14 @@ export default function UserProfilePage() {
                         setFriendRequestSent(false);
                     }
 
-                    // Get current user's friends for mutual calculation
-                    const { data: myFriends } = await supabase
-                        .from('friendships')
-                        .select('user_id, friend_id')
-                        .eq('status', 'accepted')
-                        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-
-                    if (myFriends) {
-                        const myFriendIds = myFriends.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
+                    if (myFriendsRes.data) {
+                        myFriendIds = myFriendsRes.data.map(f => f.user_id === user.id ? f.friend_id : f.user_id);
                         setCurrentUserFriends(myFriendIds);
                     }
                 }
 
-                // Fetch all stats in parallel
-                const [friendsRes, followingRes, followersRes, postsRes] = await Promise.all([
-                    supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${data.id},friend_id.eq.${data.id}`),
-                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', data.id),
-                    supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', data.id),
-                    supabase.from('social_posts').select('*', { count: 'exact', head: true }).eq('author_id', data.id)
-                ]);
-
-                setStats({
-                    friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : 0,
-                    following: followingRes.count || 0,
-                    followers: followersRes.count || 0,
-                    posts: postsRes.count || 0
-                });
-
-                // Fetch friends with profiles
-                const { data: userFriendships } = await supabase
-                    .from('friendships')
-                    .select('user_id, friend_id')
-                    .eq('status', 'accepted')
-                    .or(`user_id.eq.${data.id},friend_id.eq.${data.id}`)
-                    .limit(20);
-
+                // Process friend profiles
+                const userFriendships = userFriendshipsRes.data;
                 if (userFriendships?.length > 0) {
                     const friendIds = userFriendships.map(f => f.user_id === data.id ? f.friend_id : f.user_id);
                     const { data: friendProfiles } = await supabase
@@ -580,63 +598,51 @@ export default function UserProfilePage() {
 
                     if (friendProfiles) {
                         const friendsWithMutual = friendProfiles.map(friend => {
-                            const mutualCount = currentUserFriends.filter(id => friendIds.includes(id) && id !== friend.id).length;
+                            const mutualCount = myFriendIds.filter(id => friendIds.includes(id) && id !== friend.id).length;
                             return { ...friend, mutualCount };
                         });
                         friendsWithMutual.sort((a, b) => b.mutualCount - a.mutualCount);
                         setFriends(friendsWithMutual);
+                        finalFriends = friendsWithMutual;
                     }
                 }
 
-                // Fetch posts
-                const { data: userPosts } = await supabase
-                    .from('social_posts')
-                    .select('*')
-                    .eq('author_id', data.id)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-                if (userPosts) setPosts(userPosts);
+                // ═══════════════════════════════════════════════════════════
+                // PARALLEL BATCH 2: Content (posts, photos, videos, reels, poker activity) — all independent
+                // ═══════════════════════════════════════════════════════════
+                const contentPromises = [
+                    // Posts
+                    supabase.from('social_posts').select('*').eq('author_id', data.id).order('created_at', { ascending: false }).limit(20),
+                    // Photos (posts with media)
+                    supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', data.id).not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(50),
+                    // Videos
+                    supabase.from('social_posts').select('id, media_urls, content, created_at, content_type').eq('author_id', data.id).eq('content_type', 'video').not('media_urls', 'is', null).order('created_at', { ascending: false }).limit(30),
+                    // Reels
+                    supabase.from('social_reels').select('id, video_url, caption, thumbnail_url, view_count, created_at').eq('author_id', data.id).order('created_at', { ascending: false }).limit(30),
+                ];
 
-                // Fetch photos (posts with image media)
-                const { data: userPhotos } = await supabase
-                    .from('social_posts')
-                    .select('id, media_urls, content, created_at, content_type')
-                    .eq('author_id', data.id)
-                    .not('media_urls', 'is', null)
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-                // Filter to only posts with image URLs (not videos)
-                if (userPhotos) {
-                    const photoList = userPhotos.filter(p =>
-                        p.content_type === 'image' ||
-                        (p.media_urls && p.media_urls.some(url =>
-                            url && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || !url.includes('video'))
-                        ))
-                    );
-                    setPhotos(photoList);
-                }
+                const [postsData, photosData, videosData, reelsData] = await Promise.all(contentPromises);
 
-                // Fetch video posts
-                const { data: userVideos } = await supabase
-                    .from('social_posts')
-                    .select('id, media_urls, content, created_at, content_type')
-                    .eq('author_id', data.id)
-                    .eq('content_type', 'video')
-                    .not('media_urls', 'is', null)
-                    .order('created_at', { ascending: false })
-                    .limit(30);
-                if (userVideos) setVideos(userVideos);
+                const userPosts = postsData.data || [];
+                setPosts(userPosts);
 
-                // Fetch reels
-                const { data: userReels } = await supabase
-                    .from('social_reels')
-                    .select('id, video_url, caption, thumbnail_url, view_count, created_at')
-                    .eq('author_id', data.id)
-                    .order('created_at', { ascending: false })
-                    .limit(30);
-                if (userReels) setReels(userReels);
+                // Filter photos to image-only
+                const photoList = (photosData.data || []).filter(p =>
+                    p.content_type === 'image' ||
+                    (p.media_urls && p.media_urls.some(url =>
+                        url && (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || !url.includes('video'))
+                    ))
+                );
+                setPhotos(photoList);
+                finalPhotos = photoList;
 
-                // Fetch poker activity (check-ins, reviews, followed pages)
+                const userVideos = videosData.data || [];
+                setVideos(userVideos);
+
+                const userReels = reelsData.data || [];
+                setReels(userReels);
+
+                // Fetch poker activity (fire-and-forget, non-blocking)
                 var anonUid = null;
                 try { anonUid = localStorage.getItem('sp-anon-uid'); } catch (ex) { /* ignore */ }
                 var pokerUid = data.id || anonUid;
@@ -651,21 +657,17 @@ export default function UserProfilePage() {
                         .catch(function () { });
                 }
 
-                // --- SWR CACHE SAVE ---
+                // --- SWR CACHE SAVE (with TTL timestamp) ---
                 try {
                     const cachePayload = {
+                        _cachedAt: Date.now(),
                         profile: data || null,
-                        stats: {
-                            friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : 0,
-                            following: followingRes.count || 0,
-                            followers: followersRes.count || 0,
-                            posts: postsRes.count || 0
-                        },
-                        friends: friendsWithMutual || [],
-                        posts: userPosts || [],
-                        photos: photoList || [],
-                        videos: userVideos || [],
-                        reels: userReels || []
+                        stats: finalStats,
+                        friends: finalFriends,
+                        posts: userPosts,
+                        photos: finalPhotos,
+                        videos: userVideos,
+                        reels: userReels
                     };
                     localStorage.setItem(CACHE_KEY, JSON.stringify(cachePayload));
                 } catch (cacheErr) {
@@ -683,13 +685,73 @@ export default function UserProfilePage() {
     // Realtime subscription — live updates
     useEffect(() => {
         if (!profile?.id) return;
+
+        // Handler that re-triggers the main data fetch
+        const handleRealtimeUpdate = () => {
+            // Clear the profile cache so next fetch gets fresh data
+            try {
+                localStorage.removeItem(`sp-profile-cache-${username}`);
+            } catch (_) { /* noop */ }
+
+            // Fetch fresh profile data inline (lightweight re-fetch of posts/follows only)
+            const refreshContent = async () => {
+                try {
+                    const [postsData, followingRes, followersRes, friendsRes] = await Promise.all([
+                        supabase.from('social_posts').select('*').eq('author_id', profile.id).order('created_at', { ascending: false }).limit(20),
+                        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', profile.id),
+                        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', profile.id),
+                        supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
+                    ]);
+                    if (postsData.data) setPosts(postsData.data);
+                    setStats(prev => ({
+                        ...prev,
+                        following: followingRes.count || prev.following,
+                        followers: followersRes.count || prev.followers,
+                        friends: friendsRes.count ? Math.floor(friendsRes.count / 2) : prev.friends,
+                        posts: (postsData.data || []).length || prev.posts,
+                    }));
+                } catch (e) {
+                    console.warn('[Profile Realtime] Refresh failed:', e);
+                }
+            };
+            refreshContent();
+        };
+
         const _ch = supabase
             .channel(`user-profile:${profile.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, () => { fetchProfile(); })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, () => { fetchProfile(); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleRealtimeUpdate)
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [profile?.id]);
+    }, [profile?.id, username]);
+
+    // Helper — invalidate profile cache + notify friends page cross-tab
+    const invalidateProfileCache = () => {
+        const cacheKey = `sp-profile-cache-${username}`;
+        try { localStorage.removeItem(cacheKey); } catch { /* noop */ }
+        emitCacheInvalidation(cacheKey);
+    };
+    // Write-through: update cache in-place with current React state
+    const writeThroughCache = () => {
+        try {
+            const cacheKey = `sp-profile-cache-${username}`;
+            const payload = {
+                _cachedAt: Date.now(),
+                profile: profile || null,
+                stats,
+                friends,
+                posts,
+                photos,
+                videos: [],
+                reels: [],
+            };
+            localStorage.setItem(cacheKey, JSON.stringify(payload));
+            emitCacheInvalidation(cacheKey, 'update');
+        } catch { /* quota exceeded */ }
+    };
+    const notifyFriendsSync = () => {
+        try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch { /* noop */ }
+    };
 
     const handleAddFriend = async () => {
         if (!currentUser || !profile) return;
@@ -700,6 +762,8 @@ export default function UserProfilePage() {
                 status: 'pending'
             });
             setFriendRequestSent(true);
+            invalidateProfileCache();
+            notifyFriendsSync();
         } catch (e) {
             console.error('Error sending friend request:', e);
         }
@@ -723,6 +787,8 @@ export default function UserProfilePage() {
             setIsFriend(false);
             setFriendRequestSent(false);
             setStats(prev => ({ ...prev, friends: Math.max(0, prev.friends - 1) }));
+            invalidateProfileCache();
+            notifyFriendsSync();
         } catch (e) {
             console.error('Error unfriending:', e);
         }
@@ -737,6 +803,7 @@ export default function UserProfilePage() {
             setPhotos(prev => prev.filter(p => p.id !== postId));
             setVideos(prev => prev.filter(p => p.id !== postId));
             setStats(prev => ({ ...prev, posts: Math.max(0, prev.posts - 1) }));
+            invalidateProfileCache();
         } catch (e) {
             console.error('Error deleting post:', e);
             throw e;
@@ -820,6 +887,7 @@ export default function UserProfilePage() {
             setPosts(prev => [newPost, ...prev]);
             setStats(prev => ({ ...prev, posts: prev.posts + 1 }));
             setIsPosting(false);
+            invalidateProfileCache();
             return true;
         } catch (e) {
             console.error('Error creating post:', e);
@@ -828,15 +896,16 @@ export default function UserProfilePage() {
         }
     };
 
+    // Route prefetch — preload likely navigation targets
+    useEffect(() => {
+        router.prefetch('/hub/social-media');
+        router.prefetch('/hub/messenger');
+        router.prefetch('/hub/profile-edit');
+        router.prefetch('/hub/friends');
+    }, [router]);
+
     if (loading) {
-        return (
-            <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 32, marginBottom: 16 }}>s</div>
-                    <div style={{ color: C.textSec }}>Loading Profile...</div>
-                </div>
-            </div>
-        );
+        return <ProfileSkeleton />;
     }
 
     if (!profile) {

@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import UniversalHeader from '../../../../src/components/ui/UniversalHeader';
 import { supabase } from '../../../../src/lib/supabase';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 // Villain avatars in seat order (1-8)
 const VILLAIN_AVATARS = [
@@ -88,7 +89,7 @@ function PlayerSeat({ avatar, name, stack, position, isHero = false }) {
                     objectFit: 'contain',
                     filter: 'drop-shadow(2px 3px 5px rgba(0,0,0,0.8))',
                 }}
-             loading="lazy" />
+                loading="lazy" />
             <div style={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -198,23 +199,40 @@ export default function TrainingArenaPage() {
     useEffect(() => {
         if (loading) return;
         const interval = setInterval(() => {
-            setTimer(prev => (prev > 0 ? prev - 1 : 15));
+            setTimer(prev => {
+                if (prev === 5) busEmit.timerWarning();
+                if (prev === 3) busEmit.screenShake('light');
+                if (prev <= 0) {
+                    busEmit.timerExpired();
+                    busEmit.screenShake('heavy');
+                    return 15;
+                }
+                return prev - 1;
+            });
         }, 1000);
         return () => clearInterval(interval);
     }, [loading]);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!gameId) return;
-    const _ch = supabase
-      .channel(`train-arena:${gameId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_registry', filter: `id=eq.${gameId}` }, () => {
-        console.warn('[TrainingArena] Received real-time update for game_registry');
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [gameId]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!gameId) return;
+        const _ch = supabase
+            .channel(`train-arena:${gameId}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_registry', filter: `id=eq.${gameId}` }, () => {
+                console.warn('[TrainingArena] Received real-time update for game_registry');
+            })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [gameId]);
 
     const handleAction = async (action) => {
+        // Emit decision events based on action
+        if (action === 'FOLD') {
+            busEmit.decisionIncorrect(false);
+            busEmit.screenFlash('#EF4444', 200);
+        } else {
+            busEmit.decisionCorrect(handNumber);
+            busEmit.screenFlash('#22C55E', 200);
+        }
         setHandNumber(prev => Math.min(prev + 1, totalHands));
         setTimer(15);
     };
@@ -244,7 +262,7 @@ export default function TrainingArenaPage() {
             <Head>
                 <title>{gameName} — Training Arena | Smarter.Poker</title>
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-                
+
             </Head>
 
             <div className="arena-root">
@@ -267,7 +285,7 @@ export default function TrainingArenaPage() {
                             src="/images/training/table-vertical.jpg"
                             alt="Poker Table"
                             className="table-img"
-                         loading="lazy" />
+                            loading="lazy" />
 
                         {/* POT Display */}
                         <div className="pot">

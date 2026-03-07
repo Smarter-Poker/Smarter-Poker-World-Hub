@@ -55,9 +55,9 @@ function calculateAggressionIndex(strategyMatrix) {
 
     for (const action of actions) {
         const freqs = frequencies[action] || {};
-        const actionLower = action.toLowerCase();
-        const isBetRaise = actionLower.includes('r') || actionLower.includes('b') || actionLower === 'allin';
-        const isFold = actionLower.includes('f');
+        const a = action.toLowerCase();
+        const isBetRaise = a === 'r' || a === 'b' || a === 'raise' || a === 'bet' || a === 'allin';
+        const isFold = a === 'f' || a === 'fold';
 
         for (const [hand, freq] of Object.entries(freqs)) {
             if (freq > 0) {
@@ -81,6 +81,12 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Auth check
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
+
         const { scenarioHash } = req.query;
 
         if (!scenarioHash) {

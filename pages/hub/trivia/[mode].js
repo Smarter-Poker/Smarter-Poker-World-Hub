@@ -11,6 +11,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -538,23 +539,25 @@ export default function TriviaModePage() {
                     play_date: today
                 });
 
-                // Update profile with diamonds (base + daily bonus)
+                // Update profile with diamonds via audit-safe RPC (base + daily bonus)
                 const totalDiamondsToAward = diamondsEarned + dailyBonusDiamonds;
                 if (totalDiamondsToAward > 0) {
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: totalDiamondsToAward,
+                        p_type: 'trivia_reward',
+                        p_description: `Trivia ${mode} reward — ${totalDiamondsToAward}💎`,
+                        p_reference_id: null
+                    });
+                    // Refresh balance from DB
                     const { data: profile } = await supabase
                         .from('profiles')
                         .select('diamonds')
                         .eq('id', userId)
                         .maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
 
-                    if (profile) {
-                        await supabase
-                            .from('profiles')
-                            .update({
-                                diamonds: (profile.diamonds || 0) + totalDiamondsToAward
-                            })
-                            .eq('id', userId);
-                    }
+                    busEmit.diamondsEarned(totalDiamondsToAward, `Trivia ${mode}`);
                 }
 
                 // Record question history (60-day non-repeat tracking)
@@ -801,18 +804,20 @@ export default function TriviaModePage() {
                             enableGhostOpponent={true}
                             onDiamondsChange={async (delta) => {
                                 if (!userId) return;
+                                await supabase.rpc('add_diamonds_to_balance', {
+                                    p_user_id: userId,
+                                    p_amount: delta,
+                                    p_type: delta > 0 ? 'trivia_reward' : 'trivia_cost',
+                                    p_description: `Trivia ${mode} — ${Math.abs(delta)}💎 ${delta > 0 ? 'earned' : 'spent'}`,
+                                    p_reference_id: null
+                                });
                                 const { data: profile } = await supabase
                                     .from('profiles')
                                     .select('diamonds')
                                     .eq('id', userId)
                                     .maybeSingle();
-                                if (profile) {
-                                    await supabase
-                                        .from('profiles')
-                                        .update({ diamonds: Math.max(0, (profile.diamonds || 0) + delta) })
-                                        .eq('id', userId);
-                                    setUserDiamonds(Math.max(0, (profile.diamonds || 0) + delta));
-                                }
+                                if (profile) setUserDiamonds(profile.diamonds || 0);
+                                if (delta > 0) busEmit.diamondsEarned(delta, `Trivia ${mode}`);
                             }}
                         />
                     )}
@@ -887,38 +892,43 @@ export default function TriviaModePage() {
                             currentWinnings={result?.diamondsEarned || 0}
                             onComplete={async (won, finalAmount) => {
                                 if (userId && won) {
-                                    // Award the extra diamonds
+                                    // Award the extra diamonds via RPC
                                     const bonus = finalAmount - (result?.diamondsEarned || 0);
                                     if (bonus > 0) {
+                                        await supabase.rpc('add_diamonds_to_balance', {
+                                            p_user_id: userId,
+                                            p_amount: bonus,
+                                            p_type: 'trivia_double_win',
+                                            p_description: `Double or Nothing win — ${bonus}💎 bonus`,
+                                            p_reference_id: null
+                                        });
                                         const { data: profile } = await supabase
                                             .from('profiles')
                                             .select('diamonds')
                                             .eq('id', userId)
                                             .maybeSingle();
-                                        if (profile) {
-                                            await supabase
-                                                .from('profiles')
-                                                .update({ diamonds: (profile.diamonds || 0) + bonus })
-                                                .eq('id', userId);
-                                            setUserDiamonds(prev => prev + bonus);
-                                        }
+                                        if (profile) setUserDiamonds(profile.diamonds || 0);
+                                        busEmit.diamondsEarned(bonus, 'Double or Nothing Win');
+                                        busEmit.celebration('confetti');
                                     }
                                 } else if (userId && !won) {
-                                    // Deduct the original winnings (they lost)
+                                    // Deduct the original winnings (they lost) via RPC
                                     const loss = result?.diamondsEarned || 0;
                                     if (loss > 0) {
+                                        await supabase.rpc('add_diamonds_to_balance', {
+                                            p_user_id: userId,
+                                            p_amount: -loss,
+                                            p_type: 'trivia_double_loss',
+                                            p_description: `Double or Nothing loss — ${loss}💎 deducted`,
+                                            p_reference_id: null
+                                        });
                                         const { data: profile } = await supabase
                                             .from('profiles')
                                             .select('diamonds')
                                             .eq('id', userId)
                                             .maybeSingle();
-                                        if (profile) {
-                                            await supabase
-                                                .from('profiles')
-                                                .update({ diamonds: Math.max(0, (profile.diamonds || 0) - loss) })
-                                                .eq('id', userId);
-                                            setUserDiamonds(prev => Math.max(0, prev - loss));
-                                        }
+                                        if (profile) setUserDiamonds(profile.diamonds || 0);
+                                        busEmit.screenShake('medium');
                                     }
                                 }
                                 setShowDoubleOrNothing(false);
@@ -932,13 +942,23 @@ export default function TriviaModePage() {
                         <PrizeWheel
                             streakMultiplier={getStreakTier(userStreak).multiplier}
                             onComplete={async (reward) => {
-                                // Award the prize
+                                // Award the prize via audit-safe RPC
                                 if (reward.type === 'diamonds' && userId) {
-                                    await supabase
+                                    await supabase.rpc('add_diamonds_to_balance', {
+                                        p_user_id: userId,
+                                        p_amount: reward.amount,
+                                        p_type: 'trivia_prize_wheel',
+                                        p_description: `Prize Wheel — ${reward.amount}💎`,
+                                        p_reference_id: null
+                                    });
+                                    const { data: profile } = await supabase
                                         .from('profiles')
-                                        .update({ diamonds: userDiamonds + reward.amount })
-                                        .eq('id', userId);
-                                    setUserDiamonds(prev => prev + reward.amount);
+                                        .select('diamonds')
+                                        .eq('id', userId)
+                                        .maybeSingle();
+                                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                                    busEmit.diamondsEarned(reward.amount, 'Prize Wheel');
+                                    busEmit.celebration('confetti');
                                 }
                                 setShowPrizeWheel(false);
                             }}

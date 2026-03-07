@@ -23,11 +23,17 @@ export default function ClearCachePage() {
                 await Promise.all(registrations.map(r => r.unregister()));
             }
 
-            // 3. Clear localStorage cache markers
+            // 3. Clear localStorage cache markers + SWR auto-cache + profile caches
             const keysToRemove = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && (key.includes('cache') || key.includes('version'))) {
+                if (key && (
+                    key.includes('cache') ||
+                    key.includes('version') ||
+                    key.startsWith('swr_auto_') ||
+                    key.startsWith('sp-') ||
+                    key.startsWith('sp_')
+                )) {
                     keysToRemove.push(key);
                 }
             }
@@ -36,12 +42,20 @@ export default function ClearCachePage() {
                 localStorage.removeItem(k);
             });
 
-            // 4. Clear sessionStorage
+            // 4. Clear IndexedDB sp_cache (used by idbCacheStore)
+            try {
+                if (window.indexedDB) {
+                    indexedDB.deleteDatabase('sp_cache');
+                    console.log('[ClearCache] Deleted IndexedDB sp_cache');
+                }
+            } catch (e) { /* noop */ }
+
+            // 5. Clear sessionStorage
             sessionStorage.clear();
 
             console.log('[ClearCache] ✅ All caches cleared! Redirecting...');
 
-            // 5. Redirect to hub with cache-bust param
+            // 6. Redirect to hub with cache-bust param
             setTimeout(() => {
                 window.location.href = '/hub?cleared=' + Date.now();
             }, 500);

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Zap, Gem, Target, Timer } from 'lucide-react';
+import { busEmit } from '../../engine/EventBus';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 
@@ -69,6 +70,7 @@ export default function TimeAttackGame({
             if (isCorrect) {
                 const newCorrect = correctCount + 1;
                 setCorrectCount(newCorrect);
+                busEmit.decisionCorrect(newCorrect);
 
                 // Track fast answers (under 3 seconds)
                 if (answerTime < 3) {
@@ -84,6 +86,8 @@ export default function TimeAttackGame({
                 }
             } else {
                 setWrongCount(prev => prev + 1);
+                busEmit.decisionIncorrect(correctCount);
+                busEmit.screenShake('light');
             }
 
             // Quick next question

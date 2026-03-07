@@ -93,12 +93,14 @@ function checkRateLimit(userId) {
 }
 
 function getCacheKey(params) {
-  const { heroHand, heroPosition, heroStack, gameType, board } = params;
+  const { heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor } = params;
   return JSON.stringify({
     h: [heroHand?.card1, heroHand?.card2].sort().join(''),
     p: heroPosition, s: Math.round(heroStack / 10) * 10,
     g: gameType,
     b: [...(board?.flop || []), board?.turn, board?.river].filter(Boolean).sort().join(''),
+    em: exploitMode || 'gto',
+    bf: bubbleFactor || 1.0,
   });
 }
 
@@ -516,14 +518,34 @@ function buildPreflopHeatmap(chart) {
 async function analyzeWithGrok(params) {
   try {
     const grok = getGrokClient();
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize } = params;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor } = params;
 
     const boardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
     const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
     const heroHandStr = `${heroHand?.card1 || 'As'} ${heroHand?.card2 || 'Kd'}`;
     const villainDesc = villains?.slice(0, 3).map(v => `${v.archetype?.name || 'Unknown'} (${v.stack}bb)`).join(', ') || 'Unknown';
 
-    const prompt = `You are a GTO poker solver. Analyze this scenario with precise frequencies.
+    // Exploit mode context injection
+    let exploitContext = '';
+    if (exploitMode === 'exploit' && villainArchetype) {
+      const archetypeTendencies = {
+        calling_station: 'Villain calls too wide. Value bet thinner, reduce bluff frequency.',
+        nit: 'Villain folds too much. Increase bluff frequency, steal more pots. Respect their raises.',
+        lag: 'Villain plays loose-aggressive. Trap with strong hands, tighten your range.',
+        tag: 'Villain is tight-aggressive. Stay balanced, mix your frequencies, avoid obvious lines.',
+        maniac: 'Villain bets and raises too aggressively. Widen value range, reduce bluff frequency, let them hang themselves.',
+        fish: 'Villain makes fundamental mistakes. Bet bigger with strong hands, simplify decisions, avoid fancy plays.',
+      };
+      exploitContext = `\n\nEXPLOIT MODE ACTIVE — Villain Archetype: ${villainArchetype}\n${archetypeTendencies[villainArchetype] || 'Adjust based on villain tendencies.'}`;
+    }
+
+    // ICM bubble factor context
+    let icmContext = '';
+    if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0) {
+      icmContext = `\n\nICM CONTEXT: Bubble Factor = ${bubbleFactor.toFixed(1)}x. ${bubbleFactor > 1.2 ? 'High bubble pressure — survival premium, tighten calling ranges and avoid marginal spots.' : bubbleFactor < 0.8 ? 'Low bubble pressure — chip accumulation mode, can take more risks.' : 'Moderate bubble pressure.'}`;
+    }
+
+    const prompt = `You are a GTO poker solver. Analyze this scenario with precise frequencies.${exploitMode === 'exploit' ? ' ADJUST for villain tendencies (exploit mode).' : ''}
 
 SCENARIO:
 - Hero Hand: ${heroHandStr}
@@ -532,7 +554,7 @@ SCENARIO:
 - Game Type: ${gameType === 'tournament' ? 'Tournament (ICM)' : 'Cash Game (ChipEV)'}
 - Pot Size: ${potSize || 6}bb
 - Board: ${boardStr}
-- Villains: ${villainDesc}
+- Villains: ${villainDesc}${exploitContext}${icmContext}
 
 Respond in EXACT JSON format (no markdown):
 {
@@ -632,7 +654,7 @@ function ruleBasedFallback(params) {
 // EXPLANATION BUILDER
 // ═══════════════════════════════════════════════════════════════════════════
 
-function buildExplanation(handAnalysis, matchTier, street) {
+function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor) {
   const { optimalAction, isMixed, actions, ev } = handAnalysis;
   const freq = optimalAction.frequency;
 
@@ -653,6 +675,31 @@ function buildExplanation(handAnalysis, matchTier, street) {
 
   if (matchTier >= 3) {
     explanation += ' Note: This uses solver data from a similar spot, not an exact board match.';
+  }
+
+  // Exploit mode — append archetype-specific coaching tips
+  if (exploitMode === 'exploit' && villainArchetype) {
+    const exploitTips = {
+      calling_station: 'Exploit Tip: Bet thinner for value against this calling station. Skip marginal bluffs.',
+      nit: 'Exploit Tip: Steal more pots against this nit. Respect their raises — they usually have it.',
+      lag: 'Exploit Tip: Tighten up against this LAG. Trap with premium hands and let them bluff into you.',
+      tag: 'Exploit Tip: Stay balanced against this TAG. Mix your frequencies and avoid predictable lines.',
+      maniac: 'Exploit Tip: Widen your value range against this maniac. Reduce bluff frequency — let them hang themselves.',
+      fish: 'Exploit Tip: Bet bigger with strong hands against this fish. Simplify your decisions.',
+    };
+    const tip = exploitTips[villainArchetype];
+    if (tip) explanation += ` ${tip}`;
+  }
+
+  // ICM bubble factor context
+  if (bubbleFactor && bubbleFactor !== 1.0) {
+    if (bubbleFactor > 1.2) {
+      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)}x — survival premium is high. Tighten calling ranges and avoid marginal spots.`;
+    } else if (bubbleFactor < 0.8) {
+      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)}x — chip accumulation mode. You can take more risks here.`;
+    } else {
+      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)}x — moderate pressure.`;
+    }
   }
 
   return explanation;
@@ -681,7 +728,7 @@ export default async function handler(req, res) {
       } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
     }
 
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory } = req.body;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, bubbleFactor } = req.body;
 
     // Context authority check — only for authenticated users
     if (userId) {
@@ -708,7 +755,7 @@ export default async function handler(req, res) {
     }
 
     // Check cache
-    const cacheKey = getCacheKey({ heroHand, heroPosition, heroStack, gameType, board });
+    const cacheKey = getCacheKey({ heroHand, heroPosition, heroStack, gameType, board, exploitMode, bubbleFactor });
     const cached = analysisCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       return res.status(200).json({ success: true, cached: true, ...cached.data });
@@ -737,14 +784,14 @@ export default async function handler(req, res) {
         // Preflop chart data
         analysis = parsePreflopChart(solverResult.chart, heroNotation);
         rangeHeatmap = buildPreflopHeatmap(solverResult.chart);
-        explanation = buildExplanation(analysis, matchTier, 'preflop');
+        explanation = buildExplanation(analysis, matchTier, 'preflop', exploitMode, villainArchetype, bubbleFactor);
       } else if (solverResult.scenario?.strategy_matrix) {
         // Postflop solver data
         analysis = parseStrategyForHand(solverResult.scenario.strategy_matrix, heroNotation, calculatedPot);
         rangeHeatmap = buildRangeHeatmap(solverResult.scenario.strategy_matrix);
 
         if (analysis) {
-          explanation = buildExplanation(analysis, matchTier, street);
+          explanation = buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
         }
       }
     }
@@ -756,6 +803,7 @@ export default async function handler(req, res) {
 
       analysis = await analyzeWithGrok({
         heroHand, heroPosition, heroStack, gameType, villains, board, potSize: calculatedPot,
+        exploitMode, villainArchetype, bubbleFactor,
       });
 
       if (!analysis) {
@@ -766,7 +814,7 @@ export default async function handler(req, res) {
         source = 'Heuristic Estimation';
       }
 
-      explanation = analysis.explanation || buildExplanation(analysis, matchTier, street);
+      explanation = analysis.explanation || buildExplanation(analysis, matchTier, street, exploitMode, villainArchetype, bubbleFactor);
     }
 
     // ━━━ BUILD RESPONSE ━━━
@@ -792,6 +840,17 @@ export default async function handler(req, res) {
       context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition}`,
     };
 
+    // ━━━ ICM-ADJUSTED EV (Tournament mode with bubble factor) ━━━
+    if (gameType === 'tournament' && bubbleFactor && bubbleFactor !== 1.0 && analysis.ev) {
+      const icmHero = parseFloat((analysis.ev.hero * bubbleFactor).toFixed(3));
+      responseData.icmAdjusted = true;
+      responseData.bubbleFactor = bubbleFactor;
+      responseData.icmEV = {
+        hero: icmHero,
+        heroDisplay: `${icmHero >= 0 ? '+' : ''}${icmHero.toFixed(2)} BB (ICM)`,
+      };
+    }
+
     // Cache
     analysisCache.set(cacheKey, { data: responseData, ts: Date.now() });
     if (analysisCache.size > 500) {
@@ -814,6 +873,7 @@ export default async function handler(req, res) {
           board_turn: board?.turn || null,
           board_river: board?.river || null,
           villain_config: villains || [],
+          action_history: actionHistory || [],
           bet_sizing_preset: betSizing || 'standard',
           pot_size_bb: calculatedPot,
         })
@@ -830,6 +890,7 @@ export default async function handler(req, res) {
           confidence: responseData.confidence?.toLowerCase(),
           sensitivity_flags: heroStack < 50 ? ['stack_sensitive'] : [],
           why_not_check: explanation,
+          full_analysis: responseData,
           truth_seal: {
             source: matchTier <= 2 ? 'solver_verified' : matchTier === 3 ? 'solver_approx' : 'ai_approx',
             matchTier,

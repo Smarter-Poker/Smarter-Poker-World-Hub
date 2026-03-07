@@ -15,6 +15,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function ChallengesPage() {
     const [user, setUser] = useState(null);
@@ -55,6 +56,8 @@ export default function ChallengesPage() {
                 refreshChallenges(prev => prev.map(c =>
                     c.id === challenge.id ? { ...c, claimed: true } : c
                 ));
+                busEmit.diamondsEarned(data.diamondsAwarded, `Challenge: ${challenge.title}`);
+                busEmit.celebration('confetti');
                 alert(`🎉 +${data.diamondsAwarded} diamonds claimed!`);
             }
         } catch (error) {

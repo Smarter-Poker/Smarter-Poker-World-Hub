@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { busEmit } from '../engine/EventBus';
 
 class DiamondEngineSupabase {
     constructor() {
@@ -166,6 +167,7 @@ class DiamondEngineSupabase {
 
             if (data?.success !== false) {
                 const newBalance = await this.getBalance();
+                busEmit.diamondsSpent(amount, source);
                 return { success: true, charged: amount, balance: newBalance };
             }
 
@@ -211,6 +213,7 @@ class DiamondEngineSupabase {
 
             const newBalance = await this.getBalance();
             this._cachedBalance = newBalance;
+            busEmit.diamondsEarned(amount, source);
 
             // Play sound effect
             if (typeof window !== 'undefined' && window.SoundEngine) {
@@ -291,27 +294,22 @@ class DiamondEngineSupabase {
                 return { success: false, error: 'Insufficient diamonds', balance: current };
             }
 
-            const newBalance = current - amount;
-            const { error } = await this.supabase
-                .from('profiles')
-                .update({ diamonds: newBalance })
-                .eq('id', this.userId)
-                .eq('diamonds', current); // Optimistic lock
+            // Use audit-safe RPC even in fallback path
+            const { error } = await this.supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: this.userId,
+                p_amount: -amount,
+                p_type: source,
+                p_description: `${source} deduction (fallback)`,
+                p_reference_id: null
+            });
 
             if (error) {
                 return { success: false, error: error.message };
             }
 
-            // Log transaction
-            await this.supabase.from('diamond_transactions').insert({
-                user_id: this.userId,
-                amount: -amount,
-                transaction_type: source,
-                description: `${source} deduction`,
-                balance_after: newBalance
-            }).catch(() => { });
-
+            const newBalance = current - amount;
             this._cachedBalance = newBalance;
+            busEmit.diamondsSpent(amount, `${source} (fallback)`);
             return { success: true, charged: amount, balance: newBalance };
         } catch (err) {
             return this._deductLocal(amount);
@@ -332,28 +330,22 @@ class DiamondEngineSupabase {
 
             if (!profile) return { success: false, error: 'Profile not found' };
 
-            const current = profile?.diamonds || 0;
-            const newBalance = current + amount;
-
-            const { error } = await this.supabase
-                .from('profiles')
-                .update({ diamonds: newBalance })
-                .eq('id', this.userId);
+            // Use audit-safe RPC even in fallback path
+            const { error } = await this.supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: this.userId,
+                p_amount: amount,
+                p_type: source,
+                p_description: `${source} award (fallback)`,
+                p_reference_id: null
+            });
 
             if (error) {
                 return this._awardLocal(amount);
             }
 
-            // Log transaction
-            await this.supabase.from('diamond_transactions').insert({
-                user_id: this.userId,
-                amount: amount,
-                transaction_type: source,
-                description: `${source} award`,
-                balance_after: newBalance
-            }).catch(() => { });
-
+            const newBalance = (profile?.diamonds || 0) + amount;
             this._cachedBalance = newBalance;
+            busEmit.diamondsEarned(amount, `${source} (fallback)`);
             return newBalance;
         } catch (err) {
             return this._awardLocal(amount);

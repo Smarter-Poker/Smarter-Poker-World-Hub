@@ -294,6 +294,11 @@ export function useSandboxAnalysis() {
           explanation: data.explanation,
           rangeHeatmap: data.rangeHeatmap || null,
 
+          // ICM fields (tournament mode)
+          icmAdjusted: data.icmAdjusted || false,
+          icmEV: data.icmEV || null,
+          bubbleFactor: data.bubbleFactor || null,
+
           // Metadata
           source: data.source,
           matchTier: data.matchTier,

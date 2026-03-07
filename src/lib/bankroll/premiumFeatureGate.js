@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../../lib/supabase';
+import { busEmit } from '../../engine/EventBus';
 
 // Flat fee for 24-hour access to ALL premium features
 export const BANKROLL_PRO_DAY_COST = 25;
@@ -155,26 +156,17 @@ export async function purchaseBankrollProAccess(userId) {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    // Deduct diamonds
-    const { error: deductError } = await supabase
-        .from('profiles')
-        .update({ diamonds: currentBalance - cost })
-        .eq('id', userId);
+    // Deduct diamonds via audit-safe RPC
+    const { error: deductError } = await supabase.rpc('add_diamonds_to_balance', {
+        p_user_id: userId,
+        p_amount: -cost,
+        p_type: 'feature_unlock',
+        p_description: 'Bankroll Manager Pro - 24 Hour Access',
+        p_reference_id: null
+    });
 
     if (deductError) {
         return { success: false, error: 'Failed to deduct diamonds' };
-    }
-
-    // Log transaction
-    const { error: txnError } = await supabase.from('diamond_transactions').insert({
-        user_id: userId,
-        amount: -cost,
-        transaction_type: 'feature_unlock',
-        description: 'Bankroll Manager Pro - 24 Hour Access',
-        metadata: { feature_key: 'bankroll_pro' }
-    });
-    if (txnError) {
-        console.error('[BankrollProGate] Diamond transaction failed:', txnError.message);
     }
 
     // Grant access
@@ -188,18 +180,22 @@ export async function purchaseBankrollProAccess(userId) {
         });
 
     if (accessError) {
-        // Refund on failure
-        const { error: refundErr } = await supabase
-            .from('profiles')
-            .update({ diamonds: currentBalance })
-            .eq('id', userId);
+        // Refund on failure via audit-safe RPC
+        const { error: refundErr } = await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: cost,
+            p_type: 'feature_unlock_refund',
+            p_description: 'Bankroll Pro refund (access grant failed)',
+            p_reference_id: null
+        });
         if (refundErr) {
             console.error('[BankrollProGate] Refund failed:', refundErr.message);
         }
         return { success: false, error: 'Failed to grant access' };
     }
 
-    // 🚌 BUS EVENT: Notify header + other components of diamond balance change
+    // 🚌 BUS EVENT: Notify the EventBus of Bankroll Pro diamond spend
+    busEmit.diamondsSpent(cost, 'Bankroll Pro Day Pass');
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance: currentBalance - cost } }));
     }

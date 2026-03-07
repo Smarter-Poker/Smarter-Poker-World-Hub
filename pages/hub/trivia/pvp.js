@@ -20,6 +20,7 @@ import {
     submitMatchScore,
     processMatchReward
 } from '../../../src/services/pvpMatchmaking';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -215,12 +216,16 @@ export default function PvPPage() {
         setStakeAmount(stake);
         setGameState('searching');
 
-        // Deduct stake immediately
-        await supabase
-            .from('profiles')
-            .update({ diamonds: userDiamonds - stake })
-            .eq('id', userId);
+        // Deduct stake immediately via RPC for audit trail
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: -stake,
+            p_type: 'pvp_stake',
+            p_description: `PvP stake — ${stake}💎 entry`,
+            p_reference_id: null
+        });
         setUserDiamonds(prev => prev - stake);
+        busEmit.diamondsSpent(stake, 'PvP Stake Entry');
 
         // Always set 5-second horse fallback as safety net
         // This fires regardless of whether the queue join or real match succeeds
@@ -393,21 +398,21 @@ export default function PvPPage() {
 
     async function handleNoMatchFound() {
         // This is now only called if horse match also fails
-        // Refund stake — fetch fresh balance to avoid stale state
+        // Refund stake via audit-safe RPC
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: stakeAmount,
+            p_type: 'pvp_refund',
+            p_description: `PvP match failed — ${stakeAmount}💎 refund`,
+            p_reference_id: null
+        });
+        // Refresh balance from DB
         const { data: profile } = await supabase
             .from('profiles')
             .select('diamonds')
             .eq('id', userId)
             .maybeSingle();
-
-        if (profile) {
-            const refunded = (profile.diamonds || 0) + stakeAmount;
-            await supabase
-                .from('profiles')
-                .update({ diamonds: refunded })
-                .eq('id', userId);
-            setUserDiamonds(refunded);
-        }
+        if (profile) setUserDiamonds(profile.diamonds || 0);
 
         await leaveMatchmakingQueue(userId);
         setGameState('lobby');
@@ -422,21 +427,21 @@ export default function PvPPage() {
 
         leaveMatchmakingQueue(userId);
 
-        // Refund stake — fetch fresh balance from DB to avoid stale state
+        // Refund stake via audit-safe RPC
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: stakeAmount,
+            p_type: 'pvp_refund',
+            p_description: `PvP cancelled — ${stakeAmount}💎 refund`,
+            p_reference_id: null
+        });
+        // Refresh balance from DB
         const { data: profile } = await supabase
             .from('profiles')
             .select('diamonds')
             .eq('id', userId)
             .maybeSingle();
-
-        if (profile) {
-            const refundedBalance = (profile.diamonds || 0) + stakeAmount;
-            await supabase
-                .from('profiles')
-                .update({ diamonds: refundedBalance })
-                .eq('id', userId);
-            setUserDiamonds(refundedBalance);
-        }
+        if (profile) setUserDiamonds(profile.diamonds || 0);
 
         setGameState('lobby');
         setOpponent(null);
@@ -477,6 +482,10 @@ export default function PvPPage() {
             const newScore = playerScoreRef.current + 1;
             playerScoreRef.current = newScore;
             setPlayerScore(newScore);
+            busEmit.decisionCorrect(newScore);
+        } else {
+            busEmit.decisionIncorrect(playerScoreRef.current);
+            busEmit.screenShake('light');
         }
 
         // Advance quickly — no GTO explanations in PvP
@@ -527,36 +536,42 @@ export default function PvPPage() {
 
         if (won) {
             winnings = totalPot - rakeAmount;
-            // Award winnings to player
-            const { data: profile } = await supabase
+            // Award winnings via audit-safe RPC
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: winnings,
+                p_type: 'pvp_win',
+                p_description: `PvP win — ${winnings}💎 payout`,
+                p_reference_id: matchId
+            });
+            // Refresh balance from DB
+            const { data: winProfile } = await supabase
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
                 .maybeSingle();
+            if (winProfile) setUserDiamonds(winProfile.diamonds || 0);
 
-            if (profile) {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: (profile.diamonds || 0) + winnings })
-                    .eq('id', userId);
-                setUserDiamonds((profile.diamonds || 0) + winnings);
-            }
+            busEmit.diamondsEarned(winnings, 'PvP Victory');
+            busEmit.celebration('confetti');
         } else if (tied) {
-            // Refund stake on tie
-            const { data: profile } = await supabase
+            // Refund stake on tie via audit-safe RPC
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: stakeAmount,
+                p_type: 'pvp_refund',
+                p_description: `PvP tie — ${stakeAmount}💎 refund`,
+                p_reference_id: matchId
+            });
+            const { data: tieProfile } = await supabase
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', userId)
                 .maybeSingle();
-
-            if (profile) {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: (profile.diamonds || 0) + stakeAmount })
-                    .eq('id', userId);
-                setUserDiamonds((profile.diamonds || 0) + stakeAmount);
-            }
-            winnings = stakeAmount; // Show refund amount
+            if (tieProfile) setUserDiamonds(tieProfile.diamonds || 0);
+            winnings = stakeAmount;
+        } else {
+            busEmit.screenShake('medium');
         }
 
         // Update persistent stats
@@ -622,6 +637,11 @@ export default function PvPPage() {
                 .eq('id', userId)
                 .maybeSingle();
             if (profile) setUserDiamonds(profile.diamonds);
+
+            busEmit.diamondsEarned(stakeAmount * 2 * 0.9, 'PvP Real Match Victory');
+            busEmit.celebration('confetti');
+        } else {
+            busEmit.screenShake('medium');
         }
 
         // Calculate winnings — 10% rake on total pot

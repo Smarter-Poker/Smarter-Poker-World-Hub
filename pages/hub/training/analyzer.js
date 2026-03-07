@@ -11,6 +11,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { parseHandHistories, getHeroDecisions, cardsToNotation } from '../../../src/utils/handHistoryParser';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION HELPERS
@@ -370,6 +371,7 @@ function AggregateStats({ hands }) {
 
 export default function HandAnalyzer() {
     const router = useRouter();
+    useTrainingBus('hand-analyzer');
     const [rawText, setRawText] = useState('');
     const [parsedHands, setParsedHands] = useState([]);
     const [expandedHand, setExpandedHand] = useState(null);

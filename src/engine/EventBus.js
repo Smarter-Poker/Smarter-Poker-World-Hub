@@ -86,6 +86,9 @@ export const busEmit = {
     diamondsEarned: (amount, reason) =>
         eventBus.emit(EventType.DIAMONDS_EARNED, { amount, reason }, 'DiamondEngine'),
 
+    diamondsSpent: (amount, reason) =>
+        eventBus.emit(EventType.DIAMONDS_SPENT, { amount, reason }, 'DiamondEngine'),
+
     decisionCorrect: (streak) =>
         eventBus.emit(EventType.DECISION_CORRECT, { streak }, 'TrainingArena'),
 

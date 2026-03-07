@@ -72,6 +72,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { SWRConfig } from 'swr';
 import { swrLocalStorageProvider, SWR_DEFAULTS } from '../src/lib/swrCacheProvider';
+import { swrCacheMiddleware } from '../src/lib/swrCacheMiddleware';
 import { useEffect, createContext, useState, useContext } from 'react';
 import { AntiGravityProvider } from '../src/providers/AntiGravityProvider';
 import { ThemeProvider } from '../src/providers/ThemeProvider';
@@ -498,7 +499,7 @@ export default function App({ Component, pageProps }) {
   ) && !isPokerTool;
 
   return (
-    <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider }}>
+    <SWRConfig value={{ ...SWR_DEFAULTS, provider: swrLocalStorageProvider, use: [swrCacheMiddleware] }}>
       <div className={`${orbitron.variable} ${inter.variable} ${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${shouldCapitalize ? 'capitalize-world' : ''}`} style={{ minHeight: '100vh' }}>
         {shouldCapitalize && (
           <style dangerouslySetInnerHTML={{

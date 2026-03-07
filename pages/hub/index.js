@@ -11,6 +11,7 @@ import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { claimReward } from '../../src/lib/claimReward';
+import { warmCache } from '../../src/lib/cacheWarmer';
 import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 
@@ -60,6 +61,9 @@ export default function HubPage() {
         // getAuthUser is synchronous, returns user or null
         const authUser = getAuthUser();
         setUser(authUser);
+
+        // Warm cache — prefetch profile/friends/stats (once per session, fire-and-forget)
+        warmCache(authUser);
 
         // Award daily login diamonds (fire-and-forget, once per session, with toast)
         if (authUser?.id && !sessionStorage.getItem('dailyLoginClaimed')) {

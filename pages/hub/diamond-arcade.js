@@ -18,7 +18,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser , getAuthUser } from '../../src/lib/authUtils';
+import { getSafeUser, getAuthUser } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
@@ -32,6 +32,7 @@ import {
     calculatePrize,
     getTimeUntilReset,
 } from '../../src/lib/arcade/arcadeEngine';
+import { busEmit } from '../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GAME CARD BACKGROUNDS - Rich photographic-style gradients
@@ -252,6 +253,10 @@ export default function DiamondArcade() {
         setTimeLeft(game.durationSeconds);
         generateQuestion(gameId);
         startTimer(game.durationSeconds);
+        // Emit entry fee spent
+        if (game.entryFee > 0) {
+            busEmit.diamondsSpent(game.entryFee, `Arcade: ${game.name}`);
+        }
     }
 
     function generateQuestion(gameId) {
@@ -297,9 +302,15 @@ export default function DiamondArcade() {
 
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
-        } else if (activeGame.id === 'the-gauntlet') {
-            endGame(false);
-            return;
+            busEmit.decisionCorrect(questionIndex + 1);
+            busEmit.screenFlash('#22C55E', 150);
+        } else {
+            busEmit.decisionIncorrect(false);
+            busEmit.screenFlash('#EF4444', 150);
+            if (activeGame.id === 'the-gauntlet') {
+                endGame(false);
+                return;
+            }
         }
 
         const newIndex = questionIndex + 1;
@@ -320,8 +331,10 @@ export default function DiamondArcade() {
         if (result.won) {
             setBalance(prev => prev + result.finalPrize);
             setStreak(result.newStreak);
+            busEmit.diamondsEarned(result.finalPrize, `Arcade Win: ${activeGame.name}`);
             if (result.finalPrize >= 100) {
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#22c55e', '#3b82f6'] });
+                busEmit.celebration('confetti');
             }
         }
     }
@@ -372,6 +385,7 @@ export default function DiamondArcade() {
                 setTimeout(() => setDuelResult(null), 3000);
             } else if (json.status === 'matched') {
                 setBalance(prev => prev - (costs[duelType] || 25));
+                busEmit.diamondsSpent(costs[duelType] || 25, `Arcade Duel: ${duelType}`);
                 setDuelResult({ matched: true, message: json.message || 'Opponent found!' });
                 // Start the game after brief delay
                 setTimeout(() => {
@@ -393,6 +407,7 @@ export default function DiamondArcade() {
                             clearInterval(duelPollRef.current);
                             duelPollRef.current = null;
                             setBalance(prev => prev - (costs[duelType] || 25));
+                            busEmit.diamondsSpent(costs[duelType] || 25, `Arcade Duel: ${duelType}`);
                             setDuelResult({ matched: true, message: 'Opponent Found! Starting Duel...' });
                             setTimeout(() => {
                                 setDuelSearching(null);
@@ -973,12 +988,12 @@ const styles = {
     balanceText: {
         color: '#e5e5e5',
         fontSize: '14px',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
     streakText: {
         color: '#fbbf24',
         fontSize: '14px',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontWeight: 600,
     },
 
@@ -1041,7 +1056,7 @@ const styles = {
         animation: 'shard-float 2s ease-in-out infinite',
     },
     jackpotAmount: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '56px',
         fontWeight: 900,
         background: 'linear-gradient(180deg, #93c5fd 0%, #60a5fa 30%, #3b82f6 60%, #2563eb 100%)',
@@ -1054,7 +1069,7 @@ const styles = {
     jackpotTimer: {
         color: '#9ca3af',
         fontSize: '14px',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
 
     // Section Headers
@@ -1085,7 +1100,7 @@ const styles = {
         textShadow: '0 0 10px rgba(218, 165, 32, 0.5)',
     },
     resetTimer: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '11px',
         color: '#B8860B',
         marginLeft: '10px',
@@ -1157,7 +1172,7 @@ const styles = {
         width: '100%',
     },
     gamePrice: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
@@ -1172,7 +1187,7 @@ const styles = {
         fontSize: '9px',
         fontWeight: 800,
         color: '#fff',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         textTransform: 'uppercase',
         boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
         letterSpacing: '0.5px',
@@ -1227,7 +1242,7 @@ const styles = {
         flexWrap: 'wrap',
     },
     challengePrize: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '14px',
         fontWeight: 700,
         color: '#fbbf24',
@@ -1246,7 +1261,7 @@ const styles = {
         borderRadius: '6px',
         padding: '10px 20px',
         color: '#fff',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '12px',
         fontWeight: 700,
         cursor: 'pointer',
@@ -1309,7 +1324,7 @@ const styles = {
         marginBottom: '10px',
     },
     duelPrice: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '16px',
         fontWeight: 700,
         color: '#fbbf24',
@@ -1321,7 +1336,7 @@ const styles = {
         borderRadius: '6px',
         padding: '10px 20px',
         color: '#fff',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '11px',
         fontWeight: 600,
         cursor: 'pointer',
@@ -1352,19 +1367,19 @@ const styles = {
     statLabel: {
         color: '#9ca3af',
         fontSize: '11px',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
     statValue: {
         color: '#22c55e',
         fontSize: '14px',
         fontWeight: 700,
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
     statBonus: {
         color: '#ef4444',
         fontSize: '11px',
         fontWeight: 600,
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
     statDivider: {
         color: '#4b5563',
@@ -1418,13 +1433,13 @@ const styles = {
         gap: '20px',
     },
     timerDisplay: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '18px',
         color: '#ef4444',
         fontWeight: 700,
     },
     scoreDisplay: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '18px',
         color: '#22c55e',
         fontWeight: 700,
@@ -1455,7 +1470,7 @@ const styles = {
         color: '#9ca3af',
         fontSize: '12px',
         marginBottom: '10px',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
     handCards: {
         display: 'flex',
@@ -1493,7 +1508,7 @@ const styles = {
         color: '#e5e5e5',
         fontSize: '16px',
         cursor: 'pointer',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
     },
 
     // Result Styles
@@ -1515,7 +1530,7 @@ const styles = {
         marginBottom: '30px',
     },
     prizeDisplay: {
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '32px',
         fontWeight: 700,
         color: '#22c55e',
@@ -1527,7 +1542,7 @@ const styles = {
         borderRadius: '10px',
         padding: '15px 40px',
         color: '#fff',
-        fontFamily: "var(--font-orbitron), sans-serif" ,
+        fontFamily: "var(--font-orbitron), sans-serif",
         fontSize: '16px',
         fontWeight: 700,
         cursor: 'pointer',

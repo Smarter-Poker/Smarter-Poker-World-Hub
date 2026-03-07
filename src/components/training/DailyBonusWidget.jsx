@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trainingSounds } from '../../utils/trainingSounds';
+import { busEmit } from '../../engine/EventBus';
 
 export default function DailyBonusWidget({ userId, onBonusClaimed }) {
     const [bonusData, setBonusData] = useState(null);
@@ -82,6 +83,10 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
             if (data.success && data.claimed) {
                 // Play success sound
                 try { trainingSounds.achievementUnlocked?.(); } catch (e) { }
+
+                // Emit EventBus for header diamond counter + celebration
+                busEmit.diamondsEarned(data.totalAwarded, 'Daily Bonus');
+                busEmit.celebration('confetti');
 
                 // Show flying diamond animation
                 setShowAnimation(true);

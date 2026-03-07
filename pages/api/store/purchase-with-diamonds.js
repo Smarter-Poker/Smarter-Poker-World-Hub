@@ -16,9 +16,9 @@ const supabase = createClient(
 const DIAMONDS_PER_DOLLAR = 100;
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -115,37 +115,21 @@ export default async function handler(req, res) {
             });
         }
 
-        // Deduct diamonds atomically via optimistic lock
-        const newBalance = currentBalance - diamondCost;
-        const { data: updatedRows, error: updateError } = await supabase
-            .from('profiles')
-            .update({ diamonds: newBalance })
-            .eq('id', user.id)
-            .eq('diamonds', currentBalance) // Optimistic lock — fails if balance changed
-            .select('id');
+        // Deduct diamonds atomically via audit-safe RPC
+        const itemNames = items.map(i => `${i.name} x${i.quantity || 1}`).join(', ');
+        const { error: deductError } = await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: user.id,
+            p_amount: -diamondCost,
+            p_type: 'purchase',
+            p_description: `Store purchase: ${itemNames}`,
+            p_reference_id: null
+        });
 
-        if (updateError) {
+        if (deductError) {
             return res.status(500).json({ success: false, error: 'Failed to deduct diamonds' });
         }
 
-        // If optimistic lock failed (concurrent spend), no row was updated
-        if (!updatedRows || updatedRows.length === 0) {
-            return res.status(409).json({
-                success: false,
-                error: 'Balance changed — please retry',
-                code: 'CONCURRENT_MODIFICATION'
-            });
-        }
-
-        // Record each item as a transaction
-        const itemNames = items.map(i => `${i.name} x${i.quantity || 1}`).join(', ');
-        await supabase.from('diamond_transactions').insert({
-            user_id: user.id,
-            amount: -diamondCost,
-            transaction_type: 'purchase',
-            description: `Store purchase: ${itemNames}`,
-            metadata: { items, total_usd: totalUsd, conversion_rate: DIAMONDS_PER_DOLLAR }
-        });
+        const newBalance = currentBalance - diamondCost;
 
         // Create order record
         await supabase.from('merchandise_orders').insert({

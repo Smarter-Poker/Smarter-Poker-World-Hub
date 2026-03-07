@@ -22,6 +22,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
@@ -408,14 +409,19 @@ export default function SurvivalGamePage() {
                 alert('Not enough diamonds! You need 5💎 for an additional 50/50.');
                 return;
             }
-            // Deduct diamonds
+            // Deduct diamonds via audit-safe RPC
             if (userId) {
                 try {
-                    await supabase
-                        .from('profiles')
-                        .update({ diamonds: userDiamonds - 5 })
-                        .eq('id', userId);
-                    setUserDiamonds(prev => prev - 5);
+                    await supabase.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: -5,
+                        p_type: 'survival_lifeline',
+                        p_description: 'Survival 50/50 lifeline — 5💎',
+                        p_reference_id: null
+                    });
+                    const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                    if (profile) setUserDiamonds(profile.diamonds || 0);
+                    busEmit.diamondsSpent(5, '50/50 Lifeline');
                 } catch (e) {
                     console.error('Failed to deduct diamonds:', e);
                     return;
@@ -451,11 +457,16 @@ export default function SurvivalGamePage() {
 
         if (userId) {
             try {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: userDiamonds - LIFELINE_COST })
-                    .eq('id', userId);
-                setUserDiamonds(prev => prev - LIFELINE_COST);
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: -LIFELINE_COST,
+                    p_type: 'survival_lifeline',
+                    p_description: `Survival skip question — ${LIFELINE_COST}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsSpent(LIFELINE_COST, 'Skip Question');
                 setLifelinesUsedThisLevel(prev => prev + 1);
             } catch (e) {
                 console.error('Failed to deduct diamonds:', e);
@@ -493,11 +504,16 @@ export default function SurvivalGamePage() {
 
         if (userId) {
             try {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: userDiamonds - LIFELINE_COST })
-                    .eq('id', userId);
-                setUserDiamonds(prev => prev - LIFELINE_COST);
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: -LIFELINE_COST,
+                    p_type: 'survival_lifeline',
+                    p_description: `Survival double chance — ${LIFELINE_COST}💎`,
+                    p_reference_id: null
+                });
+                const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+                if (profile) setUserDiamonds(profile.diamonds || 0);
+                busEmit.diamondsSpent(LIFELINE_COST, 'Double Chance');
                 setLifelinesUsedThisLevel(prev => prev + 1);
             } catch (e) {
                 console.error('Failed to deduct diamonds:', e);
@@ -539,6 +555,7 @@ export default function SurvivalGamePage() {
 
         if (isCorrect) {
             setCorrectCount(prev => prev + 1);
+            busEmit.decisionCorrect(correctCount + 1);
 
             // Speed bonus for fast answers (under 10 seconds)
             if (answerTime < 10) {
@@ -551,6 +568,8 @@ export default function SurvivalGamePage() {
             setLastAnswerTime(answerTime);
         } else {
             setIncorrectCount(prev => prev + 1);
+            busEmit.decisionIncorrect(correctCount);
+            busEmit.screenShake('light');
         }
 
         const config = LEVEL_CONFIG[currentLevel - 1];
@@ -605,19 +624,18 @@ export default function SurvivalGamePage() {
         if (!userId) return;
 
         try {
-            // Update user diamonds
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('diamonds')
-                .eq('id', userId)
-                .maybeSingle();
-
-            if (profile) {
-                await supabase
-                    .from('profiles')
-                    .update({ diamonds: (profile.diamonds || 0) + diamonds })
-                    .eq('id', userId);
-            }
+            // Update user diamonds via audit-safe RPC
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: diamonds,
+                p_type: 'survival_reward',
+                p_description: `Survival Level ${level} — ${diamonds}💎`,
+                p_reference_id: null
+            });
+            const { data: profile } = await supabase.from('profiles').select('diamonds').eq('id', userId).maybeSingle();
+            if (profile) setUserDiamonds(profile.diamonds || 0);
+            busEmit.diamondsEarned(diamonds, `Survival Level ${level}`);
+            busEmit.celebration('confetti');
 
             // Upsert survival progress
             await supabase

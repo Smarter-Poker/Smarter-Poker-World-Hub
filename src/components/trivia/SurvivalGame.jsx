@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Zap, Trophy, Clock, Target, AlertTriangle, Gem } from 'lucide-react';
+import { busEmit } from '../../engine/EventBus';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
 
@@ -76,6 +77,7 @@ export default function SurvivalGame({
             if (isCorrect) {
                 const newCorrect = correctCount + 1;
                 setCorrectCount(newCorrect);
+                busEmit.decisionCorrect(newCorrect);
                 setStreak(prev => prev + 1);
                 setBestStreak(prev => Math.max(prev, streak + 1));
 
@@ -97,6 +99,8 @@ export default function SurvivalGame({
                 setTimeLeft(timePerQuestion);
             } else {
                 // Wrong answer = game over in survival
+                busEmit.decisionIncorrect(correctCount);
+                busEmit.screenShake('medium');
                 setLives(0);
                 setGameOver(true);
             }

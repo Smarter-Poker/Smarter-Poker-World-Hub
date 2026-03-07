@@ -16,8 +16,12 @@
  * Usage: wrap <SWRConfig value={{ provider: swrLocalStorageProvider }}> in _app.js
  */
 
+import LZString from 'lz-string';
+
 const STORAGE_KEY = 'sp_swr_cache_v1';
-const MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes — stale entries auto-expire on load
+const MAX_AGE_MS = 15 * 60 * 1000; // 15 minutes — stale entries auto-expire on load
+const PERIODIC_SAVE_MS = 30 * 1000; // Save to storage every 30 seconds
+const COMPRESS_THRESHOLD = 10 * 1024; // Compress payloads > 10KB
 
 /** Keys that must never be written to persistent storage */
 const UNSAFE_KEY_PATTERNS = [
@@ -35,7 +39,7 @@ function isSafeToCache(key) {
 /** Returns the best available storage backend, or null if none available */
 function getBestStorage() {
   if (typeof window === 'undefined') return null;
-  
+
   // Try localStorage first (persists across browser sessions)
   try {
     localStorage.setItem('_sp_test', '1');
@@ -44,7 +48,7 @@ function getBestStorage() {
   } catch {
     // localStorage blocked (incognito strict mode, quota, security policy)
   }
-  
+
   // Fall back to sessionStorage (works in incognito, survives page nav)
   try {
     sessionStorage.setItem('_sp_test', '1');
@@ -53,7 +57,7 @@ function getBestStorage() {
   } catch {
     // sessionStorage also blocked — in-memory only
   }
-  
+
   return null;
 }
 
@@ -69,14 +73,21 @@ export function swrLocalStorageProvider() {
   let initialEntries = [];
   if (storage) {
     try {
-      const raw = storage.getItem(STORAGE_KEY);
+      let raw = storage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw);
-        const now = Date.now();
-        // Only restore entries that are still fresh
-        initialEntries = parsed.filter(
-          ([, v]) => v && v._cachedAt && (now - v._cachedAt) < MAX_AGE_MS
-        );
+        // Decompress if LZ-compressed
+        if (raw.startsWith('lz:')) {
+          try { raw = LZString.decompressFromUTF16(raw.slice(3)); } catch { raw = null; }
+        }
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const now = Date.now();
+          // Only restore entries that are still fresh
+          // Storage format: [[key, { data, _ts }], ...]
+          initialEntries = parsed
+            .filter(([, wrapper]) => wrapper && wrapper._ts && (now - wrapper._ts) < MAX_AGE_MS)
+            .map(([key, wrapper]) => [key, wrapper.data]);
+        }
       }
     } catch {
       // Corrupt storage — start fresh
@@ -86,16 +97,40 @@ export function swrLocalStorageProvider() {
 
   const map = new Map(initialEntries);
 
-  // ── Persist to storage on page unload ────────────────────────────────
+  // ── Persist to storage on page unload + visibility change + periodic ──
   if (storage) {
-    window.addEventListener('beforeunload', () => {
+    const persistCache = () => {
       try {
-        const safeEntries = [...map.entries()].filter(([key]) => isSafeToCache(key));
-        storage.setItem(STORAGE_KEY, JSON.stringify(safeEntries));
+        const now = Date.now();
+        // Wrap each entry with a timestamp for TTL on next hydration
+        const safeEntries = [...map.entries()]
+          .filter(([key]) => isSafeToCache(key))
+          .map(([key, data]) => [key, { data, _ts: now }]);
+        const serialized = JSON.stringify(safeEntries);
+        // Compress large payloads to fit more data in localStorage
+        if (serialized.length > COMPRESS_THRESHOLD) {
+          storage.setItem(STORAGE_KEY, 'lz:' + LZString.compressToUTF16(serialized));
+        } else {
+          storage.setItem(STORAGE_KEY, serialized);
+        }
       } catch {
         // Quota exceeded or security error — silently skip
       }
+    };
+
+    // Save on page unload (desktop)
+    window.addEventListener('beforeunload', persistCache);
+
+    // Save on tab-switch / app-switch (critical for mobile — beforeunload is unreliable)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') persistCache();
     });
+
+    // Periodic background save every 30s (survives unexpected crashes)
+    const periodicSaveInterval = setInterval(persistCache, PERIODIC_SAVE_MS);
+
+    // Cleanup interval on page teardown
+    window.addEventListener('pagehide', () => clearInterval(periodicSaveInterval), { once: true });
   }
 
   return map;

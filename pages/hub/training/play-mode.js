@@ -13,6 +13,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
@@ -560,6 +561,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
 export default function PlayModePage() {
     const router = useRouter();
     const game = usePlayMode();
+    const bus = useTrainingBus('play-mode', { format: game.config?.format });
 
     return (
         <>

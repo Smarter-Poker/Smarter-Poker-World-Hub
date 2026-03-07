@@ -18,6 +18,7 @@ import HexButton from '../../../src/components/ui/HexButton';
 import { Timer, Trophy, Gem, Zap, Play } from 'lucide-react';
 import DiamondEngine from '../../../src/services/DiamondEngine';
 import GameCostPopup from '../../../src/components/gates/GameCostPopup';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 /** Shuffle answer options so correct answer isn't always A */
 function shuffleOptions(questions) {
@@ -209,20 +210,16 @@ export default function TimeAttackPage() {
                 play_date: today
             });
 
-            // Award diamonds
+            // Award diamonds via audit-safe RPC
             if (gameResult.diamondsEarned > 0) {
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('diamonds')
-                    .eq('id', userId)
-                    .maybeSingle();
-
-                if (profile) {
-                    await supabase
-                        .from('profiles')
-                        .update({ diamonds: (profile.diamonds || 0) + gameResult.diamondsEarned })
-                        .eq('id', userId);
-                }
+                await supabase.rpc('add_diamonds_to_balance', {
+                    p_user_id: userId,
+                    p_amount: gameResult.diamondsEarned,
+                    p_type: 'time_attack_reward',
+                    p_description: `Time Attack — ${gameResult.diamondsEarned}💎 (${gameResult.correctCount} correct)`,
+                    p_reference_id: null
+                });
+                busEmit.diamondsEarned(gameResult.diamondsEarned, 'Time Attack');
             }
 
             if (gameResult.correctCount > personalBest) {

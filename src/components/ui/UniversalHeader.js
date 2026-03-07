@@ -144,9 +144,10 @@ export default function UniversalHeader({
     const liveHelp = useLiveHelp();
 
     useEffect(() => {
-        let notifChannel = null;
-        let messageChannel = null;
         let mounted = true; // Prevent state updates after unmount
+        let notifChannel;
+        let messageChannel;
+        let notifSyncChannel;
 
         const loadUser = async () => {
             try {
@@ -298,7 +299,7 @@ export default function UniversalHeader({
                     await fetchUnreadCount();
 
                     // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
-                    const notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
+                    notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
                     notifSyncChannel.onmessage = (event) => {
                         if (event.data === 'refresh_notifications') {
                             console.log('[UniversalHeader] received refresh_notifications broadcast');
@@ -357,10 +358,9 @@ export default function UniversalHeader({
         return () => {
             mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
-            try {
-                const notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
-                notifSyncChannel.close();
-            } catch (e) { }
+            if (notifSyncChannel) {
+                try { notifSyncChannel.close(); } catch (e) { }
+            }
         };
     }, []);
 

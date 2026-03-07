@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import MetalFrame from '../../../src/components/ui/MetalFrame';
@@ -62,12 +63,21 @@ export default function TournamentsPage() {
     const timerRef = useRef(null);
     const scoreRef = useRef(0); // Accurate score outside React closures
     const answersRef = useRef([]); // Track correct/incorrect per question
+    const realtimeChannelRef = useRef(null);
+    const deadlineTimerRef = useRef(null);
+    const [deadlineDisplay, setDeadlineDisplay] = useState('');
 
     useEffect(() => {
         if (authLoading) return;
         loadData();
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
+            if (deadlineTimerRef.current) clearInterval(deadlineTimerRef.current);
+            // Cleanup realtime channel
+            if (realtimeChannelRef.current) {
+                try { supabase.removeChannel(realtimeChannelRef.current); } catch { /* ignore */ }
+                realtimeChannelRef.current = null;
+            }
         };
     }, [avatarUser?.id, authLoading]);
 
@@ -107,6 +117,79 @@ export default function TournamentsPage() {
         const interval = setInterval(loadNotifications, 30000);
         return () => clearInterval(interval);
     }, [userId]);
+
+    // Supabase Realtime subscription for bracket updates
+    useEffect(() => {
+        if (!activeTournament?.id) return;
+
+        // Cleanup previous channel
+        if (realtimeChannelRef.current) {
+            try { supabase.removeChannel(realtimeChannelRef.current); } catch { /* ignore */ }
+            realtimeChannelRef.current = null;
+        }
+
+        const channelName = `trivia-tournament-${activeTournament.id}-${Date.now()}`;
+        const channel = supabase
+            .channel(channelName)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'trivia_tournament_rounds',
+                    filter: `tournament_id=eq.${activeTournament.id}`
+                },
+                () => {
+                    console.log('[Tournament Realtime] Bracket updated');
+                    if (userId) loadBracketData(activeTournament, userId);
+                }
+            )
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'trivia_tournaments',
+                    filter: `id=eq.${activeTournament.id}`
+                },
+                () => {
+                    console.log('[Tournament Realtime] Tournament data updated');
+                    loadData();
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`[Tournament Realtime] ✅ Connected: ${activeTournament.id.slice(0, 8)}`);
+                }
+            });
+
+        realtimeChannelRef.current = channel;
+
+        return () => {
+            if (realtimeChannelRef.current) {
+                try { supabase.removeChannel(realtimeChannelRef.current); } catch { /* ignore */ }
+                realtimeChannelRef.current = null;
+            }
+        };
+    }, [activeTournament?.id]);
+
+    // Live deadline countdown refresh every 30 seconds
+    useEffect(() => {
+        if (!activeTournament?.round_deadline) {
+            setDeadlineDisplay('');
+            return;
+        }
+
+        const updateDeadline = () => {
+            setDeadlineDisplay(getDeadlineCountdown(activeTournament.round_deadline));
+        };
+        updateDeadline();
+        deadlineTimerRef.current = setInterval(updateDeadline, 30000);
+
+        return () => {
+            if (deadlineTimerRef.current) clearInterval(deadlineTimerRef.current);
+        };
+    }, [activeTournament?.round_deadline]);
 
     async function loadNotifications(uid) {
         const effectiveId = uid || userId;
@@ -257,14 +340,23 @@ export default function TournamentsPage() {
             return;
         }
 
-        // Deduct entry fee
-        const newBalance = userDiamonds - tournament.entry_fee;
-        await supabase
+        // Deduct entry fee via audit-safe RPC
+        await supabase.rpc('add_diamonds_to_balance', {
+            p_user_id: userId,
+            p_amount: -tournament.entry_fee,
+            p_type: 'tournament_entry',
+            p_description: `Tournament entry — ${tournament.name} (${tournament.entry_fee}💎)`,
+            p_reference_id: tournament.id
+        });
+        // Refresh balance from DB
+        const { data: freshProfile } = await supabase
             .from('profiles')
-            .update({ diamonds: newBalance })
-            .eq('id', userId);
+            .select('diamonds')
+            .eq('id', userId)
+            .maybeSingle();
+        if (freshProfile) setUserDiamonds(freshProfile.diamonds || 0);
 
-        setUserDiamonds(newBalance);
+        busEmit.diamondsSpent(tournament.entry_fee, 'Tournament Entry');
 
         // Create entry
         const { data: entry } = await supabase
@@ -335,6 +427,10 @@ export default function TournamentsPage() {
             const newScore = scoreRef.current + 100;
             scoreRef.current = newScore;
             setScore(newScore);
+            busEmit.decisionCorrect(newScore);
+        } else {
+            busEmit.decisionIncorrect(scoreRef.current);
+            busEmit.screenShake('light');
         }
 
         // Advance quickly — no GTO explanations in tournaments
@@ -426,6 +522,7 @@ export default function TournamentsPage() {
 
         // Refresh bracket data
         await loadBracketData(activeTournament, userId);
+        busEmit.celebration('confetti');
         setGameState('complete');
     }
 
@@ -534,7 +631,7 @@ export default function TournamentsPage() {
                                         {activeTournament.round_deadline && (
                                             <div className="info-item deadline">
                                                 <Clock size={16} />
-                                                <span>{getDeadlineCountdown(activeTournament.round_deadline)}</span>
+                                                <span>{deadlineDisplay || getDeadlineCountdown(activeTournament.round_deadline)}</span>
                                             </div>
                                         )}
                                     </div>
@@ -808,10 +905,10 @@ export default function TournamentsPage() {
                                         </div>
                                     </div>
                                 </div>
+                                {/* Navigation buttons — MUST be inside result-panel-container for absolute positioning */}
+                                <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); loadData(); }} aria-label="Back To Lobby" />
+                                <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                             </div>
-                            {/* Navigation buttons */}
-                            <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); loadData(); }} aria-label="Back To Lobby" />
-                            <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                         </div>
                     )}
                 </div>

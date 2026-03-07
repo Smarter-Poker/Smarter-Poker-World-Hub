@@ -274,22 +274,22 @@ export default function ClubArenaPage() {
     useEffect(() => {
         loadUserData();
     }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`club-arena-hub:${user?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clubs', filter: `owner_id=eq.${user.id}` }, () => {
-        loadUserData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${user.id}` }, () => {
-        loadUserData();
-      })
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') console.warn('[ClubArenaHub] Realtime:', status);
-      });
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`club-arena-hub:${user?.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'clubs', filter: `owner_id=eq.${user.id}` }, () => {
+                loadUserData();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${user.id}` }, () => {
+                loadUserData();
+            })
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') console.warn('[ClubArenaHub] Realtime:', status);
+            });
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     // Fetch real stats from Supabase for the Shark Club card
     async function fetchSharkClubStats(signal) {
@@ -301,19 +301,15 @@ export default function ClubArenaPage() {
                 .maybeSingle();
             if (!club) return;
 
-            const { count: memberCount } = await supabase
-                .from('club_members')
-                .select('*', { count: 'exact', head: true })
-                .eq('club_id', club.id)
-                .limit(200) // club members
+            // Parallel fetch: member count + tables (both depend only on club.id)
+            const [memberCountRes, tablesRes] = await Promise.all([
+                supabase.from('club_members').select('*', { count: 'exact', head: true }).eq('club_id', club.id).limit(200),
+                supabase.from('tables').select('id').eq('club_id', club.id).limit(200),
+            ]);
 
             let activePlayers = 0;
             try {
-                const { data: clubTables } = await supabase
-                    .from('tables')
-                    .select('id')
-                    .eq('club_id', club.id)
-                    .limit(200) // tables per club;
+                const clubTables = tablesRes.data;
                 if (clubTables && clubTables.length > 0) {
                     const tableIds = clubTables.map(t => t.id);
                     const { count: seatCount } = await supabase
@@ -327,7 +323,7 @@ export default function ClubArenaPage() {
             }
 
             setSharkClubStats({
-                totalMembers: memberCount || 0,
+                totalMembers: memberCountRes.count || 0,
                 clubLevel: 1,
                 activePlayers,
             });

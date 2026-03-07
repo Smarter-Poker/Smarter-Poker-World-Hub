@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { busEmit } from '../engine/EventBus';
 
 /**
  * Join the matchmaking queue for a specific stake level
@@ -300,7 +301,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
 
         if (rpcError) {
             console.error('[PvP Matchmaking] RPC error awarding winner:', rpcError);
-            // Fallback: non-atomic direct update (less ideal but better than failing completely)
+            // Fallback: use add_diamonds_to_balance RPC (less ideal but still audit-safe)
             const { data: winner } = await supabase
                 .from('profiles')
                 .select('diamonds')
@@ -308,10 +309,13 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
                 .maybeSingle();
 
             if (!winner) { console.error('[PvP] Winner profile not found:', winnerId); return { success: false, error: 'Winner profile not found' }; }
-            await supabase
-                .from('profiles')
-                .update({ diamonds: (winner?.diamonds || 0) + winnerPayout })
-                .eq('id', winnerId);
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: winnerId,
+                p_amount: winnerPayout,
+                p_type: 'pvp_win',
+                p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}💎, Rake: ${rakeAmount}💎 (fallback)`,
+                p_reference_id: null
+            });
         }
 
         // Log the transaction for audit trail
@@ -324,6 +328,7 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
         }).catch(() => { }); // Non-critical, ignore errors
 
         // Loser already had their stake deducted when joining — nothing to do
+        busEmit.diamondsEarned(winnerPayout, 'PvP Match Win');
 
         return { success: true, winnerPayout, rakeAmount };
     } catch (error) {

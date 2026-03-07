@@ -11,6 +11,7 @@ import HexButton from '../ui/HexButton';
 import PortholeIcon from '../ui/PortholeIcon';
 import StreakBadge from './StreakBadge';
 import { supabase } from '../../lib/supabase';
+import { busEmit } from '../../engine/EventBus';
 import { getAuthUser } from '../../lib/authUtils';
 
 // Pre-computed particle positions to avoid Math.random() hydration mismatches
@@ -204,11 +205,15 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 .eq('id', user.id)
                 .maybeSingle();
             if (!profile || (profile.diamonds || 0) < GAME_COST) return false;
-            await supabase
-                .from('profiles')
-                .update({ diamonds: profile.diamonds - GAME_COST })
-                .eq('id', user.id);
+            await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: user.id,
+                p_amount: -GAME_COST,
+                p_type: 'game_cost',
+                p_description: `Trivia game entry — ${GAME_COST}💎`,
+                p_reference_id: null
+            });
             onDiamondsChange?.(-GAME_COST);
+            busEmit.diamondsSpent(GAME_COST, 'Trivia Game Entry');
             return true;
         } catch (err) {
             console.error('Diamond deduction failed:', err);

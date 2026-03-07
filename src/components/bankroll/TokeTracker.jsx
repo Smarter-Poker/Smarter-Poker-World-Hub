@@ -10,6 +10,10 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Image as ImageIcon } from 'lucide-react';
 import ReceiptScanner from './ReceiptScanner';
+import DoubleDownPrompt from './toke/DoubleDownPrompt';
+import AddDownModal from './toke/AddDownModal';
+import AddExpenseModal from './toke/AddExpenseModal';
+import CompletedEventsList from './toke/CompletedEventsList';
 import TokeCalendar from './TokeCalendar';
 import TokeDashboard from './TokeDashboard';
 import DealerVault from './DealerVault';
@@ -423,6 +427,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const fireDownNotification = useCallback((lastDown) => {
         // 1. ALWAYS fire the in-app prompt regardless of system notification settings
         handleDoubleDownPrompt(lastDown);
+
+        // 1b. Haptic feedback — attention-grabbing double buzz for mobile dealers
+        try {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        } catch (e) { /* Silently fail if vibration API is blocked */ }
 
         if (tokePrefs.downTimerAlerts === false) return; // 🛡️ Respect user preference for OS Push Alerts
 
@@ -1003,36 +1014,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         }
     };
 
-    // ── Edit a completed event (open in-place editor) ──
-    const [editingCompletedGig, setEditingCompletedGig] = useState(null);
-    const [completedEditForm, setCompletedEditForm] = useState({ venue_name: '', hourly_rate: '', notes: '' });
 
-    const handleEditCompletedGig = (e, gig) => {
-        e.stopPropagation();
-        setEditingCompletedGig(gig.id);
-        setCompletedEditForm({
-            venue_name: gig.venue_name || '',
-            hourly_rate: gig.hourly_rate || '',
-            notes: gig.notes || '',
-        });
-    };
 
-    const handleSaveCompletedEdit = async (gigId) => {
-        if (!userId) { toast.error('You must be logged in'); return; }
-        if (!completedEditForm.venue_name.trim()) { toast.error('Venue name is required'); return; }
-        try {
-            await updateGig(userId, gigId, {
-                ...completedEditForm,
-                hourly_rate: parseFloat(completedEditForm.hourly_rate) || 0,
-            });
-            toast.success('Event updated!');
-            setEditingCompletedGig(null);
-            await loadData();
-            window.dispatchEvent(new CustomEvent('toke-data-updated'));
-        } catch (err) {
-            toast.error(err.message || 'Failed to update event');
-        }
-    };
+
 
     // ── Format helpers ──
     const formatDuration = (ms) => {
@@ -1859,354 +1843,55 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             </AnimatePresence>
 
             {/* ── ADD DOWN MODAL ── */}
-            <AnimatePresence>
-                {showAddDown && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={styles.modalOverlay}
-                    >
-                        <motion.div
-                            id="toke-pure-modal"
-                            className="toke-modal-card"
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            style={styles.modalCard}
-                        >
-                            <style>{`
-                                #toke-pure-modal.toke-modal-card {
-                                    border: none !important;
-                                    box-shadow: none !important;
-                                    background-color: transparent !important;
-                                }
-                                #toke-pure-modal button.toke-img-map-element,
-                                #toke-pure-modal input.toke-img-map-element,
-                                #toke-pure-modal select.toke-img-map-element {
-                                    border: none !important;
-                                    outline: none !important;
-                                    box-shadow: none !important;
-                                    background-color: transparent !important;
-                                    -webkit-tap-highlight-color: transparent !important;
-                                    -webkit-appearance: none !important;
-                                    appearance: none !important;
-                                }
-                                #toke-pure-modal button.toke-img-map-element:focus,
-                                #toke-pure-modal button.toke-img-map-element:hover,
-                                #toke-pure-modal button.toke-img-map-element:active {
-                                    border: none !important;
-                                    outline: none !important;
-                                    box-shadow: none !important;
-                                    background-color: transparent !important;
-                                }
-                                #toke-pure-modal select.toke-img-map-element option {
-                                    background-color: #1a1a1a !important;
-                                    color: #fff !important;
-                                }
-                            `}</style>
-                            {/* ── IMAGE-MAPPED INTERACTIVE ZONES ── */}
-
-                            {/* Down Type Selection Zones */}
-                            <button
-                                className="toke-img-map-element"
-                                onClick={() => setDownForm({ ...downForm, down_type: 'cash' })}
-                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '8%', width: '41%', height: '16.5%' }}
-                                title="Cash Game"
-                            />
-                            <button
-                                className="toke-img-map-element"
-                                onClick={() => setDownForm({ ...downForm, down_type: 'tournament' })}
-                                style={{ ...styles.imgMapBtn, top: '12.5%', left: '51%', width: '41%', height: '16.5%' }}
-                                title="Tournament"
-                            />
-                            <button
-                                className="toke-img-map-element"
-                                onClick={() => setDownForm({ ...downForm, down_type: 'break' })}
-                                style={{ ...styles.imgMapBtn, top: '31%', left: '8%', width: '41%', height: '16.5%' }}
-                                title="On Break"
-                            />
-                            <button
-                                className="toke-img-map-element"
-                                onClick={() => setDownForm({ ...downForm, down_type: 'brush' })}
-                                style={{ ...styles.imgMapBtn, top: '31%', left: '51%', width: '41%', height: '16.5%' }}
-                                title="Brush"
-                            />
-
-                            {/* Game Type Input Zone */}
-                            {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <div style={{ position: 'absolute', top: '52%', left: '5%', width: '90%', height: '10%', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    {downForm.down_type === 'cash' ? (
-                                        <>
-                                            <select
-                                                className="toke-img-map-element"
-                                                value={downForm.cash_variant}
-                                                onChange={e => setDownForm({ ...downForm, cash_variant: e.target.value })}
-                                                style={{ ...styles.imgMapInput, flex: 1, textAlign: 'center', paddingLeft: 4 }}
-                                            >
-                                                <option value="Holdem">Holdem</option>
-                                                <option value="PLO">PLO</option>
-                                                <option value="Mixed">Mixed</option>
-                                            </select>
-                                            <select
-                                                className="toke-img-map-element"
-                                                value={downForm.cash_stakes}
-                                                onChange={e => setDownForm({ ...downForm, cash_stakes: e.target.value })}
-                                                style={{ ...styles.imgMapInput, flex: 1, textAlign: 'center', paddingLeft: 4 }}
-                                            >
-                                                <option value="1/2">1/2</option>
-                                                <option value="1/3">1/3</option>
-                                                <option value="2/5">2/5</option>
-                                                <option value="5/10">5/10</option>
-                                                <option value="10/20">10/20</option>
-                                                <option value="25/50">25/50</option>
-                                            </select>
-                                        </>
-                                    ) : (
-                                        <input
-                                            type="text"
-                                            className="toke-img-map-element"
-                                            value={downForm.tournament_name || ''}
-                                            onChange={e => setDownForm({ ...downForm, tournament_name: e.target.value })}
-                                            placeholder="Game Type"
-                                            style={{ ...styles.imgMapInput, flex: 1, textAlign: 'center', paddingLeft: 4 }}
-                                        />
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Table Number Input Zone */}
-                            {(downForm.down_type === 'cash' || downForm.down_type === 'tournament') && (
-                                <div style={{ position: 'absolute', top: '67%', left: '5%', width: '90%', height: '10%', display: 'flex', alignItems: 'center' }}>
-                                    <input
-                                        type="text"
-                                        className="toke-img-map-element"
-                                        value={downForm.table_number || ''}
-                                        onChange={e => setDownForm({ ...downForm, table_number: e.target.value })}
-                                        placeholder="Table #"
-                                        style={{ ...styles.imgMapInput, textAlign: 'center', paddingLeft: 4 }}
-                                    />
-                                </div>
-                            )}
-
-                            {/* Action Buttons */}
-                            <button
-                                className="toke-img-map-element"
-                                onClick={handleAddDown}
-                                style={{ ...styles.imgMapBtn, top: '82.5%', left: '9%', width: '56.5%', height: '9%' }}
-                                title="Start Down"
-                            />
-                            <button
-                                className="toke-img-map-element"
-                                onClick={() => setShowAddDown(false)}
-                                style={{ ...styles.imgMapBtn, top: '82.5%', left: '68.5%', width: '22.5%', height: '9%' }}
-                                title="Cancel"
-                            />
-                        </motion.div>
-
-                        {/* Tournament Buy-In removed per user request — dealers type game type only */}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <AddDownModal
+                show={showAddDown}
+                downForm={downForm}
+                setDownForm={setDownForm}
+                onSubmit={handleAddDown}
+                onClose={() => setShowAddDown(false)}
+                styles={styles}
+            />
 
             {/* ── ADD EXPENSE MODAL ── */}
-            <AnimatePresence>
-                {showAddExpense && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={styles.modalOverlay}
-                        onClick={() => { setShowAddExpense(false); setShowScanner(false); }}
-                    >
-                        {showScanner ? (
-                            <div style={{ width: '100%', maxWidth: 450 }} onClick={e => e.stopPropagation()}>
-                                <ReceiptScanner
-                                    userId={userId}
-                                    onScanComplete={({ imageUrl }) => {
-                                        setExpenseForm({ ...expenseForm, receipt_url: imageUrl });
-                                        setShowScanner(false);
-                                    }}
-                                />
-                                <button type="button" onClick={() => setShowScanner(false)} style={{ ...styles.formCancelBtn, width: '100%', marginTop: 12 }}>Cancel Scan</button>
-                            </div>
-                        ) : (
-                            <motion.form
-                                initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                                style={{ ...styles.promptCard, border: '2px solid rgba(239,68,68,0.4)' }}
-                                onClick={e => e.stopPropagation()}
-                                onSubmit={handleAddExpense}
-                            >
-                                <h3 style={{ fontSize: 20, fontWeight: 700, color: '#E4E6EB', margin: '0 0 16px' }}>Add Expense</h3>
-
-                                <label style={styles.formLabel}>Category</label>
-                                <select
-                                    value={expenseForm.category}
-                                    onChange={e => setExpenseForm({ ...expenseForm, category: e.target.value })}
-                                    style={styles.formSelect}
-                                >
-                                    {EXPENSE_CATEGORIES.map(c => (
-                                        <option key={c.id} value={c.id}>{c.label}</option>
-                                    ))}
-                                </select>
-
-                                <label style={{ ...styles.formLabel, marginTop: 12 }}>Amount ($)</label>
-                                <input
-                                    type="number"
-                                    value={expenseForm.amount}
-                                    onChange={e => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                                    style={styles.formInput}
-                                    step="0.01"
-                                    autoFocus
-                                />
-
-                                <label style={{ ...styles.formLabel, marginTop: 12 }}>Description (optional)</label>
-                                <input
-                                    type="text"
-                                    value={expenseForm.description}
-                                    onChange={e => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                                    style={styles.formInput}
-                                />
-
-                                <div style={{ marginTop: 16 }}>
-                                    {expenseForm.receipt_url ? (
-                                        <div style={styles.attachedReceiptBox}>
-                                            <ImageIcon size={16} color="#10b981" />
-                                            <span style={{ fontSize: 13, color: '#10b981', fontWeight: 600 }}>Receipt Attached</span>
-                                            <button type="button" onClick={() => setExpenseForm({ ...expenseForm, receipt_url: null })} style={styles.removeReceiptBtn}>✕</button>
-                                        </div>
-                                    ) : (
-                                        <button type="button" onClick={() => setShowScanner(true)} style={styles.scanReceiptBtn}>
-                                            <Camera size={16} /> Scan Receipt
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                                    <button type="submit" style={{ ...styles.formSubmitBtn, background: '#ef4444', color: '#fff' }}>Add Expense</button>
-                                    <button type="button" onClick={() => setShowAddExpense(false)} style={styles.formCancelBtn}>Cancel</button>
-                                </div>
-                            </motion.form>
-                        )}
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <AddExpenseModal
+                show={showAddExpense}
+                expenseForm={expenseForm}
+                setExpenseForm={setExpenseForm}
+                onSubmit={handleAddExpense}
+                onClose={() => setShowAddExpense(false)}
+                showScanner={showScanner}
+                setShowScanner={setShowScanner}
+                ReceiptScannerComponent={ReceiptScanner}
+                userId={userId}
+                styles={styles}
+            />
 
             {/* ── DOUBLE DOWN PROMPT ── */}
-            <AnimatePresence>
-                {showDoubleDownPrompt && promptDown && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        style={styles.modalOverlay}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            style={styles.promptCard}
-                        >
-                            <div style={styles.promptIcon}>35m</div>
-                            <h3 style={styles.promptTitle}>
-                                {promptDown.down_type === 'break' ? 'Still On Break?' :
-                                    promptDown.down_type === 'brush' ? 'Still Brushing?' :
-                                        'Same Table — Double Down?'}
-                            </h3>
-                            <p style={styles.promptSub}>
-                                {promptDown.down_type === 'break' ? 'Your break has been going 35 minutes.' :
-                                    promptDown.down_type === 'brush' ? 'Your brush down has been 35 minutes.' : (
-                                        <>
-                                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>
-                                                {promptDown.game_type || DOWN_TYPE_LABELS[promptDown.down_type]}
-                                                {promptDown.table_number ? ` · Table ${promptDown.table_number}` : ''}
-                                            </span>
-                                            {' — still at this table after 35 minutes?'}
-                                        </>
-                                    )}
-                            </p>
-                            <div style={styles.promptActions}>
-                                <button onClick={handleDoubleDownYes} style={styles.promptYesBtn}>
-                                    Yes, Double Down
-                                </button>
-                                <button onClick={handleDoubleDownNo} style={styles.promptNoBtn}>
-                                    No, New Down
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <DoubleDownPrompt
+                show={showDoubleDownPrompt}
+                promptDown={promptDown}
+                onYes={handleDoubleDownYes}
+                onNo={handleDoubleDownNo}
+                styles={styles}
+            />
 
             {/* ── COMPLETED EVENTS ── */}
-            <div style={styles.historySection}>
-                <h3 style={styles.historyTitle}>Completed Events</h3>
-                {isLoading ? (
-                    <div style={styles.loadingPlaceholder}>Loading Events...</div>
-                ) : loadError ? (
-                    <div style={{ ...styles.emptyState, color: '#ef4444' }}>Error: {loadError}</div>
-                ) : completedGigs.length === 0 ? (
-                    <div style={styles.emptyState}>No Completed Events Yet. Start Your First Event Above!</div>
-                ) : (
-                    <div style={styles.gigGrid}>
-                        {completedGigs.map(gig => (
-                            <motion.div
-                                key={gig.id}
-                                whileHover={{ scale: 1.02 }}
-                                style={styles.gigCard}
-                            >
-                                {/* Inline edit mode */}
-                                {editingCompletedGig === gig.id ? (
-                                    <div style={{ padding: '12px 14px' }}>
-                                        <input
-                                            type="text"
-                                            value={completedEditForm.venue_name}
-                                            onChange={e => setCompletedEditForm(f => ({ ...f, venue_name: e.target.value }))}
-                                            placeholder="Venue Name"
-                                            style={styles.editInlineInput}
-                                            autoFocus
-                                        />
-                                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                                            <input
-                                                type="number"
-                                                value={completedEditForm.hourly_rate}
-                                                onChange={e => setCompletedEditForm(f => ({ ...f, hourly_rate: e.target.value }))}
-                                                placeholder="Hourly Rate"
-                                                style={{ ...styles.editInlineInput, flex: 1 }}
-                                            />
-                                            <input
-                                                type="text"
-                                                value={completedEditForm.notes}
-                                                onChange={e => setCompletedEditForm(f => ({ ...f, notes: e.target.value }))}
-                                                placeholder="Notes"
-                                                style={{ ...styles.editInlineInput, flex: 2 }}
-                                            />
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                                            <button onClick={() => handleSaveCompletedEdit(gig.id)} style={styles.eventSaveBtn}>Save</button>
-                                            <button onClick={() => setEditingCompletedGig(null)} style={styles.eventCancelBtn}>Cancel</button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div onClick={() => handleViewReport(gig.id)} style={{ cursor: 'pointer' }}>
-                                        <div style={styles.gigCardHeader}>
-                                            <h4 style={styles.gigCardName}>{gig.venue_name}</h4>
-                                            <span style={{ ...styles.gigCardTokes, color: '#38bdf8' }}>
-                                                {formatCurrency(gig.totalTokes || 0)}
-                                            </span>
-                                        </div>
-                                        <div style={styles.gigCardMeta}>
-                                            <span>{new Date(gig.start_date + 'T12:00:00').toLocaleDateString()}</span>
-                                            {gig.end_date && <span> — {new Date(gig.end_date + 'T12:00:00').toLocaleDateString()}</span>}
-                                        </div>
-                                        <div style={styles.gigCardFooter}>
-                                            <span>{gig.totalDowns || 0} downs · {(gig.totalHoursWorked || 0).toFixed(1)}h</span>
-                                            <span style={styles.viewReportLink}>View Report →</span>
-                                        </div>
-                                    </div>
-                                )}
-                                {/* Edit / Delete action row */}
-                                {editingCompletedGig !== gig.id && (
-                                    <div style={styles.eventActionRow}>
-                                        <button onClick={(e) => handleEditCompletedGig(e, gig)} style={styles.eventEditBtn} title="Edit Event">✏️ Edit</button>
-                                        <button onClick={(e) => handleDeleteCompletedGig(e, gig.id)} style={styles.eventDeleteBtn} title="Delete Event">🗑️ Remove</button>
-                                    </div>
-                                )}
-                            </motion.div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <CompletedEventsList
+                completedGigs={completedGigs}
+                isLoading={isLoading}
+                loadError={loadError}
+                onViewReport={handleViewReport}
+                onSaveEdit={async (gigId, form) => {
+                    if (!userId) { toast.error('You must be logged in'); return; }
+                    if (!form.venue_name.trim()) { toast.error('Venue name is required'); return; }
+                    await updateGig(userId, gigId, { ...form, hourly_rate: parseFloat(form.hourly_rate) || 0 });
+                    toast.success('Event updated!');
+                    await loadData();
+                    window.dispatchEvent(new CustomEvent('toke-data-updated'));
+                }}
+                onDeleteGig={handleDeleteCompletedGig}
+                styles={styles}
+            />
 
             {/* ── MONTHLY INCOME GOAL (at bottom) ── */}
             {

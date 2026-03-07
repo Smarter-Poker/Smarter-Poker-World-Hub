@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev",
-    "clean:dev": "npx kill-port 3000 && rm -rf .next && npm run dev",
+    "clean:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && npm run dev",
+    "nuke:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3000",
     "build": "NODE_OPTIONS='--max-old-space-size=7168' next build",
     "start": "next start",
     "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts"
@@ -47,6 +48,7 @@
     "livekit-client": "^2.17.0",
     "livekit-server-sdk": "^2.15.0",
     "lucide-react": "^0.562.0",
+    "lz-string": "^1.5.0",
     "micro": "^10.0.1",
     "next": "14.2.3",
     "openai": "^6.16.0",

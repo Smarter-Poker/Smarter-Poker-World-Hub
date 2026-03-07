@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../supabase';
+import { busEmit } from '../../engine/EventBus';
 
 /**
  * Check if user has access to a premium feature
@@ -230,10 +231,13 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
     if (rpcError) {
         // Fallback to direct update if RPC doesn't exist
         if (rpcError.message?.includes('function') || rpcError.code === '42883') {
-            const { error: directError } = await supabase
-                .from('profiles')
-                .update({ diamonds: newBalance })
-                .eq('id', userId);
+            const { error: directError } = await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -cost,
+                p_type: 'feature_unlock',
+                p_description: description || `${featureKey} - ${durationHours} Hour Access (fallback)`,
+                p_reference_id: null
+            });
             if (directError) {
                 return { success: false, error: 'Failed to deduct diamonds' };
             }
@@ -278,16 +282,22 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
             p_source: 'feature_unlock_refund',
             p_metadata: { feature_key: featureKey, reason: 'access_grant_failed' }
         }).catch(() => {
-            // Fallback direct refund
-            supabase.from('profiles').update({ diamonds: currentBalance }).eq('id', userId);
+            // Fallback refund via audit-safe RPC
+            supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: cost,
+                p_type: 'feature_unlock_refund',
+                p_description: `${featureKey} refund (access grant failed)`,
+                p_reference_id: null
+            }).catch(() => { });
         });
         return { success: false, error: 'Failed to grant access' };
     }
 
-    // 🚌 BUS EVENT: Notify header + other components of diamond balance change
+    // 🚌 BUS EVENT: Notify the EventBus of diamond spend + feature access change
+    busEmit.diamondsSpent(cost, `${featureKey} Day Pass`);
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
-        // 🚌 BUS EVENT: Notify gates to immediately unblock UI
         window.dispatchEvent(new CustomEvent('feature-access-changed', { detail: { featureKey } }));
     }
 
@@ -357,10 +367,13 @@ export async function purchaseVipWithDiamonds(userId) {
     if (rpcError) {
         // Fallback to direct update if RPC doesn't exist
         if (rpcError.message?.includes('function') || rpcError.code === '42883') {
-            const { error: directError } = await supabase
-                .from('profiles')
-                .update({ diamonds: newBalance })
-                .eq('id', userId);
+            const { error: directError } = await supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: -VIP_DIAMOND_COST,
+                p_type: 'vip_membership',
+                p_description: 'VIP Membership — 30 Day Diamond Purchase (fallback)',
+                p_reference_id: null
+            });
             if (directError) return { success: false, error: 'Failed to deduct diamonds' };
         } else {
             return { success: false, error: rpcError.message || 'Failed to deduct diamonds' };
@@ -403,7 +416,13 @@ export async function purchaseVipWithDiamonds(userId) {
             p_source: 'vip_membership_refund',
             p_metadata: { reason: 'vip_activation_failed' }
         }).catch(() => {
-            supabase.from('profiles').update({ diamonds: currentBalance }).eq('id', userId);
+            supabase.rpc('add_diamonds_to_balance', {
+                p_user_id: userId,
+                p_amount: VIP_DIAMOND_COST,
+                p_type: 'vip_membership_refund',
+                p_description: 'VIP membership refund (activation failed)',
+                p_reference_id: null
+            }).catch(() => { });
         });
         return { success: false, error: 'Failed to activate VIP' };
     }
@@ -420,12 +439,12 @@ export async function purchaseVipWithDiamonds(userId) {
         updated_at: new Date().toISOString()
     }, { onConflict: 'user_id' }).catch(() => { });
 
+    // 🚌 BUS EVENT: Notify the EventBus of VIP diamond purchase
+    busEmit.diamondsSpent(VIP_DIAMOND_COST, 'VIP Diamond Membership');
     // Update localStorage for instant UI feedback
     if (typeof window !== 'undefined') {
         localStorage.setItem('sp-vip-tier', 'monthly');
-        // 🚌 BUS EVENT: Notify header + other components of diamond balance change
         window.dispatchEvent(new CustomEvent('diamond-balance-refresh', { detail: { newBalance } }));
-        // 🚌 BUS EVENT: Notify gates to re-check VIP status
         window.dispatchEvent(new CustomEvent('vip-status-changed', { detail: { vipGranted: true } }));
     }
 

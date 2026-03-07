@@ -111,39 +111,17 @@ export default async function handler(req, res) {
 
                 if (diamondErr) {
                     console.error('[redeem-promo] Diamond credit RPC failed:', diamondErr.message);
-                    // Fallback to direct upsert if RPC doesn't exist
-                    const { data: currentBalance } = await supabaseAdmin
-                        .from('user_diamond_balance')
-                        .select('balance')
-                        .eq('user_id', userId)
-                        .maybeSingle();
-
-                    const newBalance = (currentBalance?.balance || 0) + promo.reward_value;
-
-                    await supabaseAdmin
-                        .from('user_diamond_balance')
-                        .upsert({
-                            user_id: userId,
-                            balance: newBalance,
-                            updated_at: new Date().toISOString(),
-                        }, { onConflict: 'user_id' });
-
-                    await supabaseAdmin
-                        .from('profiles')
-                        .update({ diamonds: newBalance })
-                        .eq('id', userId);
-
-                    await supabaseAdmin
-                        .from('diamond_transactions')
-                        .insert({
-                            user_id: userId,
-                            amount: promo.reward_value,
-                            type: 'promo_code',
-                            transaction_type: 'credit',
-                            balance_after: newBalance,
-                            source: 'promo_code',
-                            description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'}`,
-                        });
+                    // Fallback to add_diamonds_to_balance RPC with different params
+                    const { error: fallbackErr } = await supabaseAdmin.rpc('add_diamonds_to_balance', {
+                        p_user_id: userId,
+                        p_amount: promo.reward_value,
+                        p_type: 'promo_code',
+                        p_description: `Promo code: ${promo.code} — ${promo.description || 'Bonus diamonds'} (fallback)`,
+                        p_reference_id: `promo_${promo.id}_${userId}`,
+                    });
+                    if (fallbackErr) {
+                        console.error('[redeem-promo] Fallback diamond credit also failed:', fallbackErr.message);
+                    }
                 }
 
                 bonusApplied = `${promo.reward_value} diamonds added`;
