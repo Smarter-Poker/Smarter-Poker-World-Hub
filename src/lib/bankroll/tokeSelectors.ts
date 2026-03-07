@@ -254,34 +254,48 @@ export async function createGig(userId: string, gig: Partial<TokeGig>): Promise<
     const safeLocationId = gig.location_id && uuidRegex.test(gig.location_id) ? gig.location_id : null;
     const safePokerVenueId = gig.poker_venue_id && uuidRegex.test(String(gig.poker_venue_id)) ? gig.poker_venue_id : null;
 
-    const data = await withRetry(async () => {
-        const { data: row, error } = await supabase
-            .from('toke_gigs')
-            .insert({
-                user_id: userId,
-                venue_name: gig.venue_name,
-                venue_address: gig.venue_address || null,
-                location_id: safeLocationId,
-                venue_type: gig.venue_type || 'casino',
-                poker_venue_id: safePokerVenueId,
-                latitude: gig.latitude || null,
-                longitude: gig.longitude || null,
-                start_date: gig.start_date || new Date().toISOString().split('T')[0],
-                hourly_rate: gig.hourly_rate || 0,
-                notes: gig.notes || null,
-                status: 'active',
-            })
-            .select()
-            .single();
+    const isAbortErr = (e: any) => e?.name === 'AbortError' || (e?.message || '').includes('aborted');
 
-        if (error) throw error;
-        return row;
-    });
+    // Custom abort-resilient insert loop (withRetry uses 200ms delay which is too short for AbortError recovery)
+    let lastErr: any;
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            const { data: row, error } = await supabase
+                .from('toke_gigs')
+                .insert({
+                    user_id: userId,
+                    venue_name: gig.venue_name,
+                    venue_address: gig.venue_address || null,
+                    location_id: safeLocationId,
+                    venue_type: gig.venue_type || 'casino',
+                    poker_venue_id: safePokerVenueId,
+                    latitude: gig.latitude || null,
+                    longitude: gig.longitude || null,
+                    start_date: gig.start_date || new Date().toISOString().split('T')[0],
+                    hourly_rate: gig.hourly_rate || 0,
+                    notes: gig.notes || null,
+                    status: 'active',
+                })
+                .select()
+                .single();
 
-    // Auto-create Day 1
-    await createDay(userId, data.id, 1);
+            if (error) throw error;
 
-    return data;
+            // Success — auto-create Day 1
+            await createDay(userId, row.id, 1);
+            return row;
+        } catch (err: any) {
+            lastErr = err;
+            if (isAbortErr(err) && attempt < 2) {
+                // AbortError: wait 1.5s for the abort signal window to pass, then retry
+                console.warn(`[createGig] AbortError on attempt ${attempt + 1}, retrying in 1.5s...`);
+                await new Promise(r => setTimeout(r, 1500));
+                continue;
+            }
+            if (!isAbortErr(err)) throw err; // real error — throw immediately
+        }
+    }
+    throw lastErr;
 }
 
 /**

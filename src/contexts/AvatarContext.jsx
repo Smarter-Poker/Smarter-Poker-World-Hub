@@ -315,6 +315,12 @@ export function AvatarProvider({ children }) {
             setAvatar(avatarData);
         } catch (error) {
             console.error('Error loading avatar:', error);
+            // ── CRITICAL FALLBACK: If avatar service fails (AbortError on Safari),
+            // use the user's actual profile picture instead of a generic preset ──
+            const profilePic = user.user_metadata?.avatar_url;
+            if (profilePic) {
+                setAvatar({ type: 'profile_upload', imageUrl: profilePic });
+            }
         } finally {
             setLoading(false);
         }
