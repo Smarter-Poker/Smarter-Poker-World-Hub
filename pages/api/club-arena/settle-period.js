@@ -166,7 +166,7 @@ export default async function handler(req, res) {
       // Find the open period — always use the DB's open period, not a client-provided ID
       const { data: period } = await supabaseAdmin
         .from('settlement_periods')
-        .select('id')
+        .select('id, period_number, start_at')  // BUG FIX: was select('id') — period_number/start_at were undefined
         .eq('club_id', clubId)
         .eq('status', 'open')
         .single();

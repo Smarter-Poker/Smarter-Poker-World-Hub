@@ -39,10 +39,10 @@ export default async function handler(req, res) {
 
         if (memErr || !member) return res.status(404).json({ success: false, error: 'Not a member' });
 
-        // Get item (scoped to this club)
+        // Get item (scoped to this club) — BUG FIX: was .select('id'), making is_active/price undefined
         const { data: item, error: itemErr } = await supabaseAdmin
             .from('club_shop_items')
-            .select('id')
+            .select('id, price, is_active, name, description, item_type')
             .eq('id', itemId)
             .eq('club_id', clubId)
             .single();

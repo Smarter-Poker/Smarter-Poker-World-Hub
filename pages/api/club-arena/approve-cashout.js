@@ -41,11 +41,13 @@ export default async function handler(req, res) {
 
   try {
     // ═════════════════════════════════════════════════════════════
-    // 1. Get cashout request
+    // 1. Get cashout request — select ALL fields used downstream
+    //    BUG FIX: was .select('id') — cashout.club_id, .agent_id, .player_id,
+    //    .amount were all undefined, breaking auth, chip transfer, and notifications
     // ═════════════════════════════════════════════════════════════
     const { data: cashout, error: coErr } = await supabaseAdmin
       .from('cashout_requests')
-      .select('id')
+      .select('id, club_id, player_id, agent_id, amount, status')
       .eq('id', cashoutId)
       .single();
 
