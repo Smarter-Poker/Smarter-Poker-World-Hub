@@ -1130,7 +1130,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         const irsRates = { 2025: 0.70, 2024: 0.67, 2023: 0.655, 2022: 0.585 };
                         const rate = irsRates[year] || 0.67;
                         return (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '1px solid rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 8, background: 'rgba(56,189,248,0.08)', border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', borderRadius: 8, fontSize: 13 }}>
                                 <span>🚗</span>
                                 <span style={{ color: '#B0B3B8' }}>{gig.mileage.toLocaleString()} miles × ${rate}/mi</span>
                                 <span style={{ color: '#38bdf8', fontWeight: 700 }}>= ${(gig.mileage * rate).toFixed(2)} deductible</span>
@@ -1190,7 +1190,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <h4 style={styles.reportBreakdownTitle}>Daily Breakdown</h4>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                 {selectedReport.days.map(day => (
-                                    <div key={day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                    <div key={day.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 8, border: '2px solid rgba(255,255,255,0.06)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06)' }}>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: '#B0B3B8' }}>
                                             Day {day.day_number} — {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                         </span>
@@ -1227,13 +1227,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
                         <button
                             onClick={handleCopyReport}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#E4E6EB' }}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(255,255,255,0.07)', border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', color: '#E4E6EB' }}
                         >
                             Copy Summary
                         </button>
                         <button
                             onClick={handleDownloadCSV}
-                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(56,189,248,0.1)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8' }}
+                            style={{ fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer', background: 'rgba(56,189,248,0.1)', border: '2px solid rgba(56,189,248,0.3)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.3)', color: '#38bdf8' }}
                         >
                             📄 Download CSV
                         </button>
@@ -1330,7 +1330,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             marginLeft: 'auto', fontSize: 13, fontWeight: 700,
                             background: isDayOpen ? 'rgba(56,189,248,0.15)' : 'rgba(100,116,139,0.15)',
                             color: isDayOpen ? '#38bdf8' : '#94a3b8',
-                            border: `1px solid ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                            border: `2px solid ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`, boxShadow: `inset 0 0 0 1px ${isDayOpen ? 'rgba(56,189,248,0.35)' : 'rgba(255,255,255,0.1)'}`,
                             borderRadius: 20, padding: '4px 12px',
                         }}>
                             {isDayOpen ? `Day ${currentDayNumber} — In Progress` : `Day ${currentDayNumber} — Closed`}
@@ -1351,7 +1351,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             </p>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 16px', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 16px', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                                 <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Edit Event</span>
                             </div>
@@ -1407,7 +1407,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 borderRadius: 16,
                                 boxShadow: '0 8px 32px rgba(56,189,248,0.15)',
                                 background: 'linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(56,189,248,0.05) 100%)',
-                                border: '1px solid rgba(56,189,248,0.5)',
+                                border: '2px solid rgba(56,189,248,0.5)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.5)',
                             }}>
                                 <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 8, color: '#38bdf8' }}>+</span>
                                 <span style={{ fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Add Down</span>
@@ -1423,7 +1423,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                 justifyContent: 'center',
                                 borderRadius: 16,
                                 background: 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%)',
-                                border: '1px solid rgba(239,68,68,0.3)',
+                                border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
                             }}>
                                 <span style={{ fontSize: 28, lineHeight: 1, marginBottom: 8 }}>🧾</span>
                                 <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Expense</span>
@@ -1486,9 +1486,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                             ? new Date(down.ended_at).getTime() - new Date(down.started_at).getTime()
                                             : 0;
                                         return (
-                                            <div key={down.id} style={{ ...styles.downRow, borderLeft: `2px solid ${typeColor}`, opacity: 0.8 }}>
+                                            <div key={down.id} style={{ ...styles.downRow, border: `2px solid ${typeColor}`, boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.1)`, opacity: 0.8 }}>
                                                 <div style={styles.downInfo}>
-                                                    <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` }}>
+                                                    <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `2px solid ${typeColor}44`, boxShadow: `inset 0 0 0 1px ${typeColor}44` }}>
                                                         {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                     </span>
                                                     {down.game_type && <span style={styles.downDetail}>{down.game_type}</span>}
@@ -1507,9 +1507,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             {!collapsedDays[day.id] && day.expenses && day.expenses.length > 0 && (
                                 <div style={{ ...styles.closedDayDowns, borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 6 }}>
                                     {day.expenses.map(exp => (
-                                        <div key={exp.id} style={{ ...styles.downRow, borderLeft: '2px solid rgba(239,68,68,0.4)', opacity: 0.8 }}>
+                                        <div key={exp.id} style={{ ...styles.downRow, border: '2px solid rgba(239,68,68,0.4)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', opacity: 0.8 }}>
                                             <div style={styles.downInfo}>
-                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', fontSize: 10 }}>
+                                                <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.2)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.2)', fontSize: 10 }}>
                                                     {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                                 </span>
                                                 {exp.description && <span style={styles.downDetail}>{exp.description}</span>}
@@ -1536,9 +1536,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                         : new Date(down.ended_at).getTime() - new Date(down.started_at).getTime();
                                     const typeColor = DOWN_TYPE_COLORS[down.down_type] || '#64748b';
                                     return (
-                                        <div key={down.id} style={{ ...styles.downRow, borderLeft: `3px solid ${typeColor}` }}>
+                                        <div key={down.id} style={{ ...styles.downRow, border: `2px solid ${typeColor}`, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)' }}>
                                             <div style={styles.downInfo}>
-                                                <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `1px solid ${typeColor}44` }}>
+                                                <span style={{ ...styles.downTypeBadge, background: `${typeColor}22`, color: typeColor, border: `2px solid ${typeColor}44`, boxShadow: `inset 0 0 0 1px ${typeColor}44` }}>
                                                     {DOWN_TYPE_LABELS[down.down_type]}{down.is_double_down && ' (x2)'}
                                                 </span>
                                                 {editingDownId === down.id ? (
@@ -1629,9 +1629,9 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             <h4 style={styles.downsSectionTitle}>Day {currentDayNumber} Expenses ({currentDay.expenses.length})</h4>
                             <div style={styles.downsScroll}>
                                 {currentDay.expenses.map(exp => (
-                                    <div key={exp.id} style={{ ...styles.downRow, borderLeft: '3px solid #ef4444' }}>
+                                    <div key={exp.id} style={{ ...styles.downRow, border: '2px solid #ef4444', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)' }}>
                                         <div style={styles.downInfo}>
-                                            <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}>
+                                            <span style={{ ...styles.downTypeBadge, background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)' }}>
                                                 {EXPENSE_CATEGORIES.find(c => c.id === exp.category)?.label || exp.category}
                                             </span>
                                             {exp.receipt_url && <button style={styles.receiptIconBtn} onClick={() => setViewingReceiptUrl(exp.receipt_url)} title="View Receipt"><Camera size={14} color="#ef4444" /></button>}
@@ -1650,7 +1650,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     {/* Actions */}
                     <div style={styles.activeActions}>
                         {confirmCloseDay ? (
-                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)' }}>
                                 <span style={styles.confirmText}>Close out Day {currentDayNumber}? Add a note (optional):</span>
                                 <input
                                     type="text"
@@ -2408,27 +2408,27 @@ const styles = {
     downTime: { fontSize: 11, color: '#B0B3B8', whiteSpace: 'nowrap' },
     downRight: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 140 },
     tokeDisplay: {
-        background: 'none', border: '1px solid rgba(255,255,255,0.08)', fontSize: 13,
+        background: 'none', border: '2px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', fontSize: 13,
         fontWeight: 700, cursor: 'pointer', padding: '0 6px',
         minWidth: 54, height: 26, display: 'inline-flex', alignItems: 'center',
         justifyContent: 'center', borderRadius: 4, boxSizing: 'border-box',
     },
     tokeEditRow: { display: 'flex', alignItems: 'center', gap: 4 },
     tokeInput: {
-        width: 60, padding: '4px 6px', background: '#242526', border: '1px solid #3A3B3C',
+        width: 60, padding: '4px 6px', background: '#242526', border: '2px solid #3A3B3C', boxShadow: 'inset 0 0 0 1px #3A3B3C',
         borderRadius: 4, color: '#fff', fontSize: 13, textAlign: 'right',
     },
     tokeSaveBtn: {
-        background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)',
+        background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '2px solid rgba(16,185,129,0.3)', boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.3)',
         borderRadius: 4, padding: '4px 8px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
     },
     endDownSmallBtn: {
-        background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
+        background: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
         borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
         whiteSpace: 'nowrap',
     },
     downDeleteBtn: {
-        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+        background: 'rgba(239,68,68,0.15)', border: '2px solid rgba(239,68,68,0.3)', boxShadow: 'inset 0 0 0 1px rgba(239,68,68,0.3)',
         borderRadius: 4, padding: '2px 6px', fontSize: 12, cursor: 'pointer', color: '#ef4444', lineHeight: 1,
     },
 
@@ -2458,7 +2458,7 @@ const styles = {
     confirmRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
     confirmText: { fontSize: 14, fontWeight: 600, color: '#E4E6EB' },
     confirmYes: {
-        background: '#10b981', color: '#fff', border: 'none',
+        background: '#10b981', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     confirmNo: {
@@ -2468,7 +2468,7 @@ const styles = {
 
     // Delete
     topActionBtn: {
-        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.1)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, padding: '4px 10px', color: '#94a3b8', fontSize: 14, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.2s ease'
@@ -2480,7 +2480,7 @@ const styles = {
     deletePopup: { textAlign: 'center', padding: 20 },
     deletePopupText: { fontSize: 16, fontWeight: 600, color: '#fff', marginBottom: 16 },
     deleteConfirmBtn: {
-        background: '#ef4444', color: '#fff', border: 'none',
+        background: '#ef4444', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
     },
     deleteCancelBtn: {
@@ -2519,11 +2519,11 @@ const styles = {
     },
     attachedReceiptBox: {
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-        background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+        background: 'rgba(16,185,129,0.1)', border: '2px solid rgba(16,185,129,0.3)', boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.3)',
         borderRadius: 8, width: '100%', boxSizing: 'border-box'
     },
     removeReceiptBtn: {
-        marginLeft: 'auto', background: 'transparent', border: 'none', color: '#10b981',
+        marginLeft: 'auto', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', color: '#10b981',
         fontSize: 16, cursor: 'pointer', padding: 4
     },
     scanReceiptBtn: {
@@ -2534,7 +2534,7 @@ const styles = {
         cursor: 'pointer', transition: 'all 0.2s'
     },
     receiptIconBtn: {
-        background: 'transparent', border: 'none', padding: 4, cursor: 'pointer',
+        background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', padding: 4, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginLeft: 8, opacity: 0.8, transition: 'opacity 0.2s'
     },
@@ -2564,7 +2564,7 @@ const styles = {
     },
     formActions: { display: 'flex', gap: 10, marginTop: 16 },
     formSubmitBtn: {
-        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)', color: '#fff', border: 'none',
+        background: 'linear-gradient(135deg, #2374e1, #1a5fc9)', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer', flex: 1,
     },
     formCancelBtn: {
@@ -2581,19 +2581,19 @@ const styles = {
         position: 'relative',
         backgroundImage: 'url(/images/toke-add-down-bg.jpg)',
         backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-        border: 'none', padding: 0, backgroundColor: 'transparent',
+        border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', padding: 0, backgroundColor: 'transparent',
         width: '100%', maxWidth: 450,
         aspectRatio: '854 / 1018',
         boxShadow: '0 20px 60px rgba(0,0,0,0.8)', overflow: 'hidden',
         display: 'block',
     },
     imgMapBtn: {
-        position: 'absolute', background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none',
+        position: 'absolute', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', cursor: 'pointer', outline: 'none',
         WebkitAppearance: 'none', appearance: 'none',
         WebkitTapHighlightColor: 'rgba(0,0,0,0)', boxShadow: 'none'
     },
     imgMapInput: {
-        width: '100%', height: '100%', background: 'transparent', border: 'none', color: '#fff', fontSize: 18,
+        width: '100%', height: '100%', background: 'transparent', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', color: '#fff', fontSize: 18,
         textAlign: 'left', textAlignLast: 'left', fontWeight: 600, outline: 'none', appearance: 'none',
         WebkitAppearance: 'none', boxShadow: 'none', WebkitTapHighlightColor: 'rgba(0,0,0,0)',
         paddingLeft: 12,
@@ -2636,7 +2636,7 @@ const styles = {
 
     // Report
     backBtn: {
-        background: 'none', border: 'none', color: '#3b82f6', fontSize: 14,
+        background: 'none', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', color: '#3b82f6', fontSize: 14,
         fontWeight: 600, cursor: 'pointer', padding: '4px 0', marginBottom: 8,
     },
     reportCard: {
@@ -2653,7 +2653,7 @@ const styles = {
     reportBreakdown: { background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: 16 },
     reportBreakdownTitle: { fontSize: 14, fontWeight: 600, color: '#E4E6EB', margin: '0 0 10px' },
     reportBreakdownGrid: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-    breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
+    breakdownItem: { fontSize: 13, background: 'rgba(255,255,255,0.06)', border: '2px solid rgba(255,255,255,0.1)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', borderRadius: 6, padding: '4px 10px', color: '#94a3b8' },
 
     // Jarvis Panel
     jarvisPanel: {
@@ -2662,7 +2662,7 @@ const styles = {
     },
     jarvisPanelHeader: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%',
+        background: 'none', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', cursor: 'pointer', padding: 0, width: '100%',
     },
     jarvisHeaderLeft: { display: 'flex', alignItems: 'center', gap: 10 },
     jarvisIcon: { fontSize: 26 },
@@ -2676,12 +2676,12 @@ const styles = {
     jarvisChip: {
         fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 20, cursor: 'pointer',
         background: 'rgba(56,189,248,0.08)', color: '#38bdf8',
-        border: '1px solid rgba(56,189,248,0.25)', transition: 'all 0.15s',
+        border: '2px solid rgba(56,189,248,0.25)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.25)', transition: 'all 0.15s',
     },
     jarvisInputRow: { display: 'flex', gap: 8, marginBottom: 12 },
     jarvisInput: {
         flex: 1, padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
-        border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8,
+        border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', borderRadius: 8,
         color: '#fff', fontSize: 14, outline: 'none',
     },
     jarvisAskBtn: {
@@ -2700,14 +2700,14 @@ const styles = {
     },
     jarvisAnswer: {
         background: 'rgba(0,0,0,0.25)', borderRadius: 10,
-        padding: 14, border: '1px solid rgba(56,189,248,0.15)',
+        padding: 14, border: '2px solid rgba(56,189,248,0.15)', boxShadow: 'inset 0 0 0 1px rgba(56,189,248,0.15)',
     },
     jarvisAnswerLabel: { fontSize: 11, fontWeight: 700, color: '#38bdf8', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' },
     jarvisAnswerText: { fontSize: 13, color: '#E4E6EB', lineHeight: 1.65, whiteSpace: 'pre-wrap' },
     jarvisHistory: { display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 },
     jarvisHistoryItem: {
         background: 'rgba(0,0,0,0.15)', borderRadius: 8, padding: '10px 12px',
-        border: '1px solid rgba(255,255,255,0.05)',
+        border: '2px solid rgba(255,255,255,0.05)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)',
     },
     taxSummaryBtn: {
         width: '100%', padding: '13px', background: 'rgba(54,187,106,0.08)',
@@ -2722,29 +2722,29 @@ const styles = {
     },
     eventEditBtn: {
         flex: 1, padding: '6px 0', background: 'rgba(74,144,217,0.1)',
-        border: '1px solid rgba(74,144,217,0.3)', borderRadius: 6,
+        border: '2px solid rgba(74,144,217,0.3)', boxShadow: 'inset 0 0 0 1px rgba(74,144,217,0.3)', borderRadius: 6,
         color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     eventDeleteBtn: {
         flex: 1, padding: '6px 0', background: 'rgba(240,40,73,0.08)',
-        border: '1px solid rgba(240,40,73,0.3)', borderRadius: 6,
+        border: '2px solid rgba(240,40,73,0.3)', boxShadow: 'inset 0 0 0 1px rgba(240,40,73,0.3)', borderRadius: 6,
         color: '#F02849', fontSize: 12, fontWeight: 600, cursor: 'pointer',
         textAlign: 'center',
     },
     eventSaveBtn: {
         flex: 1, padding: '8px 0', background: 'rgba(54,187,106,0.15)',
-        border: '1px solid rgba(54,187,106,0.4)', borderRadius: 6,
+        border: '2px solid rgba(54,187,106,0.4)', boxShadow: 'inset 0 0 0 1px rgba(54,187,106,0.4)', borderRadius: 6,
         color: '#36bb6a', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     eventCancelBtn: {
         padding: '8px 16px', background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6,
+        border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)', borderRadius: 6,
         color: '#B0B3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer',
     },
     editInlineInput: {
         width: '100%', padding: '8px 10px', background: 'rgba(0,0,0,0.3)',
-        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6,
+        border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', borderRadius: 6,
         color: '#E4E6EB', fontSize: 13, outline: 'none', boxSizing: 'border-box',
     },
     jarvisHistoryQ: { fontSize: 12, fontWeight: 600, color: '#94a3b8', marginBottom: 4 },
@@ -2752,13 +2752,13 @@ const styles = {
 
     // Monthly Income Goal
     goalCard: {
-        background: '#242526', border: '1px solid rgba(255,255,255,0.08)',
+        background: '#242526', border: '2px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
         borderRadius: 12, padding: '16px 20px',
     },
     goalHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
     goalTitle: { fontSize: 15, fontWeight: 700, color: '#E4E6EB' },
     goalEditBtn: {
-        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '1px solid #4A90D9',
+        padding: '4px 12px', background: 'rgba(74,144,217,0.15)', border: '2px solid #4A90D9', boxShadow: 'inset 0 0 0 1px #4A90D9',
         borderRadius: 6, color: '#4A90D9', fontSize: 12, fontWeight: 600, cursor: 'pointer',
     },
     goalText: { fontSize: 14, color: '#B0B3B8', marginBottom: 10, lineHeight: 1.5 },
@@ -2766,15 +2766,15 @@ const styles = {
     goalBarFill: { height: '100%', borderRadius: 4, transition: 'width 0.4s ease' },
     goalEditRow: { display: 'flex', gap: 8, alignItems: 'center' },
     goalInput: {
-        flex: 1, padding: '10px 12px', background: '#18191A', border: '1px solid rgba(255,255,255,0.12)',
+        flex: 1, padding: '10px 12px', background: '#18191A', border: '2px solid rgba(255,255,255,0.12)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)',
         borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none',
     },
     goalSaveBtn: {
-        padding: '10px 16px', background: '#4A90D9', border: 'none',
+        padding: '10px 16px', background: '#4A90D9', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
     },
     goalCancelBtn: {
-        padding: '10px 12px', background: '#3A3B3C', border: 'none',
+        padding: '10px 12px', background: '#3A3B3C', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, color: '#B0B3B8', fontSize: 16, cursor: 'pointer',
     },
     setGoalBtn: {
@@ -2788,18 +2788,18 @@ const styles = {
 
     // Calendar wrapper
     calendarWrapper: {
-        background: '#242526', border: '1px solid rgba(255,255,255,0.07)',
+        background: '#242526', border: '2px solid rgba(255,255,255,0.07)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
         borderRadius: 12, padding: '14px 12px', marginTop: 8,
     },
 
     // Multi-day styles
     closedDayCard: {
-        background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(0,0,0,0.2)', border: '2px solid rgba(255,255,255,0.07)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.07)',
         borderRadius: 8, marginBottom: 6, overflow: 'hidden',
     },
     closedDayHeader: {
         display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
-        background: 'none', border: 'none', cursor: 'pointer', width: '100%',
+        background: 'none', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)', cursor: 'pointer', width: '100%',
     },
     closedDayLabel: { fontSize: 13, fontWeight: 700, color: '#B0B3B8', flex: 1, textAlign: 'left' },
     closedDayStats: { display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#64748b' },
@@ -2815,12 +2815,12 @@ const styles = {
         fontWeight: 700, cursor: 'pointer',
     },
     confirmYes: {
-        background: '#10b981', color: '#fff', border: 'none',
+        background: '#10b981', color: '#fff', border: '2px solid rgba(255,255,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
         borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     },
     confirmNo: {
         background: 'transparent', color: '#94a3b8',
-        border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8,
+        border: '2px solid rgba(255,255,255,0.15)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)', borderRadius: 8,
         padding: '8px 16px', fontSize: 13, cursor: 'pointer',
     },
 };
