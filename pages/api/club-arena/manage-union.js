@@ -272,14 +272,24 @@ export default async function handler(req, res) {
       if (!searchQuery?.trim() || searchQuery.trim().length < 2) {
         return res.status(400).json({ success: false, error: 'query must be at least 2 characters' });
       }
-      const term = searchQuery.trim().replace(/%/g, '\\%'); // escape wildcards
-      const { data: profiles } = await supabaseAdmin
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .or(`username.ilike.%${term}%,display_name.ilike.%${term}%`)
-        .limit(10);
+      // Escape ILIKE wildcards and cap length; then use two separate .ilike() calls
+      // to avoid PostgREST filter injection via comma-delimited .or() string interpolation
+      const term = searchQuery.trim().replace(/%/g, '\\%').replace(/_/g, '\\_').slice(0, 50);
+      const [{ data: byUsername }, { data: byDisplay }] = await Promise.all([
+        supabaseAdmin.from('profiles').select('id, username, display_name, avatar_url')
+          .ilike('username', `%${term}%`).limit(10),
+        supabaseAdmin.from('profiles').select('id, username, display_name, avatar_url')
+          .ilike('display_name', `%${term}%`).limit(10),
+      ]);
+      // Deduplicate by id
+      const seen = new Set();
+      const profiles = [...(byUsername || []), ...(byDisplay || [])].filter(p => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      }).slice(0, 10);
 
-      return res.status(200).json({ success: true, users: profiles || [] });
+      return res.status(200).json({ success: true, users: profiles });
     }
 
     // ═══════════════════════════════════════════════════════════════
