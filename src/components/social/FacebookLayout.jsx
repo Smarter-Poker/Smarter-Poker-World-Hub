@@ -10,8 +10,7 @@ import { NotificationBell, NotificationsDropdown } from './FacebookNotifications
 import { ChatDock, ChatWindow, ConversationList } from './FacebookMessenger';
 import { supabase } from '../../lib/supabase';
 
-// TODO: useSupabase provider doesn't exist - using direct supabase client instead
-// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
+// Using direct supabase client (no provider hook needed)
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN NAVIGATION BAR
