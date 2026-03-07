@@ -1254,18 +1254,18 @@ export default function Admin() {
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
-                            {members.filter(m => m.role === 'agent').length === 0 ? (
+                            {members.filter(m => ['agent', 'super_agent', 'sub_agent'].includes(m.role)).length === 0 ? (
                                 <div style={{ textAlign: 'center', color: FB.textSecondary, padding: '30px' }}>
                                     No agents in this club. Promote a member to agent from the Members panel.
                                 </div>
-                            ) : members.filter(m => m.role === 'agent').map(agent => (
+                            ) : members.filter(m => ['agent', 'super_agent', 'sub_agent'].includes(m.role)).map(agent => (
                                 <div key={agent.user_id} style={{ background: FB.background, borderRadius: '8px', padding: '14px', marginBottom: '10px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                         <div>
                                             <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: '14px' }}>
-                                                {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0, 8)}
+                                                {agent.profiles?.display_name || agent.profiles?.username || agent.user_id.slice(0, 8)}
                                             </span>
-                                            <span style={{ fontSize: '12px', color: '#F5A623', marginLeft: '8px' }}>Agent</span>
+                                            <span style={{ fontSize: '12px', color: '#F5A623', marginLeft: '8px' }}>{agent.role === 'super_agent' ? 'Super Agent' : agent.role === 'sub_agent' ? 'Sub Agent' : 'Agent'}</span>
                                         </div>
                                         <span style={{ fontSize: '12px', color: FB.textSecondary }}>
                                             {agent.chip_balance?.toLocaleString() || 0} chips
@@ -1285,7 +1285,7 @@ export default function Admin() {
                                         {/* Suspend */}
                                         <button style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                                             onClick={async () => {
-                                                askConfirm(`Suspend agent ${agent.profile?.display_name || agent.user_id.slice(0, 8)}?`, async () => {
+                                                askConfirm(`Suspend agent ${agent.profiles?.display_name || agent.profiles?.username || agent.user_id.slice(0, 8)}?`, async () => {
                                 setConfirmModal(null);
                                                 setProcessing(true);
                                                 try {
