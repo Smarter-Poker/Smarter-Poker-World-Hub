@@ -181,12 +181,18 @@ export default function NotificationsPage() {
     const markAsRead = async (id) => {
         await supabase.from('notifications').update({ read: true }).eq('id', id);
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        try {
+            new BroadcastChannel('smarter_poker_notif_sync').postMessage('refresh_notifications');
+        } catch (e) { }
     };
 
     const markAllAsRead = async () => {
         if (!user) return;
         await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        try {
+            new BroadcastChannel('smarter_poker_notif_sync').postMessage('refresh_notifications');
+        } catch (e) { }
     };
 
     // ═══════════════════════════════════════════════════════════════════════════

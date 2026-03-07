@@ -620,12 +620,16 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         if (!userId) { toast.error('You must be logged in'); return; }
         if (!activeGig) return;
         try {
-            await deleteGig(userId, activeGig.id);
+            // Optimistic UI Update: Clear the event from the screen instantly
+            setActiveGig(null);
             toast.success('Event deleted');
             setConfirmDelete(false);
+
             if (downTimerRef.current) clearTimeout(downTimerRef.current);
             if (timerTickRef.current) clearInterval(timerTickRef.current);
             setTimerActive(false);
+
+            await deleteGig(userId, activeGig.id);
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
@@ -1272,18 +1276,25 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                     animate={{ opacity: 1, y: 0 }}
                     style={styles.activeGigCard}
                 >
-                    {/* Delete X */}
-                    <button onClick={() => setConfirmDelete(true)} style={styles.deleteX} title="Delete Event">✕</button>
-
+                    {/* ── LIVE EVENT HEADER ── */}
                     <div style={styles.activeHeader}>
                         <div style={styles.activeLed} />
                         <span style={styles.activeLabel}>LIVE EVENT</span>
+
+                        {/* Event Admin Actions (Edit / Delete) */}
+                        {!editMode && !confirmDelete && !confirmComplete && !confirmCloseDay && (
+                            <div style={{ display: 'flex', gap: 6, marginLeft: 16 }}>
+                                <button onClick={startEditing} style={styles.topActionBtn} title="Edit Event Details">✏️</button>
+                                <button onClick={() => setConfirmDelete(true)} style={{ ...styles.topActionBtn, color: '#ef4444' }} title="Delete Event">🗑️</button>
+                            </div>
+                        )}
+
                         <span style={{
-                            marginLeft: 'auto', fontSize: 12, fontWeight: 700,
+                            marginLeft: 'auto', fontSize: 13, fontWeight: 700,
                             background: isDayOpen ? 'rgba(245,158,11,0.15)' : 'rgba(100,116,139,0.15)',
                             color: isDayOpen ? '#f59e0b' : '#94a3b8',
                             border: `1px solid ${isDayOpen ? 'rgba(245,158,11,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                            borderRadius: 20, padding: '3px 10px',
+                            borderRadius: 20, padding: '4px 12px',
                         }}>
                             {isDayOpen ? `Day ${currentDayNumber} — In Progress` : `Day ${currentDayNumber} — Closed`}
                         </span>
@@ -1303,7 +1314,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                             </p>
                         </>
                     ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 12px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 16px', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <span style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>Edit Event</span>
+                            </div>
                             <label style={styles.formLabel}>Venue / Location</label>
                             <VenueSelector
                                 value={editForm.venue_name}
@@ -1318,16 +1332,26 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     }));
                                 }}
                             />
-                            <input
-                                type="number" value={editForm.hourly_rate}
-                                onChange={e => setEditForm({ ...editForm, hourly_rate: e.target.value })}
-                                style={styles.formInput} step="0.01"
-                            />
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={styles.formLabel}>Hourly Rate ($)</label>
+                                    <input
+                                        type="number" value={editForm.hourly_rate}
+                                        onChange={e => setEditForm({ ...editForm, hourly_rate: e.target.value })}
+                                        style={styles.formInput} step="0.01"
+                                    />
+                                </div>
+                            </div>
+                            <label style={styles.formLabel}>Notes</label>
                             <textarea
                                 value={editForm.notes}
                                 onChange={e => setEditForm({ ...editForm, notes: e.target.value })}
-                                style={{ ...styles.formInput, minHeight: 60, resize: 'vertical' }}
+                                style={{ ...styles.formInput, minHeight: 80, resize: 'vertical' }}
                             />
+                            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                                <button onClick={handleSaveEdit} style={{ ...styles.completeBtn, flex: 1 }}>Save Changes</button>
+                                <button onClick={() => setEditMode(false)} style={{ ...styles.cancelEditBtn, flex: 1 }}>Cancel</button>
+                            </div>
                         </div>
                     )}
 
@@ -1356,6 +1380,20 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     {formatCurrency(activeGig.totalExpenses || 0)}
                                 </span>
                             </div>
+                        </div>
+                    )}
+
+                    {/* ── PRIMARY LOGGING ACTIONS (MOVED TO TOP) ── */}
+                    {!editMode && isDayOpen && !confirmCloseDay && !confirmComplete && !confirmDelete && (
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                            <button onClick={() => setShowAddDown(true)} style={{ ...styles.addDownBtn, flex: 2, padding: '16px 10px', fontSize: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 24, lineHeight: 1, marginBottom: 4 }}>+</span>
+                                <span>Add Down</span>
+                            </button>
+                            <button onClick={() => setShowAddExpense(true)} style={{ ...styles.addExpenseBtn, flex: 1, padding: '16px 10px', fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 20, lineHeight: 1, marginBottom: 4 }}>🧾</span>
+                                <span>Expense</span>
+                            </button>
                         </div>
                     )}
 
@@ -1518,38 +1556,34 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
                     {/* Actions */}
                     <div style={styles.activeActions}>
-                        {editMode ? (
-                            <>
-                                <button onClick={handleSaveEdit} style={styles.completeBtn}>Save Changes</button>
-                                <button onClick={() => setEditMode(false)} style={styles.cancelEditBtn}>Cancel</button>
-                            </>
-                        ) : confirmCloseDay ? (
-                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+                        {confirmCloseDay ? (
+                            <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start', gap: 10, width: '100%', background: 'rgba(0,0,0,0.2)', padding: 16, borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
                                 <span style={styles.confirmText}>Close out Day {currentDayNumber}? Add a note (optional):</span>
                                 <input
                                     type="text"
                                     value={closeDayNotes}
                                     onChange={e => setCloseDayNotes(e.target.value)}
                                     placeholder="E.g. Short-Handed All Night, Big Tipped Table..."
-                                    style={{ ...styles.formInput, width: '100%', padding: '8px 12px', fontSize: 13 }}
+                                    style={{ ...styles.formInput, width: '100%', padding: '12px 14px', fontSize: 14 }}
                                     autoFocus
                                     onKeyDown={e => { if (e.key === 'Enter') handleCloseDay(); }}
                                 />
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <button onClick={handleCloseDay} style={styles.confirmYes}>✓ Close Day</button>
-                                    <button onClick={() => { setConfirmCloseDay(false); setCloseDayNotes(''); }} style={styles.confirmNo}>Cancel</button>
+                                <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 4 }}>
+                                    <button onClick={handleCloseDay} style={{ ...styles.confirmYes, flex: 1, padding: '12px' }}>✓ Close Day</button>
+                                    <button onClick={() => { setConfirmCloseDay(false); setCloseDayNotes(''); }} style={{ ...styles.confirmNo, flex: 1, padding: '12px' }}>Cancel</button>
                                 </div>
                             </div>
-                        ) : !confirmComplete ? (
-                            <>
-                                <button onClick={startEditing} style={styles.editBtn}>Edit</button>
-                                {isDayOpen && <button onClick={() => setShowAddDown(true)} style={styles.addDownBtn}>+ Add Down</button>}
-                                {isDayOpen && <button onClick={() => setShowAddExpense(true)} style={styles.addExpenseBtn}>+ Expense</button>}
-                                {isDayOpen && <button onClick={() => setConfirmCloseDay(true)} style={styles.closeDayBtn}>✓ Close Day {currentDayNumber}</button>}
-                                {!isDayOpen && <button onClick={handleStartNewDay} style={styles.startDayBtn}>▶ Start Day {(activeGig?.days?.length || 0) + 1}</button>}
-                                {!isDayOpen && <button onClick={() => setConfirmComplete(true)} style={styles.completeBtn}>✓ Complete Event</button>}
-                            </>
-                        ) : (
+                        ) : null}
+
+                        {!confirmCloseDay && !confirmComplete && !editMode ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                                {isDayOpen && <button onClick={() => setConfirmCloseDay(true)} style={{ ...styles.closeDayBtn, width: '100%' }}>✓ Close Day {currentDayNumber}</button>}
+                                {!isDayOpen && <button onClick={handleStartNewDay} style={{ ...styles.startDayBtn, width: '100%' }}>▶ Start Day {(activeGig?.days?.length || 0) + 1}</button>}
+                                {!isDayOpen && <button onClick={() => setConfirmComplete(true)} style={{ ...styles.completeBtn, width: '100%' }}>✓ Complete Final Event</button>}
+                            </div>
+                        ) : null}
+
+                        {confirmComplete && !editMode ? (
                             <div style={{ ...styles.confirmRow, flexDirection: 'column', alignItems: 'flex-start' }}>
                                 <span style={styles.confirmText}>Finalize This Event? Enter Total Mileage:</span>
                                 <div style={{ display: 'flex', gap: 10, width: '100%', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1574,9 +1608,8 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                     <button onClick={() => setConfirmComplete(false)} style={styles.confirmNo}>Cancel</button>
                                 </div>
                             </div>
-                        )}
+                        ) : null}
                     </div>
-
                     {/* Delete Confirmation */}
                     <AnimatePresence>
                         {confirmDelete && (
@@ -2339,11 +2372,11 @@ const styles = {
     },
 
     // Delete
-    deleteX: {
-        position: 'absolute', top: 10, right: 10, width: 28, height: 28,
+    topActionBtn: {
+        background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 8, padding: '4px 10px', color: '#94a3b8', fontSize: 14, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 6, color: '#8a8d91', fontSize: 14, cursor: 'pointer',
+        transition: 'all 0.2s ease'
     },
     deleteOverlay: {
         position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.8)',

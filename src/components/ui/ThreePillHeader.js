@@ -82,6 +82,7 @@ export default function ThreePillHeader({
 
     useEffect(() => {
         let mounted = true;
+        let notifSyncChannel = null;
 
         const loadUser = async () => {
             try {
@@ -140,6 +141,26 @@ export default function ThreePillHeader({
                         if (typeof result.notificationCount === 'number') {
                             setNotificationCount(result.notificationCount);
                         }
+
+                        // ── CROSS-TAB SYNC FOR THREE-PILL HEADER ──
+                        const fetchUnreadCount = async () => {
+                            const { count: notifCount } = await supabase
+                                .from('notifications')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('user_id', authUser.id)
+                                .eq('read', false);
+                            if (mounted) setNotificationCount(notifCount || 0);
+                        };
+
+                        notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
+                        notifSyncChannel.onmessage = (event) => {
+                            if (event.data === 'refresh_notifications') {
+                                console.log('[ThreePillHeader] received refresh_notifications broadcast');
+                                fetchUnreadCount();
+                            }
+                        };
+
+
                         // 🛡️ INSTANT UI: Cache user data for next page load
                         try {
                             localStorage.setItem('sp-cached-header-user', JSON.stringify({
@@ -157,7 +178,14 @@ export default function ThreePillHeader({
         };
 
         loadUser();
-        return () => { mounted = false; };
+        return () => {
+            mounted = false;
+            if (notifSyncChannel) {
+                try {
+                    notifSyncChannel.close();
+                } catch (e) { }
+            }
+        };
     }, []);
 
     const handleBack = () => {

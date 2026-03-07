@@ -287,12 +287,24 @@ export default function UniversalHeader({
                     }
 
                     // FETCH NOTIFICATION COUNT (unread)
-                    const { count: notifCount } = await supabase
-                        .from('notifications')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('user_id', authUser.id)
-                        .eq('read', false);
-                    setNotificationCount(notifCount || 0);
+                    const fetchUnreadCount = async () => {
+                        const { count: notifCount } = await supabase
+                            .from('notifications')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('user_id', authUser.id)
+                            .eq('read', false);
+                        if (mounted) setNotificationCount(notifCount || 0);
+                    };
+                    await fetchUnreadCount();
+
+                    // ── CROSS-TAB SYNC: Listen for read notifications in other tabs ──
+                    const notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
+                    notifSyncChannel.onmessage = (event) => {
+                        if (event.data === 'refresh_notifications') {
+                            console.log('[UniversalHeader] received refresh_notifications broadcast');
+                            fetchUnreadCount();
+                        }
+                    };
 
                     // NOTE: Unread messages count is set from API response above (lines 160-165)
                     // No direct query needed - the get-header-stats API handles this correctly
@@ -345,6 +357,10 @@ export default function UniversalHeader({
         return () => {
             mounted = false;
             if (notifChannel) supabase.removeChannel(notifChannel);
+            try {
+                const notifSyncChannel = new BroadcastChannel('smarter_poker_notif_sync');
+                notifSyncChannel.close();
+            } catch (e) { }
         };
     }, []);
 
