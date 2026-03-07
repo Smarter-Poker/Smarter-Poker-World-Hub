@@ -40,12 +40,16 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    try {
-        const { userId, period = 'all' } = req.query;
+    // BUG FIX: No auth — anyone could read any user's GTO training report by supplying a userId
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'userId is required' });
-        }
+    try {
+        const { period = 'all' } = req.query;
+        // BUG FIX: was reading userId from query — IDOR; use JWT identity
+        const userId = user.id;
 
         // Build date filter
         let dateFilter = null;
