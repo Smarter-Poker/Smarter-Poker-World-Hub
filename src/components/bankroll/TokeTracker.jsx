@@ -209,6 +209,32 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const [createError, setCreateError] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
 
+    // ── Component-level userId resolution (backup when AvatarContext.user is null) ──
+    const resolvedUserIdRef = useRef(null);
+    useEffect(() => {
+        if (userId) { resolvedUserIdRef.current = userId; return; }
+        // If userId prop is null, try to resolve it ourselves
+        (async () => {
+            try {
+                const { getAuthUser } = await import('../../lib/authUtils');
+                const au = getAuthUser();
+                if (au?.id) { resolvedUserIdRef.current = au.id; return; }
+            } catch (_) { }
+            try {
+                const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                if (sbKey) {
+                    const parsed = JSON.parse(localStorage.getItem(sbKey) || '{}');
+                    const id = parsed?.user?.id || parsed?.currentSession?.user?.id;
+                    if (id) { resolvedUserIdRef.current = id; return; }
+                }
+            } catch (_) { }
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user?.id) { resolvedUserIdRef.current = session.user.id; }
+            } catch (_) { }
+        })();
+    }, [userId]);
+
     // Green celebration flash after closing a day
     const [showCelebration, setShowCelebration] = useState(false);
 
@@ -517,11 +543,12 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
 
         if (!newGig.venue_name.trim()) {
             toast.error('Please select or enter a venue');
+            setIsCreating(false);
             return;
         }
 
-        // Bulletproof 4-layer userId resolution
-        let actualUserId = userId;
+        // Bulletproof 5-layer userId resolution
+        let actualUserId = userId || resolvedUserIdRef.current;
 
         if (!actualUserId) {
             console.warn('[TokeTracker] userId prop is null/undefined — running fallback resolution');
@@ -581,6 +608,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             const errMsg = 'Session expired — please log out and log back in to start an event';
             setCreateError(errMsg);
             toast.error(errMsg, 8000);
+            setIsCreating(false);
             return;
         }
         try {
