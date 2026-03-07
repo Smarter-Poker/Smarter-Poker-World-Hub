@@ -21,6 +21,7 @@ export default function AvatarGallery({ onSelect }) {
   // Preset avatars state
   const [avatars, setAvatars] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeCategory, setActiveCategory] = useState('All');
 
   useEffect(() => {
     async function loadAllAvatars() {
@@ -456,25 +457,115 @@ export default function AvatarGallery({ onSelect }) {
             <div>⏳ Loading Avatars...</div>
           </div>
         ) : (
-          <div className="avatar-grid">
-            {avatars.map(av => (
-              <div
-                key={av.id}
-                className={`avatar-card ${currentAvatar?.id === av.id ? 'selected' : ''}`}
-                onClick={() => handleSelectPresetAvatar(av.id)}
-              >
-                <img
-                  src={av.image}
-                  alt={av.name}
-                  className="avatar-image"
-                />
-                <div className="avatar-info">
-                  <p className="avatar-name">{av.name}</p>
-                  <p className="avatar-tier">{av.category}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <>
+            {/* Category Filters */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              padding: '10px 0 20px 0',
+              overflowX: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              justifyContent: 'center',
+              flexWrap: 'wrap'
+            }}>
+              {['All', ...new Set(avatars.map(a => a.category).filter(Boolean))].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    background: activeCategory === cat ? 'rgba(0, 245, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                    border: `1px solid ${activeCategory === cat ? '#00f5ff' : 'rgba(255, 255, 255, 0.1)'}`,
+                    color: activeCategory === cat ? '#00f5ff' : '#888',
+                    cursor: 'pointer',
+                    fontFamily: "'Rajdhani', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s',
+                    textTransform: 'uppercase'
+                  }}
+                  onMouseOver={(e) => {
+                    if (activeCategory !== cat) {
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                      e.target.style.color = '#fff';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (activeCategory !== cat) {
+                      e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.target.style.color = '#888';
+                    }
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="avatar-grid">
+              {avatars
+                .filter(av => activeCategory === 'All' || av.category === activeCategory)
+                .map(av => {
+                  const isSelected = currentAvatar?.id === av.id;
+                  return (
+                    <div
+                      key={av.id}
+                      className={`avatar-card ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleSelectPresetAvatar(av.id)}
+                    >
+                      <img
+                        src={av.image}
+                        alt={av.name}
+                        className="avatar-image"
+                      />
+                      <div className="avatar-info">
+                        <p className="avatar-name">{av.name}</p>
+                        <p className="avatar-tier">{av.category}</p>
+                      </div>
+
+                      {/* EQUIP OVERLAY */}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: isSelected ? 1 : 0,
+                        transition: 'opacity 0.2s ease',
+                      }}
+                        className="equip-overlay"
+                        onMouseEnter={(e) => {
+                          if (!isSelected) e.currentTarget.style.opacity = '1';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) e.currentTarget.style.opacity = '0';
+                        }}>
+                        <div style={{
+                          padding: '8px 20px',
+                          background: isSelected ? 'rgba(0, 255, 0, 0.2)' : 'rgba(0, 245, 255, 0.2)',
+                          border: `2px solid ${isSelected ? '#00ff00' : '#00f5ff'}`,
+                          borderRadius: '20px',
+                          color: isSelected ? '#00ff00' : '#00f5ff',
+                          fontFamily: "'Rajdhani', sans-serif",
+                          fontWeight: 'bold',
+                          fontSize: '14px',
+                          textTransform: 'uppercase',
+                          boxShadow: `0 0 15px ${isSelected ? 'rgba(0,255,0,0.4)' : 'rgba(0,245,255,0.4)'}`,
+                          transform: 'translateY(-10px)'
+                        }}>
+                          {isSelected ? '✓ Current' : 'Equip'}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </>
         )}
       </div>
     </div>

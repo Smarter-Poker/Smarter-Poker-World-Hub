@@ -242,12 +242,14 @@ export default async function handler(req, res) {
         if (error) return res.status(500).json({ success: false, error: error.message });
 
         // Auto-follow as owner
-        await supabase.from('social_page_followers').insert({
+        // MEDIUM FIX: Add error check after auto-follow insert
+        const { error: followErr } = await supabase.from('social_page_followers').insert({
             page_id: data.id,
             user_id: owner_id,
             role: 'owner',
             status: 'approved'
         });
+        if (followErr) console.error('[SocialPages] Auto-follow failed:', followErr.message);
 
         // Auto-geocode primary location in background (non-blocking)
         if (data.location_city) {

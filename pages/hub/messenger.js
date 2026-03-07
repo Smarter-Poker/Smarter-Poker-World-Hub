@@ -2965,7 +2965,13 @@ export default function MessengerPage() {
                                 </div>
 
                                 {/* Regular Conversations */}
-                                {conversations.map(conv => (
+                                {conversations.filter(conv => {
+                                    if (!searchQuery) return true;
+                                    const q = searchQuery.toLowerCase();
+                                    const otherName = conv.otherUser?.full_name?.toLowerCase() || '';
+                                    const otherUsername = conv.otherUser?.username?.toLowerCase() || '';
+                                    return otherName.includes(q) || otherUsername.includes(q);
+                                }).map(conv => (
                                     <ConversationItem
                                         key={conv.id}
                                         conversation={conv}

@@ -150,10 +150,17 @@ export default async function handler(req, res) {
                 // Enrich cached questions that were generated before GTO fields were added
                 question = enrichGrokQuestion(cachedQuestions[randomIndex].question_data, gameConfig, parseInt(level), gameType);
 
+                // Increment times_used (supabase.raw() doesn't exist in JS SDK v2)
+                const questionId = cachedQuestions[randomIndex].question_id;
+                const { data: currentQ } = await supabase
+                    .from('training_question_cache')
+                    .select('times_used')
+                    .eq('question_id', questionId)
+                    .maybeSingle();
                 await supabase
                     .from('training_question_cache')
-                    .update({ times_used: supabase.raw('times_used + 1') })
-                    .eq('question_id', cachedQuestions[randomIndex].question_id);
+                    .update({ times_used: (currentQ?.times_used || 0) + 1 })
+                    .eq('question_id', questionId);
 
             } else {
             }
