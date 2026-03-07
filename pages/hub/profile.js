@@ -5,11 +5,18 @@
  * (same view others see when visiting /hub/user/[username])
  * 
  * Edit functionality is at /hub/profile-edit
+ * 
+ * PERFORMANCE:
+ * - Reads cached username from localStorage for instant redirect
+ * - Falls back to Supabase query only if cache is cold
+ * - Caches username on successful fetch for future visits
  */
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+
+const CACHE_KEY = 'sp-profile-username';
 
 export default function ProfileRedirect() {
     const router = useRouter();
@@ -18,7 +25,7 @@ export default function ProfileRedirect() {
     useEffect(() => {
         const redirectToProfile = async () => {
             try {
-                // Check for auth token in localStorage
+                // ── STEP 1: Get auth user from localStorage (instant, no network) ──
                 let authUser = null;
 
                 // Try unified storage key first
@@ -47,7 +54,20 @@ export default function ProfileRedirect() {
                     return;
                 }
 
-                // Fetch username from profile
+                // ── STEP 2: Check cached username (instant redirect) ──
+                try {
+                    const cached = localStorage.getItem(CACHE_KEY);
+                    if (cached) {
+                        const { userId, username, ts } = JSON.parse(cached);
+                        // Use cache if same user and less than 1 hour old
+                        if (userId === authUser.id && username && (Date.now() - ts) < 3600000) {
+                            router.replace(`/hub/user/${username}`);
+                            return;
+                        }
+                    }
+                } catch (e) { /* ignore stale cache */ }
+
+                // ── STEP 3: Fetch username from Supabase (network call) ──
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('username')
@@ -55,6 +75,15 @@ export default function ProfileRedirect() {
                     .maybeSingle();
 
                 if (profile?.username) {
+                    // Cache for next time
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify({
+                            userId: authUser.id,
+                            username: profile.username,
+                            ts: Date.now()
+                        }));
+                    } catch (e) { /* ignore quota errors */ }
+
                     // Redirect to their SmarterPoker-style public profile
                     router.replace(`/hub/user/${profile.username}`);
                 } else {
@@ -70,7 +99,7 @@ export default function ProfileRedirect() {
         redirectToProfile();
     }, [router]);
 
-    // Show loading while redirecting
+    // Show Smarter.Poker logo while redirecting
     return (
         <div style={{
             minHeight: '100vh',
@@ -81,8 +110,24 @@ export default function ProfileRedirect() {
             color: 'white'
         }}>
             <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 32, marginBottom: 16 }}>s</div>
-                <div style={{ opacity: 0.7 }}>Loading Your Profile...</div>
+                {/* Smarter.Poker logo with pulse animation */}
+                <img
+                    src="/smarter-poker-logo-transparent.png"
+                    alt="Smarter.Poker"
+                    width={72}
+                    height={72}
+                    style={{
+                        marginBottom: 16,
+                        animation: 'profilePulse 1.5s ease-in-out infinite',
+                    }}
+                />
+                <div style={{ opacity: 0.7, fontSize: 14 }}>Loading Your Profile...</div>
+                <style jsx>{`
+                    @keyframes profilePulse {
+                        0%, 100% { opacity: 1; transform: scale(1); }
+                        50% { opacity: 0.6; transform: scale(0.95); }
+                    }
+                `}</style>
             </div>
         </div>
     );
