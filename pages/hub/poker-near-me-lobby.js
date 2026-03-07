@@ -183,8 +183,11 @@ export default function PokerNearMeLobby() {
   const menuConfig = useMemo(() => getMenuConfig('poker-near-me'), []);
 
   // ─── Deep Link: read URL params on mount ───
+  // Uses URLSearchParams directly instead of router.query (which can be empty on first render)
   useEffect(() => {
-    const { pod, q } = router.query;
+    const params = new URLSearchParams(window.location.search);
+    const pod = params.get('pod');
+    const q = params.get('q');
     if (pod && POD_FEATURES[pod]) {
       setActivePod(pod);
       setShowPanel(true);
@@ -193,14 +196,18 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── Deep Link: write URL params on state change ───
+  // IMPORTANT: Use window.history.replaceState — NOT router.replace.
+  // router.replace causes a re-render cycle that resets component state,
+  // killing the panel and 3D scene. replaceState updates the URL silently.
   useEffect(() => {
     const params = new URLSearchParams();
     if (activePod) params.set('pod', activePod);
     if (searchQuery) params.set('q', searchQuery);
     const qs = params.toString();
     const newUrl = qs ? `/hub/poker-near-me-lobby?${qs}` : '/hub/poker-near-me-lobby';
-    if (router.asPath !== newUrl) {
-      router.replace(newUrl, undefined, { shallow: true });
+    const currentUrl = window.location.pathname + window.location.search;
+    if (currentUrl !== newUrl) {
+      window.history.replaceState(null, '', newUrl);
     }
   }, [activePod, searchQuery]);
 
