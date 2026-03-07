@@ -553,7 +553,7 @@ function VIPCard({ plan, isSelected, onSelect }) {
                     borderRadius: 14,
                 }}
                 draggable={false}
-             loading="lazy" />
+                loading="lazy" />
 
             {/* Price Overlay At Bottom */}
             <div style={{
@@ -658,12 +658,16 @@ export default function DiamondStorePage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [isVip, setIsVip] = useState(false);
 
+    const [user, setUser] = useState(null);
+
     // Check VIP status on mount
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         (async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.id) {
+                setUser(session.user);
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('is_vip')
@@ -672,17 +676,17 @@ export default function DiamondStorePage() {
                 setIsVip(!!profile?.is_vip);
             }
         })();
-    return () => _c.abort();
-  }, []);
-  // Realtime subscription — live updates
-  useEffect(() => {
-    if (!user?.id) return;
-    const _ch = supabase
-      .channel(`dstore:${user?.id}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => {})
-      .subscribe();
-    return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+        return () => _c.abort();
+    }, []);
+    // Realtime subscription — live updates
+    useEffect(() => {
+        if (!user?.id) return;
+        const _ch = supabase
+            .channel(`dstore:${user?.id}`)
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user?.id}` }, () => { })
+            .subscribe();
+        return () => { supabase.removeChannel(_ch); };
+    }, [user?.id]);
 
     // 🎬 INTRO VIDEO STATE - Video plays while page loads in background
     // Only show once per session (not on every reload)
@@ -927,7 +931,7 @@ export default function DiamondStorePage() {
                     <title>Diamond Store — Smarter.Poker</title>
                     <meta name="description" content="Purchase diamonds to unlock premium features" />
                     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                    
+
                     <style>{`
                     /* 800px Design Canvas - CSS Zoom Scaling (Training Page Template) */
                     .diamond-store-page { width: 100%; max-width: 100%; margin: 0 auto; overflow-x: hidden; }
@@ -959,7 +963,7 @@ export default function DiamondStorePage() {
                             alt="Diamonds Store"
                             style={{ width: '100%', height: 'auto', display: 'block' }}
                             draggable={false}
-                         loading="lazy" />
+                            loading="lazy" />
 
                         {/* ── Tab button clickable zones ── */}
                         {/* Diamonds tab */}
@@ -997,7 +1001,7 @@ export default function DiamondStorePage() {
                                 alt="Diamond Packages — Click any box to add to cart"
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
-                             loading="lazy" />
+                                loading="lazy" />
 
 
 
@@ -1044,7 +1048,7 @@ export default function DiamondStorePage() {
                                 alt="VIP Membership — Unlock Everything For One Low Monthly Price. No Diamond Costs, No Limits."
                                 style={{ width: '100%', height: 'auto', display: 'block' }}
                                 draggable={false}
-                             loading="lazy" />
+                                loading="lazy" />
                         </div>
                     )}
 
@@ -1092,7 +1096,7 @@ export default function DiamondStorePage() {
                                             alt={isProcessing ? 'Processing...' : 'Subscribe For $19.99 A Month'}
                                             style={{ width: '100%', maxWidth: 420, height: 'auto', display: 'block' }}
                                             draggable={false}
-                                         loading="lazy" />
+                                            loading="lazy" />
                                     </div>
 
                                 </div>
@@ -1340,7 +1344,7 @@ export default function DiamondStorePage() {
                                                             boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
                                                         }}
                                                         draggable={false}
-                                                     loading="lazy" />
+                                                        loading="lazy" />
                                                 </div>
                                                 <div style={{
                                                     display: 'flex',
