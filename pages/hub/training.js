@@ -1144,6 +1144,13 @@ export default function TrainingPage() {
                                 <span style={gamificationNavStyles.icon}>📊</span>
                                 <span style={gamificationNavStyles.label}>Reports</span>
                             </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/aggregate')}
+                            >
+                                <span style={gamificationNavStyles.icon}>📈</span>
+                                <span style={gamificationNavStyles.label}>Aggregate</span>
+                            </div>
                         </div>
 
                         {/* 🎁 Daily Bonus Widget */}

@@ -1198,8 +1198,28 @@ export default function TriviaModePage() {
                 .lb-col.streak { width: 55px; text-align: center; color: #f97316; }
                 .lb-col.accuracy { width: 50px; text-align: center; color: #22c55e; }
                 .lb-col.games { width: 50px; text-align: center; color: rgba(255,255,255,0.5); }
+
+                /* ===== MOBILE OPTIMIZATION ===== */
+                @media (max-width: 768px) {
+                    .content {
+                        padding: 60px 0 20px;
+                    }
+
+                    .lobby-image-wrapper {
+                        max-height: calc(100dvh - 60px);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .lobby-image {
+                        max-height: calc(100dvh - 60px);
+                        width: 100%;
+                        object-fit: contain;
+                    }
+                }
             `}</style>
         </PageTransition>
     );
 }
-/* Cache bust: lobby-images-fullscreen-v2 */
+/* Cache bust: lobby-images-mobile-v3 */

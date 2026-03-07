@@ -1227,7 +1227,7 @@ export default function VirtualSandbox() {
 
               {/* Train This Spot -- Phase 3 */}
               <button onClick={() => router.push(`/hub/training?position=${heroPosition}&hand=${heroHand.card1 || ''}${heroHand.card2 || ''}`)}
-                style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', marginBottom: 8 }}>
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', marginBottom: 8 }}>
                 Train This Spot
               </button>
             </motion.div>

@@ -70,6 +70,7 @@ const staticPages = [
     { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
     { path: '/hub/training/analyzer', priority: '0.6', changefreq: 'weekly' },
     { path: '/hub/training/reports', priority: '0.5', changefreq: 'weekly' },
+    { path: '/hub/training/aggregate', priority: '0.5', changefreq: 'weekly' },
 
     // Hub — Diamond Store sub-pages
     { path: '/hub/diamond-store/cart', priority: '0.5', changefreq: 'weekly' },

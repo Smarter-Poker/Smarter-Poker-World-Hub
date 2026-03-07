@@ -13,6 +13,9 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
+import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
+import EVGraph from '../../../src/components/training/EVGraph';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -389,6 +392,7 @@ function usePlayMode() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function SessionSummary({ handResults, onPlayAgain, onExit }) {
+    const [activeTab, setActiveTab] = useState('summary');
     const stats = useMemo(() => {
         const wins = handResults.filter(h => h.result?.heroWon).length;
         const losses = handResults.length - wins;
@@ -416,53 +420,112 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                 SESSION COMPLETE
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
+            {/* Tab buttons */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 16, justifyContent: 'center' }}>
                 {[
-                    { label: 'Hands', value: stats.hands, color: '#00d4ff' },
-                    { label: 'Won', value: stats.wins, color: '#22c55e' },
-                    { label: 'Lost', value: stats.losses, color: '#ef4444' },
-                ].map(s => (
-                    <div key={s.label} style={{
-                        textAlign: 'center', padding: '12px 8px', borderRadius: 10,
-                        background: 'rgba(0,0,0,0.3)',
-                    }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: s.color, fontFamily: "'Orbitron', monospace" }}>
-                            {s.value}
-                        </div>
-                        <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-                            {s.label}
-                        </div>
-                    </div>
+                    { key: 'summary', label: '📊 Summary' },
+                    { key: 'replay', label: '🃏 Replay' },
+                    { key: 'positions', label: '🪑 Positions' },
+                ].map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        style={{
+                            padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                            border: activeTab === tab.key ? '1px solid #00d4ff' : '1px solid rgba(255,255,255,0.08)',
+                            background: activeTab === tab.key ? 'rgba(0,212,255,0.12)' : 'rgba(255,255,255,0.03)',
+                            color: activeTab === tab.key ? '#00d4ff' : '#64748b',
+                            cursor: 'pointer', transition: 'all 0.2s',
+                        }}
+                    >
+                        {tab.label}
+                    </button>
                 ))}
             </div>
 
-            {/* Hand-by-hand summary */}
-            <div style={{ marginBottom: 16 }}>
-                {handResults.map((h, i) => (
-                    <div key={i} style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '6px 10px', borderRadius: 6,
-                        background: h.result?.heroWon ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
-                        marginBottom: 3,
-                    }}>
-                        <span style={{ fontSize: 10, color: '#64748b', width: 20, fontFamily: "'Orbitron', monospace" }}>
-                            #{h.handNumber}
-                        </span>
-                        <div style={{ display: 'flex', gap: 2 }}>
-                            {(h.cards || []).map((c, ci) => <Card key={ci} card={c} size={18} />)}
-                        </div>
-                        <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{h.position}</span>
-                        <span style={{
-                            fontSize: 10, fontWeight: 700, marginLeft: 'auto',
-                            color: h.result?.heroWon ? '#22c55e' : '#ef4444',
-                        }}>
-                            {h.result?.heroWon ? 'WON' : h.result?.result === 'fold' ? 'FOLDED' : 'LOST'}
-                        </span>
+            {/* Summary Tab */}
+            {activeTab === 'summary' && (
+                <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 20 }}>
+                        {[
+                            { label: 'Hands', value: stats.hands, color: '#00d4ff' },
+                            { label: 'Won', value: stats.wins, color: '#22c55e' },
+                            { label: 'Lost', value: stats.losses, color: '#ef4444' },
+                        ].map(s => (
+                            <div key={s.label} style={{
+                                textAlign: 'center', padding: '12px 8px', borderRadius: 10,
+                                background: 'rgba(0,0,0,0.3)',
+                            }}>
+                                <div style={{ fontSize: 26, fontWeight: 800, color: s.color, fontFamily: "'Orbitron', monospace" }}>
+                                    {s.value}
+                                </div>
+                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+                                    {s.label}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    {/* EV Graph */}
+                    <EVGraph handHistory={handResults} title="📈 EV by Street" />
+
+                    {/* Hand-by-hand summary */}
+                    <div style={{ marginBottom: 16, marginTop: 12 }}>
+                        {handResults.map((h, i) => (
+                            <div key={i} style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                padding: '6px 10px', borderRadius: 6,
+                                background: h.result?.heroWon ? 'rgba(34,197,94,0.05)' : 'rgba(239,68,68,0.05)',
+                                marginBottom: 3,
+                            }}>
+                                <span style={{ fontSize: 10, color: '#64748b', width: 20, fontFamily: "'Orbitron', monospace" }}>
+                                    #{h.handNumber}
+                                </span>
+                                <div style={{ display: 'flex', gap: 2 }}>
+                                    {(h.cards || []).map((c, ci) => <Card key={ci} card={c} size={18} />)}
+                                </div>
+                                <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{h.position}</span>
+                                <span style={{
+                                    fontSize: 10, fontWeight: 700, marginLeft: 'auto',
+                                    color: h.result?.heroWon ? '#22c55e' : '#ef4444',
+                                }}>
+                                    {h.result?.heroWon ? 'WON' : h.result?.result === 'fold' ? 'FOLDED' : 'LOST'}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
+            {/* Replay Tab */}
+            {activeTab === 'replay' && (
+                <HandReplayViewer
+                    handHistory={handResults.map(h => ({
+                        heroCards: h.cards || [],
+                        board: h.board || [],
+                        position: h.position,
+                        result: h.result?.result,
+                        heroWon: h.result?.heroWon,
+                        pot: h.result?.pot,
+                        classification: h.result?.heroWon ? 'best' : 'blunder',
+                    }))}
+                    onClose={() => setActiveTab('summary')}
+                />
+            )}
+
+            {/* Position Stats Tab */}
+            {activeTab === 'positions' && (
+                <PositionStatsPanel
+                    handHistory={handResults.map(h => ({
+                        heroPosition: h.position,
+                        isCorrect: h.result?.heroWon,
+                        evLoss: h.result?.evLoss || 0,
+                        classification: h.result?.heroWon ? 'best' : 'blunder',
+                    }))}
+                />
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 16 }}>
                 <motion.button
                     onClick={onPlayAgain}
                     whileHover={{ scale: 1.05 }}

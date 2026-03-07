@@ -419,6 +419,87 @@ export default function GTOReports() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* 🔥 Weakest Spots Heatmap */}
+                                {report.positionReport && (() => {
+                                    const sorted = positionOrder
+                                        .filter(p => report.positionReport[p]?.total > 0)
+                                        .map(p => ({ pos: p, ...report.positionReport[p] }))
+                                        .sort((a, b) => a.accuracy - b.accuracy);
+                                    const weakest = sorted.slice(0, 3);
+
+                                    if (weakest.length === 0) return null;
+
+                                    return (
+                                        <div style={{
+                                            marginTop: 24, padding: 16,
+                                            background: 'rgba(239,68,68,0.05)',
+                                            borderRadius: 12,
+                                            border: '1px solid rgba(239,68,68,0.15)',
+                                        }}>
+                                            <div style={{
+                                                fontSize: 12, fontWeight: 700, color: '#fca5a5',
+                                                textTransform: 'uppercase', letterSpacing: 1,
+                                                marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6,
+                                            }}>
+                                                <span style={{ fontSize: 16 }}>🔥</span>
+                                                Weakest Spots — Fix These First
+                                            </div>
+
+                                            {weakest.map((w, idx) => (
+                                                <div key={w.pos} style={{
+                                                    display: 'flex', alignItems: 'center', gap: 10,
+                                                    padding: '8px 0',
+                                                    borderBottom: idx < weakest.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                                                }}>
+                                                    <div style={{
+                                                        width: 20, height: 20, borderRadius: 4,
+                                                        background: w.accuracy < 40 ? '#ef4444' : w.accuracy < 60 ? '#f97316' : '#fbbf24',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: 10, fontWeight: 800, color: '#000',
+                                                    }}>
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: 13, fontWeight: 800, color: '#e2e8f0',
+                                                        fontFamily: "'Orbitron', monospace", width: 36,
+                                                    }}>
+                                                        {w.pos}
+                                                    </div>
+                                                    <div style={{
+                                                        flex: 1, height: 6, background: 'rgba(255,255,255,0.05)',
+                                                        borderRadius: 3, overflow: 'hidden',
+                                                    }}>
+                                                        <div style={{
+                                                            width: `${w.accuracy}%`, height: '100%', borderRadius: 3,
+                                                            background: w.accuracy < 40 ? '#ef4444' : w.accuracy < 60 ? '#f97316' : '#fbbf24',
+                                                        }} />
+                                                    </div>
+                                                    <span style={{
+                                                        fontSize: 12, fontWeight: 700,
+                                                        fontFamily: "'Orbitron', monospace",
+                                                        color: w.accuracy < 40 ? '#ef4444' : w.accuracy < 60 ? '#f97316' : '#fbbf24',
+                                                        width: 36, textAlign: 'right',
+                                                    }}>
+                                                        {w.accuracy}%
+                                                    </span>
+                                                    <button
+                                                        onClick={() => router.push(`/hub/training/solutions?position=${w.pos}`)}
+                                                        style={{
+                                                            background: 'rgba(249,115,22,0.15)',
+                                                            border: '1px solid rgba(249,115,22,0.3)',
+                                                            borderRadius: 6, padding: '4px 10px',
+                                                            color: '#f97316', fontSize: 10, fontWeight: 700,
+                                                            cursor: 'pointer', whiteSpace: 'nowrap',
+                                                        }}
+                                                    >
+                                                        Fix Leak →
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </motion.div>
                     )}

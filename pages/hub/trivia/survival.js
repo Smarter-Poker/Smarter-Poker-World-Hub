@@ -569,6 +569,26 @@ export default function SurvivalModePage() {
                     gap: 12px;
                     justify-content: center;
                 }
+
+                /* ===== MOBILE OPTIMIZATION ===== */
+                @media (max-width: 768px) {
+                    .content {
+                        padding: 60px 0 20px;
+                    }
+
+                    .lobby-image-wrapper {
+                        max-height: calc(100dvh - 60px);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+
+                    .lobby-image {
+                        max-height: calc(100dvh - 60px);
+                        width: 100%;
+                        object-fit: contain;
+                    }
+                }
             `}</style>
         </PageTransition>
     );

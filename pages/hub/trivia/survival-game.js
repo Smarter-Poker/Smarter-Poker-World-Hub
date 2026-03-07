@@ -742,9 +742,13 @@ export default function SurvivalGamePage() {
                                 <div style={{
                                     borderRadius: '16px',
                                     overflow: 'hidden',
-                                    marginBottom: '24px'
+                                    marginBottom: '24px',
+                                    maxHeight: 'calc(100dvh - 60px)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                 }}>
-                                    <Image src="/images/trivia/lobby-survival.jpg" alt="Survival Mode - 10 Levels Progressive Challenge" width={686} height={1024} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                                    <Image src="/images/trivia/lobby-survival.jpg" alt="Survival Mode - 10 Levels Progressive Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block', maxHeight: 'calc(100dvh - 60px)', objectFit: 'contain' }} />
                                 </div>
 
                                 {/* Accuracy Requirements */}
