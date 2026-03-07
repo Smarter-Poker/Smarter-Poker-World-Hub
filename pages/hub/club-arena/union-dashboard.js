@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedState from '../../../src/hooks/usePersistedState';
@@ -18,25 +19,7 @@ const FB = {
     orange: '#F5A623', purple: '#A855F7',
 };
 
-const getAuthToken = async () => {
-    // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    //    'smarter-poker-auth' is the storageKey configured in supabase.ts
-    try {
-        const cached = localStorage.getItem('smarter-poker-auth');
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.access_token) return parsed.access_token;
-        }
-    } catch (_) { /* localStorage unavailable (incognito, quota) */ }
-
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
-    try {
-        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-        return session?.access_token || null;
-    } catch (_) {
-        return null;
-    }
-};
+const getAuthToken = () => getAccessToken();
 
 const apiCall = async (endpoint, body) => {
     const token = await getAuthToken();
@@ -79,7 +62,7 @@ const ALL_TABS = [
     { id: 'settlement', label: 'Settlement', leadOnly: false },
     { id: 'mint', label: 'Mint Chips', leadOnly: false },
     { id: 'bbj', label: 'BBJ', leadOnly: false },
-    { id: 'admins', label: 'Admins', leadOnly: true },
+    { id: 'admins', label: 'Admins', leadOnly: false },       // All admins can VIEW; only lead can manage
     { id: 'manage_clubs', label: 'Manage Clubs', leadOnly: true },
     { id: 'settings', label: 'Settings', leadOnly: true },
 ];
@@ -133,22 +116,14 @@ export default function UnionDashboard() {
         setTimeout(() => setToast(null), 3500);
     };
 
-    // Auth
+    // Auth — use bulletproof getAuthUser() from authUtils (3-level fallback chain)
     useEffect(() => {
-        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-            if (session?.user) setUser(session.user);
-            else {
-                // Fallback: try localStorage directly
-                try {
-                    const cached = localStorage.getItem('smarter-poker-auth');
-                    if (cached) {
-                        const parsed = JSON.parse(cached);
-                        if (parsed?.user) { setUser(parsed.user); return; }
-                    }
-                } catch (_) { /* ignore */ }
-                router.push('/auth/login');
-            }
-        });
+        const authUser = getAuthUser();
+        if (authUser) {
+            setUser(authUser);
+        } else {
+            router.push('/auth/login');
+        }
     }, [router]);
 
     // Load dashboard data
@@ -489,13 +464,13 @@ export default function UnionDashboard() {
                             </div>
                         )}
 
-                        {/* Quick Actions */}
+                        {/* Quick Actions — filter Add Club for non-leads */}
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                             {[
                                 { label: 'View Games', tab: 'games', color: FB.primary },
                                 { label: 'Mint Chips', tab: 'mint', color: FB.gold },
                                 { label: 'Settlement', tab: 'settlement', color: FB.purple },
-                                { label: 'Add Club', tab: 'manage_clubs', color: FB.success },
+                                ...(isLead ? [{ label: 'Add Club', tab: 'manage_clubs', color: FB.success }] : []),
                             ].map(q => (
                                 <button key={q.tab} onClick={() => setActiveTab(q.tab)} style={{
                                     background: q.color, color: q.color === FB.gold ? '#000' : '#fff',
@@ -547,6 +522,11 @@ export default function UnionDashboard() {
                                     <span>👥 {club.member_count || 0} members</span>
                                     <span>🏦 {(club.chip_treasury || 0).toLocaleString()} treasury</span>
                                     <span>🎰 {(club.total_rake || 0).toLocaleString()} rake</span>
+                                    {club.club_commission_rate != null && (
+                                        <span style={{ color: FB.gold, fontWeight: 600 }}>
+                                            ✂️ {((club.club_commission_rate || 0) * 100).toFixed(0)}% commission
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -872,35 +852,60 @@ export default function UnionDashboard() {
                                 }} style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Add</button>
                             </div>
                         </div>
-                        {/* Current clubs with remove button */}
+                        {/* Current clubs with remove button + commission editor */}
                         <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Current Clubs</h3>
                         {clubs.length === 0 ? (
                             <div style={{ color: FB.textSecondary, textAlign: 'center', padding: 30 }}>No clubs in this union yet.</div>
                         ) : clubs.map(club => (
-                            <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{club.name}</div>
-                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
-                                        <span>{club.member_count || 0} members</span>
-                                        <span style={{ margin: '0 8px', color: FB.border }}>·</span>
-                                        <span>{(club.chip_treasury || 0).toLocaleString()} treasury</span>
+                            <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}`, marginBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{club.name}</div>
+                                        <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                            <span>{club.member_count || 0} members</span>
+                                            <span style={{ margin: '0 8px', color: FB.border }}>·</span>
+                                            <span>{(club.chip_treasury || 0).toLocaleString()} treasury</span>
+                                        </div>
                                     </div>
+                                    <button onClick={async () => {
+                                        if (confirmRemoveClub !== club.id) {
+                                            setConfirmRemoveClub(club.id);
+                                            setTimeout(() => setConfirmRemoveClub(null), 4000);
+                                            return;
+                                        }
+                                        setConfirmRemoveClub(null);
+                                        try {
+                                            await apiCall('/api/club-arena/manage-union', { action: 'remove_club', unionId: unionIdParam, clubId: club.id });
+                                            showToast(`Removed ${club.name}`);
+                                            loadDashboard();
+                                        } catch (e) { showToast(e.message, 'error'); }
+                                    }} style={{ background: confirmRemoveClub === club.id ? '#b91c1c' : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                                        {confirmRemoveClub === club.id ? 'Confirm?' : 'Remove'}
+                                    </button>
                                 </div>
-                                <button onClick={async () => {
-                                    if (confirmRemoveClub !== club.id) {
-                                        setConfirmRemoveClub(club.id);
-                                        setTimeout(() => setConfirmRemoveClub(null), 4000);
-                                        return;
-                                    }
-                                    setConfirmRemoveClub(null);
-                                    try {
-                                        await apiCall('/api/club-arena/manage-union', { action: 'remove_club', unionId: unionIdParam, clubId: club.id });
-                                        showToast(`Removed ${club.name}`);
-                                        loadDashboard();
-                                    } catch (e) { showToast(e.message, 'error'); }
-                                }} style={{ background: confirmRemoveClub === club.id ? '#b91c1c' : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                                    {confirmRemoveClub === club.id ? 'Confirm?' : 'Remove'}
-                                </button>
+                                {/* Commission rate editor */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                    <span style={{ fontSize: 12, color: FB.textSecondary }}>Club Commission:</span>
+                                    <input
+                                        type="number" min="1" max="100" step="1"
+                                        defaultValue={((club.club_commission_rate || 0.9) * 100).toFixed(0)}
+                                        id={`comm-rate-${club.id}`}
+                                        style={{ width: 64, background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 8px', fontSize: 13 }}
+                                    />
+                                    <span style={{ fontSize: 12, color: FB.textSecondary }}>%</span>
+                                    <button onClick={async () => {
+                                        const input = document.getElementById(`comm-rate-${club.id}`);
+                                        const val = parseFloat(input?.value || '90');
+                                        if (isNaN(val) || val < 1 || val > 100) { showToast('Rate must be 1–100%', 'error'); return; }
+                                        try {
+                                            await apiCall('/api/club-arena/manage-union', { action: 'update_club_commission', unionId: unionIdParam, clubId: club.id, commissionRate: val / 100 });
+                                            showToast(`${club.name} commission set to ${val}%`);
+                                            loadDashboard();
+                                        } catch (e) { showToast(e.message, 'error'); }
+                                    }} style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                                        Save
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

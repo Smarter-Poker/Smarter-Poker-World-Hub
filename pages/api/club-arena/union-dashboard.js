@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     if (clubIds.length > 0) {
       const { data: clubData } = await supabaseAdmin
         .from('clubs')
-        .select('id, name, club_id, member_count, chip_treasury, total_rake, owner_id, settings, created_at')
+        .select('id, name, club_id, member_count, chip_treasury, total_rake, owner_id, settings, club_commission_rate, created_at')
         .in('id', clubIds)
         .limit(200); // BUG FIX: was 100, but union_clubs limit is 200 → agents in clubs 101+ showed "Unknown Club"
       clubs = clubData || [];
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
           .from('profiles')
           .select('id, username, display_name')
           .in('id', agentUserIds)
-              .limit(100);
+          .limit(200);
 
         const profMap = {};
         for (const p of (agentProfiles || [])) profMap[p.id] = p;

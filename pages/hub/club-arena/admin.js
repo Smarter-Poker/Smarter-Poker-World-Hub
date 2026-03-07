@@ -24,7 +24,7 @@ const FB = {
     hover: '#3A3B3C',
 };
 
-const ROLES = ['owner', 'admin', 'agent', 'player'];
+const ROLES = ['owner', 'admin', 'super_agent', 'agent', 'sub_agent', 'player'];
 
 // Helper: get auth token for API calls
 const getAuthToken = async () => {
@@ -151,7 +151,7 @@ export default function Admin() {
                 setClubName(clubData.name || '');
                 setClubDescription(clubData.description || '');
 
-                // Check if user is admin
+                // Check if user is admin/owner of this club
                 if (authUser) {
                     const { data: membership } = await supabase
                         .from('club_members')
@@ -159,7 +159,19 @@ export default function Admin() {
                         .eq('club_id', clubData.id)
                         .eq('user_id', authUser.id)
                         .maybeSingle();
-                    setIsAdmin(membership?.role === 'owner' || membership?.role === 'admin');
+                    let adminAccess = membership?.role === 'owner' || membership?.role === 'admin';
+
+                    // Also grant access to union admins of the club's parent union
+                    if (!adminAccess && clubData.union_id) {
+                        const { data: unionAdmin } = await supabase
+                            .from('union_admins')
+                            .select('role')
+                            .eq('union_id', clubData.union_id)
+                            .eq('user_id', authUser.id)
+                            .maybeSingle();
+                        if (unionAdmin) adminAccess = true;
+                    }
+                    setIsAdmin(adminAccess);
                 }
 
                 // Get members
@@ -596,7 +608,7 @@ export default function Admin() {
                             {members.length === 0 ? (
                                 <p style={{ color: FB.textSecondary, textAlign: 'center' }}>No Members Yet</p>
                             ) : (() => {
-                                const agents = members.filter(m => m.role === 'agent');
+                                const agents = members.filter(m => ['agent', 'super_agent'].includes(m.role));
                                 return members.map(member => {
                                     const assignedAgent = agents.find(a => a.user_id === member.agent_id);
                                     const downlineCount = member.role === 'agent' ? members.filter(m => m.agent_id === member.user_id).length : 0;
@@ -902,7 +914,7 @@ export default function Admin() {
                                 style={{ width: '100%', padding: '10px 14px', background: '#18191A', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}>
                                 <option value="">— Independent (no parent) —</option>
                                 {(members || []).filter(m => ['agent','super_agent'].includes(m.role) && m.user_id !== agentActionModal.agent.user_id).map(a => (
-                                    <option key={a.user_id} value={a.user_id}>{a.profile?.display_name || a.profile?.username || a.user_id.slice(0, 8)}</option>
+                                    <option key={a.user_id} value={a.user_id}>{a.profiles?.display_name || a.profiles?.username || a.user_id.slice(0, 8)}</option>
                                 ))}
                             </select>
                             <div style={{ display: 'flex', gap: 10 }}>

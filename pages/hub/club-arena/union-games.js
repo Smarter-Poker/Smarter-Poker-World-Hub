@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
@@ -24,19 +25,7 @@ const STATUS_COLORS = {
   waiting: '#2374E1', closed: '#6b7280', deleted: '#dc2626',
 };
 
-const getToken = async () => {
-  // 1. Fast path: localStorage (instant, no network)
-  try {
-    const cached = localStorage.getItem('smarter-poker-auth');
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed?.access_token) return parsed.access_token;
-    }
-  } catch (_) { /* incognito / quota */ }
-  // 2. Slow path: supabase session (handles refresh)
-  const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-  return session?.access_token || '';
-};
+const getToken = () => getAccessToken();
 
 const api = async (action, params) => {
   const token = await getToken();
@@ -81,20 +70,12 @@ export default function UnionGames() {
   const [searchQuery, setSearchQuery] = useState(''); // filter tournaments/tables by name
 
   useEffect(() => {
-    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-      if (session?.user) setUser(session.user);
-      else {
-        // Fallback: try localStorage directly
-        try {
-          const cached = localStorage.getItem('smarter-poker-auth');
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.user) { setUser(parsed.user); return; }
-          }
-        } catch (_) { /* ignore */ }
-        router.push('/auth/login');
-      }
-    });
+    const authUser = getAuthUser();
+    if (authUser) {
+      setUser(authUser);
+    } else {
+      router.push('/auth/login');
+    }
   }, [router]);
 
   // Load union info
@@ -460,22 +441,26 @@ export default function UnionGames() {
                 background: FB.card, borderRadius: 12, padding: 16, marginTop: 12,
                 border: `1px solid ${FB.border}`, cursor: 'pointer',
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: 15 }}>{t.name}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
                     {t.settings?.isUnionTournament && (
-                      <span style={{ marginLeft: 8, fontSize: 10, background: FB.purple, color: '#fff', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>UNION</span>
+                      <span style={{ fontSize: 10, background: FB.purple, color: '#fff', padding: '2px 6px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>UNION</span>
                     )}
                   </div>
                   <span style={{
                     background: STATUS_COLORS[t.status] || FB.dim, color: '#fff', fontSize: 10,
-                    fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase',
+                    fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase', flexShrink: 0, marginLeft: 8,
                   }}>{t.status?.replace(/_/g, ' ')}</span>
-                  <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
-                  <span> {(t.game_type || 'NLHE').toUpperCase()} {(t.settings?.tournamentType || 'MTT').toUpperCase()}</span>
-                  <span> {Number(t.buy_in).toLocaleString()}</span>
-                  <span> {t.registered_count}/{t.max_players}</span>
-                  <span> {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
+                </div>
+                {/* Info row */}
+                <div style={{ display: 'flex', gap: 12, fontSize: 12, color: FB.dim, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <span>🏢 {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
+                  <span>🃏 {(t.game_type || 'NLHE').toUpperCase()} {(t.settings?.tournamentType || 'MTT').toUpperCase()}</span>
+                  <span>💰 Buy-in: {Number(t.buy_in).toLocaleString()}</span>
+                  <span>👥 {t.registered_count}/{t.max_players}</span>
+                  <span style={{ color: FB.gold }}>🏆 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
+                  {t.start_time && <span>🕐 {new Date(t.start_time).toLocaleString()}</span>}
                 </div>
                 {/* Actions */}
                 {['scheduled', 'registering'].includes(t.status) && (
@@ -908,15 +893,35 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     let active = true;
     (async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch registrations
+        const { data: regData, error: regErr } = await supabase
           .from('tournament_registrations')
-          .select('user_id, display_name, club_id, status, registered_at, finish_position, payout_amount')
+          .select('user_id, club_id, status, registered_at, finish_position, payout_amount')
           .eq('tournament_id', t.id)
           .in('status', ['registered', 'playing', 'eliminated', 'winner'])
           .order('registered_at')
           .limit(200);
-        if (error) console.error('[TournamentDetail] regs fetch:', error);
-        if (active) setRegs(data || []);
+        if (regErr) console.error('[TournamentDetail] regs fetch:', regErr);
+        if (!active) return;
+
+        const rows = regData || [];
+
+        // Enrich with display names from profiles
+        const userIds = [...new Set(rows.map(r => r.user_id))];
+        let profileMap = {};
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, username, display_name')
+            .in('id', userIds)
+            .limit(200);
+          for (const p of (profiles || [])) profileMap[p.id] = p;
+        }
+
+        if (active) setRegs(rows.map(r => ({
+          ...r,
+          display_name: profileMap[r.user_id]?.display_name || profileMap[r.user_id]?.username || null,
+        })));
       } catch (e) {
         console.error('[TournamentDetail] regs fetch:', e);
       }
@@ -991,8 +996,8 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
   if (t.settings?.clubIds?.length > 1) {
     rows.push(['Clubs', `${t.settings.clubIds.length} participating`]);
   }
-  if (t.scheduled_start) {
-    rows.push(['Scheduled', new Date(t.scheduled_start).toLocaleString()]);
+  if (t.start_time) {
+    rows.push(['Scheduled', new Date(t.start_time).toLocaleString()]);
   }
 
   return (

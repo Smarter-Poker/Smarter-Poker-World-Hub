@@ -7,6 +7,7 @@ import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useDebounce from '../../../src/hooks/useDebounce';
@@ -23,25 +24,7 @@ const FB = {
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-const getAuthToken = async () => {
-    // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    //    'smarter-poker-auth' is the storageKey configured in supabase.ts
-    try {
-        const cached = localStorage.getItem('smarter-poker-auth');
-        if (cached) {
-            const parsed = JSON.parse(cached);
-            if (parsed?.access_token) return parsed.access_token;
-        }
-    } catch (_) { /* localStorage unavailable (incognito, quota) */ }
-
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
-    try {
-        const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-        return session?.access_token || null;
-    } catch (_) {
-        return null;
-    }
-};
+const getAuthToken = () => getAccessToken();
 
 const apiCall = async (endpoint, body) => {
     const token = await getAuthToken();
@@ -125,21 +108,13 @@ export default function AgentDashboard() {
 
     // ─── Auth ───────────────────────────────────────────────────
     useEffect(() => {
-        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-            if (session?.user) setUser(session.user);
-            else {
-                // Fallback: try localStorage directly
-                try {
-                    const cached = localStorage.getItem('smarter-poker-auth');
-                    if (cached) {
-                        const parsed = JSON.parse(cached);
-                        if (parsed?.user) { setUser(parsed.user); return; }
-                    }
-                } catch (_) { /* ignore */ }
-                router.push('/auth/login');
-            }
-        });
-    }, [router]); // BUG FIX: was [] — router must be in deps
+        const authUser = getAuthUser();
+        if (authUser) {
+            setUser(authUser);
+        } else {
+            router.push('/auth/login');
+        }
+    }, [router]);
 
     // ─── Load Dashboard ─────────────────────────────────────────
     const loadDashboard = useCallback(async () => {
@@ -374,7 +349,11 @@ export default function AgentDashboard() {
                             Agent Dashboard
                         </h1>
                         <span style={{ fontSize: 12, color: FB.primary, fontWeight: 600, textTransform: 'uppercase' }}>
-                            {role === 'owner' ? ' Owner View' : role === 'admin' ? ' Admin View' : ' Agent View'}
+                            {role === 'owner' ? '👑 Owner View'
+                                : role === 'admin' ? '🛡 Admin View'
+                                : role === 'super_agent' ? '⭐ Super Agent'
+                                : role === 'sub_agent' ? '🔹 Sub Agent'
+                                : '🎯 Agent View'}
                         </span>
                     </div>
                     <button onClick={loadDashboard} style={{ ...btnStyle, padding: '6px 14px', fontSize: 12 }}>
