@@ -91,23 +91,24 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState(null);
 
-    // ── Bulletproof userId: prop → localStorage Supabase key → custom auth key ──
+    // ── Bulletproof userId: prop → getSafeUser → all localStorage keys ──
     const [localUserId, setLocalUserId] = useState(null);
     useEffect(() => {
         if (userIdProp) { setLocalUserId(userIdProp); return; }
-        // Fallback: read from localStorage
-        try {
-            const storageKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-            if (storageKey) {
-                const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
-                const uid = stored?.user?.id;
-                if (uid) { setLocalUserId(uid); return; }
+        // Centralized fallback using getSafeUser (handles ALL auth key variants)
+        (async () => {
+            try {
+                const { getSafeUser, getAuthUser } = await import('../../lib/authUtils');
+                // Fast sync check first
+                const syncUser = getAuthUser();
+                if (syncUser?.id) { setLocalUserId(syncUser.id); return; }
+                // Async fallback
+                const user = await getSafeUser(supabase);
+                if (user?.id) setLocalUserId(user.id);
+            } catch (e) {
+                console.warn('[TokeTracker] userId fallback failed:', e?.message);
             }
-        } catch (e) { /* ignore */ }
-        try {
-            const custom = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
-            if (custom?.user?.id) setLocalUserId(custom.user.id);
-        } catch (e) { /* ignore */ }
+        })();
     }, [userIdProp]);
     const userId = userIdProp || localUserId;
 
@@ -209,30 +210,10 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
     const [createError, setCreateError] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
 
-    // ── Component-level userId resolution (backup when AvatarContext.user is null) ──
+    // ── Resolved userId ref — caches the last known good userId for handlers ──
     const resolvedUserIdRef = useRef(null);
     useEffect(() => {
-        if (userId) { resolvedUserIdRef.current = userId; return; }
-        // If userId prop is null, try to resolve it ourselves
-        (async () => {
-            try {
-                const { getAuthUser } = await import('../../lib/authUtils');
-                const au = getAuthUser();
-                if (au?.id) { resolvedUserIdRef.current = au.id; return; }
-            } catch (_) { }
-            try {
-                const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                if (sbKey) {
-                    const parsed = JSON.parse(localStorage.getItem(sbKey) || '{}');
-                    const id = parsed?.user?.id || parsed?.currentSession?.user?.id;
-                    if (id) { resolvedUserIdRef.current = id; return; }
-                }
-            } catch (_) { }
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session?.user?.id) { resolvedUserIdRef.current = session.user.id; }
-            } catch (_) { }
-        })();
+        if (userId) resolvedUserIdRef.current = userId;
     }, [userId]);
 
     // Green celebration flash after closing a day
@@ -547,59 +528,24 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             return;
         }
 
-        // Bulletproof 5-layer userId resolution
+        // Centralized userId resolution using getSafeUser
         let actualUserId = userId || resolvedUserIdRef.current;
 
         if (!actualUserId) {
-            console.warn('[TokeTracker] userId prop is null/undefined — running fallback resolution');
-
-            // Layer 1: getAuthUser() — handles smarter-poker-auth, smarter_poker_auth, sb-* keys
+            console.warn('[TokeTracker] userId is null — resolving via getSafeUser');
             try {
-                const { getAuthUser } = await import('../../lib/authUtils');
-                const authUser = getAuthUser();
-                actualUserId = authUser?.id;
-                if (actualUserId) console.log('[TokeTracker] Layer 1 (getAuthUser) resolved:', actualUserId);
-            } catch (e) { console.warn('[TokeTracker] Layer 1 failed:', e?.message); }
-
-            // Layer 2: Direct localStorage scan — all known auth key variants
-            if (!actualUserId) {
-                const authKeys = ['smarter-poker-auth', 'smarter_poker_auth', 'sp_auth', 'sb-auth-token'];
-                for (const key of authKeys) {
-                    try {
-                        const raw = localStorage.getItem(key);
-                        if (!raw) continue;
-                        const parsed = JSON.parse(raw);
-                        const id = parsed?.user?.id || parsed?.currentSession?.user?.id;
-                        if (id) {
-                            actualUserId = id;
-                            console.log(`[TokeTracker] Layer 2 (${key}) resolved:`, id);
-                            break;
-                        }
-                    } catch (e) { /* ignore */ }
+                const { getSafeUser, restoreSessionBackup } = await import('../../lib/authUtils');
+                // Try session backup recovery first
+                restoreSessionBackup();
+                const user = await getSafeUser(supabase);
+                actualUserId = user?.id;
+                if (actualUserId) {
+                    console.log('[TokeTracker] getSafeUser resolved:', actualUserId);
+                    // Cache for future calls
+                    resolvedUserIdRef.current = actualUserId;
                 }
-            }
-
-            // Layer 3: Also check sb-*-auth-token pattern (legacy Supabase default keys)
-            if (!actualUserId) {
-                try {
-                    const sbKey = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-                    if (sbKey) {
-                        const parsed = JSON.parse(localStorage.getItem(sbKey) || '{}');
-                        actualUserId = parsed?.user?.id || parsed?.currentSession?.user?.id;
-                        if (actualUserId) console.log(`[TokeTracker] Layer 3 (${sbKey}) resolved:`, actualUserId);
-                    }
-                } catch (e) { /* ignore */ }
-            }
-
-            // Layer 4: supabase.auth.getSession() — last resort (may AbortError)
-            if (!actualUserId) {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    actualUserId = session?.user?.id;
-                    if (actualUserId) console.log('[TokeTracker] Layer 4 (getSession) resolved:', actualUserId);
-                } catch (err) {
-                    console.warn('[TokeTracker] Layer 4 (getSession) failed:', err?.message);
-                }
+            } catch (e) {
+                console.warn('[TokeTracker] getSafeUser failed:', e?.message);
             }
         }
 
@@ -625,9 +571,14 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         } catch (err) {
             // "Already active" — just load the existing event
             if (err?.message?.includes('already have an active')) {
-                toast('You already have an active event — loading it now', { icon: 'ℹ️' });
+                toast.info('You already have an active event — loading it now');
                 setShowCreateForm(false);
                 await loadData();
+            } else if (err?.message?.includes('Insert failed')) {
+                // Direct fetch insert failure — show the actual error
+                console.error('[TokeTracker] createGig insert failed:', err);
+                setCreateError(err.message);
+                toast.error(err.message, 5000);
             } else if (isAbortError(err)) {
                 // AbortError after all retries exhausted — tell user to try again
                 console.error('[TokeTracker] createGig aborted after all retries');
