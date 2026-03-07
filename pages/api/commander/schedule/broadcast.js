@@ -57,15 +57,32 @@ export default async function handler(req, res) {
         end.setDate(end.getDate() + 7);
         const endStr = end.toISOString().split('T')[0];
 
-        const { data: shifts, error: shiftsErr } = await supabase
-            .from('commander_staff_shifts')
-            .select('*')
-            .eq('venue_id', venue_id)
-            .gte('shift_date', week_start)
-            .lt('shift_date', endStr)
-            .order('shift_date')
-            .order('start_time')
-                .limit(100);
+        // Parallel fetch: shifts, staff, and venue name are all independent
+        const [shiftsResult, staffResult, venueResult] = await Promise.all([
+            supabase
+                .from('commander_staff_shifts')
+                .select('*')
+                .eq('venue_id', venue_id)
+                .gte('shift_date', week_start)
+                .lt('shift_date', endStr)
+                .order('shift_date')
+                .order('start_time')
+                .limit(100),
+            supabase
+                .from('commander_staff')
+                .select('id, display_name, phone, email, role')
+                .eq('venue_id', venue_id)
+                .eq('is_active', true)
+                .limit(100),
+            supabase
+                .from('poker_venues')
+                .select('name')
+                .eq('id', venue_id)
+                .maybeSingle()
+        ]);
+
+        const { data: shifts, error: shiftsErr } = shiftsResult;
+        const { data: allStaff, error: staffErr } = staffResult;
 
         if (shiftsErr) throw shiftsErr;
 
@@ -76,22 +93,9 @@ export default async function handler(req, res) {
             });
         }
 
-        // Fetch all staff to get phone/email
-        const { data: allStaff, error: staffErr } = await supabase
-            .from('commander_staff')
-            .select('id, display_name, phone, email, role')
-            .eq('venue_id', venue_id)
-            .eq('is_active', true)
-                .limit(100)
-
         if (staffErr) throw staffErr;
 
-        // Get venue name
-        let venueName = 'Your Venue';
-        try {
-            const { data: venueData } = await supabase.from('poker_venues').select('name').eq('id', venue_id).maybeSingle();
-            if (venueData?.name) venueName = venueData.name;
-        } catch (e) { /* fallback */ }
+        const venueName = venueResult.data?.name || 'Your Venue';
 
         // Group shifts by staff_id
         const shiftsByStaff = {};

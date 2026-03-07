@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { supabase } from '../../lib/supabase';
 import { useLiveHelp } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
@@ -83,6 +84,7 @@ export default function ThreePillHeader({
     useEffect(() => {
         let mounted = true;
         let notifSyncChannel = null;
+        let notifChannel = null;
         let diamondChannel = null;
         let diamondBc = null;
 
@@ -145,7 +147,7 @@ export default function ThreePillHeader({
                         }
 
                         // ── REAL-TIME SUPABASE SYNC (matches UniversalHeader) ──
-                        let notifChannel = supabase
+                        notifChannel = supabase
                             .channel('threepill-notifications')
                             .on('postgres_changes', {
                                 event: 'INSERT',
@@ -270,17 +272,13 @@ export default function ThreePillHeader({
                     notifSyncChannel.close();
                 } catch (e) { }
             }
+            if (notifChannel) {
+                supabase.removeChannel(notifChannel);
+            }
             if (diamondChannel) {
                 supabase.removeChannel(diamondChannel);
             }
             try { diamondBc?.close(); } catch (e) { }
-            try {
-                // Must search for and remove the active channel listener
-                const activeChannel = supabase.getChannels().find(c => c.topic === 'realtime:threepill-notifications');
-                if (activeChannel) {
-                    supabase.removeChannel(activeChannel);
-                }
-            } catch (e) { }
         };
     }, []);
 
