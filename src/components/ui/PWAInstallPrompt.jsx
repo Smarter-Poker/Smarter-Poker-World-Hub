@@ -1,7 +1,13 @@
 /**
  * PWA Install Prompt
  * Shows a native-style install banner when the browser fires 'beforeinstallprompt'
- * Respects user dismissal (stores in localStorage for 7 days)
+ * 
+ * Dismissal persistence:
+ *  - 1st "Later" → 30-day cooldown before showing again
+ *  - 2nd "Later" → permanently dismissed (never shows again)
+ *  - "Install" clicked → permanently stored as installed
+ *  - Also listens for browser 'appinstalled' event as backup
+ *  - Detects standalone/installed mode to avoid redundant prompts
  */
 import { useState, useEffect } from 'react';
 
@@ -10,12 +16,24 @@ export default function PWAInstallPrompt() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Don't show if already dismissed recently
-    const dismissed = localStorage.getItem('pwa_prompt_dismissed');
-    if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
+    // ─── Already installed (user clicked Install or appinstalled fired) ───
+    if (localStorage.getItem('pwa_installed')) return;
 
-    // Don't show if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    // ─── Running as installed PWA ───
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      localStorage.setItem('pwa_installed', 'true');
+      return;
+    }
+
+    // ─── Escalating dismissal logic ───
+    const dismissCount = parseInt(localStorage.getItem('pwa_dismiss_count') || '0');
+    if (dismissCount >= 2) return; // Permanently dismissed after 2nd "Later"
+
+    const dismissedAt = localStorage.getItem('pwa_prompt_dismissed');
+    if (dismissedAt) {
+      const cooldown = 30 * 24 * 60 * 60 * 1000; // 30 days
+      if (Date.now() - parseInt(dismissedAt) < cooldown) return;
+    }
 
     const handler = (e) => {
       e.preventDefault();
@@ -27,19 +45,37 @@ export default function PWAInstallPrompt() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  // ─── Listen for the browser 'appinstalled' event (fires after actual install) ───
+  useEffect(() => {
+    const onInstalled = () => {
+      localStorage.setItem('pwa_installed', 'true');
+      setShow(false);
+    };
+    window.addEventListener('appinstalled', onInstalled);
+    return () => window.removeEventListener('appinstalled', onInstalled);
+  }, []);
+
   const handleInstall = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setShow(false);
-    if (outcome === 'dismissed') {
+    if (outcome === 'accepted') {
+      // User accepted the install — permanently remember
+      localStorage.setItem('pwa_installed', 'true');
+    } else {
+      // User dismissed the browser prompt — escalate dismiss count
+      const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
+      localStorage.setItem('pwa_dismiss_count', count.toString());
       localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
     }
   };
 
   const handleDismiss = () => {
     setShow(false);
+    const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
+    localStorage.setItem('pwa_dismiss_count', count.toString());
     localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
   };
 

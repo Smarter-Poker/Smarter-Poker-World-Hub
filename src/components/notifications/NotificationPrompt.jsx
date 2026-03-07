@@ -119,8 +119,15 @@ export default function NotificationPrompt({ userId, onDismiss }) {
                     if (!mountedRef.current) return;
                     try {
                         const check = localStorage.getItem(PROMPT_KEY);
-                        if (!check) {
+                        // Also check browser's Notification.permission — if already
+                        // granted or denied at the OS level, skip our custom prompt
+                        const browserPerm = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+                        if (!check && browserPerm === 'default') {
                             setVisible(true);
+                        } else if (!check && browserPerm !== 'default') {
+                            // Browser already has an answer — persist so we never check again
+                            safeSetStorage(`browser_${browserPerm}_${Date.now()}`);
+                            recordOnServer(browserPerm, userId);
                         }
                     } catch {
                         // localStorage disabled — don't show (can't persist choice)

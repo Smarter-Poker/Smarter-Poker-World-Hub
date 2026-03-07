@@ -191,8 +191,17 @@ export function AvatarProvider({ children }) {
                         }
                     }).catch(() => { /* Network failure — keep existing session */ });
                 } else {
-                    // No session — user is not logged in
-                    setUser(null);
+                    // No session from Supabase — try direct localStorage fallback
+                    // This catches the case where navigator.locks AbortError killed session restoration
+                    const fallbackUser = getAuthUser();
+                    if (fallbackUser?.id) {
+                        console.log('[AvatarContext] INITIAL_SESSION empty but found user in localStorage fallback:', fallbackUser.email);
+                        setUser(fallbackUser);
+                        fetchVipStatus(fallbackUser.id);
+                    } else {
+                        // Truly not logged in
+                        setUser(null);
+                    }
                 }
                 setInitializing(false);
                 return;

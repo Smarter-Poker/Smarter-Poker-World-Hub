@@ -560,6 +560,29 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
+            // AbortError: silently retry once after 1s — never show to user
+            if (isAbortError(err)) {
+                console.debug('[TokeTracker] createGig aborted — auto-retrying in 1s');
+                try {
+                    await new Promise(r => setTimeout(r, 1000));
+                    await createGig(actualUserId, {
+                        ...newGig,
+                        hourly_rate: parseFloat(newGig.hourly_rate) || 0,
+                    });
+                    toast.success('Event started!');
+                    setShowCreateForm(false);
+                    setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
+                    await requestNotificationPermission();
+                    await loadData();
+                    window.dispatchEvent(new CustomEvent('toke-data-updated'));
+                } catch (retryErr) {
+                    if (!isAbortError(retryErr)) {
+                        console.error('[TokeTracker] createGig retry failed:', retryErr);
+                        toast.error(retryErr.message || 'Failed to create event — check your connection and try again', 5000);
+                    }
+                }
+                return;
+            }
             console.error('[TokeTracker] Failed to create gig:', err);
             toast.error(err.message || 'Failed to create event — check your connection and try again', 5000);
         }
@@ -581,7 +604,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 detail: { userId, gigId: activeGig.id }
             }));
         } catch (err) {
-            toast.error(err.message || 'Failed to complete gig');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to complete gig');
         }
     };
 
@@ -598,7 +621,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to delete gig');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to delete gig');
         }
     };
 
@@ -630,7 +653,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to update gig');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to update gig');
         }
     };
 
@@ -659,7 +682,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to add down');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to add down');
         }
     };
 
@@ -697,7 +720,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await endDown(endingDown.id, tokeAmt);
             toast.success('Down ended');
         } catch (err) {
-            toast.error(err.message || 'Failed to end down');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to end down');
         }
         await loadData();
         window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -729,7 +752,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await endDown(downId);
             toast.success('Down ended');
         } catch (err) {
-            toast.error(err.message || 'Failed to end down');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to end down');
         }
         await loadData();
         window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -743,7 +766,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to delete down');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to delete down');
         }
     };
 
@@ -757,7 +780,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to save toke');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to save toke');
         }
     };
 
@@ -771,7 +794,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to update multiplier');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to update multiplier');
         }
     };
 
@@ -803,7 +826,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             toast.success(`Day ${currentDay.day_number} closed! 🎉`);
             setCloseDayNotes('');
         } catch (err) {
-            toast.error(err.message || 'Failed to close day');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to close day');
         }
         await loadData();
         window.dispatchEvent(new CustomEvent('toke-data-updated'));
@@ -821,7 +844,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to start new day');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to start new day');
         }
     };
 
@@ -848,7 +871,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to add expense');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to add expense');
         }
     };
 
@@ -860,7 +883,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
-            toast.error(err.message || 'Failed to delete expense');
+            if (!isAbortError(err)) toast.error(err.message || 'Failed to delete expense');
         }
     };
 
