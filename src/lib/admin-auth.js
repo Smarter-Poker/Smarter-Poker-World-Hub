@@ -1,12 +1,12 @@
 /**
  * Admin Auth Middleware
- * 
+ *
  * Protects admin endpoints. Requires EITHER:
  *   1. x-admin-secret header matching ADMIN_ROUTE_SECRET env var
  *   2. Bearer token for a user with role 'admin' or 'superadmin' in profiles
  *
  * Usage:
- *   import { requireAdminAuth } from '../../../src/lib/admin-auth';
+ *   import { requireAdminAuth } from '../lib/admin-auth';
  *   const authResult = await requireAdminAuth(req, res);
  *   if (!authResult.authorized) return; // Response already sent
  */

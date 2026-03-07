@@ -476,11 +476,15 @@ export default function ReelsPage() {
     if (!userId) return;
     const _ch = supabase
       .channel(`reels:${userId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {})
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_reels' }, () => {
+        loadReels();
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => {
+        loadReels();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [userId]); // Empty deps - uses refs for current values
+  }, [userId]);
 
 
     if (loading) {

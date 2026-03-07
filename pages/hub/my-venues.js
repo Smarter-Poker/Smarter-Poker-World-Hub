@@ -571,10 +571,12 @@ export default function MyVenuesPage() {
     if (!userId) return;
     const _ch = supabase
       .channel(`my-venues:${userId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_staff_shifts', filter: `staff_id=eq.${userId}` }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'commander_staff_shifts', filter: `staff_id=eq.${userId}` }, () => {
+        reloadVenues();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [userId]);
+  }, [userId, reloadVenues]);
 
     const handleLinked = () => {
         // Clear the linked venue from emailMatches and refresh venues

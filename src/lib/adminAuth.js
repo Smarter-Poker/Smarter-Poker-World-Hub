@@ -1,13 +1,13 @@
 /**
  * Admin auth middleware.
  * All /api/admin/* endpoints MUST call this before executing.
- * 
+ *
  * Validates either:
  *   1. ADMIN_SECRET header matches env var (for cron/scripts)
  *   2. Bearer JWT belongs to a known admin user
- * 
+ *
  * Usage:
- *   import { requireAdmin } from '../../../src/lib/adminAuth';
+ *   import { requireAdmin } from '../lib/adminAuth';
  *   const auth = await requireAdmin(req, res);
  *   if (!auth) return;
  */

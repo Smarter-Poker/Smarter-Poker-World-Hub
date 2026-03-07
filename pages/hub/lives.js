@@ -219,7 +219,9 @@ export default function LivesPage() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`lives:${user?.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'live_streams' }, () => {
+        loadStreams();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);

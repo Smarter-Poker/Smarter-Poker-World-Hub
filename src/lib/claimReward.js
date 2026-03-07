@@ -5,7 +5,7 @@
  * All reward triggers should use this instead of raw fetch.
  *
  * Usage:
- *   import { claimReward } from '../../lib/claimReward';
+ *   import { claimReward } from '../lib/claimReward';
  *   claimReward('/api/rewards/reaction', { userId, postId }, 'Liked a Post');
  * ═══════════════════════════════════════════════════════════════════════════
  */

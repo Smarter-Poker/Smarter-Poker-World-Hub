@@ -611,7 +611,9 @@ export default function MyClubsPage() {
     if (!userId) return;
     const _ch = supabase
       .channel(`my-clubs:${userId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${userId}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members', filter: `user_id=eq.${userId}` }, () => {
+        loadMyClubs();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [userId]);

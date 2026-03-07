@@ -550,7 +550,9 @@ export default function VenueDetailPage() {
     if (!id) return;
     const _ch = supabase
       .channel(`venue-pub:${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `venue_id=eq.${id}` }, () => {})
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `venue_id=eq.${id}` }, () => {
+        console.warn('[VenueDetail] Received real-time update for tables');
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [id]);
