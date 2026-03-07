@@ -7,9 +7,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { FB_COLORS, FBAvatar } from '../components/FacebookStyleCard';
-import { PokerReactionBar } from '../components/PokerReputationBadges';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
+import { FB_COLORS, FBAvatar } from '../FacebookStyleCard';
+import { PokerReactionBar } from '../PokerReputationBadges';
+// TODO: useSocialOrb provider doesn't exist
+// import { useSocialOrb } from '../../providers/SocialOrbProvider';
+import { supabase } from '../../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 WATCH SIDEBAR

@@ -7,11 +7,13 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { FBAvatar, FB_COLORS, FBPostCard } from '../components/FacebookStyleCard';
-import { PokerTierBadge, WinRateDisplay } from '../components/PokerReputationBadges';
-import { PhotoGrid } from '../components/FacebookPhotos';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
-import { useSupabase } from '../../providers/SupabaseProvider';
+import { FBAvatar, FB_COLORS, FBPostCard } from '../FacebookStyleCard';
+import { PokerTierBadge, WinRateDisplay } from '../PokerReputationBadges';
+import { PhotoGrid } from '../FacebookPhotos';
+// TODO: useSocialOrb and useSupabase providers don't exist
+// import { useSocialOrb } from '../../providers/SocialOrbProvider';
+// import { useSupabase } from '../../providers/SupabaseProvider';
+import { supabase } from '../../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📷 COVER PHOTO & PROFILE HEADER

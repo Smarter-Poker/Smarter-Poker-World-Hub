@@ -207,7 +207,9 @@ export default function TrainingArenaPage() {
     if (!gameId) return;
     const _ch = supabase
       .channel(`train-arena:${gameId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_registry', filter: `id=eq.${gameId}` }, () => {})
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_registry', filter: `id=eq.${gameId}` }, () => {
+        console.warn('[TrainingArena] Received real-time update for game_registry');
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [gameId]);

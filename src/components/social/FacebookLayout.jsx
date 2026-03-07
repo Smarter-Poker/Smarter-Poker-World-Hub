@@ -289,7 +289,7 @@ export const FacebookLayout = ({ children, currentUser: propUser, onNavigate }) 
                         .from('profiles')
                         .select('username, avatar_url')
                         .eq('id', user.id)
-                        .single();
+                        .maybeSingle();
                     setAuthProfile(profile);
                 }
             } catch (err) {

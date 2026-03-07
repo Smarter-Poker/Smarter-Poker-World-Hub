@@ -34,10 +34,12 @@ export default function MemoryGamesLeaderboard() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`mem-lb`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_leaderboards' }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_leaderboards' }, () => {
+        fetchLeaderboard();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+  }, [user?.id, selectedMode]);
 
     const fetchLeaderboard = async () => {
         setLoading(true);

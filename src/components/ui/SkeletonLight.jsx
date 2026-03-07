@@ -2,7 +2,7 @@
  * SkeletonLight — shimmer placeholder for light-theme hub pages (Facebook-style)
  *
  * Usage:
- *   import SkeletonLight from '../../src/components/ui/SkeletonLight';
+ *   import SkeletonLight from '../ui/SkeletonLight';
  *
  *   {loading && <SkeletonLight variant="feed" />}
  *   {loading && <SkeletonLight variant="cards" count={3} />}

@@ -2,7 +2,7 @@
  * SkeletonDark — shimmer placeholder for dark-theme Commander/Club Arena pages
  *
  * Usage:
- *   import SkeletonDark from '../../src/components/ui/SkeletonDark';
+ *   import SkeletonDark from '../ui/SkeletonDark';
  *
  *   {loading && <SkeletonDark variant="table-rows" rows={5} />}
  *   {loading && <SkeletonDark variant="stat-cards" count={4} />}

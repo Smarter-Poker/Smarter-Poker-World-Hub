@@ -37,8 +37,12 @@ export default function TrainingProgress() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`train-progress:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {})
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'training_streaks', filter: `user_id=eq.${user?.id}` }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'jarvis_training_sessions', filter: `user_id=eq.${user?.id}` }, () => {
+        loadProgress();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'training_streaks', filter: `user_id=eq.${user?.id}` }, () => {
+        loadProgress();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);

@@ -7,10 +7,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { CreatePostBox, FBPostCard, FBAvatar, FB_COLORS } from '../components/FacebookStyleCard';
-import { PokerTierBadge, WinRateDisplay } from '../components/PokerReputationBadges';
-import { useSocialOrb } from '../../providers/SocialOrbProvider';
-import { useSupabase } from '../../providers/SupabaseProvider';
+import { CreatePostBox, FBPostCard, FBAvatar, FB_COLORS } from '../FacebookStyleCard';
+import { PokerTierBadge, WinRateDisplay } from '../PokerReputationBadges';
+// TODO: useSocialOrb and useSupabase providers don't exist
+// import { useSocialOrb } from '../../providers/SocialOrbProvider';
+// import { useSupabase } from '../../providers/SupabaseProvider';
+import { supabase } from '../../../lib/supabase';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🏆 CLUB LEADERBOARD COMPONENTS

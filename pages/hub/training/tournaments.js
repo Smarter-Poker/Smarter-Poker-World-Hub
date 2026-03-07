@@ -32,10 +32,12 @@ export default function TournamentsPage() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`train-tourn:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries', filter: `user_id=eq.${user?.id}` }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'commander_tournament_entries', filter: `user_id=eq.${user?.id}` }, () => {
+        refreshTournaments();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
-  }, [user?.id]);
+  }, [user?.id, refreshTournaments]);
 
     // SWR key includes tab + user so switching tabs is instant on revisit
     const swrKey = `/api/training/tournaments?status=${activeTab}${user ? `&userId=${user.id}` : ''}`;

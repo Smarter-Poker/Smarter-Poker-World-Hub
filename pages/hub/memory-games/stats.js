@@ -73,7 +73,9 @@ export default function MemoryGamesStats() {
     if (!user?.id) return;
     const _ch = supabase
       .channel(`mem-stats:${user?.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_game_sessions', filter: `user_id=eq.${user?.id}` }, () => {})
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'memory_game_sessions', filter: `user_id=eq.${user?.id}` }, () => {
+        fetchStats();
+      })
       .subscribe();
     return () => { supabase.removeChannel(_ch); };
   }, [user?.id]);
