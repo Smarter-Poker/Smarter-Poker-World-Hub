@@ -3,7 +3,7 @@
  * GET /api/public/venue/[id] - Get public venue information
  * No authentication required - returns only public data
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureError, addBreadcrumb } from '../../../../src/lib/sentry';
 
 const supabase = createClient(

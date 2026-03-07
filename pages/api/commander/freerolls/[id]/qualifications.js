@@ -4,7 +4,7 @@
  * POST   /api/commander/freerolls/[id]/qualifications - Add / update a player
  * DELETE /api/commander/freerolls/[id]/qualifications - Remove a player (pass ?player_id=)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

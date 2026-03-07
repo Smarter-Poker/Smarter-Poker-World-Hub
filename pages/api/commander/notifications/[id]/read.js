@@ -2,7 +2,7 @@
  * Mark Notification Read API
  * PATCH /api/commander/notifications/:id/read
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

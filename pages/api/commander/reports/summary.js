@@ -3,7 +3,8 @@
  * GET /api/commander/reports/summary?range=today|week|month|quarter
  * Returns aggregate stats for the reports dashboard
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

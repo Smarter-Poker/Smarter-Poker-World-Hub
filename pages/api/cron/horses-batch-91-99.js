@@ -4,7 +4,7 @@
  * Since we hit the 100 cron limit, this handles the last 9 horses together
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient.js';
 import { applyWritingStyle } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 

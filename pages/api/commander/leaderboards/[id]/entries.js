@@ -4,7 +4,7 @@
  * POST /api/commander/leaderboards/[id]/entries - Add/update entry
  * POST /api/commander/leaderboards/[id]/entries/calculate - Recalculate all entries
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

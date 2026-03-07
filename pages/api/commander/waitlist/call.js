@@ -3,7 +3,7 @@
  * POST /api/commander/waitlist/call
  * Marks player as 'called' and sends SMS if phone number on file
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { sendSeatNotification, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';

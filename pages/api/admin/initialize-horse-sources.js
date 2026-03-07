@@ -15,7 +15,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { CLIP_SOURCES } from '../../../src/content-engine/pipeline/ClipLibrary.js';
 import { SPORTS_CLIP_SOURCES } from '../../../src/content-engine/pipeline/SportsClipLibrary.js';
 

@@ -17,9 +17,10 @@
  *   - Source badge (PIO Verified / PIO Approximated / Grok AI)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { checkSandboxAccess } from '../../../../src/lib/personal-assistant/contextAuthority';
 import { getGrokClient } from '../../../../src/lib/grokClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

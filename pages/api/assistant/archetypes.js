@@ -3,7 +3,7 @@
  * Returns the 10 canonical villain archetypes
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

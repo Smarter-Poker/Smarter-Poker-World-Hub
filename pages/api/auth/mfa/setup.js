@@ -3,7 +3,7 @@
    POST /api/auth/mfa/setup
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +11,7 @@ const supabase = createClient(
 );
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

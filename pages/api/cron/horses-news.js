@@ -15,7 +15,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
 import { getGrokClient } from '../../../src/lib/grokClient.js';
 import {

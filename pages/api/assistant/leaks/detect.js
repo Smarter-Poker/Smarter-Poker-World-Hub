@@ -9,7 +9,7 @@
  * Phase 3: Grok AI Integration for personalized fix suggestions
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../../src/lib/grokClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';

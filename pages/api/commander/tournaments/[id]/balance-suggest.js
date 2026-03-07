@@ -4,7 +4,7 @@
  * Returns suggested player moves to balance tournament tables
  * Algorithm: break table with fewest players if possible, otherwise move from fullest to emptiest
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

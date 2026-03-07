@@ -17,7 +17,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useMultiTable } from '../../hooks/useMultiTable';
-import { useTableConnection } from '../../hooks/useTableConnection';
+// REMOVED: useTableConnection was imported but never called — causes ReferenceError during SSG
 import { BBJTicker, BBJModal, useBBJ } from '../club-arena/BBJDisplay';
 import { PokerSoundManager } from './PokerSoundManager';
 

@@ -4,7 +4,8 @@
    POST action=contribute: Add hand contribution to pool
    ═══════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -48,19 +49,20 @@ export default async function handler(req, res) {
     if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
 
     // Verify caller is a member of this club (or union admin)
+    // HARDENED: March 7, 2026 — .single() → .maybeSingle() to prevent 500 crashes
     const { data: member } = await supabaseAdmin
       .from('club_members')
       .select('role')
       .eq('club_id', clubId)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!member) {
       // Check union admin fallback
-      const { data: club } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).single();
+      const { data: club } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
       let unionAuth = false;
       if (club?.union_id) {
-        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', club.union_id).eq('user_id', user.id).single();
+        const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', club.union_id).eq('user_id', user.id).maybeSingle();
         unionAuth = !!ua;
       }
       if (!unionAuth) return res.status(403).json({ error: 'Not a member of this club' });

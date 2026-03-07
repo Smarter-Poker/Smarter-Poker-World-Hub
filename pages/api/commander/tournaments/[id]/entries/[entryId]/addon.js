@@ -4,7 +4,7 @@
  * Processes an add-on for a tournament player
  * Adds chips, sets addon_taken flag (one-time only)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 

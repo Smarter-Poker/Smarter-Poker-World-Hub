@@ -11,7 +11,7 @@
  * Each batch runs at a different hour spread across 24 hours
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
 import { getGrokClient } from '../../../../src/lib/grokClient.js';
 

@@ -3,7 +3,7 @@
  * Send notifications to players
  * Reference: API_REFERENCE.md - Notifications section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { normalizePhoneNumber, isSmsConfigured } from '../../../../src/lib/commander/notifications';
 import { sendSMS as twilioSendSMS, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
 import { isOneSignalConfigured, sendPushNotification as pushNotifySend } from '../../../../src/lib/commander/pushNotifications';

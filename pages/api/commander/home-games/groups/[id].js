@@ -5,9 +5,10 @@
  * PUT /api/commander/home-games/groups/[id] - Update group
  * DELETE /api/commander/home-games/groups/[id] - Delete group
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

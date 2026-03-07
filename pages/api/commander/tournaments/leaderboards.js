@@ -3,7 +3,7 @@
  * GET /api/commander/tournaments/leaderboards - List leaderboards for venue
  * POST /api/commander/tournaments/leaderboards - Create new leaderboard
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

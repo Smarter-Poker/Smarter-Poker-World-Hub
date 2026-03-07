@@ -11,7 +11,7 @@
  * Rate limiting: stored in dealer_documents.last_reminder_sent_at  (persists across serverless instances)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

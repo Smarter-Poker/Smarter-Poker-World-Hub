@@ -15,9 +15,10 @@
  * Body: { transactionId, clubId, amount? (defaults to full original amount) }
  * Auth: Bearer token (must be the agent who sent the chips)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

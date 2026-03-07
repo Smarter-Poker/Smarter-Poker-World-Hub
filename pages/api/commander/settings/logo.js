@@ -6,7 +6,7 @@
  * Uses base64 JSON body instead of multipart for simplicity.
  * Client sends: { data: "base64string...", filename: "logo.png", contentType: "image/png" }
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

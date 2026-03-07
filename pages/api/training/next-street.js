@@ -12,7 +12,7 @@
  * - stackDepth: Stack depth in BB
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';

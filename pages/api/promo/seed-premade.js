@@ -4,8 +4,9 @@
  * Owner/Manager only. Each promo has a configurable code name and max reuses.
  * Only creates promos that don't already exist (idempotent).
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

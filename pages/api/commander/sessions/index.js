@@ -3,7 +3,7 @@
  * List sessions or check in a player
  * Reference: Phase 2 - Session Tracking
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';

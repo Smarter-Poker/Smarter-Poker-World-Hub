@@ -3,7 +3,7 @@
  * GET /api/public/home-game/[code] - Get public home game group info
  * No authentication required - returns only public data
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -5,7 +5,8 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
             .from('jarvis_user_training_profile')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         // Get recent sessions for analysis
         const { data: recentSessions } = await supabase
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
             .from('training_streaks')
             .select('*')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
         // Get achievements count
         const { count: achievementCount } = await supabase

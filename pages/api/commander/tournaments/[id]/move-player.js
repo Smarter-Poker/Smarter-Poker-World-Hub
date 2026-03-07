@@ -4,7 +4,7 @@
  * Moves a tournament player to a different table and seat
  * Used by TD Tablet for table balancing and manual moves
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

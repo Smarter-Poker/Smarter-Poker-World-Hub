@@ -5,9 +5,10 @@
  * Cancels the user's VIP subscription at end of billing period via Stripe.
  * Also stores the cancellation reason for analytics.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

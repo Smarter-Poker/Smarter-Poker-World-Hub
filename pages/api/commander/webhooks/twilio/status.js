@@ -2,7 +2,7 @@
  * Twilio SMS Status Webhook
  * POST /api/commander/webhooks/twilio/status - Receive SMS delivery status updates
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

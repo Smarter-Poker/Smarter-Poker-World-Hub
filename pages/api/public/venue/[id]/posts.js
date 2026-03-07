@@ -2,7 +2,7 @@
  * Public Venue Posts API
  * GET /api/public/venue/[id]/posts - Get public posts for a venue
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

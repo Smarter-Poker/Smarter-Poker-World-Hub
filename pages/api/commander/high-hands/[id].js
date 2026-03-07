@@ -5,9 +5,10 @@
  * PUT /api/commander/high-hands/:id - Update/verify high hand
  * DELETE /api/commander/high-hands/:id - Delete high hand
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

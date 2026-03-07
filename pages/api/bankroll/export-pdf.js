@@ -7,6 +7,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {

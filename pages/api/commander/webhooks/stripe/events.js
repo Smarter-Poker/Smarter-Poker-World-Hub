@@ -2,7 +2,7 @@
  * Stripe Events Webhook
  * POST /api/commander/webhooks/stripe/events - Handle Stripe webhook events
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 // Helper to read raw body from request stream

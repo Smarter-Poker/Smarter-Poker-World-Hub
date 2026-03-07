@@ -3,7 +3,7 @@
  * GET /api/commander/squads/:id
  * DELETE /api/commander/squads/:id
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

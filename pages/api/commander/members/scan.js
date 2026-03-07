@@ -3,7 +3,7 @@
  * POST: Look up a member by their QR code
  * Used when scanning a player's club card at tables, tournaments, etc.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

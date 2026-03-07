@@ -3,7 +3,7 @@
  * GET /api/commander/tournaments/[id]/reports?type=registration|cashier|activity
  * Provides detailed reporting for TD operations
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

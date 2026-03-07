@@ -6,7 +6,7 @@
  * - Rate limited: 5 attempts per minute per IP
  * - Lockout after 10 consecutive failures (5 min cooldown)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { DEFAULT_PERMISSIONS } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

@@ -508,7 +508,7 @@ export default function SignUpPage() {
                         .select('player_number')
                         .order('player_number', { ascending: false })
                         .limit(1)
-                        .single();
+                        .maybeSingle();
 
                     const nextPlayerNumber = (maxData?.player_number || 1254) + 1;
                     console.log('Updating profile for user:', authData.user.id);
@@ -669,7 +669,7 @@ export default function SignUpPage() {
                         .from('profiles')
                         .select('player_number')
                         .eq('id', data.user.id)
-                        .single();
+                        .maybeSingle();
 
                     if (profile?.player_number) {
                         setAssignedPlayerNumber(profile.player_number);

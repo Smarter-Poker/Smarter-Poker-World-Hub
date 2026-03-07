@@ -7,7 +7,7 @@
  * Clock state is persisted in the tournament row (clock_state JSONB column)
  * so it survives server restarts and works across multiple instances.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import {
   sendPushNotification,

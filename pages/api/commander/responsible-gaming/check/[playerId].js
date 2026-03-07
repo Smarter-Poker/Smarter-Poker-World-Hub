@@ -2,7 +2,7 @@
  * Check Player Exclusion Status API
  * GET /api/commander/responsible-gaming/check/:playerId
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

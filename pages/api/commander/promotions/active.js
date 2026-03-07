@@ -3,7 +3,7 @@
  * Public endpoint for players to view active promotions at a venue
  * Reference: API_REFERENCE.md - Promotions section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(

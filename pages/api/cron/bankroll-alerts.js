@@ -3,7 +3,7 @@
  * Check goals and stop-loss triggers, send push notifications
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

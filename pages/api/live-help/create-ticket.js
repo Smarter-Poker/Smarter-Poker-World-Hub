@@ -3,9 +3,10 @@
    Escalates conversation to support ticket
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { sendTicketNotification } from '../../../src/lib/emailService';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

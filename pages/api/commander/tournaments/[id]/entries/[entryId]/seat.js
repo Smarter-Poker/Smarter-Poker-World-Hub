@@ -4,7 +4,7 @@
  * Changes a player's seat (same table or different table)
  * Used for seat change requests and manual reassignment
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 

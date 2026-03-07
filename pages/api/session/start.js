@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { v4 as uuidv4 } from 'uuid';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
             .from('game_registry')
             .select('*')
             .eq('slug', game_id)
-            .single();
+            .maybeSingle();
 
         if (game) {
             gameName = game.title || game.name || gameName;
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
                 .select('*')
                 .eq('user_id', user_id)
                 .eq('game_id', game_id)
-                .single();
+                .maybeSingle();
 
             if (existingSession) {
                 currentLevel = Math.max(level, existingSession.current_level || 1);

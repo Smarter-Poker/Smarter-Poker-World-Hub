@@ -5,7 +5,7 @@
  * Ends an active table session. Returns unused time back to member's balance.
  * Updates seat status to empty.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 

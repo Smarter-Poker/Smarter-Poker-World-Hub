@@ -3,7 +3,7 @@
  * Get all tables at a specific venue
  * Reference: Phase 2 - Table CRUD
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

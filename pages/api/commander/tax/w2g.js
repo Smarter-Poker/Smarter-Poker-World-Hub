@@ -7,7 +7,7 @@
  * IRS W-2G: Required for poker tournament winnings >= $5,000 (net of buy-in)
  * Federal withholding: 24% on reportable gambling winnings
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

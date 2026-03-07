@@ -3,7 +3,7 @@
  * Supports filtering by id, upcoming, type, tour, search, date range
  * Tries Supabase DB first, falls back to JSON data file
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import seriesJson from '../../../data/poker-tour-series-2026.json';
 import allVenuesData from '../../../data/all-venues.json';
 import wsopEvents from '../../../data/wsop-2026-events.json';

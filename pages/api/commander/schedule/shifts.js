@@ -2,7 +2,7 @@
  * Staff Schedule Shifts API — GET/POST/DELETE /api/commander/schedule/shifts
  * Manages weekly shift assignments for all staff roles
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession, verifyManagerSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

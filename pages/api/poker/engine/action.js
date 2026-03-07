@@ -10,7 +10,7 @@
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const { AntiCheat } = require('../../../../src/lib/poker-engine/AntiCheat');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
-const { createClient } = require('@supabase/supabase-js');
+const { createClient } = require('../../../../src/lib/supabaseServerClient');
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

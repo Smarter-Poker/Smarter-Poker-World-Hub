@@ -3,7 +3,7 @@
  * Get all games at a specific venue
  * Reference: API_REFERENCE.md - Games section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

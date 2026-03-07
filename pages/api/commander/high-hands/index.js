@@ -4,9 +4,10 @@
  * GET /api/commander/high-hands - List high hands for venue
  * POST /api/commander/high-hands - Record new high hand
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 
 const supabase = createClient(

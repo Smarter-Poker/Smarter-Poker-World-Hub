@@ -2,7 +2,8 @@
  * Player Stats API
  * GET /api/commander/profile/stats - Get player statistics
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

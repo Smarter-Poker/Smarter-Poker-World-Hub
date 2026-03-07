@@ -10,7 +10,7 @@
  * Content types: video_clip OR news_link ONLY
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Parser from 'rss-parser';
 import { getGrokClient } from '../../../../src/lib/grokClient.js';
 

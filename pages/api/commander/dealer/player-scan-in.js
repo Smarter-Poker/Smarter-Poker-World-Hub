@@ -9,7 +9,7 @@
  * 
  * Body: { qr_code, table_number, seat_number?, venue_id? }
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

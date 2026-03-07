@@ -6,7 +6,7 @@
  * PATCH  /api/commander/announcements                                 — Update announcement
  * DELETE /api/commander/announcements?id=X                            — Delete announcement
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

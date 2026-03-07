@@ -11,11 +11,10 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { useAvatar } from '../../../src/contexts/AvatarContext';
 
-// Initialize Supabase
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// Initialize Supabase — GUARD: Must not run during SSG (no localStorage on server)
+const supabase = (typeof window !== 'undefined')
+    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    : null;
 
 // Achievement categories for filtering
 const CATEGORIES = [

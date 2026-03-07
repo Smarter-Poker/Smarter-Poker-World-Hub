@@ -4,7 +4,7 @@
  * PATCH /api/commander/displays/:deviceId/config - Update display config
  * DELETE /api/commander/displays/:deviceId/config - Remove display
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

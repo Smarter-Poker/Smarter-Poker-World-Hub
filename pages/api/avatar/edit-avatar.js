@@ -7,7 +7,7 @@
  */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import sharp from 'sharp';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';

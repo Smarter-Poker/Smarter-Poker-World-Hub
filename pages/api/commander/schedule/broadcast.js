@@ -2,7 +2,7 @@
  * Staff Schedule Broadcast API — POST /api/commander/schedule/broadcast
  * Sends the week's schedule to all staff via SMS and/or email
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import twilio from 'twilio';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';

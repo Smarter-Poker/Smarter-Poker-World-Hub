@@ -3,7 +3,7 @@
  * Get, update, or close a game
  * Reference: API_REFERENCE.md - Games section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

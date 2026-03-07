@@ -3,9 +3,10 @@
  * GET /api/commander/home-games/[id]/posts - List posts for a home game group
  * POST /api/commander/home-games/[id]/posts - Create a new post
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

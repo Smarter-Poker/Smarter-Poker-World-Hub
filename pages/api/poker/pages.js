@@ -12,7 +12,7 @@
  *   ?limit=50
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import allVenuesData from '../../../data/all-venues.json';
 import tourRegistry from '../../../data/tour-source-registry.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';

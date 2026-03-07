@@ -10,7 +10,8 @@
  * Returns aggregate position stats, accuracy metrics, and GTO comparison data
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

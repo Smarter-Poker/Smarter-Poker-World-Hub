@@ -4,7 +4,7 @@
  * POST /api/commander/tournaments/:id/payout — Save individual payout or final overrides
  * PUT /api/commander/tournaments/:id/payout — Save bulk final payouts (override mode)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

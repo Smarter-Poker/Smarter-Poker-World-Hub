@@ -3,9 +3,10 @@
  * GET /api/commander/incidents - List incidents
  * POST /api/commander/incidents - Create incident (floor call, dispute, etc)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

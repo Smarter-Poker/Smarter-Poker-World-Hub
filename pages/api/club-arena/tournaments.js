@@ -5,8 +5,9 @@
  * Full tournament lifecycle management for Club Arena.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { getServerUser } from '../../../src/lib/serverAuth';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(

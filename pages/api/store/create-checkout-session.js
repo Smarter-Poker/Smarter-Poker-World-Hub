@@ -3,9 +3,10 @@
  * POST /api/store/create-checkout-session
  * Creates a Stripe checkout session for diamonds, VIP, or merchandise
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -3,7 +3,7 @@
  * GET /api/commander/admin/pilots - List pilot venues with metrics
  * Reference: Phase 6 - Scale & Polish
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { guardManager } from '../../../../src/lib/commander/auth';
 

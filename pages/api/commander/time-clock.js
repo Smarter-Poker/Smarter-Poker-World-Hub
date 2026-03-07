@@ -3,7 +3,7 @@
  * POST: Clock in or out via QR code scan
  * GET: List today's time clock entries for a venue
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

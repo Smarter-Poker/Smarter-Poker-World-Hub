@@ -10,7 +10,7 @@
  *   id, venue_id, table_number, reason, description, priority, status,
  *   called_by, responded_by, responded_at, resolution, created_at
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

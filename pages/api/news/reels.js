@@ -2,7 +2,7 @@
  * Reels API - Get Poker Reels from Social Feed
  * Pulls from social_reels table (same as social media feed)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

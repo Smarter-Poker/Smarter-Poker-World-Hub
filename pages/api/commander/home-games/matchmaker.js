@@ -5,10 +5,11 @@
  * Uses Grok AI to intelligently match players with compatible home games
  * and groups based on preferences, play history, location, and schedule.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getAIClient } from '../../../../src/lib/grokClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -9,7 +9,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { shouldHorseBeActive, isHorseActiveHour, getHorseActivityRate } from '../../../src/content-engine/pipeline/HorseScheduler.js';
 

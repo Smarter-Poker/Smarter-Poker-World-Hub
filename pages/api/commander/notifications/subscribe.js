@@ -3,9 +3,10 @@
  * POST /api/commander/notifications/subscribe - Subscribe to push notifications
  * DELETE /api/commander/notifications/subscribe - Unsubscribe from push notifications
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

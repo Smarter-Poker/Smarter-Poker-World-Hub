@@ -234,7 +234,7 @@ export async function verifyStaffSession(req) {
       .eq('user_id', sessionData.user_id)
       .eq('venue_id', sessionData.venue_id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (staff) {
       return { staff };
@@ -248,7 +248,7 @@ export async function verifyStaffSession(req) {
         .eq('owner_id', sessionData.user_id)
         .eq('venue_id', sessionData.venue_id)
         .in('status', ['active', 'trialing'])
-        .single();
+        .maybeSingle();
 
       if (sub) {
         // Return a synthetic staff object for the owner

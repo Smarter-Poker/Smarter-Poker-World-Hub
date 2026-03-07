@@ -11,7 +11,7 @@
  * - Accuracy requirements and diamond rewards
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const TRAINING_GAMES = [
     'raise-first-in',

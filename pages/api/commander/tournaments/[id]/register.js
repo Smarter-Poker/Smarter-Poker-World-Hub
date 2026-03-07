@@ -6,7 +6,7 @@
  * Push Notifications: Fires registration confirmation to player
  * Auto-Stories: Creates "Just registered" story
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import {

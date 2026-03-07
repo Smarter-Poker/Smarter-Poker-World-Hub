@@ -12,7 +12,8 @@
  *   'status' — get player's promo status (cap, playthrough progress)
  *   'history' — get agent's distribution history
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 

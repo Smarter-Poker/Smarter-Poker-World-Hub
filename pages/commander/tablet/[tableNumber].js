@@ -19,9 +19,10 @@ import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */
+/* GUARD: createClient must NOT run during SSG — localStorage doesn't exist on server */
 const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
 const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
-const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const supabase = (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 /* ─── Constants ──────────────────────────────────────────────── */
 

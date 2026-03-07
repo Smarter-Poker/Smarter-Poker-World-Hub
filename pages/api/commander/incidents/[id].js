@@ -3,7 +3,7 @@
  * View or update/resolve an incident
  * Reference: ENHANCEMENTS.md - Incident Reporting System
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

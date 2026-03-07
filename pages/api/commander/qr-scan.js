@@ -2,7 +2,7 @@
  * QR Code Scan Tracking API
  * Records when a player scans a venue QR code for check-in
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

@@ -144,7 +144,7 @@ export class BaseScraper {
                 .eq('name', venueData.name)
                 .eq('city', venueData.city)
                 .eq('state', venueData.state)
-                .single();
+                .maybeSingle();
 
             // Only update if our source has equal or higher priority
             if (existing) {

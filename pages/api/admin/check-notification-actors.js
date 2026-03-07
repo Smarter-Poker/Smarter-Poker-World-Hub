@@ -1,5 +1,5 @@
 // Check notification actors for avatar URLs
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 export default async function handler(req, res) {
   // BUG #167 FIX: Block in production
@@ -21,7 +21,9 @@ export default async function handler(req, res) {
         .ilike('email', '%bekavac%')
         .single();
 
-    const userId = req.query.userId || danProfile?.id || '47965354-0e56-43ef-931c-ddaab82af765';
+    // HARDENED: March 7 — removed hardcoded UUID and query param fallback (IDOR risk)
+    const userId = danProfile?.id;
+    if (!userId) return res.status(404).json({ error: 'Profile not found' });
 
     // Get notifications
     const { data: notifications, error } = await sb

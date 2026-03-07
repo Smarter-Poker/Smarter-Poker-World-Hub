@@ -4,7 +4,7 @@
  * Returns suggestions for balancing tables
  * Per API_REFERENCE.md
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

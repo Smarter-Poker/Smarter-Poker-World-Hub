@@ -8,7 +8,7 @@
  *
  * Also: cleans up expired web entries (>1 hour, not checked in) on each call.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

@@ -5,7 +5,7 @@
  * Staff-triggered push notification sender for tournament events.
  * Supports: tournament_starting, seat_assignment, level_up, break, final_table, custom
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 import {

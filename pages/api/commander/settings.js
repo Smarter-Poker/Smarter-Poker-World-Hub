@@ -3,7 +3,7 @@
  * GET /api/commander/settings - Get venue settings
  * PUT /api/commander/settings - Update venue settings (room_open, etc)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

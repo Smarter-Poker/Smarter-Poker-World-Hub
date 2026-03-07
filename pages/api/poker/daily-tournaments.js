@@ -10,7 +10,7 @@
  *   GET /api/poker/daily-tournaments?state=TX - Filter by state
  *   GET /api/poker/daily-tournaments?venue=Lodge - Search by venue name
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import tournamentVenues from '../../../data/tournament-venues.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

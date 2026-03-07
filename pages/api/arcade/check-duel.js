@@ -2,7 +2,7 @@
  * Check Duel Queue Status API
  * Polls the duel matchmaking queue for match updates
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

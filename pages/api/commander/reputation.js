@@ -4,7 +4,7 @@
  * POST /api/commander/reputation — Submit a reputation review
  * GET /api/commander/reputation?venue_id=X — Get all player scores for venue
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

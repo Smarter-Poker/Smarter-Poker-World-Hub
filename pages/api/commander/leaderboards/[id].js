@@ -4,7 +4,7 @@
  * GET /api/commander/leaderboards/[id] - Get leaderboard with entries
  * PUT /api/commander/leaderboards/[id] - Update leaderboard
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff, verifyStaffSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

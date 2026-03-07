@@ -3,7 +3,7 @@
  * GET /api/commander/home-games/events/:id/reviews
  * POST /api/commander/home-games/events/:id/reviews
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 

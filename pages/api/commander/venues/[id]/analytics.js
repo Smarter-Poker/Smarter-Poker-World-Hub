@@ -3,7 +3,7 @@
  * Returns analytics summary for a venue
  * Reference: API_REFERENCE.md - Analytics section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

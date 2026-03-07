@@ -4,7 +4,7 @@
  * PUT /api/commander/tournaments/templates/[id] - Update template
  * DELETE /api/commander/tournaments/templates/[id] - Delete template
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

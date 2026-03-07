@@ -9,7 +9,7 @@
  * Total: 20 questions × 10 categories = 200 daily-tagged questions
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

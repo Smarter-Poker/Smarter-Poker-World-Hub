@@ -3,8 +3,9 @@
  * Bypasses RLS to ensure last_read_at is properly updated
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 // Use service role to bypass RLS
 const supabaseAdmin = createClient(

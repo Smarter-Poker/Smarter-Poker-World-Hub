@@ -72,7 +72,7 @@ export async function checkBankrollProAccess(userId) {
         .gt('expires_at', now)
         .order('expires_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (universalError && universalError.code !== 'PGRST116') {
         console.warn('[BankrollProGate] Universal pass check error:', universalError.message);
@@ -97,7 +97,7 @@ export async function checkBankrollProAccess(userId) {
         .gt('expires_at', now)
         .order('expires_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
     if (access) {
         return {

@@ -1,5 +1,5 @@
 // Check profiles for avatar URLs
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 export default async function handler(req, res) {
   // BUG #167 FIX: Block in production

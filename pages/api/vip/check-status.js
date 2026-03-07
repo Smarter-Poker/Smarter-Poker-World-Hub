@@ -3,7 +3,8 @@
  * GET /api/vip/check-status
  * Server-side bridge for VIP verification using service role
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -17,30 +18,20 @@ export default async function handler(req, res) {
 
     try {
         // ═══════════════════════════════════════════════════════════════════
-        // HARDENED: March 5, 2026 — Accept auth header (preferred) OR
-        // userId query param (for internal fallback callers that can't
-        // obtain a session token during auth race conditions).
+        // HARDENED: March 7, 2026 — JWT ONLY. Query param fallback REMOVED
+        // to prevent IDOR (any user could check any other user's VIP status).
+        // The global fetch interceptor in _app.js auto-injects JWT on all
+        // /api/ calls, so the "auth race condition" fallback is no longer needed.
         // ═══════════════════════════════════════════════════════════════════
-        const authHeader = req.headers.authorization;
-        let userId = null;
-
-        // Method 1: Auth header (preferred — verified identity)
-        if (authHeader) {
-            const token = authHeader.replace('Bearer ', '');
-            const { data: { user }, error } = await supabase.auth.getUser(token);
-            if (!error && user) {
-                userId = user.id;
-            }
-        }
-
-        // Method 2: Query param fallback (for internal callers during auth init)
-        if (!userId && req.query.userId) {
-            userId = req.query.userId;
-        }
-
-        if (!userId) {
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
             return res.status(401).json({ isVip: false, error: 'Authentication required' });
         }
+        const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+        if (authErr || !user) {
+            return res.status(401).json({ isVip: false, error: 'Invalid token' });
+        }
+        const userId = user.id;
 
         // Query profiles for VIP status
         const { data: profile, error } = await supabase

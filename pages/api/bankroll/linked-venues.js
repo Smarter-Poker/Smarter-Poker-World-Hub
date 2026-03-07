@@ -4,7 +4,7 @@
  * enriched with lat/lng from the poker_venues table.
  * Used by GeofenceService to watch for proximity to known venues.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

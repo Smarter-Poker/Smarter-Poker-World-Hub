@@ -6,8 +6,9 @@
  * Creates or updates a leak
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,21 +20,19 @@ export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
-  let userId = req.query.userId;
+  // HARDENED: March 7, 2026 — REMOVED req.query.userId fallback (IDOR vulnerability).
+  // userId MUST come from JWT only. The global fetch interceptor auto-injects JWT.
+  let userId = null;
   const { status } = req.query;
 
-  // Extract userId from JWT mapping to auth user
+  // Extract userId from JWT — this is the ONLY trusted source
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
     if (!authError && authUser) {
-      if (req.method !== 'GET' && req.body) {
-        req.body.userId = authUser.id;
-      }
-      if (!userId) {
-        userId = authUser.id;
-      }
+      userId = authUser.id;
+      if (req.body) req.body.userId = authUser.id;
     }
   }
 

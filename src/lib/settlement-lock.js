@@ -34,7 +34,7 @@ export async function checkSettlementLock(supabase, clubId) {
       .from('clubs')
       .select('settlement_locked, settlement_locked_until')
       .eq('id', clubId)
-      .single();
+      .maybeSingle();
 
     if (!club?.settlement_locked) {
       return { locked: false };
@@ -65,7 +65,7 @@ export async function checkSettlementLock(supabase, clubId) {
       .select('lock_reason, unlock_at')
       .eq('club_id', clubId)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     return {
       locked: true,

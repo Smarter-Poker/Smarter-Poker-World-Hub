@@ -9,7 +9,7 @@
  * - engineType: PIO | CHART | SCENARIO
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import TRAINING_CONFIG from '../../../src/config/trainingConfig';
 import { getGameConfig, getStackDepthNumber } from '../../../src/config/gameConfigs';

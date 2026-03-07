@@ -14,8 +14,9 @@
  * the same value and write old+1 would cause count loss; now the
  * increment happens atomically in a single UPDATE statement.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

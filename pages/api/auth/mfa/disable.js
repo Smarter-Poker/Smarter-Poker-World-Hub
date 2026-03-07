@@ -4,9 +4,10 @@
    Body: { code } — Must provide a valid current TOTP code to disable 2FA
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import speakeasy from 'speakeasy';
 import crypto from 'crypto';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

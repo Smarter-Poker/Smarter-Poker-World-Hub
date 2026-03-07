@@ -8,8 +8,9 @@
  * Body: { clubId, agentUserId, action: 'issue_credit' | 'add_prepaid' | 'revoke_credit', amount, notes? }
  * Auth: Bearer token (club owner or union admin)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { getServerUser } from '../../../src/lib/serverAuth';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
 const supabaseAdmin = createClient(

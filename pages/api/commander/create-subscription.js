@@ -1,5 +1,5 @@
 // pages/api/commander/create-subscription.js
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { checkMemoryRateLimit } from '../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';

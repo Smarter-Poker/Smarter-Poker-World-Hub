@@ -28,7 +28,7 @@ export async function collectUserContext(userId: string): Promise<UserContext> {
             .from('profiles')
             .select('level, diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         // Get current page from window location
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/hub';

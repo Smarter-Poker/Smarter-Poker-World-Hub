@@ -7,7 +7,7 @@
  *   Move next player from source table to target table (next in chain).
  *   Body: { must_move_game_id, target_game_id }
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

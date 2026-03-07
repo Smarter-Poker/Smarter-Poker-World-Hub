@@ -3,7 +3,7 @@
  * GET: List members for a venue (with search, filter, pagination)
  * POST: Create a new member (auto-generates member_number + qr_code)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

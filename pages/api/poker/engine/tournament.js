@@ -7,7 +7,8 @@
  * Bridges the poker engine's TournamentController with HTTP API.
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
 
 const supabase = createClient(

@@ -4,7 +4,7 @@
  * This is a workaround for when client-side auth tokens don't match RLS policies
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 

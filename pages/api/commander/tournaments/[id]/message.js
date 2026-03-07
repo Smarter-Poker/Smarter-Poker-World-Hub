@@ -5,7 +5,7 @@
  * Messages appear on TV/projector clock screens and can push to players
  * Used for announcements like "Table 3 is breaking", "Hand for hand", "Color up"
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

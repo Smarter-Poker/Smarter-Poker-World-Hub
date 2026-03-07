@@ -3,7 +3,7 @@
  * Get all staff at a specific venue
  * Reference: API_REFERENCE.md - Staff Management section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -4,7 +4,7 @@
  * GET /api/commander/tournaments - List tournaments
  * POST /api/commander/tournaments - Create tournament
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';

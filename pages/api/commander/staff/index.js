@@ -4,7 +4,7 @@
  * Reference: API_REFERENCE.md - Staff Management section
  */
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

@@ -2,7 +2,7 @@
  * Reports Export API
  * GET /api/commander/reports/export - Export daily report as CSV or PDF
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(

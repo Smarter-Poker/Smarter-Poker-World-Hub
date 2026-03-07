@@ -4,7 +4,7 @@
  * POST /api/commander/cashier - Record buy-in, cash-out, add-on, time_purchase, or membership
  * PATCH /api/commander/cashier - Mark a transaction as voided (sets voided_at, voided_by, void_reason)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

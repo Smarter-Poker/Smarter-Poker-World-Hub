@@ -3,7 +3,7 @@
  * Lists venues with live game counts, waitlist data, and filter support
  * Reference: API_REFERENCE.md - Venues section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

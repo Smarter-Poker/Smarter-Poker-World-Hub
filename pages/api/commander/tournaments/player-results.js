@@ -3,7 +3,7 @@
  * GET /api/commander/tournaments/player-results?member_id=xxx
  * Returns tournament results for a specific member, matched by name
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(

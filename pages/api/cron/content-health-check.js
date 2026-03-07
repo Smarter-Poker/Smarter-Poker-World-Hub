@@ -10,7 +10,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import * as Sentry from '@sentry/nextjs';
 
 const supabase = createClient(

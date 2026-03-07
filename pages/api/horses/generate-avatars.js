@@ -6,7 +6,7 @@
  * Generates avatars for horses that don't have one
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

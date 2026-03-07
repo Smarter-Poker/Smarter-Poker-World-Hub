@@ -3,7 +3,7 @@
  * POST /api/store/webhooks/stripe
  * Handles Stripe webhook events for purchases and subscriptions
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import Stripe from 'stripe';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

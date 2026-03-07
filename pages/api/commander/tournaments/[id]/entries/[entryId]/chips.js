@@ -4,7 +4,7 @@
  * Updates a player's current chip count
  * Used by TD for chip count updates at breaks or manual corrections
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 

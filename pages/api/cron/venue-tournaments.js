@@ -20,7 +20,7 @@
  *   - Re-scrape even if recently scraped
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import https from 'https';
 import http from 'http';
 

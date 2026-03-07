@@ -196,7 +196,7 @@ export default function SettingsPage() {
                 .from('profiles')
                 .select('display_name_preference')
                 .eq('id', user.id)
-                .single()
+                .maybeSingle()
                 .then(({ data: profile }) => {
                     if (profile) {
                         setSettings(prev => ({
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                 .from('profiles')
                 .select('full_name, username, avatar_url, player_number')
                 .eq('id', user.id)
-                .single()
+                .maybeSingle()
                 .then(({ data: profile }) => {
                     if (profile) {
                         setUserProfile(profile);
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                 .from('user_mfa_factors')
                 .select('enabled')
                 .eq('user_id', user.id)
-                .single()
+                .maybeSingle()
                 .then(({ data: mfaData }) => {
                     if (mfaData) {
                         setTwoFactorEnabled(mfaData.enabled || false);

@@ -5,7 +5,7 @@
  * Actions: pause, resume, meal_break, missed_blinds, move
  * Body: { table_number, seat_number, action, target_seat? }
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

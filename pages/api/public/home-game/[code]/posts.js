@@ -2,7 +2,7 @@
  * Public Home Game Posts API
  * GET /api/public/home-game/[code]/posts - Get public posts for a home game group
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

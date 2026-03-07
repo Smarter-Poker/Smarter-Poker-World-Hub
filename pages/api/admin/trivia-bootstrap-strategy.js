@@ -4,7 +4,7 @@
  * Route: /api/admin/trivia-bootstrap-strategy
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 

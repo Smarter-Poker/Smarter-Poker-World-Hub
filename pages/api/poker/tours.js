@@ -2,7 +2,7 @@
  * Poker Tours API - Get traveling poker tour information
  * Supports filtering by tour type, region, and search
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import tourRegistry from '../../../data/tour-source-registry.json';
 import tourSeriesData from '../../../data/poker-tour-series-2026.json';
 import allVenuesData from '../../../data/all-venues.json';

@@ -7,7 +7,7 @@
  * 
  * Body: { member_id, minutes, amount, payment_method }
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { checkMemoryRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

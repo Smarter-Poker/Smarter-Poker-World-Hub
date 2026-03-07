@@ -4,7 +4,7 @@
  * Generates 250 questions per category (1,500 total)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 

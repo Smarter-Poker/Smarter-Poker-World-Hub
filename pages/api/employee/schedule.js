@@ -3,7 +3,8 @@
  * Returns the published shift schedule for a linked staff member
  * Query: ?staff_id=X&venue_id=Y&week=2026-03-02
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

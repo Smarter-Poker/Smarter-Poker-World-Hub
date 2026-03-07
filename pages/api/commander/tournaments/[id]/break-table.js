@@ -5,7 +5,7 @@
  * Used by TD Tablet Table Map when a floor manager manually breaks a table.
  * Returns receipt data (Potawatomi TOURNAMENT SEAT CHANGE CARD format).
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

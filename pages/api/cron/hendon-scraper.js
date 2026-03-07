@@ -9,7 +9,7 @@
  * - Authorization: Bearer CRON_SECRET
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import * as cheerio from 'cheerio';
 
 // Server-side Supabase client with service role

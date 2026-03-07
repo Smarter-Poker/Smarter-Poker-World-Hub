@@ -4,7 +4,7 @@
  * Processes a rebuy for a tournament player
  * Increments rebuy_count, adds chips, validates rebuy eligibility
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../../src/lib/apiRateLimit';
 

@@ -3,7 +3,7 @@
  * POST /api/commander/responsible-gaming/exclusion
  * DELETE /api/commander/responsible-gaming/exclusion
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireAuth } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

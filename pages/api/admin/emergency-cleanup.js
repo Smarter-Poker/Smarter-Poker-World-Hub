@@ -4,7 +4,7 @@
  * This endpoint should be called once to clean up violating content
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 export default async function handler(req, res) {
     // Only allow POST with secret

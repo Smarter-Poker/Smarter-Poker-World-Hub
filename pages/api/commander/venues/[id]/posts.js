@@ -3,7 +3,7 @@
  * GET /api/commander/venues/[id]/posts - List posts for a venue
  * POST /api/commander/venues/[id]/posts - Create a new post
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

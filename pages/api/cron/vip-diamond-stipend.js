@@ -13,7 +13,7 @@
  * 4. Skip users who already received their stipend this month
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const VIP_MONTHLY_STIPEND = 500;
 

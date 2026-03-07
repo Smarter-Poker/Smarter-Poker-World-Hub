@@ -8,7 +8,7 @@
  * Both dealer tablet and player display poll this endpoint.
  * No auth guard — tablet is unauthenticated (same as other tablet endpoints).
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(

@@ -5,7 +5,7 @@
  * PUT    /api/commander/clock-presets?id=UUID  — Update preset
  * DELETE /api/commander/clock-presets?id=UUID  — Delete preset
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

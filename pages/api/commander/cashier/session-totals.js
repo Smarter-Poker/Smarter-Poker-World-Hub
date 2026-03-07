@@ -4,7 +4,8 @@
  * Returns buy-in and cash-out totals for a specific time session
  * Also supports: ?table_number=N&venue_id=X (all active sessions at table)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

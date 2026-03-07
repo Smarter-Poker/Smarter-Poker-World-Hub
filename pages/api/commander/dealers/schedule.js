@@ -3,7 +3,7 @@
  * View and create dealer rotation assignments
  * Reference: ENHANCEMENTS.md - Dealer Management Suite
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

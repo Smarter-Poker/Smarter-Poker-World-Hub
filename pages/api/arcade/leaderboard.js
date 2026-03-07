@@ -3,7 +3,7 @@
  * Get arcade leaderboard for a specific period
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') {
         const _token = req.headers.authorization?.replace('Bearer ', '');
         if (!_token) return res.status(401).json({ error: 'Authentication required' });
-        const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
+        const { data: { user: _authUser }, error: _authErr } = await supabaseAdmin.auth.getUser(_token);
         if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
         if (req.body) req.body.userId = _authUser.id;
     }

@@ -20,7 +20,7 @@
 import { getController } from '../../../../src/lib/poker-engine/GameController';
 const ChipBridge = require('../../../../src/lib/poker-engine/ChipBridge');
 const { applyRateLimit } = require('../../../../src/lib/poker-engine/RateLimiter');
-const { createClient } = require('@supabase/supabase-js');
+const { createClient } = require('../../../../src/lib/supabaseServerClient');
 
 // Supabase admin for buy-in auth and chip operations
 const supabaseAdmin = createClient(

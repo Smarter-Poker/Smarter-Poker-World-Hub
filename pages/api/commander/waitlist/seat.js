@@ -3,7 +3,7 @@
  * POST /api/commander/waitlist/seat
  * Moves player from waitlist to a table seat, marks waitlist entry as seated
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

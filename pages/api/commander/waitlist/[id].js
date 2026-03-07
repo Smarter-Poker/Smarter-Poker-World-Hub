@@ -3,7 +3,7 @@
  * GET /api/commander/waitlist/[id] - Get a single waitlist entry
  * DELETE /api/commander/waitlist/[id] - Remove player from waitlist (player or staff)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

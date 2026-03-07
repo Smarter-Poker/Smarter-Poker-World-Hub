@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../src/lib/commander/auth';
 import crypto from 'crypto';
 

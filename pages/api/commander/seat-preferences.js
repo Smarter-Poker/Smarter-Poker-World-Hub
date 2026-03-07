@@ -3,7 +3,7 @@
  * GET /api/commander/seat-preferences?player_id=X — Get preferences
  * POST /api/commander/seat-preferences — Save/update preferences
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 

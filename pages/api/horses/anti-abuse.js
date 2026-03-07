@@ -3,7 +3,8 @@
  * GET /api/horses/anti-abuse — Returns abuse log, audit log, alerts, and economy data
  * Used by the /horses Anti-Abuse dashboard tab
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

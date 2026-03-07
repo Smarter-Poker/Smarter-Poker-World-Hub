@@ -3,7 +3,7 @@
  * Get all currently running games
  * Reference: API_REFERENCE.md - Games section
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

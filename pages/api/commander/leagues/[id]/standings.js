@@ -3,7 +3,7 @@
  * GET /api/commander/leagues/[id]/standings
  * Per API_REFERENCE.md
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 
 const supabase = createClient(

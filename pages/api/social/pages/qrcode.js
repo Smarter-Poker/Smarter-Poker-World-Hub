@@ -7,7 +7,7 @@
  * Returns a QR code SVG or PNG data URL that encodes a direct link to follow the page.
  * The link includes a referral code so new signups auto-follow the referring club.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

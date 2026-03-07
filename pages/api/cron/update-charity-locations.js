@@ -9,7 +9,7 @@
  * Schedule in vercel.json or Vercel cron:  0 6 * * *   (06:00 UTC = 00:00 CST)
  * GET /api/cron/update-charity-locations?key=<CRON_SECRET>
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

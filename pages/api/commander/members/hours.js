@@ -6,7 +6,7 @@
  * Falls back to visit_count * estimated average session length if no sessions exist.
  * Returns ranked list of members by total play time.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(

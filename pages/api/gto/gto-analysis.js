@@ -14,7 +14,7 @@
  * POST /api/gto/gto-analysis
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';

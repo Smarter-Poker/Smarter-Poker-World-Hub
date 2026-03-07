@@ -3,7 +3,7 @@
  * GET /api/commander/sessions/venue/[venueId] - List active sessions at a venue
  * Reference: Phase 2 - Session Tracking
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../../src/lib/commander/errorMonitoring';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 

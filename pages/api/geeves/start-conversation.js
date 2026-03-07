@@ -2,8 +2,9 @@
    START GEEVES CONVERSATION — Initialize new poker strategy conversation
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
             .from('profiles')
             .select('first_name, username')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
 
         const userName = profile?.first_name || profile?.username || 'there';
 

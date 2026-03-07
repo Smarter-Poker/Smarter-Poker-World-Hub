@@ -3,7 +3,7 @@
  * GET /api/commander/time-billing/sessions - List sessions (active/completed)
  * POST /api/commander/time-billing/sessions - Start new session
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

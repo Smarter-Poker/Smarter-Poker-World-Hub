@@ -3,7 +3,8 @@
  * GET /api/commander/sessions/current - Get player's active session
  * Returns the player's current seat location if they are seated at a game
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

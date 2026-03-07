@@ -7,7 +7,7 @@
  * POST /api/admin/trivia-pool-status - Trigger bulk generation (pass batches in body)
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 
 const supabase = createClient(

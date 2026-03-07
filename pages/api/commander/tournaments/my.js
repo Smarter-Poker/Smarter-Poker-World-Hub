@@ -2,7 +2,8 @@
  * My Tournament Registrations API
  * GET /api/commander/tournaments/my - Get player's tournament registrations
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

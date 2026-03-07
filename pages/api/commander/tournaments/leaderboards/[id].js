@@ -4,7 +4,7 @@
  * PUT /api/commander/tournaments/leaderboards/[id] - Update leaderboard
  * DELETE /api/commander/tournaments/leaderboards/[id] - Deactivate leaderboard
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

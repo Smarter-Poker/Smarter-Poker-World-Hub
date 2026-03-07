@@ -20,7 +20,7 @@
  * Target: 3,000 questions per category = 18,000 total questions
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { validateBatch } from '../../../src/lib/triviaValidator';
 

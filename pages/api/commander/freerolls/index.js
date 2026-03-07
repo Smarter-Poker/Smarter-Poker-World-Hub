@@ -3,7 +3,7 @@
  * GET  /api/commander/freerolls - List freerolls for a venue
  * POST /api/commander/freerolls - Create a new freeroll
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 

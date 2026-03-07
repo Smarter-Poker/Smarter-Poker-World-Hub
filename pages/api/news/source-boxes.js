@@ -11,7 +11,7 @@
  * Box 5: Poker.org
  * Box 6: Pokerfuse
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

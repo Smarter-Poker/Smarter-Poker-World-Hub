@@ -18,9 +18,10 @@
  * Body: { clubId }
  * Auth: Bearer token (the leaving player)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 import { checkSettlementLock, sendLockedResponse } from '../../../src/lib/settlement-lock';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

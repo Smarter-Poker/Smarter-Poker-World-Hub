@@ -52,7 +52,7 @@ export default function ProfileRedirect() {
                     .from('profiles')
                     .select('username')
                     .eq('id', authUser.id)
-                    .single();
+                    .maybeSingle();
 
                 if (profile?.username) {
                     // Redirect to their Facebook-style public profile

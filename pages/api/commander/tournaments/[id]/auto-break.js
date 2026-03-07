@@ -10,7 +10,7 @@
  * - Generates optimal seat assignments distributing players across tables with open seats
  * - Returns printable receipt data for wireless printer
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

@@ -4,7 +4,8 @@
  * Returns receipt data for thermal printer (80mm)
  * Also supports: ?session_id=X (full session summary receipt)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -29,13 +30,13 @@ export default async function handler(req, res) {
         .from('commander_cash_transactions')
         .select('id')
         .eq('id', transaction_id)
-        .single();
+        .maybeSingle();
 
       if (!tx) return res.status(404).json({ success: false, error: 'Transaction not found' });
 
       // Get venue name
       let venueName = 'Poker Room';
-      const { data: venue } = await supabase.from('poker_venues').select('name').eq('id', tx.venue_id).single();
+      const { data: venue } = await supabase.from('poker_venues').select('name').eq('id', tx.venue_id).maybeSingle();
       if (venue?.name) venueName = venue.name;
 
       return res.status(200).json({
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
         .from('commander_table_sessions')
         .select('id')
         .eq('id', session_id)
-        .single();
+        .maybeSingle();
 
       if (!session) return res.status(404).json({ success: false, error: 'Session not found' });
 
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
         .order('created_at', { ascending: true });
 
       let venueName = 'Poker Room';
-      const { data: venue } = await supabase.from('poker_venues').select('name').eq('id', session.venue_id).single();
+      const { data: venue } = await supabase.from('poker_venues').select('name').eq('id', session.venue_id).maybeSingle();
       if (venue?.name) venueName = venue.name;
 
       const transactions = txns || [];

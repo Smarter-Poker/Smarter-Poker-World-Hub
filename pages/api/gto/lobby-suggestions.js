@@ -7,7 +7,7 @@
  * GET /api/gto/lobby-suggestions?userId=xxx
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getCachedResponse, setCachedResponse } from '../../../src/lib/jarvisCache';
 
 const supabase = createClient(

@@ -2,7 +2,7 @@
  * Streaming Index API
  * GET /api/commander/streaming - List streams for a venue
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../src/lib/commander/auth';
 
 const supabase = createClient(

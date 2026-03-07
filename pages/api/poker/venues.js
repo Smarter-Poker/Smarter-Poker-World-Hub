@@ -13,7 +13,7 @@
  *   limit      - max results (default 50, max 200)
  *   featured   - if 'true', only featured venues
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { captureError, captureMessage, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
 import dailyTournamentData from '../../../data/daily-tournament-schedules.json';

@@ -3,7 +3,7 @@
  * Suggests player moves to balance tables for a game type/stakes
  * Reference: ENHANCEMENTS.md - Optimal Table Balancing
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { requireStaff } from '../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 

@@ -8,9 +8,10 @@
  * - Player names, finish positions, winnings
  * - Tournament details header
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { withRateLimit } from '../../../../src/lib/commander/rateLimit';
 import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
+import { getServerUser } from '../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

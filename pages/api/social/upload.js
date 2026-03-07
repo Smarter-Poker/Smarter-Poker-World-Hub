@@ -10,11 +10,12 @@
  * 
  * Uses the service role key to bypass RLS — the client never needs direct storage access.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 export const config = {
     api: {

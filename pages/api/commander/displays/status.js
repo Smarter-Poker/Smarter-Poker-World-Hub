@@ -5,7 +5,7 @@
  * Returns the online status of all registered tablet displays for a venue.
  * Used by the admin table-tablets page to show green/gray online indicators.
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

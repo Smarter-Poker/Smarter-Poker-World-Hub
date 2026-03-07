@@ -35,7 +35,7 @@
  * @module api/cron/scrape-venue-info
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import https from 'https';
 import http from 'http';
 import fs from 'fs';

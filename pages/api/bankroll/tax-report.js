@@ -3,12 +3,13 @@
  * Generate IRS-ready session logs with W2-G tracking
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { checkFeatureAccess } from '../../../src/lib/gates/premiumFeatureGate';
+import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

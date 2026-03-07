@@ -4,7 +4,7 @@
  * PUT /api/commander/venues/[id]/posts/[postId] - Update a post
  * DELETE /api/commander/venues/[id]/posts/[postId] - Delete a post
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardManager } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
 

@@ -5,9 +5,10 @@
  * POST /api/commander/home-games/events/[id]/rsvp - Submit RSVP
  * PUT /api/commander/home-games/events/[id]/rsvp - Update RSVP (confirm, waitlist management)
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../../../../src/lib/supabaseServerClient';
 import { guardUser } from '../../../../../../src/lib/commander/auth';
 import { applyRateLimit, LIMITS } from '../../../../../../src/lib/apiRateLimit';
+import { getServerUser } from '../../../../../../src/lib/serverAuth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

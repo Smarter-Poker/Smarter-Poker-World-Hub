@@ -3,7 +3,7 @@
  * Reads from social_reels table (populated by pokernews-videos cron)
  * Transforms reels data into video-card-compatible format
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,

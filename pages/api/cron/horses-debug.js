@@ -1,7 +1,7 @@
 /**
  * Debug test endpoint for horses-clips
  */
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getGrokClient } from '../../../src/lib/grokClient';
 
 // Test if ClipLibrary loads
