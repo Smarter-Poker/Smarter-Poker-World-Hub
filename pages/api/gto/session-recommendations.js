@@ -27,12 +27,15 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    try {
-        const { userId, sessionData } = req.body;
+    // Auth guard
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ success: false, error: 'Auth required' });
+    const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'userId required' });
-        }
+    try {
+        const { sessionData } = req.body;
+        const userId = authUser.id; // Trust JWT, not client-supplied body
 
         // Get user's training profile and recent history
         const profile = await getUserProfile(userId);
