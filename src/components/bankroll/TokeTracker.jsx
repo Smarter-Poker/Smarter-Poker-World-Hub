@@ -702,6 +702,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 table_number: downForm.table_number || null,
                 game_type: gameType,
                 cash_stakes: downForm.down_type === 'cash' ? downForm.cash_stakes : null,
+                cash_variant: downForm.down_type === 'cash' ? downForm.cash_variant : null,
             });
             toast.success(`${DOWN_TYPE_LABELS[downForm.down_type]} down started!`);
             setShowAddDown(false);
@@ -850,6 +851,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             toast.success('Down updated');
             setEditingDownId(null);
             setEditingDownForm(null);
+            await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {
             if (!isAbortError(err)) toast.error(err.message || 'Failed to update down');
