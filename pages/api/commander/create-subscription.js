@@ -177,7 +177,7 @@ export default async function handler(req, res) {
       }
     } else {
       // ─── Path B: New account — create user ─────────────────────────
-      const password = ownerInfo.password || ('Tmp' + Math.random().toString(36).slice(2) + 'X1!');
+      const password = ownerInfo.password || ('Tmp' + require('crypto').randomBytes(12).toString('base64url') + 'X1!');
 
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
