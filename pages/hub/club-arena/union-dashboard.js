@@ -7,9 +7,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
-import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import dynamic from 'next/dynamic';
-const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -139,7 +137,7 @@ export default function UnionDashboard() {
 
     // Load dashboard data
     const loadDashboard = useCallback(async () => {
-        if (!unionIdParam || !user) return;
+        if (!unionIdParam || !user) { setIsLoading(false); return; }
         setIsLoading(true);
         try {
             const data = await apiGet(`/api/club-arena/union-dashboard?unionId=${unionIdParam}`);
@@ -171,7 +169,7 @@ export default function UnionDashboard() {
 
     // ── Realtime subscriptions for live data ──
     useEffect(() => {
-        if (!unionIdParam || !dashboard) return;
+        if (!unionIdParam || !user) return;
 
         // Subscribe to union table changes (BBJ pools, settings)
         const unionChannel = supabase
@@ -194,7 +192,7 @@ export default function UnionDashboard() {
             }, () => { loadDashboard(); })
             .subscribe();
 
-        // Silent poll every 60s as fallback — Realtime postgres_changes handles live updates
+        // Silent poll every 30s as fallback — Realtime postgres_changes handles live updates
         const poll = setInterval(async () => {
             try {
                 const token = await getAuthToken();
@@ -212,7 +210,7 @@ export default function UnionDashboard() {
             supabase.removeChannel(unionChannel);
             clearInterval(poll);
         };
-    }, [unionIdParam, dashboard]);
+    }, [unionIdParam, user?.id]);
 
     // Mint chips
     const handleMint = async () => {
@@ -385,7 +383,7 @@ export default function UnionDashboard() {
                         {union?.name || 'Union Dashboard'}
                     </h1>
                     <p style={{ fontSize: 13, color: FB.textSecondary, margin: '4px 0 0' }}>
-                        Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.union_code || union?.code || 'N/A'}</span>
+                        Union Code: <span style={{ color: FB.primary, fontWeight: 700 }}>{union?.code || 'N/A'}</span>
                         &nbsp; · &nbsp; Role: <span style={{ color: FB.gold }}>{dashboard.adminRole === 'union_lead' ? 'Union Lead' : dashboard.adminRole === 'union_admin' ? 'Union Admin' : dashboard.adminRole || 'Admin'}</span>
                     </p>
                 </div>
@@ -1006,7 +1004,41 @@ export default function UnionDashboard() {
                 </div>
             )}
 
-            <ClubArenaBottomNav active="admin" />
+            {/* Union Bottom Navigation */}
+            <nav style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000,
+                background: '#242526', borderTop: '1px solid #3E4042',
+                boxShadow: '0 -2px 10px rgba(0,0,0,0.3)',
+            }}>
+                <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0' }}>
+                    {[
+                        { label: 'Club Arena', emoji: '🏠', href: '/hub/club-arena' },
+                        { label: 'Dashboard', emoji: '🏛', href: null, active: true },
+                        { label: 'Games', emoji: '🎮', href: unionIdParam ? `/hub/club-arena/union-games?union=${unionIdParam}` : null },
+                    ].map(item => (
+                        item.href ? (
+                            <a key={item.label} href={item.href} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                                flex: 1, padding: '8px 4px', textDecoration: 'none',
+                                color: item.active ? '#2374E1' : '#B0B3B8',
+                            }}>
+                                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                                <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
+                            </a>
+                        ) : (
+                            <div key={item.label} style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                                flex: 1, padding: '8px 4px',
+                                color: item.active ? '#2374E1' : '#B0B3B8',
+                                cursor: 'default',
+                            }}>
+                                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                                <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
+                            </div>
+                        )
+                    ))}
+                </div>
+            </nav>
         </div>
     );
 }

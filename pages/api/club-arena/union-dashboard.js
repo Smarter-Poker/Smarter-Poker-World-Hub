@@ -12,6 +12,7 @@
  * Auth: Bearer token (union admin)
  */
 import { createClient } from '@supabase/supabase-js';
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -19,6 +20,7 @@ const supabaseAdmin = createClient(
 );
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'GET only' });
 
   const token = req.headers.authorization?.replace('Bearer ', '');

@@ -242,7 +242,7 @@ export default async function handler(req, res) {
           rake_percent: parseFloat(rakePercent) || 5,
           rake_cap: parseFloat(rakeCap) || 3,
           status: 'waiting',
-          player_count: 0,
+          current_players: 0,
           created_by: auth.user.id,
           settings: {
             createdByUnion: true,

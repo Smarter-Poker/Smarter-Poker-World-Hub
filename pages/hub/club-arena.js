@@ -383,7 +383,7 @@ export default function ClubArenaPage() {
             // Find unions where user is an admin/owner
             const { data: adminRecords } = await supabase
                 .from('union_admins')
-                .select('union_id, role, unions(id, name, union_code, owner_id, settings, main_bbj_balance, created_at)')
+                .select('union_id, role, unions(id, name, code, owner_id, settings, main_bbj_balance, created_at)')
                 .eq('user_id', userId);
 
             if (adminRecords && adminRecords.length > 0) {
@@ -541,7 +541,7 @@ export default function ClubArenaPage() {
                                         </div>
                                         <div style={{ fontSize: 12, color: '#B0B3B8' }}>
                                             {union.adminRole === 'union_lead' ? 'Union Lead' : 'Union Admin'}
-                                            {union.union_code ? ` • Code: ${union.union_code}` : ''}
+                                            {union.code ? ` • Code: ${union.code}` : ''}
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>

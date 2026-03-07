@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
@@ -23,6 +24,15 @@ const STATUS_COLORS = {
 };
 
 const getToken = async () => {
+  // 1. Fast path: localStorage (instant, no network)
+  try {
+    const cached = localStorage.getItem('smarter-poker-auth');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed?.access_token) return parsed.access_token;
+    }
+  } catch (_) { /* incognito / quota */ }
+  // 2. Slow path: supabase session (handles refresh)
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token || '';
 };
@@ -68,7 +78,17 @@ export default function UnionGames() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) setUser(session.user);
-      else router.push('/auth/login');
+      else {
+        // Fallback: try localStorage directly
+        try {
+          const cached = localStorage.getItem('smarter-poker-auth');
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed?.user) { setUser(parsed.user); return; }
+          }
+        } catch (_) { /* ignore */ }
+        router.push('/auth/login');
+      }
     });
   }, [router]);
 
@@ -261,11 +281,38 @@ export default function UnionGames() {
     });
   };
 
-  if (!user) return null;
+  // BUG #4 FIX: Don't flash blank — show skeleton while auth resolves
+  if (!user) {
+    return (
+      <div style={{ background: FB.bg, minHeight: '100vh' }}>
+        <SEOHead title="Union Games | Club Arena" />
+        <UniversalHeader />
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
+          <SkeletonDark variant="table-rows" rows={6} />
+        </div>
+      </div>
+    );
+  }
+
+  // BUG #5 FIX: No unionId param — redirect to Club Arena
+  if (!unionId) {
+    return (
+      <div style={{ background: FB.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <SEOHead title="Union Games | Club Arena" />
+        <UniversalHeader />
+        <div style={{ color: '#FA383E', fontSize: 16 }}>No union specified.</div>
+        <button onClick={() => router.push('/hub/club-arena')}
+          style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>
+          ← Back to Club Arena
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: FB.bg, minHeight: '100vh', color: FB.text }}>
       <SEOHead title={`Games | ${unionInfo?.name || 'Union'}`} />
+      <UniversalHeader />
 
       {/* Toast */}
       {toast && (
@@ -518,6 +565,40 @@ export default function UnionGames() {
           onAction={() => { setSelectedTournament(null); loadData(); }}
         />
       )}
+
+      {/* Union Bottom Navigation */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000,
+        background: '#242526', borderTop: '1px solid #3E4042',
+        boxShadow: '0 -2px 10px rgba(0,0,0,0.3)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0' }}>
+          {[
+            { label: 'Club Arena', emoji: '🏠', href: '/hub/club-arena' },
+            { label: 'Dashboard', emoji: '🏛', href: `/hub/club-arena/union-dashboard?union=${unionId}` },
+            { label: 'Games', emoji: '🎮', href: null, active: true },
+          ].map(item => (
+            item.href ? (
+              <a key={item.label} href={item.href} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                flex: 1, padding: '8px 4px', textDecoration: 'none',
+                color: '#B0B3B8',
+              }}>
+                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
+              </a>
+            ) : (
+              <div key={item.label} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+                flex: 1, padding: '8px 4px', color: '#2374E1', cursor: 'default',
+              }}>
+                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
+              </div>
+            )
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }
