@@ -298,7 +298,7 @@ function EquityDisplay({ heroHand, board }) {
 // ═══════════════════════════════════════════════════════════════
 // RECENT SESSIONS & BOOKMARKS SIDEBAR (Feature #6 + Gap #1)
 // ═══════════════════════════════════════════════════════════════
-function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
+function RecentSessionsSidebar({ isOpen, onClose, onLoad, leaderboardEntries }) {
   const { sessions } = useRecentSessions(15);
   const { bookmarks } = useBookmarks(15);
   const [activeTab, setActiveTab] = useState('sessions');
@@ -356,7 +356,7 @@ function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
         ))}
       </div>
       {/* Leaderboard */}
-      <LeaderboardCard entries={leaderboardEntries} />
+      <LeaderboardCard entries={leaderboardEntries || []} />
     </motion.div>
   );
 }
@@ -783,7 +783,7 @@ export default function VirtualSandbox() {
 
       {/* Sessions Sidebar */}
       <AnimatePresence>{showSessions && (
-        <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} onLoad={(session) => {
+        <RecentSessionsSidebar isOpen onClose={() => setShowSessions(false)} leaderboardEntries={leaderboardEntries} onLoad={(session) => {
           if (session.hero_hand && typeof session.hero_hand === 'string') {
             const h = session.hero_hand;
             setHeroHand({ card1: h.length >= 2 ? h.substring(0, 2) : null, card2: h.length >= 4 ? h.substring(2, 4) : null });

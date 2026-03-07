@@ -55,11 +55,13 @@ export default function TournamentsPage() {
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [showResult, setShowResult] = useState(false);
     const [score, setScore] = useState(0);
-    const [startTime, setStartTime] = useState(null);
     const [timeLeft, setTimeLeft] = useState(40);
+    const [startTime, setStartTime] = useState(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
 
     const timerRef = useRef(null);
+    const scoreRef = useRef(0); // Accurate score outside React closures
+    const answersRef = useRef([]); // Track correct/incorrect per question
 
     useEffect(() => {
         if (authLoading) return;
@@ -301,6 +303,8 @@ export default function TournamentsPage() {
         setQuestions(shuffleOptions(activeTournament.questions.slice(0, 20)));
         setCurrentQuestionIndex(0);
         setScore(0);
+        scoreRef.current = 0;
+        answersRef.current = [];
         setSelectedAnswer(null);
         setShowResult(false);
         setTimeLeft(40);
@@ -322,10 +326,15 @@ export default function TournamentsPage() {
         setShowResult(true);
 
         const currentQuestion = questions[currentQuestionIndex];
-        const isCorrect = index === currentQuestion?.correct_index;
+        const isCorrect = index >= 0 && index === currentQuestion?.correct_index;
+
+        // Track answer accuracy per question for history recording
+        answersRef.current[currentQuestionIndex] = isCorrect;
 
         if (isCorrect) {
-            setScore(prev => prev + 100);
+            const newScore = scoreRef.current + 100;
+            scoreRef.current = newScore;
+            setScore(newScore);
         }
 
         // Advance quickly — no GTO explanations in tournaments
@@ -351,10 +360,11 @@ export default function TournamentsPage() {
             const isPlayer1 = myMatchup.player1_id === userId;
             const scoreField = isPlayer1 ? 'player1_score' : 'player2_score';
 
-            // Update the matchup in the round
+            // Update the matchup in the round (use scoreRef for accurate value)
+            const finalScore = scoreRef.current;
             const updatedMatchups = currentRoundData.matchups.map(m => {
                 if (m.match_index === myMatchup.match_index) {
-                    return { ...m, [scoreField]: score };
+                    return { ...m, [scoreField]: finalScore };
                 }
                 return m;
             });
@@ -377,11 +387,11 @@ export default function TournamentsPage() {
                 .update({ matchups: updatedMatchups })
                 .eq('id', currentRoundData.id);
 
-            // Also update the user's entry
+            // Also update the user's entry (use scoreRef for accurate value)
             await supabase
                 .from('trivia_tournament_entries')
                 .update({
-                    score: (userEntry?.score || 0) + score,
+                    score: (userEntry?.score || 0) + finalScore,
                     time_spent: (userEntry?.time_spent || 0) + totalTime,
                     completed_at: new Date().toISOString()
                 })
@@ -389,15 +399,15 @@ export default function TournamentsPage() {
                 .eq('user_id', userId);
         }
 
-        // Record question history
+        // Record question history (with actual accuracy per question)
         if (userId && questions && questions.length > 0) {
             try {
                 const historyRecords = questions
                     .filter(q => q.id)
-                    .map(q => ({
+                    .map((q, idx) => ({
                         user_id: userId,
                         question_id: q.id,
-                        was_correct: true,
+                        was_correct: answersRef.current[idx] === true,
                         seen_at: new Date().toISOString(),
                         mode: 'tournament'
                     }));

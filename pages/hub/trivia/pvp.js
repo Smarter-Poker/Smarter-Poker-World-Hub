@@ -72,6 +72,8 @@ export default function PvPPage() {
     const queueSubscription = useRef(null);
     const matchSubscription = useRef(null);
     const searchTimeout = useRef(null);
+    const playerScoreRef = useRef(0);
+    const playerAnswersRef = useRef([]); // Track correct/incorrect per question
 
     // Horse (AI opponent) battle state
     const [isHorseMatch, setIsHorseMatch] = useState(false);
@@ -304,7 +306,7 @@ export default function PvPPage() {
                 .select('question_id')
                 .eq('user_id', userId)
                 .gte('seen_at', sixtyDaysAgo.toISOString())
-                .limit(200) // pvp seen questions
+                .limit(200); // pvp seen questions
 
             if (recentHistory) {
                 excludeIds = recentHistory.map(h => h.question_id);
@@ -353,6 +355,8 @@ export default function PvPPage() {
             setGameState('battle');
             setCurrentQuestionIndex(0);
             setPlayerScore(0);
+            playerScoreRef.current = 0;
+            playerAnswersRef.current = [];
             setSelectedAnswer(null);
             setShowResult(false);
             setTimeLeft(40);
@@ -379,6 +383,8 @@ export default function PvPPage() {
             setGameState('battle');
             setCurrentQuestionIndex(0);
             setPlayerScore(0);
+            playerScoreRef.current = 0;
+            playerAnswersRef.current = [];
             setSelectedAnswer(null);
             setShowResult(false);
             setTimeLeft(40);
@@ -388,12 +394,21 @@ export default function PvPPage() {
 
     async function handleNoMatchFound() {
         // This is now only called if horse match also fails
-        // Refund stake as fallback
-        await supabase
+        // Refund stake — fetch fresh balance to avoid stale state
+        const { data: profile } = await supabase
             .from('profiles')
-            .update({ diamonds: userDiamonds + stakeAmount })
-            .eq('id', userId);
-        setUserDiamonds(prev => prev + stakeAmount);
+            .select('diamonds')
+            .eq('id', userId)
+            .single();
+
+        if (profile) {
+            const refunded = (profile.diamonds || 0) + stakeAmount;
+            await supabase
+                .from('profiles')
+                .update({ diamonds: refunded })
+                .eq('id', userId);
+            setUserDiamonds(refunded);
+        }
 
         await leaveMatchmakingQueue(userId);
         setGameState('lobby');
@@ -454,10 +469,15 @@ export default function PvPPage() {
         setShowResult(true);
 
         const currentQuestion = questions[currentQuestionIndex];
-        const isCorrect = index === currentQuestion?.correct_index;
+        const isCorrect = index >= 0 && index === currentQuestion?.correct_index;
+
+        // Track answer accuracy per question for history recording
+        playerAnswersRef.current[currentQuestionIndex] = isCorrect;
 
         if (isCorrect) {
-            setPlayerScore(prev => prev + 1);
+            const newScore = playerScoreRef.current + 1;
+            playerScoreRef.current = newScore;
+            setPlayerScore(newScore);
         }
 
         // Advance quickly — no GTO explanations in PvP
@@ -478,7 +498,8 @@ export default function PvPPage() {
         setIsTimerRunning(false);
         setGameState('waiting');
 
-        const finalScore = playerScore + (selectedAnswer === questions[currentQuestionIndex]?.correct_index ? 1 : 0);
+        // Use ref for accurate score — React state may be stale inside this closure
+        const finalScore = playerScoreRef.current;
 
         // Handle horse match differently
         if (isHorseMatch) {
@@ -559,13 +580,13 @@ export default function PvPPage() {
             isHorseMatch: true
         });
 
-        // Record question history for 60-day non-repeat
+        // Record question history for 60-day non-repeat (with actual accuracy)
         if (userId && questions && questions.length > 0) {
             try {
-                const historyRecords = questions.map(q => ({
+                const historyRecords = questions.map((q, idx) => ({
                     user_id: userId,
                     question_id: q.id,
-                    was_correct: true,
+                    was_correct: playerAnswersRef.current[idx] === true,
                     seen_at: new Date().toISOString(),
                     mode: 'pvp'
                 }));
@@ -617,20 +638,22 @@ export default function PvPPage() {
             opponent
         });
 
-        // Update stats
+        // Update persistent stats via upsert (not just local setState)
         if (won) {
-            setStats(prev => ({ ...prev, wins: prev.wins + 1 }));
+            await updatePvpStats('win', winnings - stakeAmount);
         } else if (match.winner_id && match.winner_id !== userId) {
-            setStats(prev => ({ ...prev, losses: prev.losses + 1 }));
+            await updatePvpStats('loss', stakeAmount);
+        } else {
+            await updatePvpStats('tie', 0);
         }
 
-        // Record question history for 60-day non-repeat
+        // Record question history for 60-day non-repeat (with actual accuracy)
         if (userId && questions && questions.length > 0) {
             try {
-                const historyRecords = questions.map(q => ({
+                const historyRecords = questions.map((q, idx) => ({
                     user_id: userId,
                     question_id: q.id,
-                    was_correct: true,
+                    was_correct: playerAnswersRef.current[idx] === true,
                     seen_at: new Date().toISOString(),
                     mode: 'pvp'
                 }));
@@ -655,9 +678,19 @@ export default function PvPPage() {
         setMatchId(null);
         setQuestions([]);
         setPlayerScore(0);
+        playerScoreRef.current = 0;
+        playerAnswersRef.current = [];
         setOpponentScore(null);
+        setCurrentQuestionIndex(0);
+        setSelectedAnswer(null);
+        setShowResult(false);
+        setTimeLeft(40);
+        setIsTimerRunning(false);
         setIsHorseMatch(false);
+        setStakeAmount(0);
         horseAnswersRef.current = [];
+        // Refresh diamond balance from DB
+        loadUserData();
     }
 
     const currentQuestion = questions[currentQuestionIndex];
@@ -696,17 +729,46 @@ export default function PvPPage() {
                         <div className="lobby">
                             <div
                                 className="lobby-image-wrapper"
-                                onClick={() => handleFindMatch(STAKE_OPTIONS[0])}
                                 style={{
-                                    cursor: 'pointer',
                                     borderRadius: '16px',
                                     overflow: 'hidden',
-                                    transition: 'transform 0.2s, box-shadow 0.2s',
                                 }}
-                                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(0, 212, 255, 0.4)'; }}
-                                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
                             >
                                 <Image src="/images/trivia/lobby-pvp.jpg" alt="1v1 Battle - Start Challenge" width={686} height={1024} className="lobby-image" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            </div>
+
+                            {/* Diamond Balance */}
+                            <div className="lobby-balance">
+                                <Gem size={18} />
+                                <span>{userDiamonds} Diamonds Available</span>
+                            </div>
+
+                            {/* Stake Selection */}
+                            <div className="stake-selection">
+                                <h3>Select Your Stake</h3>
+                                <div className="stake-grid">
+                                    {STAKE_OPTIONS.map(stake => (
+                                        <button
+                                            key={stake}
+                                            className={`stake-btn ${userDiamonds < stake ? 'disabled' : ''}`}
+                                            onClick={() => userDiamonds >= stake && handleFindMatch(stake)}
+                                            disabled={userDiamonds < stake}
+                                        >
+                                            <span className="stake-amount">{stake} 💎</span>
+                                            <span className="stake-win">Win {Math.floor(stake * 2 * 0.9)} 💎</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="rake-notice">10% house rake on prize pool</p>
+                            </div>
+
+                            {/* Record */}
+                            <div className="lobby-record">
+                                <Trophy size={16} />
+                                <span>{stats.wins}W - {stats.losses}L</span>
+                                {stats.bestStreak > 0 && (
+                                    <span className="best-streak">Best Streak: {stats.bestStreak} 🔥</span>
+                                )}
                             </div>
                         </div>
                     )}
@@ -878,7 +940,7 @@ export default function PvPPage() {
                                     </div>
                                 </div>
                                 {/* Invisible hitboxes over baked-in PLAY AGAIN and BACK TO TRIVIA buttons */}
-                                <button className="result-play-again-hitbox" onClick={() => { setGameState('lobby'); setResult(null); }} aria-label="Play Again" />
+                                <button className="result-play-again-hitbox" onClick={handlePlayAgain} aria-label="Play Again" />
                                 <button className="result-back-hitbox" onClick={() => router.push('/hub/trivia')} aria-label="Back To Trivia" />
                             </div>
                         </div>
@@ -943,6 +1005,35 @@ export default function PvPPage() {
                 .lobby-header p {
                     color: rgba(255, 255, 255, 0.6);
                     margin: 0;
+                }
+
+                .lobby-balance {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 12px 16px;
+                    color: #00d4ff;
+                    font-weight: 700;
+                    font-size: 16px;
+                    margin: 12px 0;
+                }
+
+                .lobby-record {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    padding: 12px 16px;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-weight: 600;
+                    font-size: 14px;
+                    margin-top: 8px;
+                }
+
+                .best-streak {
+                    color: #ffd700;
+                    margin-left: 8px;
                 }
 
                 .stake-selection h3 {

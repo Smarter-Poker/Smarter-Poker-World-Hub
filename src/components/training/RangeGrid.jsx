@@ -90,19 +90,24 @@ function getDominantAction(handFreqs) {
     return { action: maxAction, color, opacity, isMixed, maxFreq };
 }
 
-// Cell component
-const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode }) => {
+// Cell component with hover tooltip
+const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, size, classificationInfo, colorMode, handEV, isLocked }) => {
+    const [hovered, setHovered] = React.useState(false);
     const { color: actionColor, opacity: actionOpacity, isMixed, maxFreq } = getDominantAction(freqs);
     const hasData = freqs !== null && freqs !== undefined;
 
     // Classification mode: use hand classification color
     const useClassification = colorMode === 'classification' && classificationInfo;
     const color = useClassification ? getClassificationColor(classificationInfo.classification) : actionColor;
-    const opacity = useClassification ? 0.85 : actionOpacity;
+    const baseOpacity = useClassification ? 0.85 : actionOpacity;
+    // Range locking: fade non-locked hands
+    const opacity = isLocked === false ? 0.1 : baseOpacity;
 
     return (
         <div
             onClick={() => hasData && onClick(hand)}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
             style={{
                 width: size,
                 height: size,
@@ -121,7 +126,7 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                 position: 'relative',
                 transition: 'all 0.15s ease',
                 transform: isHero ? 'scale(1.2)' : isSelected ? 'scale(1.15)' : 'scale(1)',
-                zIndex: isHero ? 20 : isSelected ? 10 : 1,
+                zIndex: isHero ? 20 : isSelected ? 10 : hovered ? 50 : 1,
                 boxShadow: isHero ? '0 0 16px rgba(0, 212, 255, 0.7)' : isSelected ? '0 0 12px rgba(0, 212, 255, 0.5)' : 'none',
                 animation: isHero ? 'heroGlow 1.5s ease-in-out infinite alternate' : 'none',
             }}
@@ -133,6 +138,53 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
                     width: 4, height: 4, borderRadius: '50%',
                     backgroundColor: '#fbbf24',
                 }} />
+            )}
+            {/* Hover tooltip */}
+            {hovered && hasData && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: '110%', left: '50%', transform: 'translateX(-50%)',
+                    background: 'linear-gradient(145deg, #1a1a2e 0%, #0f172a 100%)',
+                    border: '1px solid rgba(0,212,255,0.3)',
+                    borderRadius: 8,
+                    padding: '8px 10px',
+                    minWidth: 130,
+                    zIndex: 100,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                    pointerEvents: 'none',
+                    whiteSpace: 'nowrap',
+                }}
+                >
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#00d4ff', marginBottom: 3, fontFamily: "'Orbitron', monospace" }}>
+                        {hand}
+                    </div>
+                    {classificationInfo && (
+                        <div style={{
+                            fontSize: 9, fontWeight: 700, marginBottom: 4,
+                            color: getClassificationColor(classificationInfo.classification),
+                        }}>
+                            {classificationInfo.subType || classificationInfo.classification}
+                        </div>
+                    )}
+                    {handEV !== undefined && handEV !== null && (
+                        <div style={{ fontSize: 9, color: handEV >= 0 ? '#4ade80' : '#f87171', fontWeight: 600 }}>
+                            EV: {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
+                        </div>
+                    )}
+                    {freqs && (
+                        <div style={{ marginTop: 3, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 3 }}>
+                            {Object.entries(freqs).filter(([_, f]) => f > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([act, freq]) => {
+                                const d = ACTION_DISPLAY[act] || { label: act, short: act, color: '#888' };
+                                return (
+                                    <div key={act} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 8, gap: 6 }}>
+                                        <span style={{ color: d.color, fontWeight: 700 }}>{d.short}</span>
+                                        <span style={{ color: '#94a3b8' }}>{freq.toFixed(1)}%</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );
@@ -180,8 +232,8 @@ function FrequencyBar({ action, frequency, color }) {
     );
 }
 
-// Hand detail popover
-function HandDetail({ hand, freqs, onClose }) {
+// Hand detail popover with EV + classification
+function HandDetail({ hand, freqs, onClose, classificationInfo, handEV }) {
     if (!hand || !freqs) return null;
 
     // Sort frequencies by value descending
@@ -189,8 +241,9 @@ function HandDetail({ hand, freqs, onClose }) {
         .filter(([_, f]) => f > 0)
         .sort((a, b) => b[1] - a[1]);
 
-    const dominantAction = sorted[0];
     const isMixed = sorted.length > 1 && sorted[0][1] < 80;
+    const bestAction = sorted[0];
+    const bestDisplay = bestAction ? (ACTION_DISPLAY[bestAction[0]] || { label: bestAction[0], color: '#888' }) : null;
 
     return (
         <motion.div
@@ -202,12 +255,13 @@ function HandDetail({ hand, freqs, onClose }) {
                 border: '1px solid rgba(0, 212, 255, 0.3)',
                 borderRadius: 12,
                 padding: 16,
-                minWidth: 250,
+                minWidth: 260,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             }}
         >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{
                         fontSize: 22, fontWeight: 800, color: '#00d4ff',
                         fontFamily: "'Orbitron', monospace",
@@ -216,7 +270,7 @@ function HandDetail({ hand, freqs, onClose }) {
                     </span>
                     {isMixed && (
                         <span style={{
-                            marginLeft: 8, fontSize: 10, color: '#fbbf24',
+                            fontSize: 10, color: '#fbbf24',
                             background: 'rgba(251, 191, 36, 0.15)',
                             padding: '2px 8px', borderRadius: 20, fontWeight: 600,
                         }}>
@@ -232,6 +286,48 @@ function HandDetail({ hand, freqs, onClose }) {
                     }}
                 >✕</button>
             </div>
+
+            {/* Classification + EV Row */}
+            <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                marginBottom: 10, padding: '6px 8px',
+                background: 'rgba(255,255,255,0.03)', borderRadius: 6,
+                border: '1px solid rgba(255,255,255,0.06)',
+            }}>
+                {classificationInfo ? (
+                    <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        color: getClassificationColor(classificationInfo.classification),
+                        textTransform: 'uppercase', letterSpacing: 0.5,
+                    }}>
+                        {classificationInfo.subType || classificationInfo.classification}
+                    </span>
+                ) : (
+                    <span style={{ fontSize: 10, color: '#64748b' }}>—</span>
+                )}
+                {handEV !== undefined && handEV !== null && (
+                    <span style={{
+                        fontSize: 12, fontWeight: 800, fontFamily: "'Orbitron', monospace",
+                        color: handEV >= 0 ? '#4ade80' : '#f87171',
+                    }}>
+                        {handEV >= 0 ? '+' : ''}{(typeof handEV === 'number' ? handEV.toFixed(2) : handEV)} BB
+                    </span>
+                )}
+            </div>
+
+            {/* Best Action Badge */}
+            {bestAction && (
+                <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    marginBottom: 8, fontSize: 10, color: '#94a3b8',
+                }}>
+                    <span style={{ color: '#fbbf24' }}>★</span>
+                    <span>Best:</span>
+                    <span style={{ color: bestDisplay.color, fontWeight: 700 }}>
+                        {bestDisplay.label} ({bestAction[1].toFixed(1)}%)
+                    </span>
+                </div>
+            )}
 
             {sorted.map(([action, freq]) => (
                 <FrequencyBar
@@ -257,7 +353,7 @@ function HandDetail({ hand, freqs, onClose }) {
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action' }) {
+export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHandSelect, heroHand = null, compact = false, classificationData = null, colorMode = 'action', handEVs = null, lockedClassifications = null }) {
     const [selectedHand, setSelectedHand] = useState(null);
 
     // heroGlow keyframes injected once
@@ -282,6 +378,11 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 const hand = getHandNotation(r, c);
                 const freqs = gridData?.[hand] || null;
                 const classInfo = classificationData?.[hand] || null;
+                const ev = handEVs?.[hand] ?? null;
+                // Range locking: determine if this hand is locked (highlighted) or dimmed
+                const isLocked = lockedClassifications && lockedClassifications.length > 0
+                    ? lockedClassifications.includes(classInfo?.classification)
+                    : null; // null = no locking active
                 cells.push(
                     <GridCell
                         key={hand}
@@ -294,13 +395,15 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                         size={cellSize}
                         classificationInfo={classInfo}
                         colorMode={colorMode}
+                        handEV={ev}
+                        isLocked={isLocked}
                     />
                 );
             }
             rows.push(cells);
         }
         return rows;
-    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode]);
+    }, [gridData, selectedHand, handleCellClick, cellSize, heroHand, classificationData, colorMode, handEVs, lockedClassifications]);
 
     // Get action legend
     const activeActions = useMemo(() => {
@@ -362,6 +465,8 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                             hand={selectedHand}
                             freqs={selectedFreqs}
                             onClose={() => setSelectedHand(null)}
+                            classificationInfo={classificationData?.[selectedHand]}
+                            handEV={handEVs?.[selectedHand]}
                         />
                     )}
                 </AnimatePresence>
