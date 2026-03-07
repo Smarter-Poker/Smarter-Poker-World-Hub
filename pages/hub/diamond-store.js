@@ -25,7 +25,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useCartStore from '../../src/stores/cartStore';
 import supabase from '../../src/lib/supabase';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
 
 
 
@@ -679,13 +679,13 @@ export default function DiamondStorePage() {
         const _c = new AbortController();
 
         (async () => {
-            const token = getAccessToken();
-            if (session?.user?.id) {
-                setUser(session.user);
+            const authUser = getAuthUser();
+            if (authUser?.id) {
+                setUser(authUser);
                 const { data: profile } = await supabase
                     .from('profiles')
                     .select('is_vip')
-                    .eq('id', session.user.id)
+                    .eq('id', authUser.id)
                     .maybeSingle();
                 setIsVip(!!profile?.is_vip);
             }
@@ -752,7 +752,7 @@ export default function DiamondStorePage() {
         try {
             const token = getAccessToken();
 
-            if (!session) {
+            if (!token) {
                 alert('Please sign in to complete your purchase');
                 setIsProcessing(false);
                 return;
@@ -763,7 +763,7 @@ export default function DiamondStorePage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     type: 'diamonds',
@@ -826,7 +826,7 @@ export default function DiamondStorePage() {
         setIsProcessing(true);
         try {
             const token = getAccessToken();
-            if (!session) {
+            if (!token || !user?.id) {
                 alert('Please sign in to pay with diamonds');
                 setIsProcessing(false);
                 return;
@@ -836,7 +836,7 @@ export default function DiamondStorePage() {
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('diamonds')
-                .eq('id', session.user.id)
+                .eq('id', user.id)
                 .maybeSingle();
 
             const userDiamonds = profile?.diamonds || 0;
@@ -854,7 +854,7 @@ export default function DiamondStorePage() {
 
             // Deduct diamonds
             const { error } = await supabase.rpc('deduct_diamonds', {
-                p_user_id: session.user.id,
+                p_user_id: user.id,
                 p_amount: totalDiamondCost,
                 p_description: `Diamond Store purchase: ${items.map(i => i.name).join(', ')}`,
                 p_transaction_type: 'purchase'
