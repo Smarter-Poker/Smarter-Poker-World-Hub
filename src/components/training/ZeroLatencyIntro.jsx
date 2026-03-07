@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { generateLevel } from '../lib/PokerScenarioGenerator';
+import { generateLevel } from '../../lib/PokerScenarioGenerator';
 import { TRAINING_CONFIG } from '../../config/trainingConfig';
 
 export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelReady }) {
