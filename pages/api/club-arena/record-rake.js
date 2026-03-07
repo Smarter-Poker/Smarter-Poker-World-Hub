@@ -51,10 +51,12 @@ export default async function handler(req, res) {
     }
   }
 
-  const { clubId, tableId, handId, potSize, rakeAmount, numPlayers, bbjContribution, dealtPlayerIds } = req.body;
+  const { clubId, tableId, handId, potSize, rakeAmount: rawRake, numPlayers, bbjContribution, dealtPlayerIds } = req.body;
+  const rakeAmount = Math.floor(Number(rawRake));
+  const safePotSize = Math.floor(Number(potSize)) || 0;
 
-  if (!clubId || rakeAmount == null || rakeAmount < 0) {
-    return res.status(400).json({ success: false, error: 'clubId and non-negative rakeAmount required' });
+  if (!clubId || !Number.isFinite(rakeAmount) || rakeAmount < 0 || rakeAmount > 100_000_000) {
+    return res.status(400).json({ success: false, error: 'clubId and valid non-negative rakeAmount required' });
   }
 
   try {
@@ -64,7 +66,7 @@ export default async function handler(req, res) {
       p_club_id: clubId,
       p_table_id: tableId || null,
       p_rake_amount: rakeAmount,
-      p_pot_size: potSize || 0,
+      p_pot_size: safePotSize,
       p_num_players: numPlayers || (dealtPlayerIds?.length || 0),
       p_bbj_contribution: bbjContribution || 0,
       p_dealt_player_ids: dealtPlayerIds?.length > 0 ? dealtPlayerIds : null,
