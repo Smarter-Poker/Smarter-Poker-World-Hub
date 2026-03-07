@@ -79,6 +79,7 @@ import ChallengesWidget from '../../src/components/training/ChallengesWidget';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
 import DailyBonusWidget from '../../src/components/training/DailyBonusWidget';
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 
 // Register GSAP plugins
@@ -625,6 +626,7 @@ function GameLane({ title, icon, color, games, onGameClick, getProgress, badge, 
 
 export default function TrainingPage() {
     const router = useRouter();
+    useTrainingBus('training-hub');
 
     // Zustand Global State (replaces local useState)
     const activeFilter = useTrainingStore((s) => s.activeFilter);

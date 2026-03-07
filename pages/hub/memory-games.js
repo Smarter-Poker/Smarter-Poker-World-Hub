@@ -36,6 +36,7 @@ import { processGameResult } from '../../src/games/ELOService';
 import gameSessionService from '../../src/services/GameSessionService';
 import achievementService from '../../src/services/AchievementService';
 import { claimReward } from '../../src/lib/claimReward';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // New Game Mode Components (dynamic imports for code splitting)
 import dynamic from 'next/dynamic';
@@ -1622,6 +1623,7 @@ function DailyChallengeCard({ challenge, streak, completed, onPlay, loading }) {
 export default function MemoryGamesPage() {
     const router = useRouter();
     const { user } = useAvatar();
+    useTrainingBus('memory-games');
     const userId = user?.id;
     const containerRef = useRef(null);
 

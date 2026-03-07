@@ -50,6 +50,14 @@ export default function TrainingProgress() {
         return () => { supabase.removeChannel(_ch); };
     }, [user?.id]);
 
+    // EventBus SESSION_END listener — refresh when any training session completes
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => {
+            loadProgress();
+        });
+        return unsub;
+    }, []);
+
     const loadProgress = async () => {
         try {
             const authUser = await getAuthUser();
