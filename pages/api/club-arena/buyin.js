@@ -29,12 +29,11 @@ export default async function handler(req, res) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: 'Invalid token' });
 
-  const { clubId, chipAmount } = req.body;
-  if (!clubId || !chipAmount || chipAmount <= 0) {
-    return res.status(400).json({ error: 'clubId and positive chipAmount required' });
+  const { clubId, chipAmount: rawChipAmount } = req.body;
+  const amount = Math.floor(Number(rawChipAmount));
+  if (!clubId || !Number.isFinite(amount) || amount <= 0 || amount > 100_000_000) {
+    return res.status(400).json({ error: 'clubId and valid positive chipAmount required' });
   }
-
-  const amount = Math.floor(chipAmount);
 
   // Rate limit
   if (!applyRateLimit(req, res, 'club-arena/buyin')) return;
