@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser } from '../../../src/lib/authUtils';
-import { emitCacheInvalidation } from '../../../src/lib/cacheSync';
+import { emitCacheInvalidation, onCacheInvalidation } from '../../../src/lib/cacheSync';
 
 // Components
 import PageTransition from '../../../src/components/transitions/PageTransition';
@@ -722,7 +722,32 @@ export default function UserProfilePage() {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts', filter: `author_id=eq.${profile.id}` }, handleRealtimeUpdate)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, handleRealtimeUpdate)
             .subscribe();
-        return () => { supabase.removeChannel(_ch); };
+
+        // Cross-tab cache sync: when another tab invalidates this profile's cache
+        const unsubCacheSync = onCacheInvalidation((cacheKey, action) => {
+            if (cacheKey === `sp-profile-cache-${username}`) {
+                if (action === 'invalidate') {
+                    handleRealtimeUpdate(); // Re-fetch fresh data
+                } else if (action === 'update') {
+                    // Another tab wrote fresh data — hydrate from cache
+                    try {
+                        const raw = localStorage.getItem(cacheKey);
+                        if (raw) {
+                            const parsed = JSON.parse(raw);
+                            if (parsed.profile) setProfile(parsed.profile);
+                            if (parsed.stats) setStats(parsed.stats);
+                            if (parsed.friends) setFriends(parsed.friends);
+                            if (parsed.posts) setPosts(parsed.posts);
+                        }
+                    } catch { /* noop */ }
+                }
+            }
+        });
+
+        return () => {
+            supabase.removeChannel(_ch);
+            unsubCacheSync();
+        };
     }, [profile?.id, username]);
 
     // Helper — invalidate profile cache + notify friends page cross-tab

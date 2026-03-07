@@ -175,7 +175,21 @@ export default function NotificationsPage() {
                 }
             })
             .subscribe();
-        return () => { supabase.removeChannel(_ch); };
+
+        // BroadcastChannel: listen for cross-tab notif sync
+        let notifBc;
+        try {
+            notifBc = new BroadcastChannel('smarter_poker_notif_sync');
+            notifBc.onmessage = () => {
+                // Another tab marked notifications as read — refresh local state
+                setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+            };
+        } catch { /* noop */ }
+
+        return () => {
+            supabase.removeChannel(_ch);
+            try { notifBc?.close(); } catch { /* noop */ }
+        };
     }, [user?.id]);
 
     const markAsRead = async (id) => {
@@ -254,6 +268,9 @@ export default function NotificationsPage() {
             } else {
                 console.error('Could not find friendship to accept');
             }
+
+            // Sync friends page cross-tab
+            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch { /* noop */ }
         } catch (err) {
             console.error('Error accepting friend request:', err);
         }
@@ -306,6 +323,8 @@ export default function NotificationsPage() {
                     : n
             ));
 
+            // Sync friends page cross-tab
+            try { new BroadcastChannel('smarter_poker_friends_sync').postMessage('refresh'); } catch { /* noop */ }
         } catch (err) {
             console.error('Error declining friend request:', err);
         }

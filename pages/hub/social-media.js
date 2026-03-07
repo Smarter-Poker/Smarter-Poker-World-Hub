@@ -4073,16 +4073,30 @@ export default function SocialMediaPage() {
 
     // Cross-tab Social Feed sync
     useEffect(() => {
+        let socialBc, friendsBc;
         try {
-            const bc = new BroadcastChannel('smarter_poker_social_sync');
-            bc.onmessage = (event) => {
+            socialBc = new BroadcastChannel('smarter_poker_social_sync');
+            socialBc.onmessage = (event) => {
                 if (event.data === 'refresh_feed') {
-                    console.log('[Social] 📡 Refreshing feed from other tab');
+                    console.log('[Social] Refreshing feed from other tab');
                     loadFeed(0, false);
                 }
             };
-            return () => bc.close();
-        } catch (e) { }
+        } catch { /* noop */ }
+
+        // Friends sync: refresh feed when friend list changes (updates "friend" badges)
+        try {
+            friendsBc = new BroadcastChannel('smarter_poker_friends_sync');
+            friendsBc.onmessage = () => {
+                console.log('[Social] Friends changed — refreshing feed');
+                loadFeed(0, false);
+            };
+        } catch { /* noop */ }
+
+        return () => {
+            try { socialBc?.close(); } catch { /* noop */ }
+            try { friendsBc?.close(); } catch { /* noop */ }
+        };
     }, []);
 
     useEffect(() => {
