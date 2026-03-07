@@ -77,7 +77,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
                 .from('venues')
                 .select('name, logo_url, city, state')
                 .eq('id', tournament.venue_id)
-                .single();
+                .maybeSingle();
             venueName = venueRow?.name || venueName || '';
             venueLogoUrl = venueRow?.logo_url || null;
             venueCity = venueRow?.city || null;
@@ -197,7 +197,7 @@ export async function checkAndExecuteAutoBreak(tournamentId, tournament) {
                 .from('commander_tournament_entries')
                 .select('metadata')
                 .eq('id', a.entry_id)
-                .single();
+                .maybeSingle();
 
             const { error: uErr } = await supabase
                 .from('commander_tournament_entries')

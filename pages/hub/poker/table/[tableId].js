@@ -28,7 +28,7 @@ export default function PokerTablePage() {
           .from('profiles')
           .select('display_name, avatar_url')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile) {
           setDisplayName(profile.display_name || session.user.email?.split('@')[0] || 'Player');

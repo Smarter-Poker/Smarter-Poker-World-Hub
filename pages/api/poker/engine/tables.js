@@ -78,7 +78,7 @@ export default async function handler(req, res) {
           .select('role')
           .eq('club_id', clubId)
           .eq('user_id', auth.userId)
-          .single();
+          .maybeSingle();
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
           return res.status(403).json({ error: 'Only owners, admins, or managers can close tables' });
         }

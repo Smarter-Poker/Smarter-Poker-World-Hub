@@ -50,13 +50,13 @@ export default function MyTournamentStatus() {
                     .from('commander_tournaments')
                     .select('*')
                     .eq('id', id)
-                    .single(),
+                    .maybeSingle(),
                 supabase
                     .from('commander_tournament_entries')
                     .select('*')
                     .eq('tournament_id', id)
                     .eq('player_id', session.user.id)
-                    .single()
+                    .maybeSingle()
             ]);
 
             // Parse tournament

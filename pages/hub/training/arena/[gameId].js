@@ -164,7 +164,7 @@ export default function TrainingArenaPage() {
                         .from('game_registry')
                         .select('title')
                         .eq('slug', gameId)
-                        .single();
+                        .maybeSingle();
 
                     if (game?.title) setGameName(game.title);
 
@@ -173,7 +173,7 @@ export default function TrainingArenaPage() {
                         .select('*')
                         .eq('game_slug', gameId)
                         .limit(1)
-                        .single();
+                        .maybeSingle();
 
                     if (hand) {
                         setHeroCards(parseCards(hand.hero_hand || 'AhKh'));

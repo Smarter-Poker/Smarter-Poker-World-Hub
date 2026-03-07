@@ -672,7 +672,7 @@ export default function DiamondStorePage() {
                     .from('profiles')
                     .select('is_vip')
                     .eq('id', session.user.id)
-                    .single();
+                    .maybeSingle();
                 setIsVip(!!profile?.is_vip);
             }
         })();
@@ -823,7 +823,7 @@ export default function DiamondStorePage() {
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle();
 
             const userDiamonds = profile?.diamonds || 0;
 

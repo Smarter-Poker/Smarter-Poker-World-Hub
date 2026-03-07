@@ -337,8 +337,8 @@ class HandHistoryQuery {
       .from('hand_histories')
       .select('*')
       .eq('id', handId)
-      .single();
-    
+      .maybeSingle();
+
     if (error) return null;
     return data;
   }

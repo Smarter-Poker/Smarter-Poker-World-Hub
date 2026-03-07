@@ -53,7 +53,7 @@ export async function checkFeatureAccess(userId, featureKey) {
             .from('profiles')
             .select('is_vip, diamonds')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
         if (error) {
             console.warn('[FeatureGate] Profile fetch error:', error.message, '| userId:', userId);
             return { data: null, error };
@@ -198,7 +198,7 @@ export async function purchaseFeatureAccess(userId, featureKey, cost, durationHo
         .from('profiles')
         .select('diamonds, is_vip')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
     // VIP users don't need to purchase
     if (profile?.is_vip) {
@@ -327,7 +327,7 @@ export async function purchaseVipWithDiamonds(userId) {
         .from('profiles')
         .select('diamonds, is_vip')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
     if (!profile) return { success: false, error: 'Profile not found' };
     if (profile.is_vip) return { success: false, error: 'Already a VIP member' };

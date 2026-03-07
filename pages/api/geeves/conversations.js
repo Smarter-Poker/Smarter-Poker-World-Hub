@@ -30,29 +30,32 @@ export default async function handler(req, res) {
 
         const { limit = 10 } = req.query;
 
-        // Fetch conversations with message count
+        // Fetch conversations (left join — don't crash if no messages)
         const { data: conversations, error } = await supabase
             .from('geeves_conversations')
             .select(`
                 id,
                 title,
                 created_at,
-                updated_at,
-                geeves_messages!inner(id)
+                updated_at
             `)
             .eq('user_id', user.id)
             .order('updated_at', { ascending: false })
             .limit(parseInt(limit));
 
-        if (error) throw error;
+        if (error) {
+            console.error('[Geeves Conversations] Query error:', error);
+            // Return empty array instead of crashing
+            return res.status(200).json({ conversations: [] });
+        }
 
-        // Format response with message counts
+        // Format response
         const formattedConversations = conversations?.map(conv => ({
             id: conv.id,
             title: conv.title,
             createdAt: conv.created_at,
             updatedAt: conv.updated_at,
-            messageCount: conv.geeves_messages?.length || 0
+            messageCount: 0 // Count loaded separately if needed
         })) || [];
 
         return res.status(200).json({

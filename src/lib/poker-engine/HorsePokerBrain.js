@@ -1781,7 +1781,7 @@ async function updatePLOOpponentRead(horseId, opponentId, revealedHand, opponent
             .select('bluff_frequency, fold_tendency, slow_play_tendency')
             .eq('horse_id', horseId)
             .eq('opponent_id', opponentId)
-            .single();
+            .maybeSingle();
 
         const mergedUpdate = {
             horse_id: horseId,
@@ -5655,7 +5655,7 @@ async function getDecision(profileId, engineState, legalActions, tableConfig = {
                     .eq('opponent_id', oppId)
                     .order('updated_at', { ascending: false })
                     .limit(1)
-                    .single();
+                    .maybeSingle();
                 if (readData) {
                     // If opponent bluffs a lot, call more (lower fold threshold)
                     if (readData.bluff_frequency > 0.35) {
@@ -6795,7 +6795,7 @@ async function _loadThreatIntel(opponentId) {
             .from('horse_threat_intel')
             .select('*')
             .eq('opponent_id', opponentId)
-            .single();
+            .maybeSingle();
         if (!data) {
             threatIntelCache.set(opponentId, null);
             return null;
@@ -7374,7 +7374,7 @@ async function canRebuy(tableId, playerId, minBuyIn = 0, clubId = null) {
                 .select('chip_balance')
                 .eq('club_id', clubId)
                 .eq('profile_id', playerId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
 

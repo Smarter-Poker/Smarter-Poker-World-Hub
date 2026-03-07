@@ -28,7 +28,7 @@ export async function checkPopupDismissed(userId, pageKey) {
                 .select('id')
                 .eq('user_id', userId)
                 .eq('feature_key', `game_cost_popup_${pageKey}`)
-                .single();
+                .maybeSingle();
 
             if (data) {
                 // Sync to localStorage for faster checks

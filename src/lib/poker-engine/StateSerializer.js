@@ -393,7 +393,7 @@ class StateSerializer {
         .from('tables')
         .select('settings')
         .eq('id', this.tableId)
-        .single();
+        .maybeSingle();
 
       const currentSettings = row?.settings || {};
       await this.supabase
@@ -423,7 +423,7 @@ class StateSerializer {
         .from('tables')
         .select('live_state')
         .eq('id', tableId)
-        .single();
+        .maybeSingle();
 
       if (error || !data?.live_state) return null;
 

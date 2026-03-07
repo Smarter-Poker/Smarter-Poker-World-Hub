@@ -54,7 +54,7 @@ export default function AuthCallback() {
                     .from('profiles')
                     .select('player_number')
                     .eq('id', user.id)
-                    .single();
+                    .maybeSingle();
 
                 if (existingProfile?.player_number) {
                     // Profile already exists, check if redirecting to commander

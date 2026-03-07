@@ -122,7 +122,7 @@ async function getCurrentStreak(supabase, userId) {
         .from('training_streaks')
         .select('current_streak')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
     return data?.current_streak || 0;
 }

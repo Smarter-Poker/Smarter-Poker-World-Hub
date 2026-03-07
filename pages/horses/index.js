@@ -193,7 +193,7 @@ export default function HorsesAdmin() {
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Failed to verify admin role:', error);
@@ -237,7 +237,7 @@ export default function HorsesAdmin() {
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileErr) {
         setLoginError('Network error checking admin status.');
@@ -271,7 +271,7 @@ export default function HorsesAdmin() {
         .select('*')
         .order('name');
 
-      const { data: settingsData } = await supabase.from('content_settings').select('*').single();
+      const { data: settingsData } = await supabase.from('content_settings').select('*').maybeSingle();
 
       const { data: runsData } = await supabase
         .from('pipeline_runs')
@@ -514,7 +514,7 @@ export default function HorsesAdmin() {
     try {
       const upsertPayload = { ...newSettings, updated_at: new Date().toISOString() };
       if (!upsertPayload.id) {
-        const { data } = await supabase.from('content_settings').select('id').single();
+        const { data } = await supabase.from('content_settings').select('id').maybeSingle();
         if (data?.id) upsertPayload.id = data.id;
       }
 

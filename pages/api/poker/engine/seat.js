@@ -135,7 +135,7 @@ export default async function handler(req, res) {
             .select('role, tier')
             .eq('club_id', clubId)
             .eq('user_id', playerId)
-            .single();
+            .maybeSingle();
           if (mem) {
             memberRole = mem.role;
             memberTier = mem.tier;
@@ -341,7 +341,7 @@ export default async function handler(req, res) {
         if (clubId) {
           const { data: inviterMember } = await supabaseAdmin
             .from('club_members').select('role')
-            .eq('club_id', clubId).eq('user_id', playerId).single();
+            .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
           if (!inviterMember || !['owner', 'admin', 'manager', 'agent'].includes(inviterMember.role)) {
             return res.status(403).json({ error: 'Only owners, admins, managers, or agents can invite players' });
           }
@@ -358,7 +358,7 @@ export default async function handler(req, res) {
         if (clubId) {
           const { data: approverMember } = await supabaseAdmin
             .from('club_members').select('role')
-            .eq('club_id', clubId).eq('user_id', playerId).single();
+            .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
           if (!approverMember || !['owner', 'admin', 'manager'].includes(approverMember.role)) {
             return res.status(403).json({ error: 'Only owners, admins, or managers can approve buy-ins' });
           }
@@ -375,7 +375,7 @@ export default async function handler(req, res) {
         if (clubId) {
           const { data: rejecterMember } = await supabaseAdmin
             .from('club_members').select('role')
-            .eq('club_id', clubId).eq('user_id', playerId).single();
+            .eq('club_id', clubId).eq('user_id', playerId).maybeSingle();
           if (!rejecterMember || !['owner', 'admin', 'manager'].includes(rejecterMember.role)) {
             return res.status(403).json({ error: 'Only owners, admins, or managers can reject buy-ins' });
           }
@@ -401,7 +401,7 @@ export default async function handler(req, res) {
             .select('role')
             .eq('club_id', clubId)
             .eq('user_id', playerId)
-            .single();
+            .maybeSingle();
           if (!kickerMember || !['owner', 'admin', 'manager'].includes(kickerMember.role)) {
             return res.status(403).json({ error: 'Only owners, admins, or managers can kick players' });
           }

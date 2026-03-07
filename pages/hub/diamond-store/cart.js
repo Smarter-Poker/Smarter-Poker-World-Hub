@@ -52,7 +52,7 @@ export default function ShoppingCart() {
                         .from('user_preferences')
                         .select('preferences')
                         .eq('user_id', authUser.id)
-                        .single();
+                        .maybeSingle();
                     const savedCart = prefData?.preferences?.diamond_cart;
                     if (savedCart && Array.isArray(savedCart)) {
                         setCart(savedCart);

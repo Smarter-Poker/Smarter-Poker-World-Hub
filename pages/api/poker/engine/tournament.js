@@ -55,7 +55,7 @@ export default async function handler(req, res) {
           .select('role')
           .eq('club_id', clubId)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (!member || !['owner', 'admin', 'manager'].includes(member.role)) {
           return res.status(403).json({ success: false, error: 'Not authorized to create tournaments in this club' });
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
         if (!startState) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (startState.clubId) {
           const { data: mem } = await supabase.from('club_members').select('role')
-            .eq('club_id', startState.clubId).eq('user_id', user.id).single();
+            .eq('club_id', startState.clubId).eq('user_id', user.id).maybeSingle();
           if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
             return res.status(403).json({ success: false, error: 'Only staff can start tournaments' });
           }
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
             .from('club_tournaments')
             .select('*, tournament_registrations(user_id, status, registered_at)')
             .eq('id', tournamentId)
-            .single();
+            .maybeSingle();
 
           if (!row) return res.status(404).json({ success: false, error: 'Tournament not found' });
 
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
         if (!cancelState) return res.status(404).json({ success: false, error: 'Tournament not found' });
         if (cancelState.clubId) {
           const { data: mem } = await supabase.from('club_members').select('role')
-            .eq('club_id', cancelState.clubId).eq('user_id', user.id).single();
+            .eq('club_id', cancelState.clubId).eq('user_id', user.id).maybeSingle();
           if (!mem || !['owner', 'admin', 'manager'].includes(mem.role)) {
             return res.status(403).json({ success: false, error: 'Only staff can cancel tournaments' });
           }

@@ -339,7 +339,7 @@ async function getChipBalance(clubId, userId) {
     .select('chip_balance')
     .eq('club_id', clubId)
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
   return data?.chip_balance || 0;
 }
 

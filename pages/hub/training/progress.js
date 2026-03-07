@@ -107,7 +107,7 @@ export default function TrainingProgress() {
                 .from('training_streaks')
                 .select('current_streak')
                 .eq('user_id', authUser.id)
-                .single();
+                .maybeSingle();
 
             if (streakData) {
                 currentStreak = streakData.current_streak || 0;

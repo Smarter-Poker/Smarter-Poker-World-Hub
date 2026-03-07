@@ -74,7 +74,7 @@ export default async function handler(req, res) {
             .select('role')
             .eq('club_id', clubId)
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
 
           const staffRoles = ['owner', 'admin', 'manager', 'agent'];
           const isStaff = member && staffRoles.includes(member.role);
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
               .eq('player_id', userId)
               .eq('is_active', true)
               .eq('seat_index', -1) // -1 = observer (not seated)
-              .single();
+              .maybeSingle();
 
             if (existingSession) {
               const elapsed = (Date.now() - new Date(existingSession.seated_at).getTime()) / 60000;
