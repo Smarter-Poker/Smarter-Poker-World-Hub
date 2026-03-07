@@ -4130,10 +4130,10 @@ export default function SocialMediaPage() {
                             const { data: profilesById } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
                                 .in('id', actorIds)
-                                .limit(50) // suggested profiles;
-                                (profilesById || []).forEach(p => {
-                                    profileById[p.id] = p;
-                                });
+                                .limit(50);
+                            (profilesById || []).forEach(p => {
+                                profileById[p.id] = p;
+                            });
                         }
 
                         // Lookup by full_name as fallback
@@ -4141,10 +4141,10 @@ export default function SocialMediaPage() {
                             const { data: profilesByName } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
                                 .in('full_name', actorNames)
-                                .limit(50) // suggested profiles;
-                                (profilesByName || []).forEach(p => {
-                                    if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
-                                });
+                                .limit(50);
+                            (profilesByName || []).forEach(p => {
+                                if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
+                            });
                         }
 
                         // Merge actor profile data into notifications
