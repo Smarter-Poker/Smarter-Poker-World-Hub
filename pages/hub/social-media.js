@@ -4304,8 +4304,8 @@ export default function SocialMediaPage() {
                     const { data: profiles } = await supabase.from('profiles')
                         .select('id, username, full_name, avatar_url')
                         .in('id', actorIds)
-                        .limit(50) // suggested profiles;
-                        (profiles || []).forEach(p => { profileById[p.id] = p; });
+                        .limit(50);
+                    (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
                     const actorId = n.data?.commenter_id || n.data?.actor_id || n.data?.sender_id || n.actor_id;
