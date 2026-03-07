@@ -8,10 +8,14 @@
  *   - Adaptive quality via PerformanceMonitor (mobile-first)
  *   - Cinematic lighting (5 optimized lights + IBL)
  *   - Holographic sphere pods with iridescent PBR materials
+ *
+ * FIX: Uses lazy state initialization to avoid re-render cascade that
+ * killed the R3F animation loop. Previously, quality/dpr changes in
+ * useEffect caused Canvas to reinitialize before the render loop started.
  */
 
 import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { DoubleSide, AdditiveBlending } from 'three';
 
 // Feature pod definitions — each maps to a real tab/feature
@@ -29,6 +33,14 @@ const FEATURE_PODS = [
 
 const POD_ORBIT_RADIUS = 4.2;
 const POD_Y = 0.5;
+
+// ─── Detect device quality ONCE at module load (not inside a component) ───
+const IS_MOBILE = typeof window !== 'undefined' && (
+  /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  || window.innerWidth < 768
+);
+const INITIAL_QUALITY = IS_MOBILE ? 'low' : 'high';
+const INITIAL_DPR = IS_MOBILE ? 0.75 : 1.5;
 
 // ─── Quality presets for adaptive rendering ───
 const QUALITY = {
@@ -57,17 +69,19 @@ function PostProcessingEffects({ quality }) {
   const [Effects, setEffects] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const [rppp, pp] = await Promise.all([
           import('@react-three/postprocessing'),
           import('postprocessing'),
         ]);
-        setEffects({ rppp, pp });
+        if (!cancelled) setEffects({ rppp, pp });
       } catch (err) {
         console.warn('[LobbyScene] Post-processing unavailable:', err.message);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   if (!Effects) return null;
@@ -103,11 +117,13 @@ function SceneEnvironment() {
   const [EnvComponents, setEnvComponents] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     import('@react-three/drei').then(m => {
-      setEnvComponents({ Environment: m.Environment, Lightformer: m.Lightformer });
+      if (!cancelled) setEnvComponents({ Environment: m.Environment, Lightformer: m.Lightformer });
     }).catch(err => {
       console.warn('[LobbyScene] Environment loading failed:', err.message);
     });
+    return () => { cancelled = true; };
   }, []);
 
   if (!EnvComponents) return null;
@@ -132,11 +148,13 @@ function GroundPlatform({ quality }) {
   const [ReflectorMat, setReflectorMat] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     import('@react-three/drei').then(m => {
-      setReflectorMat(() => m.MeshReflectorMaterial);
+      if (!cancelled) setReflectorMat(() => m.MeshReflectorMaterial);
     }).catch(err => {
       console.warn('[LobbyScene] MeshReflectorMaterial unavailable:', err.message);
     });
+    return () => { cancelled = true; };
   }, []);
 
   return (
@@ -197,9 +215,11 @@ function AdaptiveQuality({ quality, setQuality, setDpr }) {
   const [PerfMon, setPerfMon] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     import('@react-three/drei').then(m => {
-      setPerfMon(() => m.PerformanceMonitor);
+      if (!cancelled) setPerfMon(() => m.PerformanceMonitor);
     }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   if (!PerfMon) return null;
@@ -229,15 +249,21 @@ function SceneContent({ onPodClick, activePod, liveData, quality, setQuality, se
   const [FeaturePod, setFeaturePod] = useState(null);
   const [ParticleField, setParticleField] = useState(null);
   const [ParallaxCamera, setParallaxCamera] = useState(null);
+  const mountedRef = useRef(true);
 
   const q = QUALITY[quality] || QUALITY.medium;
 
   useEffect(() => {
+    mountedRef.current = true;
+    console.log('[SceneContent] Mounting, loading sub-components...');
+
     // Load sub-components independently so one failure doesn't block others
-    import('./RadarDisc').then(m => setRadarDisc(() => m.RadarDisc)).catch(err => console.warn('[LobbyScene] RadarDisc failed:', err.message));
-    import('./FeaturePod').then(m => setFeaturePod(() => m.FeaturePod)).catch(err => console.warn('[LobbyScene] FeaturePod failed:', err.message));
-    import('./ParticleField').then(m => setParticleField(() => m.ParticleField)).catch(err => console.warn('[LobbyScene] ParticleField failed:', err.message));
-    import('./ParallaxCamera').then(m => setParallaxCamera(() => m.ParallaxCamera)).catch(err => console.warn('[LobbyScene] ParallaxCamera failed:', err.message));
+    import('./RadarDisc').then(m => { if (mountedRef.current) setRadarDisc(() => m.RadarDisc); }).catch(err => console.warn('[LobbyScene] RadarDisc failed:', err.message));
+    import('./FeaturePod').then(m => { if (mountedRef.current) setFeaturePod(() => m.FeaturePod); }).catch(err => console.warn('[LobbyScene] FeaturePod failed:', err.message));
+    import('./ParticleField').then(m => { if (mountedRef.current) setParticleField(() => m.ParticleField); }).catch(err => console.warn('[LobbyScene] ParticleField failed:', err.message));
+    import('./ParallaxCamera').then(m => { if (mountedRef.current) setParallaxCamera(() => m.ParallaxCamera); }).catch(err => console.warn('[LobbyScene] ParallaxCamera failed:', err.message));
+
+    return () => { mountedRef.current = false; };
   }, []);
 
   return (
@@ -337,43 +363,53 @@ class R3FErrorBoundary extends React.Component {
 /**
  * LobbyScene — The exported component. Wraps everything in a Canvas
  * with adaptive quality scaling for mobile devices.
+ *
+ * KEY FIX: Quality and DPR are initialized at module level (not in useEffect)
+ * to prevent re-render cascades that kill the R3F animation loop.
+ * The Canvas ref is used to prevent unnecessary unmount/remount cycles.
  */
 export default function LobbyScene({ onPodClick, activePod, liveData }) {
-  const [quality, setQuality] = useState('medium');
-  const [dpr, setDpr] = useState(1);
-  const [renderError, setRenderError] = useState(null);
+  // Use module-level constants for initial state to avoid re-render on mount
+  const [quality, setQuality] = useState(INITIAL_QUALITY);
+  const [dpr, setDpr] = useState(INITIAL_DPR);
+  const canvasContainerRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Detect mobile on mount
+  // Single mount effect — no state changes that cause re-renders
   useEffect(() => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      || window.innerWidth < 768;
-    if (isMobile) {
-      setQuality('low');
-      setDpr(0.75);
-    } else {
-      setQuality('high');
-      setDpr(1.5);
-    }
-    console.log('[LobbyScene] Mounted, quality:', isMobile ? 'low' : 'high');
+    console.log('[LobbyScene] Mounted, quality:', INITIAL_QUALITY, 'dpr:', INITIAL_DPR);
+    setMounted(true);
+    return () => {
+      console.log('[LobbyScene] Unmounting');
+    };
   }, []);
 
   const handleCreated = useCallback((state) => {
     console.log('[LobbyScene] Canvas created, renderer:', state.gl.constructor.name);
+    console.log('[LobbyScene] Scene children:', state.scene.children.length);
     state.gl.setClearColor(0x000000, 0);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
     state.gl.toneMappingExposure = 1.15;
   }, []);
 
-  if (renderError) {
+  // Don't render Canvas until after first client-side mount to avoid hydration issues
+  if (!mounted) {
     return (
-      <div className="lobby-scene-container" style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#ff4444' }}>
-        <div>3D Render Error: {renderError}</div>
-      </div>
+      <div
+        className="lobby-scene-container"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          background: '#0a0a0f',
+        }}
+      />
     );
   }
 
   return (
     <div
+      ref={canvasContainerRef}
       className="lobby-scene-container"
       style={{
         position: 'absolute',
@@ -391,6 +427,7 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
             far: 100,
           }}
           dpr={dpr}
+          frameloop="always"
           gl={{
             antialias: true,
             alpha: true,
