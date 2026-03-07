@@ -176,7 +176,6 @@ export default async function handler(req, res) {
         if (!['owner', 'admin'].includes(effectiveRole)) {
           return res.status(403).json({ success: false, error: 'Only owners/admins can close rakeback periods' });
         }
-        }
 
         // Find open period
         const { data: openPeriod } = await supabaseAdmin
