@@ -27,11 +27,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { userId } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'userId required' });
-        }
+        const userId = _authUser.id; // Trust JWT, not client-supplied query param
 
         // Fetch recent training sessions
         const { data: sessions, error } = await supabase
