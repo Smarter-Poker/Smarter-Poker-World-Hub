@@ -315,7 +315,7 @@ export default function SettingsPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 },
                 body: JSON.stringify({})
             });
@@ -340,7 +340,7 @@ export default function SettingsPage() {
             const response = await fetch('/api/auth/mfa/setup', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 }
             });
 
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 },
                 body: JSON.stringify({ code: verificationCode })
             });
@@ -410,7 +410,7 @@ export default function SettingsPage() {
             const response = await fetch('/api/auth/mfa/disable', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 }
             });
 
@@ -499,7 +499,7 @@ export default function SettingsPage() {
 
             const response = await fetch('/api/auth/delete-account', {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${session.access_token}` }
+                headers: { 'Authorization': `Bearer ${getAccessToken()}` }
             });
 
             if (response.ok) {
@@ -548,7 +548,7 @@ export default function SettingsPage() {
         setBillingLoading(true);
         try {
             const token = getAccessToken();
-            const headers = session ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+            const headers = session ? { 'Authorization': `Bearer ${getAccessToken()}` } : {};
 
             // Fetch orders, transactions, VIP sub, and profile in parallel
             const [ordersRes, txRes, vipRes, profileRes] = await Promise.allSettled([
@@ -599,7 +599,7 @@ export default function SettingsPage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
+                    'Authorization': `Bearer ${getAccessToken()}`
                 },
                 body: JSON.stringify({ code: promoCode.trim() })
             });
@@ -1100,7 +1100,7 @@ export default function SettingsPage() {
                                                 const response = await fetch('/api/auth/sessions/list', {
                                                     method: 'GET',
                                                     headers: {
-                                                        'Authorization': `Bearer ${session.access_token}`
+                                                        'Authorization': `Bearer ${getAccessToken()}`
                                                     }
                                                 });
 
@@ -2042,7 +2042,7 @@ export default function SettingsPage() {
                                                 if (!session) { alert('Session expired. Please log in again.'); return; }
                                                 const response = await fetch('/api/auth/delete-account', {
                                                     method: 'DELETE',
-                                                    headers: { 'Authorization': 'Bearer ' + session.access_token }
+                                                    headers: { 'Authorization': 'Bearer ' + getAccessToken() }
                                                 });
                                                 if (response.ok) {
                                                     await supabase.auth.signOut();
@@ -2678,7 +2678,7 @@ export default function SettingsPage() {
                                                                 method: 'POST',
                                                                 headers: {
                                                                     'Content-Type': 'application/json',
-                                                                    'Authorization': `Bearer ${session.access_token}`
+                                                                    'Authorization': `Bearer ${getAccessToken()}`
                                                                 },
                                                                 body: JSON.stringify({ sessionId: device.id })
                                                             });
