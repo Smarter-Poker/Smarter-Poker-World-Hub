@@ -111,5 +111,11 @@ export const busEmit = {
         eventBus.emit(EventType.TIMER_CRITICAL, {}, 'PressureTimer'),
 
     timerExpired: () =>
-        eventBus.emit(EventType.TIMER_EXPIRED, {}, 'PressureTimer')
+        eventBus.emit(EventType.TIMER_EXPIRED, {}, 'PressureTimer'),
+
+    sessionStart: (source = 'FlowState') =>
+        eventBus.emit(EventType.SESSION_START, {}, source),
+
+    sessionEnd: (source = 'FlowState') =>
+        eventBus.emit(EventType.SESSION_END, {}, source)
 };

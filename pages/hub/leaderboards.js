@@ -15,6 +15,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 const C = {
     bg: '#0a0a0a',
@@ -75,7 +76,7 @@ function Avatar({ src, name, size = 48 }) {
                     width: size, height: size, borderRadius: '50%',
                     objectFit: 'cover', flexShrink: 0
                 }}
-             loading="lazy" />
+                loading="lazy" />
         );
     }
     return (
@@ -296,6 +297,9 @@ export default function LeaderboardsPage() {
     const setPeriod = (v) => setFilter('period', v);
 
     const menuConfig = getMenuConfig('leaderboards', null, {}, {});
+
+    // Connect to global telemetry bus
+    useTrainingBus('leaderboards');
 
     // SWR-backed fetch — cached 60s, instant on tab switch
     const swrKey = `/api/poker/leaderboards?type=${activeTab}&period=${period}&limit=50`;

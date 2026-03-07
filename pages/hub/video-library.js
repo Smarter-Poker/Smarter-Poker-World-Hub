@@ -23,6 +23,7 @@ import { updateWatchDuration, getWatchedVideos, getWatchProgress, getRecentlyWat
 // God-Mode Stack
 import { useVideoLibraryStore } from '../../src/stores/videoLibraryStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Full video catalog with YouTube embeds - 138 VIDEOS (96 cash + 42 tournaments)
 const FULL_VIDEOS = [
@@ -372,6 +373,9 @@ export default function VideoLibraryPage() {
     const router = useRouter();
     const { user } = useAvatar();
     const userId = user?.id;
+
+    // Connect to global telemetry bus
+    useTrainingBus('video-library');
 
     // Zustand storebal State (replaces UI-related useState)
     const selectedCategory = useVideoLibraryStore((s) => s.selectedCategory);

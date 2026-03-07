@@ -42,6 +42,7 @@ import { getUserLocations } from '../../lib/bankroll/locationMemory';
 import { supabase } from '../../lib/supabase';
 import VenueSelector from './VenueSelector';
 import toast from '../../stores/toastStore';
+import { busEmit } from '../../engine/EventBus';
 
 // ── Down type metadata ──
 const DOWN_TYPES = [
@@ -587,6 +588,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                 hourly_rate: parseFloat(newGig.hourly_rate) || 0,
             });
             toast.success('Event started!');
+            busEmit.sessionStart('Toke Tracker');
             setShowCreateForm(false);
             setNewGig({ venue_name: '', venue_address: '', location_id: null, venue_type: 'casino', poker_venue_id: null, latitude: null, longitude: null, start_date: new Date().toISOString().split('T')[0], hourly_rate: '', notes: '' });
             await requestNotificationPermission();
@@ -627,6 +629,13 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             if (timerTickRef.current) clearInterval(timerTickRef.current);
             setTimerActive(false);
             await loadData();
+            busEmit.sessionEnd('Toke Tracker');
+
+            // Check for highly profitable session to trigger confetti
+            if (activeGig && activeGig.totalTokes >= 300) {
+                busEmit.celebration('confetti');
+            }
+
             // Bus event: notify TokeDashboard + other hub cards that a gig was completed
             window.dispatchEvent(new CustomEvent('toke-gig-completed', {
                 detail: { userId, gigId: activeGig.id }
@@ -759,6 +768,11 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
         try {
             await endDown(endingDown.id, tokeAmt);
             toast.success('Down ended');
+
+            if (tokeAmt >= 100) {
+                busEmit.celebration('confetti');
+            }
+
             await loadData();
             window.dispatchEvent(new CustomEvent('toke-data-updated'));
         } catch (err) {

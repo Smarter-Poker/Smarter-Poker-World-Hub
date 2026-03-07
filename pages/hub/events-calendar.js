@@ -11,6 +11,7 @@ import useSWR from 'swr';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 const C = { bg: '#F0F2F5', card: '#FFFFFF', text: '#050505', textSec: '#65676B', border: '#DADDE1', blue: '#1877F2', green: '#42B72A' };
 
@@ -309,6 +310,9 @@ export default function EventsCalendarPage() {
   const [buyInRange, setBuyInRange] = useState('all');
   const [selectedSeries, setSelectedSeries] = useState('all');
 
+  // Connect to global telemetry bus
+  useTrainingBus('events-calendar');
+
   // SWR-backed series fetch — cached 60s
   const { data: swrData, error, isLoading: loading } = useSWR('/api/poker/series?limit=100', (url) =>
     fetch(url).then(r => { if (!r.ok) throw new Error('Failed to load series data'); return r.json(); })
@@ -444,10 +448,10 @@ export default function EventsCalendarPage() {
   return (
     <>
       <SEOHead
-                title="Poker Events Calendar — Tournaments & Series"
-                description="Find Upcoming Poker Tournaments, Series, And Events. Live Updates, Schedules, And Registration Info For Events Worldwide."
-                canonical="/hub/events-calendar"
-            />
+        title="Poker Events Calendar — Tournaments & Series"
+        description="Find Upcoming Poker Tournaments, Series, And Events. Live Updates, Schedules, And Registration Info For Events Worldwide."
+        canonical="/hub/events-calendar"
+      />
       <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
       <HamburgerMenu
         isOpen={menuOpen}

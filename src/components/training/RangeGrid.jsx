@@ -123,12 +123,12 @@ const GridCell = memo(({ hand, handType, freqs, isSelected, isHero, onClick, siz
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
             style={{
-                width: size,
-                height: size,
+                width: '100%',
+                aspectRatio: '1 / 1',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: size > 28 ? 10 : 8,
+                fontSize: 'clamp(7px, 2.2vw, 10px)',
                 fontWeight: 700,
                 fontFamily: "'Inter', sans-serif",
                 cursor: hasData ? 'pointer' : 'default',
@@ -462,12 +462,18 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
             )}
 
             {/* Grid + Detail Panel */}
-            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'center' }}>
+            <div style={{
+                display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'center',
+                flexWrap: 'wrap', width: '100%'
+            }}>
                 {/* 13×13 Grid */}
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: `repeat(13, ${cellSize}px)`,
+                    gridTemplateColumns: 'repeat(13, 1fr)',
                     gap: 1,
+                    width: '100%',
+                    maxWidth: 13 * cellSize + 12,
+                    margin: '0 auto',
                 }}>
                     {grid.flat()}
                 </div>

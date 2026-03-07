@@ -24,6 +24,7 @@ import RangeReport from '../../../src/components/training/RangeReport';
 import SolverLineSummary from '../../../src/components/training/SolverLineSummary';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH HELPER — Retrieve Bearer token from localStorage
@@ -289,10 +290,23 @@ export default function SolutionsBrowser() {
     useTrainingBus('solutions-browser');
     const router = useRouter();
 
-    // Filters
-    const [gameType, setGameType] = useState('hu_cash');
-    const [stackDepth, setStackDepth] = useState(100);
-    const [position, setPosition] = useState('');
+    const { filters, setFilter } = usePersistedFilters('solutions-browser', {
+        gameType: 'hu_cash',
+        stackDepth: 100,
+        position: '',
+        colorMode: 'action'
+    });
+
+    const gameType = filters.gameType;
+    const stackDepth = Number(filters.stackDepth);
+    const position = filters.position;
+    const colorMode = filters.colorMode;
+
+    const setGameType = (v) => setFilter('gameType', v);
+    const setStackDepth = (v) => setFilter('stackDepth', v);
+    const setPosition = (v) => setFilter('position', v);
+    const setColorMode = (v) => setFilter('colorMode', v);
+
     const [page, setPage] = useState(1);
 
     // Data
@@ -307,7 +321,6 @@ export default function SolutionsBrowser() {
     const [loadingDetail, setLoadingDetail] = useState(false);
 
     // Phase 15: Color mode & classification
-    const [colorMode, setColorMode] = useState('action');
     const [classificationData, setClassificationData] = useState(null);
     const [classificationGroups, setClassificationGroups] = useState([]);
 
@@ -362,6 +375,10 @@ export default function SolutionsBrowser() {
             }
         }
         loadBookmarks();
+
+        // Listen for external bookmark updates (e.g. from Sandbox)
+        window.addEventListener('pa-data-updated', loadBookmarks);
+        return () => window.removeEventListener('pa-data-updated', loadBookmarks);
     }, []);
 
     // Toggle bookmark
@@ -382,6 +399,8 @@ export default function SolutionsBrowser() {
                 else next.add(hash);
                 return next;
             });
+            // Broadcast so other pages (like Sandbox) can sync
+            window.dispatchEvent(new CustomEvent('pa-data-updated'));
         } catch (e) {
             console.warn('[Solutions] Bookmark toggle failed:', e);
         }
@@ -990,6 +1009,8 @@ export default function SolutionsBrowser() {
                                             display: 'flex', gap: 16,
                                             alignItems: 'flex-start',
                                             justifyContent: 'center',
+                                            flexWrap: 'wrap',
+                                            width: '100%'
                                         }}>
                                             {/* Range Grid */}
                                             <RangeGrid

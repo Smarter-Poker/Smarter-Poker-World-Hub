@@ -137,9 +137,19 @@ export interface TokeExpense {
 function computeTotalHours(downs: TokeDown[]): number {
     let ms = 0;
     for (const d of downs) {
+        if (!d.started_at) continue;
         const start = new Date(d.started_at).getTime();
+        if (isNaN(start)) continue;
+
         const end = d.ended_at ? new Date(d.ended_at).getTime() : Date.now();
-        ms += end - start;
+        const validEnd = isNaN(end) ? Date.now() : end;
+
+        const durationMs = validEnd - start;
+        // Ensure multiplier is always a valid number to prevent NaN cascades causing total earnings to fail
+        const rawMulti = d.down_multiplier;
+        const multiplier = typeof rawMulti === 'number' ? rawMulti : (parseFloat(rawMulti as any) || 1.0);
+
+        ms += (durationMs * multiplier);
     }
     return ms / (1000 * 60 * 60);
 }

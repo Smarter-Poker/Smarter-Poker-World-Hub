@@ -1127,6 +1127,20 @@ export default function TrainingPage() {
                             </div>
                             <div
                                 style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/preflop-charts')}
+                            >
+                                <span style={gamificationNavStyles.icon}>📚</span>
+                                <span style={gamificationNavStyles.label}>Charts</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
+                                onClick={() => router.push('/hub/training/range-builder')}
+                            >
+                                <span style={gamificationNavStyles.icon}>🏗️</span>
+                                <span style={gamificationNavStyles.label}>Builder</span>
+                            </div>
+                            <div
+                                style={gamificationNavStyles.navButton}
                                 onClick={() => router.push('/hub/training/solutions')}
                             >
                                 <span style={gamificationNavStyles.icon}>🔍</span>
@@ -1617,6 +1631,7 @@ const gamificationNavStyles = {
     container: {
         display: 'flex',
         justifyContent: 'center',
+        flexWrap: 'wrap',
         gap: 12,
         padding: '12px 16px',
         background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.08), rgba(0, 212, 255, 0.06))',

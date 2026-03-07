@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAuthUser } from '../lib/authUtils';
+import { busEmit } from '../engine/EventBus';
 
 // Helper to get auth token from Supabase session
 async function getAuthToken() {
@@ -316,6 +317,10 @@ export function useSandboxAnalysis() {
         // 📢 Dispatch BUS LISTENER update (Sandbox affects Stats)
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('pa-data-updated'));
+
+          if (params.exploitMode === 'exploit' || (params.bubbleFactor && params.bubbleFactor !== 1.0)) {
+            busEmit.celebration('confetti');
+          }
         }
       } else {
         setError(data.error || 'Analysis failed');

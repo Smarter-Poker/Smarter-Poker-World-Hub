@@ -270,7 +270,7 @@ export default function HorseAnalytics() {
                                     </div>
                                 </div>
                             ))}
-                        {Object.keys(data?.sourceDistribution || {}).length === 0 && (
+                        {(!data?.sourceDistribution || Object.keys(data.sourceDistribution).length === 0) && (
                             <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', padding: '2rem' }}>
                                 No source data yet
                             </div>
@@ -330,7 +330,7 @@ export default function HorseAnalytics() {
                         cursor: 'pointer',
                     }}
                 >
-                    <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }}  loading="lazy" />
+                    <img src="/images/btn-back.png" alt="Back" style={{ height: 32 }} loading="lazy" />
                 </button>
             </div>
         </>
