@@ -15,18 +15,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  const msg = '[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY';
-  console.error(msg);
-  // In browser, show error instead of silently failing
-  if (typeof window !== 'undefined') {
-    console.error(msg + ' — check your .env.local file');
-  }
-  // Don't throw — allow build-time imports to succeed
-  // Runtime calls will fail with a clear error
+   const msg = '[Supabase] FATAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY';
+   console.error(msg);
+   // In browser, show error instead of silently failing
+   if (typeof window !== 'undefined') {
+      console.error(msg + ' — check your .env.local file');
+   }
+   // Don't throw — allow build-time imports to succeed
+   // Runtime calls will fail with a clear error
 }
 
 // Minimal logging
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && supabaseUrl) {
    console.log('[Supabase] Init:', supabaseUrl.substring(8, 30) + '...');
 }
 
