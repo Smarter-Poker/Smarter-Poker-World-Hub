@@ -11,6 +11,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { Trophy, Users, Calendar, ChevronLeft, Loader2, DollarSign, Clock } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
 
 function StandingRow({ entry, rank, isCurrentUser }) {
@@ -87,16 +88,14 @@ export default function LeagueDetailPage() {
   // Get current user ID from Supabase session (set by useEffect below)
   const [currentUserId, setCurrentUserId] = React.useState(null);
   React.useEffect(() => {
-    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-      if (session?.user?.id) setCurrentUserId(session.user.id);
-    });
+    const authUser = getAuthUser();
+    if (authUser?.id) setCurrentUserId(authUser.id);
   }, []);
 
   // SWR — parallel fetch of league details + standings
   const swrKey = id ? `/api/commander/leagues/${id}` : null;
   const { data: swrData, isLoading: loading, mutate: refreshLeague } = useSWR(swrKey, async () => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const [leagueRes, standingsRes] = await Promise.all([
       fetch(`/api/commander/leagues/${id}`, { headers }),
