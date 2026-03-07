@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function TournamentCard({ tournament, onRegister, isRegistered }) {
   const router = useRouter();
@@ -126,8 +127,7 @@ export default function PlayerTournamentsHub() {
   const [message, setMessage] = useState(null); // { type: 'success'|'error', text: '' }
 
   const { data: swrData, isLoading, mutate: refreshTournaments } = useSWR('/api/commander/tournaments?status=active', async (url) => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     const [tourRes, myRes] = await Promise.all([
       fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} }),
       token ? fetch('/api/commander/tournaments/my', { headers: { Authorization: `Bearer ${token}` } })
@@ -142,8 +142,7 @@ export default function PlayerTournamentsHub() {
   const loadTournaments = () => refreshTournaments();
 
   const handleRegister = async (tournament) => {
-    const _session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-    const token = _session?.access_token;
+    const token = getAccessToken();
     if (!token) {
       router.push('/auth/login?redirect=/hub/commander/tournaments');
       return;
