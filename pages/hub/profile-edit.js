@@ -13,6 +13,7 @@ import { MediaLibrary } from '../../src/components/social/MediaLibrary';
 import { ProfilePictureHistory } from '../../src/components/social/ProfilePictureHistory';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
@@ -336,11 +337,18 @@ export default function ProfilePage() {
                     authUser = gu;
                 } catch (_) { /* AbortError on Safari */ }
 
-                // Fallback: recover from session if getUser threw
+                // Fallback 1: recover from session if getUser threw
                 if (!authUser) {
                     try {
                         const { data: { session } } = await supabase.auth.getSession();
                         authUser = session?.user || null;
+                    } catch (_) { /* ignore */ }
+                }
+
+                // Fallback 2: read directly from localStorage (bypasses navigator.locks AbortError)
+                if (!authUser) {
+                    try {
+                        authUser = getAuthUser();
                     } catch (_) { /* ignore */ }
                 }
 

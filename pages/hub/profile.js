@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 
 export default function ProfileRedirect() {
     const router = useRouter();
@@ -25,11 +26,18 @@ export default function ProfileRedirect() {
                     authUser = gu;
                 } catch (_) { /* AbortError on Safari */ }
 
-                // Fallback: recover from session if getUser threw
+                // Fallback 1: recover from session if getUser threw
                 if (!authUser) {
                     try {
                         const { data: { session } } = await supabase.auth.getSession();
                         authUser = session?.user || null;
+                    } catch (_) { /* ignore */ }
+                }
+
+                // Fallback 2: read directly from localStorage (bypasses navigator.locks AbortError)
+                if (!authUser) {
+                    try {
+                        authUser = getAuthUser();
                     } catch (_) { /* ignore */ }
                 }
 

@@ -13,6 +13,7 @@ import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
+import { getAuthUser } from '../../src/lib/authUtils';
 import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
@@ -131,6 +132,12 @@ export default function SettingsPage() {
         if (!contextUser) {
             supabase.auth.getUser().then(({ data: { user } }) => {
                 if (user) setLocalUser(user);
+            }).catch(() => {
+                // Fallback: read directly from localStorage (bypasses AbortError)
+                try {
+                    const fallbackUser = getAuthUser();
+                    if (fallbackUser) setLocalUser(fallbackUser);
+                } catch (_) { /* ignore */ }
             });
         }
     }, [contextUser]);
