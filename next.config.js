@@ -82,6 +82,8 @@ const nextConfig = {
       { source: '/legal/terms',   destination: '/terms',        permanent: true },
       // Live help → messenger with Jarvis
       { source: '/hub/live-help', destination: '/hub/messenger?chat=jarvis', permanent: false },
+      // Poker Near Me — redirect old flat page to new 3D lobby
+      { source: '/hub/poker-near-me', destination: '/hub/poker-near-me-lobby', permanent: false },
     ];
   },
 
