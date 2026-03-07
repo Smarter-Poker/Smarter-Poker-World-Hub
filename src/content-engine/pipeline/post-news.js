@@ -61,12 +61,17 @@ async function postNewsToHorse() {
     console.log(`   Link: ${article.link}`);
 
     // Get random horse
-    const { data: horses } = await supabase
+    const { data: horses, error: horsesError } = await supabase
         .from('content_authors')
         .select('id, name, alias, profile_id, stakes, voice')
         .eq('is_active', true)
         .not('profile_id', 'is', null)
         .limit(10);
+
+    if (horsesError || !horses || horses.length === 0) {
+        console.error('No active horses found:', horsesError?.message || 'Empty list');
+        return;
+    }
 
     const horse = horses[Math.floor(Math.random() * horses.length)];
     console.log(`\n🐴 Horse: ${horse.alias}`);

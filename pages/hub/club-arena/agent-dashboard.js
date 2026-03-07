@@ -10,6 +10,7 @@ import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useDebounce from '../../../src/hooks/useDebounce';
+import usePersistedState from '../../../src/hooks/usePersistedState';
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -102,7 +103,7 @@ export default function AgentDashboard() {
     const [user, setUser] = useState(null);
     const [dashboard, setDashboard] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-ca-agent-tab', 'overview');
     const [toast, setToast] = useState({ message: '', type: '' });
 
     // Modal states

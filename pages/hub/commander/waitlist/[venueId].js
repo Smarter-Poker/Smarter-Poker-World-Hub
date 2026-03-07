@@ -129,7 +129,7 @@ export default function PlayerWaitlistPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'commander_waitlist', filter: `venue_id=eq.${venueId}` }, () => { fetchData(); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [venueId]);
+  }, [venueId, fetchData]);
 
   // Commander Data Bus — instant sync when waitlist/games change
   useCommanderSync(venueId || '', fetchData, { entities: ['waitlist', 'games', 'tables'] });

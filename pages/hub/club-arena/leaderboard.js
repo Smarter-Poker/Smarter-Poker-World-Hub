@@ -10,6 +10,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
 // Facebook Dark Color Scheme
 const FB = {
@@ -51,8 +52,11 @@ export default function Leaderboard() {
     const [isLoading, setIsLoading] = useState(true);
 
     // Filters
-    const [boardType, setBoardType] = useState('chips');
-    const [period, setPeriod] = useState('all');
+    const { filters, setFilter } = usePersistedFilters('club-arena-leaderboard', { boardType: 'chips', period: 'all' });
+    const boardType = filters.boardType;
+    const setBoardType = (val) => setFilter('boardType', val);
+    const period = filters.period;
+    const setPeriod = (val) => setFilter('period', val);
 
     // User's rank
     const [userRank, setUserRank] = useState(null);

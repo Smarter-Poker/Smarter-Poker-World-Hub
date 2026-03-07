@@ -45,6 +45,15 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, tableId) {
   try {
+    // Verify staff authentication
+    const authResult = await verifyStaffSession(req);
+    if (authResult.error) {
+      return res.status(authResult.error.status).json({
+        success: false,
+        error: { code: authResult.error.code, message: authResult.error.message }
+      });
+    }
+
     const { data: table, error } = await supabase
       .from('commander_tables')
       .select(`

@@ -209,30 +209,27 @@ class AutoPoster {
     async getStats() {
         const { data, error } = await supabase
             .from('seeded_content')
-            .select('status, content_type')
-            .then(({ data }) => {
-                const stats = {
-                    total: data?.length || 0,
-                    published: 0,
-                    scheduled: 0,
-                    draft: 0,
-                    by_type: {}
-                };
-
-                data?.forEach(post => {
-                    stats[post.status] = (stats[post.status] || 0) + 1;
-                    stats.by_type[post.content_type] = (stats.by_type[post.content_type] || 0) + 1;
-                });
-
-                return { data: stats, error: null };
-            });
+            .select('status, content_type');
 
         if (error) {
             console.error('Stats fetch failed:', error);
             return null;
         }
 
-        return data;
+        const stats = {
+            total: data?.length || 0,
+            published: 0,
+            scheduled: 0,
+            draft: 0,
+            by_type: {}
+        };
+
+        data?.forEach(post => {
+            stats[post.status] = (stats[post.status] || 0) + 1;
+            stats.by_type[post.content_type] = (stats.by_type[post.content_type] || 0) + 1;
+        });
+
+        return stats;
     }
 
     /**

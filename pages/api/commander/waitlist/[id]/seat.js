@@ -160,6 +160,10 @@ export default async function handler(req, res) {
 
     if (entryUpdateError) {
       console.error('Commander waitlist update error:', entryUpdateError);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: 'Failed to update waitlist entry' }
+      });
     }
 
     // Update game player count and status
@@ -170,10 +174,18 @@ export default async function handler(req, res) {
       gameUpdates.status = 'running';
       gameUpdates.started_at = now;
     }
-    await supabase
+    const { error: gameUpdateError } = await supabase
       .from('commander_games')
       .update(gameUpdates)
       .eq('id', game_id);
+
+    if (gameUpdateError) {
+      console.error('Commander game update error:', gameUpdateError);
+      return res.status(500).json({
+        success: false,
+        error: { code: 'DATABASE_ERROR', message: 'Failed to update game' }
+      });
+    }
 
     // Calculate wait time and log to history
     const waitTimeMinutes = Math.round(

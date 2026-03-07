@@ -56,6 +56,7 @@ export default async function handler(req, res) {
       }).select().maybeSingle();
 
       if (error) throw error;
+      if (!data) return res.status(500).json({ success: false, error: 'Failed to log activity' });
       return res.status(201).json({ success: true, data });
     }
 

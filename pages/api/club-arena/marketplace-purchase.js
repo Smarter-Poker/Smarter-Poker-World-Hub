@@ -109,7 +109,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             success: true,
             newBalance: balance - price,
-            item: { name: item.name, type: item.type },
+            item: { name: item.name, type: item.item_type },
         });
     } catch (err) {
         console.error('[marketplace-purchase]', err);

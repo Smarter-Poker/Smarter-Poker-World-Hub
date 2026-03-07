@@ -134,11 +134,12 @@ export default function AvatarGallery({ onSelect }) {
     }
   }
 
-  // Create placeholder boxes for custom avatars (5 total for VIP)
-  const maxCustomSlots = 5;
-  const customSlots = [];
-  for (let i = 0; i < maxCustomSlots; i++) {
-    customSlots.push(customAvatars[i] || null); // null = empty slot
+  // Create placeholder boxes for custom avatars (minimum 5 total for VIP)
+  // If the user has more than 5 (legacy), show all of them!
+  const customSlots = [...customAvatars];
+  const minSlots = 5;
+  while (customSlots.length < minSlots) {
+    customSlots.push(null);
   }
 
   return (
@@ -342,7 +343,7 @@ export default function AvatarGallery({ onSelect }) {
         <div className="gallery-section">
           <h2 className="section-title">🎨 MY CUSTOM AVATARS</h2>
           <p className="section-subtitle">
-            {customAvatars.length}/5 slots used • Create up to 5 unique AI-generated avatars
+            {customAvatars.length} custom avatars • Create up to 5 unique AI-generated avatars
           </p>
 
           <div className="avatar-grid">

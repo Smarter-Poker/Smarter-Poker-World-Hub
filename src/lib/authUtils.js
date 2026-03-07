@@ -50,6 +50,15 @@ export function getAuthUser() {
             const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
             return tokenData?.user || null;
         }
+
+        // FALLBACK 2: sp-cached-header-user (for UI context when tokens are missing, immune to navigator.locks AbortError)
+        const cachedUserStr = localStorage.getItem('sp-cached-header-user');
+        if (cachedUserStr) {
+            const cachedUser = JSON.parse(cachedUserStr);
+            if (cachedUser?.id) {
+                return cachedUser;
+            }
+        }
     } catch (e) {
         console.error('[AuthUtils] Error reading auth:', e);
     }

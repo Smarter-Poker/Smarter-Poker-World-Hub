@@ -56,6 +56,7 @@ class TournamentBridge {
         `tournament:${this.tournament.tournamentId}`,
         { config: { broadcast: { ack: false } } }
       );
+      this._tournamentChannel.on('system', {}, (status) => { if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { console.error('[TournamentBridge] Channel error:', status); } });
       await this._tournamentChannel.subscribe();
     }
 

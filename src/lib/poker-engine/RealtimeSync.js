@@ -118,8 +118,9 @@ class RealtimeSync {
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         this._handlePresenceLeave(leftPresences);
-      });
-    
+      })
+      .on('system', {}, (status) => { if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') { console.error('[RealtimeSync] Channel error:', status); } });
+
     // Subscribe to channel
     await this.channel.subscribe();
     

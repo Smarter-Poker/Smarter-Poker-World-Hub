@@ -13,11 +13,18 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import SkeletonLoader from '../../../src/components/ui/SkeletonLoader';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 
 export default function TrainingLeaderboard() {
     const [user, setUser] = useState(null);
-    const [timeframe, setTimeframe] = useState('all-time'); // 'daily', 'weekly', 'all-time'
-    const [view, setView] = useState('global'); // 'global', 'friends'
+    const { filters, setFilter } = usePersistedFilters('training-leaderboard', {
+        timeframe: 'all-time',
+        view: 'global'
+    });
+    const timeframe = filters.timeframe;
+    const view = filters.view;
+    const setTimeframe = (val) => setFilter('timeframe', val);
+    const setView = (val) => setFilter('view', val);
 
     // Load auth user once
     useEffect(() => {

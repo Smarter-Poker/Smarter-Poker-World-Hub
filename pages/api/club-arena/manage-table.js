@@ -102,13 +102,19 @@ export default async function handler(req, res) {
         } catch (_) { /* intentionally silent */ }
 
         // Decrement club table count
-        await supabaseAdmin.rpc('decrement_club_table_count', { p_club_id: clubId }).catch(() => {
-          // RPC might not exist yet — fallback
-          supabaseAdmin
+        await supabaseAdmin.rpc('decrement_club_table_count', { p_club_id: clubId }).catch(async () => {
+          // RPC might not exist yet — fallback (BUG FIX: use correct club variable, not table)
+          const { data: club } = await supabaseAdmin
             .from('clubs')
-            .update({ table_count: Math.max(0, (table.table_count || 1) - 1) })
+            .select('table_count')
             .eq('id', clubId)
-            .then(() => {});
+            .maybeSingle();
+          if (club) {
+            await supabaseAdmin
+              .from('clubs')
+              .update({ table_count: Math.max(0, (club.table_count || 1) - 1) })
+              .eq('id', clubId);
+          }
         });
 
         return res.status(200).json({ success: true, action: 'delete', tableId });

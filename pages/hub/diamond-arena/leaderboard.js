@@ -8,11 +8,18 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 
 export default function DiamondArenaLeaderboard() {
     const router = useRouter();
-    const [period, setPeriod] = useState('all'); // all, month, week
-    const [gameType, setGameType] = useState('all'); // all, cash, tournament
+    const { filters, setFilter } = usePersistedFilters('diamond-arena-leaderboard', {
+        period: 'all',
+        gameType: 'all'
+    });
+    const period = filters.period;
+    const gameType = filters.gameType;
+    const setPeriod = (val) => setFilter('period', val);
+    const setGameType = (val) => setFilter('gameType', val);
 
     const leaderboard = [
         { rank: 1, username: 'PokerPro2024', diamonds: 147832, games: 1247, winRate: 68 },

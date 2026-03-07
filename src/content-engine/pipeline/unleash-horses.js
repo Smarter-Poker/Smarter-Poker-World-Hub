@@ -190,6 +190,12 @@ async function postForHorse(horse, attemptNumber = 1) {
         const { data: urlData } = supabase.storage
             .from('social-media')
             .getPublicUrl(storagePath);
+
+        if (!urlData?.publicUrl) {
+            console.log(`   ❌ Failed to get public URL`);
+            return { success: false, reason: 'url_generation_failed' };
+        }
+
         const videoUrl = urlData.publicUrl;
 
         // Create post

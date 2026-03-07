@@ -78,6 +78,7 @@ export default async function handler(req, res) {
                 console.error('Create post error:', directError);
                 return res.status(500).json({ success: false, error: 'Failed to create post' });
             }
+            if (!directPost) return res.status(500).json({ success: false, error: 'Failed to create post' });
             post = directPost;
         } else {
             post = rpcResult;

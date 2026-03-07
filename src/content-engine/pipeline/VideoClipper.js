@@ -223,8 +223,31 @@ class VideoClipper {
      */
     async getVideoInfo(url) {
         try {
-            const { stdout } = await execAsync(`yt-dlp --dump-json "${url}"`);
-            return JSON.parse(stdout);
+            // Use spawn instead of execAsync to avoid shell injection risks
+            const { spawn } = await import('child_process');
+
+            return await new Promise((resolve, reject) => {
+                let output = '';
+                const proc = spawn('yt-dlp', ['--dump-json', url]);
+
+                proc.stdout.on('data', (data) => {
+                    output += data.toString();
+                });
+
+                proc.on('close', (code) => {
+                    if (code === 0) {
+                        try {
+                            resolve(JSON.parse(output));
+                        } catch (e) {
+                            reject(new Error(`Failed to parse JSON: ${e.message}`));
+                        }
+                    } else {
+                        reject(new Error(`yt-dlp exited with code ${code}`));
+                    }
+                });
+
+                proc.on('error', reject);
+            });
         } catch (error) {
             console.error(`Failed to get video info: ${error.message}`);
             return null;

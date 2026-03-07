@@ -271,19 +271,39 @@ export async function processMatchReward(winnerId, loserId, stakeAmount) {
         const rakeAmount = Math.floor(totalPot * 0.1);
         const winnerPayout = totalPot - rakeAmount;
 
-        // Get winner's current balance
-        const { data: winner } = await supabase
-            .from('profiles')
-            .select('diamonds')
-            .eq('id', winnerId)
-            .maybeSingle();
+        // Use RPC for atomic operation (avoids race conditions)
+        // This assumes an 'award_diamonds_pvp' RPC exists that handles atomicity
+        const { data: rpcResult, error: rpcError } = await supabase.rpc('award_diamonds', {
+            p_user_id: winnerId,
+            p_amount: winnerPayout,
+            p_type: 'pvp_match_win',
+            p_description: `PvP Match Win vs ${loserId} — Pot: ${totalPot}💎, Rake: ${rakeAmount}💎`
+        });
 
-        // Award winner the pot minus rake
-        // Both players already had stakes deducted when joining
-        await supabase
-            .from('profiles')
-            .update({ diamonds: (winner?.diamonds || 0) + winnerPayout })
-            .eq('id', winnerId);
+        if (rpcError) {
+            console.error('[PvP Matchmaking] RPC error awarding winner:', rpcError);
+            // Fallback: non-atomic direct update (less ideal but better than failing completely)
+            const { data: winner } = await supabase
+                .from('profiles')
+                .select('diamonds')
+                .eq('id', winnerId)
+                .maybeSingle();
+
+            if (!winner) { console.error('[PvP] Winner profile not found:', winnerId); return { success: false, error: 'Winner profile not found' }; }
+            await supabase
+                .from('profiles')
+                .update({ diamonds: (winner?.diamonds || 0) + winnerPayout })
+                .eq('id', winnerId);
+        }
+
+        // Log the transaction for audit trail
+        await supabase.from('diamond_transactions').insert({
+            user_id: winnerId,
+            amount: winnerPayout,
+            transaction_type: 'pvp_match_win',
+            description: `PvP Match Win vs ${loserId}`,
+            balance_after: (rpcResult?.balance || 0)
+        }).catch(() => { }); // Non-critical, ignore errors
 
         // Loser already had their stake deducted when joining — nothing to do
 

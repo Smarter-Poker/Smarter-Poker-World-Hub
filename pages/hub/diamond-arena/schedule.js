@@ -8,12 +8,19 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
+import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 
 export default function DiamondArenaSchedule() {
     const router = useRouter();
     const [tournaments, setTournaments] = useState([]);
-    const [filter, setFilter] = useState('all'); // all, today, week, month
-    const [gameType, setGameType] = useState('all'); // all, nlh, plo, mixed
+    const { filters, setFilter: setFilterState } = usePersistedFilters('diamond-arena-schedule', {
+        filter: 'all',
+        gameType: 'all'
+    });
+    const filter = filters.filter;
+    const gameType = filters.gameType;
+    const setFilter = (val) => setFilterState('filter', val);
+    const setGameType = (val) => setFilterState('gameType', val);
 
     useEffect(() => {
         // TODO: Fetch tournaments from API

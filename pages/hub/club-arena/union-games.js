@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
+import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -57,9 +58,13 @@ export default function UnionGames() {
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('tournaments');
-  const [subTab, setSubTab] = useState('upcoming');
-  const [tableFilter, setTableFilter] = useState('active');
+  const { filters, setFilter } = usePersistedFilters('club-arena-union-games', { tab: 'tournaments', subTab: 'upcoming', tableFilter: 'active' });
+  const tab = filters.tab;
+  const setTab = (val) => setFilter('tab', val);
+  const subTab = filters.subTab;
+  const setSubTab = (val) => setFilter('subTab', val);
+  const tableFilter = filters.tableFilter;
+  const setTableFilter = (val) => setFilter('tableFilter', val);
 
   // Data
   const [tournaments, setTournaments] = useState([]);

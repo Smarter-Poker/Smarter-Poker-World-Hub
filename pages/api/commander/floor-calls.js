@@ -84,7 +84,8 @@ export default async function handler(req, res) {
         status: 'pending'
       }).select().maybeSingle();
 
-      if (error || !data) throw error || new Error('Failed to create floor call');
+      if (error) throw error;
+      if (!data) throw new Error('Failed to create floor call');
 
       // Also log to activity feed (non-blocking)
       await supabase.from('commander_activity_log').insert({
@@ -93,7 +94,9 @@ export default async function handler(req, res) {
         message: `Floor call at Table ${table_number}: ${safeReason.replace(/_/g, ' ')}`,
         detail: description || '',
         table_number
-      }).catch(() => { });
+      }).catch((err) => {
+        console.warn('Activity log insert warning (non-critical):', err);
+      });
 
       return res.status(201).json({ success: true, data });
     }

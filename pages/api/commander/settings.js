@@ -62,11 +62,14 @@ export default async function handler(req, res) {
         .select()
         .maybeSingle();
 
+      if (error) {
+        return res.status(500).json({ success: false, error: 'Failed to upsert settings' });
+      }
+
       if (!data) {
         return res.status(500).json({ success: false, error: 'Failed to upsert settings' });
       }
 
-      if (error) return res.status(500).json({ success: false, error: 'Internal server error' });
       return res.status(200).json({ success: true, data });
     }
 

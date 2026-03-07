@@ -51,6 +51,7 @@ class DiamondEngineSupabase {
                 return this._getLocalBalance();
             }
 
+            if (!data) return this._getLocalBalance();
             const balance = data?.diamonds || 0;
             this._cachedBalance = balance;
             return balance;
@@ -106,8 +107,10 @@ class DiamondEngineSupabase {
                 } catch (fallbackErr) {
                     console.warn('[DiamondEngine] Server VIP fallback failed:', fallbackErr.message);
                 }
-                return this._getLocalVIP();
+                return this._getLocalVIP ? this._getLocalVIP() : false;
             }
+
+            if (!data) return this._getLocalVIP ? this._getLocalVIP() : false;
 
             const isVip = data?.is_vip === true;
             this._cachedVIP = isVip;
@@ -199,6 +202,13 @@ class DiamondEngineSupabase {
                 return await this._awardDirect(amount, source);
             }
 
+            // Check if data is valid (RPC might return null)
+            if (!data && data !== 0) {
+                console.error('Award RPC returned no data');
+                // Fallback to direct update
+                return await this._awardDirect(amount, source);
+            }
+
             const newBalance = await this.getBalance();
             this._cachedBalance = newBalance;
 
@@ -264,11 +274,17 @@ class DiamondEngineSupabase {
 
     async _deductDirect(amount, source) {
         try {
-            const { data: profile } = await this.supabase
+            const { data: profile, error: profileError } = await this.supabase
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', this.userId)
                 .maybeSingle();
+
+            if (profileError) {
+                return { success: false, error: 'Profile not found' };
+            }
+
+            if (!profile) return { success: false, error: 'Profile not found' };
 
             const current = profile?.diamonds || 0;
             if (current < amount) {
@@ -304,11 +320,17 @@ class DiamondEngineSupabase {
 
     async _awardDirect(amount, source) {
         try {
-            const { data: profile } = await this.supabase
+            const { data: profile, error: profileError } = await this.supabase
                 .from('profiles')
                 .select('diamonds')
                 .eq('id', this.userId)
                 .maybeSingle();
+
+            if (profileError) {
+                return { success: false, error: 'Profile not found' };
+            }
+
+            if (!profile) return { success: false, error: 'Profile not found' };
 
             const current = profile?.diamonds || 0;
             const newBalance = current + amount;

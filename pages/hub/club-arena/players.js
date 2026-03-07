@@ -10,6 +10,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
 // Facebook Dark Color Scheme
 const FB = {
@@ -53,8 +54,11 @@ export default function Players() {
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
-    const [roleFilter, setRoleFilter] = useState('all');
-    const [sortBy, setSortBy] = useState('name'); // 'name' | 'chips' | 'joined'
+    const { filters, setFilter } = usePersistedFilters('club-arena-players', { roleFilter: 'all', sortBy: 'name' });
+    const roleFilter = filters.roleFilter;
+    const setRoleFilter = (val) => setFilter('roleFilter', val);
+    const sortBy = filters.sortBy;
+    const setSortBy = (val) => setFilter('sortBy', val);
 
     // Player detail modal
     const [selectedPlayer, setSelectedPlayer] = useState(null);

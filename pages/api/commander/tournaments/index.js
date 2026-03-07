@@ -53,7 +53,7 @@ async function listTournaments(req, res) {
       .order('scheduled_start', { ascending: true })
       .limit(limit);
 
-    if (status) {
+    if (status && typeof status === 'string') {
       // Support comma-separated compound filters like 'upcoming,active'
       const statusParts = status.split(',').map(s => s.trim());
 

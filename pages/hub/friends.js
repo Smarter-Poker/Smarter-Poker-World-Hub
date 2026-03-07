@@ -17,6 +17,7 @@ import { getAuthUser } from '../../src/lib/authUtils';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { friendPreferences } from '../../src/services/preferences-service';
+import { usePersistedState } from '../../src/hooks/usePersistedState';
 
 const C = {
     bg: '#0a0a0a', card: '#1a1a1a', cardHover: '#252525', text: '#FFFFFF', textSec: '#9ca3af',
@@ -385,7 +386,7 @@ function TabButton({ active, onClick, icon, label, count }) {
 export default function FriendsPage() {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('discover'); // requests, friends, following, followers, discover
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-friends-tab', 'discover'); // requests, friends, following, followers, discover
 
     // Data states
     const [friends, setFriends] = useState([]);
@@ -486,8 +487,6 @@ export default function FriendsPage() {
             console.error('[Friends] fetchData error:', err);
         }
 
-        // Keep discover as default - user came here to find friends
-        setActiveTab('discover');
         setLoading(false);
     };
 

@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
+import usePersistedState from '../../../src/hooks/usePersistedState';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -90,7 +91,7 @@ export default function UnionDashboard() {
     const [user, setUser] = useState(null);
     const [dashboard, setDashboard] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = usePersistedState('sp-filters-ca-union-tab', 'overview');
     const [clubSearch, setClubSearch] = useState('');
     const [agentSearch, setAgentSearch] = useState('');
     const [toast, setToast] = useState(null);

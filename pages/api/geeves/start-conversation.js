@@ -56,6 +56,10 @@ export default async function handler(req, res) {
             throw convError;
         }
 
+        if (!conversation) {
+            return res.status(500).json({ error: 'Failed to create conversation' });
+        }
+
         // Create personalized greeting
         const greeting = `Good evening, ${userName}! I'm Geeves, your poker strategy expert.
 

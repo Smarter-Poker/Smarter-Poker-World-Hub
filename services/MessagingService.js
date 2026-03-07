@@ -234,24 +234,44 @@ class MessagingService {
      * Get unread message count for a conversation
      */
     async getUnreadCount(conversationId, userId) {
-        const { count, error } = await supabase
-            .from('social_messages')
-            .select('id', { count: 'exact', head: true })
-            .eq('conversation_id', conversationId)
-            .neq('sender_id', userId)
-            .not('id', 'in',
-                supabase
-                    .from('social_message_reads')
-                    .select('message_id')
-                    .eq('user_id', userId)
-            );
+        try {
+            // First get all read message IDs for this user
+            const { data: readData, error: readError } = await supabase
+                .from('social_message_reads')
+                .select('message_id')
+                .eq('user_id', userId);
 
-        if (error) {
-            console.error('Failed to get unread count:', error);
+            if (readError) {
+                console.error('Failed to fetch read messages:', readError);
+                return 0;
+            }
+
+            const readMessageIds = readData?.map(r => r.message_id) || [];
+
+            // Now count unread messages
+            let query = supabase
+                .from('social_messages')
+                .select('id', { count: 'exact', head: true })
+                .eq('conversation_id', conversationId)
+                .neq('sender_id', userId);
+
+            // Only filter by read messages if there are any
+            if (readMessageIds.length > 0) {
+                query = query.not('id', 'in', `(${readMessageIds.map(id => `'${id}'`).join(',')})`);
+            }
+
+            const { count, error } = await query;
+
+            if (error) {
+                console.error('Failed to get unread count:', error);
+                return 0;
+            }
+
+            return count || 0;
+        } catch (err) {
+            console.error('Error in getUnreadCount:', err);
             return 0;
         }
-
-        return count || 0;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

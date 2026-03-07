@@ -59,6 +59,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: error.message });
         }
 
+        if (!data) return res.status(500).json({ success: false, error: 'Failed to create call' });
         return res.json({ success: true, call: data });
     } catch (e) {
         console.error('[calls/create] Exception:', e);

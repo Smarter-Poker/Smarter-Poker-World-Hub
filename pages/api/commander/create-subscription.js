@@ -301,6 +301,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Failed to create venue: ' + venueError.message });
       }
 
+      if (!newVenue) {
+        return res.status(500).json({ error: 'Venue creation returned no data' });
+      }
+
       venueId = newVenue.id;
     }
 
@@ -369,7 +373,7 @@ export default async function handler(req, res) {
         .eq('id', existingSub.id)
         .select()
         .maybeSingle();
-      subscriptionData = updatedSub;
+      subscriptionData = updatedSub || existingSub;
     } else {
       const { data: newSub, error: subError } = await supabase
         .from('commander_subscriptions')
@@ -389,7 +393,13 @@ export default async function handler(req, res) {
         .select()
         .maybeSingle();
 
-      if (subError) console.error('Subscription creation error:', subError);
+      if (subError) {
+        console.error('Subscription creation error:', subError);
+        return res.status(500).json({ error: 'Failed to create subscription' });
+      }
+      if (!newSub) {
+        return res.status(500).json({ error: 'Subscription creation returned no data' });
+      }
       subscriptionData = newSub;
     }
 

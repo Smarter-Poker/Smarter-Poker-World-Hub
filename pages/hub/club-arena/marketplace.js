@@ -7,6 +7,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
+import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -89,8 +90,11 @@ export default function Marketplace() {
     const [isLoading, setIsLoading] = useState(true);
 
     // Filters
-    const [category, setCategory] = useState('all');
-    const [tab, setTab] = useState('shop'); // 'shop' | 'owned'
+    const { filters, setFilter } = usePersistedFilters('club-arena-marketplace', { category: 'all', tab: 'shop' });
+    const category = filters.category;
+    const setCategory = (val) => setFilter('category', val);
+    const tab = filters.tab;
+    const setTab = (val) => setFilter('tab', val);
 
     // Modal
     const [selectedItem, setSelectedItem] = useState(null);

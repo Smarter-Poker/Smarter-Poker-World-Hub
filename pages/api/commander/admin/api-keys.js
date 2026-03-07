@@ -30,6 +30,7 @@ export default async function handler(req, res) {
       .select()
       .maybeSingle();
     if (error) return res.status(500).json({ success: false, error: error.message });
+    if (!data) return res.status(500).json({ success: false, error: 'Failed to create API key' });
     return res.json({ success: true, data: { key: data } });
   }
 

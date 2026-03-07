@@ -118,6 +118,7 @@ async function handlePost(req, res, staff) {
       .maybeSingle();
 
     if (error) throw error;
+    if (!data) return res.status(500).json({ success: false, error: 'Failed to record transaction' });
 
     // Get updated player totals for this session — EXCLUDE voided transactions
     let playerTotals = null;

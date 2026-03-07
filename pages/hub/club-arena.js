@@ -333,8 +333,8 @@ export default function ClubArenaPage() {
     async function loadUserData(signal) {
         try {
             // Fast auth via Supabase session (no localStorage digging)
-            const session = { access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token };
-            const authUser = session?.user || null;
+            const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+            const authUser = authData?.user || null;
 
             if (authUser) {
                 setUser(authUser);

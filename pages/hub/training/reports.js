@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { usePersistedState } from '../../../src/hooks/usePersistedState';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG

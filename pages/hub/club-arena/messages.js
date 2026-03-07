@@ -16,6 +16,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import { createMultiDeviceAuthListener, persistSession } from '../../../src/utils/authGuard';
 import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
+import usePersistedState from '../../../src/hooks/usePersistedState';
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(
@@ -348,7 +349,7 @@ export default function ClubMessages() {
     const [activeConversation, setActiveConversation] = useState(null);
     const [messages, setMessages] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [view, setView] = useState('list');
+    const [view, setView] = usePersistedState('sp-prefs-ca-messages-view', 'list');
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [searchResults, setSearchResults] = useState([]);
@@ -374,7 +375,7 @@ export default function ClubMessages() {
 
                 if (authUser) {
                     const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).maybeSingle();
-                    const fullUser = { ...authUser, ...profile };
+                    const fullUser = { ...authUser, ...(profile || {}) };
                     setUser(fullUser);
                     persistSession(fullUser);
                 } else {
@@ -397,7 +398,7 @@ export default function ClubMessages() {
             }
 
             const { data: profile } = await supabase.from('profiles').select('id, username, display_name, avatar_url').eq('id', authUser.id).maybeSingle();
-            setUser({ ...authUser, ...profile });
+            setUser({ ...authUser, ...(profile || {}) });
         });
 
         return cleanup;

@@ -272,6 +272,12 @@ export default async function handler(req, res) {
             .limit(20),
         ]);
 
+        // BUG FIX: Check for errors in any promise result
+        if (flagsResult.error || eventsResult.error || sessionsResult.error) {
+          const err = flagsResult.error || eventsResult.error || sessionsResult.error;
+          throw err;
+        }
+
         return res.status(200).json({
           success: true,
           flags: flagsResult.data || [],

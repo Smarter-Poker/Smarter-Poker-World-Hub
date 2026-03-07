@@ -9,6 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import usePersistedState from '../../../src/hooks/usePersistedState';
 
 // Facebook Dark Color Scheme
 const FB = {
@@ -124,7 +125,7 @@ export default function PlayerStats() {
     const [isLoading, setIsLoading] = useState(true);
 
     // Time period filter
-    const [period, setPeriod] = useState('all'); // 'week' | 'month' | 'all'
+    const [period, setPeriod] = usePersistedState('sp-filters-ca-player-stats', 'all'); // 'week' | 'month' | 'all'
 
     // ═══════════════════════════════════════════════════════════════════════════
     // LOAD DATA

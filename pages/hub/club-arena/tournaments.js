@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { supabase } from '../../../src/lib/supabase';
+import usePersistedState from '../../../src/hooks/usePersistedState';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -45,7 +46,7 @@ export default function TournamentsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState(null);
-  const [tab, setTab] = useState('upcoming'); // upcoming | running | past
+  const [tab, setTab] = usePersistedState('sp-filters-ca-tournaments', 'upcoming'); // upcoming | running | past
   const [chipBalance, setChipBalance] = useState(0);
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm }

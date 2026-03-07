@@ -44,6 +44,25 @@ async function handleGet(req, res) {
   }
 
   try {
+    // Verify staff auth — even GET operations should be authenticated
+    const staffSession = req.headers['x-staff-session'];
+    if (!staffSession) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Staff authentication required' }
+      });
+    }
+
+    let sessionData;
+    try {
+      sessionData = JSON.parse(staffSession);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'INVALID_SESSION', message: 'Invalid session' }
+      });
+    }
+
     const { data: displays, error } = await supabase
       .from('commander_table_displays')
       .select(`
