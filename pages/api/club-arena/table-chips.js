@@ -43,8 +43,9 @@ export default async function handler(req, res) {
     callerUserId = user.id;
   }
 
-  const { clubId, tableId, userId, action, amount } = req.body;
-  if (!clubId || !userId || !action || amount === undefined || amount <= 0) {
+  const { clubId, tableId, userId, action, amount: rawAmount } = req.body;
+  const amount = Math.floor(Number(rawAmount));
+  if (!clubId || !userId || !action || !Number.isFinite(amount) || amount <= 0 || amount > 100_000_000) {
     return res.status(400).json({ success: false, error: 'clubId, userId, action, and positive amount required' });
   }
 
