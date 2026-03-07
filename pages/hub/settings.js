@@ -9,7 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { useTheme } from '../../src/providers/ThemeProvider';
+// useTheme removed — unused (DarkModeToggle handles theme internally)
 import { DarkModeToggle } from '../../src/components/DarkModeToggle';
 import { supabase } from '../../src/lib/supabase';
 import CustomAvatarBuilder from '../../src/components/avatars/CustomAvatarBuilder';
@@ -17,7 +17,7 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import { getCustomAvatarGallery } from '../../src/services/avatar-service';
 
 // God-Mode Stack
-import { useSettingsStore } from '../../src/stores/settingsStore';
+// useSettingsStore removed — unused (settings are managed via local state)
 import PageTransition from '../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';

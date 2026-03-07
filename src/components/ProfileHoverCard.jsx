@@ -3,7 +3,7 @@
  * Shows user info, stats, and quick actions
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Link from 'next/link';
 
