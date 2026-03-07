@@ -31,7 +31,7 @@ async function api(action, params) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ action, ...params }),
   }).then(r => r.json());
