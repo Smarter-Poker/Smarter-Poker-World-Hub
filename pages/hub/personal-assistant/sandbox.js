@@ -1526,6 +1526,32 @@ export default function VirtualSandbox() {
             touch-action: manipulation;
             font-size: 16px !important;
           }
+
+          /* --- Villain controls: bigger touch targets --- */
+          .sandbox-page .sandbox-main-layout select {
+            min-height: 44px !important;
+            padding: 10px 8px !important;
+            border-radius: 8px !important;
+          }
+          .sandbox-page .sandbox-main-layout input[type="text"] {
+            min-height: 44px !important;
+            padding: 10px 8px !important;
+            border-radius: 8px !important;
+          }
+
+          /* --- Board action buttons: bigger for thumbs --- */
+          .sandbox-page #board-builder button {
+            min-height: 36px !important;
+            padding: 8px 12px !important;
+            font-size: 12px !important;
+            border-radius: 8px !important;
+          }
+
+          /* --- Pot preset buttons: thumb-friendly --- */
+          .pot-size-editor button {
+            min-height: 40px !important;
+            padding: 8px 12px !important;
+          }
         }
 
         /* Pulsing animation for loading */
