@@ -228,7 +228,7 @@ export default function PokerNearMeLobby() {
       if (filters.venueType) url += `&venue_type=${filters.venueType}`;
 
       const data = await cachedFetch(url);
-      const newVenues = data?.venues || (Array.isArray(data) ? data : []);
+      const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
       if (append) {
         setVenues(prev => [...prev, ...newVenues]);
       } else {
@@ -252,7 +252,8 @@ export default function PokerNearMeLobby() {
   const fetchTours = useCallback(async () => {
     try {
       const data = await cachedFetch('/api/poker/venues?type=tours');
-      if (data?.tours) setTours(data.tours);
+      if (data?.data) setTours(data.data);
+      else if (data?.tours) setTours(data.tours);
     } catch (err) {
       console.error('Failed to fetch tours:', err);
     }
@@ -275,7 +276,8 @@ export default function PokerNearMeLobby() {
   const fetchSeries = useCallback(async () => {
     try {
       const data = await cachedFetch('/api/poker/venues?type=series');
-      if (data?.series) setSeries(data.series);
+      if (data?.data) setSeries(data.data);
+      else if (data?.series) setSeries(data.series);
       else if (Array.isArray(data)) setSeries(data);
     } catch (err) {
       console.error('Failed to fetch series:', err);
@@ -288,7 +290,8 @@ export default function PokerNearMeLobby() {
       let url = '/api/poker/venues?type=daily';
       if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       const data = await cachedFetch(url);
-      if (data?.tournaments) setDailyTournaments(data.tournaments);
+      if (data?.data) setDailyTournaments(data.data);
+      else if (data?.tournaments) setDailyTournaments(data.tournaments);
       else if (Array.isArray(data)) setDailyTournaments(data);
     } catch (err) {
       console.error('Failed to fetch daily tournaments:', err);
@@ -299,7 +302,8 @@ export default function PokerNearMeLobby() {
   const fetchLiveGames = useCallback(async () => {
     try {
       const data = await cachedFetch('/api/public/live-games/nearby', 30000);
-      if (data?.games) setLiveGames(data.games);
+      if (data?.data) setLiveGames(data.data);
+      else if (data?.games) setLiveGames(data.games);
     } catch (err) {
       console.error('Failed to fetch live games:', err);
     }
