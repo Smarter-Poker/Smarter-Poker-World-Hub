@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import { getAccessToken } from '../../src/lib/authUtils';
 import SEOHead from '../../src/components/seo/SEOHead';
 import {
     Trophy, DollarSign, Users, Calendar, Loader2,
@@ -31,14 +32,13 @@ export default function MyTournaments() {
 
     // Get session token once, redirect if unauthenticated
     useEffect(() => {
-        Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-            if (!session?.access_token) {
-                router.push('/auth/login?redirect=/hub/my-tournaments');
-            } else {
-                setSessionToken(session.access_token);
-            }
-            setAuthChecked(true);
-        });
+        const tok = getAccessToken();
+        if (!tok) {
+            router.push('/auth/login?redirect=/hub/my-tournaments');
+        } else {
+            setSessionToken(tok);
+        }
+        setAuthChecked(true);
     }, []);
 
     // SWR-backed tournament fetch — only fires once token is available
