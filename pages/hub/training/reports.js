@@ -10,6 +10,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
+import { getAuthUser } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -141,27 +143,20 @@ export default function GTOReports() {
     const [period, setPeriod] = useState('all');
     const [userId, setUserId] = useState(null);
 
-    // Get user ID from supabase on mount
+    // Get user ID from auth on mount
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        (async () => {
-            try {
-                const { createClient } = await import('@supabase/supabase-js');
-                const sb = createClient(
-                    process.env.NEXT_PUBLIC_SUPABASE_URL,
-                    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-                );
-                const { data: { user } } = await sb.auth.getUser();
-                if (user) {
-                    setUserId(user.id);
-                } else {
-                    setLoading(false); // No user → stop loading spinner
-                }
-            } catch (e) {
-                console.warn('[Reports] Auth error:', e);
+        try {
+            const authUser = getAuthUser();
+            if (authUser?.id) {
+                setUserId(authUser.id);
+            } else {
                 setLoading(false);
             }
-        })();
+        } catch (e) {
+            console.warn('[Reports] Auth error:', e);
+            setLoading(false);
+        }
     }, []);
 
     // Fetch report data
@@ -182,6 +177,14 @@ export default function GTOReports() {
     useEffect(() => {
         if (userId) fetchReport();
     }, [fetchReport, userId]);
+
+    // 🔌 Bus listener: auto-refresh when Play Mode (or any trainer) completes a session
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => {
+            if (userId) fetchReport();
+        });
+        return unsub;
+    }, [userId, fetchReport]);
 
     const positionOrder = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 

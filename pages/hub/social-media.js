@@ -1,5 +1,3 @@
-import dynamic from 'next/dynamic';
-const InviteFriendsModal = dynamic(() => import('../../src/components/ui/InviteFriendsModal'), { ssr: false });
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
  * ║  🚨🚨🚨 PROTECTED FILE - READ BEFORE MODIFYING 🚨🚨🚨                      ║
@@ -40,24 +38,28 @@ const InviteFriendsModal = dynamic(() => import('../../src/components/ui/InviteF
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
-import NextImage from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import gsap from 'gsap';
+import confetti from 'canvas-confetti';
 import { supabase } from '../../src/lib/supabase';
-import { getSafeUser } from '../../src/lib/authUtils';
+import { getAuthUser, querySocialPosts, queryProfiles, fetchWithAuth } from '../../src/lib/authUtils';
 import { useExternalLink } from '../../src/components/ui/ExternalLinkModal';
-import { useUnreadCount } from '../../src/hooks/useUnreadCount';
-import { StoriesBar } from '../../src/components/social/Stories';
-const ReelsFeedCarousel = dynamic(() => import('../../src/components/social/ReelsFeedCarousel').then(m => ({ default: m.ReelsFeedCarousel })), { ssr: false });
-const GoLiveModal = dynamic(() => import('../../src/components/social/GoLiveModal').then(m => ({ default: m.GoLiveModal })), { ssr: false });
+import { useUnreadCount, UnreadBadge } from '../../src/hooks/useUnreadCount';
+import { StoriesBar, ShareToStoryPrompt } from '../../src/components/social/Stories';
+import { ReelsFeedCarousel } from '../../src/components/social/ReelsFeedCarousel';
+import { GoLiveModal } from '../../src/components/social/GoLiveModal';
 import { LiveStreamCard } from '../../src/components/social/LiveStreamCard';
-const LiveStreamViewer = dynamic(() => import('../../src/components/social/LiveStreamViewer').then(m => ({ default: m.LiveStreamViewer })), { ssr: false });
+import { LiveStreamViewer } from '../../src/components/social/LiveStreamViewer';
 import LiveStreamService from '../../src/services/LiveStreamService';
 import ArticleCard, { ArticleCardFromPost, getPostMediaType } from '../../src/components/social/ArticleCard';
-const ArticleReaderModal = dynamic(() => import('../../src/components/social/ArticleReaderModal'), { ssr: false });
+import ArticleReaderModal from '../../src/components/social/ArticleReaderModal';
+import { BrainHomeButton } from '../../src/components/navigation/WorldNavHeader';
+import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
 import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 
 // God-Mode Stack
@@ -103,7 +105,8 @@ function Avatar({ src, name, size = 40, online, onClick, linkTo }) {
             <img
                 src={src || '/default-avatar.png'}
                 alt={name || 'User'}
-                style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+                style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
+            />
             {online !== undefined && <div style={{ position: 'absolute', bottom: 0, right: 0, width: size * 0.28, height: size * 0.28, borderRadius: '50%', background: online ? C.green : '#ccc', border: '2px solid white' }} />}
         </div>
     );
@@ -269,7 +272,8 @@ function VideoThumbnail({ url, style = {}, onValidated }) {
                     ...style
                 }}
                 onLoad={handleLoad}
-                onError={handleError} />
+                onError={handleError}
+            />
         </>
     );
 }
@@ -409,7 +413,7 @@ function LinkPreviewCard({ url }) {
                         image: null,
                         siteName: urlObj.hostname.replace(/^www\./, '')
                     });
-                } catch (e) { console.error("[social-media.js]", e); }
+                } catch (e) { }
             }
             setLoading(false);
         };
@@ -475,7 +479,8 @@ function LinkPreviewCard({ url }) {
                                 height: '100%',
                                 objectFit: 'cover',
                                 objectPosition: 'center center'
-                            }} />
+                            }}
+                        />
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'white', fontSize: 48 }}>🔗</div>
                     )}
@@ -607,7 +612,8 @@ function FullScreenVideoViewer({ videoUrl, author, caption, onClose, onLike, onC
                     <img
                         src={author?.avatar || '/default-avatar.png'}
                         alt={author?.name}
-                        style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }} />
+                        style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }}
+                    />
                     <div>
                         <div style={{ fontWeight: 600, fontSize: 16 }}>{author?.name || 'Player'}</div>
                         <div style={{ fontSize: 12, opacity: 0.8 }}>Smarter.Poker</div>
@@ -821,7 +827,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     } else {
                         // For non-YouTube links, fetch real metadata via API
                         try {
-                            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(detectedUrl)}`, { signal });
+                            const response = await fetch(`/api/link-preview?url=${encodeURIComponent(detectedUrl)}`);
                             const metadata = await response.json();
 
                             setLinkPreview({
@@ -911,8 +917,6 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
     // - author_id set from user.id
     // - Run /social-feed-protection workflow after changes
     const handlePost = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         // Allow posting if there's content, media, OR a link preview
         if (!content.trim() && !media.length && !linkPreview) return;
         setError('');
@@ -957,6 +961,7 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             mentions.push(match[1]);
         }
         // DEBUG: log linkPreview before passing to parent
+        console.log('[PostCreator]  About to call onPost with linkPreview:', JSON.stringify(linkPreview, null, 2));
         const ok = await onPost(cleanContent, urls, type, mentions, linkPreview);
         if (ok) { setContent(''); setMedia([]); setLinkPreview(null); }
         else setError('Unable to post at this time. Please try again later.');
@@ -1185,7 +1190,8 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                                                 position: 'absolute',
                                                 top: 0,
                                                 left: 0
-                                            }} />
+                                            }}
+                                        />
                                     ) : (
                                         <span style={{ fontSize: 48, opacity: 0.5 }}>
                                             {linkPreview.type === 'video' ? '' : '🔗'}
@@ -1326,8 +1332,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     const [fullScreenVideo, setFullScreenVideo] = useState(null);
 
     const handleBookmark = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!currentUserId) return;
         const newBookmarked = !bookmarked;
         setBookmarked(newBookmarked);
@@ -1347,8 +1351,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const handleLike = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         const newLiked = !liked;
         setLiked(newLiked);
         setLikeCount(prev => newLiked ? prev + 1 : Math.max(0, prev - 1));
@@ -1356,8 +1358,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const loadComments = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (comments.length > 0) return;
         setLoadingComments(true);
         try {
@@ -1387,8 +1387,7 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
             if (authorIds.length > 0) {
                 const { data: profilesData } = await supabase.from('profiles')
                     .select('id, username, full_name, avatar_url')
-                    .in('id', authorIds)
-                    .limit(50) // suggested profiles
+                    .in('id', authorIds);
 
                 if (profilesData) {
                     profilesData.forEach(p => { profilesMap[p.id] = p; });
@@ -1420,8 +1419,6 @@ function PostCard({ post, currentUserId, currentUserName, currentUserAvatar, onL
     };
 
     const handleSubmitComment = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!newComment.trim() || !currentUserId) return;
         try {
             const { data, error } = await supabase.from('social_comments').insert({ post_id: post.id, author_id: currentUserId, content: newComment }).select('id, content, created_at').single();
@@ -1677,8 +1674,6 @@ function ChatWindow({ chat, messages, currentUserId, onSend, onClose }) {
     useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
     const send = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!text.trim()) return;
         await onSend(text);
         setText('');
@@ -1725,8 +1720,6 @@ function ClubPageCreateModal({ C, commanderData, userId, onCreated, onClose }) {
     ];
 
     const handleCreate = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!pageName.trim()) { setError('Page name is required'); return; }
         setCreating(true);
         setError('');
@@ -1954,7 +1947,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 try {
                     const res = await fetch('/api/social/pages', {
                         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged },)
+                        body: JSON.stringify({ id: page.id, owner_id: userId, cover_url: url, metadata: merged }),
                     });
                     const json = await res.json();
                     if (json.success && json.data) {
@@ -1996,7 +1989,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 try {
                     const res = await fetch('/api/social/pages', {
                         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged },)
+                        body: JSON.stringify({ id: page.id, owner_id: userId, avatar_url: url, metadata: merged }),
                     });
                     const json = await res.json();
                     if (json.success && json.data) {
@@ -2117,7 +2110,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
         try {
             await fetch('/api/social/pages/follow', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId },)
+                body: JSON.stringify({ page_id: page.id, user_id: userId, action, follower_id: followerId }),
             });
             setPendingFollowers(prev => prev.filter(f => f.user_id !== followerId));
         } catch (e) { console.error('Approve/reject error:', e); }
@@ -2130,7 +2123,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             const merged = { ...page.metadata, ...newMeta };
             const res = await fetch('/api/social/pages', {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged },)
+                body: JSON.stringify({ id: page.id, owner_id: userId, metadata: merged }),
             });
             const json = await res.json();
             if (json.success && json.data) {
@@ -2162,6 +2155,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                         }).catch(() => { });
                     }
                 } catch (geoErr) {
+                    console.warn('[ClubPage] Background geocoding failed:', geoErr);
                 }
             }
         } catch (e) { console.error('Meta save error:', e); setMetaSaved('Error saving'); }
@@ -2183,18 +2177,18 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     }, [page.id, userId]);
 
     const handlePost = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!postContent.trim() && postMedia.length === 0) return;
         setPosting(true);
         try {
             const mediaUrls = postMedia.map(m => m.url);
             const contentType = postMedia.some(m => m.type === 'video') ? 'video' : (postMedia.length > 0 ? 'image' : 'text');
+            console.log('[ClubPage] Posting:', { page_id: page.id, author_id: userId, content: postContent.trim().substring(0, 50), contentType, mediaUrls });
             const res = await fetch('/api/social/pages/posts', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_id: page.id, author_id: userId, content: postContent.trim(), content_type: contentType, media_urls: mediaUrls }),
             });
             const json = await res.json();
+            console.log('[ClubPage] Post response:', json);
             if (json.success && json.data) {
                 setPosts(prev => [{ ...json.data, author: { username: 'You' }, user_liked: false }, ...prev]);
                 setPostContent('');
@@ -2214,8 +2208,6 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
     };
 
     const handleSavePage = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         setSaving(true);
         try {
             // Merge address into metadata
@@ -2750,7 +2742,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                 <div style={cardSt}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: C.text }}>Live Game Board</h3>
-                        <Link href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage In Club Commander →</Link>
+                        <a href="/hub/commander" style={{ fontSize: 13, fontWeight: 600, color: C.blue, textDecoration: 'none' }}>Manage In Club Commander &rarr;</a>
                     </div>
 
                     <div style={{ fontSize: 12, color: C.textSec, padding: '8px 12px', background: '#f0f7ff', borderRadius: 8, marginBottom: 12 }}>
@@ -2770,7 +2762,7 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                             </div>
                             <div style={{ fontSize: 18, marginBottom: 6, fontWeight: 700, color: C.text }}>No Active Games</div>
                             <p style={{ margin: '0 0 12px', fontSize: 14 }}>Open Club Commander To Create And Manage Live Games</p>
-                            <Link href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</Link>
+                            <a href="/hub/commander" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 8, background: C.blue, color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>Open Club Commander</a>
                         </div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2844,10 +2836,14 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                                         <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
                                             <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                                 {/* Table image fills entire container */}
-                                                <NextImage src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
-                                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                                }} />
+                                                <img
+                                                    src="/images/poker-table-black-gold.png"
+                                                    alt="Poker Table"
+                                                    style={{
+                                                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                                        objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                                    }}
+                                                />
 
                                                 {/* Game info in center of table */}
                                                 <div style={{
@@ -3100,8 +3096,6 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
 
     // Check follow status
     const checkFollowStatus = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!userId) { setFollowStatus('none'); setFollowLoading(false); return; }
         try {
             const res = await fetch(`/api/social/pages/follow?page_id=${pageId}&requester_id=${userId}`);
@@ -3114,8 +3108,6 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     };
 
     const fetchGames = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         try {
             const res = await fetch(`/api/social/pages/games?page_id=${pageId}`);
             const json = await res.json();
@@ -3141,14 +3133,12 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
     const showMsg = (msg) => { setActionMsg(msg); setTimeout(() => setActionMsg(''), 3000); };
 
     const handleFollow = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
         if (!userId) { showMsg('You must be logged in to follow this page'); return; }
         setFollowLoading(true);
         try {
             const res = await fetch('/api/social/pages/follow', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' },)
+                body: JSON.stringify({ page_id: pageId, user_id: userId, action: 'follow' }),
             });
             const json = await res.json();
             if (json.success) {
@@ -3357,13 +3347,17 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
                                 <div style={{ position: 'relative', width: '100%', paddingBottom: '64%', overflow: 'hidden', marginTop: 10, marginBottom: 10 }}>
                                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                         {/* Table image fills entire container */}
-                                        <NextImage src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
-                                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                            objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                        }} />
+                                        <img
+                                            src="/images/poker-table-black-gold.png"
+                                            alt="Poker Table"
+                                            style={{
+                                                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                                objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                            }}
+                                        />
 
                                         {/* Game info in center of table */}
-                                        < div style={{
+                                        <div style={{
                                             position: 'absolute', top: '48%', left: '50%',
                                             transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
                                         }}>
@@ -3580,7 +3574,7 @@ function PublicGameBoard({ C, pageId, pageName, userId, userName, onClose }) {
             )
             }
             <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div >
+        </div>
     );
 }
 
@@ -3665,14 +3659,14 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
             if (isNowFollowing) { if (!stored.includes(pageId)) stored.push(pageId); }
             else { const idx = stored.indexOf(pageId); if (idx !== -1) stored.splice(idx, 1); }
             localStorage.setItem(storageKey, JSON.stringify(stored));
-        } catch (e) { console.error("[social-media.js]", e); }
+        } catch { }
         try {
             await fetch('/api/poker/follow', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_type: pageType, page_id: pageId, action: isNowFollowing ? 'follow' : 'unfollow', user_id: getAnonUserId() }),
             });
-        } catch (e) { console.error("[social-media.js]", e); }
+        } catch { }
     };
 
     const cats = [
@@ -3704,7 +3698,7 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
                         {(() => { try { return !!JSON.parse(localStorage.getItem('commander_staff') || 'null'); } catch { return false; } })() && (
                             <button onClick={() => window.location.href = '/commander/dashboard'} style={{
                                 background: 'linear-gradient(135deg, #1a1a2e, #0f0f0f)', border: '1px solid #22D3EE', borderRadius: 20, padding: '8px 14px',
-                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "var(--font-orbitron), sans-serif",
+                                fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#22D3EE', fontFamily: "'Orbitron', sans-serif",
                                 letterSpacing: 1, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6,
                                 boxShadow: '0 0 8px rgba(34,211,238,0.2)'
                             }}>Commander</button>
@@ -4042,11 +4036,58 @@ export default function SocialMediaPage() {
     useEffect(() => {
         (async () => {
             try {
-                // Get authenticated user from Supabase session
-                const authUser = await getSafeUser(supabase);
+                // NEW APPROACH: Read session directly from localStorage to bypass AbortError
+                let authUser = null;
+
+                // PRIMARY: Check explicit smarter-poker-auth key (new auth system)
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
+                    try {
+                        const tokenData = JSON.parse(explicitAuth);
+                        if (tokenData?.user) {
+                            authUser = tokenData.user;
+                            console.log('[Social] ✅ Got user from smarter-poker-auth:', authUser.email);
+                        }
+                    } catch (parseError) {
+                        console.error('[Social] Failed to parse smarter-poker-auth:', parseError);
+                    }
+                }
+
+                // FALLBACK: Legacy sb-*-auth-token keys (backwards compatibility)
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    console.log('[Social] Looking for legacy auth token, found keys:', sbKeys);
+
+                    if (sbKeys.length > 0) {
+                        try {
+                            const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+                            if (tokenData?.user) {
+                                authUser = tokenData.user;
+                                console.log('[Social] ✅ Got user from legacy localStorage:', authUser.email);
+                            }
+                        } catch (parseError) {
+                            console.error('[Social] Failed to parse legacy token:', parseError);
+                        }
+                    }
+                }
+
+                // Final fallback: try getSession if localStorage approach failed
+                if (!authUser) {
+                    console.log('[Social] No user from localStorage, trying getSession...');
+                    try {
+                        const { data: sessionData } = await supabase.auth.getSession();
+                        if (sessionData?.session?.user) {
+                            authUser = sessionData.session.user;
+                            console.log('[Social] ✅ Got user from getSession:', authUser.email);
+                        }
+                    } catch (e) {
+                        console.warn('[Social] getSession failed:', e.message);
+                    }
+                }
 
                 if (authUser) {
                     // Use native fetch to avoid AbortError (same issue as stories/profiles)
+                    console.log('[Social] Fetching profile for user:', authUser.id);
 
                     let profileRes = await fetch(`https://kuklfnapbkmacvwxktbh.supabase.co/rest/v1/profiles?id=eq.${authUser.id}&select=id,username,full_name,display_name_preference,skill_tier,avatar_url,hendon_url,hendon_total_cashes,hendon_total_earnings,hendon_best_finish,hendon_biggest_cash,role`, {
                         headers: {
@@ -4057,6 +4098,7 @@ export default function SocialMediaPage() {
 
                     let profiles = await profileRes.json();
                     let p = profiles?.[0] || null;
+                    console.log('[Social] Profile loaded:', p ? `${p.username} (avatar: ${p.avatar_url ? 'YES' : 'NO'})` : 'NOT FOUND');
 
                     // If no profile found by id, check if user owns another profile via owner_id
                     if (!p) {
@@ -4099,7 +4141,7 @@ export default function SocialMediaPage() {
                     supabase.from('profiles')
                         .update({ last_active: new Date().toISOString() })
                         .eq('id', p?.id || authUser.id)
-                        .then(() => console.log('[Social] Updated last_active timestamp'))
+                        .then(() => console.log('[Social] Updated last_active timestamp'));
 
                     // Load notifications with actor profile data
                     const { data: notifs, error: notifsError } = await supabase.from('notifications')
@@ -4129,8 +4171,7 @@ export default function SocialMediaPage() {
                         if (actorIds.length > 0) {
                             const { data: profilesById } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('id', actorIds)
-                                .limit(50);
+                                .in('id', actorIds);
                             (profilesById || []).forEach(p => {
                                 profileById[p.id] = p;
                             });
@@ -4140,8 +4181,7 @@ export default function SocialMediaPage() {
                         if (actorNames.length > 0) {
                             const { data: profilesByName } = await supabase.from('profiles')
                                 .select('id, username, full_name, avatar_url')
-                                .in('full_name', actorNames)
-                                .limit(50);
+                                .in('full_name', actorNames);
                             (profilesByName || []).forEach(p => {
                                 if (p.full_name) profileByName[p.full_name.toLowerCase()] = p;
                             });
@@ -4173,6 +4213,7 @@ export default function SocialMediaPage() {
                         setNotifications(enrichedNotifs);
                     }
                 } else {
+                    console.log('[Social] No authenticated user found');
                 }
                 await loadFeed();
                 // Load live streams
@@ -4194,6 +4235,7 @@ export default function SocialMediaPage() {
                 if (data && data.venue_id) {
                     setIsCommander(true);
                     setCommanderData(data);
+                    console.log('[Social] Commander account detected:', data.venue_name);
 
                     // Fetch if this Commander already has a club page
                     setMyPageLoading(true);
@@ -4202,6 +4244,7 @@ export default function SocialMediaPage() {
                         .then(json => {
                             if (json.success && json.data && json.data.length > 0) {
                                 setMyClubPage(json.data[0]);
+                                console.log('[Social] Found existing Club Page:', json.data[0].name);
                             } else if (json.success && json.data) {
                                 // Also check by owner_id if no linked_venue_id match
                                 if (user?.id) {
@@ -4269,7 +4312,7 @@ export default function SocialMediaPage() {
                         // Auto-follow the page
                         await fetch('/api/social/pages/follow', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ page_id: refPage.id, user_id: user.id, action: 'follow' },)
+                            body: JSON.stringify({ page_id: refPage.id, user_id: user.id, action: 'follow' }),
                         });
                         // Show the club pages view and navigate to the referred page's live games
                         setShowClubPages(true);
@@ -4303,8 +4346,7 @@ export default function SocialMediaPage() {
                 if (actorIds.length > 0) {
                     const { data: profiles } = await supabase.from('profiles')
                         .select('id, username, full_name, avatar_url')
-                        .in('id', actorIds)
-                        .limit(50);
+                        .in('id', actorIds);
                     (profiles || []).forEach(p => { profileById[p.id] = p; });
                 }
                 const enriched = notifs.map(n => {
@@ -4341,8 +4383,24 @@ export default function SocialMediaPage() {
         try {
             if (append) setLoadingMore(true);
 
-            // Get authenticated user from Supabase session
-            const authUser = await getSafeUser(supabase);
+            // Read user from localStorage to avoid getSession AbortError
+            let authUser = null;
+            try {
+                // PRIMARY: Check smarter-poker-auth key first  
+                const explicitAuth = localStorage.getItem('smarter-poker-auth');
+                if (explicitAuth) {
+                    const tokenData = JSON.parse(explicitAuth);
+                    authUser = tokenData?.user || null;
+                }
+                // FALLBACK: Legacy sb-* keys
+                if (!authUser) {
+                    const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+                    if (sbKeys.length > 0) {
+                        const tokenData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{ }');
+                        authUser = tokenData?.user || null;
+                    }
+                }
+            } catch (e) { /* ignore parse errors */ }
 
             // Get friend IDs for prioritization
             let friendIds = [];
@@ -4369,6 +4427,7 @@ export default function SocialMediaPage() {
             const priorityUserIds = [...new Set([...friendIds, ...followingIds])];
 
             // ♾️ INFINITE SCROLL: Fetch posts using native fetch to bypass Supabase client AbortError
+            console.log('[Social] Loading feed via native fetch, offset:', offset);
 
             let allPostsData = null;
             let error = null;
@@ -4402,6 +4461,7 @@ export default function SocialMediaPage() {
                 }
 
                 allPostsData = await response.json();
+                console.log('[Social] ✅ Feed loaded via fetch - count:', allPostsData?.length);
             } catch (e) {
                 console.error('[Social] Feed fetch error:', e);
                 error = { message: e.message };
@@ -4415,14 +4475,17 @@ export default function SocialMediaPage() {
                 // No posts returned - truly at the end
                 if (feedCycle < MAX_FEED_CYCLES) {
                     // Loop back from the beginning for endless scroll experience
+                    console.log('[Social] Looping feed - cycle', feedCycle + 1);
                     setFeedCycle(prev => prev + 1);
                     setFeedOffset(0);
                     // Don't set hasMorePosts false - let next scroll trigger the loop
                 } else {
+                    console.log('[Social] Max cycles reached - ending feed');
                     setHasMorePosts(false);
                 }
             } else {
                 // Got posts - continue infinite scroll
+                console.log(`[Social] Got ${allPostsData.length} posts - continuing scroll`);
                 setHasMorePosts(true);
             }
 
@@ -4474,9 +4537,11 @@ export default function SocialMediaPage() {
             // Fetch author profiles using native fetch to avoid AbortError
             if (mixedFeed.length > 0) {
                 const authorIds = [...new Set(mixedFeed.map(p => p.author_id).filter(Boolean))];
+                console.log('[Social]  Processing', mixedFeed.length, 'posts with', authorIds.length, 'unique authors');
                 let authorMap = {};
                 if (authorIds.length) {
                     try {
+                        console.log('[Social] Fetching profiles for author IDs:', authorIds.slice(0, 3), '...');
                         const profilesRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=in.(${authorIds.join(',')})&select=id,username,full_name,display_name_preference,avatar_url`, {
                             headers: {
                                 'apikey': supabaseKey,
@@ -4484,14 +4549,18 @@ export default function SocialMediaPage() {
                             }
                         });
 
+                        console.log('[Social] Profile fetch response status:', profilesRes.status);
                         if (!profilesRes.ok) {
                             const errorText = await profilesRes.text();
                             console.error('[Social] ❌ Profile fetch failed:', profilesRes.status, errorText);
                         } else {
                             const profiles = await profilesRes.json();
+                            console.log('[Social] ✅ Loaded', profiles.length, 'profiles:', profiles.map(p => p.username || p.full_name));
                             if (profiles && profiles.length > 0) {
                                 authorMap = Object.fromEntries(profiles.map(p => [p.id, p]));
+                                console.log('[Social] ✅ Author map created with', Object.keys(authorMap).length, 'entries');
                             } else {
+                                console.warn('[Social]  No profiles returned from query');
                             }
                         }
                     } catch (profileError) {
@@ -4568,23 +4637,13 @@ export default function SocialMediaPage() {
     useEffect(() => { feedOffsetRef.current = feedOffset; }, [feedOffset]);
     useEffect(() => { hasMorePostsRef.current = hasMorePosts; }, [hasMorePosts]);
     useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
-    // Realtime subscription — live updates
-    useEffect(() => {
-        if (!user?.id) return;
-        const _ch = supabase
-            .channel(`social:${user.id}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, () => { })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => { })
-            .subscribe();
-        return () => { supabase.removeChannel(_ch); };
-    }, [user?.id]);
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
+        console.log('[Social] loadMorePosts called, loadingMore:', loadingMoreRef.current, 'hasMorePosts:', hasMorePostsRef.current);
         if (loadingMoreRef.current || !hasMorePostsRef.current) return;
         const newOffset = feedOffsetRef.current + POSTS_PER_PAGE;
+        console.log('[Social] Loading more from offset:', newOffset);
         setFeedOffset(newOffset);
         await loadFeed(newOffset, true);
     };
@@ -4602,14 +4661,17 @@ export default function SocialMediaPage() {
 
         // If node is null (unmounting), we're done
         if (!node) {
+            console.log('[Social] Sentinel unmounted, observer disconnected');
             return;
         }
 
+        console.log('[Social] ✅ Sentinel mounted! Attaching IntersectionObserver...');
 
         // Create and attach new observer
         observerRef.current = new IntersectionObserver(
             (entries) => {
                 if (entries[0].isIntersecting) {
+                    console.log('[Social] Sentinel visible! Calling loadMorePosts...');
                     loadMorePosts();
                 }
             },
@@ -4620,6 +4682,9 @@ export default function SocialMediaPage() {
     }, []); // Empty deps - uses refs for current values
 
     const handlePost = async (content, urls, type, mentions = [], linkPreview = null) => {
+        console.log('[Social]  handlePost called with:', { content: content?.substring(0, 50), urls, type, mentions, hasLinkPreview: !!linkPreview });
+        console.log('[Social]  linkPreview FULL OBJECT:', JSON.stringify(linkPreview, null, 2));
+        console.log('[Social]  User state:', { id: user?.id, name: user?.name, hasUser: !!user });
 
         if (!user?.id) {
             console.error('[Social] ❌ Cannot post: user.id is missing!', user);
@@ -4630,7 +4695,7 @@ export default function SocialMediaPage() {
 
         // Check if posting as Club Page
         let identityStoredRaw = null;
-        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { console.error("[social-media.js]", e); }
+        try { identityStoredRaw = localStorage.getItem('active-identity'); } catch (e) { }
         const identityStored = identityStoredRaw ? JSON.parse(identityStoredRaw) : null;
         const isClubPost = identityStored?.mode === 'club' && identityStored?.clubPage?.id;
 
@@ -4638,6 +4703,7 @@ export default function SocialMediaPage() {
             if (isClubPost) {
                 // ═══ CLUB PAGE POST — route through page posts API ═══
                 const clubPageId = identityStored.clubPage.id;
+                console.log('[Social] 🏢 Posting as Club Page:', identityStored.clubPage.name, clubPageId);
 
                 const res = await fetch('/api/social/pages/posts', {
                     method: 'POST',
@@ -4661,6 +4727,7 @@ export default function SocialMediaPage() {
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error || 'Failed to post as club');
 
+                console.log('[Social] ✅ Club page post created:', json.data?.id);
 
                 // Add to feed with club identity
                 setPosts(prev => [{
@@ -4698,6 +4765,7 @@ export default function SocialMediaPage() {
 
             // EXPLICIT: Add link metadata if available (from link preview)
             if (linkPreview) {
+                console.log('[Social]  Adding link metadata from preview:', linkPreview);
                 insertPayload.link_url = linkPreview.url || urls[0];
                 insertPayload.link_title = linkPreview.title || null;
                 insertPayload.link_description = linkPreview.description || null;
@@ -4705,6 +4773,7 @@ export default function SocialMediaPage() {
                 insertPayload.link_site_name = linkPreview.domain || null;
             }
 
+            console.log('[Social]  FINAL insert payload:', JSON.stringify(insertPayload, null, 2));
 
             const { data, error } = await supabase.from('social_posts').insert(insertPayload).select().single();
 
@@ -4713,6 +4782,7 @@ export default function SocialMediaPage() {
                 throw error;
             }
 
+            console.log('[Social] ✅ Post created successfully:', data?.id);
 
             // Insert mentions if any
             if (mentions.length > 0 && data?.id) {
@@ -4720,8 +4790,7 @@ export default function SocialMediaPage() {
                 const { data: mentionedUsers } = await supabase
                     .from('profiles')
                     .select('id, username')
-                    .in('username', mentions)
-                    .limit(50) // suggested profiles
+                    .in('username', mentions);
 
                 if (mentionedUsers?.length > 0) {
                     const mentionInserts = mentionedUsers.map(u => ({
@@ -4751,6 +4820,7 @@ export default function SocialMediaPage() {
                         view_count: 0,
                         like_count: 0
                     });
+                    console.log(' Video auto-saved to Reels!');
                 } catch (reelError) {
                     console.error('Failed to auto-save to Reels:', reelError);
                     // Don't fail the post if Reel creation fails
@@ -4822,6 +4892,7 @@ export default function SocialMediaPage() {
 
             // Remove from local state
             setPosts(prev => prev.filter(p => p.id !== id));
+            console.log(`[Delete] ✅ Post ${id} deleted successfully (${result.deletedBy})`);
         } catch (e) {
             console.error('[Delete] Error:', e);
             alert('Error deleting post');
@@ -4857,8 +4928,7 @@ export default function SocialMediaPage() {
             const { data: profiles } = await supabase
                 .from('profiles')
                 .select('id, username')
-                .in('id', uniqueUserIds)
-                .limit(50) // suggested profiles;
+                .in('id', uniqueUserIds);
             const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
 
             // Assemble contacts in-memory
@@ -4919,8 +4989,7 @@ export default function SocialMediaPage() {
                 let enrichedPosts = [];
                 if (posts?.length) {
                     const authorIds = [...new Set(posts.map(p => p.author_id))];
-                    const { data: authors } = await supabase.from('profiles').select('id, username').in('id', authorIds)
-                        .limit(50) // suggested profiles;
+                    const { data: authors } = await supabase.from('profiles').select('id, username').in('id', authorIds);
                     const authorMap = Object.fromEntries((authors || []).map(a => [a.id, a]));
                     enrichedPosts = posts.map(p => ({
                         ...p,
@@ -5155,7 +5224,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <NextImage src="/icons/friends.png" alt="" width={128} height={82} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <img src="/icons/friends.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Friends</span>
                     </Link>
                     {/* Club Arena - Purple columns SVG (fallback) */}
@@ -5176,7 +5245,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <NextImage src="/icons/diamond.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <img src="/icons/diamond.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Diamond Store</span>
                     </Link>
                     {/* Tournaments - Custom AI icon */}
@@ -5184,7 +5253,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <NextImage src="/icons/tournaments.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <img src="/icons/tournaments.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Tournaments</span>
                     </Link>
                     {/* Club Pages - Venue/Tour/Series Pages (inline view) */}
@@ -5206,7 +5275,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <NextImage src="/icons/gto.png" alt="" width={128} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <img src="/icons/gto.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>GTO Training</span>
                     </Link>
                     {/* Reels - Custom AI icon */}
@@ -5214,7 +5283,7 @@ export default function SocialMediaPage() {
                         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '14px 12px',
                         background: '#fff', borderRadius: 8, textDecoration: 'none', border: '1px solid #dadde1'
                     }}>
-                        <NextImage src="/icons/reels.png" alt="" width={121} height={128} style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
+                        <img src="/icons/reels.png" alt="" style={{ width: 36, height: 36, marginBottom: 8, objectFit: 'contain' }} />
                         <span style={{ fontSize: 15, fontWeight: 500, color: '#1c1e21' }}>Reels</span>
                     </Link>
                 </div>
@@ -5502,7 +5571,8 @@ export default function SocialMediaPage() {
                                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                                     <img
                                                         src={n.actor_avatar_url || n.metadata?.actor_avatar || '/default-avatar.png'}
-                                                        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }} />
+                                                        style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid #ddd' }}
+                                                    />
                                                     <div style={{
                                                         position: 'absolute', bottom: -2, right: -2,
                                                         width: 24, height: 24, borderRadius: '50%',

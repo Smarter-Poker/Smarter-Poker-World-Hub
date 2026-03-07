@@ -11,6 +11,8 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAuthUser } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -286,6 +288,92 @@ function usePlayMode() {
         setHandNumber(0);
         setHandResults([]);
     }, []);
+
+    // 🔌 WIRING: Save session to Supabase + emit bus event when session completes
+    useEffect(() => {
+        if (gameState !== 'sessionComplete' || handResults.length === 0) return;
+
+        const saveSession = async () => {
+            try {
+                const authUser = getAuthUser();
+                if (!authUser?.session?.access_token) {
+                    console.warn('[PlayMode] No auth token — session not saved to Supabase');
+                    return;
+                }
+
+                const wins = handResults.filter(h => h.result?.heroWon).length;
+                const totalPot = handResults.reduce((sum, h) => sum + (h.result?.pot || 0), 0);
+
+                // Build position stats from hand results
+                const posStats = {};
+                handResults.forEach(h => {
+                    if (!posStats[h.position]) posStats[h.position] = { total: 0, correct: 0, evLoss: 0 };
+                    posStats[h.position].total += 1;
+                    if (h.result?.heroWon) posStats[h.position].correct += 1;
+                    posStats[h.position].evLoss += parseFloat(h.result?.evLoss || 0);
+                });
+
+                const payload = {
+                    gameId: 'play_mode_simulation',
+                    gameName: 'Play Mode — Full Hand Simulation',
+                    gtowScore: Math.round((wins / handResults.length) * 100),
+                    totalEVLoss: handResults.reduce((sum, h) => sum + parseFloat(h.result?.evLoss || 0), 0),
+                    handsPlayed: handResults.length,
+                    mistakeCount: handResults.length - wins,
+                    accuracy: Math.round((wins / handResults.length) * 100),
+                    correctCount: wins,
+                    bestStreak: 0,
+                    levelPassed: wins >= handResults.length * 0.5,
+                    level: 1,
+                    handHistory: handResults.map(h => ({
+                        cards: h.cards,
+                        board: h.board,
+                        position: h.position,
+                        result: h.result?.result,
+                        heroWon: h.result?.heroWon,
+                        pot: h.result?.pot,
+                    })),
+                    positionStats: posStats,
+                    classificationCounts: {
+                        best: wins,
+                        correct: 0,
+                        inaccuracy: 0,
+                        wrong: 0,
+                        blunder: handResults.length - wins,
+                    },
+                };
+
+                const res = await fetch('/api/training/save-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authUser.session.access_token}`,
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    console.log('[PlayMode] Session saved to Supabase ✅');
+                } else {
+                    console.warn('[PlayMode] Session save failed:', data.error);
+                }
+
+                // Emit bus event so Reports page and other listeners can update
+                eventBus.emit(EventType.SESSION_END, {
+                    gameId: 'play_mode_simulation',
+                    handsPlayed: handResults.length,
+                    wins,
+                    accuracy: Math.round((wins / handResults.length) * 100),
+                }, 'PlayMode');
+
+            } catch (err) {
+                console.error('[PlayMode] Session save error:', err);
+            }
+        };
+
+        saveSession();
+    }, [gameState, handResults]);
 
     return {
         gameState, config, setConfig,
