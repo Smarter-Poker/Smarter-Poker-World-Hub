@@ -100,24 +100,24 @@ function StepIndicator({ hasCards, hasBoard, hasResults, isAnalyzing }) {
     { label: 'Analyze', done: hasResults, active: isAnalyzing },
   ];
   return (
-    <div className="sandbox-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '10px 16px', background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <div className="sandbox-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '10px 16px', background: '#242526', borderBottom: '1px solid #3A3B3C' }}>
       {steps.map((s, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: 20,
-            background: s.done ? 'rgba(34,197,94,0.15)' : s.active ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${s.done ? 'rgba(34,197,94,0.3)' : s.active ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
+            background: s.done ? 'rgba(34,197,94,0.15)' : s.active ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+            border: `1px solid ${s.done ? 'rgba(34,197,94,0.3)' : s.active ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
             transition: 'all 0.3s',
           }}>
             <div style={{
               width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 10, fontWeight: 700,
-              background: s.done ? '#22c55e' : s.active ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-              color: s.done || s.active ? '#fff' : '#64748b',
+              background: s.done ? '#22c55e' : s.active ? '#2374E1' : '#4E4F50',
+              color: s.done || s.active ? '#fff' : '#B0B3B8',
             }}>{s.done ? '' : i + 1}</div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: s.done ? '#4ade80' : s.active ? '#93c5fd' : '#64748b' }}>{s.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 600, color: s.done ? '#4ade80' : s.active ? '#4599FF' : '#B0B3B8' }}>{s.label}</span>
           </div>
-          {i < 2 && <div style={{ width: 20, height: 1, background: s.done ? '#22c55e' : 'rgba(255,255,255,0.1)' }} />}
+          {i < 2 && <div style={{ width: 20, height: 1, background: s.done ? '#22c55e' : '#3A3B3C' }} />}
         </div>
       ))}
     </div>
@@ -305,45 +305,45 @@ function RecentSessionsSidebar({ isOpen, onClose, onLoad }) {
     <motion.div initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
       style={{
         position: 'fixed', left: 0, top: 0, bottom: 0, width: '280px', zIndex: 1000,
-        background: '#0f172a', borderRight: '1px solid rgba(255,255,255,0.1)',
+        background: '#242526', borderRight: '1px solid #3A3B3C',
         padding: '16px', display: 'flex', flexDirection: 'column'
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>History</h3>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}>×</button>
+        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#E4E6EB' }}>History</h3>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#B0B3B8', cursor: 'pointer', fontSize: '16px' }}>×</button>
       </div>
 
       {/* Sessions / Bookmarks Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: '8px' }}>
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: '#18191A', padding: '4px', borderRadius: '8px' }}>
         <button onClick={() => setActiveTab('sessions')}
           style={{
             flex: 1, padding: '6px 0', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', border: 'none',
-            background: activeTab === 'sessions' ? 'rgba(59,130,246,0.3)' : 'transparent',
-            color: activeTab === 'sessions' ? '#93c5fd' : '#64748b'
+            background: activeTab === 'sessions' ? 'rgba(35,116,225,0.3)' : 'transparent',
+            color: activeTab === 'sessions' ? '#4599FF' : '#B0B3B8'
           }}>Sessions</button>
         <button onClick={() => setActiveTab('bookmarks')}
           style={{
             flex: 1, padding: '6px 0', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', border: 'none',
-            background: activeTab === 'bookmarks' ? 'rgba(59,130,246,0.3)' : 'transparent',
-            color: activeTab === 'bookmarks' ? '#93c5fd' : '#64748b'
+            background: activeTab === 'bookmarks' ? 'rgba(35,116,225,0.3)' : 'transparent',
+            color: activeTab === 'bookmarks' ? '#4599FF' : '#B0B3B8'
           }}>Bookmarks</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {displayList.length === 0 ? (
-          <p style={{ color: '#475569', fontSize: '12px', textAlign: 'center', marginTop: '40px' }}>
+          <p style={{ color: '#65676B', fontSize: '12px', textAlign: 'center', marginTop: '40px' }}>
             {activeTab === 'sessions' ? 'No recent sessions.' : 'No saved bookmarks yet.'}
           </p>
         ) : displayList.map((s, i) => (
           <button key={s.id || i} onClick={() => { onLoad(s); onClose(); }}
             style={{
               width: '100%', padding: '10px', marginBottom: '6px', borderRadius: '8px', textAlign: 'left',
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
-              color: '#e2e8f0', cursor: 'pointer', fontSize: '12px',
+              background: '#3A3B3C', border: '1px solid #4E4F50',
+              color: '#E4E6EB', cursor: 'pointer', fontSize: '12px',
             }}
           >
             <div style={{ fontWeight: '600' }}>{s.title}</div>
-            <div style={{ color: '#64748b', fontSize: '10px', marginTop: '2px' }}>
+            <div style={{ color: '#B0B3B8', fontSize: '10px', marginTop: '2px' }}>
               {s.type === 'bookmark' ? `Saved - ${s.stack}` : `${s.stack} - ${s.result || '—'}`}
             </div>
           </button>

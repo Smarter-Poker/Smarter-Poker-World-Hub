@@ -424,23 +424,54 @@ export async function deleteGig(userId: string, gigId: string): Promise<void> {
 // ─── DAY CRUD ────────────────────────────────────────────────────────
 
 /**
- * Create a new day for a gig
+ * Create a new day for a gig (uses direct fetch to avoid AbortError)
  */
 export async function createDay(userId: string, gigId: string, dayNumber: number): Promise<TokeGigDay> {
-    const { data, error } = await supabase
-        .from('toke_gig_days')
-        .insert({
-            gig_id: gigId,
-            user_id: userId,
-            day_number: dayNumber,
-            date: new Date().toISOString().split('T')[0],
-            started_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+    const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+    const supabaseAnonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
 
-    if (error) throw error;
-    return data;
+    // Get JWT from localStorage
+    let accessToken = supabaseAnonKey;
+    try {
+        const authRaw = localStorage.getItem('smarter-poker-auth');
+        if (authRaw) {
+            const parsed = JSON.parse(authRaw);
+            const token = parsed?.access_token || parsed?.session?.access_token;
+            if (token) accessToken = token;
+        }
+    } catch (_) { }
+
+    const body = {
+        gig_id: gigId,
+        user_id: userId,
+        day_number: dayNumber,
+        date: new Date().toISOString().split('T')[0],
+        started_at: new Date().toISOString(),
+    };
+
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 6000);
+
+    const res = await fetch(`${supabaseUrl}/rest/v1/toke_gig_days`, {
+        method: 'POST',
+        headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation',
+        },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+        const errText = await res.text().catch(() => 'Unknown error');
+        throw new Error(`Day insert failed (${res.status}): ${errText}`);
+    }
+
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows[0] : rows;
 }
 
 /**
