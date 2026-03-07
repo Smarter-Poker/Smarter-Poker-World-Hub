@@ -155,11 +155,11 @@ export default function MyTournamentStatus() {
         setStoryShared(false);
         try {
             const token = getAccessToken();
-            if (!session?.access_token) return;
+            if (!token) return;
 
             const res = await fetch(`/api/commander/tournaments/${id}/story`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     story_type: storyType,
                     chip_count: myEntry?.current_chips,
@@ -190,7 +190,7 @@ export default function MyTournamentStatus() {
             const token = getAccessToken();
             const res = await fetch(`/api/commander/tournaments/${id}/my-chips`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ chips: parseInt(chipValue) || 0 })
             });
             const json = await res.json();
