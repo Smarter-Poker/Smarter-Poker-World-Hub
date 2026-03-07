@@ -159,8 +159,8 @@ export default function SandboxPokerTable({
                         position: 'absolute', top: '26%', left: '50%', transform: 'translateX(-50%)',
                         padding: '2px 8px', borderRadius: 4, fontSize: 8, fontWeight: 700, zIndex: 10,
                         background: boardTexture.color || 'rgba(59,130,246,0.2)',
-                        color: boardTexture.textColor || '#93c5fd',
-                        border: `1px solid ${boardTexture.textColor || '#3b82f6'}44`,
+                        color: boardTexture.textColor || '#4599FF',
+                        border: `1px solid ${boardTexture.textColor || '#2374E1'}44`,
                         whiteSpace: 'nowrap',
                     }}>
                         {boardTexture.label}
@@ -201,9 +201,9 @@ export default function SandboxPokerTable({
                                 width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 background: seat.isHero
-                                    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                                    ? 'linear-gradient(135deg, #2374E1 0%, #1a5db8 100%)'
                                     : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                                border: `2px solid ${seat.isHero ? '#3b82f6' : '#1877F2'}`,
+                                border: `2px solid ${seat.isHero ? '#2374E1' : '#1877F2'}`,
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
                                 fontSize: 18, fontWeight: 800, color: '#fff',
                             }}>
@@ -213,7 +213,7 @@ export default function SandboxPokerTable({
                             <div style={{ overflow: 'hidden', textAlign: isRightSide ? 'right' : 'left' }}>
                                 <div style={{
                                     fontSize: 11, fontWeight: 600, lineHeight: 1.2,
-                                    color: seat.isHero ? '#93c5fd' : '#E4E6EB',
+                                    color: seat.isHero ? '#4599FF' : '#E4E6EB',
                                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                     maxWidth: 80,
                                 }}>

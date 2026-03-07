@@ -2,7 +2,7 @@
  * LobbyScene.jsx — Cinematic 3D React Three Fiber scene for the Poker Near Me lobby.
  *
  * 2026 AAA-quality rendering with:
- *   - Full post-processing pipeline (Bloom, SMAA, N8AO, Vignette, ChromaticAberration, ToneMapping)
+ *   - Full post-processing pipeline (Bloom, Vignette, ToneMapping)
  *   - Environment-based image lighting (IBL) via Lightformers
  *   - Reflective ground platform (MeshReflectorMaterial)
  *   - Adaptive quality via PerformanceMonitor (mobile-first)
@@ -11,11 +11,8 @@
  */
 
 import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { PerformanceMonitor, Environment, Lightformer, MeshReflectorMaterial } from '@react-three/drei';
-import { EffectComposer, Bloom, SMAA, N8AO, Vignette, ChromaticAberration, ToneMapping } from '@react-three/postprocessing';
-import { BlendFunction, ToneMappingMode } from 'postprocessing';
-import { DoubleSide, AdditiveBlending, Vector2 } from 'three';
+import { Canvas, useThree } from '@react-three/fiber';
+import { DoubleSide, AdditiveBlending } from 'three';
 
 // Feature pod definitions — each maps to a real tab/feature
 const FEATURE_PODS = [
@@ -37,89 +34,61 @@ const POD_Y = 0.5;
 const QUALITY = {
   high: {
     dpr: 1.5,
-    bloomIntensity: 1.4,
-    bloomThreshold: 0.12,
-    bloomRadius: 0.75,
-    aoEnabled: true,
-    aoIntensity: 0.5,
-    vignetteEnabled: true,
-    chromaticEnabled: true,
-    chromaticOffset: 0.0025,
     particleCount: 800,
-    reflectionResolution: 256,
-    reflectionBlur: [300, 100],
     shadows: true,
   },
   medium: {
     dpr: 1.0,
-    bloomIntensity: 1.0,
-    bloomThreshold: 0.18,
-    bloomRadius: 0.6,
-    aoEnabled: true,
-    aoIntensity: 0.3,
-    vignetteEnabled: true,
-    chromaticEnabled: false,
-    chromaticOffset: 0,
     particleCount: 500,
-    reflectionResolution: 128,
-    reflectionBlur: [200, 64],
     shadows: false,
   },
   low: {
     dpr: 0.75,
-    bloomIntensity: 0.6,
-    bloomThreshold: 0.25,
-    bloomRadius: 0.4,
-    aoEnabled: false,
-    aoIntensity: 0,
-    vignetteEnabled: false,
-    chromaticEnabled: false,
-    chromaticOffset: 0,
     particleCount: 300,
-    reflectionResolution: 64,
-    reflectionBlur: [100, 32],
     shadows: false,
   },
 };
 
 /**
- * Post-processing effects pipeline — cinematic rendering chain.
+ * Post-processing effects — loaded lazily to avoid breaking R3F init.
+ * These effects require @react-three/postprocessing and postprocessing.
  */
-function SceneEffects({ quality }) {
-  const q = QUALITY[quality] || QUALITY.medium;
-  const chromaticOffset = new Vector2(q.chromaticOffset, q.chromaticOffset);
+function PostProcessingEffects({ quality }) {
+  const [Effects, setEffects] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [rppp, pp] = await Promise.all([
+          import('@react-three/postprocessing'),
+          import('postprocessing'),
+        ]);
+        setEffects({ rppp, pp });
+      } catch (err) {
+        console.warn('[LobbyScene] Post-processing unavailable:', err.message);
+      }
+    })();
+  }, []);
+
+  if (!Effects) return null;
+
+  const { EffectComposer, Bloom, Vignette, ToneMapping } = Effects.rppp;
+  const { BlendFunction, ToneMappingMode } = Effects.pp;
 
   return (
     <EffectComposer multisampling={0}>
-      <SMAA />
-      {q.aoEnabled && (
-        <N8AO
-          halfRes
-          aoRadius={0.25}
-          distanceFalloff={0.5}
-          intensity={q.aoIntensity}
-          quality="medium"
-        />
-      )}
       <Bloom
-        luminanceThreshold={q.bloomThreshold}
+        luminanceThreshold={quality === 'high' ? 0.12 : quality === 'medium' ? 0.18 : 0.25}
         luminanceSmoothing={0.075}
-        intensity={q.bloomIntensity}
-        radius={q.bloomRadius}
+        intensity={quality === 'high' ? 1.4 : quality === 'medium' ? 1.0 : 0.6}
+        radius={quality === 'high' ? 0.75 : quality === 'medium' ? 0.6 : 0.4}
         mipmapBlur
       />
-      {q.vignetteEnabled && (
+      {quality !== 'low' && (
         <Vignette
           offset={0.3}
           darkness={0.55}
           blendFunction={BlendFunction.NORMAL}
-        />
-      )}
-      {q.chromaticEnabled && (
-        <ChromaticAberration
-          offset={chromaticOffset}
-          radialModulation
-          modulationOffset={0.1}
         />
       )}
       <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
@@ -128,139 +97,134 @@ function SceneEffects({ quality }) {
 }
 
 /**
- * Cinematic environment lighting — replaces scatter of point lights
- * with physically-based image lighting via Lightformers.
+ * Cinematic environment lighting — loaded lazily.
  */
 function SceneEnvironment() {
+  const [EnvComponents, setEnvComponents] = useState(null);
+
+  useEffect(() => {
+    import('@react-three/drei').then(m => {
+      setEnvComponents({ Environment: m.Environment, Lightformer: m.Lightformer });
+    }).catch(err => {
+      console.warn('[LobbyScene] Environment loading failed:', err.message);
+    });
+  }, []);
+
+  if (!EnvComponents) return null;
+
+  const { Environment, Lightformer } = EnvComponents;
+
   return (
     <Environment resolution={64} background={false}>
-      {/* Key area light — top right warm white */}
-      <Lightformer
-        form="rect"
-        intensity={2.5}
-        position={[5, 10, 5]}
-        scale={[8, 4, 1]}
-        color="#ffffff"
-      />
-      {/* Fill — left cyan */}
-      <Lightformer
-        form="rect"
-        intensity={1.5}
-        position={[-6, 6, -3]}
-        scale={[6, 3, 1]}
-        color="#6ee7ef"
-      />
-      {/* Rim — behind, deep blue */}
-      <Lightformer
-        form="circle"
-        intensity={1.0}
-        position={[0, 3, -8]}
-        scale={[5, 5, 1]}
-        color="#3b82f6"
-      />
-      {/* Bottom — warm amber uplighting */}
-      <Lightformer
-        form="ring"
-        intensity={0.8}
-        position={[0, -3, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        scale={[8, 8, 1]}
-        color="#ff8c00"
-      />
-      {/* Accent — purple side */}
-      <Lightformer
-        form="circle"
-        intensity={0.6}
-        position={[-5, 4, 2]}
-        scale={[3, 3, 1]}
-        color="#8b5cf6"
-      />
+      <Lightformer form="rect" intensity={2.5} position={[5, 10, 5]} scale={[8, 4, 1]} color="#ffffff" />
+      <Lightformer form="rect" intensity={1.5} position={[-6, 6, -3]} scale={[6, 3, 1]} color="#6ee7ef" />
+      <Lightformer form="circle" intensity={1.0} position={[0, 3, -8]} scale={[5, 5, 1]} color="#3b82f6" />
+      <Lightformer form="ring" intensity={0.8} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[8, 8, 1]} color="#ff8c00" />
+      <Lightformer form="circle" intensity={0.6} position={[-5, 4, 2]} scale={[3, 3, 1]} color="#8b5cf6" />
     </Environment>
   );
 }
 
 /**
- * Reflective ground platform — replaces flat metallic disc.
+ * Reflective ground platform — uses MeshReflectorMaterial (loaded lazily).
  */
 function GroundPlatform({ quality }) {
-  const q = QUALITY[quality] || QUALITY.medium;
+  const [ReflectorMat, setReflectorMat] = useState(null);
+
+  useEffect(() => {
+    import('@react-three/drei').then(m => {
+      setReflectorMat(() => m.MeshReflectorMaterial);
+    }).catch(err => {
+      console.warn('[LobbyScene] MeshReflectorMaterial unavailable:', err.message);
+    });
+  }, []);
 
   return (
     <group>
-      {/* Main reflective disc */}
+      {/* Main ground disc — reflective if loaded, fallback to PBR */}
       <mesh position={[0, -0.98, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[5.5, 64]} />
-        <MeshReflectorMaterial
-          blur={q.reflectionBlur}
-          resolution={q.reflectionResolution}
-          mixBlur={0.85}
-          mixStrength={0.4}
-          roughness={0.85}
-          depthScale={0.12}
-          minDepthThreshold={0.4}
-          maxDepthThreshold={1.4}
-          color="#061525"
-          metalness={0.9}
-          mirror={0.15}
-        />
+        {ReflectorMat ? (
+          <ReflectorMat
+            blur={quality === 'high' ? [300, 100] : quality === 'medium' ? [200, 64] : [100, 32]}
+            resolution={quality === 'high' ? 256 : quality === 'medium' ? 128 : 64}
+            mixBlur={0.85}
+            mixStrength={0.4}
+            roughness={0.85}
+            depthScale={0.12}
+            minDepthThreshold={0.4}
+            maxDepthThreshold={1.4}
+            color="#061525"
+            metalness={0.9}
+            mirror={0.15}
+          />
+        ) : (
+          <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} />
+        )}
       </mesh>
 
       {/* Inner ring glow — pod orbit indicator */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[3.9, 3.95, 64]} />
-        <meshBasicMaterial
-          color="#6ee7ef"
-          transparent
-          opacity={0.35}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.35} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Mid ring */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[3.0, 3.15, 64]} />
-        <meshBasicMaterial
-          color="#6ee7ef"
-          transparent
-          opacity={0.4}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.4} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer ring glow — platform edge */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.2, 5.5, 64]} />
-        <meshBasicMaterial
-          color="#3b82f6"
-          transparent
-          opacity={0.4}
-          blending={AdditiveBlending}
-          depthWrite={false}
-        />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      {/* Outer haze ring — soft glow beyond platform */}
+      {/* Outer haze ring */}
       <mesh position={[0, -0.99, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.5, 7.5, 64]} />
-        <meshBasicMaterial
-          color="#00d4ff"
-          transparent
-          opacity={0.05}
-          blending={AdditiveBlending}
-          depthWrite={false}
-          side={DoubleSide}
-        />
+        <meshBasicMaterial color="#00d4ff" transparent opacity={0.05} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
       </mesh>
     </group>
   );
 }
 
 /**
- * Inner scene content — runs inside the Canvas context.
+ * Performance monitor — loaded lazily from drei.
  */
-function SceneContent({ onPodClick, activePod, liveData, quality }) {
+function AdaptiveQuality({ quality, setQuality, setDpr }) {
+  const [PerfMon, setPerfMon] = useState(null);
+
+  useEffect(() => {
+    import('@react-three/drei').then(m => {
+      setPerfMon(() => m.PerformanceMonitor);
+    }).catch(() => {});
+  }, []);
+
+  if (!PerfMon) return null;
+
+  return (
+    <PerfMon
+      onIncline={() => {
+        if (quality === 'low') { setQuality('medium'); setDpr(1); }
+        else if (quality === 'medium') { setQuality('high'); setDpr(1.5); }
+      }}
+      onDecline={() => {
+        if (quality === 'high') { setQuality('medium'); setDpr(1); }
+        else if (quality === 'medium') { setQuality('low'); setDpr(0.75); }
+      }}
+      flipflops={3}
+      onFallback={() => { setQuality('low'); setDpr(0.75); }}
+    />
+  );
+}
+
+/**
+ * Inner scene content — runs inside the Canvas context.
+ * Sub-components are loaded lazily to avoid import errors breaking the scene.
+ */
+function SceneContent({ onPodClick, activePod, liveData, quality, setQuality, setDpr }) {
   const [RadarDisc, setRadarDisc] = useState(null);
   const [FeaturePod, setFeaturePod] = useState(null);
   const [ParticleField, setParticleField] = useState(null);
@@ -269,21 +233,17 @@ function SceneContent({ onPodClick, activePod, liveData, quality }) {
   const q = QUALITY[quality] || QUALITY.medium;
 
   useEffect(() => {
-    Promise.all([
-      import('./RadarDisc').then(m => setRadarDisc(() => m.RadarDisc)),
-      import('./FeaturePod').then(m => setFeaturePod(() => m.FeaturePod)),
-      import('./ParticleField').then(m => setParticleField(() => m.ParticleField)),
-      import('./ParallaxCamera').then(m => setParallaxCamera(() => m.ParallaxCamera)),
-    ]).catch(err => console.error('[LobbyScene] Failed to load sub-components:', err));
+    // Load sub-components independently so one failure doesn't block others
+    import('./RadarDisc').then(m => setRadarDisc(() => m.RadarDisc)).catch(err => console.warn('[LobbyScene] RadarDisc failed:', err.message));
+    import('./FeaturePod').then(m => setFeaturePod(() => m.FeaturePod)).catch(err => console.warn('[LobbyScene] FeaturePod failed:', err.message));
+    import('./ParticleField').then(m => setParticleField(() => m.ParticleField)).catch(err => console.warn('[LobbyScene] ParticleField failed:', err.message));
+    import('./ParallaxCamera').then(m => setParallaxCamera(() => m.ParallaxCamera)).catch(err => console.warn('[LobbyScene] ParallaxCamera failed:', err.message));
   }, []);
 
   return (
     <>
-      {/* ═══ CINEMATIC LIGHTING (streamlined: 4 lights + IBL) ═══ */}
-      {/* Low ambient — let IBL do the work */}
+      {/* ═══ CINEMATIC LIGHTING ═══ */}
       <ambientLight intensity={0.25} color="#88ccdd" />
-
-      {/* Key light — top right, shadow-casting */}
       <directionalLight
         position={[5, 10, 5]}
         intensity={1.8}
@@ -292,17 +252,11 @@ function SceneContent({ onPodClick, activePod, liveData, quality }) {
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-
-      {/* Fill light — left cyan */}
       <directionalLight position={[-5, 8, -3]} intensity={0.8} color="#6ee7ef" />
-
-      {/* Rim light — behind, blue */}
       <directionalLight position={[0, 3, -8]} intensity={0.5} color="#3b82f6" />
-
-      {/* Center point — pod area illumination */}
       <pointLight position={[0, 5, 0]} intensity={2.0} color="#6ee7ef" distance={15} decay={2} />
 
-      {/* ═══ ENVIRONMENT-BASED LIGHTING ═══ */}
+      {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
 
       {/* ═══ REFLECTIVE GROUND PLATFORM ═══ */}
@@ -333,8 +287,11 @@ function SceneContent({ onPodClick, activePod, liveData, quality }) {
       {/* ═══ PARALLAX CAMERA ═══ */}
       {ParallaxCamera && <ParallaxCamera />}
 
-      {/* ═══ POST-PROCESSING ═══ */}
-      <SceneEffects quality={quality} />
+      {/* ═══ ADAPTIVE QUALITY MONITOR ═══ */}
+      <AdaptiveQuality quality={quality} setQuality={setQuality} setDpr={setDpr} />
+
+      {/* ═══ POST-PROCESSING (lazy) ═══ */}
+      <PostProcessingEffects quality={quality} />
     </>
   );
 }
@@ -382,9 +339,9 @@ class R3FErrorBoundary extends React.Component {
  * with adaptive quality scaling for mobile devices.
  */
 export default function LobbyScene({ onPodClick, activePod, liveData }) {
-  const [canvasReady, setCanvasReady] = useState(false);
   const [quality, setQuality] = useState('medium');
   const [dpr, setDpr] = useState(1);
+  const [renderError, setRenderError] = useState(null);
 
   // Detect mobile on mount
   useEffect(() => {
@@ -397,15 +354,23 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
       setQuality('high');
       setDpr(1.5);
     }
+    console.log('[LobbyScene] Mounted, quality:', isMobile ? 'low' : 'high');
   }, []);
 
   const handleCreated = useCallback((state) => {
+    console.log('[LobbyScene] Canvas created, renderer:', state.gl.constructor.name);
     state.gl.setClearColor(0x000000, 0);
-    // Enable tone mapping at renderer level
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
     state.gl.toneMappingExposure = 1.15;
-    setCanvasReady(true);
   }, []);
+
+  if (renderError) {
+    return (
+      <div className="lobby-scene-container" style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#ff4444' }}>
+        <div>3D Render Error: {renderError}</div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -427,11 +392,9 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
           }}
           dpr={dpr}
           gl={{
-            antialias: false, // SMAA handles this now
+            antialias: true,
             alpha: true,
             powerPreference: 'high-performance',
-            stencil: false,
-            depth: true,
           }}
           shadows={quality === 'high'}
           style={{
@@ -444,25 +407,14 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
           }}
           onCreated={handleCreated}
         >
-          {/* Adaptive quality monitor — auto-adjusts based on FPS */}
-          <PerformanceMonitor
-            onIncline={() => {
-              if (quality === 'low') { setQuality('medium'); setDpr(1); }
-              else if (quality === 'medium') { setQuality('high'); setDpr(1.5); }
-            }}
-            onDecline={() => {
-              if (quality === 'high') { setQuality('medium'); setDpr(1); }
-              else if (quality === 'medium') { setQuality('low'); setDpr(0.75); }
-            }}
-            flipflops={3}
-            onFallback={() => { setQuality('low'); setDpr(0.75); }}
-          />
           <Suspense fallback={null}>
             <SceneContent
               onPodClick={onPodClick}
               activePod={activePod}
               liveData={liveData}
               quality={quality}
+              setQuality={setQuality}
+              setDpr={setDpr}
             />
           </Suspense>
         </Canvas>

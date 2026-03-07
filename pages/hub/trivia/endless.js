@@ -1117,94 +1117,108 @@ export default function EndlessModePage() {
                         {/* Game Over State */}
                         {gameState === 'gameover' && (
                             <div style={{
-                                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                borderRadius: '16px',
-                                padding: '48px',
-                                textAlign: 'center'
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 1000,
+                                background: 'rgba(0, 0, 0, 0.88)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '20px',
+                                animation: 'resultFadeIn 0.4s ease'
                             }}>
-                                <div style={{ fontSize: '64px', marginBottom: '20px' }}>💀</div>
-                                <h2 style={{ color: '#ef4444', fontSize: '32px', marginBottom: '24px' }}>
-                                    GAME OVER
-                                </h2>
-
                                 <div style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr',
-                                    gap: '20px',
-                                    marginBottom: '24px'
+                                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9))',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '16px',
+                                    padding: '48px',
+                                    textAlign: 'center',
+                                    maxWidth: '480px',
+                                    width: '100%'
                                 }}>
-                                    <div style={{
-                                        background: 'rgba(251, 191, 36, 0.1)',
-                                        border: '1px solid rgba(251, 191, 36, 0.3)',
-                                        borderRadius: '12px',
-                                        padding: '20px'
-                                    }}>
-                                        <div style={{ fontSize: '36px', color: '#fbbf24', fontWeight: 'bold' }}>
-                                            {streak}
-                                        </div>
-                                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-                                            Streak
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        background: 'rgba(0, 212, 255, 0.1)',
-                                        border: '1px solid rgba(0, 212, 255, 0.3)',
-                                        borderRadius: '12px',
-                                        padding: '20px'
-                                    }}>
-                                        <div style={{ fontSize: '36px', color: '#00D4FF', fontWeight: 'bold' }}>
-                                            {diamondsEarned}
-                                        </div>
-                                        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
-                                            💎 Earned
-                                        </div>
-                                    </div>
-                                </div>
+                                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>💀</div>
+                                    <h2 style={{ color: '#ef4444', fontSize: '32px', marginBottom: '24px' }}>
+                                        GAME OVER
+                                    </h2>
 
-                                {streak >= highScore && streak > 0 && (
                                     <div style={{
-                                        padding: '12px 24px',
-                                        background: 'rgba(234, 179, 8, 0.1)',
-                                        border: '1px solid rgba(234, 179, 8, 0.3)',
-                                        borderRadius: '8px',
-                                        color: '#eab308',
+                                        display: 'grid',
+                                        gridTemplateColumns: '1fr 1fr',
+                                        gap: '20px',
                                         marginBottom: '24px'
                                     }}>
-                                        🎉 NEW HIGH SCORE!
+                                        <div style={{
+                                            background: 'rgba(251, 191, 36, 0.1)',
+                                            border: '1px solid rgba(251, 191, 36, 0.3)',
+                                            borderRadius: '12px',
+                                            padding: '20px'
+                                        }}>
+                                            <div style={{ fontSize: '36px', color: '#fbbf24', fontWeight: 'bold' }}>
+                                                {streak}
+                                            </div>
+                                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                                                Streak
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            background: 'rgba(0, 212, 255, 0.1)',
+                                            border: '1px solid rgba(0, 212, 255, 0.3)',
+                                            borderRadius: '12px',
+                                            padding: '20px'
+                                        }}>
+                                            <div style={{ fontSize: '36px', color: '#00D4FF', fontWeight: 'bold' }}>
+                                                {diamondsEarned}
+                                            </div>
+                                            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                                                💎 Earned
+                                            </div>
+                                        </div>
                                     </div>
-                                )}
 
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                                    <button
-                                        onClick={playAgain}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Play Again
-                                    </button>
-                                    <button
-                                        onClick={() => router.push('/hub/trivia')}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: '1px solid rgba(255,255,255,0.2)',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Back to Trivia
-                                    </button>
+                                    {streak >= highScore && streak > 0 && (
+                                        <div style={{
+                                            padding: '12px 24px',
+                                            background: 'rgba(234, 179, 8, 0.1)',
+                                            border: '1px solid rgba(234, 179, 8, 0.3)',
+                                            borderRadius: '8px',
+                                            color: '#eab308',
+                                            marginBottom: '24px'
+                                        }}>
+                                            🎉 NEW HIGH SCORE!
+                                        </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                                        <button
+                                            onClick={playAgain}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Play Again
+                                        </button>
+                                        <button
+                                            onClick={() => router.push('/hub/trivia')}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: 'rgba(255,255,255,0.1)',
+                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Back to Trivia
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

@@ -1362,65 +1362,79 @@ export default function SurvivalGamePage() {
                         {/* Game Over State */}
                         {gameState === 'gameOver' && (
                             <div style={{
-                                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(15, 23, 42, 0.9))',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                borderRadius: '16px',
-                                padding: '48px',
-                                textAlign: 'center'
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 1000,
+                                background: 'rgba(0, 0, 0, 0.88)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '20px',
+                                animation: 'resultFadeIn 0.4s ease'
                             }}>
-                                <div style={{ fontSize: '64px', marginBottom: '20px' }}>💀</div>
-                                <h2 style={{ color: '#ef4444', fontSize: '28px', margin: '0 0 16px 0' }}>
-                                    LEVEL {currentLevel} FAILED
-                                </h2>
-                                <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
-                                    Score: {correctCount}/{currentQuestionIndex + 1} • Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL}
-                                </div>
-                                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '24px' }}>
-                                    You needed {config.accuracyRequired}% accuracy to pass
-                                </div>
-                                {totalDiamondsEarned > 0 && (
-                                    <div style={{
-                                        display: 'inline-block',
-                                        padding: '12px 24px',
-                                        background: 'rgba(0, 212, 255, 0.1)',
-                                        border: '1px solid rgba(0, 212, 255, 0.3)',
-                                        borderRadius: '8px',
-                                        color: '#00D4FF',
-                                        marginBottom: '24px'
-                                    }}>
-                                        💎 Diamonds Earned: {totalDiamondsEarned}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(15, 23, 42, 0.9))',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                    borderRadius: '16px',
+                                    padding: '48px',
+                                    textAlign: 'center',
+                                    maxWidth: '480px',
+                                    width: '100%'
+                                }}>
+                                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>💀</div>
+                                    <h2 style={{ color: '#ef4444', fontSize: '28px', margin: '0 0 16px 0' }}>
+                                        LEVEL {currentLevel} FAILED
+                                    </h2>
+                                    <div style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '8px' }}>
+                                        Score: {correctCount}/{currentQuestionIndex + 1} • Required: {config.minCorrect}/{QUESTIONS_PER_LEVEL}
                                     </div>
-                                )}
-                                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                                    <button
-                                        onClick={() => restartFromLevel(currentLevel)}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Retry Level {currentLevel}
-                                    </button>
-                                    <button
-                                        onClick={backToLobby}
-                                        style={{
-                                            padding: '16px 32px',
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: '1px solid rgba(255,255,255,0.2)',
-                                            borderRadius: '12px',
-                                            color: 'white',
-                                            fontSize: '16px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Back to Trivia
-                                    </button>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '24px' }}>
+                                        You needed {config.accuracyRequired}% accuracy to pass
+                                    </div>
+                                    {totalDiamondsEarned > 0 && (
+                                        <div style={{
+                                            display: 'inline-block',
+                                            padding: '12px 24px',
+                                            background: 'rgba(0, 212, 255, 0.1)',
+                                            border: '1px solid rgba(0, 212, 255, 0.3)',
+                                            borderRadius: '8px',
+                                            color: '#00D4FF',
+                                            marginBottom: '24px'
+                                        }}>
+                                            💎 Diamonds Earned: {totalDiamondsEarned}
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                                        <button
+                                            onClick={() => restartFromLevel(currentLevel)}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Retry Level {currentLevel}
+                                        </button>
+                                        <button
+                                            onClick={backToLobby}
+                                            style={{
+                                                padding: '16px 32px',
+                                                background: 'rgba(255,255,255,0.1)',
+                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                borderRadius: '12px',
+                                                color: 'white',
+                                                fontSize: '16px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Back to Trivia
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1428,48 +1442,62 @@ export default function SurvivalGamePage() {
                         {/* Victory State */}
                         {gameState === 'victory' && (
                             <div style={{
-                                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(15, 23, 42, 0.9))',
-                                border: '2px solid rgba(234, 179, 8, 0.5)',
-                                borderRadius: '16px',
-                                padding: '48px',
-                                textAlign: 'center'
+                                position: 'fixed',
+                                inset: 0,
+                                zIndex: 1000,
+                                background: 'rgba(0, 0, 0, 0.88)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '20px',
+                                animation: 'resultFadeIn 0.4s ease'
                             }}>
-                                <div style={{ fontSize: '72px', marginBottom: '20px' }}>🏆</div>
-                                <h2 style={{ color: '#eab308', fontSize: '32px', margin: '0 0 16px 0' }}>
-                                    SURVIVAL MASTER!
-                                </h2>
-                                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginBottom: '24px' }}>
-                                    You completed all 10 levels!
-                                </div>
                                 <div style={{
-                                    display: 'inline-block',
-                                    padding: '16px 32px',
-                                    background: 'rgba(0, 212, 255, 0.1)',
-                                    border: '2px solid rgba(0, 212, 255, 0.4)',
-                                    borderRadius: '12px',
-                                    color: '#00D4FF',
-                                    fontSize: '20px',
-                                    fontWeight: 'bold',
-                                    marginBottom: '24px'
+                                    background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(15, 23, 42, 0.9))',
+                                    border: '2px solid rgba(234, 179, 8, 0.5)',
+                                    borderRadius: '16px',
+                                    padding: '48px',
+                                    textAlign: 'center',
+                                    maxWidth: '480px',
+                                    width: '100%'
                                 }}>
-                                    💎 Total Earned: {totalDiamondsEarned} Diamonds
-                                </div>
-                                <div>
-                                    <button
-                                        onClick={backToLobby}
-                                        style={{
-                                            padding: '16px 48px',
-                                            background: 'linear-gradient(135deg, #eab308, #ca8a04)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            color: 'black',
-                                            fontSize: '18px',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        Return to Trivia Hub
-                                    </button>
+                                    <div style={{ fontSize: '72px', marginBottom: '20px' }}>🏆</div>
+                                    <h2 style={{ color: '#eab308', fontSize: '32px', margin: '0 0 16px 0' }}>
+                                        SURVIVAL MASTER!
+                                    </h2>
+                                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginBottom: '24px' }}>
+                                        You completed all 10 levels!
+                                    </div>
+                                    <div style={{
+                                        display: 'inline-block',
+                                        padding: '16px 32px',
+                                        background: 'rgba(0, 212, 255, 0.1)',
+                                        border: '2px solid rgba(0, 212, 255, 0.4)',
+                                        borderRadius: '12px',
+                                        color: '#00D4FF',
+                                        fontSize: '20px',
+                                        fontWeight: 'bold',
+                                        marginBottom: '24px'
+                                    }}>
+                                        💎 Total Earned: {totalDiamondsEarned} Diamonds
+                                    </div>
+                                    <div>
+                                        <button
+                                            onClick={backToLobby}
+                                            style={{
+                                                padding: '16px 48px',
+                                                background: 'linear-gradient(135deg, #eab308, #ca8a04)',
+                                                border: 'none',
+                                                borderRadius: '12px',
+                                                color: 'black',
+                                                fontSize: '18px',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Return to Trivia Hub
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

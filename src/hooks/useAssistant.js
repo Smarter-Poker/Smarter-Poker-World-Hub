@@ -224,21 +224,63 @@ export function useSandboxAnalysis() {
       // 🛡️ BULLETPROOF: Use authUtils to avoid AbortError
       const token = await getAuthToken();
 
-      const response = await fetch('/api/assistant/sandbox/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(params)
-      });
+      const doFetch = async () => {
+        const response = await fetch('/api/assistant/sandbox/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(params),
+        });
 
-      const data = await response.json();
+        // Guard: Check if response is actually JSON before parsing
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          // Server returned HTML (e.g. during recompilation) — not a real error
+          throw new Error('SERVER_RELOADING');
+        }
 
-      // Guard: HTTP-level errors (500, 503, etc.)
-      if (!response.ok) {
-        setError(data.error || `Server error (${response.status})`);
-        return { success: false, error: data.error };
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseErr) {
+          throw new Error('SERVER_RELOADING');
+        }
+
+        // Guard: HTTP-level errors (500, 503, etc.)
+        if (!response.ok) {
+          if (response.status >= 502 && response.status <= 504) {
+            throw new Error('SERVER_RELOADING');
+          }
+          return { success: false, error: data.error || `Server error (${response.status})` };
+        }
+
+        return data;
+      };
+
+      // Attempt with 1 auto-retry on transient errors
+      let data;
+      try {
+        data = await doFetch();
+      } catch (fetchErr) {
+        if (fetchErr.message === 'SERVER_RELOADING') {
+          // Wait 2s and retry once
+          await new Promise(r => setTimeout(r, 2000));
+          try {
+            data = await doFetch();
+          } catch (retryErr) {
+            setError('Server is temporarily unavailable. Please try again in a moment.');
+            return { success: false, error: 'Server temporarily unavailable' };
+          }
+        } else {
+          throw fetchErr;
+        }
+      }
+
+      if (data.success === false) {
+        setError(data.error || 'Analysis failed');
+        return data;
       }
 
       if (data.success) {
@@ -277,7 +319,9 @@ export function useSandboxAnalysis() {
       return data;
     } catch (err) {
       console.error('Analysis error:', err);
-      setError(err.message);
+      setError(err.message === 'SERVER_RELOADING'
+        ? 'Server is temporarily unavailable. Please try again in a moment.'
+        : err.message);
       return { success: false, error: err.message };
     } finally {
       setIsAnalyzing(false);

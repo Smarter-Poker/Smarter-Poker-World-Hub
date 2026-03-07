@@ -89,7 +89,7 @@ export function RangeMatrix({ rangeHeatmap, selectedAction }) {
         <div style={{ position: 'relative' }}>
             <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px',
-                background: 'rgba(255,255,255,0.05)', borderRadius: '8px', overflow: 'hidden', padding: '1px',
+                background: '#3A3B3C', borderRadius: '8px', overflow: 'hidden', padding: '1px',
             }}>
                 {RANKS.map((_, row) => RANKS.map((_, col) => {
                     const hk = getHandKey(row, col);
@@ -99,7 +99,7 @@ export function RangeMatrix({ rangeHeatmap, selectedAction }) {
                             onMouseEnter={() => setHoveredHand(hk)} onMouseLeave={() => setHoveredHand(null)}
                             style={{
                                 aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '9px', fontWeight: '600', color: freq > 50 ? '#000' : '#e2e8f0',
+                                fontSize: '9px', fontWeight: '600', color: freq > 50 ? '#000' : '#E4E6EB',
                                 background: getColor(freq), cursor: 'pointer', transition: 'all 0.15s',
                                 opacity: hoveredHand === hk ? 1 : 0.85,
                                 border: hoveredHand === hk ? '1px solid #fff' : '1px solid transparent',
@@ -501,23 +501,23 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
 
     const streets = ['Flop', 'Turn', 'River'];
     return (
-        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', padding: '6px' }}>
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '12px', background: '#242526', borderRadius: '10px', padding: '6px' }}>
             {streetHistory.map((entry, i) => {
                 const isActive = activeStreet === i;
                 const streetLabel = streets[i] || `Street ${i + 1}`;
                 return (
                     <button key={i} onClick={() => onSelectStreet(i)} style={{
                         flex: 1, padding: '8px 6px', borderRadius: '8px', border: 'none',
-                        background: isActive ? 'rgba(59,130,246,0.2)' : 'transparent',
+                        background: isActive ? 'rgba(35,116,225,0.2)' : 'transparent',
                         cursor: 'pointer', textAlign: 'center',
-                        borderBottom: isActive ? '2px solid #3b82f6' : '2px solid transparent',
+                        borderBottom: isActive ? '2px solid #2374E1' : '2px solid transparent',
                     }}>
-                        <div style={{ fontSize: '10px', fontWeight: '700', color: isActive ? '#93c5fd' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: '700', color: isActive ? '#4599FF' : '#65676B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                             {streetLabel}
                         </div>
                         {entry.results && (
                             <>
-                                <div style={{ fontSize: '11px', fontWeight: '600', color: isActive ? '#e2e8f0' : '#94a3b8', marginTop: '2px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: '600', color: isActive ? '#E4E6EB' : '#B0B3B8', marginTop: '2px' }}>
                                     {entry.results.optimalAction?.label || '--'}
                                 </div>
                                 <div style={{ fontSize: '9px', color: entry.results.ev?.hero >= 0 ? '#4ade80' : '#f87171', marginTop: '1px' }}>
@@ -529,9 +529,9 @@ export function StreetTimeline({ streetHistory, activeStreet, onSelectStreet }) 
                 );
             })}
             {streetHistory.length < 3 && (
-                <div style={{ flex: 1, padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px dashed rgba(255,255,255,0.1)' }}>
-                    <div style={{ fontSize: '10px', color: '#475569' }}>{streets[streetHistory.length] || 'Next'}</div>
-                    <div style={{ fontSize: '9px', color: '#334155', marginTop: '2px' }}>Deal to unlock</div>
+                <div style={{ flex: 1, padding: '8px', borderRadius: '8px', textAlign: 'center', border: '1px dashed #4E4F50' }}>
+                    <div style={{ fontSize: '10px', color: '#65676B' }}>{streets[streetHistory.length] || 'Next'}</div>
+                    <div style={{ fontSize: '9px', color: '#65676B', marginTop: '2px' }}>Deal to unlock</div>
                 </div>
             )}
         </div>
@@ -550,9 +550,9 @@ export function EquityGauge({ equity, label }) {
     const offset = circumference - (pct / 100) * circumference;
 
     return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: '#242526', borderRadius: '10px', marginBottom: '10px' }}>
             <svg width="48" height="48" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                <circle cx="40" cy="40" r="36" fill="none" stroke="#3A3B3C" strokeWidth="6" />
                 <circle cx="40" cy="40" r="36" fill="none" stroke={color} strokeWidth="6"
                     strokeDasharray={circumference} strokeDashoffset={offset}
                     strokeLinecap="round" transform="rotate(-90 40 40)"
@@ -562,8 +562,8 @@ export function EquityGauge({ equity, label }) {
                 </text>
             </svg>
             <div>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: '#e2e8f0' }}>Equity</div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>{label || `${Math.round(pct)}% vs random`}</div>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#E4E6EB' }}>Equity</div>
+                <div style={{ fontSize: '10px', color: '#B0B3B8' }}>{label || `${Math.round(pct)}% vs random`}</div>
             </div>
         </div>
     );
@@ -574,7 +574,7 @@ export function EquityGauge({ equity, label }) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function AnalysisSkeleton() {
     const pulseStyle = {
-        background: 'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)',
+        background: 'linear-gradient(90deg, #242526 25%, #3A3B3C 50%, #242526 75%)',
         backgroundSize: '200% 100%',
         animation: 'shimmer 1.5s infinite',
         borderRadius: '6px',
@@ -596,7 +596,7 @@ export function AnalysisSkeleton() {
             <div style={{ ...pulseStyle, height: '40px', marginTop: '16px', width: '80%' }} />
             {/* Heatmap skeleton */}
             <div style={{ ...pulseStyle, height: '120px', marginTop: '12px' }} />
-            <div style={{ textAlign: 'center', color: '#475569', fontSize: '11px', marginTop: '12px' }}>
+            <div style={{ textAlign: 'center', color: '#65676B', fontSize: '11px', marginTop: '12px' }}>
                 Analyzing hand...
             </div>
         </div>
@@ -632,7 +632,7 @@ export function PreflopChartOverlay({ position, scenario, rangeGrid, rangePercen
                 {rangeGrid.flat().map((cell, i) => (
                     <div key={i} style={{
                         padding: '2px 1px', textAlign: 'center', borderRadius: '2px',
-                        background: cell.inRange ? (actionColors[cell.action] || '#3A3B3C') + '33' : '#1a1a2e',
+                        background: cell.inRange ? (actionColors[cell.action] || '#3A3B3C') + '33' : '#242526',
                         border: cell.inRange ? `1px solid ${actionColors[cell.action]}44` : '1px solid transparent',
                         color: cell.inRange ? '#E4E6EB' : '#4E4F50',
                         fontWeight: cell.inRange ? '600' : '400',
@@ -749,7 +749,7 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score }
                     You chose: <strong style={{ color: '#E4E6EB' }}>{userGuess}</strong> | GTO: <strong style={{ color: '#4599FF' }}>{correctAction}</strong>
                 </div>
                 {score && (
-                    <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ fontSize: '10px', color: '#B0B3B8', marginTop: '4px' }}>
                         Score: {score.correct}/{score.total} ({score.total > 0 ? Math.round(score.correct / score.total * 100) : 0}%) | Streak: {score.streak}
                     </div>
                 )}
@@ -758,8 +758,8 @@ export function QuizPanel({ onGuess, correctAction, revealed, userGuess, score }
     }
 
     return (
-        <div style={{ padding: '12px', borderRadius: '12px', marginBottom: '12px', background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.2)' }}>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: '#c4b5fd', marginBottom: '8px' }}>What Would You Do?</div>
+        <div style={{ padding: '12px', borderRadius: '12px', marginBottom: '12px', background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.2)' }}>
+            <div style={{ fontSize: '12px', fontWeight: '700', color: '#4599FF', marginBottom: '8px' }}>What Would You Do?</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
                 {actions.map(a => (
                     <button key={a} onClick={() => onGuess(a)} style={{
@@ -833,18 +833,18 @@ export function WeeklySpotBanner({ spot, onLoad }) {
 
     return (
         <div style={{
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(59,130,246,0.08))',
-            border: '1px solid rgba(139,92,246,0.2)',
+            background: 'linear-gradient(135deg, rgba(35,116,225,0.08), rgba(35,116,225,0.04))',
+            border: '1px solid rgba(35,116,225,0.2)',
             borderRadius: '12px', padding: '12px', marginBottom: '12px',
         }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <h4 style={{ color: '#c4b5fd', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
+                <h4 style={{ color: '#4599FF', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
                     Weekly Spot Challenge
                 </h4>
                 <button onClick={() => onLoad(spot)} style={{
                     padding: '4px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: '600',
-                    background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)',
-                    color: '#c4b5fd', cursor: 'pointer',
+                    background: 'rgba(35,116,225,0.2)', border: '1px solid rgba(35,116,225,0.3)',
+                    color: '#4599FF', cursor: 'pointer',
                 }}>Load This Spot</button>
             </div>
             <div style={{ fontSize: '11px', color: '#E4E6EB' }}>
@@ -867,9 +867,9 @@ export function LeaderboardCard({ entries }) {
                 Leaderboard
             </h4>
             {entries.map((e, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '11px', borderBottom: i < entries.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: '11px', borderBottom: i < entries.length - 1 ? '1px solid #3A3B3C' : 'none' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: i < 3 ? '#fbbf24' : '#64748b', fontWeight: '700' }}>#{i + 1}</span>
+                        <span style={{ color: i < 3 ? '#fbbf24' : '#B0B3B8', fontWeight: '700' }}>#{i + 1}</span>
                         <span style={{ color: '#E4E6EB' }}>{e.name || 'Anonymous'}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

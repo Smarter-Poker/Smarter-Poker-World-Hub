@@ -923,7 +923,7 @@ export default function VirtualSandbox() {
                   </button>
                 )}
                 {results && board.flop.length === 3 && !board.river && (
-                  <button onClick={() => { pushUndo(); dealAndAnalyze(); }} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(59,130,246,0.15)', border: 'none', color: '#93c5fd', cursor: 'pointer' }}>
+                  <button onClick={() => { pushUndo(); dealAndAnalyze(); }} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>
                     Deal + Analyze
                   </button>
                 )}

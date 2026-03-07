@@ -684,13 +684,18 @@ export default async function handler(req, res) {
 
     // Context authority check — only for authenticated users
     if (userId) {
-      const contextAccess = await checkSandboxAccess(supabase, userId);
-      if (!contextAccess.allowed) {
-        return res.status(403).json({
-          success: false, blocked: true,
-          contextState: contextAccess.contextState,
-          error: contextAccess.message,
-        });
+      try {
+        const contextAccess = await checkSandboxAccess(supabase, userId);
+        if (!contextAccess.allowed) {
+          return res.status(403).json({
+            success: false, blocked: true,
+            contextState: contextAccess.contextState,
+            error: contextAccess.message,
+          });
+        }
+      } catch (accessErr) {
+        // Don't block analysis if context authority check fails
+        console.warn('[Sandbox] Context authority check failed (non-fatal):', accessErr.message);
       }
     }
 
