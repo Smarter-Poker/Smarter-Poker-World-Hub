@@ -12,6 +12,7 @@ import Image from 'next/image';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -33,6 +34,7 @@ function shuffleOptions(questions) {
 
 export default function EndlessModePage() {
     const router = useRouter();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
 
     const [gameState, setGameState] = useState('ready'); // ready, playing, gameover
     const [questions, setQuestions] = useState([]);
@@ -95,8 +97,9 @@ export default function EndlessModePage() {
 
     // Initialize
     useEffect(() => {
+        if (authLoading) return;
         async function init() {
-            const user = getAuthUser();
+            const user = avatarUser || getAuthUser();
             if (user) {
                 setUserId(user.id);
                 // Check VIP status
@@ -137,7 +140,7 @@ export default function EndlessModePage() {
             setIsLoading(false);
         }
         init();
-    }, []);
+    }, [avatarUser?.id, authLoading]);
 
     // Save settings to localStorage when changed
     useEffect(() => {

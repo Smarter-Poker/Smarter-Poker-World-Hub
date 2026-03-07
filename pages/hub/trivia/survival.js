@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
@@ -36,6 +37,7 @@ const DAILY_DIAMOND_CAP = 10;
 
 export default function SurvivalModePage() {
     const router = useRouter();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, complete
     const [questions, setQuestions] = useState([]);
     const [userId, setUserId] = useState(null);
@@ -48,9 +50,10 @@ export default function SurvivalModePage() {
     const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
+        if (authLoading) return;
         Promise.all([loadUserData(), loadLeaderboard()])
             .finally(() => setPageLoading(false));
-    }, []);
+    }, [avatarUser?.id, authLoading]);
     // Realtime subscription — live updates
     useEffect(() => {
         if (!userId) return;
@@ -62,7 +65,7 @@ export default function SurvivalModePage() {
     }, [userId]);
 
     async function loadUserData() {
-        const user = getAuthUser();
+        const user = avatarUser || getAuthUser();
         if (!user) return;
 
         setUserId(user.id);

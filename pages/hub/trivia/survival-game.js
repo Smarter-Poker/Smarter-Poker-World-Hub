@@ -16,6 +16,7 @@ import Image from 'next/image';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import { useAvatar } from '../../../src/contexts/AvatarContext';
 import PageTransition from '../../../src/components/transitions/PageTransition';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { toTitleCase } from '../../../src/lib/trivia/titleCase';
@@ -53,6 +54,7 @@ const QUESTIONS_PER_LEVEL = 20;
 
 export default function SurvivalGamePage() {
     const router = useRouter();
+    const { user: avatarUser, loading: authLoading } = useAvatar();
 
     // Game state
     const [gameState, setGameState] = useState('lobby'); // lobby, playing, levelComplete, gameOver, victory
@@ -115,7 +117,8 @@ export default function SurvivalGamePage() {
 
     // Initialize
     useEffect(() => {
-        const user = getAuthUser();
+        if (authLoading) return;
+        const user = avatarUser || getAuthUser();
         if (user) {
             setUserId(user.id);
             loadUserProgress(user.id);
@@ -134,7 +137,7 @@ export default function SurvivalGamePage() {
                 setSettings(JSON.parse(savedSettings));
             }
         } catch (e) { console.error("[survival-game.js]", e); }
-    }, []);
+    }, [avatarUser?.id, authLoading]);
 
     // Save settings to localStorage when changed
     useEffect(() => {

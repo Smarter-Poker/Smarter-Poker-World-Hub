@@ -66,6 +66,10 @@ const staticPages = [
     { path: '/hub/training/streaks', priority: '0.5', changefreq: 'daily' },
     { path: '/hub/training/tournaments', priority: '0.6', changefreq: 'daily' },
     { path: '/hub/training/jarvis', priority: '0.6', changefreq: 'weekly' },
+    { path: '/hub/training/play-mode', priority: '0.7', changefreq: 'weekly' },
+    { path: '/hub/training/solutions', priority: '0.6', changefreq: 'weekly' },
+    { path: '/hub/training/analyzer', priority: '0.6', changefreq: 'weekly' },
+    { path: '/hub/training/reports', priority: '0.5', changefreq: 'weekly' },
 
     // Hub — Diamond Store sub-pages
     { path: '/hub/diamond-store/cart', priority: '0.5', changefreq: 'weekly' },

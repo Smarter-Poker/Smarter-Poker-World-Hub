@@ -37,15 +37,11 @@ function postgrestHeaders(anonKey: string, accessToken: string) {
     };
 }
 
-async function postgrestGet<T>(path: string, timeoutMs = 8000): Promise<T> {
+async function postgrestGet<T>(path: string): Promise<T> {
     const { url, anonKey, accessToken } = getPostgrestConfig();
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     const res = await fetch(`${url}${path}`, {
         headers: postgrestHeaders(anonKey, accessToken),
-        signal: ctrl.signal,
     });
-    clearTimeout(timer);
     if (!res.ok) {
         const text = await res.text().catch(() => 'Unknown error');
         throw new Error(`PostgREST GET failed (${res.status}): ${text}`);

@@ -1216,7 +1216,7 @@ export default function VirtualSandbox() {
               {/* Collaborative Share Link -- Phase 4 */}
               <button onClick={() => {
                 const params = new URLSearchParams({
-                  h: `${heroHand.card1}${heroHand.card2}`, p: heroPosition, s: heroStack,
+                  h: `${heroHand.card1 || ''}${heroHand.card2 || ''}`, p: heroPosition, s: heroStack,
                   g: gameType, b: communityCards.join(','), pot: potSize,
                 });
                 const url = `${window.location.origin}/hub/personal-assistant/sandbox?${params.toString()}`;
@@ -1226,7 +1226,7 @@ export default function VirtualSandbox() {
               </button>
 
               {/* Train This Spot -- Phase 3 */}
-              <button onClick={() => router.push(`/hub/training?position=${heroPosition}&hand=${heroHand.card1}${heroHand.card2}`)}
+              <button onClick={() => router.push(`/hub/training?position=${heroPosition}&hand=${heroHand.card1 || ''}${heroHand.card2 || ''}`)}
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', marginBottom: 8 }}>
                 Train This Spot
               </button>
