@@ -567,10 +567,10 @@ export default function ProfilePage() {
             formData.append('folder', 'covers');
             formData.append('prefix', user.id);
 
-            const _coverSess = { access_token: getAccessToken() };
+            const _coverToken = getAccessToken();
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
-                headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
+                headers: _coverToken ? { Authorization: `Bearer ${_coverToken}` } : {},
                 body: formData,
             });
             // HIGH FIX #2j: Add response.ok check before .json()

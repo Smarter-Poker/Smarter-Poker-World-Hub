@@ -561,11 +561,11 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
   // Find user's assigned table
   const goToTable = async () => {
     try {
-      const goSession = { access_token: getAccessToken() };
+      const goToken = getAccessToken();
       const res = await fetch('/api/poker/engine/tournament', {
         method: 'POST', headers: {
           'Content-Type': 'application/json',
-          ...(goSession?.access_token ? { Authorization: `Bearer ${goSession.access_token}` } : {}),
+          ...(goToken ? { Authorization: `Bearer ${goToken}` } : {}),
         },
         body: JSON.stringify({ action: 'state', tournamentId: t.id }),
       });

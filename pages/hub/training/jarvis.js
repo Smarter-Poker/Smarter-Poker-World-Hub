@@ -35,8 +35,8 @@ export default function JarvisDashboard() {
             setUser(authUser);
 
             if (authUser) {
-                const _jSess = { access_token: getAccessToken() };
-                const token = _jSess?.access_token || '';
+                const _jToken = getAccessToken();
+                const token = _jToken || '';
                 const response = await fetch(`/api/jarvis/user-insights`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

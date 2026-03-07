@@ -143,8 +143,8 @@ export default function PlayerNotificationsPage() {
     );
 
     try {
-      const _authSession = { access_token: getAccessToken() };
-      const token = _authSession?.access_token;
+      const _authToken = getAccessToken();
+      const token = _authToken;
 
       await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'PATCH',
@@ -169,8 +169,8 @@ export default function PlayerNotificationsPage() {
     setNotifications(prev => prev.filter(n => n.id !== notification.id));
 
     try {
-      const _authSession = { access_token: getAccessToken() };
-      const token = _authSession?.access_token;
+      const _authToken = getAccessToken();
+      const token = _authToken;
 
       await fetch(`/api/commander/notifications/${notification.id}`, {
         method: 'DELETE',
@@ -191,8 +191,8 @@ export default function PlayerNotificationsPage() {
     );
 
     try {
-      const _authSession = { access_token: getAccessToken() };
-      const token = _authSession?.access_token;
+      const _authToken = getAccessToken();
+      const token = _authToken;
 
       await fetch('/api/commander/notifications/mark-all-read', {
         method: 'POST',

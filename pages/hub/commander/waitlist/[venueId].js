@@ -146,8 +146,8 @@ export default function PlayerWaitlistPage() {
     } catch (_) { /* localStorage unavailable */ }
 
     // 2. Session path: supabase.auth.getSession (handles refresh, slower on first call)
-    const _authSession = { access_token: getAccessToken() };
-    if (_authSession?.access_token) return _authSession.access_token;
+    const _authToken = getAccessToken();
+    if (_authToken) return _authToken;
 
     // 3. Legacy fallback: sb-*-auth-token keys (backwards compat)
     const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));

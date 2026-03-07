@@ -714,12 +714,12 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-                    const _uploadSess = { access_token: getAccessToken() };
+                    const _uploadToken = getAccessToken();
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_uploadSess?.access_token ? { Authorization: `Bearer ${_uploadSess.access_token}` } : {}),
+                            ...(_uploadToken ? { Authorization: `Bearer ${_uploadToken}` } : {}),
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -751,10 +751,10 @@ function PostCreator({ user, onPost, isPosting, onGoLive, onOpenClubPages }) {
                     formData.append('file', file);
                     formData.append('folder', folder);
                     formData.append('prefix', user.id);
-                    const _imgSess = { access_token: getAccessToken() };
+                    const _imgToken = getAccessToken();
                     const res = await fetch('/api/social/upload', {
                         method: 'POST',
-                        headers: _imgSess?.access_token ? { Authorization: `Bearer ${_imgSess.access_token}` } : {},
+                        headers: _imgToken ? { Authorization: `Bearer ${_imgToken}` } : {},
                         body: formData,
                     });
                     const json = await res.json();
@@ -1934,10 +1934,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('file', file);
             formData.append('folder', 'covers');
             formData.append('prefix', page.id);
-            const _coverSess = { access_token: getAccessToken() };
+            const _coverToken = getAccessToken();
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
-                headers: _coverSess?.access_token ? { Authorization: `Bearer ${_coverSess.access_token}` } : {},
+                headers: _coverToken ? { Authorization: `Bearer ${_coverToken}` } : {},
                 body: formData,
             });
             const uploadJson = await uploadRes.json();
@@ -1976,10 +1976,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             formData.append('file', file);
             formData.append('folder', 'logos');
             formData.append('prefix', page.id);
-            const _logoSess = { access_token: getAccessToken() };
+            const _logoToken = getAccessToken();
             const uploadRes = await fetch('/api/social/upload', {
                 method: 'POST',
-                headers: _logoSess?.access_token ? { Authorization: `Bearer ${_logoSess.access_token}` } : {},
+                headers: _logoToken ? { Authorization: `Bearer ${_logoToken}` } : {},
                 body: formData,
             });
             const uploadJson = await uploadRes.json();
@@ -2023,12 +2023,12 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
             try {
                 if (isVideo) {
                     // Direct-to-Supabase upload for videos (bypasses Vercel body limit)
-                    const _clubVidSess = { access_token: getAccessToken() };
+                    const _clubVidToken = getAccessToken();
                     const metaRes = await fetch('/api/social/upload-url', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(_clubVidSess?.access_token ? { Authorization: `Bearer ${_clubVidSess.access_token}` } : {}),
+                            ...(_clubVidToken ? { Authorization: `Bearer ${_clubVidToken}` } : {}),
                         },
                         body: JSON.stringify({
                             fileName: file.name,
@@ -2059,10 +2059,10 @@ function ClubPageDashboard({ C, page, userId, onBack, onPageUpdated, onGoLive })
                     formData.append('file', file);
                     formData.append('folder', 'club-posts');
                     formData.append('prefix', page.id);
-                    const _clubImgSess = { access_token: getAccessToken() };
+                    const _clubImgToken = getAccessToken();
                     const res = await fetch('/api/social/upload', {
                         method: 'POST',
-                        headers: _clubImgSess?.access_token ? { Authorization: `Bearer ${_clubImgSess.access_token}` } : {},
+                        headers: _clubImgToken ? { Authorization: `Bearer ${_clubImgToken}` } : {},
                         body: formData,
                     });
                     const json = await res.json();
@@ -4145,15 +4145,15 @@ export default function SocialMediaPage() {
 
                 // Final fallback: try getSession if localStorage approach failed
                 if (!authUser) {
-                    console.log('[Social] No user from localStorage, trying getSession...');
+                    console.log('[Social] No user from localStorage, trying getAuthUser...');
                     try {
-                        const sessionData = { session: { access_token: getAccessToken() } };
-                        if (sessionData?.session?.user) {
-                            authUser = sessionData.session.user;
-                            console.log('[Social] ✅ Got user from getSession:', authUser.email);
+                        const fallbackUser = getAuthUser();
+                        if (fallbackUser) {
+                            authUser = fallbackUser;
+                            console.log('[Social] ✅ Got user from getAuthUser:', authUser.email);
                         }
                     } catch (e) {
-                        console.warn('[Social] getSession failed:', e.message);
+                        console.warn('[Social] getAuthUser failed:', e.message);
                     }
                 }
 

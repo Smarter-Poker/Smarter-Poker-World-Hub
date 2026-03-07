@@ -1208,9 +1208,9 @@ export default function MessengerPage() {
 
         async function checkPendingCalls(signal) {
             try {
-                const pendingSession = { access_token: getAccessToken() };
+                const pendingToken = getAccessToken();
                 const res = await fetch(`/api/calls/pending?userId=${user.id}`, {
-                    headers: pendingSession?.access_token ? { Authorization: `Bearer ${pendingSession.access_token}` } : {},
+                    headers: pendingToken ? { Authorization: `Bearer ${pendingToken}` } : {},
                 });
                 const result = await res.json();
 
@@ -1651,12 +1651,12 @@ export default function MessengerPage() {
         try {
 
             // Use API route to bypass RLS issues
-            const msgSession = { access_token: getAccessToken() };
+            const msgToken = getAccessToken();
             const response = await fetch('/api/messenger/get-messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(msgSession?.access_token ? { Authorization: `Bearer ${msgSession.access_token}` } : {}),
+                    ...(msgToken ? { Authorization: `Bearer ${msgToken}` } : {}),
                 },
                 body: JSON.stringify({ conversationId, userId: user.id }),
             });
@@ -1671,12 +1671,12 @@ export default function MessengerPage() {
 
             // Mark as read - use API with service role to bypass RLS
             try {
-                const readSession = { access_token: getAccessToken() };
+                const readToken = getAccessToken();
                 await fetch('/api/messenger/mark-read', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(readSession?.access_token ? { Authorization: `Bearer ${readSession.access_token}` } : {}),
+                        ...(readToken ? { Authorization: `Bearer ${readToken}` } : {}),
                     },
                     body: JSON.stringify({ conversationId, userId: user.id }),
                 });
@@ -1795,12 +1795,12 @@ export default function MessengerPage() {
             setMessages(prev => [...prev, typingMsg]);
 
             try {
-                const jarvisSession = { access_token: getAccessToken() };
+                const jarvisToken = getAccessToken();
                 const response = await fetch('/api/geeves/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(jarvisSession?.access_token ? { Authorization: `Bearer ${jarvisSession.access_token}` } : {}),
+                        ...(jarvisToken ? { Authorization: `Bearer ${jarvisToken}` } : {}),
                     },
                     body: JSON.stringify({
                         message: content,
@@ -2268,12 +2268,12 @@ export default function MessengerPage() {
 
             // 📱 Create pending call in database (for offline users)
             try {
-                const callSession = { access_token: getAccessToken() };
+                const callToken = getAccessToken();
                 await fetch('/api/calls/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(callSession?.access_token ? { Authorization: `Bearer ${callSession.access_token}` } : {}),
+                        ...(callToken ? { Authorization: `Bearer ${callToken}` } : {}),
                     },
                     body: JSON.stringify({
                         callerId: user.id,
