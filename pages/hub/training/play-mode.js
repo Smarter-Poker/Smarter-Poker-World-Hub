@@ -11,7 +11,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import HandReplayViewer from '../../../src/components/training/HandReplayViewer';
@@ -351,7 +351,7 @@ function usePlayMode() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authUser.session.access_token}`,
+                        'Authorization': `Bearer ${getAccessToken()}`,
                     },
                     body: JSON.stringify(payload),
                 });
