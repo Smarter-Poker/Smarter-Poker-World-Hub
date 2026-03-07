@@ -1392,6 +1392,45 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                     )}
 
+                    {/* ── PRIMARY LOGGING ACTIONS (MASSIVE + TOP MOUNTED) ── */}
+                    {!editMode && isDayOpen && !confirmCloseDay && !confirmComplete && !confirmDelete && (
+                        <div style={{ display: 'flex', gap: 12, margin: '20px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 24 }}>
+                            <button onClick={() => setShowAddDown(true)} style={{
+                                ...styles.addDownBtn,
+                                flex: 2,
+                                padding: '24px 16px',
+                                fontSize: 18,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: 16,
+                                boxShadow: '0 8px 32px rgba(56,189,248,0.15)',
+                                background: 'linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(56,189,248,0.05) 100%)',
+                                border: '1px solid rgba(56,189,248,0.5)',
+                            }}>
+                                <span style={{ fontSize: 32, lineHeight: 1, marginBottom: 8, color: '#38bdf8' }}>+</span>
+                                <span style={{ fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' }}>Add Down</span>
+                            </button>
+                            <button onClick={() => setShowAddExpense(true)} style={{
+                                ...styles.addExpenseBtn,
+                                flex: 1,
+                                padding: '24px 16px',
+                                fontSize: 15,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: 16,
+                                background: 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%)',
+                                border: '1px solid rgba(239,68,68,0.3)',
+                            }}>
+                                <span style={{ fontSize: 28, lineHeight: 1, marginBottom: 8 }}>🧾</span>
+                                <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Expense</span>
+                            </button>
+                        </div>
+                    )}
+
                     {/* Running Totals */}
                     {!editMode && (
                         <div style={{ ...styles.runningStats, gridTemplateColumns: 'repeat(4, 1fr)' }}>
@@ -1420,19 +1459,7 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         </div>
                     )}
 
-                    {/* ── PRIMARY LOGGING ACTIONS (MOVED TO TOP) ── */}
-                    {!editMode && isDayOpen && !confirmCloseDay && !confirmComplete && !confirmDelete && (
-                        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-                            <button onClick={() => setShowAddDown(true)} style={{ ...styles.addDownBtn, flex: 2, padding: '16px 10px', fontSize: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 24, lineHeight: 1, marginBottom: 4 }}>+</span>
-                                <span>Add Down</span>
-                            </button>
-                            <button onClick={() => setShowAddExpense(true)} style={{ ...styles.addExpenseBtn, flex: 1, padding: '16px 10px', fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 20, lineHeight: 1, marginBottom: 4 }}>🧾</span>
-                                <span>Expense</span>
-                            </button>
-                        </div>
-                    )}
+                    {/* ── RUNNING TOTALS STATS ── */}
 
                     {/* ── CLOSED DAYS SUMMARY ── */}
                     {!editMode && closedDays.length > 0 && closedDays.map(day => (
@@ -1682,21 +1709,24 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                         )}
                     </AnimatePresence>
                 </motion.div>
-            )}
+            )
+            }
 
             {/* ── CREATE EVENT ── */}
-            {!activeGig && !showCreateForm && (
-                <motion.button
-                    initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowCreateForm(true)}
-                    style={styles.createGigBtn}
-                >
-                    <div style={styles.addEventIcon}>+</div>
-                    <div style={styles.createGigSub}>New Event</div>
-                </motion.button>
-            )}
+            {
+                !activeGig && !showCreateForm && (
+                    <motion.button
+                        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowCreateForm(true)}
+                        style={styles.createGigBtn}
+                    >
+                        <div style={styles.addEventIcon}>+</div>
+                        <div style={styles.createGigSub}>New Event</div>
+                    </motion.button>
+                )
+            }
 
             <AnimatePresence>
                 {showCreateForm && (
@@ -2173,44 +2203,46 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             </div>
 
             {/* ── MONTHLY INCOME GOAL (at bottom) ── */}
-            {(monthlyGoal > 0 || showGoalEdit) && (
-                <div style={styles.goalCard}>
-                    <div style={styles.goalHeader}>
-                        <span style={styles.goalTitle}>Monthly Goal</span>
-                        <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
-                    </div>
-                    {showGoalEdit ? (
-                        <div style={styles.goalEditRow}>
-                            <input
-                                type="number"
-                                style={styles.goalInput}
-                                placeholder="Monthly $ Goal"
-                                value={goalInput}
-                                onChange={e => setGoalInput(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && saveGoal()}
-                                autoFocus
-                            />
-                            <button style={styles.goalSaveBtn} onClick={saveGoal}>Save</button>
-                            <button style={styles.goalCancelBtn} onClick={() => setShowGoalEdit(false)}>×</button>
+            {
+                (monthlyGoal > 0 || showGoalEdit) && (
+                    <div style={styles.goalCard}>
+                        <div style={styles.goalHeader}>
+                            <span style={styles.goalTitle}>Monthly Goal</span>
+                            <button style={styles.goalEditBtn} onClick={() => { setGoalInput(String(monthlyGoal)); setShowGoalEdit(true); }}>Edit</button>
                         </div>
-                    ) : (() => {
-                        const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
-                        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                        const daysLeft = daysInMonth - new Date().getDate();
-                        const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#38bdf8' : '#f02849';
-                        return (
-                            <>
-                                <div style={styles.goalText}>
-                                    You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) — {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
-                                </div>
-                                <div style={styles.goalBarBg}>
-                                    <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
-                                </div>
-                            </>
-                        );
-                    })()}
-                </div>
-            )}
+                        {showGoalEdit ? (
+                            <div style={styles.goalEditRow}>
+                                <input
+                                    type="number"
+                                    style={styles.goalInput}
+                                    placeholder="Monthly $ Goal"
+                                    value={goalInput}
+                                    onChange={e => setGoalInput(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && saveGoal()}
+                                    autoFocus
+                                />
+                                <button style={styles.goalSaveBtn} onClick={saveGoal}>Save</button>
+                                <button style={styles.goalCancelBtn} onClick={() => setShowGoalEdit(false)}>×</button>
+                            </div>
+                        ) : (() => {
+                            const pct = monthlyGoal > 0 ? Math.min(100, (currentMonthTokes / monthlyGoal) * 100) : 0;
+                            const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                            const daysLeft = daysInMonth - new Date().getDate();
+                            const barColor = pct >= 80 ? '#36bb6a' : pct >= 50 ? '#38bdf8' : '#f02849';
+                            return (
+                                <>
+                                    <div style={styles.goalText}>
+                                        You're At <strong style={{ color: barColor }}>${currentMonthTokes.toFixed(0)}</strong> Of <strong>${monthlyGoal.toLocaleString()}</strong> ({pct.toFixed(0)}%) — {daysLeft} Day{daysLeft !== 1 ? 's' : ''} Left
+                                    </div>
+                                    <div style={styles.goalBarBg}>
+                                        <div style={{ ...styles.goalBarFill, width: `${pct}%`, background: barColor }} />
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                )
+            }
 
             {/* ── JARVIS DEALER REFERENCE PANEL ── */}
             <div style={styles.jarvisPanel}>
@@ -2285,30 +2317,36 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
             </div>
 
             {/* ── SET MONTHLY GOAL (below Jarvis) ── */}
-            {!monthlyGoal && !showGoalEdit && (
-                <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>
-                    <span style={styles.goalBtnIcon}>🎯</span>
-                    Set Monthly Income Goal
-                </button>
-            )}
+            {
+                !monthlyGoal && !showGoalEdit && (
+                    <button style={styles.setGoalBtn} onClick={() => setShowGoalEdit(true)}>
+                        <span style={styles.goalBtnIcon}>🎯</span>
+                        Set Monthly Income Goal
+                    </button>
+                )
+            }
 
             {/* ── DEALER VAULT (hidden in standalone mode) ── */}
             {!standalone && <DealerVault userId={userId} completedGigs={completedGigs} />}
 
             {/* ── YEARLY CALENDAR (hidden in standalone mode) ── */}
-            {!standalone && (
-                <div style={styles.calendarWrapper}>
-                    <TokeCalendar userId={userId} />
-                </div>
-            )}
+            {
+                !standalone && (
+                    <div style={styles.calendarWrapper}>
+                        <TokeCalendar userId={userId} />
+                    </div>
+                )
+            }
             {/* ── TAX SUMMARY MODAL ── */}
-            {showTaxSummary && (
-                <TaxSummaryModal
-                    completedGigs={completedGigs}
-                    onClose={() => setShowTaxSummary(false)}
-                />
-            )}
-        </div>
+            {
+                showTaxSummary && (
+                    <TaxSummaryModal
+                        completedGigs={completedGigs}
+                        onClose={() => setShowTaxSummary(false)}
+                    />
+                )
+            }
+        </div >
     );
 }
 
@@ -2788,4 +2826,4 @@ const styles = {
 };
 
 export default memo(TokeTracker);
- 
+
