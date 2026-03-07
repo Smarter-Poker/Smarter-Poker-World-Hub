@@ -187,9 +187,19 @@ export default function UniversalHeader({
                     const fetchProfileWithRetry = async (attempt = 1) => {
                         if (!mounted) return false;
                         try {
+                            // Get access token for JWT auth
+                            let accessToken = null;
+                            try {
+                                const authData = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+                                accessToken = authData?.access_token || null;
+                            } catch (e) { }
+
                             const response = await fetch('/api/user/get-header-stats', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                                },
                                 body: JSON.stringify({ userId: authUser.id }),
                             });
 
