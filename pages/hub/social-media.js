@@ -4570,14 +4570,14 @@ export default function SocialMediaPage() {
     useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
     // Realtime subscription — live updates
     useEffect(() => {
-        if (!userId) return;
+        if (!user?.id) return;
         const _ch = supabase
-            .channel(`social:${userId}`)
+            .channel(`social:${user.id}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_comments' }, () => { })
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'social_posts' }, () => { })
             .subscribe();
         return () => { supabase.removeChannel(_ch); };
-    }, [userId]);
+    }, [user?.id]);
 
     // ♾️ INFINITE SCROLL: Load more posts when scrolling
     const loadMorePosts = async () => {
