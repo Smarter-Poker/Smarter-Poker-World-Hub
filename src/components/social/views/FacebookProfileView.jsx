@@ -10,10 +10,11 @@ import React, { useState, useEffect } from 'react';
 import { FBAvatar, FB_COLORS, FBPostCard } from '../FacebookStyleCard';
 import { PokerTierBadge, WinRateDisplay } from '../PokerReputationBadges';
 import { PhotoGrid } from '../FacebookPhotos';
-// TODO: useSocialOrb and useSupabase providers don't exist
-// import { useSocialOrb } from '../../providers/SocialOrbProvider';
-// import { useSupabase } from '../../providers/SupabaseProvider';
 import { supabase } from '../../../lib/supabase';
+
+// TODO: Providers don't exist:
+// - useSocialOrb: import { useSocialOrb } from '../../providers/SocialOrbProvider'
+// - useSupabase: import { useSupabase } from '../../providers/SupabaseProvider'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📷 COVER PHOTO & PROFILE HEADER

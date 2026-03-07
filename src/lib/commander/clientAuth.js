@@ -6,8 +6,8 @@
  * Previously these 3-line helpers were copy-pasted into 41+ pages.
  * Import from here instead of re-declaring them in every file.
  *
- * Usage:
- *   import { getToken, getStaffSession, getAuthHeaders } from '../lib/commander/clientAuth';
+ * Usage (from pages or other components):
+ *   import { getToken, getStaffSession, getAuthHeaders } from '@/lib/commander/clientAuth';
  */
 
 /**

@@ -3,8 +3,8 @@
  * Updated for OneSignal Web SDK v16+
  * Dark industrial sci-fi gaming theme
  *
- * Usage in _app.js:
- * import PushNotificationProvider from '../src/components/commander/shared/PushNotificationProvider';
+ * Usage - import with path alias (recommended):
+ *   import PushNotificationProvider from '@/components/commander/shared/PushNotificationProvider';
  *
  * function MyApp({ Component, pageProps }) {
  *   return (

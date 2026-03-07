@@ -9,9 +9,10 @@
 import React, { useState, useEffect } from 'react';
 import { FB_COLORS, FBAvatar } from '../FacebookStyleCard';
 import { PokerReactionBar } from '../PokerReputationBadges';
-// TODO: useSocialOrb provider doesn't exist
-// import { useSocialOrb } from '../../providers/SocialOrbProvider';
 import { supabase } from '../../../lib/supabase';
+
+// TODO: Provider doesn't exist:
+// - useSocialOrb: import { useSocialOrb } from '../../providers/SocialOrbProvider'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📺 WATCH SIDEBAR
