@@ -83,7 +83,7 @@ export default function ChallengesPage() {
                             <span style={{ fontSize: 48 }}>🎯</span>
                             <h2>Sign In To Track Goals</h2>
                             <p>Complete Weekly And Monthly Goals To Earn Diamonds!</p>
-                            <Link href="/signup" style={styles.signInBtn}>Sign In</Link>
+                            <Link href="/auth/signup" style={styles.signInBtn}>Sign In</Link>
                         </div>
                     </div>
                 </div>

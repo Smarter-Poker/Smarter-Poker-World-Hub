@@ -340,7 +340,7 @@ export default function HelpPage() {
                             </Link>
                         </div>
                         <div style={{ marginBottom: 16, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
-                            <Link href="/privacy" style={{
+                            <Link href="/terms" style={{
                                 color: C.accent,
                                 textDecoration: 'none',
                                 fontSize: 15,

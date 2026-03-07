@@ -460,7 +460,7 @@ export default function CommanderLanding() {
                 <span className="font-bold text-white">Club Commander</span>
               </div>
               <div className="flex items-center gap-6 text-sm">
-                <Link href="/privacy" className="hover:text-white">Privacy</Link>
+                <Link href="/terms" className="hover:text-white">Privacy</Link>
                 <Link href="/terms" className="hover:text-white">Terms</Link>
                 <a href="mailto:support@smarter.poker" className="hover:text-white">Support</a>
                 <a href="mailto:contact@smarter.poker" className="hover:text-white">Contact</a>

@@ -70,6 +70,17 @@ const nextConfig = {
 
   // Club Arena static assets are proxied from the Club Arena Vercel deployment
   // The pages/hub/club-arena.js pages render the UI, but images/videos come from club-arena.vercel.app
+  async redirects() {
+    return [
+      // Short-form auth URLs → canonical auth routes
+      { source: '/login',   destination: '/auth/login',  permanent: true },
+      { source: '/signup',  destination: '/auth/signup', permanent: true },
+      { source: '/register',destination: '/auth/signup', permanent: true },
+      // Privacy policy → terms (no separate privacy page exists)
+      { source: '/privacy', destination: '/terms',        permanent: true },
+    ];
+  },
+
   async rewrites() {
     return {
       // Rewrites that run BEFORE pages — these take priority over Next.js file routes
