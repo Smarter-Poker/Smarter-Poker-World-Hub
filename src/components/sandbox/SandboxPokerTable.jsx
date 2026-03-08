@@ -135,7 +135,6 @@ export default function SandboxPokerTable({
             style={{
                 position: 'relative',
                 width: '100%',
-                maxWidth: 380,
                 margin: '0 auto',
                 aspectRatio: '2 / 1',
                 overflow: 'visible',
