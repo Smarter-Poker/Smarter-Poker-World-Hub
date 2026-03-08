@@ -377,7 +377,7 @@ export default function LobbyOverlay({
           maxWidth: 340,
           width: '100%',
           paddingTop: 4,
-          paddingBottom: 8,
+          paddingBottom: 100,
         }}>
           {POD_GRID_ITEMS.map((pod) => (
             <PodGridItem
