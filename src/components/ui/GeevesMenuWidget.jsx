@@ -6,6 +6,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 
 // ─── Auth helper (SSR-safe) ───
 function getAuthToken() {
@@ -90,9 +91,10 @@ export default function GeevesMenuWidget() {
     };
 
     // ── Context-aware quick questions based on current page ──
+    const router = useRouter(); // Import at top required: import { useRouter } from 'next/router';
+
     const getQuickQuestions = useCallback(() => {
-        if (typeof window === 'undefined') return ['What is GTO?', 'Help with bankroll', 'How to use this app?'];
-        const path = window.location.pathname.toLowerCase();
+        const path = (router?.asPath || typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
 
         if (path.includes('toke-tracker')) return [
             'How do I track my downs?',
@@ -126,7 +128,7 @@ export default function GeevesMenuWidget() {
         ];
         // Default
         return ['What is GTO?', 'Help with bankroll', 'How to use this app?'];
-    }, []);
+    }, [router?.asPath]);
 
     const quickQuestions = getQuickQuestions();
 
