@@ -169,15 +169,32 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
     }
 
     if (search) {
-        const searchLower = search.toLowerCase();
+        const searchLower = search.toLowerCase().trim();
         // Check if search term is a state name/abbreviation
-        const searchStateAbbrev = resolveStateAbbrev(search);
-        filtered = filtered.filter(v =>
-            (v.name && v.name.toLowerCase().includes(searchLower)) ||
-            (v.city && v.city.toLowerCase().includes(searchLower)) ||
-            (v.address && v.address.toLowerCase().includes(searchLower)) ||
-            (searchStateAbbrev && v.state && v.state.toUpperCase() === searchStateAbbrev)
-        );
+        const searchStateAbbrev = resolveStateAbbrev(search.trim());
+
+        // Handle "City, State" format (e.g., "Chicago, IL" or "Las Vegas, NV")
+        const cityStateMatch = search.match(/^([^,]+),\s*(.+)$/);
+        if (cityStateMatch) {
+            const cityPart = cityStateMatch[1].trim().toLowerCase();
+            const statePart = cityStateMatch[2].trim();
+            const stateAbbrev = resolveStateAbbrev(statePart);
+            filtered = filtered.filter(v => {
+                const cityMatch = v.city && v.city.toLowerCase().includes(cityPart);
+                const stateMatch = stateAbbrev
+                    ? (v.state && v.state.toUpperCase() === stateAbbrev)
+                    : (v.state && v.state.toLowerCase().includes(statePart.toLowerCase()));
+                // Match city+state, or just city if no state match found
+                return (cityMatch && stateMatch) || cityMatch;
+            });
+        } else {
+            filtered = filtered.filter(v =>
+                (v.name && v.name.toLowerCase().includes(searchLower)) ||
+                (v.city && v.city.toLowerCase().includes(searchLower)) ||
+                (v.address && v.address.toLowerCase().includes(searchLower)) ||
+                (searchStateAbbrev && v.state && v.state.toUpperCase() === searchStateAbbrev)
+            );
+        }
     }
 
     if (featured === 'true') {
