@@ -1696,7 +1696,6 @@ const router = useRouter();
                                     </div>
                                 ))}
                             </div>
-                        </div>
 
                         {/* ── Union Announcement Broadcast ── */}
                         {isLead && (
