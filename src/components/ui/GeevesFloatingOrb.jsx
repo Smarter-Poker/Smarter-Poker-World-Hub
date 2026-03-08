@@ -340,7 +340,58 @@ export default function GeevesFloatingOrb() {
     // ── Suppress on: auth pages, gameplay, video, live streams, and if user hid Geeves ──
     // NOTE: All hooks must be defined ABOVE this guard (Rules of Hooks)
     if (!mounted) return null;
-    if (isHidden) return null; // User dismissed — stays hidden across all pages
+    // When hidden: render a tiny barely-visible restore dot instead of nothing.
+    // This ensures users can always get Geeves back without needing ⌘J or the admin page.
+    if (isHidden) return (
+        <button
+            onClick={showGeeves}
+            title="Show Geeves"
+            aria-label="Show Geeves help assistant"
+            style={{
+                position: 'fixed',
+                bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+                right: 16,
+                zIndex: 99998,
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                background: 'rgba(0, 100, 180, 0.25)',
+                border: '1px solid rgba(0, 212, 255, 0.2)',
+                cursor: 'pointer',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s ease',
+                fontSize: 8,
+                color: 'rgba(0,212,255,0.5)',
+                fontWeight: 700,
+            }}
+            onMouseEnter={e => {
+                e.currentTarget.style.width = '72px';
+                e.currentTarget.style.borderRadius = '12px';
+                e.currentTarget.style.background = 'rgba(0, 30, 60, 0.9)';
+                e.currentTarget.style.border = '1px solid rgba(0,212,255,0.4)';
+                e.currentTarget.style.fontSize = '11px';
+                e.currentTarget.style.color = '#00d4ff';
+                e.currentTarget.style.padding = '0 8px';
+                e.currentTarget.querySelector('span').style.display = 'inline';
+                e.currentTarget.querySelector('span').style.opacity = '1';
+            }}
+            onMouseLeave={e => {
+                e.currentTarget.style.width = '18px';
+                e.currentTarget.style.borderRadius = '50%';
+                e.currentTarget.style.background = 'rgba(0, 100, 180, 0.25)';
+                e.currentTarget.style.border = '1px solid rgba(0,212,255,0.2)';
+                e.currentTarget.style.fontSize = '8px';
+                e.currentTarget.style.color = 'rgba(0,212,255,0.5)';
+                e.currentTarget.style.padding = '0';
+                e.currentTarget.querySelector('span').style.opacity = '0';
+            }}
+        >
+            G<span style={{ display: 'none', opacity: 0, whiteSpace: 'nowrap', transition: 'opacity 0.15s', marginLeft: 3 }}>Ask Geeves</span>
+        </button>
+    );
     const cleanPath = path.split('?')[0];
     const suppressedPaths = ['/', '/auth', '/login', '/signup'];
     if (
