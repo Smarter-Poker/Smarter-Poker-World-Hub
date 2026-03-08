@@ -129,7 +129,7 @@ async function initSingleton(propsRef) {
         console.log('[LobbyScene] Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height);
         state.gl.setClearColor(0x030818, 1);
         state.gl.toneMapping = 4; // ACESFilmicToneMapping
-        state.gl.toneMappingExposure = 1.8;
+        state.gl.toneMappingExposure = 1.0;
       },
     });
 

@@ -38,25 +38,25 @@ const QUALITY = {
     dpr: 2.0,
     particleCount: 1800,
     shadows: true,
-    bloomThreshold: 0.02,
-    bloomIntensity: 3.2,
-    bloomRadius: 0.9,
+    bloomThreshold: 0.4,
+    bloomIntensity: 1.2,
+    bloomRadius: 0.6,
   },
   medium: {
     dpr: 1.0,
     particleCount: 1000,
     shadows: false,
-    bloomThreshold: 0.06,
-    bloomIntensity: 2.4,
-    bloomRadius: 0.75,
+    bloomThreshold: 0.5,
+    bloomIntensity: 0.8,
+    bloomRadius: 0.5,
   },
   low: {
     dpr: 0.75,
     particleCount: 500,
     shadows: false,
-    bloomThreshold: 0.12,
-    bloomIntensity: 1.2,
-    bloomRadius: 0.5,
+    bloomThreshold: 0.6,
+    bloomIntensity: 0.5,
+    bloomRadius: 0.4,
   },
 };
 
@@ -286,7 +286,7 @@ function PostProcessingEffects({ quality }) {
           modulationOffset={0.5}
         />
       )}
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={1.8} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={1.0} />
     </EffectComposer>
   );
 }
@@ -755,25 +755,25 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       <SceneFog />
 
       {/* ═══ CINEMATIC LIGHTING ═══ */}
-      <ambientLight intensity={0.5} color="#88ccdd" />
+      <ambientLight intensity={0.25} color="#88ccdd" />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={3.0}
+        intensity={1.5}
         color="#ffffff"
         castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-5, 8, -3]} intensity={2.0} color="#6ee7ef" />
-      <directionalLight position={[0, 3, -8]} intensity={1.2} color="#3b82f6" />
-      <pointLight position={[0, 5, 0]} intensity={5.0} color="#6ee7ef" distance={25} decay={2} />
+      <directionalLight position={[-5, 8, -3]} intensity={0.8} color="#6ee7ef" />
+      <directionalLight position={[0, 3, -8]} intensity={0.5} color="#3b82f6" />
+      <pointLight position={[0, 5, 0]} intensity={2.0} color="#6ee7ef" distance={20} decay={2} />
       {/* Underlight for pod pedestals */}
-      <pointLight position={[0, -0.5, 0]} intensity={2.5} color="#ff8c00" distance={10} decay={2} />
+      <pointLight position={[0, -0.5, 0]} intensity={1.0} color="#ff8c00" distance={8} decay={2} />
 
-      {/* Additional colored accent lights — hyper-realistic */}
-      <pointLight position={[4, 3, -3]} intensity={2.5} color="#ff4444" distance={15} decay={2} />
-      <pointLight position={[-4, 2, 3]} intensity={2.0} color="#8b5cf6" distance={12} decay={2} />
-      <pointLight position={[0, 6, -2]} intensity={1.5} color="#ffd700" distance={18} decay={2} />
+      {/* Additional colored accent lights */}
+      <pointLight position={[4, 3, -3]} intensity={1.0} color="#ff4444" distance={12} decay={2} />
+      <pointLight position={[-4, 2, 3]} intensity={0.8} color="#8b5cf6" distance={10} decay={2} />
+      <pointLight position={[0, 6, -2]} intensity={0.6} color="#ffd700" distance={15} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
