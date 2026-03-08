@@ -11,7 +11,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Agent, Message } from './useLiveHelp';
 import { AGENTS } from './useLiveHelp';
-// DynamicQuickActions removed per user request
 import { MessageReactions } from './MessageReactions';
 import { CopyButton } from './CopyButton';
 import { VoiceInput } from './VoiceInput';
@@ -24,6 +23,8 @@ import { AutoComplete } from './AutoComplete';
 import { ConversationHistory } from './ConversationHistory';
 import { RichMediaRenderer } from './RichMediaRenderer';
 import { GeevesAvatar } from './JarvisAvatar';
+import { ScreenshotUpload } from './ScreenshotUpload';
+import { ExportButton } from './ExportButton';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -301,6 +302,20 @@ export function LiveHelpPanel({
                             }}
                             onError={(error) => console.error('Voice input error:', error)}
                         />
+                        <ScreenshotUpload
+                            onAnalyze={async (base64) => {
+                                try {
+                                    const token = (() => { try { const a = localStorage.getItem('smarter-poker-auth'); return a ? JSON.parse(a)?.access_token : null; } catch { return null; } })();
+                                    const r = await fetch('/api/geeves/analyze-screenshot', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                                        body: JSON.stringify({ image: base64 }),
+                                    });
+                                    const d = await r.json();
+                                    if (d.analysis) onSendMessage(`[Screenshot Analysis]\n\n${d.analysis}`);
+                                } catch { console.error('Screenshot analysis failed'); }
+                            }}
+                        />
                         <button
                             onClick={handleSend}
                             disabled={!inputValue.trim()}
@@ -437,6 +452,39 @@ function MessageBubble({ message, agent }: MessageBubbleProps) {
                             console.log('Reaction:', reaction, 'for message:', message.id);
                         }}
                     />
+                </div>
+            )}
+
+            {/* Follow-up chips */}
+            {!isUser && (message as any).followUps && (message as any).followUps.length > 0 && (
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    marginTop: '8px',
+                    marginLeft: '12px'
+                }}>
+                    {(message as any).followUps.map((q: string, i: number) => (
+                        <button
+                            key={i}
+                            onClick={() => {
+                                // Trigger a new question by dispatching a custom event
+                                window.dispatchEvent(new CustomEvent('geeves-follow-up', { detail: q }));
+                            }}
+                            style={{
+                                padding: '4px 10px',
+                                background: 'rgba(0, 212, 255, 0.08)',
+                                border: '1px solid rgba(0, 212, 255, 0.2)',
+                                borderRadius: '12px',
+                                color: '#00d4ff',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >
+                            {q}
+                        </button>
+                    ))}
                 </div>
             )}
         </div>

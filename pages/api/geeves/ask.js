@@ -9,6 +9,7 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
+import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
 const supabase = createClient(
@@ -223,10 +224,43 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Authenticate user
+        const { question, conversationId, conversationHistory } = req.body;
+
+        if (!question) {
+            return res.status(400).json({ error: 'Question is required' });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // STEP 0: Check Local Knowledge Base (FREE, instant, no auth needed)
+        // ═══════════════════════════════════════════════════════════════════
+        const kbResult = lookupKnowledgeBase(question);
+
+        if (kbResult && kbResult.confidence >= 45) {
+            return res.status(200).json({
+                answer: kbResult.answer,
+                questionType: kbResult.category,
+                fromLocalKB: true,
+                followUps: kbResult.followUps || [],
+                confidence: kbResult.confidence,
+                entryId: kbResult.entryId,
+            });
+        }
+
+        // ── Auth required for cache + Grok tiers ──
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ error: 'Unauthorized' });
+            // Guest users only get KB answers
+            if (kbResult && kbResult.confidence >= 30) {
+                return res.status(200).json({
+                    answer: kbResult.answer,
+                    questionType: kbResult.category,
+                    fromLocalKB: true,
+                    followUps: kbResult.followUps || [],
+                    confidence: kbResult.confidence,
+                    guestMode: true,
+                });
+            }
+            return res.status(401).json({ error: 'Sign in for AI-powered answers to this question' });
         }
 
         const token = authHeader.replace('Bearer ', '');
@@ -234,12 +268,6 @@ export default async function handler(req, res) {
 
         if (authError || !user) {
             return res.status(401).json({ error: 'Invalid token' });
-        }
-
-        const { question, conversationId, conversationHistory } = req.body;
-
-        if (!question) {
-            return res.status(400).json({ error: 'Question is required' });
         }
 
         const questionHash = hashQuestion(question);

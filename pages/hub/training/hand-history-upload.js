@@ -6,7 +6,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -222,6 +222,16 @@ export default function HandHistoryUploadPage() {
     const [stats, setStats] = useState(null);
     const [dragOver, setDragOver] = useState(false);
 
+    // Bus Listener — listen for session-complete to allow re-upload flow
+    useEffect(() => {
+        const onSessionComplete = () => {
+            // If returning from a training session, could prompt for re-analysis
+            console.log('[HandHistoryUpload] Session complete event received');
+        };
+        window.addEventListener('training:session-complete', onSessionComplete);
+        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+    }, []);
+
     const handleFile = useCallback(async (file) => {
         if (!file) return;
         const text = await file.text();
@@ -242,6 +252,13 @@ export default function HandHistoryUploadPage() {
             withShowdown,
             avgPot: totalHands > 0 ? hands.reduce((s, h) => s + h.pot, 0) / totalHands : 0,
         });
+
+        // Bus Event — notify other pages that hand history was uploaded
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('training:hand-history-uploaded', {
+                detail: { totalHands, heroActions, withShowdown },
+            }));
+        }
 
         setIsAnalyzing(false);
     }, []);

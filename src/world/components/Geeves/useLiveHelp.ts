@@ -200,8 +200,11 @@ export function useLiveHelp() {
 
             const data = await response.json();
 
-            // Simulate brief typing delay for natural feel
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // Variable typing delay — KB answers feel instant, Grok feels thoughtful
+            const delayMs = data.fromLocalKB
+                ? Math.min(200 + (data.answer?.length || 0) * 0.5, 600)
+                : Math.min(300 + (data.answer?.length || 0) * 2, 2000);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
 
             // Add Geeves response
             const agentMessage: Message = {
@@ -212,7 +215,8 @@ export function useLiveHelp() {
                 isUser: false,
                 cacheId: data.cacheId || undefined,
                 fromCache: data.fromCache || false,
-            };
+                followUps: data.followUps || [],
+            } as any;
 
             setMessages(prev => [...prev, agentMessage]);
 

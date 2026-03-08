@@ -8,6 +8,7 @@ import { createClient } from '../../../src/lib/supabaseServerClient';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
+import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -55,18 +56,37 @@ export default async function handler(req, res) {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
-    // ── Auth: verify JWT identity (prevents unauthorized AI credit consumption) ──
+    // ── Parse body first (before auth, so KB can serve guests) ──
+    const { message, context, history } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ success: false, error: 'Message is required' });
+    }
+
+    // ── STEP 0: Check Local KB (FREE, instant, no auth needed) ──
+    const kbResult = lookupKnowledgeBase(message);
+    if (kbResult && kbResult.confidence >= 45) {
+        return res.status(200).json({
+            response: kbResult.answer,
+            message: kbResult.answer,
+            success: true,
+            fromLocalKB: true,
+            followUps: kbResult.followUps || [],
+        });
+    }
+
+    // ── Auth: required for cache + Grok tiers ──
     const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ success: false, error: 'Authentication required' });
+    if (!token) {
+        if (kbResult && kbResult.confidence >= 30) {
+            return res.status(200).json({ response: kbResult.answer, message: kbResult.answer, success: true, fromLocalKB: true, followUps: kbResult.followUps || [], guestMode: true });
+        }
+        return res.status(401).json({ success: false, error: 'Sign in for AI-powered answers' });
+    }
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     try {
-        const { message, context, history } = req.body;
-
-        if (!message) {
-            return res.status(400).json({ success: false, error: 'Message is required' });
-        }
 
         // ── STEP 1: Check cache before calling Grok ──
         const questionHash = hashQuestion(message);

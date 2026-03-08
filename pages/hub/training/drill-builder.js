@@ -7,16 +7,15 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const supabase = typeof window !== 'undefined'
+    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    : null;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DRILL PRESETS
@@ -121,23 +120,37 @@ export default function DrillBuilderPage() {
     const [saving, setSaving] = useState(false);
 
     // Load saved drills
-    useEffect(() => {
-        async function loadDrills() {
-            try {
-                const { data: userData } = await supabase.auth.getUser();
-                if (!userData?.user) return;
-                const { data } = await supabase
-                    .from('training_custom_drills')
-                    .select('*')
-                    .eq('user_id', userData.user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
-                if (data) setSavedDrills(data);
-            } catch (e) {
-                console.log('[DrillBuilder] No saved drills:', e.message);
-            }
+    const loadDrills = async () => {
+        if (!supabase) return;
+        try {
+            const { data: userData } = await supabase.auth.getUser();
+            if (!userData?.user) return;
+            const { data } = await supabase
+                .from('training_custom_drills')
+                .select('*')
+                .eq('user_id', userData.user.id)
+                .order('created_at', { ascending: false })
+                .limit(20);
+            if (data) setSavedDrills(data);
+        } catch (e) {
+            console.log('[DrillBuilder] No saved drills:', e.message);
         }
+    };
+
+    useEffect(() => {
         loadDrills();
+    }, []);
+
+    // Bus Listeners — refresh drills when session completes or drill saved elsewhere
+    useEffect(() => {
+        const onSessionComplete = () => loadDrills();
+        const onDrillSaved = () => loadDrills();
+        window.addEventListener('training:session-complete', onSessionComplete);
+        window.addEventListener('training:drill-saved', onDrillSaved);
+        return () => {
+            window.removeEventListener('training:session-complete', onSessionComplete);
+            window.removeEventListener('training:drill-saved', onDrillSaved);
+        };
     }, []);
 
     const togglePosition = (pos) => {
@@ -186,6 +199,10 @@ export default function DrillBuilderPage() {
             if (!error) {
                 setSavedDrills(prev => [{ name: drillName, config, created_at: new Date().toISOString() }, ...prev]);
                 setDrillName('');
+                // Bus Event — notify other pages
+                window.dispatchEvent(new CustomEvent('training:drill-saved', {
+                    detail: { name: drillName.trim(), config },
+                }));
             }
         } catch (e) {
             console.error('[DrillBuilder] Save error:', e);
