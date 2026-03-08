@@ -825,8 +825,30 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
 }
 
 /**
- * R3FScene — The component rendered inside the isolated React root.
- * Contains the Canvas and all 3D content.
+ * SceneContentWrapper — Wraps SceneContent with Suspense and quality state.
+ * Used by LobbyScene.jsx's R3F createRoot API (no Canvas component needed).
+ *
+ * When using R3F's createRoot API, we render this directly — it contains
+ * everything that was previously inside the <Canvas> component.
+ */
+export function SceneContentWrapper({ propsRef, initialQuality, isMobile }) {
+  const [quality, setQuality] = useState(initialQuality);
+
+  return (
+    <Suspense fallback={null}>
+      <SceneContent
+        propsRef={propsRef}
+        quality={quality}
+        setQuality={setQuality}
+        setDpr={() => {}} // DPR is managed by R3F root.configure() in LobbyScene.jsx
+      />
+    </Suspense>
+  );
+}
+
+/**
+ * R3FScene — Legacy Canvas-based component (kept for reference/fallback).
+ * The primary approach now uses R3F's createRoot API in LobbyScene.jsx.
  */
 export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
   const [quality, setQuality] = useState(initialQuality);
