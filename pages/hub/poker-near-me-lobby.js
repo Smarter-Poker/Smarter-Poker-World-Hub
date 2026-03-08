@@ -374,7 +374,6 @@ export default function PokerNearMeLobby() {
   const router = useRouter();
   const { user } = useAvatar();
   const userId = user?.id;
-  const avatarUrl = user?.user_metadata?.avatar_url;
 
   // 🚌 Bus — emit SESSION_START on mount, SESSION_END on unmount
   useTrainingBus('poker-near-me-lobby');
@@ -747,7 +746,11 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── GPS ───
+  const gpsErrorTimeoutRef = useRef(null);
   const handleGpsClick = useCallback(() => {
+    // Clear any pending error timeout from a previous click
+    if (gpsErrorTimeoutRef.current) clearTimeout(gpsErrorTimeoutRef.current);
+
     if (gpsActive) {
       setGpsActive(false);
       setUserLocation(null);
@@ -755,7 +758,7 @@ export default function PokerNearMeLobby() {
     }
     if (!navigator.geolocation) {
       setGpsError('GPS not supported on this device');
-      setTimeout(() => setGpsError(null), 3500);
+      gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -778,7 +781,7 @@ export default function PokerNearMeLobby() {
       (err) => {
         setGpsActive(false);
         setGpsError(err.code === 1 ? 'Location access denied' : 'Could not get location');
-        setTimeout(() => setGpsError(null), 3500);
+        gpsErrorTimeoutRef.current = setTimeout(() => setGpsError(null), 3500);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
