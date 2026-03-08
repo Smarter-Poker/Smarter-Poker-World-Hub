@@ -352,7 +352,7 @@ export function LiveHelpPanel({
                         </button>
                     </div>
                 </div>
-            </div >
+            </div>
         </div>
     );
 }
