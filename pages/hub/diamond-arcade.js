@@ -107,7 +107,7 @@ const GAME_CARD_STYLES = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function DiamondArcade() {
-    const { user } = useAvatar();
+    const [user, setUser] = useState(null);
     const userId = user?.id;
 
     const [mounted, setMounted] = useState(false);
@@ -136,12 +136,18 @@ export default function DiamondArcade() {
         animations: true
     });
 
+    // SSG-safe: load user client-side
+    useEffect(() => {
+        setMounted(true);
+        getSafeUser().then(u => { if (u) setUser(u); });
+    }, []);
+
     // Load preferences from Supabase on mount
     useEffect(() => {
         if (userId) {
             getDiamondArcadePreferences(userId).then(setPreferences);
         }
-    }, []);
+    }, [userId]);
 
     const updatePreference = useCallback(async (key, value) => {
         const newPrefs = { ...preferences, [key]: value };

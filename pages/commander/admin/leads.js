@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { ChevronLeft, Phone, Mail, MapPin, Search, Filter, ChevronDown, XCircle, Building2, MoreVertical } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
+import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 
 const STATUS_CONFIG = {
   new: { label: 'New', color: 'bg-blue-500', textColor: 'text-blue-400' },
@@ -26,6 +27,7 @@ const STATUS_CONFIG = {
 
 export default function LeadManagementPage() {
   useEffect(() => { busEmit.sessionStart('commander-admin-leads'); }, []);
+  const { broadcastChange } = useCommanderSync({ entities: ['leads'] });
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,7 @@ export default function LeadManagementPage() {
           prev.map((lead) => (lead.id === leadId ? { ...lead, status: newStatus } : lead))
         );
         setShowStatusMenu(null);
+        broadcastChange('leads');
       }
     } catch (err) {
       console.error('Failed to update status:', err);
@@ -78,12 +81,12 @@ export default function LeadManagementPage() {
 
   const filteredLeads = searchTerm
     ? leads.filter(
-        (lead) =>
-          lead.venue_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          lead.city.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      (lead) =>
+        lead.venue_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.city.toLowerCase().includes(searchTerm.toLowerCase())
+    )
     : leads;
 
   const totalLeads = Object.values(stats).reduce((a, b) => a + b, 0);
@@ -95,10 +98,10 @@ export default function LeadManagementPage() {
   return (
     <>
       <SEOHead
-                title="Commander — Leads"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Leads"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}
@@ -158,11 +161,10 @@ export default function LeadManagementPage() {
           <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                statusFilter === 'all'
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${statusFilter === 'all'
                   ? 'bg-[#1877F2] text-[#0F172A]'
                   : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
-              }`}
+                }`}
             >
               All ({totalLeads})
             </button>
@@ -170,11 +172,10 @@ export default function LeadManagementPage() {
               <button
                 key={key}
                 onClick={() => setStatusFilter(key)}
-                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${
-                  statusFilter === key
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${statusFilter === key
                     ? 'bg-[#1877F2] text-[#0F172A]'
                     : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
-                }`}
+                  }`}
               >
                 <span className={`w-2 h-2 rounded-full ${config.color}`} />
                 {config.label} ({stats[key] || 0})
@@ -225,84 +226,83 @@ export default function LeadManagementPage() {
                       const statusConfig = STATUS_CONFIG[lead.status] || STATUS_CONFIG.new;
                       return (
                         <CommanderLayout title="Lead Management" backHref="/commander/dashboard?card=reports">
-                        <tr
-                          key={lead.id}
-                          className="hover:bg-[#1E293B]/50 transition-colors cursor-pointer"
-                          onClick={() => setSelectedLead(lead)}
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-[#374151] rounded-lg flex items-center justify-center">
-                                <Building2 className="w-5 h-5 text-[#B0B3B8]" />
-                              </div>
-                              <div>
-                                <div className="font-medium text-white">{lead.venue_name}</div>
-                                <div className="text-sm text-[#B0B3B8]">
-                                  {lead.current_system || 'No current system'}
+                          <tr
+                            key={lead.id}
+                            className="hover:bg-[#1E293B]/50 transition-colors cursor-pointer"
+                            onClick={() => setSelectedLead(lead)}
+                          >
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-[#374151] rounded-lg flex items-center justify-center">
+                                  <Building2 className="w-5 h-5 text-[#B0B3B8]" />
+                                </div>
+                                <div>
+                                  <div className="font-medium text-white">{lead.venue_name}</div>
+                                  <div className="text-sm text-[#B0B3B8]">
+                                    {lead.current_system || 'No current system'}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="text-white">{lead.contact_name}</div>
-                            <div className="text-sm text-[#B0B3B8]">{lead.email}</div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1 text-[#94A3B8]">
-                              <MapPin className="w-4 h-4" />
-                              {lead.city}, {lead.state}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-[#94A3B8]">{lead.table_count || '-'}</td>
-                          <td className="px-4 py-3">
-                            <div className="relative">
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-white">{lead.contact_name}</div>
+                              <div className="text-sm text-[#B0B3B8]">{lead.email}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1 text-[#94A3B8]">
+                                <MapPin className="w-4 h-4" />
+                                {lead.city}, {lead.state}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-[#94A3B8]">{lead.table_count || '-'}</td>
+                            <td className="px-4 py-3">
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowStatusMenu(showStatusMenu === lead.id ? null : lead.id);
+                                  }}
+                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${statusConfig.color}/20 ${statusConfig.textColor}`}
+                                >
+                                  <span className={`w-2 h-2 rounded-full ${statusConfig.color}`} />
+                                  {statusConfig.label}
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                                {showStatusMenu === lead.id && (
+                                  <div className="absolute top-full left-0 mt-1 w-48 bg-[#1E293B] border border-[#374151] rounded-lg shadow-lg z-10">
+                                    {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                                      <button
+                                        key={key}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          updateLeadStatus(lead.id, key);
+                                        }}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[#374151] ${lead.status === key ? 'bg-[#374151]' : ''
+                                          }`}
+                                      >
+                                        <span className={`w-2 h-2 rounded-full ${config.color}`} />
+                                        <span className={config.textColor}>{config.label}</span>
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-[#B0B3B8] text-sm">
+                              {new Date(lead.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-3 text-right">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setShowStatusMenu(showStatusMenu === lead.id ? null : lead.id);
+                                  setSelectedLead(lead);
                                 }}
-                                className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${statusConfig.color}/20 ${statusConfig.textColor}`}
+                                className="text-[#B0B3B8] hover:text-white"
                               >
-                                <span className={`w-2 h-2 rounded-full ${statusConfig.color}`} />
-                                {statusConfig.label}
-                                <ChevronDown className="w-3 h-3" />
+                                <MoreVertical className="w-5 h-5" />
                               </button>
-                              {showStatusMenu === lead.id && (
-                                <div className="absolute top-full left-0 mt-1 w-48 bg-[#1E293B] border border-[#374151] rounded-lg shadow-lg z-10">
-                                  {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                    <button
-                                      key={key}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        updateLeadStatus(lead.id, key);
-                                      }}
-                                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-[#374151] ${
-                                        lead.status === key ? 'bg-[#374151]' : ''
-                                      }`}
-                                    >
-                                      <span className={`w-2 h-2 rounded-full ${config.color}`} />
-                                      <span className={config.textColor}>{config.label}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-[#B0B3B8] text-sm">
-                            {new Date(lead.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedLead(lead);
-                              }}
-                              className="text-[#B0B3B8] hover:text-white"
-                            >
-                              <MoreVertical className="w-5 h-5" />
-                            </button>
-                          </td>
-                        </tr>
+                            </td>
+                          </tr>
                         </CommanderLayout>
                       );
                     })}
@@ -402,11 +402,10 @@ export default function LeadManagementPage() {
                               updateLeadStatus(selectedLead.id, key);
                               setSelectedLead((prev) => ({ ...prev, status: key }));
                             }}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
-                              selectedLead.status === key
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${selectedLead.status === key
                                 ? `${config.color}/20 border-current ${config.textColor}`
                                 : 'border-[#374151] text-[#94A3B8] hover:text-white hover:border-[#B0B3B8]'
-                            }`}
+                              }`}
                           >
                             <span className={`w-2 h-2 rounded-full ${config.color}`} />
                             <span className="text-sm">{config.label}</span>

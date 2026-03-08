@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, MapPin, Calendar, Target, Award } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
+import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6
 const SUCCESS_CRITERIA = {
@@ -30,6 +31,7 @@ const TARGET_REGIONS = [
 
 export default function PilotVenuesPage() {
   useEffect(() => { busEmit.sessionStart('commander-admin-pilots'); }, []);
+  useCommanderSync({ entities: ['pilots'] });
   const [pilots, setPilots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -72,17 +74,17 @@ export default function PilotVenuesPage() {
   const avgTickets =
     activePilots.length > 0
       ? activePilots.reduce((sum, p) => sum + (p.support_tickets_count || 0), 0) /
-        activePilots.length
+      activePilots.length
       : 0;
   const avgSatisfaction =
     activePilots.length > 0
       ? activePilots.reduce((sum, p) => sum + (p.staff_satisfaction_score || 0), 0) /
-        activePilots.length
+      activePilots.length
       : 0;
   const avgAdoption =
     activePilots.length > 0
       ? activePilots.reduce((sum, p) => sum + (p.player_adoption_percentage || 0), 0) /
-        activePilots.length
+      activePilots.length
       : 0;
 
   function getMetricStatus(metric, value) {
@@ -97,10 +99,10 @@ export default function PilotVenuesPage() {
   return (
     <>
       <SEOHead
-                title="Commander — Pilots"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+        title="Commander — Pilots"
+        description="Club Commander Poker Room Management Tool."
+        noindex={true}
+      />
 
       <div className="cmd-page min-h-screen">
         {/* Header */}
@@ -185,23 +187,22 @@ export default function PilotVenuesPage() {
                 const progress = (current / region.target) * 100;
                 return (
                   <CommanderLayout title="Pilot Venues" backHref="/commander/dashboard?card=reports">
-                  <div key={region.id} className="bg-[#1E293B] rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-medium">{region.region}</span>
-                      <span className="text-sm text-[#B0B3B8]">
-                        {current}/{region.target}
-                      </span>
+                    <div key={region.id} className="bg-[#1E293B] rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white font-medium">{region.region}</span>
+                        <span className="text-sm text-[#B0B3B8]">
+                          {current}/{region.target}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-[#374151] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${progress >= 100 ? 'bg-green-500' : 'bg-[#1877F2]'
+                            }`}
+                          style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-[#B0B3B8] mt-2">{region.description}</p>
                     </div>
-                    <div className="h-2 bg-[#374151] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all ${
-                          progress >= 100 ? 'bg-green-500' : 'bg-[#1877F2]'
-                        }`}
-                        style={{ width: `${Math.min(progress, 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-[#B0B3B8] mt-2">{region.description}</p>
-                  </div>
                   </CommanderLayout>
                 );
               })}
@@ -215,9 +216,8 @@ export default function PilotVenuesPage() {
               </div>
               <div className="h-3 bg-[#374151] rounded-full overflow-hidden mt-2">
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    activePilots.length >= 5 ? 'bg-green-500' : 'bg-[#1877F2]'
-                  }`}
+                  className={`h-full rounded-full transition-all ${activePilots.length >= 5 ? 'bg-green-500' : 'bg-[#1877F2]'
+                    }`}
                   style={{ width: `${(activePilots.length / 5) * 100}%` }}
                 />
               </div>
@@ -268,13 +268,12 @@ export default function PilotVenuesPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            pilot.status === 'active'
+                          className={`px-2 py-1 rounded text-xs font-medium ${pilot.status === 'active'
                               ? 'bg-green-500/20 text-green-400'
                               : pilot.status === 'completed'
-                              ? 'bg-blue-500/20 text-blue-400'
-                              : 'bg-gray-500/20 text-gray-400'
-                          }`}
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-gray-500/20 text-gray-400'
+                            }`}
                         >
                           {pilot.status}
                         </span>
@@ -426,9 +425,8 @@ function ChecklistItem({ checked, label, description }) {
   return (
     <div className="flex items-start gap-3">
       <div
-        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-          checked ? 'bg-green-500/20' : 'bg-[#374151]'
-        }`}
+        className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${checked ? 'bg-green-500/20' : 'bg-[#374151]'
+          }`}
       >
         {checked ? (
           <CheckCircle className="w-4 h-4 text-green-400" />
