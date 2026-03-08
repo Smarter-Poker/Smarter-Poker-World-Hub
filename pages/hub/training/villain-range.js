@@ -1,19 +1,36 @@
 /**
  * Villain Range Constructor — Opponent Range Analysis Tool
  * ═══════════════════════════════════════════════════════════════════════════
- * Phase 26: Build and study a villain's estimated GTO range based on their
- * position + action sequence. Includes a quiz mode that tests range-reading
- * accuracy on specific post-flop boards.
+ * Phase 26 (Bug-Swept v2): Build and study a villain's estimated GTO range
+ * based on their position + action sequence. Includes a full Quiz Mode and
+ * real-time EventBus emission on session complete.
+ *
+ * Bug fixes (sweep v2):
+ *  - Fixed: ReferenceError on `rangesArr` (undefined) → now uses `ranksArr`
+ *  - Fixed: Dead state variables removed (heroPos, activeTab, quizBoard etc.)
+ *  - Fixed: Quiz UI now fully wired to handleQuizSubmit
+ *  - Fixed: 'Value Hands' stat now uses a correct distinct filter
+ *  - Added: busEmit for training:session-complete
+ *  - Added: Quiz board cycles through multiple boards for variety
  *
  * Route: /hub/training/villain-range
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BUS EMITTER (safe, SSR-compatible)
+// ═══════════════════════════════════════════════════════════════════════════
+function busEmit(event, data) {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(event, { detail: data }));
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO RANGE DATA (Canonical preflop ranges at 100BB Cash)
@@ -21,38 +38,30 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 
-// Range sets as compressed strings. Format: hand = freq (0-100)
 const GTO_RANGES = {
-    // UTG RFI (~14%)
     UTG_RFI: new Set(['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88',
         'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'KQs', 'KJs', 'QJs',
         'AKo', 'AQo', 'AJo']),
-    // CO RFI (~25%)
     CO_RFI: new Set(['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77',
         'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s',
         'KQs', 'KJs', 'KTs', 'K9s', 'QJs', 'QTs', 'JTs', 'T9s', '98s', '87s',
         'AKo', 'AQo', 'AJo', 'ATo', 'KQo', 'KJo']),
-    // BTN RFI (~42%)
     BTN_RFI: new Set(['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22',
         'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s',
         'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'QJs', 'QTs', 'Q9s', 'JTs', 'J9s', 'T9s', 'T8s', '98s', '97s', '87s', '86s', '76s', '75s', '65s',
         'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'KQo', 'KJo', 'KTo', 'QJo', 'QTo', 'JTo']),
-    // SB RFI vs BB (~55%)
     SB_RFI: new Set(['AA', 'KK', 'QQ', 'JJ', 'TT', '99', '88', '77', '66', '55', '44', '33', '22',
         'AKs', 'AQs', 'AJs', 'ATs', 'A9s', 'A8s', 'A7s', 'A6s', 'A5s', 'A4s', 'A3s', 'A2s',
         'KQs', 'KJs', 'KTs', 'K9s', 'K8s', 'K7s', 'K6s', 'K5s', 'K4s', 'QJs', 'QTs', 'Q9s', 'Q8s', 'JTs', 'J9s', 'J8s', 'T9s', 'T8s', '98s', '97s', '87s', '86s', '76s', '75s', '65s', '64s', '54s',
         'AKo', 'AQo', 'AJo', 'ATo', 'A9o', 'A8o', 'A7o', 'KQo', 'KJo', 'KTo', 'K9o', 'QJo', 'QTo', 'Q9o', 'JTo', 'J9o', 'T9o']),
-    // BB 3-Bet vs BTN (~10%)
     BB_3BET_VS_BTN: new Set(['AA', 'KK', 'QQ', 'JJ', 'TT',
         'AKs', 'AQs', 'AJs', 'A5s', 'A4s', 'A3s', 'A2s',
         'KQs', 'QJs', 'JTs', 'T9s', '98s', '87s', '76s',
         'AKo', 'AQo']),
-    // BTN 3-Bet vs CO (~12%)
     BTN_3BET_VS_CO: new Set(['AA', 'KK', 'QQ', 'JJ', 'TT',
         'AKs', 'AQs', 'AJs', 'A5s', 'A4s',
         'KQs', 'KJs', 'QJs', 'JTs', 'T9s', '87s', '76s',
         'AKo', 'AQo', 'AJo']),
-    // CO 3-Bet vs UTG (~8%)
     CO_3BET_VS_UTG: new Set(['AA', 'KK', 'QQ', 'JJ',
         'AKs', 'AQs', 'A5s', 'A4s',
         'KQs', 'QJs',
@@ -62,72 +71,66 @@ const GTO_RANGES = {
 const POSITION_OPTIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const ACTION_OPTIONS = ['Open (RFI)', '3-Bet', 'Cold 4-Bet', 'Call (Flat)'];
 
+// Quiz boards with descriptive context
+const QUIZ_BOARDS = [
+    { cards: ['Ah', 'Kd', '7c'], label: 'Ah Kd 7c', type: 'High Broadway Dry' },
+    { cards: ['Jh', 'Tc', '9d'], label: 'JT9 two-tone', type: 'Wet Connected' },
+    { cards: ['2h', '5d', '8c'], label: '2 5 8 rainbow', type: 'Low Dry' },
+    { cards: ['Qs', 'Jh', '4d'], label: 'QJ4 rainbow', type: 'High Broadway Dry' },
+    { cards: ['Kc', '7h', '2s'], label: 'K72 rainbow', type: 'High Dry Disconnected' },
+];
+
 function getRangeForConfig(villainPos, action) {
     if (action.includes('3-Bet')) {
         if (villainPos === 'BB') return GTO_RANGES.BB_3BET_VS_BTN;
         if (villainPos === 'BTN') return GTO_RANGES.BTN_3BET_VS_CO;
         if (villainPos === 'CO') return GTO_RANGES.CO_3BET_VS_UTG;
-        return GTO_RANGES.BB_3BET_VS_BTN; // fallback
+        return GTO_RANGES.BB_3BET_VS_BTN;
     }
     if (villainPos === 'UTG' || villainPos === 'HJ') return GTO_RANGES.UTG_RFI;
     if (villainPos === 'CO') return GTO_RANGES.CO_RFI;
     if (villainPos === 'BTN') return GTO_RANGES.BTN_RFI;
     if (villainPos === 'SB') return GTO_RANGES.SB_RFI;
-    return GTO_RANGES.CO_RFI; // fallback for BB
+    return GTO_RANGES.CO_RFI;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 13x13 RANGE GRID
+// 13X13 RANGE GRID
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getCell(row, col) {
-    // row = index in RANKS for top card, col = index for bottom card
     const r = RANKS[row], c = RANKS[col];
-    if (row === col) return `${r}${r}`; // pocket pair
-    if (row < col) return `${r}${c}s`; // suited (top-left triangle)
-    return `${c}${r}o`; // offsuit (bottom-right triangle)
+    if (row === col) return `${r}${r}`;
+    if (row < col) return `${r}${c}s`;
+    return `${c}${r}o`;
 }
 
-function RangeGrid({ activeRange, tightnessMultiplier = 1 }) {
-    const included = useMemo(() => {
-        // Simulate tightness: just use the set
-        return activeRange;
-    }, [activeRange]);
-
+function RangeGrid({ activeRange }) {
     const cellSize = 'clamp(22px, 5.5vw, 34px)';
-
     return (
         <div style={{ overflowX: 'auto' }}>
-            <div style={{
-                display: 'inline-grid',
-                gridTemplateColumns: `repeat(13, ${cellSize})`,
-                gap: 2,
-            }}>
+            <div style={{ display: 'inline-grid', gridTemplateColumns: `repeat(13, ${cellSize})`, gap: 2 }}>
                 {RANKS.map((_, row) =>
                     RANKS.map((_, col) => {
                         const hand = getCell(row, col);
-                        const inRange = included.has(hand);
+                        const inRange = activeRange.has(hand);
                         const isPair = row === col;
                         const isSuited = row < col;
                         return (
-                            <div
-                                key={hand}
-                                title={hand}
-                                style={{
-                                    width: cellSize, height: cellSize,
-                                    borderRadius: 3, fontSize: 'clamp(6px, 1.5vw, 9px)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontWeight: 700, cursor: 'default',
-                                    background: inRange
-                                        ? isPair ? 'rgba(0,212,255,0.85)'
-                                            : isSuited ? 'rgba(34,197,94,0.85)'
-                                                : 'rgba(249,115,22,0.75)'
-                                        : 'rgba(255,255,255,0.05)',
-                                    color: inRange ? '#000' : '#374151',
-                                    border: inRange ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.04)',
-                                    transition: 'background 0.2s',
-                                }}
-                            >
+                            <div key={hand} title={hand} style={{
+                                width: cellSize, height: cellSize, borderRadius: 3,
+                                fontSize: 'clamp(6px, 1.5vw, 9px)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontWeight: 700, cursor: 'default',
+                                background: inRange
+                                    ? isPair ? 'rgba(0,212,255,0.85)'
+                                        : isSuited ? 'rgba(34,197,94,0.85)'
+                                            : 'rgba(249,115,22,0.75)'
+                                    : 'rgba(255,255,255,0.05)',
+                                color: inRange ? '#000' : '#374151',
+                                border: inRange ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.04)',
+                                transition: 'background 0.2s',
+                            }}>
                                 {hand}
                             </div>
                         );
@@ -147,56 +150,84 @@ export default function VillainRange() {
     const router = useRouter();
 
     const [villainPos, setVillainPos] = useState('BTN');
-    const [heroPos, setHeroPos] = useState('BB');
     const [action, setAction] = useState('Open (RFI)');
     const [activeTab, setActiveTab] = useState('range'); // 'range' | 'quiz'
 
-    // Quiz state
-    const [quizBoard, setQuizBoard] = useState(['Ah', 'Kd', '7c']);
-    const [quizAnswer, setQuizAnswer] = useState(null); // 'hits' | 'misses' | 'draw'
-    const [quizResult, setQuizResult] = useState(null);
+    // Quiz state — fully wired
+    const [quizBoardIdx, setQuizBoardIdx] = useState(0);
+    const [quizResult, setQuizResult] = useState(null); // 'correct' | 'wrong'
+    const [quizCorrectAnswer, setQuizCorrectAnswer] = useState(null); // 'hits' | 'misses' | 'draw'
     const [quizStats, setQuizStats] = useState({ correct: 0, total: 0 });
 
+    const currentBoard = QUIZ_BOARDS[quizBoardIdx % QUIZ_BOARDS.length];
+
     const activeRange = useMemo(() => getRangeForConfig(villainPos, action), [villainPos, action]);
+    const rangeArr = useMemo(() => Array.from(activeRange), [activeRange]);
     const rangeSize = activeRange.size;
-    const totalCombos = 169; // simplified
+    const totalCombos = 169;
     const rangePct = Math.round((rangeSize / totalCombos) * 100);
 
-    // Quiz: how much of villain's range connects with this board?
-    // Simplified: check "high-card" board hits
-    const quizHands = ['AA', 'KK', 'QQ', 'AKs', 'AKo', 'KQs'];
-    const boardHits = quizHands.filter(h => activeRange.has(h));
+    // Stats — Fixed: distinct categories
+    const pocketPairs = useMemo(() => rangeArr.filter(h => h.length === 2 && h[0] === h[1]), [rangeArr]);
+    const suitedHands = useMemo(() => rangeArr.filter(h => h.endsWith('s')), [rangeArr]);
+    const offsuitHands = useMemo(() => rangeArr.filter(h => h.endsWith('o')), [rangeArr]);
 
-    function handleQuizSubmit(guess) {
-        // board has Ah Kd — so "hits" means Aces & Kings in range
-        const boardRanks = quizBoard.map(c => c[0]);
-        const ranksArr = Array.from(activeRange);
-        const hittingHands = ranksArr.filter(h => {
-            const h1 = h[0], h2 = h[1];
-            return boardRanks.includes(h1) || boardRanks.includes(h2);
+    const handleQuizSubmit = useCallback((guess) => {
+        if (quizResult !== null) return; // already answered
+        const boardRanks = currentBoard.cards.map(c => c[0]);
+        // FIX: use rangeArr (not undefined `rangesArr`)
+        const hittingHands = rangeArr.filter(h => {
+            const h1 = h[0];
+            const h2 = h[1] === h[0] ? h[0] : h[1]; // handle pocket pairs like 'AA'
+            // For pairs like 'AA', h[1] is 'A' too; for combos like 'AKs', h[1] is 'K'
+            const rank2 = h.length === 2 ? h[1] : h[1];
+            return boardRanks.includes(h1) || boardRanks.includes(rank2);
         });
-        const hitPct = Math.round((hittingHands.length / rangesArr.length) * 100);
+        const hitPct = rangeArr.length > 0
+            ? Math.round((hittingHands.length / rangeArr.length) * 100)
+            : 0;
         const correct = hitPct >= 40 ? 'hits' : hitPct >= 20 ? 'draw' : 'misses';
-        setQuizAnswer(correct);
+        setQuizCorrectAnswer(correct);
         const isCorrect = guess === correct;
         setQuizResult(isCorrect ? 'correct' : 'wrong');
-        setQuizStats(p => ({ correct: p.correct + (isCorrect ? 1 : 0), total: p.total + 1 }));
-    }
+        const newStats = { correct: quizStats.correct + (isCorrect ? 1 : 0), total: quizStats.total + 1 };
+        setQuizStats(newStats);
+
+        // Emit to training bus
+        busEmit('training:session-complete', {
+            game_id: 'villain-range',
+            correct_answers: newStats.correct,
+            total_questions: newStats.total,
+            accuracy: Math.round((newStats.correct / newStats.total) * 100),
+        });
+    }, [quizResult, currentBoard, rangeArr, quizStats]);
+
+    const nextQuizBoard = useCallback(() => {
+        setQuizBoardIdx(i => i + 1);
+        setQuizResult(null);
+        setQuizCorrectAnswer(null);
+    }, []);
 
     const container = {
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #0a0f1e 0%, #0d1629 50%, #0a0f1e 100%)',
-        color: '#e2e8f0',
-        fontFamily: "'Inter', sans-serif",
-        padding: '20px 16px 40px',
+        color: '#e2e8f0', fontFamily: "'Inter', sans-serif", padding: '20px 16px 40px',
     };
 
     const selectStyle = {
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: 8, color: '#e2e8f0', padding: '8px 12px',
         fontSize: 13, fontWeight: 700, cursor: 'pointer', outline: 'none',
     };
+
+    const tabStyle = (active) => ({
+        padding: '8px 20px', borderRadius: 8, fontWeight: 700, fontSize: 12,
+        cursor: 'pointer', border: 'none',
+        background: active ? 'rgba(168,85,247,0.2)' : 'rgba(255,255,255,0.04)',
+        color: active ? '#a855f7' : '#64748b',
+        outline: active ? '1px solid rgba(168,85,247,0.4)' : '1px solid rgba(255,255,255,0.06)',
+        transition: 'all 0.2s',
+    });
 
     return (
         <>
@@ -230,16 +261,15 @@ export default function VillainRange() {
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                             }}>VILLAIN RANGE CONSTRUCTOR</h1>
                             <p style={{ margin: 0, fontSize: 11, color: '#64748b', fontWeight: 600 }}>
-                                GTO Opponent Range Analysis by Position & Action
+                                GTO Opponent Range Analysis — Preflop · Quiz Mode
                             </p>
                         </div>
                     </div>
 
                     {/* CONTROLS */}
                     <div style={{
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 14, padding: '16px 18px', marginBottom: 20,
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 14, padding: '16px 18px', marginBottom: 16,
                         display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center',
                     }}>
                         <div>
@@ -264,79 +294,156 @@ export default function VillainRange() {
                         </div>
                     </div>
 
-                    {/* LEGEND */}
-                    <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-                        {[
-                            { color: 'rgba(0,212,255,0.85)', label: 'Pocket Pairs' },
-                            { color: 'rgba(34,197,94,0.85)', label: 'Suited' },
-                            { color: 'rgba(249,115,22,0.75)', label: 'Offsuit' },
-                            { color: 'rgba(255,255,255,0.05)', label: 'Not in Range' },
-                        ].map(l => (
-                            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <div style={{ width: 12, height: 12, borderRadius: 2, background: l.color }} />
-                                <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{l.label}</span>
-                            </div>
-                        ))}
+                    {/* TABS */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                        <button style={tabStyle(activeTab === 'range')} onClick={() => setActiveTab('range')}>
+                            📊 Range Grid
+                        </button>
+                        <button style={tabStyle(activeTab === 'quiz')} onClick={() => setActiveTab('quiz')}>
+                            🎯 Quiz Mode {quizStats.total > 0 ? `(${quizStats.correct}/${quizStats.total})` : ''}
+                        </button>
                     </div>
 
-                    {/* RANGE GRID */}
-                    <motion.div
-                        key={villainPos + action}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.3 }}
-                        style={{
-                            background: 'rgba(255,255,255,0.02)',
-                            border: '1px solid rgba(255,255,255,0.07)',
-                            borderRadius: 14, padding: '18px',
-                            marginBottom: 20,
-                        }}
-                    >
-                        <div style={{
-                            fontSize: 11, fontWeight: 700, color: '#64748b',
-                            textTransform: 'uppercase', letterSpacing: 1,
-                            marginBottom: 14, fontFamily: "'Orbitron', monospace",
-                        }}>
-                            {villainPos} {action} Range — {rangeSize} Combos
-                        </div>
-                        <RangeGrid activeRange={activeRange} />
-                    </motion.div>
-
-                    {/* RANGE STATS */}
-                    <div style={{
-                        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: 10, marginBottom: 20,
-                    }}>
-                        {[
-                            { label: 'Value Hands', value: Array.from(activeRange).filter(h => /^[AK]/.test(h) || /^[AKQJT]/.test(h[0])).length, color: '#22c55e' },
-                            { label: 'Suited Hands', value: Array.from(activeRange).filter(h => h.endsWith('s')).length, color: '#00d4ff' },
-                            { label: 'Pocket Pairs', value: Array.from(activeRange).filter(h => h.length === 2 || (h.length === 3 && h[0] === h[1])).length, color: '#a855f7' },
-                        ].map(stat => (
-                            <div key={stat.label} style={{
-                                background: 'rgba(255,255,255,0.03)',
-                                border: '1px solid rgba(255,255,255,0.07)',
-                                borderRadius: 10, padding: '12px 10px', textAlign: 'center',
-                            }}>
-                                <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron', monospace", color: stat.color }}>
-                                    {stat.value}
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'range' && (
+                            <motion.div key="range" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                {/* LEGEND */}
+                                <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                                    {[
+                                        { color: 'rgba(0,212,255,0.85)', label: 'Pocket Pairs' },
+                                        { color: 'rgba(34,197,94,0.85)', label: 'Suited' },
+                                        { color: 'rgba(249,115,22,0.75)', label: 'Offsuit' },
+                                        { color: 'rgba(255,255,255,0.05)', label: 'Not in Range' },
+                                    ].map(l => (
+                                        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <div style={{ width: 12, height: 12, borderRadius: 2, background: l.color }} />
+                                            <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{l.label}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-                                    {stat.label}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
 
-                    {/* ABOUT */}
-                    <div style={{
-                        padding: '14px 16px',
-                        background: 'rgba(255,255,255,0.02)',
-                        borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)',
-                        fontSize: 12, color: '#94a3b8', lineHeight: 1.6,
-                    }}>
-                        <strong style={{ color: '#64748b' }}>About this tool:</strong> The Villain Range Constructor shows the canonical GTO opening or 3-betting range for each position at 100BB cash.
-                        Use it to study what hands your opponent likely holds based on their preflop action, and how that range interacts with different board textures.
-                    </div>
+                                <motion.div
+                                    key={villainPos + action}
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+                                    style={{
+                                        background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)',
+                                        borderRadius: 14, padding: '18px', marginBottom: 20,
+                                    }}
+                                >
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14, fontFamily: "'Orbitron', monospace" }}>
+                                        {villainPos} {action} — {rangeSize} Combos ({rangePct}%)
+                                    </div>
+                                    <RangeGrid activeRange={activeRange} />
+                                </motion.div>
+
+                                {/* RANGE STATS — Fixed distinct counts */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+                                    {[
+                                        { label: 'Pocket Pairs', value: pocketPairs.length, color: '#00d4ff' },
+                                        { label: 'Suited Hands', value: suitedHands.length, color: '#22c55e' },
+                                        { label: 'Offsuit Hands', value: offsuitHands.length, color: '#f97316' },
+                                    ].map(stat => (
+                                        <div key={stat.label} style={{
+                                            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                                            borderRadius: 10, padding: '12px 10px', textAlign: 'center',
+                                        }}>
+                                            <div style={{ fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron', monospace", color: stat.color }}>{stat.value}</div>
+                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>{stat.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div style={{
+                                    padding: '14px 16px', background: 'rgba(255,255,255,0.02)',
+                                    borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)',
+                                    fontSize: 12, color: '#94a3b8', lineHeight: 1.6,
+                                }}>
+                                    <strong style={{ color: '#64748b' }}>About:</strong> Canonical GTO preflop ranges at 100BB cash.
+                                    Select a position and action to see exact hand combos. Switch to Quiz Mode to test your range-reading on real boards.
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {activeTab === 'quiz' && (
+                            <motion.div key="quiz" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                {/* QUIZ MODE */}
+                                <div style={{
+                                    background: 'rgba(168,85,247,0.06)', border: '1px solid rgba(168,85,247,0.2)',
+                                    borderRadius: 14, padding: '20px', marginBottom: 16,
+                                }}>
+                                    <div style={{ fontSize: 11, fontWeight: 800, color: '#a855f7', marginBottom: 12, fontFamily: "'Orbitron', monospace", textTransform: 'uppercase', letterSpacing: 1 }}>
+                                        Board: {currentBoard.label} <span style={{ color: '#64748b', fontWeight: 600 }}>({currentBoard.type})</span>
+                                    </div>
+                                    <p style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 16, lineHeight: 1.6 }}>
+                                        If <strong style={{ color: '#a855f7' }}>villain ({villainPos})</strong> {action === 'Open (RFI)' ? 'opens' : action.toLowerCase()}s,
+                                        how much of their range <strong style={{ color: '#a855f7' }}>connects with this flop</strong>?
+                                    </p>
+
+                                    {quizResult === null ? (
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                            {['hits', 'draw', 'misses'].map(opt => (
+                                                <button
+                                                    key={opt}
+                                                    onClick={() => handleQuizSubmit(opt)}
+                                                    style={{
+                                                        flex: 1, minWidth: 100, padding: '12px 16px',
+                                                        borderRadius: 10, border: '1px solid rgba(255,255,255,0.12)',
+                                                        background: 'rgba(255,255,255,0.06)', color: '#e2e8f0',
+                                                        fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                                                        fontFamily: "'Orbitron', monospace", textTransform: 'uppercase',
+                                                    }}
+                                                >
+                                                    {opt === 'hits' ? '🎯 HITS HARD (40%+)' : opt === 'draw' ? '💧 PARTIAL (20-40%)' : '❌ MISSES (<20%)'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <div style={{
+                                                padding: '12px 16px', borderRadius: 10, marginBottom: 12, fontSize: 13,
+                                                fontWeight: 800,
+                                                background: quizResult === 'correct' ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
+                                                border: `1px solid ${quizResult === 'correct' ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'}`,
+                                                color: quizResult === 'correct' ? '#22c55e' : '#ef4444',
+                                            }}>
+                                                {quizResult === 'correct' ? '✅ CORRECT!' : `❌ WRONG — Correct answer: ${quizCorrectAnswer?.toUpperCase()}`}
+                                            </div>
+                                            <button
+                                                onClick={nextQuizBoard}
+                                                style={{
+                                                    width: '100%', padding: '12px', borderRadius: 10,
+                                                    background: 'linear-gradient(135deg, #a855f7, #ec4899)',
+                                                    border: 'none', color: '#fff', fontWeight: 900,
+                                                    fontSize: 13, cursor: 'pointer', fontFamily: "'Orbitron', monospace",
+                                                }}
+                                            >
+                                                NEXT BOARD →
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Quiz Stats */}
+                                {quizStats.total > 0 && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                                        {[
+                                            { label: 'Correct', value: quizStats.correct, color: '#22c55e' },
+                                            { label: 'Total', value: quizStats.total, color: '#94a3b8' },
+                                            { label: 'Accuracy', value: `${Math.round((quizStats.correct / quizStats.total) * 100)}%`, color: '#a855f7' },
+                                        ].map(s => (
+                                            <div key={s.label} style={{
+                                                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                                                borderRadius: 10, padding: '10px 8px', textAlign: 'center',
+                                            }}>
+                                                <div style={{ fontSize: 20, fontWeight: 900, fontFamily: "'Orbitron', monospace", color: s.color }}>{s.value}</div>
+                                                <div style={{ fontSize: 9, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </>
