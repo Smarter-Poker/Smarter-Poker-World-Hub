@@ -410,10 +410,9 @@ export default function HamburgerMenu({
                 {/* Menu Items */}
                 <div style={{ flex: 1 }}>
                     {menuItems.map((item, index) => renderMenuItem(item, index))}
+                    {/* Geeves AI Help Widget — Inline in menu */}
+                    <GeevesMenuWidget />
                 </div>
-
-                {/* Geeves AI Help Widget */}
-                <GeevesMenuWidget />
 
                 {/* Bottom Links */}
                 {bottomLinks.length > 0 && (

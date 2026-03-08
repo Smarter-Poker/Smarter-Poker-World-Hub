@@ -1087,6 +1087,107 @@ export default function TrainingPage() {
                             }}
                         />
 
+                        {/* Hand of the Day Challenge */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            style={{
+                                background: 'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(251,146,60,0.04) 100%)',
+                                border: '1px solid rgba(251,191,36,0.2)',
+                                borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+                                cursor: 'pointer',
+                            }}
+                            whileHover={{ scale: 1.01, y: -2 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={() => {
+                                // Start daily challenge — load first GTO game with daily flag
+                                const dailyGame = TRAINING_LIBRARY.find(g => g.id === 'cash-preflop') || TRAINING_LIBRARY[0];
+                                if (dailyGame) {
+                                    setActiveGame({ ...dailyGame, dailyChallenge: true });
+                                    setShowArena(true);
+                                }
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div>
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#fbbf24', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>
+                                        HAND OF THE DAY
+                                    </div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 2 }}>
+                                        Daily GTO Challenge
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                                        Solve today's hand and earn bonus diamonds
+                                    </div>
+                                </div>
+                                <div style={{
+                                    width: 44, height: 44, borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #fbbf24, #f97316)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    boxShadow: '0 0 20px rgba(251,191,36,0.3)',
+                                }}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                                        <polygon points="5 3 19 12 5 21 5 3" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Proactive Jarvis Insights */}
+                        {sessionHistory?.length > 0 && (() => {
+                            // Analyze recent sessions for insights
+                            const insights = [];
+                            const recentMistakes = sessionHistory.filter(h => h.classification && h.classification !== 'best' && h.classification !== 'correct');
+                            const mistakeRate = sessionHistory.length > 0 ? (recentMistakes.length / sessionHistory.length) * 100 : 0;
+
+                            if (mistakeRate > 50) {
+                                insights.push({ text: 'Focus on fundamentals today. Your recent accuracy needs improvement.', color: '#ef4444' });
+                            } else if (mistakeRate < 20 && sessionHistory.length >= 10) {
+                                insights.push({ text: 'Excellent accuracy! Try increasing difficulty for more challenge.', color: '#22c55e' });
+                            }
+
+                            // Check for position weakness
+                            const posLosses = {};
+                            sessionHistory.forEach(h => {
+                                const pos = h.handData?.heroPosition;
+                                if (pos && h.evLoss > 0) {
+                                    posLosses[pos] = (posLosses[pos] || 0) + h.evLoss;
+                                }
+                            });
+                            const worstPos = Object.entries(posLosses).sort(([, a], [, b]) => b - a)[0];
+                            if (worstPos && worstPos[1] > 2) {
+                                insights.push({ text: `Work on ${worstPos[0]} play — you leak ${worstPos[1].toFixed(1)} BB from that position.`, color: '#fbbf24' });
+                            }
+
+                            if (insights.length === 0) return null;
+
+                            return (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                    style={{
+                                        background: 'rgba(0,212,255,0.04)',
+                                        border: '1px solid rgba(0,212,255,0.15)',
+                                        borderRadius: 12, padding: '14px 16px', marginBottom: 16,
+                                    }}
+                                >
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#00d4ff', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
+                                        JARVIS INSIGHTS
+                                    </div>
+                                    {insights.map((insight, i) => (
+                                        <div key={i} style={{
+                                            fontSize: 12, color: '#e2e8f0', marginBottom: i < insights.length - 1 ? 6 : 0,
+                                            paddingLeft: 12, borderLeft: `2px solid ${insight.color}`,
+                                        }}>
+                                            {insight.text}
+                                        </div>
+                                    ))}
+                                </motion.div>
+                            );
+                        })()}
+
                         {/* Quick Links Icon Strip */}
                         <motion.div
                             style={gamificationNavStyles.container}

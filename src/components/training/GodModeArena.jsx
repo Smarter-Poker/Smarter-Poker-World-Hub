@@ -178,6 +178,37 @@ function HandHistoryRow({ entry, index }) {
                                 }}>PIO DATA</span>
                             </div>
                         )}
+                        {/* Enhanced Replay: Pot, Stack, Street, GTO Frequencies */}
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 6 }}>
+                            {handData.pot > 0 && (
+                                <span style={{ fontSize: 10, color: '#64748b' }}>
+                                    Pot: <strong style={{ color: '#fbbf24' }}>{handData.pot} BB</strong>
+                                </span>
+                            )}
+                            {handData.stackDepth > 0 && (
+                                <span style={{ fontSize: 10, color: '#64748b' }}>
+                                    Stack: <strong style={{ color: '#e2e8f0' }}>{handData.stackDepth} BB</strong>
+                                </span>
+                            )}
+                            {handData.street && (
+                                <span style={{ fontSize: 10, color: '#64748b' }}>
+                                    Street: <strong style={{ color: '#e2e8f0' }}>{handData.street}</strong>
+                                </span>
+                            )}
+                        </div>
+                        {/* GTO Frequency breakdown if available */}
+                        {entry.gtoFrequencies && Object.keys(entry.gtoFrequencies).length > 0 && (
+                            <div style={{ marginTop: 6, padding: '6px 10px', background: 'rgba(0,0,0,0.2)', borderRadius: 6 }}>
+                                <div style={{ fontSize: 9, fontWeight: 700, color: '#64748b', letterSpacing: 1, marginBottom: 3 }}>GTO FREQUENCIES</div>
+                                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                    {Object.entries(entry.gtoFrequencies).map(([action, freq]) => (
+                                        <span key={action} style={{ fontSize: 10, color: '#94a3b8' }}>
+                                            {action}: <strong style={{ color: '#e2e8f0' }}>{typeof freq === 'number' ? `${freq}%` : freq}</strong>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -190,57 +221,151 @@ function HandHistoryRow({ entry, index }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function AccuracyByPositionChart({ handHistory }) {
-    const positionData = useMemo(() => {
-        if (!handHistory || handHistory.length === 0) return [];
-        const byPos = {};
-        handHistory.forEach(h => {
-            const pos = h.handData?.heroPosition || h.handData?.position || 'UNK';
-            if (!byPos[pos]) byPos[pos] = { total: 0, correct: 0 };
-            byPos[pos].total++;
-            if (h.classification === 'best' || h.classification === 'correct') {
-                byPos[pos].correct++;
-            }
-        });
-        return Object.entries(byPos)
-            .map(([pos, data]) => ({
-                position: pos,
-                accuracy: Math.round((data.correct / data.total) * 100),
-                total: data.total,
-            }))
-            .sort((a, b) => b.accuracy - a.accuracy);
-    }, [handHistory]);
-
-    if (positionData.length < 2) return null;
-
+    if (!handHistory || handHistory.length < 3) return null;
+    const posStats = {};
+    handHistory.forEach(h => {
+        const pos = h.handData?.heroPosition || 'UNK';
+        if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0 };
+        posStats[pos].total++;
+        if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
+    });
+    const positions = Object.keys(posStats);
+    if (positions.length === 0) return null;
     return (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                 Accuracy by Position
             </div>
-            {positionData.map((p, i) => {
-                const color = p.accuracy >= 80 ? '#22c55e' : p.accuracy >= 60 ? '#fbbf24' : '#ef4444';
+            {positions.map(pos => {
+                const pct = posStats[pos].total > 0 ? Math.round((posStats[pos].correct / posStats[pos].total) * 100) : 0;
                 return (
-                    <div key={p.position} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 40, fontSize: 11, fontWeight: 700, color: '#00d4ff', textAlign: 'right', fontFamily: "'Orbitron', monospace" }}>
-                            {p.position}
-                        </div>
-                        <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ width: 40, fontSize: 11, fontWeight: 600, color: '#00d4ff' }}>{pos}</span>
+                        <div style={{ flex: 1, height: 6, background: '#1e293b', borderRadius: 3, overflow: 'hidden' }}>
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${p.accuracy}%` }}
-                                transition={{ duration: 0.6, delay: i * 0.08 }}
-                                style={{ height: '100%', background: color, borderRadius: 4 }}
+                                animate={{ width: `${pct}%` }}
+                                transition={{ duration: 0.6, delay: 0.1 }}
+                                style={{ height: '100%', borderRadius: 3, background: pct >= 70 ? '#22c55e' : pct >= 50 ? '#fbbf24' : '#ef4444' }}
                             />
                         </div>
-                        <div style={{ width: 38, fontSize: 11, fontWeight: 'bold', color, textAlign: 'right' }}>
-                            {p.accuracy}%
-                        </div>
-                        <div style={{ width: 24, fontSize: 9, color: '#64748b', textAlign: 'right' }}>
-                            ({p.total})
-                        </div>
+                        <span style={{ width: 35, fontSize: 11, fontWeight: 'bold', color: pct >= 70 ? '#22c55e' : pct >= 50 ? '#fbbf24' : '#ef4444', textAlign: 'right' }}>
+                            {pct}%
+                        </span>
                     </div>
                 );
             })}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEAKNESS HEATMAP — Position x Street accuracy grid
+// ═══════════════════════════════════════════════════════════════════════════
+
+function WeaknessHeatmap({ handHistory }) {
+    if (!handHistory || handHistory.length < 5) return null;
+    const grid = {};
+    const positions = new Set();
+    const streets = ['preflop', 'flop', 'turn', 'river'];
+    handHistory.forEach(h => {
+        const pos = h.handData?.heroPosition || 'UNK';
+        const st = h.handData?.street || 'flop';
+        positions.add(pos);
+        if (!grid[pos]) grid[pos] = {};
+        if (!grid[pos][st]) grid[pos][st] = { correct: 0, total: 0 };
+        grid[pos][st].total++;
+        if (h.classification === 'best' || h.classification === 'correct') grid[pos][st].correct++;
+    });
+    const posArr = [...positions];
+    if (posArr.length === 0) return null;
+    const getColor = (pct) => pct >= 80 ? '#22c55e' : pct >= 60 ? '#fbbf24' : pct >= 40 ? '#f97316' : '#ef4444';
+    return (
+        <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                Weakness Heatmap
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${streets.length}, 1fr)`, gap: 3, fontSize: 10 }}>
+                <div style={{ color: '#64748b', fontWeight: 700 }}></div>
+                {streets.map(s => (
+                    <div key={s} style={{ color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center', fontSize: 9 }}>
+                        {s.slice(0, 3)}
+                    </div>
+                ))}
+                {posArr.map(pos => (
+                    <React.Fragment key={pos}>
+                        <div style={{ color: '#00d4ff', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{pos}</div>
+                        {streets.map(st => {
+                            const cell = grid[pos]?.[st];
+                            if (!cell || cell.total === 0) return <div key={st} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 4, padding: 4, textAlign: 'center', color: '#475569' }}>-</div>;
+                            const pct = Math.round((cell.correct / cell.total) * 100);
+                            return (
+                                <motion.div
+                                    key={st}
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: 0.1 }}
+                                    style={{
+                                        background: `${getColor(pct)}22`,
+                                        border: `1px solid ${getColor(pct)}44`,
+                                        borderRadius: 4, padding: '4px 0', textAlign: 'center',
+                                        color: getColor(pct), fontWeight: 700,
+                                    }}
+                                >
+                                    {pct}%
+                                </motion.div>
+                            );
+                        })}
+                    </React.Fragment>
+                ))}
+            </div>
+            <div style={{ fontSize: 9, color: '#64748b', marginTop: 6, textAlign: 'center' }}>
+                Green = 80%+ | Yellow = 60-79% | Orange = 40-59% | Red = under 40%
+            </div>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCURACY OVER TIME — Rolling accuracy line chart across session
+// ═══════════════════════════════════════════════════════════════════════════
+
+function AccuracyOverTimeChart({ handHistory }) {
+    if (!handHistory || handHistory.length < 3) return null;
+    const points = [];
+    for (let i = 0; i < handHistory.length; i++) {
+        const windowStart = Math.max(0, i - 4);
+        let correct = 0;
+        for (let j = windowStart; j <= i; j++) {
+            if (handHistory[j].classification === 'best' || handHistory[j].classification === 'correct') correct++;
+        }
+        points.push(Math.round((correct / (i - windowStart + 1)) * 100));
+    }
+    const maxH = 60;
+    const pathD = points.map((p, i) => {
+        const x = (i / Math.max(1, points.length - 1)) * 100;
+        const y = maxH - (p / 100) * maxH;
+        return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+    }).join(' ');
+    return (
+        <div style={{ marginBottom: 16, padding: '12px 14px', background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 'bold', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+                Accuracy Over Time
+            </div>
+            <svg viewBox={`0 0 100 ${maxH}`} style={{ width: '100%', height: 60 }} preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="accGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#00d4ff" stopOpacity="0" />
+                    </linearGradient>
+                </defs>
+                <path d={`${pathD} L100,${maxH} L0,${maxH} Z`} fill="url(#accGrad)" />
+                <path d={pathD} fill="none" stroke="#00d4ff" strokeWidth="1.5" />
+            </svg>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: '#64748b', marginTop: 2 }}>
+                <span>Hand 1</span>
+                <span>Hand {handHistory.length}</span>
+            </div>
         </div>
     );
 }
@@ -430,7 +555,7 @@ function DrillFilters({ show, onClose, onApply }) {
                 }}
             >
                 <div style={{ fontSize: 16, fontWeight: 'bold', color: '#e2e8f0', marginBottom: 16, textAlign: 'center' }}>
-                     Drill Filters
+                    Drill Filters
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
@@ -1022,7 +1147,7 @@ function GodModeArena({
                                     letterSpacing: 0.3,
                                 }}
                             >
-                                 Mistakes Only ({sessionMistakes})
+                                Mistakes Only ({sessionMistakes})
                             </motion.button>
 
                             {sessionMistakes > 0 && (
@@ -1090,6 +1215,53 @@ function GodModeArena({
                         })()}
 
                         {/* HAND HISTORY — Enhanced Replay Viewer */}
+
+                        {/* WEAKNESS HEATMAP — Position x Street */}
+                        <WeaknessHeatmap handHistory={handHistory} />
+
+                        {/* ACCURACY OVER TIME chart */}
+                        <AccuracyOverTimeChart handHistory={handHistory} />
+
+                        {/* WEAKEST SPOT CALLOUT */}
+                        {handHistory.length >= 5 && (() => {
+                            const spotStats = {};
+                            handHistory.forEach(h => {
+                                const pos = h.handData?.heroPosition || 'UNK';
+                                const st = h.handData?.street || 'flop';
+                                const key = `${pos} on ${st}`;
+                                if (!spotStats[key]) spotStats[key] = { evLoss: 0, mistakes: 0, total: 0 };
+                                spotStats[key].total++;
+                                spotStats[key].evLoss += (h.evLoss || 0);
+                                if (h.classification && h.classification !== 'best' && h.classification !== 'correct') spotStats[key].mistakes++;
+                            });
+                            const worst = Object.entries(spotStats)
+                                .filter(([, v]) => v.total >= 2)
+                                .sort(([, a], [, b]) => b.evLoss - a.evLoss)[0];
+                            if (!worst || worst[1].evLoss <= 0) return null;
+                            return (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{
+                                        marginBottom: 16, padding: '12px 16px',
+                                        background: 'linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.02) 100%)',
+                                        border: '1px solid rgba(239,68,68,0.2)',
+                                        borderRadius: 10,
+                                    }}
+                                >
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', letterSpacing: 0.5, marginBottom: 4 }}>
+                                        WEAKEST SPOT
+                                    </div>
+                                    <div style={{ fontSize: 13, color: '#e2e8f0', fontWeight: 600 }}>
+                                        You leaked {worst[1].evLoss.toFixed(1)} BB on <span style={{ color: '#00d4ff' }}>{worst[0]}</span> decisions
+                                    </div>
+                                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                                        {worst[1].mistakes} mistake{worst[1].mistakes !== 1 ? 's' : ''} out of {worst[1].total} hand{worst[1].total !== 1 ? 's' : ''}
+                                    </div>
+                                </motion.div>
+                            );
+                        })()}
+
                     </>)}
 
                     {/* ═══ TAB: HANDS ═══ */}
