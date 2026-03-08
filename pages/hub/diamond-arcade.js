@@ -241,6 +241,29 @@ export default function DiamondArcade() {
             return;
         }
 
+        // Deduct entry fee server-side via /api/arcade/start
+        try {
+            const token = getAccessToken();
+            if (token && game.entryFee > 0) {
+                const startRes = await fetch('/api/arcade/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ gameType: gameId, entryFee: game.entryFee }),
+                });
+                if (!startRes.ok) {
+                    const err = await startRes.json().catch(() => ({}));
+                    alert(err.error || 'Failed to start game — please try again');
+                    return;
+                }
+                // Deduct locally to reflect immediately
+                setBalance(prev => prev - game.entryFee);
+            }
+        } catch (e) {
+            console.warn('[DiamondArcade] start API error:', e.message);
+            // Continue offline — deduct locally so game isn't blocked
+            if (game.entryFee > 0) setBalance(prev => prev - game.entryFee);
+        }
+
         setActiveGame(game);
         setGamePhase('playing');
         setQuestionIndex(0);
@@ -331,6 +354,33 @@ export default function DiamondArcade() {
                 confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#22c55e', '#3b82f6'] });
                 busEmit.celebration('confetti');
             }
+        }
+
+        // Record result server-side: award prize or log loss
+        try {
+            const token = getAccessToken();
+            if (token) {
+                await fetch('/api/arcade/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        gameType: activeGame?.id,
+                        score: correctCount,
+                        correctCount,
+                        totalQuestions: activeGame?.questionsCount,
+                        won: result.won,
+                        prize: result.won ? result.finalPrize : 0,
+                        entryFee: activeGame?.entryFee || 0,
+                        timeSpentMs: activeGame?.durationSeconds ? (activeGame.durationSeconds - timeLeft) * 1000 : 0,
+                    }),
+                });
+                // Refresh balance on header/navbar
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
+                }
+            }
+        } catch (e) {
+            console.warn('[DiamondArcade] complete API error:', e.message);
         }
     }
 
