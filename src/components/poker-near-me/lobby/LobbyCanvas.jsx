@@ -1,17 +1,18 @@
 /**
- * LobbyCanvas.jsx — Dynamic canvas-based lobby illustration
+ * LobbyCanvas.jsx — Dynamic Grok-powered lobby illustration
  *
- * Replaces the R3F 3D scene with a polished 2D canvas illustration
- * featuring animated starfield, holographic radar, and positioned pod icons
- * arranged in an elliptical layout matching the AAA command center reference.
+ * Uses a Grok AI-generated cinematic background image with positioned
+ * pod icons arranged in an elliptical layout. Each pod uses a Grok-generated
+ * photorealistic 3D icon.
  *
  * Architecture:
- *   - Background canvas: animated stars, nebula, grid lines, radar sweep
+ *   - Background: Grok-generated cinematic image with CSS parallax overlay
+ *   - Animated layer: lightweight CSS animations for glow and pulse
  *   - HTML overlay: positioned pod icons with glow effects, labels
  *   - Click/hover handling: direct DOM events on pod elements
  */
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 
 // ─── Pod definitions with elliptical layout positions ───
 // Positions are percentages of container (x%, y%) matching reference layout
@@ -33,227 +34,102 @@ const ALL_PODS = [
   { id: 'wallet',    label: 'Rewards',       x: 90, y: 72, color: '#ffd700', icon: '/images/lobby-pods/wallet.png' },
 ];
 
-// ─── Canvas background renderer ───
-function useCanvasAnimation(canvasRef) {
-  const frameRef = useRef(0);
-  const starsRef = useRef([]);
-  const initRef = useRef(false);
+// ─── Animated overlay for subtle motion ───
+function AnimatedOverlay() {
+  return (
+    <>
+      {/* Slow rotating radar sweep — CSS only */}
+      <div style={{
+        position: 'absolute',
+        left: '48%',
+        top: '50%',
+        width: 300,
+        height: 300,
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }}>
+        <div style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          background: 'conic-gradient(from 0deg, transparent 0deg, rgba(110,231,239,0.06) 30deg, transparent 60deg)',
+          animation: 'lobbySweep 8s linear infinite',
+        }} />
+      </div>
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+      {/* Sonar pulse ring 1 */}
+      <div style={{
+        position: 'absolute',
+        left: '48%',
+        top: '50%',
+        width: 200,
+        height: 200,
+        transform: 'translate(-50%, -50%)',
+        borderRadius: '50%',
+        border: '1px solid rgba(110,231,239,0.12)',
+        animation: 'lobbyPulse 4s ease-out infinite',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }} />
 
-    const ctx = canvas.getContext('2d');
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      {/* Sonar pulse ring 2 (offset) */}
+      <div style={{
+        position: 'absolute',
+        left: '48%',
+        top: '50%',
+        width: 200,
+        height: 200,
+        transform: 'translate(-50%, -50%)',
+        borderRadius: '50%',
+        border: '1px solid rgba(110,231,239,0.08)',
+        animation: 'lobbyPulse 4s ease-out 2s infinite',
+        pointerEvents: 'none',
+        zIndex: 2,
+      }} />
 
-    const resize = () => {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
-      ctx.scale(dpr, dpr);
-    };
-    resize();
-
-    // Generate stars once
-    if (!initRef.current) {
-      starsRef.current = Array.from({ length: 300 }, () => ({
-        x: Math.random(),
-        y: Math.random(),
-        size: Math.random() * 1.8 + 0.3,
-        brightness: Math.random(),
-        twinkleSpeed: Math.random() * 2 + 0.5,
-        twinkleOffset: Math.random() * Math.PI * 2,
-      }));
-      initRef.current = true;
-    }
-
-    let running = true;
-
-    const draw = (time) => {
-      if (!running) return;
-      const t = time * 0.001;
-      const w = canvas.width / dpr;
-      const h = canvas.height / dpr;
-
-      // Clear
-      ctx.clearRect(0, 0, w, h);
-
-      // ── Background gradient ──
-      const bgGrad = ctx.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.45, w * 0.7);
-      bgGrad.addColorStop(0, '#0a1628');
-      bgGrad.addColorStop(0.4, '#060e1c');
-      bgGrad.addColorStop(0.7, '#030818');
-      bgGrad.addColorStop(1, '#010408');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // ── Nebula haze ──
-      const nebGrad = ctx.createRadialGradient(w * 0.3, h * 0.3, 0, w * 0.3, h * 0.3, w * 0.4);
-      nebGrad.addColorStop(0, 'rgba(110, 50, 180, 0.06)');
-      nebGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = nebGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      const nebGrad2 = ctx.createRadialGradient(w * 0.7, h * 0.6, 0, w * 0.7, h * 0.6, w * 0.35);
-      nebGrad2.addColorStop(0, 'rgba(0, 100, 180, 0.05)');
-      nebGrad2.addColorStop(1, 'transparent');
-      ctx.fillStyle = nebGrad2;
-      ctx.fillRect(0, 0, w, h);
-
-      // ── Stars ──
-      starsRef.current.forEach(star => {
-        const twinkle = 0.3 + 0.7 * Math.abs(Math.sin(t * star.twinkleSpeed + star.twinkleOffset));
-        const alpha = star.brightness * twinkle;
-        ctx.beginPath();
-        ctx.arc(star.x * w, star.y * h, star.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(200, 220, 255, ${alpha * 0.8})`;
-        ctx.fill();
-      });
-
-      // ── Central holographic platform ──
-      const cx = w * 0.48;
-      const cy = h * 0.52;
-      const platformRx = w * 0.28;
-      const platformRy = h * 0.22;
-
-      // Platform glow
-      const platGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, platformRx);
-      platGlow.addColorStop(0, 'rgba(110, 231, 239, 0.08)');
-      platGlow.addColorStop(0.5, 'rgba(59, 130, 246, 0.04)');
-      platGlow.addColorStop(1, 'transparent');
-      ctx.fillStyle = platGlow;
-      ctx.fillRect(0, 0, w, h);
-
-      // Concentric elliptical rings
-      ctx.save();
-      ctx.translate(cx, cy);
-      for (let i = 1; i <= 5; i++) {
-        const rx = platformRx * (i / 5);
-        const ry = platformRy * (i / 5);
-        const ringAlpha = 0.08 + 0.04 * Math.sin(t * 0.5 + i);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(110, 231, 239, ${ringAlpha})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // Radar sweep
-      const sweepAngle = t * 0.8;
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      const sweepX = Math.cos(sweepAngle) * platformRx;
-      const sweepY = Math.sin(sweepAngle) * platformRy;
-      ctx.lineTo(sweepX, sweepY);
-      ctx.strokeStyle = `rgba(110, 231, 239, 0.25)`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Sweep trail
-      for (let i = 1; i <= 8; i++) {
-        const trailAngle = sweepAngle - i * 0.12;
-        const trailX = Math.cos(trailAngle) * platformRx;
-        const trailY = Math.sin(trailAngle) * platformRy;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(trailX, trailY);
-        ctx.strokeStyle = `rgba(110, 231, 239, ${0.15 - i * 0.018})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      ctx.restore();
-
-      // ── Grid lines (subtle) ──
-      ctx.save();
-      ctx.globalAlpha = 0.03;
-      ctx.strokeStyle = '#6ee7ef';
-      ctx.lineWidth = 0.5;
-      // Horizontal
-      for (let y = 0; y < h; y += 40) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-      // Vertical
-      for (let x = 0; x < w; x += 40) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      // ── Sonar pulse rings ──
-      const pulseTime = (t * 0.5) % 3;
-      const pulseRadius = pulseTime * platformRx * 1.2;
-      const pulseAlpha = Math.max(0, 0.15 * (1 - pulseTime / 3));
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, pulseRadius, pulseRadius * (platformRy / platformRx), 0, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(110, 231, 239, ${pulseAlpha})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      ctx.restore();
-
-      // ── Edge vignette ──
-      const vigGrad = ctx.createRadialGradient(w * 0.5, h * 0.5, w * 0.25, w * 0.5, h * 0.5, w * 0.7);
-      vigGrad.addColorStop(0, 'transparent');
-      vigGrad.addColorStop(0.7, 'transparent');
-      vigGrad.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
-      ctx.fillStyle = vigGrad;
-      ctx.fillRect(0, 0, w, h);
-
-      // ── Decorative corner accents ──
-      const cornerSize = 30;
-      ctx.strokeStyle = 'rgba(110, 231, 239, 0.15)';
-      ctx.lineWidth = 1;
-      // Top-left
-      ctx.beginPath(); ctx.moveTo(0, cornerSize); ctx.lineTo(0, 0); ctx.lineTo(cornerSize, 0); ctx.stroke();
-      // Top-right
-      ctx.beginPath(); ctx.moveTo(w - cornerSize, 0); ctx.lineTo(w, 0); ctx.lineTo(w, cornerSize); ctx.stroke();
-      // Bottom-left
-      ctx.beginPath(); ctx.moveTo(0, h - cornerSize); ctx.lineTo(0, h); ctx.lineTo(cornerSize, h); ctx.stroke();
-      // Bottom-right
-      ctx.beginPath(); ctx.moveTo(w - cornerSize, h); ctx.lineTo(w, h); ctx.lineTo(w, h - cornerSize); ctx.stroke();
-
-      frameRef.current = requestAnimationFrame(draw);
-    };
-
-    frameRef.current = requestAnimationFrame(draw);
-
-    const resizeHandler = () => {
-      resize();
-    };
-    window.addEventListener('resize', resizeHandler);
-
-    return () => {
-      running = false;
-      cancelAnimationFrame(frameRef.current);
-      window.removeEventListener('resize', resizeHandler);
-    };
-  }, [canvasRef]);
+      {/* CSS keyframes injected */}
+      <style jsx global>{`
+        @keyframes lobbySweep {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes lobbyPulse {
+          0% { width: 80px; height: 80px; opacity: 0.4; }
+          100% { width: 500px; height: 500px; opacity: 0; }
+        }
+        @keyframes podFloat {
+          0%, 100% { transform: translate(-50%, -50%) translateY(0px); }
+          50% { transform: translate(-50%, -50%) translateY(-3px); }
+        }
+        @keyframes podGlow {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.15); }
+        }
+      `}</style>
+    </>
+  );
 }
 
 // ─── Pod Icon Component ───
-function PodIcon({ pod, isActive, isHovered, onHover, onLeave, onClick }) {
+function PodIcon({ pod, isActive, isHovered, onHover, onLeave, onClick, index }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
 
   const glowColor = pod.color;
   const glowIntensity = isActive ? 0.5 : isHovered ? 0.35 : 0.15;
-  const scale = isActive ? 1.12 : isHovered ? 1.08 : 1;
+  const scale = isActive ? 1.15 : isHovered ? 1.1 : 1;
   const borderAlpha = isActive ? 0.8 : isHovered ? 0.6 : 0.3;
+
+  // Staggered float animation
+  const floatDelay = index * 0.4;
 
   return (
     <div
       onClick={() => onClick(pod.id)}
       onMouseEnter={() => onHover(pod.id)}
       onMouseLeave={onLeave}
+      onTouchStart={() => onHover(pod.id)}
       style={{
         position: 'absolute',
         left: `${pod.x}%`,
@@ -268,27 +144,30 @@ function PodIcon({ pod, isActive, isHovered, onHover, onLeave, onClick }) {
         zIndex: 10,
         userSelect: 'none',
         WebkitTapHighlightColor: 'transparent',
+        animation: `podFloat ${3 + (index % 3) * 0.5}s ease-in-out ${floatDelay}s infinite`,
       }}
     >
-      {/* Icon circle */}
+      {/* Icon circle with Grok-generated image */}
       <div
         style={{
-          width: 52,
-          height: 52,
+          width: 56,
+          height: 56,
           borderRadius: '50%',
-          background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.3))`,
-          border: `1.5px solid ${glowColor}${Math.round(borderAlpha * 255).toString(16).padStart(2, '0')}`,
+          background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), rgba(0,0,0,0.4))`,
+          border: `2px solid ${glowColor}${Math.round(borderAlpha * 255).toString(16).padStart(2, '0')}`,
           boxShadow: `
-            0 0 ${isActive ? 20 : 10}px ${glowColor}${Math.round(glowIntensity * 255).toString(16).padStart(2, '0')},
-            inset 0 0 12px rgba(0,0,0,0.4)
+            0 0 ${isActive ? 25 : 12}px ${glowColor}${Math.round(glowIntensity * 255).toString(16).padStart(2, '0')},
+            0 0 ${isActive ? 50 : 20}px ${glowColor}${Math.round(glowIntensity * 0.5 * 255).toString(16).padStart(2, '0')},
+            inset 0 0 15px rgba(0,0,0,0.5)
           `,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
           transition: 'box-shadow 0.3s, border-color 0.3s',
+          animation: isActive ? 'podGlow 2s ease-in-out infinite' : 'none',
         }}
       >
         {!imgError ? (
@@ -299,17 +178,17 @@ function PodIcon({ pod, isActive, isHovered, onHover, onLeave, onClick }) {
             onLoad={() => setImageLoaded(true)}
             onError={() => setImgError(true)}
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               objectFit: 'cover',
               borderRadius: '50%',
               opacity: imageLoaded ? 1 : 0,
-              transition: 'opacity 0.3s',
+              transition: 'opacity 0.4s ease-in',
             }}
           />
         ) : (
           <div style={{
-            width: 28, height: 28, borderRadius: '50%',
+            width: 30, height: 30, borderRadius: '50%',
             background: `radial-gradient(circle, ${glowColor}40, ${glowColor}10)`,
             border: `1px solid ${glowColor}60`,
           }} />
@@ -321,12 +200,12 @@ function PodIcon({ pod, isActive, isHovered, onHover, onLeave, onClick }) {
         style={{
           fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
           fontSize: 9,
-          fontWeight: 600,
-          color: isActive ? '#ffffff' : 'rgba(200, 220, 240, 0.85)',
+          fontWeight: 700,
+          color: isActive ? '#ffffff' : isHovered ? 'rgba(220, 235, 255, 0.95)' : 'rgba(200, 220, 240, 0.8)',
           textTransform: 'uppercase',
-          letterSpacing: '0.08em',
+          letterSpacing: '0.1em',
           textAlign: 'center',
-          textShadow: `0 0 8px ${glowColor}60, 0 1px 3px rgba(0,0,0,0.8)`,
+          textShadow: `0 0 10px ${glowColor}80, 0 0 20px ${glowColor}40, 0 1px 3px rgba(0,0,0,0.9)`,
           lineHeight: 1.2,
           whiteSpace: 'pre-line',
           transition: 'color 0.3s',
@@ -340,10 +219,15 @@ function PodIcon({ pod, isActive, isHovered, onHover, onLeave, onClick }) {
 
 // ─── Main LobbyCanvas Component ───
 export default function LobbyCanvas({ onPodClick, activePod, liveData }) {
-  const canvasRef = useRef(null);
   const [hoveredPod, setHoveredPod] = useState(null);
+  const [bgLoaded, setBgLoaded] = useState(false);
 
-  useCanvasAnimation(canvasRef);
+  // Preload background image
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setBgLoaded(true);
+    img.src = '/images/lobby-bg/default.png';
+  }, []);
 
   const handlePodClick = useCallback((podId) => {
     onPodClick?.(podId);
@@ -366,16 +250,43 @@ export default function LobbyCanvas({ onPodClick, activePod, liveData }) {
         background: '#010408',
       }}
     >
-      {/* Animated canvas background */}
-      <canvas
-        ref={canvasRef}
+      {/* Grok AI-generated cinematic background */}
+      <div
         style={{
           position: 'absolute',
           inset: 0,
-          width: '100%',
-          height: '100%',
+          backgroundImage: bgLoaded ? 'url(/images/lobby-bg/default.png)' : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          opacity: bgLoaded ? 1 : 0,
+          transition: 'opacity 1.2s ease-in',
         }}
       />
+
+      {/* Fallback gradient (shown while image loads) */}
+      {!bgLoaded && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(ellipse at 48% 50%, #0a1628 0%, #060e1c 40%, #030818 70%, #010408 100%)',
+          }}
+        />
+      )}
+
+      {/* Dark overlay to ensure text readability */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'radial-gradient(ellipse at 48% 50%, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 70%, rgba(0,0,0,0.7) 100%)',
+          zIndex: 1,
+        }}
+      />
+
+      {/* Animated CSS overlay (radar sweep, pulse rings) */}
+      <AnimatedOverlay />
 
       {/* Metallic top border accent */}
       <div style={{
@@ -384,7 +295,8 @@ export default function LobbyCanvas({ onPodClick, activePod, liveData }) {
         left: 0,
         right: 0,
         height: 1,
-        background: 'linear-gradient(90deg, transparent, rgba(110,231,239,0.3), rgba(255,215,0,0.15), rgba(110,231,239,0.3), transparent)',
+        background: 'linear-gradient(90deg, transparent, rgba(110,231,239,0.4), rgba(255,215,0,0.2), rgba(110,231,239,0.4), transparent)',
+        zIndex: 20,
       }} />
 
       {/* Metallic bottom border accent */}
@@ -394,15 +306,45 @@ export default function LobbyCanvas({ onPodClick, activePod, liveData }) {
         left: 0,
         right: 0,
         height: 1,
-        background: 'linear-gradient(90deg, transparent, rgba(110,231,239,0.2), transparent)',
+        background: 'linear-gradient(90deg, transparent, rgba(110,231,239,0.25), transparent)',
+        zIndex: 20,
       }} />
 
-      {/* Pod icons positioned absolutely */}
-      <div style={{ position: 'absolute', inset: 0 }}>
+      {/* Connecting lines from pods to center (decorative) */}
+      <svg
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          {ALL_PODS.map(pod => (
+            <linearGradient key={`grad-${pod.id}`} id={`line-grad-${pod.id}`} x1={`${pod.x}%`} y1={`${pod.y}%`} x2="48%" y2="50%">
+              <stop offset="0%" stopColor={pod.color} stopOpacity={activePod === pod.id ? 0.3 : hoveredPod === pod.id ? 0.15 : 0.06} />
+              <stop offset="100%" stopColor={pod.color} stopOpacity="0" />
+            </linearGradient>
+          ))}
+        </defs>
         {ALL_PODS.map(pod => (
+          <line
+            key={`line-${pod.id}`}
+            x1={pod.x}
+            y1={pod.y}
+            x2={48}
+            y2={50}
+            stroke={`url(#line-grad-${pod.id})`}
+            strokeWidth="0.15"
+            strokeDasharray={activePod === pod.id ? 'none' : '1 2'}
+          />
+        ))}
+      </svg>
+
+      {/* Pod icons positioned absolutely */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+        {ALL_PODS.map((pod, index) => (
           <PodIcon
             key={pod.id}
             pod={pod}
+            index={index}
             isActive={activePod === pod.id}
             isHovered={hoveredPod === pod.id}
             onHover={handleHover}
@@ -415,41 +357,21 @@ export default function LobbyCanvas({ onPodClick, activePod, liveData }) {
       {/* Center title watermark — subtle */}
       <div style={{
         position: 'absolute',
-        left: '50%',
+        left: '48%',
         top: '48%',
         transform: 'translate(-50%, -50%)',
         fontFamily: "'Orbitron', sans-serif",
         fontSize: 11,
         fontWeight: 700,
-        letterSpacing: '0.3em',
-        color: 'rgba(110, 231, 239, 0.12)',
+        letterSpacing: '0.35em',
+        color: 'rgba(110, 231, 239, 0.1)',
         textTransform: 'uppercase',
         pointerEvents: 'none',
         userSelect: 'none',
+        zIndex: 3,
       }}>
         COMMAND CENTER
       </div>
-
-      {/* Connecting lines from pods to center (decorative) */}
-      <svg
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        {ALL_PODS.map(pod => (
-          <line
-            key={`line-${pod.id}`}
-            x1={pod.x}
-            y1={pod.y}
-            x2={48}
-            y2={52}
-            stroke={pod.color}
-            strokeOpacity={activePod === pod.id ? 0.2 : hoveredPod === pod.id ? 0.12 : 0.04}
-            strokeWidth="0.15"
-            strokeDasharray="1 2"
-          />
-        ))}
-      </svg>
     </div>
   );
 }
