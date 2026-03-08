@@ -170,9 +170,28 @@ export default function AgentDashboard() {
                 }
             });
 
+        // Also listen for changes to own agent row (credit_used, commission_rate, status)
+        const agentChannel = supabase
+            .channel(`agent-self:${clubIdParam}-${user.id}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'agents',
+                filter: `club_id=eq.${clubIdParam}`,
+            }, (payload) => {
+                // Only reload if it's our agent row
+                if (payload.new?.user_id === user.id) loadDashboard();
+            })
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    console.warn(`[AgentDashboard] Agent self channel status: ${status}`);
+                }
+            });
+
         return () => {
             supabase.removeChannel(cashoutChannel);
             supabase.removeChannel(txnChannel);
+            supabase.removeChannel(agentChannel);
         };
     }, [clubIdParam, user?.id]);
 

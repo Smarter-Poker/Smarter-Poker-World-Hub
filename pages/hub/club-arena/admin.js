@@ -213,7 +213,7 @@ export default function Admin() {
 
     useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
 
-    // ── Realtime: live table + member updates ─────────────────────────────
+    // ── Realtime: live table + member + cashout + agent updates ─────────────
     useEffect(() => {
         if (!club?.id) return;
         const ch = supabase
@@ -222,6 +222,15 @@ export default function Admin() {
                 filter: `club_id=eq.${club.id}` }, () => loadData())
             .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members',
                 filter: `club_id=eq.${club.id}` }, () => loadData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'cashout_requests',
+                filter: `club_id=eq.${club.id}` }, () => loadData())
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'agents',
+                filter: `club_id=eq.${club.id}` }, () => loadData())
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clubs',
+                filter: `id=eq.${club.id}` }, (payload) => {
+                    // Patch treasury/rake in-place without full reload
+                    setClub(prev => prev ? { ...prev, ...payload.new } : prev);
+                })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
                     console.warn(`[Admin] Realtime channel status: ${status}`);
