@@ -257,7 +257,9 @@ export function useLiveHelp() {
                     agentId: msg.is_user ? '' : 'geeves',
                     content: msg.content,
                     timestamp: new Date(msg.created_at),
-                    isUser: msg.is_user
+                    isUser: msg.is_user,
+                    cacheId: msg.cache_id || undefined,
+                    fromCache: msg.from_cache || false,
                 })));
             }
         } catch (err) {

@@ -23,7 +23,7 @@ import { LanguageSelector, useTranslation, type Language } from './LanguageSelec
 import { AutoComplete } from './AutoComplete';
 import { ConversationHistory } from './ConversationHistory';
 import { RichMediaRenderer } from './RichMediaRenderer';
-import { JarvisAvatar } from './JarvisAvatar';
+import { GeevesAvatar } from './JarvisAvatar';
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,9 +70,10 @@ export function LiveHelpPanel({
     const t = useTranslation(language);
 
     // Keyboard shortcuts
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     useKeyboardShortcuts({
-        onOpenJarvis: () => { },
-        onCloseJarvis: onClose,
+        onOpenGeeves: () => { inputRef.current?.focus(); },
+        onCloseGeeves: onClose,
         isOpen
     });
 

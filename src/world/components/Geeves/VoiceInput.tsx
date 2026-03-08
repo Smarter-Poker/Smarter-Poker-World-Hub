@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   VOICE INPUT — Speech-to-text for Jarvis
+   VOICE INPUT — Speech-to-text for Geeves
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface VoiceInputProps {
     onTranscript: (text: string) => void;
@@ -12,10 +12,12 @@ interface VoiceInputProps {
 export function VoiceInput({ onTranscript, onError }: VoiceInputProps) {
     const [isListening, setIsListening] = useState(false);
     const [isSupported, setIsSupported] = useState(false);
-    const [recognition, setRecognition] = useState<any>(null);
+    const recognitionRef = useRef<any>(null);
 
     useEffect(() => {
-        // Check if browser supports speech recognition
+        // SSR guard — SpeechRecognition only exists in the browser
+        if (typeof window === 'undefined') return;
+
         const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
         if (SpeechRecognition) {
@@ -41,18 +43,18 @@ export function VoiceInput({ onTranscript, onError }: VoiceInputProps) {
                 setIsListening(false);
             };
 
-            setRecognition(recognitionInstance);
+            recognitionRef.current = recognitionInstance;
         }
     }, [onTranscript, onError]);
 
     const toggleListening = () => {
-        if (!recognition) return;
+        if (!recognitionRef.current) return;
 
         if (isListening) {
-            recognition.stop();
+            recognitionRef.current.stop();
             setIsListening(false);
         } else {
-            recognition.start();
+            recognitionRef.current.start();
             setIsListening(true);
         }
     };
@@ -79,7 +81,7 @@ export function VoiceInput({ onTranscript, onError }: VoiceInputProps) {
                 borderRadius: '50%',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                animation: isListening ? 'pulse 1.5s infinite' : 'none'
+                animation: isListening ? 'voicePulse 1.5s infinite' : 'none'
             }}
             title={isListening ? 'Stop recording' : 'Voice input'}
         >
@@ -94,7 +96,7 @@ export function VoiceInput({ onTranscript, onError }: VoiceInputProps) {
             </svg>
 
             <style jsx>{`
-                @keyframes pulse {
+                @keyframes voicePulse {
                     0%, 100% { transform: scale(1); opacity: 1; }
                     50% { transform: scale(1.05); opacity: 0.8; }
                 }

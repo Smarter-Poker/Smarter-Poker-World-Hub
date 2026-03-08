@@ -1,15 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    SMART AUTO-COMPLETE — Suggestion dropdown for common questions
+   Merges static fallback suggestions with popular cached questions
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface AutoCompleteProps {
     inputValue: string;
     onSelect: (suggestion: string) => void;
 }
 
-const SUGGESTIONS = [
+// Static fallback suggestions
+const STATIC_SUGGESTIONS = [
     // Navigation
     { trigger: 'how do i', text: 'How Do I Access Training Games?' },
     { trigger: 'how do i', text: 'How Do I Create A Club?' },
@@ -34,11 +36,62 @@ const SUGGESTIONS = [
     { trigger: 'help', text: 'Help Me Get Started' },
     { trigger: 'help', text: 'Help With Training Games' },
     { trigger: 'help', text: 'Help With Club Management' },
+
+    // Poker strategy
+    { trigger: 'what is gto', text: 'What Is GTO Strategy?' },
+    { trigger: 'explain', text: 'Explain Pot Odds And Equity' },
+    { trigger: 'explain', text: 'Explain ICM Pressure In Tournaments' },
+    { trigger: 'how to', text: 'How To Manage My Bankroll?' },
+    { trigger: 'best', text: 'Best Pre-Flop Opening Ranges?' },
 ];
 
 export function AutoComplete({ inputValue, onSelect }: AutoCompleteProps) {
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [cachedQuestions, setCachedQuestions] = useState<string[]>([]);
+    const hasFetched = useRef(false);
+
+    // Fetch popular questions from cache on first mount
+    useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
+
+        const fetchPopular = async () => {
+            try {
+                const token = typeof window !== 'undefined'
+                    ? (() => {
+                        try {
+                            const auth = localStorage.getItem('smarter-poker-auth');
+                            return auth ? JSON.parse(auth)?.access_token : null;
+                        } catch { return null; }
+                    })()
+                    : null;
+
+                if (!token) return;
+
+                const res = await fetch('/api/geeves/conversations', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                // We don't have a dedicated "popular questions" endpoint yet,
+                // but we pull from conversations to extract recent topics
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.conversations && Array.isArray(data.conversations)) {
+                        const titles = data.conversations
+                            .map((c: any) => c.title)
+                            .filter((t: string) => t && t !== 'New Poker Conversation')
+                            .slice(0, 5);
+                        setCachedQuestions(titles);
+                    }
+                }
+            } catch {
+                // Non-critical — static suggestions still work
+            }
+        };
+
+        fetchPopular();
+    }, []);
 
     useEffect(() => {
         const input = inputValue.toLowerCase().trim();
@@ -48,15 +101,20 @@ export function AutoComplete({ inputValue, onSelect }: AutoCompleteProps) {
             return;
         }
 
-        // Find matching suggestions
-        const matches = SUGGESTIONS
+        // Combine static + cached suggestions
+        const staticMatches = STATIC_SUGGESTIONS
             .filter(s => s.trigger.startsWith(input) || s.text.toLowerCase().includes(input))
-            .map(s => s.text)
-            .slice(0, 5); // Max 5 suggestions
+            .map(s => s.text);
 
-        setSuggestions(matches);
+        const cacheMatches = cachedQuestions
+            .filter(q => q.toLowerCase().includes(input));
+
+        // Deduplicate and limit to 5
+        const combined = [...new Set([...cacheMatches, ...staticMatches])].slice(0, 5);
+
+        setSuggestions(combined);
         setSelectedIndex(0);
-    }, [inputValue]);
+    }, [inputValue, cachedQuestions]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {

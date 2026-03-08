@@ -1,5 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   RICH MEDIA RENDERER — Render images, videos, and markdown in messages
+   RICH MEDIA RENDERER — Render markdown formatting in Geeves messages
+   Supports: **bold**, *italic*, `code`, ```code blocks```, ## headers,
+   - bullet lists, [links](url), ![images](url)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React from 'react';
@@ -9,125 +11,263 @@ interface RichMediaRendererProps {
 }
 
 export function RichMediaRenderer({ content }: RichMediaRendererProps) {
-    // Parse content for media and markdown
-    const renderContent = () => {
-        const parts: React.ReactElement[] = [];
-        let lastIndex = 0;
+    if (!content) return null;
 
-        // Image pattern: ![alt](url)
-        const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-        // Video pattern: [video](url)
-        const videoRegex = /\[video\]\(([^)]+)\)/g;
-        // Link pattern: [text](url)
-        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-        // Bold pattern: **text**
-        const boldRegex = /\*\*([^*]+)\*\*/g;
-        // Italic pattern: *text*
-        const italicRegex = /\*([^*]+)\*/g;
-        // Code pattern: `code`
-        const codeRegex = /`([^`]+)`/g;
+    // Split content into blocks (code blocks, paragraphs)
+    const blocks = parseBlocks(content);
 
-        // Check for images
-        let match;
-        const imageMatches: Array<{ index: number; alt: string; url: string }> = [];
-        while ((match = imageRegex.exec(content)) !== null) {
-            imageMatches.push({ index: match.index, alt: match[1], url: match[2] });
-        }
+    return (
+        <div style={{ fontSize: 14, lineHeight: 1.6, color: '#fff' }}>
+            {blocks.map((block, i) => renderBlock(block, i))}
+        </div>
+    );
+}
 
-        // Check for videos
-        const videoMatches: Array<{ index: number; url: string }> = [];
-        videoRegex.lastIndex = 0;
-        while ((match = videoRegex.exec(content)) !== null) {
-            videoMatches.push({ index: match.index, url: match[1] });
-        }
+// ── Block-level parsing ──
+interface Block {
+    type: 'code-block' | 'header' | 'bullet-list' | 'paragraph';
+    content: string;
+    language?: string;
+    level?: number;
+    items?: string[];
+}
 
-        // If we have media, render it
-        if (imageMatches.length > 0 || videoMatches.length > 0) {
-            const allMedia = [
-                ...imageMatches.map(m => ({ ...m, type: 'image' as const })),
-                ...videoMatches.map(m => ({ ...m, type: 'video' as const }))
-            ].sort((a, b) => a.index - b.index);
+function parseBlocks(text: string): Block[] {
+    const blocks: Block[] = [];
+    const lines = text.split('\n');
+    let i = 0;
 
-            allMedia.forEach((media, i) => {
-                // Add text before media
-                if (media.index > lastIndex) {
-                    const text = content.substring(lastIndex, media.index);
-                    if (text.trim()) {
-                        parts.push(
-                            <p key={`text-${i}`} style={{ margin: '0 0 8px 0' }}>
-                                {renderInlineFormatting(text)}
-                            </p>
-                        );
-                    }
-                }
+    while (i < lines.length) {
+        const line = lines[i];
 
-                // Add media
-                if (media.type === 'image') {
-                    parts.push(
-                        <img
-                            key={`img-${i}`}
-                            src={(media as any).url}
-                            alt={(media as any).alt}
-                            style={{
-                                maxWidth: '100%',
-                                borderRadius: '8px',
-                                marginBottom: '8px'
-                            }}
-                        />
-                    );
-                    lastIndex = media.index + `![${(media as any).alt}](${(media as any).url})`.length;
-                } else {
-                    parts.push(
-                        <video
-                            key={`video-${i}`}
-                            src={(media as any).url}
-                            controls
-                            style={{
-                                maxWidth: '100%',
-                                borderRadius: '8px',
-                                marginBottom: '8px'
-                            }}
-                        />
-                    );
-                    lastIndex = media.index + `[video](${(media as any).url})`.length;
-                }
-            });
-
-            // Add remaining text
-            if (lastIndex < content.length) {
-                const text = content.substring(lastIndex);
-                if (text.trim()) {
-                    parts.push(
-                        <p key="text-final" style={{ margin: 0 }}>
-                            {renderInlineFormatting(text)}
-                        </p>
-                    );
-                }
+        // Code block: ```lang ... ```
+        if (line.trim().startsWith('```')) {
+            const lang = line.trim().replace(/^```/, '').trim();
+            const codeLines: string[] = [];
+            i++;
+            while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                codeLines.push(lines[i]);
+                i++;
             }
-
-            return <div>{parts}</div>;
+            blocks.push({ type: 'code-block', content: codeLines.join('\n'), language: lang || undefined });
+            i++; // skip closing ```
+            continue;
         }
 
-        // No media, just render formatted text
-        return <p style={{ margin: 0 }}>{renderInlineFormatting(content)}</p>;
-    };
+        // Header: ## Text
+        const headerMatch = line.match(/^(#{1,4})\s+(.+)/);
+        if (headerMatch) {
+            blocks.push({ type: 'header', content: headerMatch[2], level: headerMatch[1].length });
+            i++;
+            continue;
+        }
 
-    const renderInlineFormatting = (text: string) => {
-        const parts: Array<string | React.ReactElement> = [];
-        let lastIndex = 0;
+        // Bullet list: - item or • item or * item (at start of line)
+        if (/^\s*[-•*]\s+/.test(line)) {
+            const items: string[] = [];
+            while (i < lines.length && /^\s*[-•*]\s+/.test(lines[i])) {
+                items.push(lines[i].replace(/^\s*[-•*]\s+/, ''));
+                i++;
+            }
+            blocks.push({ type: 'bullet-list', content: '', items });
+            continue;
+        }
 
-        // Process bold, italic, code, and links
-        const patterns = [
-            { regex: /\*\*([^*]+)\*\*/g, render: (match: string) => <strong key={`bold-${lastIndex}`}>{match}</strong> },
-            { regex: /\*([^*]+)\*/g, render: (match: string) => <em key={`italic-${lastIndex}`}>{match}</em> },
-            { regex: /`([^`]+)`/g, render: (match: string) => <code key={`code-${lastIndex}`} style={{ background: 'rgba(0, 0, 0, 0.2)', padding: '2px 4px', borderRadius: '3px' }}>{match}</code> },
-            { regex: /\[([^\]]+)\]\(([^)]+)\)/g, render: (text: string, url: string) => <a key={`link-${lastIndex}`} href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#00d4ff', textDecoration: 'underline' }}>{text}</a> }
-        ];
+        // Empty lines — skip
+        if (line.trim() === '') {
+            i++;
+            continue;
+        }
 
-        // For simplicity, just return text with basic formatting
-        // A full implementation would parse all patterns
-        return text;
-    };
+        // Paragraph: collect consecutive non-special lines
+        const paraLines: string[] = [];
+        while (
+            i < lines.length &&
+            lines[i].trim() !== '' &&
+            !lines[i].trim().startsWith('```') &&
+            !lines[i].match(/^#{1,4}\s+/) &&
+            !/^\s*[-•*]\s+/.test(lines[i])
+        ) {
+            paraLines.push(lines[i]);
+            i++;
+        }
+        if (paraLines.length > 0) {
+            blocks.push({ type: 'paragraph', content: paraLines.join('\n') });
+        }
+    }
 
-    return renderContent();
+    return blocks;
+}
+
+// ── Block rendering ──
+function renderBlock(block: Block, key: number): React.ReactElement {
+    switch (block.type) {
+        case 'code-block':
+            return (
+                <pre
+                    key={key}
+                    style={{
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        border: '1px solid rgba(0, 212, 255, 0.15)',
+                        borderRadius: 8,
+                        padding: '10px 14px',
+                        margin: '8px 0',
+                        overflowX: 'auto',
+                        fontSize: 13,
+                        fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                        color: '#e0e0e0',
+                        lineHeight: 1.5,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                    }}
+                >
+                    {block.content}
+                </pre>
+            );
+
+        case 'header': {
+            const sizes: Record<number, number> = { 1: 18, 2: 16, 3: 15, 4: 14 };
+            return (
+                <div
+                    key={key}
+                    style={{
+                        fontSize: sizes[block.level || 2] || 16,
+                        fontWeight: 700,
+                        color: '#00d4ff',
+                        margin: '12px 0 6px',
+                        fontFamily: "'Rajdhani', 'Inter', sans-serif",
+                        letterSpacing: '0.02em',
+                    }}
+                >
+                    {renderInline(block.content)}
+                </div>
+            );
+        }
+
+        case 'bullet-list':
+            return (
+                <ul
+                    key={key}
+                    style={{
+                        margin: '6px 0',
+                        paddingLeft: 20,
+                        listStyleType: 'none',
+                    }}
+                >
+                    {(block.items || []).map((item, j) => (
+                        <li
+                            key={j}
+                            style={{
+                                position: 'relative',
+                                paddingLeft: 12,
+                                marginBottom: 4,
+                                fontSize: 14,
+                            }}
+                        >
+                            <span
+                                style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    color: '#00d4ff',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                •
+                            </span>
+                            {renderInline(item)}
+                        </li>
+                    ))}
+                </ul>
+            );
+
+        case 'paragraph':
+        default:
+            return (
+                <p key={key} style={{ margin: '4px 0' }}>
+                    {renderInline(block.content)}
+                </p>
+            );
+    }
+}
+
+// ── Inline formatting ──
+// Handles: **bold**, *italic*, `code`, [text](url)
+function renderInline(text: string): React.ReactNode {
+    if (!text) return null;
+
+    // Combined regex to match all inline patterns in order
+    // Order matters: ** must come before * to avoid conflicts
+    const regex = /(\*\*([^*]+)\*\*)|(`([^`]+)`)|(\[([^\]]+)\]\(([^)]+)\))|(\*([^*]+)\*)/g;
+
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    let keyCounter = 0;
+
+    while ((match = regex.exec(text)) !== null) {
+        // Add text before this match
+        if (match.index > lastIndex) {
+            parts.push(text.substring(lastIndex, match.index));
+        }
+
+        if (match[1]) {
+            // **bold**
+            parts.push(
+                <strong key={`b-${keyCounter++}`} style={{ fontWeight: 700, color: '#fff' }}>
+                    {match[2]}
+                </strong>
+            );
+        } else if (match[3]) {
+            // `code`
+            parts.push(
+                <code
+                    key={`c-${keyCounter++}`}
+                    style={{
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '1px solid rgba(0, 212, 255, 0.15)',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        fontSize: 13,
+                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        color: '#00d4ff',
+                    }}
+                >
+                    {match[4]}
+                </code>
+            );
+        } else if (match[5]) {
+            // [text](url)
+            parts.push(
+                <a
+                    key={`a-${keyCounter++}`}
+                    href={match[7]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        color: '#00d4ff',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '2px',
+                    }}
+                >
+                    {match[6]}
+                </a>
+            );
+        } else if (match[8]) {
+            // *italic*
+            parts.push(
+                <em key={`i-${keyCounter++}`} style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.9)' }}>
+                    {match[9]}
+                </em>
+            );
+        }
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length === 1 ? parts[0] : <>{parts}</>;
 }

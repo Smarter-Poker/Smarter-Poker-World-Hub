@@ -1,15 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   JARVIS AVATAR — Animated avatar with pulse and glow effects
+   GEEVES AVATAR — Animated avatar with pulse and glow effects
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React from 'react';
 
-interface JarvisAvatarProps {
+interface GeevesAvatarProps {
     isTyping?: boolean;
     size?: number;
 }
 
-export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps) {
+export function GeevesAvatar({ isTyping = false, size = 40 }: GeevesAvatarProps) {
     return (
         <div style={{
             position: 'relative',
@@ -23,7 +23,7 @@ export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps)
                     inset: -4,
                     background: 'radial-gradient(circle, rgba(0, 212, 255, 0.4), transparent 70%)',
                     borderRadius: '50%',
-                    animation: 'pulse 2s infinite'
+                    animation: 'geevesAvatarPulse 2s infinite'
                 }} />
             )}
 
@@ -32,23 +32,25 @@ export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps)
                 width: size,
                 height: size,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #00d4ff, #0088ff)',
+                background: 'linear-gradient(135deg, #00d4ff, #0066cc)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: size * 0.5,
+                fontSize: size * 0.45,
                 fontWeight: 700,
                 color: '#fff',
+                fontFamily: "'Rajdhani', 'Inter', sans-serif",
+                letterSpacing: '0.02em',
                 boxShadow: isTyping
                     ? '0 0 20px rgba(0, 212, 255, 0.6)'
                     : '0 2px 8px rgba(0, 0, 0, 0.2)',
                 transition: 'box-shadow 0.3s ease',
-                animation: isTyping ? 'avatarPulse 1.5s infinite' : 'none'
+                animation: isTyping ? 'geevesAvatarBounce 1.5s infinite' : 'none'
             }}>
-                J
+                G
             </div>
 
-            {/* Particle effects (optional) */}
+            {/* Particle effects when typing */}
             {isTyping && (
                 <>
                     {[0, 1, 2].map((i) => (
@@ -62,7 +64,7 @@ export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps)
                                 borderRadius: '50%',
                                 top: '50%',
                                 left: '50%',
-                                animation: `particle${i} 2s infinite`,
+                                animation: `geevesParticle${i} 2s infinite`,
                                 animationDelay: `${i * 0.3}s`
                             }}
                         />
@@ -71,23 +73,23 @@ export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps)
             )}
 
             <style jsx>{`
-                @keyframes pulse {
+                @keyframes geevesAvatarPulse {
                     0%, 100% { opacity: 0.6; transform: scale(1); }
                     50% { opacity: 1; transform: scale(1.1); }
                 }
-                @keyframes avatarPulse {
+                @keyframes geevesAvatarBounce {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.05); }
                 }
-                @keyframes particle0 {
+                @keyframes geevesParticle0 {
                     0% { transform: translate(0, 0); opacity: 1; }
                     100% { transform: translate(20px, -20px); opacity: 0; }
                 }
-                @keyframes particle1 {
+                @keyframes geevesParticle1 {
                     0% { transform: translate(0, 0); opacity: 1; }
                     100% { transform: translate(-20px, -15px); opacity: 0; }
                 }
-                @keyframes particle2 {
+                @keyframes geevesParticle2 {
                     0% { transform: translate(0, 0); opacity: 1; }
                     100% { transform: translate(0, -25px); opacity: 0; }
                 }
@@ -95,3 +97,6 @@ export function JarvisAvatar({ isTyping = false, size = 40 }: JarvisAvatarProps)
         </div>
     );
 }
+
+// Backward compat alias
+export const JarvisAvatar = GeevesAvatar;

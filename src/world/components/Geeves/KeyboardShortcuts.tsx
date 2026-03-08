@@ -1,36 +1,36 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   KEYBOARD SHORTCUTS — Global keyboard handler for Jarvis
+   KEYBOARD SHORTCUTS — Global keyboard handler for Geeves
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useEffect } from 'react';
 
 interface KeyboardShortcutsProps {
-    onOpenJarvis: () => void;
-    onCloseJarvis: () => void;
+    onOpenGeeves: () => void;
+    onCloseGeeves: () => void;
     isOpen: boolean;
 }
 
-export function useKeyboardShortcuts({ onOpenJarvis, onCloseJarvis, isOpen }: KeyboardShortcutsProps) {
+export function useKeyboardShortcuts({ onOpenGeeves, onCloseGeeves, isOpen }: KeyboardShortcutsProps) {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Cmd+J or Ctrl+J → Open Jarvis
+            // Cmd+J or Ctrl+J → Open/focus Geeves
             if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
                 e.preventDefault();
                 if (!isOpen) {
-                    onOpenJarvis();
+                    onOpenGeeves();
                 }
             }
 
-            // Esc → Close Jarvis
+            // Esc → Close Geeves
             if (e.key === 'Escape' && isOpen) {
                 e.preventDefault();
-                onCloseJarvis();
+                onCloseGeeves();
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, onOpenJarvis, onCloseJarvis]);
+    }, [isOpen, onOpenGeeves, onCloseGeeves]);
 }
 
 /**
