@@ -155,6 +155,12 @@ export default function ICMCalculatorPage() {
             const data = await res.json();
             if (data.success) {
                 setResults(data);
+                // Emit bus event for cross-page sync
+                try {
+                    window.dispatchEvent(new CustomEvent('training:icm-calculated', {
+                        detail: { players: stacks.length, prizePool, bubbleFactor: data.bubbleFactor },
+                    }));
+                } catch (_) { /* SSG guard */ }
             } else {
                 setError(data.error || 'Calculation failed');
             }

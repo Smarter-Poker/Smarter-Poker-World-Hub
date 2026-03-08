@@ -200,6 +200,14 @@ export default function SpotTrainerPage() {
             if (bus?.emitDecisionIncorrect) bus.emitDecisionIncorrect();
         }
 
+        // Emit bus event for cross-page sync (session-dashboard, position-mastery)
+        try {
+            window.dispatchEvent(new CustomEvent('training:spot-drilled', {
+                detail: { action, isCorrect, position: spot?.heroPosition, format: spot?.gameType },
+            }));
+            window.dispatchEvent(new CustomEvent('training:drill-complete'));
+        } catch (_) { /* SSG guard */ }
+
         // Auto-next after 2 seconds
         autoNextTimer.current = setTimeout(fetchSpot, 2000);
     }, [showResult, spot, bus, fetchSpot]);

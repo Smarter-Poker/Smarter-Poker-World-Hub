@@ -145,6 +145,14 @@ export default function SessionDashboardPage() {
 
     useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Bus listeners — auto-refresh when training events fire
+    useEffect(() => {
+        const refresh = () => fetchData();
+        const events = ['training:session-complete', 'training:drill-complete', 'training:progress-updated'];
+        events.forEach(e => window.addEventListener(e, refresh));
+        return () => events.forEach(e => window.removeEventListener(e, refresh));
+    }, [fetchData]);
+
     // Compute trend data from sessions
     const accuracyTrend = sessions
         .filter(s => typeof s.accuracy === 'number' || typeof s.gtow_score === 'number')
