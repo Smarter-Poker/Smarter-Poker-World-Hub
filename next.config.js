@@ -45,6 +45,10 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   compress: true, // Enable gzip compression for all responses
 
+  // ─── Three.js / R3F Package Transpilation ──────────────────────────────────
+  // ESM-only packages need transpilation for proper Next.js compatibility.
+  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei', '@react-three/postprocessing'],
+
   // ─── Build Memory Optimization ──────────────────────────────────────────────
   // With 950+ pages, the build needs memory-efficient compilation.
   // workerThreads offloads page compilation to separate workers (lower per-worker memory).

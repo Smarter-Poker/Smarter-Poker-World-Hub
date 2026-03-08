@@ -9,14 +9,15 @@
  *   - Cinematic lighting (5 optimized lights + IBL)
  *   - Holographic sphere pods with iridescent PBR materials
  *
- * CRITICAL FIX: R3F Canvas runs in a SEPARATE React root (ReactDOM.createRoot)
- * to isolate it from the page's React #418 hydration error recovery cycles.
- * Without this isolation, hydration errors from other page components (header,
- * etc.) cause repeated unmount/remount of the entire page tree, destroying
- * R3F's internal reconciler and killing the animation loop.
+ * ARCHITECTURE: This component uses next/dynamic ssr:false (set by the page)
+ * to ensure it only runs client-side. The R3F Canvas is rendered directly
+ * in the component tree — no isolated React root needed.
+ *
+ * An error boundary wraps the Canvas to prevent R3F crashes from taking
+ * down the entire page.
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, Suspense } from 'react';
 
 // ─── Detect device quality ONCE at module load (not inside a component) ───
 const IS_MOBILE = typeof window !== 'undefined' && (
@@ -27,96 +28,105 @@ const INITIAL_QUALITY = IS_MOBILE ? 'low' : 'high';
 const INITIAL_DPR = IS_MOBILE ? 0.75 : 1.5;
 
 /**
+ * Error boundary to catch R3F/Three.js crashes without killing the page.
+ */
+class R3FErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('[R3FErrorBoundary] 3D scene crashed:', error);
+    console.error('[R3FErrorBoundary] Component stack:', errorInfo?.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: '#030818', color: '#6ee7ef',
+          fontFamily: 'Orbitron, sans-serif', fontSize: 14,
+          flexDirection: 'column', gap: 12,
+        }}>
+          <div>3D Scene Error — Reloading...</div>
+          <div style={{ color: '#ff4444', fontSize: 11, maxWidth: '80%', textAlign: 'center' }}>
+            {this.state.error?.message?.substring(0, 120)}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#1877f2', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '10px 24px', cursor: 'pointer',
+              fontSize: 13,
+            }}
+          >
+            Refresh
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/**
  * LobbyScene — The exported component.
  *
- * This is a thin wrapper that creates an isolated React root for R3F.
- * The page's React tree only sees a simple div container, while R3F
- * runs in its own reconciler that is immune to page-level re-renders.
+ * Directly renders the R3F Canvas with all 3D content.
+ * The next/dynamic ssr:false wrapper ensures this only runs client-side.
  */
 export default function LobbyScene({ onPodClick, activePod, liveData }) {
-  const containerRef = useRef(null);
-  const r3fRootRef = useRef(null);
   const propsRef = useRef({ onPodClick, activePod, liveData });
+  const [R3FScene, setR3FScene] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
-  // Keep props ref updated without triggering R3F root recreation
+  // Keep props ref updated without triggering R3F re-renders
   useEffect(() => {
     propsRef.current = { onPodClick, activePod, liveData };
   });
 
+  // Dynamically import the R3F scene to code-split Three.js
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    let cancelled = false;
+    console.log('[LobbyScene] Loading R3F scene module...');
 
-    console.log('[LobbyScene] Creating isolated R3F root');
+    import('./LobbyR3FScene')
+      .then((mod) => {
+        if (cancelled) return;
+        console.log('[LobbyScene] R3F scene module loaded successfully');
+        setR3FScene(() => mod.R3FScene);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('[LobbyScene] Failed to load R3F scene:', err);
+        setLoadError(err.message);
+      });
 
-    // Create isolated React root for R3F — immune to page hydration errors
-    let root = null;
-    let disposed = false;
+    return () => { cancelled = true; };
+  }, []);
 
-    (async () => {
-      try {
-        const ReactDOM = await import('react-dom/client');
-        const { R3FScene } = await import('./LobbyR3FScene');
-
-        if (disposed) return;
-
-        root = ReactDOM.createRoot(container);
-        r3fRootRef.current = root;
-
-        // Render the R3F scene in the isolated root
-        root.render(
-          React.createElement(R3FScene, {
-            propsRef,
-            initialQuality: INITIAL_QUALITY,
-            initialDpr: INITIAL_DPR,
-            isMobile: IS_MOBILE,
-          })
-        );
-
-        console.log('[LobbyScene] Isolated R3F root created successfully');
-      } catch (err) {
-        console.error('[LobbyScene] Failed to create R3F root:', err);
-      }
-    })();
-
-    return () => {
-      disposed = true;
-      console.log('[LobbyScene] Disposing isolated R3F root');
-      // Delay unmount slightly to avoid React concurrent mode issues
-      if (root) {
-        setTimeout(() => {
-          try {
-            root.unmount();
-          } catch (e) {
-            // Root may already be unmounted
-          }
-        }, 0);
-      }
-      r3fRootRef.current = null;
-    };
-  }, []); // Empty deps — only create root once, NEVER recreate
-
-  // Re-render the isolated root when props change
-  useEffect(() => {
-    const root = r3fRootRef.current;
-    if (!root) return;
-
-    // Import and re-render — the isolated root handles its own updates
-    import('./LobbyR3FScene').then(({ R3FScene }) => {
-      try {
-        root.render(
-          React.createElement(R3FScene, {
-            propsRef,
-            initialQuality: INITIAL_QUALITY,
-            initialDpr: INITIAL_DPR,
-            isMobile: IS_MOBILE,
-          })
-        );
-      } catch (e) {
-        // Ignore if root was already unmounted
-      }
-    });
-  }, [activePod]); // Only re-render when active pod changes
+  if (loadError) {
+    return (
+      <div
+        className="lobby-scene-container"
+        style={{
+          position: 'absolute', inset: 0, zIndex: 1,
+          background: '#030818', display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          color: '#ff4444', fontFamily: 'Orbitron, sans-serif', fontSize: 14,
+        }}
+      >
+        3D Scene failed to load: {loadError}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -125,17 +135,27 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
         position: 'absolute',
         inset: 0,
         zIndex: 1,
-        background: '#0a0a0f',
+        background: '#030818',
       }}
     >
-      {/* R3F canvas will be rendered here by the isolated React root */}
-      <div
-        ref={containerRef}
-        style={{
-          position: 'absolute',
-          inset: 0,
-        }}
-      />
+      <R3FErrorBoundary>
+        {R3FScene ? (
+          <R3FScene
+            propsRef={propsRef}
+            initialQuality={INITIAL_QUALITY}
+            initialDpr={INITIAL_DPR}
+            isMobile={IS_MOBILE}
+          />
+        ) : (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 14,
+          }}>
+            Loading 3D Engine...
+          </div>
+        )}
+      </R3FErrorBoundary>
     </div>
   );
 }
