@@ -20,6 +20,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
+import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks, useStudyDeck, useQuizLeaderboard } from '../../../src/hooks/useAssistant';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { supabase } from '../../../src/lib/supabase';
@@ -1327,78 +1328,51 @@ export default function VirtualSandbox() {
         }} />
       )}</AnimatePresence>
 
-      {/* HEADER */}
-      <div className="sandbox-header" style={{
-        padding: '10px 16px', borderBottom: '1px solid #3A3B3C',
-        background: '#242526', position: 'sticky', top: 0, zIndex: 50,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 1400, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button onClick={() => router.push('/hub/personal-assistant')} aria-label="Back"
-              style={{ background: '#3A3B3C', border: 'none', borderRadius: 8, padding: '8px 10px', color: '#B0B3B8', cursor: 'pointer', fontSize: 16, touchAction: 'manipulation', minWidth: 36, minHeight: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
-            <div>
-              <h1 style={{
-                fontSize: 16, fontWeight: 800, margin: 0, fontFamily: "'Orbitron',sans-serif",
-                background: 'linear-gradient(135deg, #2374E1, #4599FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>
-                Virtual Sandbox</h1>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {/* Quiz toggle — always visible */}
-            <button onClick={() => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); }} style={{ padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: '600', background: quizMode ? 'rgba(139,92,246,0.2)' : '#3A3B3C', border: `1px solid ${quizMode ? 'rgba(139,92,246,0.3)' : '#4E4F50'}`, color: quizMode ? '#c4b5fd' : '#B0B3B8', cursor: 'pointer', minHeight: 36, touchAction: 'manipulation' }}>Quiz</button>
-            <AccuracyBadge stats={quizScore} />
-            {/* Desktop-only inline buttons */}
-            <div className="desktop-header-actions" style={{ display: 'flex', gap: '6px' }}>
-              <button onClick={() => setShowSessions(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer', minHeight: 36 }}>Sessions</button>
-              <button onClick={saveBookmark} disabled={saveStatus === 'saving'} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', transition: 'all 0.3s', minHeight: 36 }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : saveStatus === 'error' ? 'Error' : 'Save'}</button>
-              {results && <button onClick={() => setShowResults(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>View Results</button>}
-              {results && <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 36 }}>Share</button>}
-              <button onClick={popUndo} disabled={undoStackRef.current.length === 0} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#B0B3B8', cursor: undoStackRef.current.length === 0 ? 'default' : 'pointer', minHeight: 36 }}>Undo</button>
-              <button onClick={resetAll} style={{ padding: '8px 14px', borderRadius: 8, fontSize: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 36 }}>Reset</button>
-            </div>
-            {/* Mobile overflow button */}
-            <button className="mobile-menu-btn" onClick={() => setShowMenu(!showMenu)} style={{ display: 'none', padding: '8px', borderRadius: 8, background: showMenu ? 'rgba(35,116,225,0.2)' : '#3A3B3C', border: '1px solid #4E4F50', color: showMenu ? '#4599FF' : '#B0B3B8', cursor: 'pointer', fontSize: 18, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>⋯</button>
-          </div>
-        </div>
-        {/* Mobile overflow menu dropdown */}
-        <AnimatePresence>
-          {showMenu && (
-            <motion.div className="mobile-overflow-menu"
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-              style={{ overflow: 'hidden', marginTop: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '4px 0' }}>
-                <button onClick={() => { setShowSessions(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Sessions</button>
-                <button onClick={() => { saveBookmark(); setShowMenu(false); }} disabled={saveStatus === 'saving'} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save'}</button>
-                {results && <button onClick={() => { setShowResults(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>View Results</button>}
-                {results && <button onClick={() => { setShowShare(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Share</button>}
-                <button onClick={() => { popUndo(); setShowMenu(false); }} disabled={undoStackRef.current.length === 0} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Undo</button>
-                <button onClick={() => { resetAll(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Reset</button>
-                <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Templates</button>
-                <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Import HH</button>
-                <button onClick={() => { saveAsTemplate(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Save Template</button>
-                <button onClick={() => { setShowLeakStats(true); loadLeakStats(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>My Stats</button>
-                <button onClick={() => { toggleSound(); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>{soundEnabled ? 'Sound On' : 'Sound Off'}</button>
-                {/* Wave 2 menu items */}
-                <button onClick={() => { setShowSessionLog(true); setShowMenu(false); try { navigator.vibrate?.(10); } catch (e) { } }}
-                  style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: sessionLog.length > 0 ? 'rgba(35,116,225,0.12)' : '#3A3B3C', border: `1px solid ${sessionLog.length > 0 ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`, color: sessionLog.length > 0 ? '#4599FF' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>
-                  📓 Session ({sessionLog.length})
-                </button>
-                <button onClick={() => { toggleCoachMode(); setShowMenu(false); try { navigator.vibrate?.(15); } catch (e) { } }}
-                  style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: coachMode ? 'rgba(167,139,250,0.15)' : '#3A3B3C', border: `1px solid ${coachMode ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: coachMode ? '#a78bfa' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>
-                  🧠 Coach {coachMode ? 'ON' : 'OFF'}
-                </button>
-                {results && (
-                  <button onClick={() => { setShowShareHand(true); setShowMenu(false); try { navigator.vibrate?.(10); } catch (e) { } }}
-                    style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>
-                    📸 Share Hand
-                  </button>
-                )}
+      {/* ── STANDARD UNIVERSAL HEADER (same Back button as all other pages) ── */}
+      <UniversalHeader pageDepth={2} onMenuClick={() => setShowMenu(!showMenu)} />
+
+      {/* ── SANDBOX HAMBURGER DRAWER ── */}
+      <AnimatePresence>
+        {showMenu && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            style={{
+              position: 'fixed', top: 60, left: 0, right: 0, zIndex: 200,
+              background: '#18191A', borderBottom: '1px solid #3A3B3C',
+              padding: '12px 16px', boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            }}
+          >
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, maxWidth: 600, margin: '0 auto' }}>
+              <button onClick={() => { setQuizMode(!quizMode); setQuizRevealed(false); setUserGuess(null); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: quizMode ? 'rgba(139,92,246,0.2)' : '#3A3B3C', border: `1px solid ${quizMode ? 'rgba(139,92,246,0.3)' : '#4E4F50'}`, color: quizMode ? '#c4b5fd' : '#B0B3B8', cursor: 'pointer' }}>Quiz {quizMode ? 'ON' : 'OFF'}</button>
+              <button onClick={() => { setShowSessions(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Sessions</button>
+              <button onClick={() => { saveBookmark(); setShowMenu(false); }} disabled={saveStatus === 'saving'} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: saveStatus === 'saved' ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${saveStatus === 'saved' ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: saveStatus === 'saved' ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>{saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Save'}</button>
+              {results && <button onClick={() => { setShowResults(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer' }}>Results</button>}
+              {results && <button onClick={() => { setShowShare(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer' }}>Share</button>}
+              <button onClick={() => { popUndo(); setShowMenu(false); }} disabled={undoStackRef.current.length === 0} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#E4E6EB', cursor: 'pointer' }}>Undo</button>
+              <button onClick={() => { resetAll(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>Reset</button>
+              <button onClick={() => { toggleCoachMode(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: coachMode ? 'rgba(167,139,250,0.15)' : '#3A3B3C', border: `1px solid ${coachMode ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: coachMode ? '#a78bfa' : '#E4E6EB', cursor: 'pointer' }}>Coach {coachMode ? 'ON' : 'OFF'}</button>
+              <button onClick={() => { setShowSessionLog(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: sessionLog.length > 0 ? 'rgba(35,116,225,0.12)' : '#3A3B3C', border: `1px solid ${sessionLog.length > 0 ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`, color: sessionLog.length > 0 ? '#4599FF' : '#E4E6EB', cursor: 'pointer' }}>Log ({sessionLog.length})</button>
+              <button onClick={() => { toggleSound(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>Sound {soundEnabled ? 'ON' : 'OFF'}</button>
+              <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Templates</button>
+              <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
+              {/* Felt color dots row */}
+              <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
+                <span style={{ fontSize: 9, color: '#65676B', fontWeight: 700, textTransform: 'uppercase' }}>Felt:</span>
+                {FELT_COLORS.map(f => (
+                  <button key={f.id} onClick={() => { changeFeltColor(f.id); setShowMenu(false); }}
+                    style={{ width: 22, height: 22, borderRadius: '50%', border: tableFelt === f.id ? '2px solid #4599FF' : '1px solid #4E4F50', background: f.id === 'default' ? '#18191A' : f.id === 'green' ? '#166534' : f.id === 'blue' ? '#1e3a5f' : '#7f1d1d', cursor: 'pointer', padding: 0 }}
+                    title={f.label}
+                  />
+                ))}
+                <motion.button onClick={() => { startVoiceInput(); setShowMenu(false); }} whileTap={{ scale: 0.85 }}
+                  style={{ width: 28, height: 28, borderRadius: '50%', padding: 0, border: 'none', background: isListening ? 'rgba(239,68,68,0.3)' : 'rgba(35,116,225,0.12)', color: isListening ? '#fca5a5' : '#4599FF', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >{isListening ? '...' : '🎤'}</motion.button>
+                <AccuracyBadge stats={quizScore} />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ═══════════════════════════════════════════════════════════════════
           HORIZONTAL SANDBOX LAYOUT
@@ -1431,15 +1405,6 @@ export default function VirtualSandbox() {
               style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
               {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
             </select>
-          </div>
-
-          {/* Hero Hand */}
-          <div>
-            <div style={{ fontSize: 8, color: '#65676B', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Hero Hand</div>
-            <div onClick={openHeroPicker} style={{ display: 'flex', gap: 3, cursor: 'pointer', padding: '3px 4px', borderRadius: 5, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.2)', alignItems: 'center', justifyContent: 'center' }}>
-              {heroHand.card1 ? <CardSlot card={heroHand.card1} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card1: null })); }} /> : <div style={{ width: 20, height: 28, borderRadius: 3, border: '1px dashed rgba(35,116,225,0.4)', fontSize: 9, color: '#4599FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>?</div>}
-              {heroHand.card2 ? <CardSlot card={heroHand.card2} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card2: null })); }} /> : <div style={{ width: 20, height: 28, borderRadius: 3, border: '1px dashed rgba(35,116,225,0.4)', fontSize: 9, color: '#4599FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>?</div>}
-            </div>
           </div>
 
           {/* Villain Position */}
