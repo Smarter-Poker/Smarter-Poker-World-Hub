@@ -12,9 +12,9 @@
  * It is completely immune to the page's hydration errors and re-render cycles.
  */
 
-import React, { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { DoubleSide, AdditiveBlending, FogExp2, Raycaster, Vector2 } from 'three';
+import { DoubleSide, AdditiveBlending, FogExp2, Raycaster, Vector2, ShaderMaterial } from 'three';
 
 // Feature pod definitions — each maps to a real tab/feature
 const FEATURE_PODS = [
@@ -38,18 +38,189 @@ const QUALITY = {
     dpr: 2.0,
     particleCount: 1800,
     shadows: true,
+    bloomThreshold: 0.02,
+    bloomIntensity: 3.2,
+    bloomRadius: 0.9,
   },
   medium: {
     dpr: 1.0,
     particleCount: 1000,
     shadows: false,
+    bloomThreshold: 0.06,
+    bloomIntensity: 2.4,
+    bloomRadius: 0.75,
   },
   low: {
     dpr: 0.75,
     particleCount: 500,
     shadows: false,
+    bloomThreshold: 0.12,
+    bloomIntensity: 1.2,
+    bloomRadius: 0.5,
   },
 };
+
+/**
+ * StarField — massive inverted sphere with gradient and stars.
+ * Creates hyper-realistic cosmic background with subtle nebula effects.
+ */
+function StarField() {
+  const meshRef = useRef();
+
+  const material = useMemo(() => {
+    return new ShaderMaterial({
+      vertexShader: `
+        varying vec3 vWorldPos;
+        void main() {
+          vWorldPos = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vWorldPos;
+        uniform float uTime;
+
+        // Simple hash for star positions
+        float hash(vec3 p) {
+          p = fract(p * vec3(443.897, 441.423, 437.195));
+          p += dot(p, p.yzx + 19.19);
+          return fract((p.x + p.y) * p.z);
+        }
+
+        // Noise for nebula
+        float noise(vec3 p) {
+          vec3 i = floor(p);
+          vec3 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float n = mix(
+            mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
+                mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+            mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+          return n;
+        }
+
+        void main() {
+          vec3 dir = normalize(vWorldPos);
+
+          // Base gradient: deep navy at bottom → dark purple at top
+          float y = dir.y * 0.5 + 0.5;
+          vec3 bottomColor = vec3(0.01, 0.02, 0.06);
+          vec3 topColor = vec3(0.04, 0.02, 0.08);
+          vec3 color = mix(bottomColor, topColor, y);
+
+          // Nebula clouds
+          float neb = noise(dir * 3.0 + uTime * 0.01);
+          neb = neb * neb * 0.15;
+          color += vec3(0.05, 0.02, 0.08) * neb;
+          color += vec3(0.02, 0.06, 0.10) * noise(dir * 5.0 - uTime * 0.005) * 0.1;
+
+          // Stars
+          vec3 starGrid = dir * 200.0;
+          float star = hash(floor(starGrid));
+          float brightness = step(0.997, star);
+          float twinkle = 0.5 + 0.5 * sin(uTime * 2.0 + star * 100.0);
+          color += vec3(0.8, 0.9, 1.0) * brightness * twinkle * 0.8;
+
+          // Medium stars
+          vec3 starGrid2 = dir * 100.0;
+          float star2 = hash(floor(starGrid2));
+          float brightness2 = step(0.993, star2);
+          float twinkle2 = 0.3 + 0.7 * sin(uTime * 1.5 + star2 * 50.0);
+          color += vec3(0.5, 0.7, 1.0) * brightness2 * twinkle2 * 0.4;
+
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `,
+      uniforms: {
+        uTime: { value: 0 },
+      },
+      side: DoubleSide,
+    });
+  }, []);
+
+  useFrame(({ clock }) => {
+    material.uniforms.uTime.value = clock.getElapsedTime();
+    if (meshRef.current) {
+      meshRef.current.rotation.y = clock.getElapsedTime() * 0.005;
+    }
+  });
+
+  return (
+    <mesh ref={meshRef} material={material}>
+      <sphereGeometry args={[50, 32, 32]} />
+    </mesh>
+  );
+}
+
+/**
+ * NeonGridGround — custom shader ground with animated neon grid and sonar pulse.
+ * Replaces the boring dark disc with hyper-realistic neon-lit surface.
+ */
+function NeonGridGround() {
+  const material = useMemo(() => {
+    return new ShaderMaterial({
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+        void main() {
+          vUv = uv;
+          vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        varying vec2 vUv;
+        varying vec3 vWorldPos;
+
+        void main() {
+          vec2 pos = vWorldPos.xz;
+          float gridSize = 1.0;
+          vec2 grid = abs(fract(pos / gridSize - 0.5) - 0.5) / fwidth(pos / gridSize);
+          float line = min(grid.x, grid.y);
+          float gridLine = 1.0 - min(line, 1.0);
+
+          // Distance fade
+          float dist = length(pos);
+          float fade = 1.0 - smoothstep(4.0, 12.0, dist);
+
+          // Sonar pulse
+          float pulse = smoothstep(0.3, 0.0, abs(dist - mod(uTime * 2.0, 14.0)));
+          float pulse2 = smoothstep(0.3, 0.0, abs(dist - mod(uTime * 2.0 + 7.0, 14.0)));
+
+          // Grid color
+          vec3 gridColor = vec3(0.43, 0.91, 0.94);
+          float alpha = gridLine * fade * 0.2;
+          alpha += gridLine * (pulse + pulse2) * fade * 0.3;
+
+          // Center glow
+          float centerGlow = exp(-dist * 0.3) * 0.08;
+
+          vec3 color = gridColor * (alpha + centerGlow);
+
+          gl_FragColor = vec4(color, alpha + centerGlow);
+        }
+      `,
+      uniforms: {
+        uTime: { value: 0 },
+      },
+      transparent: true,
+      side: DoubleSide,
+      depthWrite: false,
+    });
+  }, []);
+
+  useFrame(({ clock }) => {
+    material.uniforms.uTime.value = clock.getElapsedTime();
+  });
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.97, 0]} material={material}>
+      <planeGeometry args={[30, 30, 1, 1]} />
+    </mesh>
+  );
+}
 
 /**
  * Post-processing effects — loaded lazily to avoid breaking R3F init.
@@ -79,13 +250,15 @@ function PostProcessingEffects({ quality }) {
   const { EffectComposer, Bloom, Vignette, ToneMapping, ChromaticAberration } = Effects.rppp;
   const { BlendFunction, ToneMappingMode } = Effects.pp;
 
+  const bloomConfig = QUALITY[quality] || QUALITY.medium;
+
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={quality === 'high' ? 0.04 : quality === 'medium' ? 0.08 : 0.12}
+        luminanceThreshold={bloomConfig.bloomThreshold}
         luminanceSmoothing={0.065}
-        intensity={quality === 'high' ? 2.8 : quality === 'medium' ? 2.0 : 1.2}
-        radius={quality === 'high' ? 0.85 : quality === 'medium' ? 0.7 : 0.5}
+        intensity={bloomConfig.bloomIntensity}
+        radius={bloomConfig.bloomRadius}
         mipmapBlur
       />
       {quality !== 'low' && (
@@ -102,7 +275,7 @@ function PostProcessingEffects({ quality }) {
           modulationOffset={0.5}
         />
       )}
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={1.6} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={1.8} />
     </EffectComposer>
   );
 }
@@ -156,25 +329,30 @@ function GroundPlatform({ quality }) {
 
   return (
     <group>
+      {/* Neon grid ground shader — underneath reflector */}
+      <NeonGridGround />
+
       {/* Main ground disc — reflective if loaded, fallback to PBR */}
       <mesh position={[0, -0.98, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[5.5, 64]} />
+        <circleGeometry args={[8, 64]} />
         {ReflectorMat ? (
           <ReflectorMat
             blur={quality === 'high' ? [300, 100] : quality === 'medium' ? [200, 64] : [100, 32]}
             resolution={quality === 'high' ? 256 : quality === 'medium' ? 128 : 64}
             mixBlur={0.85}
-            mixStrength={0.6}
+            mixStrength={0.4}
             roughness={0.82}
             depthScale={0.12}
             minDepthThreshold={0.4}
             maxDepthThreshold={1.4}
             color="#061525"
             metalness={0.95}
-            mirror={0.3}
+            mirror={0.2}
+            transparent
+            opacity={0.7}
           />
         ) : (
-          <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} />
+          <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} transparent opacity={0.7} />
         )}
       </mesh>
 
@@ -206,72 +384,99 @@ function GroundPlatform({ quality }) {
 }
 
 /**
- * Vertical energy beam — holographic light pillar rising from the center.
- * Creates a sci-fi "data stream" effect above the radar disc.
+ * Vertical energy beam — hyper-dramatic holographic column with rings and glow.
+ * Creates an intense sci-fi "data stream" effect rising from center.
  */
 function EnergyBeam() {
   const beamRef = useRef();
+  const glowBeamRef = useRef();
+  const topGlowRef = useRef();
   const ringsRef = useRef([]);
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
 
-    // Beam pulse
+    // Main beam pulse — much more visible
     if (beamRef.current) {
-      beamRef.current.material.opacity = 0.20 + 0.10 * Math.sin(t * 1.5);
+      beamRef.current.material.opacity = 0.35 + 0.10 * Math.sin(t * 1.5);
     }
 
-    // Floating rings orbit upward
+    // Glow beam pulse
+    if (glowBeamRef.current) {
+      glowBeamRef.current.material.opacity = 0.12 + 0.06 * Math.sin(t * 1.2);
+    }
+
+    // Top bright spot
+    if (topGlowRef.current) {
+      topGlowRef.current.material.emissive.setHex(0x6ee7ef);
+      topGlowRef.current.material.emissiveIntensity = 0.6 + 0.4 * Math.sin(t * 2);
+    }
+
+    // Floating rings orbit upward (5 rings now, bigger)
     ringsRef.current.forEach((ring, i) => {
       if (!ring) return;
-      const phase = (t * 0.15 + i * 0.33) % 1;
-      ring.position.y = phase * 6;
-      ring.scale.setScalar(0.3 + phase * 0.7);
-      ring.material.opacity = (1 - phase) * 0.35;
+      const phase = (t * 0.15 + i * 0.2) % 1;
+      ring.position.y = phase * 8;
+      ring.scale.setScalar(0.5 + phase * 1.0);
+      ring.material.opacity = (1 - phase) * 0.5;
       ring.rotation.y = t * 0.5 + i * 2;
     });
   });
 
   return (
     <group position={[0, -0.9, 0]}>
-      {/* Main beam cylinder — much stronger glow */}
+      {/* Main beam cylinder — MUCH more visible */}
       <mesh ref={beamRef}>
-        <cylinderGeometry args={[0.15, 0.25, 8, 16, 1, true]} />
+        <cylinderGeometry args={[0.25, 0.45, 10, 16, 1, true]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.20}
+          opacity={0.35}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
 
-      {/* Outer glow cylinder */}
-      <mesh>
-        <cylinderGeometry args={[0.2, 0.4, 7, 16, 1, true]} />
+      {/* Outer glow cylinder — wider, more dramatic */}
+      <mesh ref={glowBeamRef}>
+        <cylinderGeometry args={[0.5, 0.8, 9, 16, 1, true]} />
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.08}
+          opacity={0.12}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
 
-      {/* Floating ring markers ascending the beam */}
-      {[0, 1, 2].map((i) => (
+      {/* Bright spot at beam top — emissive sphere */}
+      <mesh ref={topGlowRef} position={[0, 5, 0]}>
+        <sphereGeometry args={[0.35, 16, 16]} />
+        <meshBasicMaterial
+          color="#6ee7ef"
+          emissive="#6ee7ef"
+          emissiveIntensity={0.8}
+          transparent
+          opacity={0.9}
+          blending={AdditiveBlending}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Floating ring markers ascending the beam — 5 rings, bigger */}
+      {[0, 1, 2, 3, 4].map((i) => (
         <mesh
           key={i}
           ref={el => { ringsRef.current[i] = el; }}
           rotation={[-Math.PI / 2, 0, 0]}
         >
-          <ringGeometry args={[0.15, 0.25, 24]} />
+          <ringGeometry args={[0.25, 0.45, 32]} />
           <meshBasicMaterial
             color="#6ee7ef"
             transparent
-            opacity={0.35}
+            opacity={0.5}
             blending={AdditiveBlending}
             depthWrite={false}
             side={DoubleSide}
@@ -283,40 +488,71 @@ function EnergyBeam() {
 }
 
 /**
- * Orbital halo ring — a slow-spinning holographic ring above the pod orbit.
+ * Orbital halo rings — TWO slow-spinning holographic rings for dramatic effect.
+ * Ring 1 is thicker and more visible, Ring 2 is tilted and subtle.
  */
 function OrbitalHalo() {
-  const ringRef = useRef();
+  const ring1Ref = useRef();
+  const ring2Ref = useRef();
 
   useFrame(({ clock }) => {
-    if (!ringRef.current) return;
     const t = clock.getElapsedTime();
-    ringRef.current.rotation.z = t * 0.05;
-    ringRef.current.material.opacity = 0.18 + 0.08 * Math.sin(t * 0.8);
+
+    // Ring 1 — main orbital ring
+    if (ring1Ref.current) {
+      ring1Ref.current.rotation.z = t * 0.05;
+      ring1Ref.current.material.opacity = 0.25 + 0.08 * Math.sin(t * 0.8);
+    }
+
+    // Ring 2 — secondary, tilted ring, slower rotation
+    if (ring2Ref.current) {
+      ring2Ref.current.rotation.z = t * 0.03;
+      ring2Ref.current.material.opacity = 0.18 + 0.06 * Math.sin(t * 0.6 + 1.5);
+    }
   });
 
   return (
-    <mesh ref={ringRef} position={[0, 2.5, 0]} rotation={[-Math.PI / 2.2, 0, 0]}>
-      <ringGeometry args={[5.3, 5.8, 96]} />
-      <meshBasicMaterial
-        color="#6ee7ef"
-        transparent
-        opacity={0.18}
-        blending={AdditiveBlending}
-        depthWrite={false}
-        side={DoubleSide}
-      />
-    </mesh>
+    <>
+      {/* Ring 1: Main orbital halo */}
+      <mesh ref={ring1Ref} position={[0, 2.5, 0]} rotation={[-Math.PI / 2.2, 0, 0]}>
+        <ringGeometry args={[5.0, 6.0, 96]} />
+        <meshBasicMaterial
+          color="#6ee7ef"
+          transparent
+          opacity={0.25}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+
+      {/* Ring 2: Secondary tilted ring, slower, subtler */}
+      <mesh
+        ref={ring2Ref}
+        position={[0, 2.3, 0]}
+        rotation={[-Math.PI / 2.5, 0, (15 * Math.PI) / 180]}
+      >
+        <ringGeometry args={[4.8, 5.5, 96]} />
+        <meshBasicMaterial
+          color="#3b82f6"
+          transparent
+          opacity={0.18}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+    </>
   );
 }
 
 /**
- * Scene fog setup — adds exponential fog for depth.
+ * Scene fog setup — adds exponential fog for depth (lighter for more visibility).
  */
 function SceneFog() {
   useFrame(({ scene }) => {
     if (!scene.fog) {
-      scene.fog = new FogExp2('#020810', 0.055);
+      scene.fog = new FogExp2('#030818', 0.045);
     }
   });
   return null;
@@ -451,6 +687,7 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
   const [ParticleField, setParticleField] = useState(null);
   const [ParallaxCamera, setParallaxCamera] = useState(null);
   const mountedRef = useRef(true);
+  const { camera } = useThree();
 
   // Bridge props from page React tree
   const [syncedProps, setSyncedProps] = useState({
@@ -483,6 +720,18 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
     });
   }, []);
 
+  // Auto-orbit camera around Y axis for subtle parallax effect
+  useFrame(({ clock }) => {
+    if (camera) {
+      const t = clock.getElapsedTime();
+      const orbitRadius = Math.sqrt(3.0 * 3.0 + 7.0 * 7.0); // Distance from center
+      const orbitAngle = t * 0.02; // Slow rotation (0.02 radians/sec)
+      camera.position.x = Math.sin(orbitAngle) * orbitRadius;
+      camera.position.z = Math.cos(orbitAngle) * orbitRadius;
+      camera.lookAt(0, 1.5, 0);
+    }
+  });
+
   return (
     <>
       {/* ═══ PROPS BRIDGE ═══ */}
@@ -490,6 +739,9 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
 
       {/* ═══ NATIVE CLICK DETECTION (bypasses broken R3F events) ═══ */}
       <ClickDetector propsRef={propsRef} />
+
+      {/* ═══ COSMIC BACKGROUND ═══ */}
+      <StarField />
 
       {/* ═══ SCENE ATMOSPHERE ═══ */}
       <SceneFog />
@@ -509,6 +761,11 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       <pointLight position={[0, 5, 0]} intensity={3.5} color="#6ee7ef" distance={20} decay={2} />
       {/* Underlight for pod pedestals */}
       <pointLight position={[0, -0.5, 0]} intensity={1.5} color="#ff8c00" distance={8} decay={2} />
+
+      {/* Additional colored accent lights — hyper-realistic */}
+      <pointLight position={[4, 3, -3]} intensity={1.5} color="#ff4444" distance={12} decay={2} />
+      <pointLight position={[-4, 2, 3]} intensity={1.2} color="#8b5cf6" distance={10} decay={2} />
+      <pointLight position={[0, 6, -2]} intensity={0.8} color="#ffd700" distance={15} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
@@ -569,14 +826,14 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
     console.log('[R3FScene] Scene children:', state.scene.children.length);
     state.gl.setClearColor(0x000000, 0);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
-    state.gl.toneMappingExposure = 1.6; // Brighter for AAA cinematic
+    state.gl.toneMappingExposure = 1.8; // Even brighter for hyper-realistic cinematic
   }, []);
 
   return (
     <Canvas
       camera={{
-        position: [0, 3.5, 7.5],
-        fov: 52,
+        position: [0, 3.0, 7.0],
+        fov: 55,
         near: 0.1,
         far: 100,
       }}

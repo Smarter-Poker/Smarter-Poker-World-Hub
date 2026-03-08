@@ -35,9 +35,9 @@ function createGlowTexture(size = 256) {
   // Multi-stop gradient for softer, more photorealistic glow
   const gradient = ctx.createRadialGradient(half, half, 0, half, half, half);
   gradient.addColorStop(0, 'rgba(255,255,255,1)');
-  gradient.addColorStop(0.08, 'rgba(240,252,255,0.95)');
-  gradient.addColorStop(0.2, 'rgba(200,240,255,0.7)');
-  gradient.addColorStop(0.4, 'rgba(110,231,239,0.3)');
+  gradient.addColorStop(0.12, 'rgba(240,252,255,0.95)');
+  gradient.addColorStop(0.25, 'rgba(200,240,255,0.7)');
+  gradient.addColorStop(0.45, 'rgba(110,231,239,0.3)');
   gradient.addColorStop(0.65, 'rgba(59,130,246,0.1)');
   gradient.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = gradient;
@@ -61,16 +61,16 @@ const particleVertexShader = `
     vColor = aColor;
 
     // Per-particle twinkle
-    float twinkle = 0.4 + 0.6 * sin(uTime * 0.6 + aPhase * 6.283);
+    float twinkle = 0.3 + 0.7 * sin(uTime * 0.6 + aPhase * 6.283);
 
     // Sparkle flash — rare bright pops
-    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 16.0) * 3.5;
+    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 12.0) * 5.0;
 
     vAlpha = twinkle * 0.6 + flash * 0.4;
 
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     float sizeFactor = aSize * (1.0 + flash * 0.5);
-    gl_PointSize = sizeFactor * uPixelRatio * (320.0 / -mvPosition.z);
+    gl_PointSize = sizeFactor * uPixelRatio * (450.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -86,7 +86,7 @@ const particleFragmentShader = `
     if (alpha < 0.01) discard;
 
     // Emissive glow — colors are pushed above 1.0 for bloom pickup
-    vec3 emissive = vColor * 2.2;
+    vec3 emissive = vColor * 3.0;
     gl_FragColor = vec4(emissive * texColor.rgb, alpha);
   }
 `;
@@ -192,9 +192,9 @@ function ParticleLayer({
       const phase = phases[i];
 
       // Orbital drift + Brownian motion
-      const orbit = Math.sin(t * 0.12 + phase) * 0.002 * speedScale;
-      const wobble = Math.cos(t * 0.08 + phase * 2) * 0.002 * speedScale;
-      const spiral = Math.sin(t * 0.05 + phase * 3) * 0.0015;
+      const orbit = Math.sin(t * 0.12 + phase) * 0.004 * speedScale;
+      const wobble = Math.cos(t * 0.08 + phase * 2) * 0.003 * speedScale;
+      const spiral = Math.sin(t * 0.05 + phase * 3) * 0.003;
 
       array[i3] += velocities[i3] + orbit + spiral;
       array[i3 + 1] += velocities[i3 + 1] + wobble;
@@ -283,9 +283,9 @@ export function ParticleField({ count = 500, spread = 16 }) {
       {/* Layer 1: Main cyan particles — close, bright, lively */}
       <ParticleLayer
         count={mainCount}
-        spread={spread * 0.8}
+        spread={spread * 0.7}
         ySpread={0.45}
-        sizeRange={[0.14, 0.35]}
+        sizeRange={[0.20, 0.55]}
         speedScale={1.0}
         palette={CYAN_PALETTE}
         warmChance={0.06}
@@ -297,7 +297,7 @@ export function ParticleField({ count = 500, spread = 16 }) {
         count={deepCount}
         spread={spread * 1.2}
         ySpread={0.6}
-        sizeRange={[0.08, 0.20]}
+        sizeRange={[0.12, 0.35]}
         speedScale={0.4}
         palette={DEEP_PALETTE}
         warmChance={0.04}
@@ -309,10 +309,10 @@ export function ParticleField({ count = 500, spread = 16 }) {
         count={goldCount}
         spread={spread * 0.6}
         ySpread={0.3}
-        sizeRange={[0.10, 0.28]}
+        sizeRange={[0.18, 0.45]}
         speedScale={0.7}
         palette={GOLD_PALETTE}
-        warmChance={0.25}
+        warmChance={0.35}
         glowTexture={glowTexture}
       />
     </group>
