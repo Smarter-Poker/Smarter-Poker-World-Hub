@@ -11,11 +11,16 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { createClient } from '@supabase/supabase-js';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
-const supabase = typeof window !== 'undefined'
-    ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-    : null;
+let _supabase = null;
+function getSupabase() {
+    if (!_supabase && typeof window !== 'undefined') {
+        const { createClient } = require('@supabase/supabase-js');
+        _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    }
+    return _supabase;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DRILL PRESETS
@@ -110,6 +115,7 @@ function Chip({ label, selected, onClick, color = '#00d4ff' }) {
 
 export default function DrillBuilderPage() {
     const router = useRouter();
+    useTrainingBus('drill-builder');
     const [drillName, setDrillName] = useState('');
     const [format, setFormat] = useState('cash');
     const [selectedPositions, setSelectedPositions] = useState([]);
@@ -121,11 +127,11 @@ export default function DrillBuilderPage() {
 
     // Load saved drills
     const loadDrills = async () => {
-        if (!supabase) return;
+        if (!getSupabase()) return;
         try {
-            const { data: userData } = await supabase.auth.getUser();
+            const { data: userData } = await getSupabase().auth.getUser();
             if (!userData?.user) return;
-            const { data } = await supabase
+            const { data } = await getSupabase()
                 .from('training_custom_drills')
                 .select('*')
                 .eq('user_id', userData.user.id)
@@ -178,7 +184,7 @@ export default function DrillBuilderPage() {
         if (!drillName.trim()) return;
         setSaving(true);
         try {
-            const { data: userData } = await supabase.auth.getUser();
+            const { data: userData } = await getSupabase().auth.getUser();
             if (!userData?.user) return;
 
             const config = {
@@ -188,7 +194,7 @@ export default function DrillBuilderPage() {
                 stackMin, stackMax,
             };
 
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('training_custom_drills')
                 .insert({
                     user_id: userData.user.id,

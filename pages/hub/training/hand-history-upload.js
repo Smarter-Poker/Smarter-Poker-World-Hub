@@ -10,6 +10,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND HISTORY PARSER — Supports PokerStars format
@@ -216,6 +217,7 @@ function AnalyzedHandRow({ hand, index }) {
 
 export default function HandHistoryUploadPage() {
     const router = useRouter();
+    useTrainingBus('hand-history-upload');
     const fileInputRef = useRef(null);
     const [parsedHands, setParsedHands] = useState([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);

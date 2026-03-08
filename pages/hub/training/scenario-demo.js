@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import TrainingHandScenarioPlayer from '../../../src/components/training/TrainingHandScenarioPlayer';
 import { validateScenarioSchema } from '../../../src/utils/training/timelineMapper';
 
@@ -12,6 +13,7 @@ import { validateScenarioSchema } from '../../../src/utils/training/timelineMapp
 import demoScenarioRaw from '../../../src/components/training/demoScenario.json';
 
 export default function ScenarioDemoPage() {
+    useTrainingBus('scenario-demo');
     const [debugMode, setDebugMode] = useState(true);
     const [key, setKey] = useState(0);
 
