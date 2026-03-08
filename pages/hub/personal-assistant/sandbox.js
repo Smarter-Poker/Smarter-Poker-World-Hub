@@ -942,255 +942,250 @@ export default function VirtualSandbox() {
         </AnimatePresence>
       </div>
 
-      {/* STEP INDICATOR (Improvement #1) */}
-      <StepIndicator
-        hasCards={!!heroHand.card1 && !!heroHand.card2}
-        hasBoard={board.flop.length === 3}
-        hasResults={!!results}
-        isAnalyzing={isAnalyzing}
-      />
+      {/* MAIN LAYOUT — 3-column: left controls | table | right controls */}
+      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '4px 8px', display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '6px', alignItems: 'start' }}>
 
-      {/* MAIN LAYOUT — Mobile-first single-screen */}
-      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '8px 12px', display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-        {/* LEFT — Setup + Table */}
-        <div>
-          {/* Weekly Spot Challenge -- Phase 4 */}
-          <WeeklySpotBanner spot={weeklySpot} onLoad={loadWeeklySpot} />
-
-          {/* Visual Poker Table — Vertical Mobile-First */}
-          <div className="sandbox-table-wrap" style={{ marginBottom: '8px' }}>
-            <SandboxPokerTable
-              heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
-              communityCards={communityCards}
-              pot={potSize}
-              heroPosition={heroPosition}
-              heroStack={heroStack}
-              villains={villains}
-              street={currentStreet}
-              boardTexture={boardTexture}
-              equity={equity?.heroEquity}
-              onTapHeroCards={openHeroPicker}
-              onTapBoard={openBoardPicker}
-            />
+        {/* ════ LEFT COLUMN — Hero Setup ════ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Position */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Position</label>
+            <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
+              style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+              {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
-
-          {/* ═══ COMPACT CONTROL STRIP — Directly under table ═══ */}
-          <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '10px', marginBottom: '8px' }}>
-            {/* Row 1: Position | Game | Stack */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ color: '#65676B', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Pos</label>
-                <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
-                  style={{ width: '100%', padding: '6px 4px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ color: '#65676B', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Game</label>
-                <select value={gameType} onChange={e => setGameType(e.target.value)}
-                  style={{ width: '100%', padding: '6px 4px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-                </select>
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ color: '#65676B', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Stack</label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={heroStack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    setHeroStack(val === 0 ? '' : val);
-                  }}
-                  onBlur={() => setHeroStack(h => h || 100)}
-                  style={{ width: '100%', padding: '6px 4px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box', textAlign: 'center' }} />
-              </div>
-            </div>
-
-            {/* Row 2: Hero Cards (tap to pick both) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Hand:</span>
-              <div onClick={openHeroPicker} style={{ display: 'flex', gap: 3, cursor: 'pointer', padding: '4px 8px', borderRadius: 6, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', minHeight: 40, alignItems: 'center' }}>
-                {heroHand.card1 ? (
-                  <CardSlot card={heroHand.card1} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card1: null })); }} />
-                ) : (
-                  <div style={{ width: 30, height: 42, borderRadius: 3, border: '1.5px dashed rgba(35,116,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#4599FF' }}>?</div>
-                )}
-                {heroHand.card2 ? (
-                  <CardSlot card={heroHand.card2} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card2: null })); }} />
-                ) : (
-                  <div style={{ width: 30, height: 42, borderRadius: 3, border: '1.5px dashed rgba(35,116,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#4599FF' }}>?</div>
-                )}
-                <span style={{ fontSize: 10, color: '#4599FF', fontWeight: 600, marginLeft: 4 }}>Tap to pick</span>
-              </div>
-            </div>
-
-            {/* Row 3: Board Cards */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Board:</span>
-              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
-                {board.flop.length < 3 && <CardSlot label="Flop" onClick={openBoardPicker} />}
-                {board.flop.length === 3 && <div style={{ width: 1, height: 30, background: '#3A3B3C', margin: '0 2px' }} />}
-                {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={openBoardPicker} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
-                {board.turn && <CardSlot card={board.river} label="R" onClick={openBoardPicker} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
-              </div>
-              <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>
-                <button onClick={randomBoard} style={{ padding: '3px 6px', borderRadius: 4, fontSize: 9, background: 'rgba(35,116,225,0.12)', border: 'none', color: '#4599FF', cursor: 'pointer', fontWeight: 600 }}>Random</button>
-                {board.flop.length === 3 && !board.river && (
-                  <button onClick={dealNextStreet} style={{ padding: '3px 6px', borderRadius: 4, fontSize: 9, background: 'rgba(34,197,94,0.12)', border: 'none', color: '#86efac', cursor: 'pointer', fontWeight: 600 }}>
-                    Deal {!board.turn ? 'Turn' : 'River'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Row 4: Opponent */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Opp:</span>
-              <select value={villains[0]?.position || 'BB'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], position: e.target.value }; setVillains(u); }}
-                style={{ padding: '5px 4px', borderRadius: 6, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', flex: '0 0 60px' }}>
-                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              <select value={villains[0]?.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
-                style={{ padding: '5px 4px', borderRadius: 6, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', flex: 1 }}>
-                {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-
-            {/* Row 5: Pot Size + Action History (compact) */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Pot:</span>
-              <input
-                type="text" inputMode="decimal" pattern="[0-9.]*"
-                value={potSize}
-                onChange={e => {
-                  const val = parseFloat(e.target.value.replace(/[^\d.]/g, ''));
-                  skipPotCalcRef.current = true;
-                  setPotSize(isNaN(val) ? '' : val);
-                }}
-                onBlur={() => { if (!potSize && potSize !== 0) setPotSize(1.5); }}
-                style={{ width: 60, padding: '5px 6px', borderRadius: 6, fontSize: 12, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', textAlign: 'center', fontFamily: "'Orbitron',monospace", boxSizing: 'border-box' }}
-              />
-              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700 }}>BB</span>
-              <div style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
-                {[3, 6, 10, 20, 50].map(p => (
-                  <button key={p} onClick={() => { skipPotCalcRef.current = true; setPotSize(p); }}
-                    style={{
-                      padding: '3px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600,
-                      background: potSize === p ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-                      border: `1px solid ${potSize === p ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
-                      color: potSize === p ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
-                    }}>{p}</button>
-                ))}
-              </div>
-            </div>
-
-            {/* Action History inline */}
-            <div id="action-history">
-              <ActionHistoryBuilder actions={actionHistory}
-                onAdd={a => setActionHistory([...actionHistory, a])}
-                onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
-                potSize={potSize} />
-            </div>
+          {/* Game Type */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Game</label>
+            <select value={gameType} onChange={e => setGameType(e.target.value)}
+              style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+              {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+            </select>
           </div>
-
-          {/* ⚡ ANALYZE HAND — directly under control strip */}
-          <div id="run-analysis">
-            <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
-              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-              style={{
-                width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
-                cursor: isAnalyzing ? 'wait' : 'pointer',
-                background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
-                color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
-                fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
-                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
-                marginBottom: 8,
-              }}>
-              {isAnalyzing ? 'Running Analysis...' : '⚡ Analyze Hand'}
-            </motion.button>
-            {isAnalyzing && <AnalysisSkeleton />}
+          {/* Stack */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Stack</label>
+            <input type="text" inputMode="numeric" pattern="[0-9]*"
+              value={heroStack}
+              onChange={e => {
+                const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                setHeroStack(val === 0 ? '' : val);
+              }}
+              onBlur={() => setHeroStack(h => h || 100)}
+              style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box', textAlign: 'center' }} />
           </div>
-
-          {/* Quick Scenario Presets (only when empty) */}
-          {!heroHand.card1 && board.flop.length === 0 && (
-            <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '10px', marginBottom: '8px' }}>
-              <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Quick Start</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
-                {QUICK_PRESETS.map((preset, i) => (
-                  <button key={i} onClick={() => {
-                    setHeroHand(preset.hand); setHeroPosition(preset.position);
-                    setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
-                    setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
-                  }} style={{ padding: '6px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left' }}>
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Preflop Range Chart — behind toggle */}
-          {currentStreet === 'preflop' && (
-            <div style={{ marginBottom: 8 }}>
-              <button onClick={() => setShowRangeChart(!showRangeChart)} style={{
-                width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                background: showRangeChart ? 'rgba(35,116,225,0.15)' : '#3A3B3C',
-                border: `1px solid ${showRangeChart ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
-                color: showRangeChart ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
-                textTransform: 'uppercase', letterSpacing: 0.5,
-              }}>
-                {showRangeChart ? '▼ Hide Range Chart' : '▶ Show Range Chart'}
-              </button>
-              {showRangeChart && (
-                <div style={{ marginTop: 6 }}>
-                  <PreflopChartOverlay position={heroPosition} scenario={preflopScenario} rangeGrid={rangeGrid} rangePercent={rangePercent} onChangeScenario={setPreflopScenario} />
-                </div>
+          {/* Hero Hand Picker */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Hand</label>
+            <div onClick={openHeroPicker} style={{ display: 'flex', gap: 2, cursor: 'pointer', padding: '3px 4px', borderRadius: 5, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+              {heroHand.card1 ? (
+                <CardSlot card={heroHand.card1} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card1: null })); }} />
+              ) : (
+                <div style={{ width: 22, height: 30, borderRadius: 2, border: '1px dashed rgba(35,116,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#4599FF' }}>?</div>
+              )}
+              {heroHand.card2 ? (
+                <CardSlot card={heroHand.card2} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card2: null })); }} />
+              ) : (
+                <div style={{ width: 22, height: 30, borderRadius: 2, border: '1px dashed rgba(35,116,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#4599FF' }}>?</div>
               )}
             </div>
-          )}
-
-          {/* Runout Simulator -- Phase 2 */}
-          {board.flop.length === 3 && !board.river && (
-            <RunoutChart runoutData={runoutData} />
-          )}
-
-          {/* Position Comparison — Feature #11 */}
-          {results && (
-            <div style={{ marginTop: '8px', background: '#242526', borderRadius: 10, padding: '10px' }}>
-              <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px', fontWeight: 700 }}>Compare Position</h4>
-              <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                {POSITIONS.map(p => {
-                  const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
-                  return (
-                    <button key={p}
-                      onClick={() => {
-                        if (p === heroPosition) {
-                          setComparePosition(null);
-                          analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
-                        } else {
-                          runPositionComparison(p);
-                        }
-                      }}
-                      disabled={isAnalyzing}
-                      style={{
-                        padding: '3px 8px', borderRadius: 5, fontSize: 10, fontWeight: 600,
-                        background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-                        border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
-                        cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
-                      }}>{p}</button>
-                  );
-                })}
-              </div>
+          </div>
+          {/* Board Cards */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Board</label>
+            <div style={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
+              {board.flop.length < 3 && <CardSlot label="+" onClick={openBoardPicker} />}
+              {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={openBoardPicker} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
+              {board.turn && <CardSlot card={board.river} label="R" onClick={openBoardPicker} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
             </div>
+            <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+              <button onClick={randomBoard} style={{ padding: '2px 5px', borderRadius: 3, fontSize: 8, background: 'rgba(35,116,225,0.12)', border: 'none', color: '#4599FF', cursor: 'pointer', fontWeight: 600 }}>Random</button>
+              {board.flop.length === 3 && !board.river && (
+                <button onClick={dealNextStreet} style={{ padding: '2px 5px', borderRadius: 3, fontSize: 8, background: 'rgba(34,197,94,0.12)', border: 'none', color: '#86efac', cursor: 'pointer', fontWeight: 600 }}>
+                  {!board.turn ? 'Turn' : 'River'}
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Weekly Challenge button (compact) */}
+          {weeklySpot && (
+            <button onClick={() => loadWeeklySpot(weeklySpot)}
+              style={{ padding: '4px 6px', borderRadius: 5, fontSize: 8, fontWeight: 700, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 }}>
+              Weekly Challenge
+            </button>
           )}
+        </div>
 
-          {error && (
-            <div style={{ marginTop: '8px', padding: '8px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 11 }}>
-              {error}
+        {/* ════ CENTER — Poker Table ════ */}
+        <div className="sandbox-table-wrap">
+          <SandboxPokerTable
+            heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
+            communityCards={communityCards}
+            pot={potSize}
+            heroPosition={heroPosition}
+            heroStack={heroStack}
+            villains={villains}
+            street={currentStreet}
+            boardTexture={boardTexture}
+            equity={equity?.heroEquity}
+            onTapHeroCards={openHeroPicker}
+            onTapBoard={openBoardPicker}
+          />
+        </div>
+
+        {/* ════ RIGHT COLUMN — Opponent + Actions ════ */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Opponent Position */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Opponent</label>
+            <select value={villains[0]?.position || 'BB'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], position: e.target.value }; setVillains(u); }}
+              style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+              {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          {/* Archetype */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Style</label>
+            <select value={villains[0]?.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
+              style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+              {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          {/* Pot Size */}
+          <div>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Pot (BB)</label>
+            <input
+              type="text" inputMode="decimal" pattern="[0-9.]*"
+              value={potSize}
+              onChange={e => {
+                const val = parseFloat(e.target.value.replace(/[^\d.]/g, ''));
+                skipPotCalcRef.current = true;
+                setPotSize(isNaN(val) ? '' : val);
+              }}
+              onBlur={() => { if (!potSize && potSize !== 0) setPotSize(1.5); }}
+              style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', textAlign: 'center', fontFamily: "'Orbitron',monospace", boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 1, marginTop: 2, flexWrap: 'wrap' }}>
+              {[3, 6, 10, 20].map(p => (
+                <button key={p} onClick={() => { skipPotCalcRef.current = true; setPotSize(p); }}
+                  style={{
+                    padding: '2px 4px', borderRadius: 3, fontSize: 8, fontWeight: 600,
+                    background: potSize === p ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                    border: `1px solid ${potSize === p ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
+                    color: potSize === p ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
+                  }}>{p}</button>
+              ))}
+            </div>
+          </div>
+          {/* Action History */}
+          <div id="action-history" style={{ maxHeight: 80, overflowY: 'auto' }}>
+            <label style={{ color: '#65676B', fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 1 }}>Actions</label>
+            <ActionHistoryBuilder actions={actionHistory}
+              onAdd={a => setActionHistory([...actionHistory, a])}
+              onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
+              potSize={potSize} />
+          </div>
+        </div>
+      </div>
+
+      {/* ⚡ ANALYZE HAND — full-width below the 3-column layout */}
+      <div id="run-analysis" style={{ maxWidth: 1400, margin: '0 auto', padding: '4px 8px' }}>
+        <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
+          whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+          style={{
+            width: '100%', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 700, border: 'none',
+            cursor: isAnalyzing ? 'wait' : 'pointer',
+            background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
+            color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
+            fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
+            boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
+            marginBottom: 4,
+          }}>
+          {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
+        </motion.button>
+        {isAnalyzing && <AnalysisSkeleton />}
+      </div>
+
+      {/* Quick Scenario Presets (only when empty) */}
+      {!heroHand.card1 && board.flop.length === 0 && (
+        <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '10px', marginBottom: '8px' }}>
+          <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Quick Start</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+            {QUICK_PRESETS.map((preset, i) => (
+              <button key={i} onClick={() => {
+                setHeroHand(preset.hand); setHeroPosition(preset.position);
+                setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
+                setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
+              }} style={{ padding: '6px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left' }}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Preflop Range Chart — behind toggle */}
+      {currentStreet === 'preflop' && (
+        <div style={{ marginBottom: 8 }}>
+          <button onClick={() => setShowRangeChart(!showRangeChart)} style={{
+            width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+            background: showRangeChart ? 'rgba(35,116,225,0.15)' : '#3A3B3C',
+            border: `1px solid ${showRangeChart ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
+            color: showRangeChart ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
+            textTransform: 'uppercase', letterSpacing: 0.5,
+          }}>
+            {showRangeChart ? '▼ Hide Range Chart' : '▶ Show Range Chart'}
+          </button>
+          {showRangeChart && (
+            <div style={{ marginTop: 6 }}>
+              <PreflopChartOverlay position={heroPosition} scenario={preflopScenario} rangeGrid={rangeGrid} rangePercent={rangePercent} onChangeScenario={setPreflopScenario} />
             </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* Runout Simulator -- Phase 2 */}
+      {board.flop.length === 3 && !board.river && (
+        <RunoutChart runoutData={runoutData} />
+      )}
+
+      {/* Position Comparison — Feature #11 */}
+      {results && (
+        <div style={{ marginTop: '8px', background: '#242526', borderRadius: 10, padding: '10px' }}>
+          <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px', fontWeight: 700 }}>Compare Position</h4>
+          <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+            {POSITIONS.map(p => {
+              const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
+              return (
+                <button key={p}
+                  onClick={() => {
+                    if (p === heroPosition) {
+                      setComparePosition(null);
+                      analyze({ heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard' });
+                    } else {
+                      runPositionComparison(p);
+                    }
+                  }}
+                  disabled={isAnalyzing}
+                  style={{
+                    padding: '3px 8px', borderRadius: 5, fontSize: 10, fontWeight: 600,
+                    background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                    border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
+                    cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
+                  }}>{p}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ marginTop: '8px', padding: '8px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 11 }}>
+          {error}
+        </div>
+      )}
 
       {/* GLOBAL DECK PICKER — dual-card mode with progress */}
       <VisualDeckPicker
@@ -1405,7 +1400,7 @@ export default function VirtualSandbox() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence >
 
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;500;600;700;800&display=swap');
