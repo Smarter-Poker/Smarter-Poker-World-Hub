@@ -352,7 +352,11 @@ export default function UnionDashboard() {
                     clubId: settleClubId,
                     action: 'status',
                 });
-                const closedPeriod = (statusData.recentPeriods || []).find(p => p.status === 'closed');
+                // Sort by created_at/start_at descending to get the most recent closed period
+                const closedPeriods = (statusData.recentPeriods || [])
+                    .filter(p => p.status === 'closed')
+                    .sort((a, b) => new Date(b.start_at || b.created_at) - new Date(a.start_at || a.created_at));
+                const closedPeriod = closedPeriods[0];
                 if (!closedPeriod) {
                     showToast('No closed period found to pay. Close a period first.', 'error');
                     return;
