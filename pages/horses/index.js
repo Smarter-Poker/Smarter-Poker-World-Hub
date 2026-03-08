@@ -162,6 +162,10 @@ export default function HorsesAdmin() {
   const [caAppTab, setCaAppTab] = useState('pending'); // 'pending' | 'all'
   const [caAppCommission, setCaAppCommission] = useState({}); // { [appId]: '90' }
   const [caAppReason, setCaAppReason] = useState(''); // rejection reason text
+  // Union Leave Requests
+  const [caLeaveRequests, setCaLeaveRequests] = useState([]);
+  const [caLeaveLoading, setCaLeaveLoading] = useState(false);
+  const [caLeaveTab, setCaLeaveTab] = useState('pending'); // 'pending' | 'all'
   // Processing
   const [caProcessing, setCaProcessing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -587,6 +591,26 @@ export default function HorsesAdmin() {
       showNotification('Failed to load applications', 'error');
     } finally {
       setCaAppLoading(false);
+    }
+  };
+
+  const loadLeaveRequests = async (statusFilter = 'pending') => {
+    setCaLeaveLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const res = await fetch('/api/club-arena/union-application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'list_leave_requests', statusFilter }),
+      });
+      const data = await res.json();
+      if (data.success) setCaLeaveRequests(data.leaveRequests || []);
+    } catch (err) {
+      showNotification('Failed to load leave requests', 'error');
+    } finally {
+      setCaLeaveLoading(false);
     }
   };
 
@@ -1110,6 +1134,7 @@ export default function HorsesAdmin() {
               setActiveTab('clubarena');
               if (!caLoaded) loadClubArenaData();
               loadApplications('pending');
+              loadLeaveRequests('pending');
             }}
           >
             🃏 Club Arena Admin
@@ -2878,6 +2903,131 @@ export default function HorsesAdmin() {
                 ))}
               </div>
               {/* ── END UNION APPLICATIONS ──────────────────────────── */}
+
+              {/* ── UNION LEAVE REQUESTS ─────────────────────────────── */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <h3 style={{ margin: 0, color: '#e4e6eb', fontSize: 16 }}>🚪 Union Leave Requests</h3>
+                    {caLeaveRequests.filter(r => r.status === 'pending').length > 0 && (
+                      <span style={{ background: '#FF9500', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
+                        {caLeaveRequests.filter(r => r.status === 'pending').length} pending
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {['pending', 'all'].map(f => (
+                      <button key={f} onClick={() => { setCaLeaveTab(f); loadLeaveRequests(f); }} style={{
+                        background: caLeaveTab === f ? '#FF9500' : '#2d2d44',
+                        color: caLeaveTab === f ? '#fff' : '#aaa',
+                        border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 12,
+                        fontWeight: 600, cursor: 'pointer',
+                      }}>{f === 'pending' ? 'Pending' : 'All'}</button>
+                    ))}
+                    <button onClick={() => loadLeaveRequests(caLeaveTab)} disabled={caLeaveLoading} style={{
+                      background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 6,
+                      padding: '5px 10px', fontSize: 12, cursor: 'pointer',
+                    }}>🔄</button>
+                  </div>
+                </div>
+
+                {caLeaveLoading ? (
+                  <div style={{ color: '#888', fontSize: 13, padding: '12px 0' }}>Loading leave requests...</div>
+                ) : caLeaveRequests.length === 0 ? (
+                  <div style={{ background: '#1a1a2e', borderRadius: 10, padding: 20, textAlign: 'center', color: '#666', fontSize: 13, border: '1px solid #2d2d44' }}>
+                    {caLeaveTab === 'pending' ? '✅ No pending leave requests.' : 'No leave requests found.'}
+                  </div>
+                ) : caLeaveRequests.map(req => (
+                  <div key={req.id} style={{
+                    background: '#1a1a2e', borderRadius: 12, padding: 18, marginBottom: 12,
+                    border: `1px solid ${req.status === 'pending' ? '#FF950044' : req.status === 'approved' ? '#31a24c44' : '#2d2d44'}`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, fontSize: 16, color: '#e4e6eb' }}>{req.club_name}</span>
+                          {req.club_code && <span style={{ fontSize: 12, color: '#888' }}>Club #{req.club_code}</span>}
+                          <span style={{
+                            background: req.status === 'pending' ? '#FF950022' : req.status === 'approved' ? '#31a24c22' : '#63636622',
+                            color: req.status === 'pending' ? '#FF9500' : req.status === 'approved' ? '#31a24c' : '#888',
+                            borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700,
+                          }}>{req.status.toUpperCase()}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#888' }}>
+                          Requested {new Date(req.requested_at).toLocaleDateString()}
+                          {req.profiles?.display_name && <> • Owner: <strong style={{ color: '#aaa' }}>{req.profiles.display_name}</strong></>}
+                          {req.profiles?.email && <> ({req.profiles.email})</>}
+                          {req.unions?.name && <> • Union: <strong style={{ color: '#aaa' }}>{req.unions.name}</strong></>}
+                        </div>
+                        {req.reason && (
+                          <div style={{ marginTop: 8, background: '#12121e', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#b0b3b8', borderLeft: '3px solid #FF9500', fontStyle: 'italic' }}>
+                            &ldquo;{req.reason}&rdquo;
+                          </div>
+                        )}
+                        {req.reviewed_at && (
+                          <div style={{ marginTop: 6, fontSize: 12, color: '#888' }}>
+                            Reviewed {new Date(req.reviewed_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {req.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                        <button disabled={caProcessing} onClick={async () => {
+                          if (!window.confirm(`Remove ${req.club_name} from ${req.unions?.name || 'the union'}? This cannot be undone.`)) return;
+                          setCaProcessing(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const r = await fetch('/api/club-arena/union-application', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                              body: JSON.stringify({ action: 'approve_leave', leaveRequestId: req.id }),
+                            });
+                            const d = await r.json();
+                            if (d.success) {
+                              showNotification(`✅ ${req.club_name} removed from union`, 'success');
+                              loadLeaveRequests(caLeaveTab);
+                            } else {
+                              showNotification(d.error || 'Failed', 'error');
+                            }
+                          } catch (e) { showNotification(e.message, 'error'); }
+                          finally { setCaProcessing(false); }
+                        }} style={{
+                          background: '#31a24c', color: '#fff', border: 'none', borderRadius: 8,
+                          padding: '7px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        }}>
+                          ✅ Approve — Remove from Union
+                        </button>
+                        <button disabled={caProcessing} onClick={async () => {
+                          setCaProcessing(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const r = await fetch('/api/club-arena/union-application', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                              body: JSON.stringify({ action: 'reject', applicationId: req.id }),
+                            });
+                            const d = await r.json();
+                            if (d.success) {
+                              showNotification('Leave request denied', 'success');
+                              loadLeaveRequests(caLeaveTab);
+                            } else {
+                              showNotification(d.error || 'Failed', 'error');
+                            }
+                          } catch (e) { showNotification(e.message, 'error'); }
+                          finally { setCaProcessing(false); }
+                        }} style={{
+                          background: '#FF453A22', color: '#FF453A', border: '1px solid #FF453A44',
+                          borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}>
+                          ✗ Deny
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* ── END UNION LEAVE REQUESTS ─────────────────────────── */}
 
               {caLoading ? (
                 <div className={styles.loadingSpinner}>Loading Club Arena data...</div>

@@ -127,5 +127,65 @@ export default async function handler(req, res) {
     }
   }
 
+
+  // ─── POST: configure / get_config ─────────────────────────────────────────
+  if (req.method === 'POST') {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+    if (authErr || !user) return res.status(401).json({ error: 'Invalid token' });
+
+    const { action, clubId, bbjEnabled } = req.body;
+    if (!clubId) return res.status(400).json({ error: 'clubId required' });
+
+    // Verify caller is owner or admin of this club (or platform admin)
+    const { data: member } = await supabaseAdmin
+      .from('club_members').select('role').eq('club_id', clubId).eq('user_id', user.id).maybeSingle();
+    const isClubStaff = member && ['owner', 'admin'].includes(member.role);
+    if (!isClubStaff) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (!['admin', 'superadmin'].includes(profile?.role)) {
+        return res.status(403).json({ error: 'Club owner or admin required' });
+      }
+    }
+
+    // GET_CONFIG — return current BBJ setting + pool snapshot
+    if (action === 'get_config') {
+      const { data: club } = await supabaseAdmin
+        .from('clubs').select('id, name, bbj_enabled').eq('id', clubId).maybeSingle();
+      if (!club) return res.status(404).json({ error: 'Club not found' });
+
+      const { data: pool } = await supabaseAdmin
+        .from('bbj_pools')
+        .select('pool_amount, hands_contributed, last_hit_at, last_hit_amount')
+        .eq('club_id', clubId).maybeSingle();
+
+      return res.json({
+        success: true,
+        bbjEnabled: club.bbj_enabled !== false, // null or true = enabled; false = disabled
+        poolAmount: Number(pool?.pool_amount || 0),
+        handsContributed: Number(pool?.hands_contributed || 0),
+        lastHitAt: pool?.last_hit_at || null,
+        lastHitAmount: Number(pool?.last_hit_amount || 0),
+      });
+    }
+
+    // CONFIGURE — enable or disable BBJ for this club
+    if (action === 'configure') {
+      if (typeof bbjEnabled !== 'boolean') {
+        return res.status(400).json({ error: 'bbjEnabled (boolean) required' });
+      }
+      await supabaseAdmin.from('clubs').update({ bbj_enabled: bbjEnabled }).eq('id', clubId);
+      return res.json({
+        success: true,
+        message: `BBJ ${bbjEnabled ? 'enabled' : 'disabled'} for this club`,
+        bbjEnabled,
+      });
+    }
+
+    return res.status(400).json({ error: `Unknown action: ${action}` });
+  }
+
   return res.status(405).json({ error: 'Method not allowed' });
 }

@@ -94,6 +94,11 @@ export default function Admin() {
     const [chipAmount, setChipAmount] = useState('');
     const [processing, setProcessing] = useState(false);
 
+    // BBJ Config state
+    const [bbjConfig, setBbjConfig] = useState(null);    // { bbjEnabled, poolAmount, handsContributed, lastHitAt, lastHitAmount }
+    const [bbjLoading, setBbjLoading] = useState(false);
+    const [bbjSaving, setBbjSaving] = useState(false);
+
     // Settings form
     const [clubName, setClubName] = useState('');
     const [clubDescription, setClubDescription] = useState('');
@@ -523,6 +528,7 @@ export default function Admin() {
         { id: 'shop', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
         { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
+        { id: 'bbj', title: '🎰 BBJ Config', desc: 'Enable / disable Bad Beat Jackpot for this club', color: '#FFD700' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -1764,6 +1770,108 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                     )}
                 </div>
             </div>
+
+            {/* ═══ BBJ CONFIG MODAL ═══ */}
+            {activeModal === 'bbj' && (() => {
+                // Load config when modal opens
+                if (!bbjConfig && !bbjLoading) {
+                    setBbjLoading(true);
+                    getAuthToken().then(token => {
+                        fetch('/api/club-arena/bbj', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ action: 'get_config', clubId: clubIdParam }),
+                        })
+                        .then(r => r.json())
+                        .then(d => { if (d.success) setBbjConfig(d); })
+                        .catch(() => {})
+                        .finally(() => setBbjLoading(false));
+                    });
+                }
+                return (
+                    <div style={S.modalOverlay} onClick={() => { setActiveModal(null); setBbjConfig(null); }}>
+                        <div style={{ ...S.modal, maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+                            <div style={S.modalHeader}>
+                                <span style={S.modalTitle}>🎰 Bad Beat Jackpot Config</span>
+                                <button style={S.modalClose} onClick={() => { setActiveModal(null); setBbjConfig(null); }}>&times;</button>
+                            </div>
+                            <div style={S.modalBody}>
+                                {bbjLoading ? (
+                                    <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>Loading BBJ config...</div>
+                                ) : (
+                                    <>
+                                        {/* Pool snapshot */}
+                                        {bbjConfig && (
+                                            <div style={{ background: FB.background, borderRadius: 10, padding: 14, marginBottom: 20, border: `1px solid ${FB.border}` }}>
+                                                <div style={{ fontSize: 11, color: FB.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Current Pool</div>
+                                                <div style={{ fontSize: 28, fontWeight: 900, color: '#FFD700', marginBottom: 4 }}>
+                                                    {(bbjConfig.poolAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} chips
+                                                </div>
+                                                <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                                    {(bbjConfig.handsContributed || 0).toLocaleString()} hands contributed
+                                                    {bbjConfig.lastHitAt && (
+                                                        <> · Last hit {new Date(bbjConfig.lastHitAt).toLocaleDateString()} for {(bbjConfig.lastHitAmount || 0).toLocaleString()} chips</>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Enable / Disable toggle */}
+                                        <div style={{ background: FB.cardBg, borderRadius: 10, padding: 16, marginBottom: 16, border: `1px solid ${FB.border}` }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>Bad Beat Jackpot</div>
+                                                    <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                                        {bbjConfig?.bbjEnabled
+                                                            ? 'Active — eligible tables collect BBJ contributions'
+                                                            : 'Disabled — no BBJ rake collected on any table'}
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    width: 44, height: 24, borderRadius: 12, cursor: 'pointer',
+                                                    background: bbjConfig?.bbjEnabled ? '#31A24C' : FB.border,
+                                                    position: 'relative', transition: 'background 0.2s',
+                                                    opacity: bbjSaving ? 0.5 : 1,
+                                                }} onClick={async () => {
+                                                    if (bbjSaving || !bbjConfig) return;
+                                                    const newVal = !bbjConfig.bbjEnabled;
+                                                    setBbjSaving(true);
+                                                    try {
+                                                        const token = await getAuthToken();
+                                                        const r = await fetch('/api/club-arena/bbj', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                            body: JSON.stringify({ action: 'configure', clubId: clubIdParam, bbjEnabled: newVal }),
+                                                        });
+                                                        const d = await r.json();
+                                                        if (d.success) {
+                                                            setBbjConfig(prev => ({ ...prev, bbjEnabled: newVal }));
+                                                        }
+                                                    } catch (_) {}
+                                                    finally { setBbjSaving(false); }
+                                                }}>
+                                                    <div style={{
+                                                        position: 'absolute', top: 2,
+                                                        left: bbjConfig?.bbjEnabled ? 22 : 2,
+                                                        width: 20, height: 20, borderRadius: '50%',
+                                                        background: '#fff', transition: 'left 0.2s',
+                                                    }} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Info card */}
+                                        <div style={{ background: '#1a2a1a', borderRadius: 8, padding: '10px 14px', border: '1px solid #31a24c33', fontSize: 12, color: '#4CAF50', lineHeight: 1.5 }}>
+                                            <strong>How it works:</strong> When enabled, eligible cash game tables automatically collect a small BBJ rake each hand. The pool grows until a qualifying bad beat occurs — then the entire pool pays out to the losing hand, winning hand, and table participants.
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
         </div>
     );
 }

@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
         if (!member || !['owner', 'admin'].includes(member.role)) {
             // Union admin fallback
-            const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id').eq('id', clubId).maybeSingle();
+            const { data: clubInfo } = await supabaseAdmin.from('clubs').select('union_id, bbj_enabled').eq('id', clubId).maybeSingle();
             let unionAuth = false;
             if (clubInfo?.union_id) {
                 const { data: ua } = await supabaseAdmin.from('union_admins').select('role').eq('union_id', clubInfo.union_id).eq('user_id', user.id).maybeSingle();
@@ -100,7 +100,7 @@ export default async function handler(req, res) {
                 rake_cap_bb: gt === 'cash'
                     ? tierConfig.rakeCap
                     : Math.max(parseFloat(settings?.rakeCap) || tierConfig.rakeCapBB, 0),
-                bbj_percent: tierConfig.bbjEnabled
+                bbj_percent: (clubInfo?.bbj_enabled === false ? false : tierConfig.bbjEnabled)
                     ? (gt === 'cash' ? tierConfig.bbjFeeBB : parseFloat(settings?.bbjPercent) || tierConfig.bbjFeeBB)
                     : 0,
                 current_players: 0,
