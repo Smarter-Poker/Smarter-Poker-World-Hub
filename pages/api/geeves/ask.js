@@ -214,9 +214,9 @@ async function saveToCache(question, answer, questionType, userId) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -385,10 +385,25 @@ async function saveConversationMessages(conversationId, question, answer, cacheI
         from_cache: fromCache
     });
 
-    // Update conversation timestamp
+    // Auto-generate title from first question (replace default title)
+    const { data: conv } = await supabase
+        .from('geeves_conversations')
+        .select('title')
+        .eq('id', conversationId)
+        .maybeSingle();
+
+    const isDefaultTitle = !conv?.title || conv.title === 'New Poker Conversation';
+    const newTitle = isDefaultTitle
+        ? question.substring(0, 80) + (question.length > 80 ? '...' : '')
+        : conv.title;
+
+    // Update conversation timestamp (and title if still default)
     await supabase
         .from('geeves_conversations')
-        .update({ updated_at: new Date().toISOString() })
+        .update({
+            updated_at: new Date().toISOString(),
+            ...(isDefaultTitle ? { title: newTitle } : {})
+        })
         .eq('id', conversationId);
 }
 

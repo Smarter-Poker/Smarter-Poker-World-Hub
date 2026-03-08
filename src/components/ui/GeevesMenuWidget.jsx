@@ -89,11 +89,81 @@ export default function GeevesMenuWidget() {
         }
     };
 
-    const quickQuestions = [
-        'What is GTO?',
-        'Help with bankroll',
-        'How to use this app?',
-    ];
+    // ── Context-aware quick questions based on current page ──
+    const getQuickQuestions = useCallback(() => {
+        if (typeof window === 'undefined') return ['What is GTO?', 'Help with bankroll', 'How to use this app?'];
+        const path = window.location.pathname.toLowerCase();
+
+        if (path.includes('toke-tracker')) return [
+            'How do I track my downs?',
+            'What are typical toke rates?',
+            'How is EHR calculated?',
+        ];
+        if (path.includes('gto') || path.includes('training') || path.includes('arena')) return [
+            'What is GTO strategy?',
+            'How do I read range charts?',
+            'Explain bet sizing theory',
+        ];
+        if (path.includes('trivia')) return [
+            'Tips for poker trivia',
+            'Help with hand rankings',
+            'What beats a flush?',
+        ];
+        if (path.includes('bankroll')) return [
+            'How much bankroll do I need?',
+            'Explain bankroll management',
+            'What is proper buy-in sizing?',
+        ];
+        if (path.includes('tournament') || path.includes('commander')) return [
+            'Explain ICM pressure',
+            'Tips for final table play',
+            'Short stack push/fold ranges',
+        ];
+        if (path.includes('sandbox')) return [
+            'Analyze my hand setup',
+            'Explain pot odds calculation',
+            'What is equity realization?',
+        ];
+        // Default
+        return ['What is GTO?', 'Help with bankroll', 'How to use this app?'];
+    }, []);
+
+    const quickQuestions = getQuickQuestions();
+
+    // Direct send for quick questions (avoids stale closure from useCallback on input)
+    const sendQuickQuestion = useCallback(async (text) => {
+        setMessages(prev => [...prev, { id: Date.now(), content: text, isUser: true }]);
+        setIsTyping(true);
+
+        try {
+            const token = getAuthToken();
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const response = await fetch('/api/geeves/chat', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ message: text })
+            });
+
+            if (!response.ok) throw new Error('Failed');
+
+            const data = await response.json();
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                content: data.response || data.message || 'I had trouble with that. Try again!',
+                isUser: false
+            }]);
+        } catch {
+            setMessages(prev => [...prev, {
+                id: Date.now() + 1,
+                content: "I'm having trouble connecting. Please try again in a moment.",
+                isUser: false
+            }]);
+        } finally {
+            setIsTyping(false);
+        }
+    }, []);
 
     return (
         <div style={{
@@ -197,10 +267,7 @@ export default function GeevesMenuWidget() {
                             {quickQuestions.map((q, i) => (
                                 <button
                                     key={i}
-                                    onClick={() => {
-                                        setInput(q);
-                                        setTimeout(() => handleSend(), 0);
-                                    }}
+                                    onClick={() => sendQuickQuestion(q)}
                                     style={{
                                         padding: '8px 12px',
                                         background: 'rgba(0, 212, 255, 0.08)',

@@ -1,10 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES CHAT API — Lightweight endpoint for JarvisMessengerWidget
-   Wraps the main /api/geeves/ask endpoint with simplified interface
+   GEEVES CHAT API — Lightweight endpoint for GeevesMenuWidget
+   Now includes cache lookup before calling Grok for efficiency
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 import { getServerUser } from '../../../src/lib/serverAuth';
 
@@ -37,10 +38,18 @@ YOUR RESPONSE STYLE:
 
 Keep responses concise for the messenger widget (2-3 paragraphs max).`;
 
+// ── Cache utilities (shared with ask.js) ──
+function normalizeQuestion(q) {
+    return q.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ');
+}
+function hashQuestion(q) {
+    return crypto.createHash('md5').update(normalizeQuestion(q)).digest('hex');
+}
+
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -59,6 +68,33 @@ export default async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'Message is required' });
         }
 
+        // ── STEP 1: Check cache before calling Grok ──
+        const questionHash = hashQuestion(message);
+        try {
+            const { data: cached } = await supabaseAdmin
+                .from('geeves_knowledge_cache')
+                .select('id, answer, times_served, avg_rating')
+                .eq('question_hash', questionHash)
+                .maybeSingle();
+
+            if (cached) {
+                // Increment served counter
+                await supabaseAdmin.rpc('increment_cache_served', { cache_uuid: cached.id }).catch(() => { });
+
+                return res.status(200).json({
+                    response: cached.answer,
+                    message: cached.answer,
+                    success: true,
+                    fromCache: true,
+                    cacheId: cached.id,
+                });
+            }
+        } catch (cacheErr) {
+            // Cache miss or table doesn't exist yet — continue to Grok
+            console.warn('[Geeves Chat] Cache lookup failed (non-critical):', cacheErr.message);
+        }
+
+        // ── STEP 2: No cache hit — call Grok ──
         const grok = getGrokClient();
 
         // Build messages array
@@ -89,10 +125,36 @@ export default async function handler(req, res) {
 
         const answer = response.choices[0].message.content;
 
+        // ── STEP 3: Save to cache for future use ──
+        let cacheId = null;
+        try {
+            const { data: newCache } = await supabaseAdmin
+                .from('geeves_knowledge_cache')
+                .insert({
+                    question_normalized: normalizeQuestion(message),
+                    question_hash: questionHash,
+                    question_original: message,
+                    answer: answer,
+                    answer_tokens: answer.split(/\s+/).length,
+                    question_type: 'general',
+                    tags: [],
+                    created_by: user.id,
+                    times_served: 1,
+                    last_served_at: new Date().toISOString()
+                })
+                .select('id')
+                .maybeSingle();
+            cacheId = newCache?.id || null;
+        } catch (saveErr) {
+            console.warn('[Geeves Chat] Cache save failed (non-critical):', saveErr.message);
+        }
+
         return res.status(200).json({
             response: answer,
             message: answer, // Fallback for compatibility
-            success: true
+            success: true,
+            fromCache: false,
+            cacheId,
         });
 
     } catch (error) {
