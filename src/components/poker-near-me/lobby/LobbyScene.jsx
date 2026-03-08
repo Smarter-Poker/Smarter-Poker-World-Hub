@@ -69,9 +69,10 @@ async function initSingleton(propsRef) {
     // WebGL context attributes are IMMUTABLE after creation. If R3F creates
     // the context first (with defaults), alpha:true can never be changed.
     // By creating it here with alpha:false, R3F will reuse this context.
+    // antialias: false — post-processing SMAA handles anti-aliasing
     singletonCanvas.getContext('webgl2', {
       alpha: false,
-      antialias: !IS_MOBILE,
+      antialias: false,
       powerPreference: 'high-performance',
       preserveDrawingBuffer: true,
       premultipliedAlpha: true,
@@ -109,7 +110,7 @@ async function initSingleton(propsRef) {
     // Configure the R3F root with all Canvas-equivalent settings
     singletonR3FRoot.configure({
       gl: {
-        antialias: !IS_MOBILE,
+        antialias: false, // SMAA handles AA via post-processing
         alpha: false,
         powerPreference: 'high-performance',
         preserveDrawingBuffer: true,
@@ -129,7 +130,7 @@ async function initSingleton(propsRef) {
         console.log('[LobbyScene] Canvas size:', state.gl.domElement.width, 'x', state.gl.domElement.height);
         state.gl.setClearColor(0x030818, 1);
         state.gl.toneMapping = 4; // ACESFilmicToneMapping
-        state.gl.toneMappingExposure = 0.7;
+        state.gl.toneMappingExposure = 1.2; // Phase 1: brighter cinematic exposure
       },
     });
 

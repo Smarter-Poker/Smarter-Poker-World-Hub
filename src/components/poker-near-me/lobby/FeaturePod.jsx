@@ -55,19 +55,19 @@ function GlassOrb({ color, isHovered, isActive, orbRadius }) {
         transparent
         opacity={0.40}
         metalness={0.2}
-        roughness={0.1}
+        roughness={0.08}
         clearcoat={1.0}
-        clearcoatRoughness={0.05}
-        iridescence={0.4}
+        clearcoatRoughness={0.03}
+        iridescence={0.6}
         iridescenceIOR={1.8}
-        sheen={0.6}
+        sheen={0.8}
         sheenColor={color}
         transmission={0.5}
         thickness={1.0}
         ior={1.5}
         emissive={color}
-        emissiveIntensity={0.10}
-        envMapIntensity={1.2}
+        emissiveIntensity={0.25}
+        envMapIntensity={1.5}
         side={FrontSide}
         depthWrite={false}
       />
@@ -307,31 +307,37 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
       </group>
 
       {/* ─── PEDESTAL ─── */}
-      {/* Enhanced column with iridescence */}
+      {/* Enhanced column with iridescence + bloom-hot emissive */}
       <mesh position={[0, -0.1, 0]}>
         <cylinderGeometry args={[0.2, 0.3, 0.5, 16]} />
         <meshPhysicalMaterial
           color="#1a2a3a"
           metalness={0.95}
-          roughness={0.08}
-          clearcoat={0.7}
-          iridescence={0.3}
+          roughness={0.06}
+          clearcoat={0.8}
+          clearcoatRoughness={0.08}
+          iridescence={0.4}
           iridescenceIOR={1.8}
           emissive={pod.color}
-          emissiveIntensity={0.15}
+          emissiveIntensity={0.3}
+          envMapIntensity={1.3}
         />
       </mesh>
 
-      {/* Pedestal base disc */}
+      {/* Pedestal base disc — glossy with bloom-hot emissive edge */}
       <mesh position={[0, -0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.55, 0.55, 0.04, 24]} />
         <meshPhysicalMaterial
           color="#1a2a3a"
           metalness={0.95}
-          roughness={0.08}
-          clearcoat={0.5}
+          roughness={0.06}
+          clearcoat={0.7}
+          clearcoatRoughness={0.1}
+          iridescence={0.2}
+          iridescenceIOR={1.5}
           emissive={pod.color}
-          emissiveIntensity={0.2}
+          emissiveIntensity={0.35}
+          envMapIntensity={1.2}
         />
       </mesh>
 

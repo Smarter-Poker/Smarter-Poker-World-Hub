@@ -32,31 +32,55 @@ const FEATURE_PODS = [
 const POD_ORBIT_RADIUS = 5.5;
 const POD_Y = 0.3;
 
-// ─── Quality presets for adaptive rendering ───
+// ─── Quality presets for adaptive rendering (Phase 1: Cinematic 4K upgrade) ───
 const QUALITY = {
   high: {
     dpr: 2.0,
     particleCount: 1200,
     shadows: true,
-    bloomThreshold: 0.85,
-    bloomIntensity: 0.6,
-    bloomRadius: 0.4,
+    bloomThreshold: 0.15,
+    bloomIntensity: 1.2,
+    bloomRadius: 0.7,
+    bloomSmoothing: 0.025,
+    useSmaa: true,
+    useAo: true,
+    aoRadius: 0.25,
+    aoIntensity: 0.4,
+    vignetteDarkness: 0.5,
+    chromaticAberration: true,
+    exposure: 1.2,
   },
   medium: {
     dpr: 1.0,
     particleCount: 800,
     shadows: false,
-    bloomThreshold: 0.9,
-    bloomIntensity: 0.4,
-    bloomRadius: 0.35,
+    bloomThreshold: 0.25,
+    bloomIntensity: 0.9,
+    bloomRadius: 0.6,
+    bloomSmoothing: 0.04,
+    useSmaa: true,
+    useAo: false,
+    aoRadius: 0,
+    aoIntensity: 0,
+    vignetteDarkness: 0.5,
+    chromaticAberration: false,
+    exposure: 1.15,
   },
   low: {
     dpr: 0.75,
     particleCount: 400,
     shadows: false,
-    bloomThreshold: 0.95,
-    bloomIntensity: 0.3,
-    bloomRadius: 0.3,
+    bloomThreshold: 0.4,
+    bloomIntensity: 0.6,
+    bloomRadius: 0.5,
+    bloomSmoothing: 0.06,
+    useSmaa: false,
+    useAo: false,
+    aoRadius: 0,
+    aoIntensity: 0,
+    vignetteDarkness: 0.4,
+    chromaticAberration: false,
+    exposure: 1.1,
   },
 };
 
@@ -235,7 +259,13 @@ function NeonGridGround() {
 
 /**
  * Post-processing effects — loaded lazily to avoid breaking R3F init.
- * Phase 2: Added ChromaticAberration for cinematic lens feel.
+ * Phase 1 Cinematic 4K upgrade:
+ *   - Bloom with aggressive threshold (0.15) for emissive glow
+ *   - SMAA anti-aliasing (replaces MSAA for better perf)
+ *   - N8AO ambient occlusion for depth perception (high quality only)
+ *   - Vignette with cinematic edge darkening
+ *   - ChromaticAberration for sci-fi lens distortion
+ *   - ACES Filmic tone mapping at exposure 1.2
  */
 function PostProcessingEffects({ quality }) {
   const [Effects, setEffects] = useState(null);
@@ -258,35 +288,58 @@ function PostProcessingEffects({ quality }) {
 
   if (!Effects) return null;
 
-  const { EffectComposer, Bloom, Vignette, ToneMapping, ChromaticAberration } = Effects.rppp;
+  const {
+    EffectComposer, Bloom, Vignette, ToneMapping, ChromaticAberration, SMAA, N8AO,
+  } = Effects.rppp;
   const { BlendFunction, ToneMappingMode } = Effects.pp;
 
-  const bloomConfig = QUALITY[quality] || QUALITY.medium;
+  const q = QUALITY[quality] || QUALITY.medium;
 
   return (
     <EffectComposer multisampling={0}>
+      {/* SMAA anti-aliasing — smoother edges without MSAA cost */}
+      {q.useSmaa && SMAA && <SMAA />}
+
+      {/* N8AO ambient occlusion — adds depth and grounding (high quality only) */}
+      {q.useAo && N8AO && (
+        <N8AO
+          aoRadius={q.aoRadius}
+          intensity={q.aoIntensity}
+          halfRes
+          distanceFalloff={0.5}
+          color="#000022"
+        />
+      )}
+
+      {/* Bloom — aggressive threshold pushes emissive materials into cinematic glow */}
       <Bloom
-        luminanceThreshold={bloomConfig.bloomThreshold}
-        luminanceSmoothing={0.065}
-        intensity={bloomConfig.bloomIntensity}
-        radius={bloomConfig.bloomRadius}
+        luminanceThreshold={q.bloomThreshold}
+        luminanceSmoothing={q.bloomSmoothing}
+        intensity={q.bloomIntensity}
+        radius={q.bloomRadius}
         mipmapBlur
       />
+
+      {/* Vignette — cinematic edge darkening */}
       {quality !== 'low' && (
         <Vignette
           offset={0.2}
-          darkness={0.9}
+          darkness={q.vignetteDarkness}
           blendFunction={BlendFunction.NORMAL}
         />
       )}
-      {quality === 'high' && ChromaticAberration && (
+
+      {/* Chromatic aberration — subtle sci-fi lens distortion */}
+      {q.chromaticAberration && ChromaticAberration && (
         <ChromaticAberration
           offset={[0.003, 0.003]}
           radialModulation
           modulationOffset={0.5}
         />
       )}
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={0.7} />
+
+      {/* ACES Filmic tone mapping — Hollywood color grading */}
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={q.exposure} />
     </EffectComposer>
   );
 }
@@ -312,12 +365,17 @@ function SceneEnvironment() {
   const { Environment, Lightformer } = EnvComponents;
 
   return (
-    <Environment resolution={64} background={false}>
-      <Lightformer form="rect" intensity={0.4} position={[5, 10, 5]} scale={[8, 4, 1]} color="#ffffff" />
-      <Lightformer form="rect" intensity={0.3} position={[-6, 6, -3]} scale={[6, 3, 1]} color="#6ee7ef" />
-      <Lightformer form="circle" intensity={0.2} position={[0, 3, -8]} scale={[5, 5, 1]} color="#3b82f6" />
-      <Lightformer form="ring" intensity={0.15} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[8, 8, 1]} color="#ff8c00" />
-      <Lightformer form="circle" intensity={0.1} position={[-5, 4, 2]} scale={[3, 3, 1]} color="#8b5cf6" />
+    <Environment resolution={128} background={false}>
+      {/* Key: large white rect from upper-right — main IBL reflection source */}
+      <Lightformer form="rect" intensity={0.8} position={[5, 10, 5]} scale={[10, 5, 1]} color="#ffffff" />
+      {/* Fill: cyan rect from upper-left — cool fill for iridescent surfaces */}
+      <Lightformer form="rect" intensity={0.5} position={[-6, 6, -3]} scale={[8, 4, 1]} color="#6ee7ef" />
+      {/* Back: blue circle — rim light reflections */}
+      <Lightformer form="circle" intensity={0.35} position={[0, 3, -8]} scale={[6, 6, 1]} color="#3b82f6" />
+      {/* Ground: warm ring for pedestal reflections */}
+      <Lightformer form="ring" intensity={0.25} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[10, 10, 1]} color="#ff8c00" />
+      {/* Accent: purple for iridescence color variety */}
+      <Lightformer form="circle" intensity={0.2} position={[-5, 4, 2]} scale={[4, 4, 1]} color="#8b5cf6" />
     </Environment>
   );
 }
@@ -560,7 +618,7 @@ function OrbitalHalo() {
 function SceneFog() {
   useFrame(({ scene }) => {
     if (!scene.fog) {
-      scene.fog = new FogExp2('#030818', 0.018);
+      scene.fog = new FogExp2('#030818', 0.012); // Lighter fog — preserves bloom at distance
     }
   });
   return null;
@@ -754,21 +812,26 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       {/* ═══ SCENE ATMOSPHERE ═══ */}
       <SceneFog />
 
-      {/* ═══ CINEMATIC LIGHTING — Dark & dramatic, 5 lights only ═══ */}
-      <ambientLight intensity={0.06} color="#334455" />
+      {/* ═══ CINEMATIC LIGHTING — 5 optimized lights + IBL ═══ */}
+      {/* Ambient fill — slightly warmer, raised for better material readability */}
+      <ambientLight intensity={0.3} color="#1a2030" />
+      {/* Key light — white directional from upper-right */}
       <directionalLight
         position={[5, 10, 5]}
-        intensity={0.35}
+        intensity={0.6}
         color="#ffffff"
         castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-5, 8, -3]} intensity={0.15} color="#6ee7ef" />
-      <directionalLight position={[0, 3, -8]} intensity={0.1} color="#3b82f6" />
-      <pointLight position={[0, 4, 0]} intensity={0.3} color="#6ee7ef" distance={10} decay={2} />
-      {/* Subtle warm underlight for pod pedestals */}
-      <pointLight position={[0, -0.5, 0]} intensity={0.1} color="#ff8c00" distance={4} decay={2} />
+      {/* Fill light — cyan from upper-left */}
+      <directionalLight position={[-5, 8, -3]} intensity={0.3} color="#6ee7ef" />
+      {/* Rim/back light — blue from behind for edge separation */}
+      <directionalLight position={[0, 3, -8]} intensity={0.2} color="#3b82f6" />
+      {/* Center pod area light — key for pod illumination */}
+      <pointLight position={[0, 4, 0]} intensity={0.5} color="#6ee7ef" distance={12} decay={2} />
+      {/* Warm underlight for pedestal glow */}
+      <pointLight position={[0, -0.5, 0]} intensity={0.15} color="#ff8c00" distance={5} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
@@ -851,7 +914,7 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
     console.log('[R3FScene] Scene children:', state.scene.children.length);
     state.gl.setClearColor(0x030818, 1);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
-    state.gl.toneMappingExposure = 1.8; // Even brighter for hyper-realistic cinematic
+    state.gl.toneMappingExposure = 1.2; // Cinematic 4K exposure
   }, []);
 
   return (

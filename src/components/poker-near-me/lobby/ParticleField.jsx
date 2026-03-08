@@ -63,8 +63,8 @@ const particleVertexShader = `
     // Per-particle twinkle
     float twinkle = 0.3 + 0.7 * sin(uTime * 0.6 + aPhase * 6.283);
 
-    // Sparkle flash — rare bright pops (restrained for dark scene)
-    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 12.0) * 2.0;
+    // Sparkle flash — rare bright pops that bloom cinematically
+    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 12.0) * 3.5;
 
     vAlpha = twinkle * 0.6 + flash * 0.4;
 
@@ -85,8 +85,8 @@ const particleFragmentShader = `
     float alpha = texColor.a * vAlpha;
     if (alpha < 0.01) discard;
 
-    // Subtle glow — keep below bloom threshold for dark scene
-    vec3 emissive = vColor * 1.2;
+    // Bloom-hot emissive — push above bloom threshold (0.15) for cinematic glow
+    vec3 emissive = vColor * 2.0;
     gl_FragColor = vec4(emissive * texColor.rgb, alpha);
   }
 `;

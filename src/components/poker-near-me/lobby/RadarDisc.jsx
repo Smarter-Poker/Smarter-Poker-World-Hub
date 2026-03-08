@@ -178,18 +178,19 @@ function VenueMarker({ position, color = '#6ee7ef', delay = 0 }) {
 
   return (
     <group position={position}>
-      {/* Core marker — sphere increased from 0.045 to 0.08, emissive from 1.2 to 2.5 */}
+      {/* Core marker — bloom-hot emissive for cinematic glow */}
       <mesh ref={ref}>
         <sphereGeometry args={[0.08, 12, 12]} />
         <meshPhysicalMaterial
           color={color}
           emissive={color}
-          emissiveIntensity={2.5}
+          emissiveIntensity={3.5}
           transparent
-          opacity={0.9}
-          clearcoat={0.5}
+          opacity={0.95}
+          clearcoat={0.8}
           metalness={0.5}
-          roughness={0.3}
+          roughness={0.2}
+          toneMapped={false}
         />
       </mesh>
       {/* Additive glow halo — ring increased from 0.12 to 0.2 outer radius, opacity from 0.25 to 0.45 */}
