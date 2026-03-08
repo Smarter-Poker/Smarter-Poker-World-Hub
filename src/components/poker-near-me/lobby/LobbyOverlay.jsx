@@ -57,8 +57,8 @@ function CardItem({ card, isActive, badge, onSelect }) {
         cursor: 'pointer',
         padding: 0,
         WebkitTapHighlightColor: 'transparent',
-        transform: active ? 'scale(1.08)' : 'scale(1)',
-        filter: active ? `drop-shadow(0 0 10px ${card.color}60)` : 'none',
+        transform: active ? 'scale(1.06)' : 'scale(1)',
+        filter: active ? `drop-shadow(0 0 18px ${card.color}80)` : 'none',
         transition: 'transform 0.25s ease, filter 0.25s ease',
       }}
     >
@@ -99,18 +99,18 @@ function CardItem({ card, isActive, badge, onSelect }) {
         className="lobby-card-label"
         style={{
           fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
-          fontSize: 9,
+          fontSize: 'clamp(11px, 1.6vw, 18px)',
           fontWeight: 700,
           color: active ? '#ffffff' : 'rgba(200, 220, 240, 0.7)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
           textAlign: 'center',
           textShadow: active
-            ? `0 0 8px ${card.color}80, 0 1px 3px rgba(0,0,0,0.9)`
-            : '0 1px 3px rgba(0,0,0,0.8)',
+            ? `0 0 12px ${card.color}80, 0 2px 6px rgba(0,0,0,0.9)`
+            : '0 1px 4px rgba(0,0,0,0.8)',
           transition: 'color 0.25s',
           lineHeight: 1.2,
-          marginTop: 4,
+          marginTop: 8,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -123,13 +123,13 @@ function CardItem({ card, isActive, badge, onSelect }) {
       {/* Badge (for alerts, saved, friends) */}
       {badge > 0 && (
         <span className="lobby-card-badge" style={{
-          position: 'absolute', top: -4, right: -4,
-          minWidth: 18, height: 18, borderRadius: 9,
+          position: 'absolute', top: -6, right: -6,
+          minWidth: 28, height: 28, borderRadius: 14,
           background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
-          color: '#fff', fontSize: 10, fontWeight: 700,
+          color: '#fff', fontSize: 14, fontWeight: 700,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '0 4px',
-          boxShadow: '0 2px 8px rgba(238, 90, 36, 0.5)',
+          padding: '0 6px',
+          boxShadow: '0 3px 12px rgba(238, 90, 36, 0.5)',
           zIndex: 2,
         }}>
           {badge}
@@ -361,14 +361,14 @@ export default function LobbyOverlay({
         </div>
       )}
 
-      {/* ═══ CARD GRID — Unified playing-card icons below search ═══ */}
+      {/* ═══ CARD GRID — Full-page spread, 3× icon size ═══ */}
       <div className="lobby-card-scroll" style={{
         flex: 1,
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'center',
         pointerEvents: 'auto',
-        padding: '4px 16px',
+        padding: '8px clamp(16px, 4vw, 48px)',
         overflowY: 'auto',
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
@@ -378,11 +378,11 @@ export default function LobbyOverlay({
         <div className="lobby-card-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 'clamp(8px, 2vw, 14px)',
-          maxWidth: 400,
+          gap: 'clamp(12px, 3vw, 28px)',
+          maxWidth: 1200,
           width: '100%',
-          paddingTop: 4,
-          paddingBottom: 24,
+          paddingTop: 8,
+          paddingBottom: 32,
         }}>
           {ALL_CARD_ITEMS.map((card) => (
             <CardItem
