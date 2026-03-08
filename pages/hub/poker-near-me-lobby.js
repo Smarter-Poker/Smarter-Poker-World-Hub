@@ -183,6 +183,10 @@ export default function PokerNearMeLobby() {
   // ─── Menu config ───
   const menuConfig = useMemo(() => getMenuConfig('poker-near-me'), []);
 
+  // ─── Deep Link: hydration guard ───
+  // Prevents the write-back effect from clearing URL params before mount reads them
+  const hasHydratedRef = useRef(false);
+
   // ─── Deep Link: read URL params on mount ───
   // Uses URLSearchParams directly instead of router.query (which can be empty on first render)
   useEffect(() => {
@@ -194,6 +198,8 @@ export default function PokerNearMeLobby() {
       setShowPanel(true);
     }
     if (q) setSearchQuery(q);
+    // Mark hydration complete AFTER state is set
+    hasHydratedRef.current = true;
   }, []);
 
   // ─── Deep Link: write URL params on state change ───
@@ -201,6 +207,9 @@ export default function PokerNearMeLobby() {
   // router.replace causes a re-render cycle that resets component state,
   // killing the panel and 3D scene. replaceState updates the URL silently.
   useEffect(() => {
+    // Skip write-back until mount effect has read the URL params
+    if (!hasHydratedRef.current) return;
+
     const params = new URLSearchParams();
     if (activePod) params.set('pod', activePod);
     if (searchQuery) params.set('q', searchQuery);
