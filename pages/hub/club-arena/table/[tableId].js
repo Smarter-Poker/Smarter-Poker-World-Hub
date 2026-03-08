@@ -12,8 +12,8 @@ import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAuthUser } from '../../../../src/lib/authUtils';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 
 const MultiTableView = dynamic(
   () => import('../../../../src/components/poker/MultiTableView'),
@@ -67,7 +67,6 @@ async function connectWithRetry(tableId, token, maxAttempts = 5) {
       if (attempt === maxAttempts) return { success: false, error: 'Network error — check your connection' };
     }
 
-    console.log(`[ClubArenaTable] Engine connect attempt ${attempt} failed, retrying in ${delay}ms…`);
     await new Promise(r => setTimeout(r, delay));
     delay = Math.min(delay * 2, 16000);
   }
@@ -79,6 +78,7 @@ export default function ClubArenaTable() {
   if (!router.isReady) return null;
 
   const { tableId, tournament: tournamentId } = router.query;
+  useTrainingBus('club-arena-table');
   const [user, setUser] = useState(null);
   const [initialTable, setInitialTable] = useState(null);
   const [error, setError] = useState(null);
@@ -124,9 +124,9 @@ export default function ClubArenaTable() {
 
       if (!result.success) {
         if (result.code === 'OBSERVERS_RESTRICTED') {
-          setError('🔒 Observers are not allowed at this table');
+          setError('[LOCKED] Observers are not allowed at this table');
         } else if (result.code === 'OBSERVER_TIME_EXPIRED') {
-          setError('⏱️ Observer time limit reached (30 minutes). Please join the waitlist to play.');
+          setError('[TIME] Observer time limit reached (30 minutes). Please join the waitlist to play.');
         } else {
           setError(result.error || 'Could not connect to game server');
         }
@@ -167,7 +167,6 @@ export default function ClubArenaTable() {
           // depends on [tableId, user] and won't re-run on its own, so we also
           // clear initialTable which the engine connect effect checks on entry.
           if (payload.new?.status === 'waiting' && initialTable) {
-            console.log('[ClubArenaTable] Table reset detected — reconnecting engine');
             retryRef.current = false;
             setInitialTable(null); // Triggers re-render; connect effect sees retryRef=false + user set
             setError(null);
@@ -175,9 +174,7 @@ export default function ClubArenaTable() {
           }
         }
       )
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') console.warn('[ClubArenaTable] Realtime:', status);
-      });
+      .subscribe((_status) => {});
 
     return () => supabase.removeChannel(ch);
   }, [tableId, initialTable]);
@@ -226,7 +223,7 @@ export default function ClubArenaTable() {
         borderRadius: 16, padding: '32px 28px', maxWidth: 420, width: '100%',
         textAlign: 'center',
       }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>[WARN]</div>
         <div style={{ color: FB.danger, fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
           Connection Error
         </div>
@@ -242,7 +239,7 @@ export default function ClubArenaTable() {
               fontWeight: 600, fontSize: 14,
             }}
           >
-            🔄 Retry
+            Retry
           </button>
           <button
             onClick={() => router.back()}
