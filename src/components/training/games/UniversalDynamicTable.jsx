@@ -1380,13 +1380,13 @@ function UniversalDynamicTable({
                             fontSize: 9,
                             fontWeight: 'bold',
                             letterSpacing: 1,
-                            background: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER')
+                            background: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO')
                                 ? 'rgba(0, 212, 255, 0.15)'
                                 : 'rgba(139, 92, 246, 0.15)',
-                            color: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? '#00d4ff' : '#a78bfa',
-                            border: `1px solid ${(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
+                            color: (question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? '#00d4ff' : '#a78bfa',
+                            border: `1px solid ${(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'rgba(0,212,255,0.3)' : 'rgba(139,92,246,0.3)'}`,
                         }}>
-                            {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER') ? 'SOLVER' : 'AI'}
+                            {(question.source === 'PIO_DATABASE' || question.source === 'DETERMINISTIC_SOLVER' || question.source === 'CACHED_SCENARIO') ? 'SOLVER' : 'AI'}
                         </div>
                     )}
                     {/* Multi-Street Indicator Badge */}

@@ -160,7 +160,7 @@ export default async function handler(req, res) {
             scenario.heroStack = Math.min(Math.max(scenario.heroStack || 1, 1), 300);
             scenario.villainStack = Math.min(Math.max(scenario.villainStack || 1, 1), 300);
             qData.scenario = scenario;
-            if (!qData.source) qData.source = 'GROK_GTO';
+            if (!qData.source) qData.source = 'CACHED_SCENARIO';
 
             return qData;
         }).filter(Boolean); // Remove null entries
