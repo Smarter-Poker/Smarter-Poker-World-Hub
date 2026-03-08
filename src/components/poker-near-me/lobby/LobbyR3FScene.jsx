@@ -38,25 +38,25 @@ const QUALITY = {
     dpr: 2.0,
     particleCount: 1800,
     shadows: true,
-    bloomThreshold: 0.4,
-    bloomIntensity: 1.2,
-    bloomRadius: 0.6,
+    bloomThreshold: 0.7,
+    bloomIntensity: 0.8,
+    bloomRadius: 0.5,
   },
   medium: {
     dpr: 1.0,
     particleCount: 1000,
     shadows: false,
-    bloomThreshold: 0.5,
-    bloomIntensity: 0.8,
-    bloomRadius: 0.5,
+    bloomThreshold: 0.8,
+    bloomIntensity: 0.6,
+    bloomRadius: 0.4,
   },
   low: {
     dpr: 0.75,
     particleCount: 500,
     shadows: false,
-    bloomThreshold: 0.6,
-    bloomIntensity: 0.5,
-    bloomRadius: 0.4,
+    bloomThreshold: 0.9,
+    bloomIntensity: 0.4,
+    bloomRadius: 0.3,
   },
 };
 
@@ -205,8 +205,8 @@ function NeonGridGround() {
           float alpha = gridLine * fade * 0.4;
           alpha += gridLine * (pulse + pulse2) * fade * 0.6;
 
-          // Center glow — stronger
-          float centerGlow = exp(-dist * 0.25) * 0.18;
+          // Center glow — subtle
+          float centerGlow = exp(-dist * 0.3) * 0.10;
 
           vec3 color = gridColor * (alpha + centerGlow);
 
@@ -274,8 +274,8 @@ function PostProcessingEffects({ quality }) {
       />
       {quality !== 'low' && (
         <Vignette
-          offset={0.25}
-          darkness={0.75}
+          offset={0.2}
+          darkness={0.9}
           blendFunction={BlendFunction.NORMAL}
         />
       )}
@@ -286,7 +286,7 @@ function PostProcessingEffects({ quality }) {
           modulationOffset={0.5}
         />
       )}
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={1.0} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={0.85} />
     </EffectComposer>
   );
 }
@@ -313,11 +313,11 @@ function SceneEnvironment() {
 
   return (
     <Environment resolution={64} background={false}>
-      <Lightformer form="rect" intensity={1.0} position={[5, 10, 5]} scale={[8, 4, 1]} color="#ffffff" />
-      <Lightformer form="rect" intensity={0.8} position={[-6, 6, -3]} scale={[6, 3, 1]} color="#6ee7ef" />
-      <Lightformer form="circle" intensity={0.5} position={[0, 3, -8]} scale={[5, 5, 1]} color="#3b82f6" />
-      <Lightformer form="ring" intensity={0.4} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[8, 8, 1]} color="#ff8c00" />
-      <Lightformer form="circle" intensity={0.2} position={[-5, 4, 2]} scale={[3, 3, 1]} color="#8b5cf6" />
+      <Lightformer form="rect" intensity={0.4} position={[5, 10, 5]} scale={[8, 4, 1]} color="#ffffff" />
+      <Lightformer form="rect" intensity={0.3} position={[-6, 6, -3]} scale={[6, 3, 1]} color="#6ee7ef" />
+      <Lightformer form="circle" intensity={0.2} position={[0, 3, -8]} scale={[5, 5, 1]} color="#3b82f6" />
+      <Lightformer form="ring" intensity={0.15} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[8, 8, 1]} color="#ff8c00" />
+      <Lightformer form="circle" intensity={0.1} position={[-5, 4, 2]} scale={[3, 3, 1]} color="#8b5cf6" />
     </Environment>
   );
 }
@@ -351,16 +351,16 @@ function GroundPlatform({ quality }) {
             blur={quality === 'high' ? [300, 100] : quality === 'medium' ? [200, 64] : [100, 32]}
             resolution={quality === 'high' ? 256 : quality === 'medium' ? 128 : 64}
             mixBlur={0.85}
-            mixStrength={0.4}
-            roughness={0.82}
-            depthScale={0.12}
+            mixStrength={0.25}
+            roughness={0.85}
+            depthScale={0.1}
             minDepthThreshold={0.4}
             maxDepthThreshold={1.4}
-            color="#061525"
+            color="#040e1a"
             metalness={0.95}
-            mirror={0.2}
+            mirror={0.15}
             transparent
-            opacity={0.7}
+            opacity={0.6}
           />
         ) : (
           <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} transparent opacity={0.7} />
@@ -370,25 +370,25 @@ function GroundPlatform({ quality }) {
       {/* Inner ring glow — pod orbit indicator */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[3.85, 3.98, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.3} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.12} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Mid ring */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[2.95, 3.2, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.3} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.10} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer ring glow — platform edge */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.1, 5.55, 64]} />
-        <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.10} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer haze ring */}
       <mesh position={[0, -0.99, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.5, 7.5, 64]} />
-        <meshBasicMaterial color="#00d4ff" transparent opacity={0.08} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
+        <meshBasicMaterial color="#00d4ff" transparent opacity={0.04} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
       </mesh>
     </group>
   );
@@ -407,67 +407,67 @@ function EnergyBeam() {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
 
-    // Main beam pulse
+    // Main beam pulse — very subtle
     if (beamRef.current) {
-      beamRef.current.material.opacity = 0.20 + 0.08 * Math.sin(t * 1.5);
+      beamRef.current.material.opacity = 0.06 + 0.03 * Math.sin(t * 1.5);
     }
 
-    // Glow beam pulse
+    // Glow beam pulse — barely visible
     if (glowBeamRef.current) {
-      glowBeamRef.current.material.opacity = 0.10 + 0.05 * Math.sin(t * 1.2);
+      glowBeamRef.current.material.opacity = 0.04 + 0.02 * Math.sin(t * 1.2);
     }
 
-    // Top bright spot — pulse via opacity (meshBasicMaterial has no emissive)
+    // Top bright spot — subtle pulse
     if (topGlowRef.current) {
-      topGlowRef.current.material.opacity = 0.6 + 0.3 * Math.sin(t * 2);
+      topGlowRef.current.material.opacity = 0.15 + 0.1 * Math.sin(t * 2);
     }
 
-    // Floating rings orbit upward (5 rings now, bigger)
+    // Floating rings orbit upward — subtle accents
     ringsRef.current.forEach((ring, i) => {
       if (!ring) return;
       const phase = (t * 0.15 + i * 0.2) % 1;
       ring.position.y = phase * 8;
       ring.scale.setScalar(0.5 + phase * 1.0);
-      ring.material.opacity = (1 - phase) * 0.5;
+      ring.material.opacity = (1 - phase) * 0.15;
       ring.rotation.y = t * 0.5 + i * 2;
     });
   });
 
   return (
     <group position={[0, -0.9, 0]}>
-      {/* Main beam cylinder */}
+      {/* Main beam cylinder — thin, subtle */}
       <mesh ref={beamRef}>
-        <cylinderGeometry args={[0.25, 0.45, 10, 16, 1, true]} />
+        <cylinderGeometry args={[0.15, 0.3, 10, 16, 1, true]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.20}
+          opacity={0.06}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
 
-      {/* Outer glow cylinder */}
+      {/* Outer glow cylinder — barely visible haze */}
       <mesh ref={glowBeamRef}>
-        <cylinderGeometry args={[0.5, 0.8, 9, 16, 1, true]} />
+        <cylinderGeometry args={[0.35, 0.55, 9, 16, 1, true]} />
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.10}
+          opacity={0.04}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
 
-      {/* Bright spot at beam top — glowing sphere (additive blending creates glow) */}
+      {/* Subtle spot at beam top */}
       <mesh ref={topGlowRef} position={[0, 5, 0]}>
-        <sphereGeometry args={[0.35, 16, 16]} />
+        <sphereGeometry args={[0.2, 16, 16]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.9}
+          opacity={0.15}
           blending={AdditiveBlending}
           depthWrite={false}
         />
@@ -484,7 +484,7 @@ function EnergyBeam() {
           <meshBasicMaterial
             color="#6ee7ef"
             transparent
-            opacity={0.5}
+            opacity={0.15}
             blending={AdditiveBlending}
             depthWrite={false}
             side={DoubleSide}
@@ -754,26 +754,21 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       {/* ═══ SCENE ATMOSPHERE ═══ */}
       <SceneFog />
 
-      {/* ═══ CINEMATIC LIGHTING ═══ */}
-      <ambientLight intensity={0.15} color="#88ccdd" />
+      {/* ═══ CINEMATIC LIGHTING — Dark & dramatic, 5 lights only ═══ */}
+      <ambientLight intensity={0.08} color="#445566" />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={0.8}
+        intensity={0.5}
         color="#ffffff"
         castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-5, 8, -3]} intensity={0.4} color="#6ee7ef" />
-      <directionalLight position={[0, 3, -8]} intensity={0.3} color="#3b82f6" />
-      <pointLight position={[0, 5, 0]} intensity={1.0} color="#6ee7ef" distance={15} decay={2} />
-      {/* Underlight for pod pedestals */}
-      <pointLight position={[0, -0.5, 0]} intensity={0.5} color="#ff8c00" distance={6} decay={2} />
-
-      {/* Additional colored accent lights */}
-      <pointLight position={[4, 3, -3]} intensity={0.5} color="#ff4444" distance={10} decay={2} />
-      <pointLight position={[-4, 2, 3]} intensity={0.4} color="#8b5cf6" distance={8} decay={2} />
-      <pointLight position={[0, 6, -2]} intensity={0.3} color="#ffd700" distance={12} decay={2} />
+      <directionalLight position={[-5, 8, -3]} intensity={0.2} color="#6ee7ef" />
+      <directionalLight position={[0, 3, -8]} intensity={0.15} color="#3b82f6" />
+      <pointLight position={[0, 4, 0]} intensity={0.6} color="#6ee7ef" distance={12} decay={2} />
+      {/* Subtle warm underlight for pod pedestals */}
+      <pointLight position={[0, -0.5, 0]} intensity={0.2} color="#ff8c00" distance={5} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />

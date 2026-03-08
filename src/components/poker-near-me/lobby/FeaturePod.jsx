@@ -66,8 +66,8 @@ function GlassOrb({ color, isHovered, isActive, orbRadius }) {
         thickness={1.0}
         ior={1.5}
         emissive={color}
-        emissiveIntensity={0.15}
-        envMapIntensity={1.5}
+        emissiveIntensity={0.10}
+        envMapIntensity={1.2}
         side={FrontSide}
         depthWrite={false}
       />
@@ -92,7 +92,7 @@ function OrbGlowRing({ color, isHovered, isActive, orbRadius }) {
     }
   });
 
-  const opacity = isHovered ? 1.0 : isActive ? 0.85 : 0.6;
+  const opacity = isHovered ? 0.4 : isActive ? 0.3 : 0.15;
 
   return (
     <>
@@ -261,13 +261,13 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
     >
       {/* ─── GLASS ORB ─── */}
       <group position={[0, orbRadius + 0.15, 0]}>
-        {/* Volumetric glow sphere for atmospheric haze */}
+        {/* Volumetric glow sphere for atmospheric haze — subtle */}
         <mesh ref={volumetricGlowRef}>
-          <sphereGeometry args={[orbRadius * 2.5, 16, 16]} />
+          <sphereGeometry args={[orbRadius * 2.0, 16, 16]} />
           <meshBasicMaterial
             color={pod.color}
             transparent
-            opacity={0.12}
+            opacity={0.05}
             blending={AdditiveBlending}
             depthWrite={false}
           />
@@ -297,11 +297,11 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           orbRadius={orbRadius}
         />
 
-        {/* Enhanced inner light source for the orb */}
+        {/* Inner light source for the orb — restrained for contrast */}
         <pointLight
           color={pod.color}
-          intensity={hovered ? 3.0 : isActive ? 2.2 : 1.5}
-          distance={8}
+          intensity={hovered ? 1.2 : isActive ? 0.8 : 0.5}
+          distance={5}
           decay={2}
         />
       </group>
@@ -318,11 +318,11 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           iridescence={0.3}
           iridescenceIOR={1.8}
           emissive={pod.color}
-          emissiveIntensity={0.35}
+          emissiveIntensity={0.15}
         />
       </mesh>
 
-      {/* Enhanced pedestal base disc with increased emissive presence */}
+      {/* Pedestal base disc */}
       <mesh position={[0, -0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.55, 0.55, 0.04, 24]} />
         <meshPhysicalMaterial
@@ -331,31 +331,31 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           roughness={0.08}
           clearcoat={0.5}
           emissive={pod.color}
-          emissiveIntensity={0.5}
+          emissiveIntensity={0.2}
         />
       </mesh>
 
       {/* ─── BASE GLOW ─── */}
-      {/* Enhanced base glow ring */}
+      {/* Subtle base glow ring */}
       <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.34, 0]}>
         <ringGeometry args={[0.45, 1.0, 32]} />
         <meshBasicMaterial
           color={pod.color}
           transparent
-          opacity={0.15}
+          opacity={0.08}
           side={DoubleSide}
           blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Enhanced ground light pool */}
+      {/* Subtle ground light pool */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.37, 0]}>
-        <circleGeometry args={[1.5, 24]} />
+        <circleGeometry args={[1.0, 24]} />
         <meshBasicMaterial
           color={pod.color}
           transparent
-          opacity={0.15}
+          opacity={0.06}
           blending={AdditiveBlending}
           depthWrite={false}
         />
