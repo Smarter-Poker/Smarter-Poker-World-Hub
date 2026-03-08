@@ -128,6 +128,7 @@ export default function GeevesFloatingOrb() {
     const [tipText, setTipText] = useState('');
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
+    const msgIdRef = useRef(0); // ← atomic counter avoids Date.now() ID collisions
     const path = router.asPath || '';
 
     // ── SSR guard — only render on client ──
@@ -197,17 +198,11 @@ export default function GeevesFloatingOrb() {
         return () => window.removeEventListener('keydown', handler);
     }, [isOpen]);
 
-    // ── Don't render on landing/auth pages ──
-    if (!mounted) return null;
-    const cleanPath = path.split('?')[0];
-    if (cleanPath === '/' || cleanPath.startsWith('/auth') || cleanPath.startsWith('/login') || cleanPath.startsWith('/signup')) return null;
-
-    const chips = getPageChips(path);
-
-    // ── Send message ──
+    // ── Send message — MUST be above any early returns (Rules of Hooks) ──
     const sendMessage = useCallback(async (text) => {
         if (!text?.trim()) return;
-        const userMsg = { id: Date.now(), content: text.trim(), isUser: true };
+        const uid = ++msgIdRef.current; // unique, collision-free ID
+        const userMsg = { id: uid, content: text.trim(), isUser: true };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsTyping(true);
@@ -222,23 +217,24 @@ export default function GeevesFloatingOrb() {
                 headers,
                 body: JSON.stringify({
                     message: text.trim(),
-                    currentPage: path, // Context-aware
+                    currentPage: path,
                 }),
             });
 
-            if (!res.ok) throw new Error('Failed');
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
             const answer = data.response || data.message || data.reply || data.answer || 'I had trouble with that. Try again!';
-            const followUps = data.followUps || [];
+            const followUps = Array.isArray(data.followUps) ? data.followUps : [];
             setMessages(prev => [...prev, {
-                id: Date.now() + 1,
+                id: ++msgIdRef.current, // guaranteed unique
                 content: answer,
                 isUser: false,
-                followUps, // Store follow-ups for rendering
+                followUps,
             }]);
-        } catch {
+        } catch (err) {
+            console.warn('[GeevesOrb] Chat error:', err.message);
             setMessages(prev => [...prev, {
-                id: Date.now() + 1,
+                id: ++msgIdRef.current,
                 content: "I'm having trouble connecting. Please try again in a moment.",
                 isUser: false,
             }]);
@@ -247,9 +243,18 @@ export default function GeevesFloatingOrb() {
         }
     }, [path]);
 
-    const handleKeyDown = (e) => {
+    // ── Enter key submit — memoized so it doesn't recreate every render ──
+    const handleKeyDown = useCallback((e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
-    };
+    }, [input, sendMessage]);
+
+    // ── Don't render on landing/auth pages ──
+    // NOTE: All hooks must be defined ABOVE this guard (Rules of Hooks)
+    if (!mounted) return null;
+    const cleanPath = path.split('?')[0];
+    if (cleanPath === '/' || cleanPath.startsWith('/auth') || cleanPath.startsWith('/login') || cleanPath.startsWith('/signup')) return null;
+
+    const chips = getPageChips(path);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // RENDER
