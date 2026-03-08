@@ -417,10 +417,9 @@ function EnergyBeam() {
       glowBeamRef.current.material.opacity = 0.25 + 0.10 * Math.sin(t * 1.2);
     }
 
-    // Top bright spot
+    // Top bright spot — pulse via opacity (meshBasicMaterial has no emissive)
     if (topGlowRef.current) {
-      topGlowRef.current.material.emissive.set(0x6ee7ef);
-      topGlowRef.current.material.emissiveIntensity = 0.6 + 0.4 * Math.sin(t * 2);
+      topGlowRef.current.material.opacity = 0.6 + 0.3 * Math.sin(t * 2);
     }
 
     // Floating rings orbit upward (5 rings now, bigger)
@@ -462,13 +461,11 @@ function EnergyBeam() {
         />
       </mesh>
 
-      {/* Bright spot at beam top — emissive sphere */}
+      {/* Bright spot at beam top — glowing sphere (additive blending creates glow) */}
       <mesh ref={topGlowRef} position={[0, 5, 0]}>
         <sphereGeometry args={[0.35, 16, 16]} />
         <meshBasicMaterial
           color="#6ee7ef"
-          emissive="#6ee7ef"
-          emissiveIntensity={0.8}
           transparent
           opacity={0.9}
           blending={AdditiveBlending}
