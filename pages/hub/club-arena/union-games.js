@@ -182,11 +182,7 @@ const router = useRouter();
           loadTournaments();
         }
       })
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          console.warn(`[UnionGames] Tournament channel status: ${status}`);
-        }
-      });
+      .subscribe();
 
     // Subscribe to table changes across all union clubs
     const tableChannel = supabase
@@ -199,11 +195,7 @@ const router = useRouter();
           loadTables();
         }
       })
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          console.warn(`[UnionGames] Table channel status: ${status}`);
-        }
-      });
+      .subscribe();
 
     // Polling fallback every 15s — silent (no loading state change)
     const poll = setInterval(async () => {
@@ -277,6 +269,25 @@ const router = useRouter();
         loadData();
       } catch (e) { showToast(e.message || 'Failed to close table', 'error'); }
     });
+  };
+
+
+  const handlePauseTournament = (id) => {
+    twoTap(`pause-${id}`, async () => {
+      try {
+        await api('pause_tournament', { unionId, tournamentId: id });
+        showToast('Tournament paused');
+        loadData();
+      } catch (e) { showToast(e.message || 'Failed to pause tournament', 'error'); }
+    });
+  };
+
+  const handleResumeTournament = async (id) => {
+    try {
+      await api('resume_tournament', { unionId, tournamentId: id });
+      showToast('Tournament resumed');
+      loadData();
+    } catch (e) { showToast(e.message || 'Failed to resume tournament', 'error'); }
   };
 
   // BUG #4 FIX: Don't flash blank — show skeleton while auth resolves
@@ -459,12 +470,12 @@ const router = useRouter();
                 </div>
                 {/* Info row */}
                 <div style={{ display: 'flex', gap: 12, fontSize: 12, color: FB.dim, flexWrap: 'wrap', marginBottom: 4 }}>
-                  <span>[CLUB] {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
+                  <span>🏠 {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
                   <span>🃏 {(t.game_type || 'NLHE').toUpperCase()} {(t.settings?.tournamentType || 'MTT').toUpperCase()}</span>
-                  <span>[CHIPS] Buy-in: {Number(t.buy_in).toLocaleString()}</span>
-                  <span>[PLAYERS] {t.registered_count}/{t.max_players}</span>
-                  <span style={{ color: FB.gold }}>[TROPHY] {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
-                  {t.start_time && <span>[TIME] {new Date(t.start_time).toLocaleString()}</span>}
+                  <span>💰 Buy-in: {Number(t.buy_in).toLocaleString()}</span>
+                  <span>👥 {t.registered_count}/{t.max_players}</span>
+                  <span style={{ color: FB.gold }}>🏆 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
+                  {t.start_time && <span>🕐 {new Date(t.start_time).toLocaleString()}</span>}
                 </div>
                 {/* Actions */}
                 {['scheduled', 'registering'].includes(t.status) && (
@@ -485,6 +496,39 @@ const router = useRouter();
                       padding: '6px 14px', background: confirmAction?.key === `cancel-${t.id}` ? '#991b1b' : FB.red, color: '#fff', border: 'none',
                       borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                     }}>{confirmAction?.key === `cancel-${t.id}` ? 'Confirm Cancel?' : 'Cancel'}</button>
+                  </div>
+                )}
+                {/* Running tournament inline controls */}
+                {['running', 'late_reg', 'break', 'final_table'].includes(t.status) && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handlePauseTournament(t.id)} style={{
+                      padding: '6px 14px', background: confirmAction?.key === `pause-${t.id}` ? '#d97706' : '#eab308',
+                      color: '#000', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    }}>{confirmAction?.key === `pause-${t.id}` ? 'Confirm Pause?' : '⏸ Pause'}</button>
+                    <button onClick={() => handleCancelTournament(t.id)} style={{
+                      padding: '6px 14px', background: confirmAction?.key === `cancel-${t.id}` ? '#991b1b' : FB.red,
+                      color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    }}>{confirmAction?.key === `cancel-${t.id}` ? 'Confirm Cancel?' : '✕ Cancel'}</button>
+                    <button onClick={() => setSelectedTournament(t)} style={{
+                      padding: '6px 14px', background: 'transparent', color: FB.dim,
+                      border: `1px solid ${FB.border}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}>Details →</button>
+                  </div>
+                )}
+                {t.status === 'paused' && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }} onClick={e => e.stopPropagation()}>
+                    <button onClick={() => handleResumeTournament(t.id)} style={{
+                      padding: '6px 14px', background: FB.teal, color: '#fff', border: 'none',
+                      borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    }}>▶ Resume</button>
+                    <button onClick={() => handleCancelTournament(t.id)} style={{
+                      padding: '6px 14px', background: confirmAction?.key === `cancel-${t.id}` ? '#991b1b' : FB.red,
+                      color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    }}>{confirmAction?.key === `cancel-${t.id}` ? 'Confirm Cancel?' : '✕ Cancel'}</button>
+                    <button onClick={() => setSelectedTournament(t)} style={{
+                      padding: '6px 14px', background: 'transparent', color: FB.dim,
+                      border: `1px solid ${FB.border}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    }}>Details →</button>
                   </div>
                 )}
               </div>
@@ -515,10 +559,10 @@ const router = useRouter();
                   }}>{t.status}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: FB.dim, flexWrap: 'wrap' }}>
-                  <span> {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown'}</span>
-                  <span> {(t.game_type || t.game_variant)?.toUpperCase() || 'NLH'}</span>
-                  <span> {t.small_blind}/{t.big_blind}</span>
-                  <span> {t.current_players || 0}/{t.max_seats || t.max_players}</span>
+                  <span>🏠 {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown'}</span>
+                  <span>🃏 {(t.game_type || t.game_variant)?.toUpperCase() || 'NLH'}</span>
+                  <span>💵 {t.small_blind}/{t.big_blind}</span>
+                  <span>👥 {t.current_players || 0}/{t.max_seats || t.max_players}</span>
                   <span>🃏 Buy-in: {(t.min_buyin || t.min_buy_in || 0).toLocaleString()}–{(t.max_buyin || t.max_buy_in || 0).toLocaleString()}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -574,9 +618,9 @@ const router = useRouter();
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0' }}>
           {[
-            { label: 'Club Arena', emoji: '[HOME]', href: '/hub/club-arena' },
-            { label: 'Dashboard', emoji: '[UNION]', href: `/hub/club-arena/union-dashboard?union=${unionId}` },
-            { label: 'Games', emoji: '[GAME]', href: null, active: true },
+            { label: 'Club Arena', emoji: '🏠', href: '/hub/club-arena' },
+            { label: 'Dashboard', emoji: '🏛️', href: `/hub/club-arena/union-dashboard?union=${unionId}` },
+            { label: 'Games', emoji: '🎮', href: null, active: true },
           ].map(item => (
             item.href ? (
               <a key={item.label} href={item.href} style={{
@@ -948,16 +992,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
         setTourneyState(prev => ({ ...prev, ...payload.payload, _lastEvent: evt }));
       });
     }
-    tCh.on('system', {}, (status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.error('[UnionTournament] Channel error:', status);
-      }
-    });
-    tCh.subscribe((status) => {
-      if (status !== 'SUBSCRIBED') {
-        console.warn(`[UnionTournament] Broadcast channel ${t.id} status: ${status}`);
-      }
-    });
+    tCh.subscribe();
 
     // DB fallback: postgres_changes on club_tournaments keeps status/level in sync
     const dbCh = supabase
@@ -968,16 +1003,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
       }, (payload) => {
         setTourneyState(prev => ({ ...prev, ...payload.new }));
       })
-      .on('system', {}, (status) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[UnionTournament] Postgres channel error:', status);
-        }
-      })
-      .subscribe((status) => {
-        if (status !== 'SUBSCRIBED') {
-          console.warn(`[UnionTournament] Postgres channel ${t.id} status: ${status}`);
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(tCh);

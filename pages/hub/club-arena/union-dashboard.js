@@ -1416,7 +1416,8 @@ const router = useRouter();
                                     </button>
                                 </div>
                                 {/* Commission rate editor */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>\n                                    <span style={{ fontSize: 12, color: FB.textSecondary }}>Club Commission:</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                    <span style={{ fontSize: 12, color: FB.textSecondary }}>Club Commission:</span>
                                     <input
                                         type="number" min="1" max="100" step="1"
                                         value={commissionRates[club.id] ?? String(((club.club_commission_rate || 0.9) * 100).toFixed(0))}
@@ -2003,9 +2004,9 @@ const router = useRouter();
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0' }}>
                     {[
-                        { label: 'Club Arena', icon: '[ ]', href: '/hub/club-arena' },
-                        { label: 'Dashboard', icon: '[ * ]', href: null, active: true },
-                        { label: 'Games', icon: '[ > ]', href: unionIdParam ? `/hub/club-arena/union-games?union=${unionIdParam}` : null },
+                        { label: 'Club Arena', icon: '🏠', href: '/hub/club-arena' },
+                        { label: 'Dashboard', icon: '🏛️', href: null, active: true },
+                        { label: 'Games', icon: '🎮', href: unionIdParam ? `/hub/club-arena/union-games?union=${unionIdParam}` : null },
                     ].map(item => (
                         item.href ? (
                             <a key={item.label} href={item.href} style={{
