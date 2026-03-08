@@ -2560,7 +2560,6 @@ export default function HorsesAdmin() {
               )}
             </div>
           )}
-          )}
 
           {/* CLUB ARENA ADMIN TAB */}
           {activeTab === 'clubarena' && (
