@@ -610,7 +610,10 @@ export default function PokerNearMeLobby() {
   useEffect(() => {
     if (didMountRef.current) return; // Already loaded
     didMountRef.current = true;
-    fetchVenues();
+    // Skip default venue fetch if a deep-link search query is present
+    // (the deep-link effect already fetched the correct filtered results)
+    const deepQ = new URLSearchParams(window.location.search).get('q');
+    if (!deepQ) fetchVenues();
     fetchTours();
     fetchSeries();
     fetchDaily();
@@ -720,7 +723,14 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── Re-fetch when sort or filters change ───
+  const sortFilterMountRef = useRef(true);
   useEffect(() => {
+    // Skip the initial mount — the initial data load effect or deep-link effect
+    // already handles the first fetch. This should only re-fetch on CHANGES.
+    if (sortFilterMountRef.current) {
+      sortFilterMountRef.current = false;
+      return;
+    }
     fetchVenues(searchQuery);
   }, [sortBy, filters, fetchVenues, searchQuery]);
 
