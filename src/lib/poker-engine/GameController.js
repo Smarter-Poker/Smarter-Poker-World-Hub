@@ -1447,6 +1447,16 @@ class GameController {
     const state = entry.table.getState(playerId);
     const cards = entry.table.getPlayerCards(playerId);
 
+    // Merge tournament-specific config from lobby registration
+    // (TournamentBridge registers tables with isTournament/tournamentName/buyIn
+    //  in the lobby config, but TableManager doesn't store them on itself)
+    if (entry.config?.isTournament && state.config) {
+      state.config.isTournament = true;
+      state.config.tournamentId = entry.config.tournamentId || null;
+      state.config.tournamentName = entry.config.tournamentName || null;
+      state.config.buyIn = entry.config.buyIn || 0;
+    }
+
     return {
       ...state,
       yourCards: cards,
@@ -1624,6 +1634,7 @@ class GameController {
       bountyType, bountyAmount, mysteryThreshold, mysteryTiers,
       // Club chip ledger — handles payouts, rebuys, addons, bounty credits
       ledger: this.ledger,
+      supabase: this.supabase,
     });
 
     const bridge = new TournamentBridge(controller, this.lobby, this.supabase);
@@ -2010,6 +2021,7 @@ class GameController {
             bountyType: s.bountyType || 'none',
             bountyAmount: s.bountyAmount || 0,
             ledger: this.ledger,
+            supabase: this.supabase,
           });
 
           // Restore status and registrations from DB

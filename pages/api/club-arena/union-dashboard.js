@@ -53,6 +53,18 @@ export default async function handler(req, res) {
 
     if (!union) return res.status(404).json({ success: false, error: 'Union not found' });
 
+    // 2b. Pending union applications + leave requests (for alert banners)
+    const [{ count: pendingApps }, { count: pendingLeave }] = await Promise.all([
+      supabaseAdmin.from('union_applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('union_id', unionId)
+        .eq('status', 'pending'),
+      supabaseAdmin.from('union_leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('union_id', unionId)
+        .eq('status', 'pending'),
+    ]);
+
     // 3. Get all clubs in union
     const { data: unionClubs } = await supabaseAdmin
       .from('union_clubs')
@@ -172,6 +184,14 @@ export default async function handler(req, res) {
       success: true,
       union,
       adminRole: unionAdmin.role,
+      pendingApplications: pendingApps || 0,
+      pendingLeaveRequests: pendingLeave || 0,
+      wallets: {
+        chip_balance: Number(union.chip_balance || 0),
+        rake_wallet: Number(union.rake_wallet || 0),
+        bbj_wallet: Number(union.bbj_wallet || 0),
+        promo_wallet: Number(union.promo_wallet || 0),
+      },
       stats: {
         totalClubs: clubs.length,
         totalMembers,

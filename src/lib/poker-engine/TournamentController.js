@@ -229,7 +229,7 @@ class TournamentController extends EventEmitter {
 
     // ── Chip & Financial ──
     this.startingChips = config.startingChips || 10000;
-    this.buyinAmount = config.buyinAmount || 50;
+    this.buyinAmount = config.buyinAmount || config.buyIn || 50;
     this.buyinFee = config.buyinFee || 0;
     this.rebuyAmount = config.rebuyAmount || this.buyinAmount;
     this.addonAmount = config.addonAmount || this.buyinAmount;
@@ -286,6 +286,7 @@ class TournamentController extends EventEmitter {
 
     // ── External References ──
     this.ledger = config.ledger || null;
+    this.supabase = config.supabase || null;
     this.gameController = config.gameController || null;
     this.autoStartDelay = config.autoStartDelay !== undefined ? config.autoStartDelay : 2000;
 
@@ -481,6 +482,36 @@ class TournamentController extends EventEmitter {
     this.entries.set(playerId, entry);
     this.totalChipsInPlay += this.startingChips;
     this.totalRake += this.buyinFee;
+
+    // Record tournament registration rake per-player (100% attributed to this player).
+    // This flows through the union routing and cascading agent commissions — same
+    // pipeline as cash game rake, but is_tournament=true and 100% of fee credited
+    // to this one player (not divided by dealt players as in cash games).
+    if (this.buyinFee > 0 && playerClubId && this.supabase) {
+      // Non-blocking: don't delay registration on rake recording
+      this.supabase.rpc('record_tournament_buyin_rake', {
+        p_tournament_id: this.tournamentId,
+        p_club_id: playerClubId,
+        p_player_user_id: playerId,
+        p_buyin_fee: this.buyinFee,
+        p_buyin_amount: this.buyinAmount,
+        p_tournament_name: this.name || null,
+      }).then(({ data: rakeResult, error: rakeErr }) => {
+        if (rakeErr) {
+          console.error(`[TournamentController] Tournament rake recording failed for ${playerId}:`, rakeErr.message);
+        } else {
+          // Also run cascading commission for this player based on their fee
+          return this.supabase.rpc('calculate_cascading_commission', {
+            p_hand_id: 'TOURN-' + this.tournamentId + '-REG-' + playerId,
+            p_club_id: playerClubId,
+            p_player_user_id: playerId,
+            p_rake_amount: this.buyinFee,
+          });
+        }
+      }).catch(err => {
+        console.error('[TournamentController] Tournament rake/commission error:', err.message);
+      });
+    }
 
     // Bounty tracking
     if (this.bountyManager) {

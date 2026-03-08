@@ -184,9 +184,21 @@ class GameStateMachine {
 
     const isBombPot = options.bombPot || false;
 
+    // Generate unique display hand ID — format: TTTT:HHHHHH
+    //   TTTT  = first 4 hex chars of tableId (stable per table session)
+    //   HHHHHH = zero-padded hand number (unique within this table run)
+    // This ID is displayed on the table during play.
+    // The globally unique DB sequential ID (SP-XXXXXXXXXX) is assigned
+    // by the record_rake() RPC when the hand completes and rake is recorded.
+    const tableCode = (this.config.tableId || 'LOCAL')
+      .replace(/-/g, '').slice(0, 4).toUpperCase();
+    const paddedHand = String(this.handNumber).padStart(6, '0');
+    const handId = `${tableCode}:H${paddedHand}`;
+
     // Initialize hand state
     this.currentHand = {
       handNumber: this.handNumber,
+      handId,
       players: playersWithChips.map((p, i) => ({
         ...p,
         position: positions[i],
@@ -215,6 +227,7 @@ class GameStateMachine {
 
     this.emit('hand_start', {
       handNumber: this.handNumber,
+      handId,
       players: this.currentHand.players.map(p => ({ id: p.id, stack: p.stack, seatIndex: p.seatIndex, position: p.position })),
       buttonSeat: this.buttonSeat,
       bombPot: isBombPot,
@@ -1893,6 +1906,7 @@ class GameStateMachine {
 
     this.emit('hand_complete', {
       handNumber: this.handNumber,
+      handId: this.currentHand.handId,
       result: this.currentHand.result,
       rake: this.currentHand.result?.rake || 0,
       potTotal: this.potCalculator.totalPot,
@@ -2221,6 +2235,7 @@ class GameStateMachine {
     return {
       phase: this.phase,
       handNumber: this.handNumber,
+      handId: this.currentHand.handId,
       buttonSeat: this.buttonSeat,
       communityCards: [...this.currentHand.communityCards],
       boards: this.config.numBoards > 1 ? this.currentHand.boards.map(b => [...b]) : undefined,

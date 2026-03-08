@@ -1294,6 +1294,7 @@ class TableManager {
       game: {
         phase: gameState.phase,
         handNumber: gameState.handNumber,
+        handId: gameState.handId || null,
         communityCards: gameState.communityCards || [],
         boards: gameState.boards || undefined,
         potTotal: gameState.potTotal || 0,
@@ -1328,6 +1329,11 @@ class TableManager {
         mixedGame: this.mixedGame,
         variantRotation: this.variantRotation,
         currentVariantIndex: this._mixedGameIndex,
+        // Tournament-specific (null for cash games)
+        isTournament: this.isTournament || false,
+        tournamentId: this.tournamentId || null,
+        tournamentName: this.tournamentName || null,
+        buyIn: this.buyIn || 0,
       },
     };
   }

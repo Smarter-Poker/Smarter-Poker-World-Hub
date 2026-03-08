@@ -284,12 +284,31 @@ export default async function handler(req, res) {
           .eq('id', pid);
       }
 
-      // Debit union hold from club treasury
+      // Debit union hold from club treasury, credit to union rake_wallet
       if (club.union_id && unionHold > 0) {
         await supabaseAdmin.rpc('fn_debit_treasury', {
           p_club_id: clubId,
           p_amount: unionHold,
         });
+
+        // Credit the hold amount into the union's rake_wallet
+        await supabaseAdmin.rpc('fn_union_credit_wallet', {
+          p_union_id: club.union_id,
+          p_wallet: 'rake_wallet',
+          p_amount: unionHold,
+        }).catch(e => console.error('[settle-period] union rake_wallet credit error:', e.message));
+
+        // Ledger entry for union wallet
+        await supabaseAdmin.from('union_wallet_transactions').insert({
+          union_id: club.union_id,
+          wallet: 'rake_wallet',
+          direction: 'credit',
+          amount: unionHold,
+          tx_type: 'settlement_hold',
+          club_id: clubId,
+          period_id: pid,
+          notes: `Settlement hold from ${club.name} — Period #${period.period_number} (${(unionRakeHold * 100).toFixed(1)}% of ${totalRake.toLocaleString()} rake)`,
+        }).catch(e => console.error('[settle-period] union wallet tx insert error:', e.message));
 
         await supabaseAdmin.from('chip_transactions').insert({
           club_id: clubId,

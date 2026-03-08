@@ -295,6 +295,13 @@ class TournamentBridge {
     this.lobby._wireHandHistory(table, history, tableConfig, getSync);
 
     // Register with lobby
+    // Also set tournament metadata directly on the TableManager instance
+    // so getState() can include it in the config block (used by realtime broadcasts)
+    table.isTournament = true;
+    table.tournamentId = this.tournament.tournamentId;
+    table.tournamentName = this.tournament.name || null;
+    table.buyIn = this.tournament.buyinAmount || 0;
+
     this.lobby.tables.set(tableId, {
       table,
       config: {
@@ -305,6 +312,8 @@ class TournamentBridge {
         smallBlind: table.smallBlind,
         bigBlind: table.bigBlind,
         tournamentId: this.tournament.tournamentId,
+        tournamentName: this.tournament.name || null,
+        buyIn: this.tournament.buyinAmount || 0,
         isTournament: true,
         createdAt: new Date().toISOString(),
       },

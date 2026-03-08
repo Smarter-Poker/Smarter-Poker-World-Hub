@@ -542,6 +542,34 @@ export default function SettingsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeSection, user?.id]);
 
+    // ── CLUB ARENA DATA (agent roles + commission rates) ──
+    const [caRoles, setCaRoles] = useState(null);
+    const [caRolesLoading, setCaRolesLoading] = useState(false);
+
+    useEffect(() => {
+        if (activeSection !== 'club_arena' || !user?.id) return;
+        if (caRoles) return; // already loaded
+        setCaRolesLoading(true);
+        const load = async () => {
+            try {
+                // Load agent records, club memberships, and union memberships
+                const [{ data: agentRows }, { data: memberRows }] = await Promise.all([
+                    supabase.from('agents').select('id, role, commission_rate, is_prepaid, status, rakeback_percentage, club_id, clubs(name, club_id)').eq('user_id', user.id).limit(20),
+                    supabase.from('club_members').select('role, club_id, clubs(name, club_id, union_id)').eq('user_id', user.id).limit(20),
+                ]);
+                // Union admin rows
+                const { data: unionRows } = await supabase
+                    .from('union_admins').select('role, union_id, unions(name, code)').eq('user_id', user.id).limit(10);
+                setCaRoles({ agents: agentRows || [], members: memberRows || [], unionAdmins: unionRows || [] });
+            } catch (e) {
+                console.error('[settings club_arena]', e);
+                setCaRoles({ agents: [], members: [], unionAdmins: [] });
+            }
+            setCaRolesLoading(false);
+        };
+        load();
+    }, [activeSection, user?.id, caRoles]);
+
     // ── BILLING DATA LOADER ──
     const loadBillingData = async () => {
         if (!user?.id) return;
@@ -625,6 +653,7 @@ export default function SettingsPage() {
         { id: 'appearance', label: 'Appearance', icon: '' },
         { id: 'display', label: 'Display & Sound', icon: '' },
         { id: 'gameplay', label: 'Gameplay', icon: '' },
+        { id: 'club_arena', label: 'Club Arena', icon: '' },
         { id: 'promos', label: 'Promo Codes', icon: '' },
         { id: 'billing', label: 'Billing & Payments', icon: '' },
         { id: 'blocked', label: 'Blocked Users', icon: '' },
@@ -1813,6 +1842,121 @@ export default function SettingsPage() {
                                         </div>
                                     )}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Club Arena Section */}
+                        {activeSection === 'club_arena' && (
+                            <div style={styles.section}>
+                                <h2 style={styles.sectionTitle}>Club Arena</h2>
+                                <p style={{ fontSize: 13, color: '#B0B3B8', marginBottom: 20 }}>
+                                    Your roles, commission levels, and club memberships across Club Arena.
+                                    Commission rates are set by your club owner or union lead and are read-only here.
+                                </p>
+
+                                {caRolesLoading && (
+                                    <div style={{ textAlign: 'center', padding: 30, color: '#B0B3B8', fontSize: 13 }}>Loading your Club Arena roles...</div>
+                                )}
+
+                                {caRoles && !caRolesLoading && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {/* Agent roles */}
+                                        {caRoles.agents.length > 0 && (
+                                            <div>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Agent Roles</div>
+                                                {caRoles.agents.map(agent => {
+                                                    const roleLabel = { super_agent: 'Super Agent', agent: 'Agent', sub_agent: 'Sub Agent' }[agent.role] || agent.role;
+                                                    const roleColor = { super_agent: '#F7C52A', agent: '#2374E1', sub_agent: '#A855F7' }[agent.role] || '#2374E1';
+                                                    return (
+                                                        <div key={agent.id} style={{ background: '#242526', borderRadius: 10, padding: '14px 16px', marginBottom: 8, border: '1px solid #3E4042' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
+                                                                <div>
+                                                                    <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', marginBottom: 4 }}>
+                                                                        {agent.clubs?.name || 'Unknown Club'}
+                                                                        {agent.clubs?.club_id && <span style={{ fontSize: 12, color: '#B0B3B8', marginLeft: 8 }}>#{agent.clubs.club_id}</span>}
+                                                                    </div>
+                                                                    <span style={{ fontSize: 11, fontWeight: 700, color: roleColor, background: `${roleColor}22`, padding: '2px 8px', borderRadius: 4 }}>
+                                                                        {roleLabel}
+                                                                    </span>
+                                                                </div>
+                                                                <div style={{ textAlign: 'right' }}>
+                                                                    <div style={{ fontSize: 12, color: '#B0B3B8', marginBottom: 2 }}>Commission Rate</div>
+                                                                    <div style={{ fontSize: 20, fontWeight: 900, color: '#F7C52A' }}>
+                                                                        {((agent.commission_rate || 0) * 100).toFixed(0)}%
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: 12, color: '#B0B3B8', flexWrap: 'wrap' }}>
+                                                                <span>Payment type: <strong style={{ color: agent.is_prepaid ? '#31A24C' : '#ea580c' }}>{agent.is_prepaid ? 'Prepaid' : 'Credit'}</strong></span>
+                                                                <span>Status: <strong style={{ color: agent.status === 'active' ? '#31A24C' : '#FA383E' }}>{agent.status}</strong></span>
+                                                                {(agent.rakeback_percentage || 0) > 0 && (
+                                                                    <span>Player rakeback you can offer: <strong style={{ color: '#2374E1' }}>{((agent.rakeback_percentage || 0) * 100).toFixed(0)}%</strong></span>
+                                                                )}
+                                                            </div>
+                                                            <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(247,197,42,0.06)', borderRadius: 8, border: '1px solid rgba(247,197,42,0.15)', fontSize: 12, color: '#B0B3B8' }}>
+                                                                Agents earn commission by selling chips to players. Your commission rate is set by the club owner.
+                                                                Sub-agents have lower rates than their parent agent.
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Club memberships (non-agent) */}
+                                        {caRoles.members.filter(m => m.role !== 'agent' && m.role !== 'sub_agent').length > 0 && (
+                                            <div>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Club Memberships</div>
+                                                {caRoles.members.filter(m => m.role !== 'agent' && m.role !== 'sub_agent').map((mem, i) => (
+                                                    <div key={i} style={{ background: '#242526', borderRadius: 10, padding: '12px 16px', marginBottom: 8, border: '1px solid #3E4042', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>
+                                                                {mem.clubs?.name || 'Unknown Club'}
+                                                            </div>
+                                                            <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 2 }}>Role: {mem.role || 'member'}</div>
+                                                        </div>
+                                                        {mem.clubs?.union_id && (
+                                                            <div style={{ fontSize: 11, color: '#2374E1', background: 'rgba(35,116,225,0.1)', padding: '2px 8px', borderRadius: 4 }}>In Union</div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Union admin roles */}
+                                        {caRoles.unionAdmins.length > 0 && (
+                                            <div>
+                                                <div style={{ fontSize: 12, fontWeight: 700, color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Union Roles</div>
+                                                {caRoles.unionAdmins.map((ua, i) => (
+                                                    <div key={i} style={{ background: '#242526', borderRadius: 10, padding: '12px 16px', marginBottom: 8, border: '1px solid #3E4042', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>{ua.unions?.name || 'Unknown Union'}</div>
+                                                            <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 2 }}>Code: {ua.unions?.code || '--'}</div>
+                                                        </div>
+                                                        <span style={{ fontSize: 11, fontWeight: 700, color: ua.role === 'union_lead' ? '#F7C52A' : '#2374E1', background: ua.role === 'union_lead' ? 'rgba(247,197,42,0.12)' : 'rgba(35,116,225,0.12)', padding: '3px 10px', borderRadius: 4 }}>
+                                                            {ua.role === 'union_lead' ? 'Union Lead' : 'Union Admin'}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {caRoles.agents.length === 0 && caRoles.members.filter(m => m.role !== 'agent').length === 0 && caRoles.unionAdmins.length === 0 && (
+                                            <div style={{ textAlign: 'center', padding: 40, color: '#B0B3B8', fontSize: 13, border: '1px dashed #3E4042', borderRadius: 10 }}>
+                                                You are not currently a member of any Club Arena club, union, or agent network.
+                                            </div>
+                                        )}
+
+                                        {/* Commission structure explanation */}
+                                        <div style={{ background: 'rgba(35,116,225,0.07)', borderRadius: 10, padding: 16, border: '1px solid rgba(35,116,225,0.2)', fontSize: 12, color: '#B0B3B8', lineHeight: 1.6 }}>
+                                            <div style={{ fontWeight: 700, color: '#E4E6EB', marginBottom: 8 }}>Commission Structure</div>
+                                            <div style={{ marginBottom: 4 }}>Clubs receive a share of rake collected at their tables, determined by the union commission rate.</div>
+                                            <div style={{ marginBottom: 4 }}>Super Agents have the highest commission tier and can have Agents under them.</div>
+                                            <div style={{ marginBottom: 4 }}>Agents earn commission on rake from players they bring in. Sub-agents have lower rates than their parent agent.</div>
+                                            <div>Cashouts are handled at the player level only. Clubs and unions settle with each other off-platform. Agents are paid by selling their chips to players directly.</div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

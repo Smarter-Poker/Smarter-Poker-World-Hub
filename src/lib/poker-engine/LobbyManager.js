@@ -745,9 +745,11 @@ class LobbyManager {
           //   2. Union hold split
           //   3. BBJ routing to main/backup/promo pools
           //   4. Club treasury credit
-          //   5. Ledger entries
+          //   5. Ledger entries + global sequential hand ID
+          const canonicalHandId = data.handId ||
+            (data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`);
           const { data: rakeResult, error: rakeErr } = await sb.rpc('record_rake', {
-            p_hand_id: data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`,
+            p_hand_id: canonicalHandId,
             p_club_id: clubId,
             p_table_id: config.tableId,
             p_rake_amount: rakeAmount,
@@ -759,6 +761,10 @@ class LobbyManager {
 
           if (rakeErr) {
             console.error('[LobbyManager] Rake RPC failed:', rakeErr.message);
+          } else if (rakeResult?.global_hand_id) {
+            // Store global ID so it can be pushed to clients if needed in future
+            // For now, log it for audit trail
+            console.log(`[LobbyManager] Hand recorded: ${canonicalHandId} → SP-${String(rakeResult.global_hand_id).padStart(10, '0')} (rake=${rakeAmount})`);
           }
 
           // ── INCREMENT SETTLEMENT COUNTERS ──
@@ -799,7 +805,7 @@ class LobbyManager {
           // Credits agents up the hierarchy — don't block hand progression
           if (dealtPlayerIds.length > 0) {
             const perPlayerRake = rakeAmount / dealtPlayerIds.length;
-            const handId = data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`;
+            const handId = data.handId || (data.handNumber ? `hand_${config.tableId}_${data.handNumber}` : `hand_${config.tableId}_${Date.now()}`);
             Promise.allSettled(
               dealtPlayerIds.map(playerId =>
                 sb.rpc('calculate_cascading_commission', {

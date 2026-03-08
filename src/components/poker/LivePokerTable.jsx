@@ -1738,6 +1738,19 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
         <span style={{ color: T.accent, fontWeight: 800, fontSize: 14 }}>
           {tableState?.config?.tableName || tableState.tableId?.slice(0, 8)}
         </span>
+        {/* Tournament badge — shows tournament name and buy-in when applicable */}
+        {tableState?.config?.isTournament && (
+          <span style={{
+            color: '#fbbf24', fontSize: 11, fontWeight: 700,
+            padding: '2px 8px', borderRadius: 4,
+            background: 'rgba(251,191,36,0.15)',
+            border: '1px solid rgba(251,191,36,0.3)',
+            maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {tableState.config.tournamentName || 'Tournament'}
+            {tableState.config.buyIn ? ` — ${tableState.config.buyIn.toLocaleString()}` : ''}
+          </span>
+        )}
         <span style={{
           color: '#fff', fontSize: 11, fontWeight: 700,
           padding: '2px 8px', borderRadius: 4,
@@ -1752,16 +1765,19 @@ function TableInfoBar({ tableState, onSitOut, onSitIn, onStandUp, onAddChips, is
           })[tableState?.config?.variant] || 'NLH'}
         </span>
         <span style={{ color: T.textSecondary, fontSize: 12, fontWeight: 600 }}>
-          {tableState?.config?.smallBlind || 1}/{tableState?.config?.bigBlind || 2}
+          {tableState?.config?.isTournament
+            ? `Blinds ${tableState?.config?.smallBlind || 1}/${tableState?.config?.bigBlind || 2}`
+            : `${tableState?.config?.smallBlind || 1}/${tableState?.config?.bigBlind || 2}`
+          }
         </span>
-        <span style={{ color: T.textMuted, fontSize: 12 }}>
-          Hand #{game?.handNumber || 0}
+        <span style={{ color: T.textMuted, fontSize: 12, fontFamily: 'monospace', letterSpacing: '0.03em' }}>
+          {game?.handId ? game.handId : (game?.handNumber ? `H${String(game.handNumber).padStart(6, '0')}` : 'H------')}
         </span>
 
         {/* Mixed game rotation indicator */}
         {tableState?.config?.mixedGame && tableState?.config?.variantRotation && (
           <span style={{ color: '#e1bee7', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(156,39,176,0.2)', border: '1px solid rgba(156,39,176,0.3)' }}>
-            🔄 {(tableState.config.currentVariantIndex || 0) + 1}/{tableState.config.variantRotation.length}
+            {(tableState.config.currentVariantIndex || 0) + 1}/{tableState.config.variantRotation.length}
           </span>
         )}
 
