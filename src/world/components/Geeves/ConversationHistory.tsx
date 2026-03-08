@@ -28,7 +28,7 @@ export function ConversationHistory({ onSelect, onNewConversation }: Conversatio
 
             if (!authData?.access_token) return;
 
-            const response = await fetch('/api/live-help/conversations', {
+            const response = await fetch('/api/geeves/conversations', {
                 headers: {
                     'Authorization': `Bearer ${authData.access_token}`
                 }

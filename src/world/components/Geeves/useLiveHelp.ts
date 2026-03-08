@@ -1,18 +1,15 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIVE HELP PANEL — PokerIQ's embedded expert assistance layer
+   LIVE HELP HOOK — Geeves AI Help Bot state management
    
-   Production-ready version with real API integration, message persistence,
-   and context awareness.
-   
-   Single Comprehensive Agent: Jarvis - Expert on all aspects of Smarter.Poker
+   Production-ready with real API integration via /api/geeves/* endpoints.
+   Manages conversation lifecycle, message exchange, and history.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { useState, useEffect, useCallback } from 'react';
-import { collectUserContext } from '../../../lib/liveHelp/contextCollector';
 import { getAuthUser } from '../../../lib/authUtils';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 👥 AGENT DEFINITIONS — Fixed personalities with distinct tones
+// AGENT DEFINITIONS
 // ─────────────────────────────────────────────────────────────────────────────
 export interface Agent {
     id: string;
@@ -26,10 +23,10 @@ export interface Agent {
 
 export const AGENTS: Agent[] = [
     {
-        id: 'jarvis',
-        name: 'Jarvis',
+        id: 'geeves',
+        name: 'Geeves',
         title: 'Smarter.Poker Expert',
-        personality: 'Comprehensive and knowledgeable. Expert on all aspects of Smarter.Poker - from platform features to GTO training, Club Arena, Diamond Store, social features, and technical support.',
+        personality: 'Comprehensive and knowledgeable. Expert on all aspects of Smarter.Poker.',
         avatarColor: '#00d4ff',
         typingSpeed: 'medium',
         tone: 'analytical',
@@ -37,24 +34,28 @@ export const AGENTS: Agent[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🔐 AUTH HELPER
+// AUTH HELPER
 // ─────────────────────────────────────────────────────────────────────────────
 function getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
     try {
-        const authData = localStorage.getItem('smarter-poker-auth');
-        if (authData) {
-            const parsed = JSON.parse(authData);
-            return parsed?.access_token || null;
+        // Try multiple auth key formats
+        const keys = ['smarter-poker-auth', 'smarter_poker_auth', 'sp_auth'];
+        for (const key of keys) {
+            const authData = localStorage.getItem(key);
+            if (authData) {
+                const parsed = JSON.parse(authData);
+                return parsed?.access_token || null;
+            }
         }
     } catch (e) {
-        console.error('[LiveHelp] Error getting auth token:', e);
+        console.error('[Geeves] Error getting auth token:', e);
     }
     return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 💬 MESSAGE TYPES
+// MESSAGE TYPES
 // ─────────────────────────────────────────────────────────────────────────────
 export interface Message {
     id: string;
@@ -66,12 +67,12 @@ export interface Message {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 🔧 LIVE HELP HOOK — Main state management with real API integration
+// LIVE HELP HOOK — Main state management with /api/geeves/* integration
 // ─────────────────────────────────────────────────────────────────────────────
 export function useLiveHelp() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
-    const [currentAgent, setCurrentAgent] = useState<Agent>(AGENTS[0]);
+    const [currentAgent] = useState<Agent>(AGENTS[0]);
     const [isAgentTyping, setIsAgentTyping] = useState(false);
     const [inputValue, setInputValue] = useState('');
     const [conversationId, setConversationId] = useState<string | null>(null);
@@ -83,34 +84,36 @@ export function useLiveHelp() {
         if (isOpen && !conversationId) {
             startConversation();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
 
-    // Start new conversation or resume existing
+    // ─── Start new conversation via /api/geeves/start-conversation ───
     const startConversation = async () => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const user = getAuthUser();
-            if (!user) {
-                throw new Error('User not authenticated');
-            }
-
-            // Collect user context
-            const context = await collectUserContext(user.id);
-
             const token = getAuthToken();
             if (!token) {
-                throw new Error('No auth token available');
+                // Show a guest-friendly fallback
+                const guestMsg: Message = {
+                    id: `greeting-${Date.now()}`,
+                    agentId: 'geeves',
+                    content: "Hello! I'm Geeves, your Smarter.Poker expert. Please sign in to start a conversation with me.",
+                    timestamp: new Date(),
+                    isUser: false
+                };
+                setMessages([guestMsg]);
+                return;
             }
 
-            const response = await fetch('/api/live-help/start-conversation', {
+            const response = await fetch('/api/geeves/start-conversation', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ context })
+                body: JSON.stringify({})
             });
 
             if (!response.ok) {
@@ -118,35 +121,38 @@ export function useLiveHelp() {
             }
 
             const data = await response.json();
-
             setConversationId(data.conversationId);
 
-            const agent = AGENTS.find(a => a.id === data.agentId) || AGENTS[0];
-            setCurrentAgent(agent);
-
-            // Load existing messages or add greeting
-            if (data.messages && data.messages.length > 0) {
-                const formattedMessages = data.messages.map((msg: any) => ({
-                    id: msg.id,
-                    agentId: msg.agent_id || '',
-                    content: msg.content,
-                    timestamp: new Date(msg.created_at),
-                    isUser: msg.sender_type === 'user'
-                }));
-                setMessages(formattedMessages);
-            }
+            // Add Geeves greeting
+            const greetingMessage: Message = {
+                id: `greeting-${Date.now()}`,
+                agentId: 'geeves',
+                content: data.greeting,
+                timestamp: new Date(),
+                isUser: false
+            };
+            setMessages([greetingMessage]);
 
         } catch (err) {
-            console.error('Failed to start conversation:', err);
-            setError('Failed to start conversation. Please try again.');
+            console.error('[Geeves] Failed to start conversation:', err);
+            setError('Failed to connect to Geeves. Please try again.');
+            // Fallback greeting so the UI isn't empty
+            const fallbackMsg: Message = {
+                id: `fallback-${Date.now()}`,
+                agentId: 'geeves',
+                content: "Hello! I'm Geeves. I'm having a moment of trouble connecting, but please try sending your question and I'll do my best.",
+                timestamp: new Date(),
+                isUser: false
+            };
+            setMessages([fallbackMsg]);
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Send message
+    // ─── Send message via /api/geeves/ask ───
     const sendMessage = useCallback(async (content: string) => {
-        if (!content.trim() || !conversationId) return;
+        if (!content.trim()) return;
 
         // Add user message immediately
         const userMessage: Message = {
@@ -162,60 +168,57 @@ export function useLiveHelp() {
         setError(null);
 
         try {
-            const user = getAuthUser();
-            if (!user) {
-                throw new Error('User not authenticated');
-            }
-
-            // Collect current context
-            const context = await collectUserContext(user.id);
-
             const token = getAuthToken();
             if (!token) {
-                throw new Error('No auth token available');
+                throw new Error('Not authenticated');
             }
 
-            const response = await fetch('/api/live-help/send-message', {
+            // Build conversation history from current messages for context
+            const conversationHistory = messages
+                .filter(m => !m.isTyping)
+                .slice(-6)
+                .map(m => ({ isUser: m.isUser, content: m.content }));
+
+            const response = await fetch('/api/geeves/ask', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
+                    question: content.trim(),
                     conversationId,
-                    content: content.trim(),
-                    context
+                    conversationHistory
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to send message');
+                throw new Error('Failed to get response');
             }
 
             const data = await response.json();
 
-            // Simulate typing delay
-            await new Promise(resolve => setTimeout(resolve, data.typingDelay || 1500));
+            // Simulate brief typing delay for natural feel
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-            // Add agent response
+            // Add Geeves response
             const agentMessage: Message = {
-                id: data.agentMessage.id,
-                agentId: data.agentMessage.agent_id,
-                content: data.agentMessage.content,
-                timestamp: new Date(data.agentMessage.created_at),
+                id: `geeves-${Date.now()}`,
+                agentId: 'geeves',
+                content: data.answer,
+                timestamp: new Date(),
                 isUser: false
             };
 
             setMessages(prev => [...prev, agentMessage]);
 
         } catch (err) {
-            console.error('Failed to send message:', err);
+            console.error('[Geeves] Failed to send message:', err);
             setError('Failed to send message. Please try again.');
 
-            // Add error message
             const errorMessage: Message = {
                 id: `error-${Date.now()}`,
-                agentId: currentAgent.id,
+                agentId: 'geeves',
                 content: "I'm having trouble connecting right now. Please try again in a moment.",
                 timestamp: new Date(),
                 isUser: false
@@ -224,65 +227,10 @@ export function useLiveHelp() {
         } finally {
             setIsAgentTyping(false);
         }
-    }, [conversationId, currentAgent]);
+    }, [conversationId, messages]);
 
-    // Switch agent
-    const switchAgent = useCallback((agentId: string) => {
-        const agent = AGENTS.find(a => a.id === agentId);
-        if (agent) {
-            setCurrentAgent(agent);
-
-            // Add system message about agent switch
-            const switchMessage: Message = {
-                id: `switch-${Date.now()}`,
-                agentId: agent.id,
-                content: `Hi! I'm ${agent.name}, your ${agent.title}. How can I help you?`,
-                timestamp: new Date(),
-                isUser: false
-            };
-            setMessages(prev => [...prev, switchMessage]);
-        }
-    }, []);
-
-    // Create support ticket
-    const createTicket = useCallback(async (subject: string, description: string, priority: string = 'medium') => {
-        try {
-            const token = getAuthToken();
-            if (!token) {
-                throw new Error('No auth token available');
-            }
-
-            const response = await fetch('/api/live-help/create-ticket', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    conversationId,
-                    subject,
-                    description,
-                    priority
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to create ticket');
-            }
-
-            const data = await response.json();
-            return data;
-
-        } catch (err) {
-            console.error('Failed to create ticket:', err);
-            throw err;
-        }
-    }, [conversationId]);
-
-    // ─────────────────────────────────────────────────────────────────────────────
-    // 🔄 RESUME CONVERSATION
-    // ─────────────────────────────────────────────────────────────────────────────
-    const resumeConversation = useCallback(async (conversationId: string) => {
+    // ─── Resume existing conversation via /api/geeves/conversation/[id] ───
+    const resumeConversation = useCallback(async (convId: string) => {
         setIsLoading(true);
         setError(null);
 
@@ -290,62 +238,40 @@ export function useLiveHelp() {
             const token = getAuthToken();
             if (!token) throw new Error('Not authenticated');
 
-            const response = await fetch(`/api/live-help/get-conversation?id=${conversationId}`, {
+            const response = await fetch(`/api/geeves/conversation/${convId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (!response.ok) throw new Error('Failed to load conversation');
 
             const data = await response.json();
-            setConversationId(data.conversation.id);
-            setMessages(data.messages.map((msg: any) => ({
-                id: msg.id,
-                agentId: msg.agent_id || 'jarvis',
-                content: msg.content,
-                timestamp: new Date(msg.created_at),
-                isUser: msg.is_user
-            })));
+            setConversationId(data.conversation?.id || convId);
+
+            if (data.messages && data.messages.length > 0) {
+                setMessages(data.messages.map((msg: any) => ({
+                    id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+                    agentId: msg.is_user ? '' : 'geeves',
+                    content: msg.content,
+                    timestamp: new Date(msg.created_at),
+                    isUser: msg.is_user
+                })));
+            }
         } catch (err) {
-            console.error('[LiveHelp] Resume error:', err);
+            console.error('[Geeves] Resume error:', err);
             setError('Failed to resume conversation');
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // 🆕 START NEW CONVERSATION
-    // ─────────────────────────────────────────────────────────────────────────────
+    // ─── Start fresh conversation ───
     const startNewConversation = useCallback(async () => {
         setMessages([]);
         setConversationId(null);
+        setError(null);
         await startConversation();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    // ─────────────────────────────────────────────────────────────────────────────
-    // 📊 TRACK ANALYTICS
-    // ─────────────────────────────────────────────────────────────────────────────
-    const trackAnalytics = useCallback(async (eventType: string, metadata?: any) => {
-        try {
-            const token = getAuthToken();
-            if (!token) return;
-
-            await fetch('/api/live-help/track-analytics', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    event_type: eventType,
-                    conversation_id: conversationId,
-                    metadata
-                })
-            });
-        } catch (err) {
-            console.error('[LiveHelp] Analytics error:', err);
-        }
-    }, [conversationId]);
 
     return {
         isOpen,
@@ -357,11 +283,8 @@ export function useLiveHelp() {
         inputValue,
         onInputChange: setInputValue,
         onSendMessage: sendMessage,
-        onSwitchAgent: switchAgent,
-        createTicket,
         resumeConversation,
         startNewConversation,
-        trackAnalytics,
         isLoading,
         error
     };

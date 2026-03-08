@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import InviteFriendsModal from './InviteFriendsModal';
+import GeevesMenuWidget from './GeevesMenuWidget';
 
 export default function HamburgerMenu({
     isOpen,
@@ -410,6 +411,9 @@ export default function HamburgerMenu({
                 <div style={{ flex: 1 }}>
                     {menuItems.map((item, index) => renderMenuItem(item, index))}
                 </div>
+
+                {/* Geeves AI Help Widget */}
+                <GeevesMenuWidget />
 
                 {/* Bottom Links */}
                 {bottomLinks.length > 0 && (

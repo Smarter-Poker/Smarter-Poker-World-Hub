@@ -38,7 +38,9 @@ interface LiveHelpPanelProps {
     inputValue: string;
     onInputChange: (value: string) => void;
     onSendMessage: (message: string) => void;
-    onSwitchAgent: (agentId: string) => void;
+    onSwitchAgent?: (agentId: string) => void;
+    resumeConversation?: (conversationId: string) => void;
+    startNewConversation?: () => void;
 }
 
 export function LiveHelpPanel({
@@ -51,6 +53,8 @@ export function LiveHelpPanel({
     onInputChange,
     onSendMessage,
     onSwitchAgent,
+    resumeConversation,
+    startNewConversation,
 }: LiveHelpPanelProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -199,8 +203,8 @@ export function LiveHelpPanel({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <ConversationHistory
-                            onSelect={(id) => console.log('Resume conversation:', id)}
-                            onNewConversation={() => console.log('New conversation')}
+                            onSelect={(id) => resumeConversation?.(id)}
+                            onNewConversation={() => startNewConversation?.()}
                         />
                         <button
                             onClick={onClose}
