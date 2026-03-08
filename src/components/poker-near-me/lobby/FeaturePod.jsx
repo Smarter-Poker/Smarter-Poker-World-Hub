@@ -1,9 +1,10 @@
 /**
- * FeaturePod.jsx — Holographic orb pod with floating image icon.
+ * FeaturePod.jsx — Premium holographic orb pod with cinematic AAA quality.
  *
- * Each pod is a glowing glass sphere containing the AI-generated image,
- * floating above a metallic pedestal with cinematic glow effects.
- * The sphere acts as a crystal ball / holographic display.
+ * Each pod is a premium glass sphere containing the AI-generated image,
+ * floating above a sleek pedestal with volumetric glow, iridescent materials,
+ * and atmospheric haze effects.
+ * The sphere acts as a crystal ball / holographic display with theatrical presence.
  */
 
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
@@ -32,8 +33,8 @@ const POD_IMAGES = {
 };
 
 /**
- * GlassOrb — The holographic sphere that contains the image.
- * Uses a translucent glass-like material with a subtle iridescent glow.
+ * GlassOrb — Premium holographic sphere with iridescent and sheen effects.
+ * AAA cinematic glass material with refraction, iridescence, and holographic shimmer.
  */
 function GlassOrb({ color, isHovered, isActive, orbRadius }) {
   const meshRef = useRef();
@@ -41,9 +42,9 @@ function GlassOrb({ color, isHovered, isActive, orbRadius }) {
   useFrame(({ clock }) => {
     if (!meshRef.current?.material) return;
     const t = clock.getElapsedTime();
-    // Subtle pulse on the glass orb
-    const baseOpacity = isHovered ? 0.25 : isActive ? 0.2 : 0.12;
-    meshRef.current.material.opacity = baseOpacity + Math.sin(t * 0.8) * 0.01;
+    // Enhanced pulse on the glass orb
+    const baseOpacity = isHovered ? 0.35 : isActive ? 0.30 : 0.25;
+    meshRef.current.material.opacity = baseOpacity + Math.sin(t * 0.8) * 0.02;
   });
 
   return (
@@ -52,13 +53,17 @@ function GlassOrb({ color, isHovered, isActive, orbRadius }) {
       <meshPhysicalMaterial
         color={color}
         transparent
-        opacity={0.15}
+        opacity={0.30}
         metalness={0.1}
         roughness={0.1}
         clearcoat={1.0}
         clearcoatRoughness={0.05}
-        transmission={0.6}
-        thickness={0.5}
+        iridescence={0.4}
+        iridescenceIOR={1.8}
+        sheen={0.6}
+        sheenColor={color}
+        transmission={0.75}
+        thickness={1.0}
         ior={1.5}
         envMapIntensity={0.8}
         side={FrontSide}
@@ -69,36 +74,58 @@ function GlassOrb({ color, isHovered, isActive, orbRadius }) {
 }
 
 /**
- * OrbGlowRing — Glowing ring around the orb equator.
+ * OrbGlowRing — Premium dual glow rings with gyroscopic rotation.
+ * Primary ring with enhanced thickness and secondary tilted ring for dimensional effect.
  */
 function OrbGlowRing({ color, isHovered, isActive, orbRadius }) {
   const ringRef = useRef();
+  const ring2Ref = useRef();
 
   useFrame(({ clock }) => {
-    if (!ringRef.current) return;
-    ringRef.current.rotation.z = clock.getElapsedTime() * 0.08;
+    if (ringRef.current) {
+      ringRef.current.rotation.z = clock.getElapsedTime() * 0.08;
+    }
+    if (ring2Ref.current) {
+      ring2Ref.current.rotation.z = clock.getElapsedTime() * -0.06;
+    }
   });
 
-  const opacity = isHovered ? 0.7 : isActive ? 0.5 : 0.25;
+  const opacity = isHovered ? 0.85 : isActive ? 0.65 : 0.45;
 
   return (
-    <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[orbRadius * 0.95, orbRadius * 1.08, 64]} />
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        blending={AdditiveBlending}
-        depthWrite={false}
-        side={DoubleSide}
-      />
-    </mesh>
+    <>
+      {/* Primary equator ring */}
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[orbRadius * 0.88, orbRadius * 1.12, 64]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+
+      {/* Secondary tilted ring for gyroscope effect */}
+      <mesh ref={ring2Ref} rotation={[degToRad(15), 0, 0]}>
+        <ringGeometry args={[orbRadius * 0.90, orbRadius * 1.10, 48]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={opacity * 0.6}
+          blending={AdditiveBlending}
+          depthWrite={false}
+          side={DoubleSide}
+        />
+      </mesh>
+    </>
   );
 }
 
 /**
- * PodImage — The image billboard rendered INSIDE the glass orb.
- * Sized to fit within the sphere, billboard-facing the camera.
+ * PodImage — Premium billboard image with enhanced presence inside the orb.
+ * Larger image footprint for better visibility and cinematic presence.
  */
 function PodImage({ podId, isHovered, isActive, orbRadius }) {
   const meshRef = useRef();
@@ -135,8 +162,8 @@ function PodImage({ podId, isHovered, isActive, orbRadius }) {
 
   if (!texture) return null;
 
-  // Size the image to fit inside the orb (inscribed square in circle)
-  const imageSize = orbRadius * 1.3; // fills ~65% of the orb diameter
+  // Size the image to fill more of the orb for premium presence
+  const imageSize = orbRadius * 1.5; // fills ~75% of the orb diameter
 
   return (
     <mesh ref={meshRef} position={[0, 0, 0]}>
@@ -153,16 +180,17 @@ function PodImage({ podId, isHovered, isActive, orbRadius }) {
 }
 
 /**
- * FeaturePod — A holographic glass orb containing a photorealistic icon,
- * floating above a sleek pedestal with cinematic glow effects.
+ * FeaturePod — Premium holographic glass orb with AAA cinematic quality.
+ * Features volumetric glow, iridescent materials, and theatrical atmospheric effects.
  */
 export function FeaturePod({ pod, radius, y, isActive, onClick }) {
   const groupRef = useRef();
   const glowRef = useRef();
+  const volumetricGlowRef = useRef();
   const [hovered, setHovered] = useState(false);
 
-  // Orb size — slightly smaller so 9 pods don't overlap
-  const orbRadius = 0.55;
+  // Orb size — increased for premium presence and visibility
+  const orbRadius = 0.75;
 
   const basePos = useMemo(() => {
     const rad = degToRad(pod.angle - 90);
@@ -196,21 +224,27 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
 
-    // Gentle idle bobbing
-    const bob = Math.sin(t * 0.6 + pod.angle * 0.04) * 0.015;
+    // Enhanced idle bobbing for more dynamic feel
+    const bob = Math.sin(t * 0.6 + pod.angle * 0.04) * 0.025;
     groupRef.current.position.y = basePos.y + bob;
 
-    // Hover lift
-    const targetLift = hovered ? 0.12 : 0;
+    // Enhanced hover lift for more responsive feedback
+    const targetLift = hovered ? 0.20 : 0;
     const currentLift = groupRef.current.userData.lift || 0;
     const newLift = currentLift + (targetLift - currentLift) * 0.06;
     groupRef.current.userData.lift = newLift;
     groupRef.current.position.y += newLift;
 
-    // Glow pulse
+    // Glow pulse with enhanced range
     if (glowRef.current?.material) {
-      const alpha = hovered ? 0.7 : isActive ? 0.5 : (0.2 + 0.08 * Math.sin(t * 1.5 + pod.angle * 0.08));
+      const alpha = hovered ? 0.85 : isActive ? 0.65 : (0.3 + 0.12 * Math.sin(t * 1.5 + pod.angle * 0.08));
       glowRef.current.material.opacity += (alpha - glowRef.current.material.opacity) * 0.06;
+    }
+
+    // Volumetric glow sphere rotation for atmospheric effect
+    if (volumetricGlowRef.current) {
+      volumetricGlowRef.current.rotation.x = t * 0.05;
+      volumetricGlowRef.current.rotation.y = t * 0.03;
     }
   });
 
@@ -225,6 +259,18 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
     >
       {/* ─── GLASS ORB ─── */}
       <group position={[0, orbRadius + 0.15, 0]}>
+        {/* Volumetric glow sphere for atmospheric haze */}
+        <mesh ref={volumetricGlowRef}>
+          <sphereGeometry args={[orbRadius * 1.8, 16, 16]} />
+          <meshBasicMaterial
+            color={pod.color}
+            transparent
+            opacity={0.06}
+            blending={AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+
         {/* The holographic glass sphere */}
         <GlassOrb
           color={pod.color}
@@ -241,7 +287,7 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           orbRadius={orbRadius}
         />
 
-        {/* Equator glow ring */}
+        {/* Dual glow rings with gyroscope effect */}
         <OrbGlowRing
           color={pod.color}
           isHovered={hovered}
@@ -249,78 +295,82 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           orbRadius={orbRadius}
         />
 
-        {/* Inner light source for the orb */}
+        {/* Enhanced inner light source for the orb */}
         <pointLight
           color={pod.color}
-          intensity={hovered ? 1.5 : isActive ? 1.0 : 0.4}
-          distance={3}
+          intensity={hovered ? 1.8 : isActive ? 1.2 : 0.8}
+          distance={5}
           decay={2}
         />
       </group>
 
       {/* ─── PEDESTAL ─── */}
-      {/* Slim column */}
+      {/* Enhanced column with iridescence */}
       <mesh position={[0, -0.1, 0]}>
-        <cylinderGeometry args={[0.08, 0.15, 0.45, 16]} />
+        <cylinderGeometry args={[0.15, 0.22, 0.45, 16]} />
         <meshPhysicalMaterial
           color="#1a2a3a"
           metalness={0.95}
           roughness={0.08}
           clearcoat={0.7}
+          iridescence={0.3}
+          iridescenceIOR={1.8}
           emissive={pod.color}
-          emissiveIntensity={0.05}
+          emissiveIntensity={0.15}
         />
       </mesh>
 
-      {/* Pedestal base disc */}
+      {/* Enhanced pedestal base disc with increased emissive presence */}
       <mesh position={[0, -0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, 0.04, 24]} />
+        <cylinderGeometry args={[0.4, 0.4, 0.04, 24]} />
         <meshPhysicalMaterial
           color="#1a2a3a"
           metalness={0.95}
           roughness={0.08}
           clearcoat={0.5}
           emissive={pod.color}
-          emissiveIntensity={0.12}
+          emissiveIntensity={0.3}
         />
       </mesh>
 
       {/* ─── BASE GLOW ─── */}
+      {/* Enhanced base glow ring */}
       <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.34, 0]}>
-        <ringGeometry args={[0.25, 0.5, 32]} />
+        <ringGeometry args={[0.35, 0.7, 32]} />
         <meshBasicMaterial
           color={pod.color}
           transparent
-          opacity={0.25}
+          opacity={0.45}
           side={DoubleSide}
           blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Ground light pool */}
+      {/* Enhanced ground light pool */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.37, 0]}>
-        <circleGeometry args={[0.6, 24]} />
+        <circleGeometry args={[0.9, 24]} />
         <meshBasicMaterial
           color={pod.color}
           transparent
-          opacity={0.04}
+          opacity={0.08}
           blending={AdditiveBlending}
           depthWrite={false}
         />
       </mesh>
 
       {/* ─── FLOATING LABEL ─── */}
+      {/* Enhanced label with larger font and bolder outline */}
       <Text
         position={[0, -0.55, 0.3]}
-        fontSize={0.16}
+        fontSize={0.20}
         anchorX="center"
         anchorY="top"
         color={hovered || isActive ? '#ffffff' : '#c8d6e5'}
         textAlign="center"
         maxWidth={2.0}
         letterSpacing={0.08}
-        outlineWidth={0.02}
+        outlineWidth={0.03}
         outlineColor="#000000"
         font="/fonts/Inter-Bold.woff"
       >

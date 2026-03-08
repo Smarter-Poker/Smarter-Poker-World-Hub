@@ -35,18 +35,18 @@ const POD_Y = 0.3;
 // ─── Quality presets for adaptive rendering ───
 const QUALITY = {
   high: {
-    dpr: 1.5,
-    particleCount: 900,
+    dpr: 2.0,
+    particleCount: 1800,
     shadows: true,
   },
   medium: {
     dpr: 1.0,
-    particleCount: 550,
+    particleCount: 1000,
     shadows: false,
   },
   low: {
     dpr: 0.75,
-    particleCount: 300,
+    particleCount: 500,
     shadows: false,
   },
 };
@@ -82,27 +82,27 @@ function PostProcessingEffects({ quality }) {
   return (
     <EffectComposer multisampling={0}>
       <Bloom
-        luminanceThreshold={quality === 'high' ? 0.1 : quality === 'medium' ? 0.15 : 0.22}
+        luminanceThreshold={quality === 'high' ? 0.04 : quality === 'medium' ? 0.08 : 0.12}
         luminanceSmoothing={0.065}
-        intensity={quality === 'high' ? 1.6 : quality === 'medium' ? 1.1 : 0.65}
-        radius={quality === 'high' ? 0.8 : quality === 'medium' ? 0.65 : 0.4}
+        intensity={quality === 'high' ? 2.8 : quality === 'medium' ? 2.0 : 1.2}
+        radius={quality === 'high' ? 0.85 : quality === 'medium' ? 0.7 : 0.5}
         mipmapBlur
       />
       {quality !== 'low' && (
         <Vignette
           offset={0.25}
-          darkness={0.6}
+          darkness={0.75}
           blendFunction={BlendFunction.NORMAL}
         />
       )}
       {quality === 'high' && ChromaticAberration && (
         <ChromaticAberration
-          offset={[0.0015, 0.0015]}
+          offset={[0.003, 0.003]}
           radialModulation
           modulationOffset={0.5}
         />
       )}
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={1.6} />
     </EffectComposer>
   );
 }
@@ -129,10 +129,10 @@ function SceneEnvironment() {
 
   return (
     <Environment resolution={64} background={false}>
-      <Lightformer form="rect" intensity={2.5} position={[5, 10, 5]} scale={[8, 4, 1]} color="#ffffff" />
-      <Lightformer form="rect" intensity={1.5} position={[-6, 6, -3]} scale={[6, 3, 1]} color="#6ee7ef" />
-      <Lightformer form="circle" intensity={1.0} position={[0, 3, -8]} scale={[5, 5, 1]} color="#3b82f6" />
-      <Lightformer form="ring" intensity={0.8} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[8, 8, 1]} color="#ff8c00" />
+      <Lightformer form="rect" intensity={3.5} position={[5, 10, 5]} scale={[8, 4, 1]} color="#ffffff" />
+      <Lightformer form="rect" intensity={2.5} position={[-6, 6, -3]} scale={[6, 3, 1]} color="#6ee7ef" />
+      <Lightformer form="circle" intensity={1.8} position={[0, 3, -8]} scale={[5, 5, 1]} color="#3b82f6" />
+      <Lightformer form="ring" intensity={1.5} position={[0, -3, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[8, 8, 1]} color="#ff8c00" />
       <Lightformer form="circle" intensity={0.6} position={[-5, 4, 2]} scale={[3, 3, 1]} color="#8b5cf6" />
     </Environment>
   );
@@ -164,14 +164,14 @@ function GroundPlatform({ quality }) {
             blur={quality === 'high' ? [300, 100] : quality === 'medium' ? [200, 64] : [100, 32]}
             resolution={quality === 'high' ? 256 : quality === 'medium' ? 128 : 64}
             mixBlur={0.85}
-            mixStrength={0.45}
+            mixStrength={0.6}
             roughness={0.82}
             depthScale={0.12}
             minDepthThreshold={0.4}
             maxDepthThreshold={1.4}
             color="#061525"
-            metalness={0.92}
-            mirror={0.18}
+            metalness={0.95}
+            mirror={0.3}
           />
         ) : (
           <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} />

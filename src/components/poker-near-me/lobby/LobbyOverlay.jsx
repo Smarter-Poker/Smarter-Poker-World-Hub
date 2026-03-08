@@ -32,10 +32,10 @@ const DockIconSVG = ({ id }) => {
         src={imageSrc}
         alt={id}
         style={{
-          width: 56,
-          height: 56,
+          width: 72,
+          height: 72,
           objectFit: 'contain',
-          filter: 'drop-shadow(0 3px 12px rgba(110, 231, 239, 0.4))',
+          filter: 'drop-shadow(0 4px 16px rgba(110, 231, 239, 0.6)) drop-shadow(0 0 8px rgba(110, 231, 239, 0.3))',
           transition: 'transform 0.25s ease, filter 0.25s ease',
           borderRadius: '50%',
         }}
