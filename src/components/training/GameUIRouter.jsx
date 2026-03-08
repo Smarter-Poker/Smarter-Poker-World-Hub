@@ -1,5 +1,5 @@
 /**
- * 🎯 GAME UI ROUTER — Routes to Game-Specific UIs
+ * GAME UI ROUTER — Routes to Game-Specific UIs
  * ═══════════════════════════════════════════════════════════════════════════
  * UPDATED: GTO Wizard-style training with GTOW scoring
  * All poker games use UniversalDynamicTable with action buttons + frequency bars

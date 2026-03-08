@@ -130,7 +130,7 @@ export default function LeakFixerIntercept({ onDismiss, onAccept }) {
 
                     {/* XP Multiplier */}
                     <div style={styles.xpBadge}>
-                        🔥 {xpMultiplier}x XP MULTIPLIER
+                         {xpMultiplier}x XP MULTIPLIER
                     </div>
 
                     {/* Buttons */}

@@ -1,5 +1,5 @@
 /**
- * 🎯 PSYCHOLOGY TILT CONTROL UI — Game-Specific Training Component
+ * PSYCHOLOGY TILT CONTROL UI — Game-Specific Training Component
  * ═══════════════════════════════════════════════════════════════════════════
  * Specialized UI for psy-003: Tilt Control
  * 

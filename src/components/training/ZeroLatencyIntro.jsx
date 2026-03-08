@@ -25,7 +25,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
     useEffect(() => {
         if (isVisible && !level1Data && !isGenerating) {
             setIsGenerating(true);
-            console.log('🎲 [MASKED LOADING] Generating Level 1 during intro...');
+            console.log('[MASKED LOADING] Generating Level 1 during intro...');
 
             // Generate in background
             setTimeout(() => {
@@ -83,7 +83,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
             }
         }
 
-        console.log('🚀 [ZERO-LATENCY] Starting game with pre-generated Level 1');
+        console.log('[ZERO-LATENCY] Starting game with pre-generated Level 1');
         setPhase('complete');
 
         if (onComplete) {
@@ -194,7 +194,7 @@ export default function ZeroLatencyIntro({ isVisible, game, onComplete, onLevelR
                                     <span style={styles.statLabel}>To Pass</span>
                                 </div>
                                 <div style={styles.statBox}>
-                                    <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 💎10</span>
+                                    <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 10</span>
                                     <span style={styles.statLabel}>Perfect Bonus</span>
                                 </div>
                             </div>

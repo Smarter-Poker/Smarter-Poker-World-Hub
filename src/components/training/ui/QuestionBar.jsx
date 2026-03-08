@@ -1,5 +1,5 @@
 /**
- * 🎯 Question Bar — SmarterPoker Dark Theme
+ * Question Bar — SmarterPoker Dark Theme
  * ═══════════════════════════════════════════════════════════════════
  * Fixed header displaying the training question.
  * Uses SmarterPoker Dark color palette.

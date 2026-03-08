@@ -1,5 +1,5 @@
 /**
- * 🎮 Scene Seat — Professional Layout
+ * Scene Seat — Professional Layout
  * ═══════════════════════════════════════════════════════════════════
  * Clean player seats with:
  * - Small circular avatar (40px)

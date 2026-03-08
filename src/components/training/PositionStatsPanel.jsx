@@ -1,5 +1,5 @@
 /**
- * 📊 POSITION STATS PANEL — Per-Position Performance Breakdown
+ * POSITION STATS PANEL — Per-Position Performance Breakdown
  * Shows accuracy, EV loss, and classification by position (BTN, CO, BB, etc.)
  */
 
@@ -173,7 +173,7 @@ export default function PositionStatsPanel({ handHistory }) {
                     return (
                         <>
                             <div style={styles.extremeItem}>
-                                <span style={styles.extremeLabel}>🏆 Strongest</span>
+                                <span style={styles.extremeLabel}>Strongest</span>
                                 <span style={{ color: POSITION_COLORS[best] || '#22c55e', fontWeight: 'bold' }}>
                                     {best} ({bestAcc}%)
                                 </span>

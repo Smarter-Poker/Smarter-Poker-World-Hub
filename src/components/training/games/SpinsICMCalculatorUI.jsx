@@ -1,5 +1,5 @@
 /**
- * 🎯 SPINS ICM CALCULATOR UI — Game-Specific Training Component
+ * SPINS ICM CALCULATOR UI — Game-Specific Training Component
  * ═══════════════════════════════════════════════════════════════════════════
  * Specialized UI for spins-003 (Button Limp) and spins-007 (50/50 Survival)
  * 
@@ -77,7 +77,7 @@ export default function SpinsICMCalculatorUI({ question, onAnswer, showFeedback,
 
                 {survivalMode && (
                     <div style={styles.survivalBadge}>
-                        🛡️ SURVIVAL MODE — Minimize Risk
+                         SURVIVAL MODE — Minimize Risk
                     </div>
                 )}
             </div>

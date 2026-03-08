@@ -1,5 +1,5 @@
 /**
- * 🧠 FILTER BRAIN BAR — Exact Mockup Match
+ * FILTER BRAIN BAR — Exact Mockup Match
  * ═══════════════════════════════════════════════════════════════════════════
  * Matches reference design exactly with proper pill styling
  * ═══════════════════════════════════════════════════════════════════════════

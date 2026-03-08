@@ -1,5 +1,5 @@
 /**
- * 🎯 TRAINER CONFIG MODAL — GTO Wizard-Style Training Setup
+ * TRAINER CONFIG MODAL — GTO Wizard-Style Training Setup
  * ═══════════════════════════════════════════════════════════════════════════
  * Lets users configure their training session before starting:
  * - Game Type: Cash / MTT / Spins
@@ -16,9 +16,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Available configurations based on actual solver data in database
 const GAME_TYPES = [
-    { id: 'cash', label: 'Cash Game', icon: '💰', desc: 'No Limit Hold\'em 6-Max', pioTypes: ['hu_cash', 'postflop_complete'] },
-    { id: 'mtt', label: 'Tournament', icon: '🏆', desc: 'MTT / Multi-Table', pioTypes: ['mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev'] },
-    { id: 'spins', label: 'Spins', icon: '🎰', desc: 'Spin & Go / HyperTurbo', pioTypes: ['turn_spin'] },
+    { id: 'cash', label: 'Cash Game', icon: '$', desc: 'No Limit Hold\'em 6-Max', pioTypes: ['hu_cash', 'postflop_complete'] },
+    { id: 'mtt', label: 'Tournament', icon: 'T', desc: 'MTT / Multi-Table', pioTypes: ['mtt_6max_icm', 'mtt_9max_icm', 'mtt_6max_chipev'] },
+    { id: 'spins', label: 'Spins', icon: 'S', desc: 'Spin & Go / HyperTurbo', pioTypes: ['turn_spin'] },
 ];
 
 const POSITIONS = {

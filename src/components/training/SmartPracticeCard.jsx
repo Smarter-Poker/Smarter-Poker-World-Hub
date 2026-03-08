@@ -1,5 +1,5 @@
 /**
- * 🎯 SMART PRACTICE CARD — Training Lobby Widget
+ * SMART PRACTICE CARD — Training Lobby Widget
  * ═══════════════════════════════════════════════════════════════════════════
  * Shows the user's #1 weakness area and provides a one-click
  * "Train Now" button to launch a targeted session.

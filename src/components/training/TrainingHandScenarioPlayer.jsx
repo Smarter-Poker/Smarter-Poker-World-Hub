@@ -1,5 +1,5 @@
 /**
- * 🎯 Training Hand Scenario Player — Main Orchestrator
+ * Training Hand Scenario Player — Main Orchestrator
  * ═══════════════════════════════════════════════════════════════════
  * The core training experience component. Presents poker hands like a
  * real poker client with step-by-step animation to the decision point.

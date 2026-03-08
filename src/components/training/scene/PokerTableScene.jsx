@@ -1,5 +1,5 @@
 /**
- * 🎮 Poker Table Scene — Using Golden Template (TrainingGameTable)
+ * Poker Table Scene — Using Golden Template (TrainingGameTable)
  * ═══════════════════════════════════════════════════════════════════
  * Uses the EXACT Golden Template clone - TrainingGameTable.jsx
  * ═══════════════════════════════════════════════════════════════════

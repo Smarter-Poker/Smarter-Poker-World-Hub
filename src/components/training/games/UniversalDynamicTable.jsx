@@ -1,5 +1,5 @@
 /**
- * 🎯 UNIVERSAL DYNAMIC TABLE — GTO Wizard-Style Poker Trainer
+ * UNIVERSAL DYNAMIC TABLE — GTO Wizard-Style Poker Trainer
  * ═══════════════════════════════════════════════════════════════════════════
  * A dynamic poker table matching GTO Wizard's professional trainer UI:
  * - Poker-native action buttons (FOLD / CHECK / CALL / RAISE)
@@ -1302,7 +1302,7 @@ function UniversalDynamicTable({
                         animate={{ opacity: 1, x: 0 }}
                         style={styles.streakBadge}
                     >
-                        <span style={{ fontSize: 14 }}>🔥</span>
+                        <span style={{ fontSize: 14 }}></span>
                         <span style={styles.streakText}>{streak}</span>
                     </motion.div>
                 )}
@@ -1509,7 +1509,7 @@ function UniversalDynamicTable({
                         animate={{ scale: 1, opacity: 1 }}
                         style={styles.pot}
                     >
-                        <span style={styles.chipIcon}>🪙</span>
+                        <span style={styles.chipIcon}>●</span>
                         <span>POT: {pot} BB</span>
                         {/* GAP-2: SPR + Pot Odds overlays */}
                         <div style={styles.potOverlayRow}>

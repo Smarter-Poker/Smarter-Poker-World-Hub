@@ -1,5 +1,5 @@
 /**
- * 🎯 CASH C-BET ACADEMY UI — Game-Specific Training Component
+ * CASH C-BET ACADEMY UI — Game-Specific Training Component
  * ═══════════════════════════════════════════════════════════════════════════
  * Specialized UI for cash-002: C-Bet Academy
  * 

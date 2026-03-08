@@ -36,7 +36,7 @@ export default function LevelCompleteModal({
 
                 <div className="modal-content">
                     <div className="icon">
-                        {passed ? '🏆' : '💪'}
+                        {passed ? '★' : '★'}
                     </div>
 
                     <h2 className={`title ${passed ? 'success' : 'warning'}`}>

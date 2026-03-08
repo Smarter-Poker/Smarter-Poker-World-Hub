@@ -1,5 +1,5 @@
 /**
- * 🎮 GAME BADGE — Custom Game Indicators with Status
+ * GAME BADGE — Custom Game Indicators with Status
  * ═══════════════════════════════════════════════════════════════════════════
  * - Unique icons per game type
  * - Play status indicators (NEW, IN PROGRESS, COMPLETED, MASTERED)
@@ -15,8 +15,8 @@ export const PLAY_STATUS = {
     LOCKED: { id: 'locked', label: '🔒', color: '#666', glow: 'none' },
     IN_PROGRESS: { id: 'in_progress', label: 'PLAYING', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.5)' },
     COMPLETED: { id: 'completed', label: '✓', color: '#4CAF50', glow: 'rgba(76, 175, 80, 0.5)' },
-    MASTERED: { id: 'mastered', label: '⭐', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.6)' },
-    BOSS_DEFEATED: { id: 'boss_defeated', label: '👑', color: '#FF6B35', glow: 'rgba(255, 107, 53, 0.6)' },
+    MASTERED: { id: 'mastered', label: '', color: '#FFD700', glow: 'rgba(255, 215, 0, 0.6)' },
+    BOSS_DEFEATED: { id: 'boss_defeated', label: '', color: '#FF6B35', glow: 'rgba(255, 107, 53, 0.6)' },
 };
 
 // User rank tiers
@@ -25,8 +25,8 @@ export const USER_RANKS = {
     BRONZE: { id: 'bronze', label: 'III', color: '#CD7F32', border: '#8B5A2B' },
     SILVER: { id: 'silver', label: 'II', color: '#C0C0C0', border: '#A8A8A8' },
     GOLD: { id: 'gold', label: 'I', color: '#FFD700', border: '#DAA520' },
-    DIAMOND: { id: 'diamond', label: '💎', color: '#00D4FF', border: '#0099CC' },
-    CHAMPION: { id: 'champion', label: '👑', color: '#FF6B35', border: '#E64A19' },
+    DIAMOND: { id: 'diamond', label: '◆', color: '#00D4FF', border: '#0099CC' },
+    CHAMPION: { id: 'champion', label: '', color: '#FF6B35', border: '#E64A19' },
 };
 
 // Calculate rank from mastery percentage

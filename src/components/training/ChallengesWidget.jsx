@@ -1,5 +1,5 @@
 /**
- * 🎯 CHALLENGES WIDGET
+ * CHALLENGES WIDGET
  * ═══════════════════════════════════════════════════════════════════════════
  * Displays weekly/monthly challenges with progress on training lobby
  * ═══════════════════════════════════════════════════════════════════════════
@@ -85,7 +85,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
     return (
         <div style={styles.container}>
             <div style={styles.header}>
-                <span style={styles.title}>🎯 Active Challenges</span>
+                <span style={styles.title}>Active Challenges</span>
                 <span style={styles.viewAll}>View All →</span>
             </div>
 
@@ -133,7 +133,7 @@ export default function ChallengesWidget({ userId, onChallengeClaimed }) {
                                 </button>
                             ) : (
                                 <span style={styles.diamondReward}>
-                                    💎 {challenge.diamond_reward}
+                                    ◆ {challenge.diamond_reward}
                                 </span>
                             )}
                         </div>

@@ -53,13 +53,13 @@ export default function FeaturedHero({ onPlayNow, userStreak = 5, xpMultiplier =
                     {/* Stats row */}
                     <div style={styles.statsRow}>
                         <div style={styles.statItem}>
-                            <span style={styles.statIcon}>✨</span>
+                            <span style={styles.statIcon}></span>
                             <span style={styles.statText}>XP MULTIPLIER ACTIVE</span>
                             <span style={styles.statValue}>×{xpMultiplier}</span>
                         </div>
                         <span style={styles.statDivider}>•</span>
                         <div style={styles.statItem}>
-                            <span style={styles.statIcon}>🔥</span>
+                            <span style={styles.statIcon}></span>
                             <span style={styles.statText}>CURRENT STREAK:</span>
                             <span style={styles.statValue}>{userStreak}</span>
                         </div>

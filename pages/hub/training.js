@@ -454,7 +454,7 @@ function FilterBar({ active, onFilter, gameCount }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 💎 OUT OF DIAMONDS MODAL
+// OUT OF DIAMONDS MODAL
 // ═══════════════════════════════════════════════════════════════════════════
 function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
     const router = useRouter();
@@ -483,7 +483,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
                 border: '2px solid rgba(255, 107, 0, 0.5)',
                 boxShadow: 'none',
             }}>
-                <div style={{ fontSize: 64, marginBottom: 16 }}>💎</div>
+                <div style={{ fontSize: 64, marginBottom: 16 }}>◆</div>
                 <h2 style={{
                     fontFamily: 'Orbitron, sans-serif',
                     fontSize: 28,
@@ -508,7 +508,7 @@ function OutOfDiamondsModal({ isOpen, onClose, gameCost = 10 }) {
                     border: '1px solid rgba(138, 43, 226, 0.3)',
                 }}>
                     <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
-                        🎁 GET VIP FOR
+                        GET VIP FOR
                     </div>
                     <div style={{
                         fontFamily: 'Orbitron, sans-serif',
@@ -715,7 +715,7 @@ export default function TrainingPage() {
         }
     }, []);
 
-    // 💎 Initialize DiamondEngine and check VIP status
+    // Initialize DiamondEngine and check VIP status
     useEffect(() => {
         const initializeDiamondEngine = async () => {
             try {
@@ -825,7 +825,7 @@ export default function TrainingPage() {
     // Handle game click - Show intro video first, then navigate
     const handleGameClick = async (game) => {
 
-        // 💎 Check diamond access - VIP plays free, others pay 10 diamonds
+        // Check diamond access - VIP plays free, others pay 10 diamonds
         if (!isVIP) {
             const result = await DiamondEngine.deduct(GAME_COST);
             if (!result.success) {

@@ -1,5 +1,5 @@
 /**
- * 📊 EquityMatchup — Range vs Range Equity Visualization
+ * EquityMatchup — Range vs Range Equity Visualization
  * ═══════════════════════════════════════════════════════════════════════════
  * Displays a visual bar showing Hero Range Equity vs Villain Range Equity.
  * Indicates who has the range advantage with color-coding and labels.

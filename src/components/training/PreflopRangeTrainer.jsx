@@ -1,5 +1,5 @@
 /**
- * 🎯 PREFLOP RANGE TRAINER — GTO Wizard-Style Preflop Range Quiz
+ * PREFLOP RANGE TRAINER — GTO Wizard-Style Preflop Range Quiz
  * ═══════════════════════════════════════════════════════════════════════════
  * Interactive 13x13 matrix quiz:
  * 1. Select a position (BTN, CO, HJ, etc.)
@@ -288,7 +288,7 @@ export default function PreflopRangeTrainer({ onExit }) {
 
             {/* MODE TOGGLE */}
             <div style={{ display: 'flex', gap: 0, margin: '0 16px 10px', borderRadius: 8, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
-                {[{ id: 'quiz', label: '🎯 Quiz Mode' }, { id: 'build', label: '🏗️ Range Builder' }].map(m => (
+                {[{ id: 'quiz', label: 'Quiz Mode' }, { id: 'build', label: 'Range Builder' }].map(m => (
                     <button
                         key={m.id}
                         onClick={() => {
@@ -325,7 +325,7 @@ export default function PreflopRangeTrainer({ onExit }) {
                         <div style={S.handValue}>{currentHand}</div>
                         {streak >= 3 && (
                             <div style={{ fontSize: 11, color: '#f97316' }}>
-                                🔥 {streak} streak
+                                {streak} streak
                             </div>
                         )}
                     </motion.div>

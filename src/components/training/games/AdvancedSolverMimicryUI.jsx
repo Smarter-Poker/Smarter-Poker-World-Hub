@@ -1,5 +1,5 @@
 /**
- * 🎯 ADVANCED SOLVER MIMICRY UI — Game-Specific Training Component
+ * ADVANCED SOLVER MIMICRY UI — Game-Specific Training Component
  * ═══════════════════════════════════════════════════════════════════════════
  * Specialized UI for adv-001 (Solver Mimicry) and adv-017 (Capped Ranges)
  * 
@@ -42,7 +42,7 @@ export default function AdvancedSolverMimicryUI({ question, onAnswer, showFeedba
             <div style={styles.solverSection}>
                 <div style={styles.solverHeader}>
                     <div style={styles.solverTitle}>
-                        🧠 Solver Analysis
+                         Solver Analysis
                     </div>
                     {mixedStrategy && (
                         <div style={styles.mixedBadge}>

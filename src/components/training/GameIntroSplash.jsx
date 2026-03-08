@@ -21,7 +21,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
     const videoRef = useRef(null);
     const [phase, setPhase] = useState('video'); // 'video' | 'ready'
 
-    // 🚀 PRELOAD: Start loading the arena page as soon as video begins
+    // PRELOAD: Start loading the arena page as soon as video begins
     useEffect(() => {
         if (isVisible && game?.id) {
             // Prefetch the play page route during video playback
@@ -193,7 +193,7 @@ export default function GameIntroSplash({ isVisible, game, onComplete }) {
                                         <span style={styles.statLabel}>To Pass</span>
                                     </div>
                                     <div style={styles.statBox}>
-                                        <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 💎10</span>
+                                        <span style={{ ...styles.statValue, color: '#00D4FF', fontSize: 18 }}>Up To 10</span>
                                         <span style={styles.statLabel}>Perfect Bonus</span>
                                     </div>
                                 </div>

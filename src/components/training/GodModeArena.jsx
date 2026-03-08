@@ -430,7 +430,7 @@ function DrillFilters({ show, onClose, onApply }) {
                 }}
             >
                 <div style={{ fontSize: 16, fontWeight: 'bold', color: '#e2e8f0', marginBottom: 16, textAlign: 'center' }}>
-                    ⚙️ Drill Filters
+                     Drill Filters
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
@@ -1022,7 +1022,7 @@ function GodModeArena({
                                     letterSpacing: 0.3,
                                 }}
                             >
-                                🔍 Mistakes Only ({sessionMistakes})
+                                 Mistakes Only ({sessionMistakes})
                             </motion.button>
 
                             {sessionMistakes > 0 && (
@@ -1045,7 +1045,7 @@ function GodModeArena({
                                         letterSpacing: 0.3,
                                     }}
                                 >
-                                    🔄 Retrain Mistakes
+                                    ↻ Retrain Mistakes
                                 </motion.button>
                             )}
                         </div>

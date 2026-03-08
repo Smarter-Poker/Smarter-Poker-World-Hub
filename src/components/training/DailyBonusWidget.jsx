@@ -1,5 +1,5 @@
 /**
- * 🎁 DAILY BONUS WIDGET
+ * DAILY BONUS WIDGET
  * ═══════════════════════════════════════════════════════════════════════════
  * Shows daily bonus status and claim button on training lobby
  * Features:
@@ -148,7 +148,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
                                 }}
                                 style={styles.flyingDiamond}
                             >
-                                💎
+                                ◆
                             </motion.div>
                         ))}
                     </>
@@ -156,7 +156,7 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
             </AnimatePresence>
 
             <div style={styles.content}>
-                <div style={styles.icon}>🎁</div>
+                <div style={styles.icon}>Gift</div>
                 <div style={styles.info}>
                     {showAnimation ? (
                         <>
@@ -166,23 +166,23 @@ export default function DailyBonusWidget({ userId, onBonusClaimed }) {
                                 animate={{ scale: countingUp ? [1, 1.1, 1] : 1 }}
                                 transition={{ repeat: countingUp ? Infinity : 0, duration: 0.3 }}
                             >
-                                💎 +{displayedAmount}
+                                ◆ +{displayedAmount}
                             </motion.div>
                         </>
                     ) : (
                         <>
                             <div style={styles.title}>Daily Bonus Ready!</div>
                             <div style={styles.amount}>
-                                <span style={styles.diamonds}>💎 {bonusData.totalBonus}</span>
+                                <span style={styles.diamonds}>◆ {bonusData.totalBonus}</span>
                                 {bonusData.streakBonus > 0 && (
                                     <span style={styles.streakBadge}>
-                                        +{bonusData.streakBonus} 🔥
+                                        +{bonusData.streakBonus} 
                                     </span>
                                 )}
                             </div>
                             {bonusData.nextStreakBonus && (
                                 <div style={styles.nextMilestone}>
-                                    {bonusData.nextStreakBonus.daysUntil} more days = +{bonusData.nextStreakBonus.bonus}💎
+                                    {bonusData.nextStreakBonus.daysUntil} more days = +{bonusData.nextStreakBonus.bonus}◆
                                 </div>
                             )}
                         </>

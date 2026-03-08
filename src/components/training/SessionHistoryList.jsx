@@ -101,7 +101,7 @@ export default function SessionHistoryList({ gameId, userId, limit = 10 }) {
                                     </span>
                                 )}
                                 {session.best_streak > 0 && (
-                                    <span style={styles.streakBadge}>🔥{session.best_streak}</span>
+                                    <span style={styles.streakBadge}>{session.best_streak}</span>
                                 )}
                             </div>
                         </motion.div>

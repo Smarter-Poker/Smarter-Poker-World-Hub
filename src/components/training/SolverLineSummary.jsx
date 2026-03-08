@@ -189,7 +189,7 @@ export default function SolverLineSummary({ gridData = {}, classificationGroups 
             <div style={{
                 display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
             }}>
-                <span style={{ fontSize: 12 }}>🧠</span>
+                <span style={{ fontSize: 12 }}>AI</span>
                 <span style={{
                     fontSize: 9, fontWeight: 800, color: '#00d4ff',
                     textTransform: 'uppercase', letterSpacing: 1,

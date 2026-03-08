@@ -1,5 +1,5 @@
 /**
- * 📊 EV GRAPH — Street-by-Street EV Delta Visualization
+ * EV GRAPH — Street-by-Street EV Delta Visualization
  * ═══════════════════════════════════════════════════════════════════════════
  * Pure CSS bar chart showing EV delta per street (Preflop → Flop → Turn → River).
  * Green = EV gain, Red = EV loss. No external charting library needed.

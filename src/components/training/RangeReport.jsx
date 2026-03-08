@@ -1,5 +1,5 @@
 /**
- * 📊 RangeReport — Aggregated Range Analysis Panel
+ * RangeReport — Aggregated Range Analysis Panel
  * ═══════════════════════════════════════════════════════════════════════════
  * Donut chart showing Made Hands / Draws / Air distribution.
  * Per-category action breakdown. Board texture analysis.

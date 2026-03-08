@@ -1,5 +1,5 @@
 /**
- * 🎮 MTT DEEP STACK UI — EXACT USER REQUIREMENTS
+ * MTT DEEP STACK UI — EXACT USER REQUIREMENTS
  * ═══════════════════════════════════════════════════════════════════════════
  * REQUIREMENTS:
  * 1. LARGE question bar at top
@@ -270,7 +270,7 @@ const styles = {
         overflow: 'hidden',
     },
 
-    // 🎰 PREMIUM CASINO QUESTION BAR - Industrial metal frame with HUD display
+    //  PREMIUM CASINO QUESTION BAR - Industrial metal frame with HUD display
     questionBar: {
         width: '100%',
         padding: '20px 24px',
@@ -280,7 +280,7 @@ const styles = {
         flexShrink: 0,
     },
 
-    // 🎰 PREMIUM QUESTION TEXT - White with HUD styling
+    //  PREMIUM QUESTION TEXT - White with HUD styling
     questionText: {
         color: '#ffffff',
         fontSize: 18,
@@ -334,7 +334,7 @@ const styles = {
         gap: 4,
     },
 
-    // 🎰 PREMIUM CASINO AVATAR - Metal frame with cyan glow ring
+    //  PREMIUM CASINO AVATAR - Metal frame with cyan glow ring
     avatar: {
         width: 50,
         height: 50,
@@ -345,7 +345,7 @@ const styles = {
         background: 'linear-gradient(135deg, #2d2d3a, #1a1a24)',
     },
 
-    // 🎰 PREMIUM CASINO BADGE - Industrial metal with gold accents
+    //  PREMIUM CASINO BADGE - Industrial metal with gold accents
     badge: {
         background: 'linear-gradient(180deg, #4a4a5a 0%, #2d2d3a 50%, #1a1a24 100%)',
         padding: '6px 12px',
@@ -447,7 +447,7 @@ const styles = {
         flexShrink: 0,
     },
 
-    // 🎰 PREMIUM CASINO TIMER - Skeuomorphic metal with LED display
+    //  PREMIUM CASINO TIMER - Skeuomorphic metal with LED display
     timer: {
         width: 70,
         height: 50,
@@ -465,7 +465,7 @@ const styles = {
         textShadow: '0 0 10px rgba(255, 59, 59, 0.8)',
     },
 
-    // 🎰 PREMIUM CASINO COUNTER - HUD style with cyan glow
+    //  PREMIUM CASINO COUNTER - HUD style with cyan glow
     questionCounter: {
         color: '#00d4ff',
         fontSize: 13,
@@ -490,7 +490,7 @@ const styles = {
         flexShrink: 0,
     },
 
-    // 🎰 PREMIUM CASINO ACTION BUTTON - Skeuomorphic metal with HUD glow
+    //  PREMIUM CASINO ACTION BUTTON - Skeuomorphic metal with HUD glow
     answerButton: {
         padding: '18px 20px',
         fontSize: 15,
@@ -508,7 +508,7 @@ const styles = {
         textShadow: '0 0 8px rgba(0, 212, 255, 0.6)',
     },
 
-    // 🎰 CORRECT FEEDBACK - Green HUD glow
+    //  CORRECT FEEDBACK - Green HUD glow
     correctButton: {
         background: 'linear-gradient(180deg, #1a4a2a 0%, #0d3018 100%)',
         border: '2px solid #22c55e',
@@ -517,7 +517,7 @@ const styles = {
         textShadow: '0 0 10px rgba(34, 197, 94, 0.8)',
     },
 
-    // 🎰 INCORRECT FEEDBACK - Red HUD glow
+    //  INCORRECT FEEDBACK - Red HUD glow
     incorrectButton: {
         background: 'linear-gradient(180deg, #4a1a1a 0%, #301010 100%)',
         border: '2px solid #ef4444',

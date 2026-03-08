@@ -1,5 +1,5 @@
 /**
- * 🎮 TRAINING ARENA — Video Game Poker Table
+ * TRAINING ARENA — Video Game Poker Table
  * ═══════════════════════════════════════════════════════════════════════════
  * 
  * THE LAW (VIDEO GAME FEEL):
@@ -244,7 +244,7 @@ export default function TrainingArena({
                     ...styles.completeIcon,
                     color: passed ? '#22C55E' : '#EF4444',
                 }}>
-                    {passed ? '🏆' : '🔄'}
+                    {passed ? '★' : '↻'}
                 </div>
                 <h1 style={{
                     ...styles.completeTitle,
@@ -436,9 +436,9 @@ export default function TrainingArena({
                         {/* Chip animation */}
                         {chipAnimation && (
                             <div style={styles.chipAnimation}>
-                                <span style={styles.chip}>🪙</span>
-                                <span style={styles.chip}>🪙</span>
-                                <span style={styles.chip}>🪙</span>
+                                <span style={styles.chip}>●</span>
+                                <span style={styles.chip}>●</span>
+                                <span style={styles.chip}>●</span>
                             </div>
                         )}
                     </div>
@@ -495,7 +495,7 @@ export default function TrainingArena({
                             </span>
                             {resultData?.speedLabel && resultData.speedLabel !== 'STANDARD' && (
                                 <span style={styles.speedBonus}>
-                                    ⚡ {resultData.speedLabel} +{((resultData.speedMultiplier - 1) * 100).toFixed(0)}%
+                                     {resultData.speedLabel} +{((resultData.speedMultiplier - 1) * 100).toFixed(0)}%
                                 </span>
                             )}
                         </div>

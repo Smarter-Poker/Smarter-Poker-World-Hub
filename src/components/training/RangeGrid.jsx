@@ -1,5 +1,5 @@
 /**
- * 🎯 RangeGrid — GTO Wizard-Style 13×13 Hand Range Grid
+ * RangeGrid — GTO Wizard-Style 13×13 Hand Range Grid
  * ═══════════════════════════════════════════════════════════════════════════
  * Displays a 13×13 hand matrix colored by action frequencies.
  * Each cell represents a hand (AA, AKs, AKo, etc.)

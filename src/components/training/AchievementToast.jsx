@@ -1,5 +1,5 @@
 /**
- * 🏅 ACHIEVEMENT TOAST
+ * ACHIEVEMENT TOAST
  * ═══════════════════════════════════════════════════════════════════════════
  * Notification component for newly unlocked achievements
  * ═══════════════════════════════════════════════════════════════════════════
@@ -57,7 +57,7 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
             const data = await res.json();
             if (data.success) {
                 // Show confirmation
-                alert('🎉 Shared to your feed!');
+                alert('Shared to your feed!');
             }
         } catch (error) {
             console.error('Share error:', error);
@@ -79,14 +79,14 @@ export default function AchievementToast({ achievements = [], onDismiss, userId 
                 style={styles.container}
             >
                 <div style={styles.iconWrapper}>
-                    <span style={styles.icon}>{achievement.icon || '🏅'}</span>
+                    <span style={styles.icon}>{achievement.icon || '★'}</span>
                 </div>
                 <div style={styles.content}>
                     <div style={styles.label}>Achievement Unlocked!</div>
                     <div style={styles.name}>{achievement.name}</div>
                     {achievement.diamond_reward > 0 && (
                         <div style={styles.reward}>
-                            +{achievement.diamond_reward} 💎
+                            +{achievement.diamond_reward} Diamonds
                         </div>
                     )}
                 </div>

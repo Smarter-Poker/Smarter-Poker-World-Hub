@@ -1,5 +1,5 @@
 /**
- * 🔥 RunoutHeatmap — GTO Wizard-Style Turn/River Runout Analysis
+ * RunoutHeatmap — GTO Wizard-Style Turn/River Runout Analysis
  * ═══════════════════════════════════════════════════════════════════════════
  * A 4-suit × 13-rank mini-grid showing how every possible runout card
  * impacts Hero's equity and EV. Color-coded:

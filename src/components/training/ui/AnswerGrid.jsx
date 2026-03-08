@@ -1,5 +1,5 @@
 /**
- * 🎯 Answer Grid — SmarterPoker Dark Theme
+ * Answer Grid — SmarterPoker Dark Theme
  * ═══════════════════════════════════════════════════════════════════
  * 2×2 grid of answer choices with SmarterPoker Dark styling.
  * States: idle, hover, selected, correct, incorrect, dimmed

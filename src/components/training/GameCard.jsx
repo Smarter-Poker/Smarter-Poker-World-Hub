@@ -105,7 +105,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                             zIndex: 1,
                         }}
                     >
-                        👑
+                        ★
                     </div>
                 )}
 
@@ -152,7 +152,7 @@ export default function GameCard({ game, onClick, index = 0, image, progress }) 
                             zIndex: 5,
                         }}
                     >
-                        <span style={{ fontSize: 14 }}>🔥</span>
+                        <span style={{ fontSize: 14 }}></span>
                         <span style={{
                             fontSize: 11,
                             fontWeight: 800,

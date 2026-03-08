@@ -1,59 +1,117 @@
 /**
- * PWA Install Prompt
+ * PWA Install Prompt — Military-Grade Persistence
  * Shows a native-style install banner when the browser fires 'beforeinstallprompt'
- * 
- * Dismissal persistence:
- *  - 1st "Later" → 30-day cooldown before showing again
- *  - 2nd "Later" → permanently dismissed (never shows again)
- *  - "Install" clicked → permanently stored as installed
- *  - Also listens for browser 'appinstalled' event as backup
- *  - Detects standalone/installed mode to avoid redundant prompts
+ *
+ * Dismissal persistence (3 layers):
+ *  1. localStorage: Immediate client-side check (fastest)
+ *  2. Server-side IP tracking: Survives cache clears, incognito, new browsers
+ *  3. Standalone detection: If already installed, never shows
+ *
+ * ONE CLICK = PERMANENT. If a user clicks "Later" or "Install", the prompt
+ * NEVER comes back, even if they clear all browser data.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+
+const DISMISS_KEY = 'pwa_prompt_dismissed_permanent';
+const INSTALLED_KEY = 'pwa_installed';
+
+/**
+ * Check server-side if this IP already dismissed/installed the PWA prompt.
+ * Reuses the same API + Supabase table pattern as the notification prompt.
+ */
+async function checkServerDismissed() {
+  try {
+    const res = await fetch('/api/pwa/prompt-status', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return data.dismissed === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Record on server that this IP responded to the PWA prompt.
+ * Fire-and-forget — never blocks the UI.
+ */
+function recordOnServer(action) {
+  try {
+    fetch('/api/pwa/prompt-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    }).catch(() => { });
+  } catch {
+    // Silently ignore
+  }
+}
+
+/** Safe localStorage write */
+function safeSet(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
+}
+
+/** Safe localStorage read */
+function safeGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
 
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [show, setShow] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    try {
-      // ─── Already installed (user clicked Install or appinstalled fired) ───
-      if (localStorage.getItem('pwa_installed')) return;
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
-      // ─── Running as installed PWA ───
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        localStorage.setItem('pwa_installed', 'true');
-        return;
-      }
+  useEffect(() => {
+    // ─── Layer 1: localStorage checks (instant) ───
+    if (safeGet(INSTALLED_KEY)) return;
+    if (safeGet(DISMISS_KEY)) return;
 
-      // ─── Escalating dismissal logic ───
-      const dismissCount = parseInt(localStorage.getItem('pwa_dismiss_count') || '0');
-      if (dismissCount >= 2) return; // Permanently dismissed after 2nd "Later"
-
-      const dismissedAt = localStorage.getItem('pwa_prompt_dismissed');
-      if (dismissedAt) {
-        const cooldown = 30 * 24 * 60 * 60 * 1000; // 30 days
-        if (Date.now() - parseInt(dismissedAt) < cooldown) return;
-      }
-    } catch {
-      // localStorage disabled (Safari private browsing, quota exceeded) — don't show prompt
+    // ─── Running as installed PWA — mark permanently ───
+    if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
+      safeSet(INSTALLED_KEY, 'true');
+      recordOnServer('standalone_detected');
       return;
     }
 
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShow(true);
-    };
+    // ─── Layer 2: Server-side IP check (survives cache clears) ───
+    checkServerDismissed().then(serverDismissed => {
+      if (!mountedRef.current) return;
 
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+      if (serverDismissed) {
+        // Server confirms this IP already responded — sync localStorage
+        safeSet(DISMISS_KEY, `server_confirmed_${Date.now()}`);
+        return; // Don't show
+      }
+
+      // ─── All clear — listen for the browser install event ───
+      const handler = (e) => {
+        e.preventDefault();
+        if (!mountedRef.current) return;
+        // Final guard: re-check localStorage in case another tab dismissed
+        if (safeGet(DISMISS_KEY) || safeGet(INSTALLED_KEY)) return;
+        setDeferredPrompt(e);
+        setShow(true);
+      };
+
+      window.addEventListener('beforeinstallprompt', handler);
+      // Cleanup is handled by the parent effect unmount
+      return () => window.removeEventListener('beforeinstallprompt', handler);
+    });
   }, []);
 
-  // ─── Listen for the browser 'appinstalled' event (fires after actual install) ───
+  // ─── Listen for the browser 'appinstalled' event ───
   useEffect(() => {
     const onInstalled = () => {
-      try { localStorage.setItem('pwa_installed', 'true'); } catch { /* ignore */ }
+      safeSet(INSTALLED_KEY, 'true');
+      recordOnServer('installed');
       setShow(false);
     };
     window.addEventListener('appinstalled', onInstalled);
@@ -66,30 +124,23 @@ export default function PWAInstallPrompt() {
     const { outcome } = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
     setShow(false);
-    try {
-      if (outcome === 'accepted') {
-        // User accepted the install — permanently remember
-        localStorage.setItem('pwa_installed', 'true');
-      } else {
-        // User dismissed the browser prompt — escalate dismiss count
-        const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
-        localStorage.setItem('pwa_dismiss_count', count.toString());
-        localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
-      }
-    } catch {
-      // localStorage disabled — silently continue
+
+    if (outcome === 'accepted') {
+      // User accepted — permanently installed
+      safeSet(INSTALLED_KEY, 'true');
+      recordOnServer('installed');
+    } else {
+      // User dismissed the native browser prompt — STILL permanently dismiss our custom UI
+      safeSet(DISMISS_KEY, `dismissed_native_${Date.now()}`);
+      recordOnServer('dismissed');
     }
   };
 
   const handleDismiss = () => {
     setShow(false);
-    try {
-      const count = parseInt(localStorage.getItem('pwa_dismiss_count') || '0') + 1;
-      localStorage.setItem('pwa_dismiss_count', count.toString());
-      localStorage.setItem('pwa_prompt_dismissed', Date.now().toString());
-    } catch {
-      // localStorage disabled — silently continue
-    }
+    // ONE CLICK = PERMANENT — both client and server
+    safeSet(DISMISS_KEY, `later_${Date.now()}`);
+    recordOnServer('later');
   };
 
   if (!show) return null;
@@ -154,11 +205,11 @@ export default function PWAInstallPrompt() {
         </button>
       </div>
       <style>{`
-        @keyframes slideUp {
-          from { transform: translateX(-50%) translateY(20px); opacity: 0; }
-          to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-      `}</style>
+                @keyframes slideUp {
+                    from { transform: translateX(-50%) translateY(20px); opacity: 0; }
+                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                }
+            `}</style>
     </div>
   );
 }

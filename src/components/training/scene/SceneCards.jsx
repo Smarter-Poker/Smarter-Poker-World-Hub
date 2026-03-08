@@ -1,5 +1,5 @@
 /**
- * 🎯 Scene Cards — Card Rendering with Flip Animations
+ * Scene Cards — Card Rendering with Flip Animations
  * ═══════════════════════════════════════════════════════════════════
  * Renders playing cards with optional flip animation.
  * Uses pure CSS/HTML - NO CANVAS.
