@@ -28,14 +28,14 @@ import { getPokerNearMePreferences } from '../../src/services/pokerNearMePrefere
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
 import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
 
-// Dynamic imports — 3D scene (client-only, no SSR)
-const LobbyScene = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyScene').catch(err => {
-    console.error('[PokerNearMeLobby] LobbyScene module failed to load:', err);
+// Dynamic imports — Canvas lobby (client-only, no SSR)
+const LobbyCanvas = dynamic(
+  () => import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
+    console.error('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
     return {
       default: () => (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 16, flexDirection: 'column', gap: 12 }}>
-          <div>3D Scene — Reloading...</div>
+          <div>Lobby — Reloading...</div>
           <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer' }}>Refresh</button>
         </div>
       )
@@ -45,7 +45,7 @@ const LobbyScene = dynamic(
     ssr: false,
     loading: () => (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 16 }}>
-        Initializing 3D Lobby...
+        Loading Lobby...
       </div>
     ),
   }
@@ -778,8 +778,8 @@ export default function PokerNearMeLobby() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Layer 1 — 3D Scene */}
-        <LobbyScene
+        {/* Layer 1 — Canvas Lobby */}
+        <LobbyCanvas
           onPodClick={handlePodClick}
           activePod={activePod}
           liveData={liveData}
