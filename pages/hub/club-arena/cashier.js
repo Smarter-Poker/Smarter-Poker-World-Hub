@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
-import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
+import { getSafeUser, getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -83,6 +83,8 @@ const router = useRouter();
     const [buyInAmount, setBuyInAmount] = useState('');
     const [cashOutAmount, setCashOutAmount] = useState('');
     const [processing, setProcessing] = useState(false);
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
+    const [leavePending, setLeavePending] = useState(false);
 
     // Toast
     const [toast, setToast] = useState(null);
@@ -323,6 +325,29 @@ const router = useRouter();
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // LEAVE CLUB: Player voluntarily exits — chips returned to treasury
+    // ═══════════════════════════════════════════════════════════════════════════
+    const handleLeaveClub = async () => {
+        if (!clubIdParam) return;
+        setLeavePending(true);
+        try {
+            const token = getAccessToken();
+            const res = await fetch('/api/club-arena/leave-club', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ clubId: clubIdParam }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Failed to leave club');
+            showToast('You have left the club. Redirecting...', 'success');
+            setTimeout(() => router.push('/hub/club-arena'), 2000);
+        } catch (e) {
+            showToast(e.message || 'Failed to leave club', 'error');
+            setLeavePending(false);
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CASH-OUT: Club Chips * Diamonds
     // ═══════════════════════════════════════════════════════════════════════════
     const handleCashOut = async () => {
@@ -491,6 +516,18 @@ const router = useRouter();
                                 </button>
                             </div>
 
+                            {/* Leave Club — non-owners only */}
+                            {membership?.role && membership.role !== 'owner' && (
+                                <div style={{ marginTop: 8, marginBottom: 8, textAlign: 'right' }}>
+                                    <button
+                                        onClick={() => setShowLeaveModal(true)}
+                                        style={{ background: 'none', border: 'none', color: '#FA383E', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                                    >
+                                        Leave Club
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Pending Cashout Requests */}
                             {pendingCashouts.length > 0 && (
                                 <div style={{ marginBottom: '20px' }}>
@@ -640,6 +677,38 @@ const router = useRouter();
                 </div>
 
                 <ClubArenaBottomNav clubId={clubIdParam} activePage="cashier" userRole={membership?.role} />
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+                LEAVE CLUB MODAL
+            ═══════════════════════════════════════════════════════════════════════ */}
+            {showLeaveModal && (
+                <div style={S.modalOverlay} onClick={() => !leavePending && setShowLeaveModal(false)}>
+                    <div style={{ ...S.modal, maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Leave Club</span>
+                            <button style={S.modalClose} onClick={() => !leavePending && setShowLeaveModal(false)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <p style={{ color: FB.textPrimary, fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>
+                                Are you sure you want to leave this club?
+                            </p>
+                            <div style={{ background: 'rgba(250,56,62,0.08)', border: '1px solid rgba(250,56,62,0.25)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#FA383E', lineHeight: 1.6 }}>
+                                <strong>Your entire chip balance ({chipBalance.toLocaleString()} chips) will be returned to the club treasury.</strong>
+                                {' '}Any pending cashout requests will be cancelled. This action cannot be undone.
+                            </div>
+                        </div>
+                        <div style={S.modalFooter}>
+                            <button
+                                style={{ ...S.modalSubmit, background: '#FA383E', opacity: leavePending ? 0.5 : 1 }}
+                                onClick={handleLeaveClub}
+                                disabled={leavePending}
+                            >
+                                {leavePending ? 'Processing...' : 'Confirm — Leave Club'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

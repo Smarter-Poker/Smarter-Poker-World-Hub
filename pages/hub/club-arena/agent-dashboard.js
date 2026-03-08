@@ -1176,8 +1176,12 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
         if (!clubId || !userId) return;
         (async () => {
             try {
-                const r = await apiCall('/api/club-arena/agent-dashboard', { clubId, userId });
-                setPromoBalance(r?.agent?.promo_balance || 0);
+                const [dashData, histData] = await Promise.all([
+                    apiCall('/api/club-arena/agent-dashboard', { clubId, userId }),
+                    apiCall('/api/club-arena/distribute-promo', { action: 'history', clubId }),
+                ]);
+                setPromoBalance(dashData?.agent?.promo_balance || 0);
+                setPromoHistory(histData?.history || []);
                 setLoaded(true);
             } catch (e) {
                 console.error('Promo load error:', e);
@@ -1197,12 +1201,15 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
         }
         setPromoSending(true);
         try {
-            await apiCall('/api/club-arena/distribute-chips', {
+            // Must use distribute-promo (not distribute-chips) — enforces:
+            //   new account cap (max 25 per send for accounts < 14 days)
+            //   lifetime cap (100 promo per player per club)
+            //   3x playthrough requirement before cashout
+            const result = await apiCall('/api/club-arena/distribute-promo', {
+                action: 'send',
                 clubId,
                 targetUserId: promoTarget,
                 amount: parseFloat(promoAmount),
-                type: 'promo',
-                note: 'Agent promo distribution',
             });
             showToast(`Sent ${parseFloat(promoAmount).toLocaleString()} promo chips!`, 'success');
             setPromoBalance(prev => prev - parseFloat(promoAmount));
@@ -1331,16 +1338,52 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                         <strong style={{ color: FB.textPrimary }}>Union → Club → Agent → Player</strong>
                     </p>
                     <p style={{ margin: '0 0 4px' }}>
-                        • Your promo balance is funded by your club or union
+                        - Your promo balance is funded by your club or union
                     </p>
                     <p style={{ margin: '0 0 4px' }}>
-                        • Players can redeem promo chips into playable chips
+                        - New accounts (&lt;14 days): max 25 promo per distribution
+                    </p>
+                    <p style={{ margin: '0 0 4px' }}>
+                        - Lifetime cap: 100 promo per player per club
+                    </p>
+                    <p style={{ margin: '0 0 4px' }}>
+                        - Players must play through 3x before converting to real chips
                     </p>
                     <p style={{ margin: 0 }}>
-                        • Use promos for sign-up bonuses, loyalty rewards, and rakeback
+                        - Use promos for sign-up bonuses, loyalty rewards, and rakeback
                     </p>
                 </div>
             </div>
+
+            {/* Distribution History */}
+            {promoHistory.length > 0 && (
+                <div style={{
+                    background: FB.cardBg, borderRadius: 12, padding: 16,
+                    border: `1px solid ${FB.border}`, marginTop: 16,
+                }}>
+                    <h3 style={{ color: FB.textPrimary, fontSize: 15, fontWeight: 700, marginTop: 0, marginBottom: 12 }}>
+                        Recent Distributions
+                    </h3>
+                    {promoHistory.slice(0, 10).map((h, i) => (
+                        <div key={h.id || i} style={{
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            padding: '8px 0', borderBottom: i < Math.min(promoHistory.length, 10) - 1 ? `1px solid ${FB.border}` : 'none',
+                        }}>
+                            <div>
+                                <div style={{ fontSize: 13, color: FB.textPrimary, fontWeight: 600 }}>
+                                    {h.recipient_name || 'Player'}
+                                </div>
+                                <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                    {h.created_at ? new Date(h.created_at).toLocaleDateString() : ''}
+                                </div>
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#7c3aed' }}>
+                                +{(h.amount || 0).toLocaleString()}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

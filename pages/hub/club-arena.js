@@ -646,7 +646,7 @@ export default function ClubArenaPage() {
                             <div style={{ background: '#242526', borderRadius: 16, padding: 28, width: '100%', maxWidth: 440, border: '1px solid #3E4042' }}
                                 onClick={e => e.stopPropagation()}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                    <h2 style={{ color: '#E4E6EB', fontSize: 20, fontWeight: 800, margin: 0 }}>🏛️ Apply to Midway Union</h2>
+                                    <h2 style={{ color: '#E4E6EB', fontSize: 20, fontWeight: 800, margin: 0 }}>[UNION] Apply to Midway Union</h2>
                                     <button onClick={() => setShowUnionApply(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 22, cursor: 'pointer' }}>×</button>
                                 </div>
 
@@ -660,7 +660,7 @@ export default function ClubArenaPage() {
                                     </div>
                                 ) : unionApplyResult ? (
                                     <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                                        <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                                        <div style={{ fontSize: 40, marginBottom: 12 }}>[OK]</div>
                                         <div style={{ color: '#31A24C', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Application Submitted!</div>
                                         <div style={{ color: '#B0B3B8', fontSize: 13, lineHeight: 1.5 }}>{unionApplyResult}</div>
                                         <button onClick={() => { setShowUnionApply(false); setUnionApplyResult(null); }}
@@ -722,7 +722,7 @@ export default function ClubArenaPage() {
                                                         }
                                                     }}
                                                     style={{ width: '100%', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 10, padding: '13px 0', fontSize: 15, fontWeight: 700, cursor: unionApplying ? 'not-allowed' : 'pointer', opacity: unionApplying ? 0.6 : 1 }}>
-                                                    {unionApplying ? 'Submitting...' : '🏛️ Submit Application'}
+                                                    {unionApplying ? 'Submitting...' : '[UNION] Submit Application'}
                                                 </button>
                                             </>
                                         )}
