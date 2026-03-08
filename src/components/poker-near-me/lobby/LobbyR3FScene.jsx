@@ -224,7 +224,7 @@ function EnergyBeam() {
     // Floating rings orbit upward
     ringsRef.current.forEach((ring, i) => {
       if (!ring) return;
-      const phase = (t * 0.3 + i * 0.33) % 1;
+      const phase = (t * 0.15 + i * 0.33) % 1;
       ring.position.y = phase * 6;
       ring.scale.setScalar(0.3 + phase * 0.7);
       ring.material.opacity = (1 - phase) * 0.15;

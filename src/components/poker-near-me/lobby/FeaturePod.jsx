@@ -43,7 +43,7 @@ function GlassOrb({ color, isHovered, isActive, orbRadius }) {
     const t = clock.getElapsedTime();
     // Subtle pulse on the glass orb
     const baseOpacity = isHovered ? 0.25 : isActive ? 0.2 : 0.12;
-    meshRef.current.material.opacity = baseOpacity + Math.sin(t * 2) * 0.03;
+    meshRef.current.material.opacity = baseOpacity + Math.sin(t * 0.8) * 0.01;
   });
 
   return (
@@ -76,7 +76,7 @@ function OrbGlowRing({ color, isHovered, isActive, orbRadius }) {
 
   useFrame(({ clock }) => {
     if (!ringRef.current) return;
-    ringRef.current.rotation.z = clock.getElapsedTime() * 0.4;
+    ringRef.current.rotation.z = clock.getElapsedTime() * 0.08;
   });
 
   const opacity = isHovered ? 0.7 : isActive ? 0.5 : 0.25;
@@ -128,7 +128,7 @@ function PodImage({ podId, isHovered, isActive, orbRadius }) {
     // Billboard: face the camera
     meshRef.current.quaternion.copy(camera.quaternion);
     // Scale animation
-    const targetScale = isHovered ? 1.15 : isActive ? 1.08 : 1.0;
+    const targetScale = isHovered ? 1.04 : isActive ? 1.02 : 1.0;
     const s = meshRef.current.scale.x + (targetScale - meshRef.current.scale.x) * 0.08;
     meshRef.current.scale.setScalar(s);
   });
@@ -197,11 +197,11 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
     const t = clock.getElapsedTime();
 
     // Gentle idle bobbing
-    const bob = Math.sin(t * 0.6 + pod.angle * 0.04) * 0.06;
+    const bob = Math.sin(t * 0.6 + pod.angle * 0.04) * 0.015;
     groupRef.current.position.y = basePos.y + bob;
 
     // Hover lift
-    const targetLift = hovered ? 0.35 : 0;
+    const targetLift = hovered ? 0.12 : 0;
     const currentLift = groupRef.current.userData.lift || 0;
     const newLift = currentLift + (targetLift - currentLift) * 0.06;
     groupRef.current.userData.lift = newLift;

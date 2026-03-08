@@ -171,6 +171,7 @@ export default function PokerNearMeLobby() {
   const [dailyTournaments, setDailyTournaments] = useState([]);
   const [liveGames, setLiveGames] = useState([]);
   const [favorites, setFavorites] = useState({});
+  const [favoritedVenues, setFavoritedVenues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(0);
@@ -265,8 +266,20 @@ export default function PokerNearMeLobby() {
     try {
       const favs = await getVenueFavorites(userId);
       const favMap = {};
-      (favs || []).forEach(f => { favMap[f.venue_id] = true; });
+      const favVenueList = [];
+      (favs || []).forEach(f => {
+        favMap[f.venue_id] = true;
+        favVenueList.push({
+          id: f.venue_id,
+          name: f.venue_name || 'Unknown Venue',
+          address: f.venue_address || '',
+          city: f.venue_city || '',
+          state: f.venue_state || '',
+          _fromFavorites: true,
+        });
+      });
       setFavorites(favMap);
+      setFavoritedVenues(favVenueList);
     } catch (err) {
       console.error('Failed to fetch favorites:', err);
     }
@@ -309,15 +322,18 @@ export default function PokerNearMeLobby() {
     }
   }, []);
 
-  // ─── Initial data load ───
+  // ─── Initial data load — mount only ───
+  const didMountRef = useRef(false);
   useEffect(() => {
+    if (didMountRef.current) return; // Already loaded
+    didMountRef.current = true;
     fetchVenues();
     fetchTours();
     fetchSeries();
     fetchDaily();
     fetchLiveGames();
     fetchFavorites();
-  }, [fetchVenues, fetchTours, fetchSeries, fetchDaily, fetchLiveGames, fetchFavorites]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Live games refresh ───
   const fetchLiveGamesRef = useRef(fetchLiveGames);
@@ -398,6 +414,18 @@ export default function PokerNearMeLobby() {
     fetchVenues(searchQuery);
   }, [sortBy, filters]);
 
+  // ─── Cross-page favorites sync ───
+  useEffect(() => {
+    const handleFavoritesChanged = (e) => {
+      const { venueId, favorited } = e.detail || {};
+      if (venueId) {
+        setFavorites(prev => ({ ...prev, [venueId]: favorited }));
+      }
+    };
+    window.addEventListener('pnm:favorites-changed', handleFavoritesChanged);
+    return () => window.removeEventListener('pnm:favorites-changed', handleFavoritesChanged);
+  }, []);
+
   // ─── GPS ───
   const handleGpsClick = useCallback(() => {
     if (gpsActive) {
@@ -440,12 +468,25 @@ export default function PokerNearMeLobby() {
   // ─── Favorite toggle ───
   const handleToggleFavorite = useCallback(async (venueId, venueData) => {
     if (!userId) return;
-    if (favorites[venueId]) {
-      await removeVenueFavorite(userId, venueId);
-      setFavorites(prev => ({ ...prev, [venueId]: false }));
-    } else {
-      await addVenueFavorite(userId, venueId, venueData);
-      setFavorites(prev => ({ ...prev, [venueId]: true }));
+    const wasFavorited = !!favorites[venueId];
+    // Optimistic update
+    setFavorites(prev => ({ ...prev, [venueId]: !wasFavorited }));
+    try {
+      if (wasFavorited) {
+        await removeVenueFavorite(userId, venueId);
+        setFavoritedVenues(prev => prev.filter(f => f.id !== venueId));
+      } else {
+        await addVenueFavorite(userId, venueId, venueData);
+        setFavoritedVenues(prev => [...prev, { id: venueId, name: venueData?.name || 'Unknown', address: venueData?.address || '', city: venueData?.city || '', state: venueData?.state || '', _fromFavorites: true }]);
+      }
+      // Emit event for cross-page sync
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pnm:favorites-changed', { detail: { venueId, favorited: !wasFavorited } }));
+      }
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      // Rollback on error
+      setFavorites(prev => ({ ...prev, [venueId]: wasFavorited }));
     }
   }, [userId, favorites]);
 
@@ -630,10 +671,17 @@ export default function PokerNearMeLobby() {
         component = <TripCostCalculator venues={venues} userLocation={userLocation} />;
         break;
 
-      case 'favorites':
+      case 'favorites': {
+        // Merge: show full venue data if in current search, fallback to favorites data
+        const favVenues = Object.keys(favorites).filter(k => favorites[k]).map(venueId => {
+          const fromSearch = venues.find(v => v.id === venueId);
+          if (fromSearch) return fromSearch;
+          return favoritedVenues.find(f => f.id === venueId);
+        }).filter(Boolean);
+
         component = (
           <div style={{ display: 'grid', gap: 12 }}>
-            {venues.filter(v => favorites[v.id]).map(v => (
+            {favVenues.map(v => (
               <VenueCard
                 key={v.id}
                 venue={v}
@@ -642,7 +690,7 @@ export default function PokerNearMeLobby() {
                 userLocation={userLocation}
               />
             ))}
-            {venues.filter(v => favorites[v.id]).length === 0 && (
+            {favVenues.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No saved venues yet</p>
                 <p style={{ fontSize: 13 }}>Tap the heart on any venue to save it here.</p>
@@ -651,6 +699,7 @@ export default function PokerNearMeLobby() {
           </div>
         );
         break;
+      }
 
       case 'social':
         component = <SocialLayer userId={userId} />;

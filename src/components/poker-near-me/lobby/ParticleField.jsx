@@ -61,10 +61,10 @@ const particleVertexShader = `
     vColor = aColor;
 
     // Per-particle twinkle
-    float twinkle = 0.6 + 0.4 * sin(uTime * 1.2 + aPhase * 6.283);
+    float twinkle = 0.6 + 0.4 * sin(uTime * 0.6 + aPhase * 6.283);
 
     // Sparkle flash — rare bright pops
-    float flash = pow(max(0.0, sin(uTime * 3.0 + aPhase * 12.566)), 16.0) * 2.0;
+    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 24.0) * 2.0;
 
     vAlpha = twinkle * 0.7 + flash * 0.3;
 

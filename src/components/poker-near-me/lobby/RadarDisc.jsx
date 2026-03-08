@@ -149,15 +149,15 @@ function VenueMarker({ position, color = '#6ee7ef', delay = 0 }) {
   useFrame(({ clock }) => {
     if (!ref.current) return;
     const t = clock.getElapsedTime() + delay;
-    const scale = 0.8 + 0.4 * Math.sin(t * 2);
+    const scale = 0.92 + 0.08 * Math.sin(t * 1.2);
     ref.current.scale.setScalar(scale);
-    ref.current.material.opacity = 0.6 + 0.4 * Math.sin(t * 2);
+    ref.current.material.opacity = 0.8 + 0.15 * Math.sin(t * 1.2);
 
     // Halo pulse
     if (haloRef.current) {
-      const haloScale = 1.5 + 0.5 * Math.sin(t * 1.5);
+      const haloScale = 1.1 + 0.15 * Math.sin(t * 0.8);
       haloRef.current.scale.setScalar(haloScale);
-      haloRef.current.material.opacity = 0.2 + 0.15 * Math.sin(t * 1.5);
+      haloRef.current.material.opacity = 0.15 + 0.05 * Math.sin(t * 0.8);
     }
   });
 
@@ -208,7 +208,7 @@ function CenterBeacon() {
     const rings = [ring1Ref, ring2Ref, ring3Ref];
     rings.forEach((ref, i) => {
       if (!ref.current) return;
-      const phase = (t * 0.4 + i * 0.33) % 1;
+      const phase = (t * 0.2 + i * 0.33) % 1;
       const scale = 1 + 1.5 * phase;
       ref.current.scale.setScalar(scale);
       ref.current.material.opacity = (1 - phase) * 0.5;
@@ -264,7 +264,7 @@ function EnergyPulseRings() {
     // Two staggered energy pulses
     [ring1Ref, ring2Ref].forEach((ref, i) => {
       if (!ref.current) return;
-      const phase = (t * 0.25 + i * 0.5) % 1;
+      const phase = (t * 0.12 + i * 0.5) % 1;
       const scale = 0.3 + phase * 2.7;
       ref.current.scale.setScalar(scale);
       ref.current.material.opacity = (1 - phase) * 0.2;
