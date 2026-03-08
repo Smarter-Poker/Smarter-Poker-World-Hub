@@ -8,7 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Trophy, Calendar, Users, DollarSign, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../../src/lib/authUtils';
 
 export default function TournamentRegisterPage() {
   const router = useRouter();

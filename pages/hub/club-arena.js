@@ -45,7 +45,7 @@ const apiCall = async (endpoint, body) => {
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import ClubArenaBottomNav from '../../src/components/club-arena/ClubArenaBottomNav';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // IMAGE PATHS (proxied from club-arena.vercel.app via next.config.js rewrites)

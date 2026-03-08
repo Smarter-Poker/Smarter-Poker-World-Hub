@@ -17,7 +17,14 @@ import { createMultiDeviceAuthListener, persistSession } from '../../../src/util
 import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
-import { getAccessToken } from '../../src/lib/authUtils';
+// Local helper — reads token from localStorage (same pattern as other club-arena pages)
+const getAccessToken = () => {
+    try {
+        const cached = localStorage.getItem('smarter-poker-auth');
+        if (cached) { const p = JSON.parse(cached); if (p?.access_token) return p.access_token; }
+    } catch (_) { }
+    return null;
+};
 
 // Dynamic import for LiveKit (client-side only)
 const LiveKitCall = dynamic(

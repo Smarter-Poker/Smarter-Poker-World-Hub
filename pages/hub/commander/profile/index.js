@@ -12,7 +12,7 @@ import { User, Clock, DollarSign, MapPin, Calendar, TrendingUp, Award, Star, Che
 import { supabase } from '../../../../src/lib/supabase';
 import { getSafeUser } from '../../../../src/lib/authUtils';
 import { getAuthUser } from '../../../../src/lib/authUtils';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function StatCard({ icon: Icon, label, value, subtext, color = '#22D3EE' }) {
   return (

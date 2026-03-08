@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 import {
   ChevronLeft,
   Users,

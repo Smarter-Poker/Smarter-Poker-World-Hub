@@ -13,7 +13,7 @@ import GroupCard from '../../../../src/components/commander/home-games/GroupCard
 import GameCalendar from '../../../../src/components/commander/home-games/GameCalendar';
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedFilters } from '../../../../src/hooks/usePersistedFilters';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 /* Inline HomeGameCard replaced by shared GroupCard component */
 

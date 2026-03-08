@@ -24,7 +24,7 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import InviteFriendsModal from '../../src/components/ui/InviteFriendsModal';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TOGGLE SWITCH COMPONENT

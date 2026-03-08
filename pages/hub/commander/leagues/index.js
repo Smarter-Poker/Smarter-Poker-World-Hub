@@ -12,7 +12,7 @@ import { Trophy, Users, Calendar, ChevronRight, Search, DollarSign } from 'lucid
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
 import { usePersistedState } from '../../../../src/hooks/usePersistedState';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function LeagueCard({ league, onView }) {
   const statusConfig = {

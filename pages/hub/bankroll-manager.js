@@ -66,7 +66,7 @@ import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
 import GeofenceService from '../../src/lib/geofence';
 import { requestPermission, showVenueAlert } from '../../src/lib/pushAlerts';
 import { sendGeofenceNotification } from '../../src/lib/geofencePush';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getAccessToken } from '../../src/lib/authUtils';
 const StartingBankrollModal = dynamic(() => import('../../src/components/bankroll/StartingBankrollModal'), { ssr: false });
 
 // Clean SmarterPoker-style navigation (no emojis)

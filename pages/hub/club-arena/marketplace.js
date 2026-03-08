@@ -20,9 +20,9 @@ const getAuthToken = async () => {
         }
     } catch (_) { /* localStorage unavailable (incognito, quota) */ }
 
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
+    // 2. Slow path: ask Supabase (handles token refresh)
     try {
-        const token = getAccessToken();
+        const { data: { session } } = await supabase.auth.getSession();
         return session?.access_token || null;
     } catch (_) {
         return null;
@@ -43,7 +43,7 @@ const apiCall = async (endpoint, body) => {
 };
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
-import { getAccessToken } from '../../src/lib/authUtils';
+
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -193,10 +193,14 @@ export default function Marketplace() {
         if (!clubIdParam) return;
         const ch = supabase
             .channel(`shop-live:${clubIdParam}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_shop_items',
-                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'club_shop_purchases',
-                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'club_shop_items',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => loadData())
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'club_shop_purchases',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
                     console.warn(`[Marketplace] Realtime channel status: ${status}`);

@@ -9,7 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -167,12 +167,12 @@ export default function TournamentsPage() {
         }}>{toast.msg}</div>
       )}
       {confirmModal && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10000 }}>
-          <div style={{ background:FB.card, borderRadius:12, padding:24, maxWidth:340, width:'90%', border:`1px solid ${FB.border}` }}>
-            <p style={{ color:FB.text, fontSize:15, marginBottom:20, lineHeight:1.5 }}>{confirmModal.msg}</p>
-            <div style={{ display:'flex', gap:12 }}>
-              <button onClick={() => setConfirmModal(null)} style={{ flex:1, padding:'10px 0', background:FB.hover, border:'none', borderRadius:8, color:FB.dim, fontWeight:600, cursor:'pointer' }}>Cancel</button>
-              <button onClick={confirmModal.onConfirm} style={{ flex:1, padding:'10px 0', background:FB.danger, border:'none', borderRadius:8, color:'#fff', fontWeight:700, cursor:'pointer' }}>Confirm</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div style={{ background: FB.card, borderRadius: 12, padding: 24, maxWidth: 340, width: '90%', border: `1px solid ${FB.border}` }}>
+            <p style={{ color: FB.text, fontSize: 15, marginBottom: 20, lineHeight: 1.5 }}>{confirmModal.msg}</p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '10px 0', background: FB.hover, border: 'none', borderRadius: 8, color: FB.dim, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={confirmModal.onConfirm} style={{ flex: 1, padding: '10px 0', background: FB.danger, border: 'none', borderRadius: 8, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
             </div>
           </div>
         </div>
@@ -284,7 +284,7 @@ export default function TournamentsPage() {
 // ═══════════════════════════════════════════════════════
 // CREATE TOURNAMENT MODAL
 // ═══════════════════════════════════════════════════════
-function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => {} }) {
+function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => { } }) {
   const [form, setForm] = useState({
     name: '', type: 'mtt', variant: 'nlh', buyIn: 100,
     startingChips: 10000, maxPlayers: 100, lateRegLevels: 6,

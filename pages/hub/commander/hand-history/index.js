@@ -17,7 +17,7 @@ import {
   Spade
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function CardDisplay({ cards }) {
   if (!cards || cards.length === 0) return null;
@@ -293,8 +293,8 @@ export default function HandHistoryPage() {
                     key={f.id}
                     onClick={() => setFilter(f.id)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === f.id
-                        ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
-                        : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
+                      ? 'bg-[#132240] text-[#22D3EE] border-2 border-[#22D3EE]'
+                      : 'bg-[#0F1C32] text-[#64748B] border-2 border-[#4A5E78]'
                       }`}
                   >
                     {f.label}

@@ -12,7 +12,7 @@ import { Gift, Clock, TrendingUp, History, Star, ChevronRight, Utensils, CreditC
 import CompBalanceCard from '../../../../src/components/commander/comps/CompBalanceCard';
 import CompTransactionList from '../../../../src/components/commander/comps/CompTransactionList';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 const REWARD_CATEGORIES = [
   { id: 'food', label: 'Food & Beverage', icon: Utensils, color: '#F59E0B' },

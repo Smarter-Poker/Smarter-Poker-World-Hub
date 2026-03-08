@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import { ArrowLeft, Bell, Eye, Shield, Save, Loader2 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function ToggleSetting({ label, description, value, onChange }) {
   return (

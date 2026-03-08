@@ -236,6 +236,20 @@ export default async function handler(req, res) {
         const kbResult = lookupKnowledgeBase(question);
 
         if (kbResult && kbResult.confidence >= 45) {
+            // Try to save to conversation if user is authenticated
+            if (conversationId) {
+                try {
+                    const authHeader = req.headers.authorization;
+                    if (authHeader?.startsWith('Bearer ')) {
+                        const token = authHeader.replace('Bearer ', '');
+                        const { data: { user } } = await supabase.auth.getUser(token);
+                        if (user) {
+                            await saveConversationMessages(conversationId, question, kbResult.answer, null, false);
+                        }
+                    }
+                } catch { /* non-critical — don't block the response */ }
+            }
+
             return res.status(200).json({
                 answer: kbResult.answer,
                 questionType: kbResult.category,

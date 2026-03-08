@@ -21,7 +21,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function LimitCard({ icon: Icon, label, value, onChange, max, unit = '$' }) {
   return (

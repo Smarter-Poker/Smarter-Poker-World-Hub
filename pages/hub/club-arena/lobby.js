@@ -16,22 +16,20 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 import useDebounce from '../../../src/hooks/useDebounce';
-import { getAccessToken } from '../../src/lib/authUtils';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    //    'smarter-poker-auth' is the storageKey configured in supabase.ts
     try {
         const cached = localStorage.getItem('smarter-poker-auth');
         if (cached) {
             const parsed = JSON.parse(cached);
             if (parsed?.access_token) return parsed.access_token;
         }
-    } catch (_) { /* localStorage unavailable (incognito, quota) */ }
+    } catch (_) { /* localStorage unavailable */ }
 
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
+    // 2. Slow path: ask Supabase (handles token refresh)
     try {
-        const token = getAccessToken();
+        const { data: { session } } = await supabase.auth.getSession();
         return session?.access_token || null;
     } catch (_) {
         return null;
@@ -190,7 +188,7 @@ export default function ClubLobby() {
                 // Re-fetch announcements live — new announcements appear without refresh
                 apiGet(`/api/club-arena/announcements?clubId=${club.id}`)
                     .then(d => setAnnouncements(d.announcements || []))
-                    .catch(() => {});
+                    .catch(() => { });
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
@@ -336,7 +334,7 @@ export default function ClubLobby() {
                         animation: 'fadeIn 0.2s ease',
                     }}>{toast.msg}</div>
                 )}
-            <div style={styles.container}>
+                <div style={styles.container}>
                     <button onClick={() => router.push('/hub/club-arena')} style={styles.backBtn}>
                         &#8592; Back to Club Arena
                     </button>

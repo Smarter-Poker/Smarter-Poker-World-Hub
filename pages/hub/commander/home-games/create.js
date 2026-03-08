@@ -21,7 +21,7 @@ import {
 import CreateGameForm from '../../../../src/components/commander/home-games/CreateGameForm';
 import GoogleMapPicker from '../../../../src/components/maps/GoogleMapPicker';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: "No Limit Hold'em" },
@@ -120,10 +120,10 @@ export default function CreateHomeGamePage() {
   return (
     <>
       <SEOHead
-                title="Create Home Game"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Create Home Game"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}
@@ -207,11 +207,10 @@ export default function CreateHomeGamePage() {
                     <button
                       type="button"
                       onClick={() => updateField('visibility', 'private')}
-                      className={`p-4 rounded-lg border text-left transition-colors ${
-                        formData.visibility === 'private'
+                      className={`p-4 rounded-lg border text-left transition-colors ${formData.visibility === 'private'
                           ? 'border-[#22D3EE] bg-[#22D3EE]/10'
                           : 'border-[#4A5E78] hover:bg-[#132240]'
-                      }`}
+                        }`}
                     >
                       <Lock className={`w-5 h-5 mb-2 ${formData.visibility === 'private' ? 'text-[#22D3EE]' : 'text-[#64748B]'}`} />
                       <p className="font-medium text-white">Private</p>
@@ -220,11 +219,10 @@ export default function CreateHomeGamePage() {
                     <button
                       type="button"
                       onClick={() => updateField('visibility', 'public')}
-                      className={`p-4 rounded-lg border text-left transition-colors ${
-                        formData.visibility === 'public'
+                      className={`p-4 rounded-lg border text-left transition-colors ${formData.visibility === 'public'
                           ? 'border-[#22D3EE] bg-[#22D3EE]/10'
                           : 'border-[#4A5E78] hover:bg-[#132240]'
-                      }`}
+                        }`}
                     >
                       <Globe className={`w-5 h-5 mb-2 ${formData.visibility === 'public' ? 'text-[#22D3EE]' : 'text-[#64748B]'}`} />
                       <p className="font-medium text-white">Public</p>
@@ -242,13 +240,11 @@ export default function CreateHomeGamePage() {
                     <button
                       type="button"
                       onClick={() => updateField('requires_approval', !formData.requires_approval)}
-                      className={`w-12 h-6 rounded-full transition-colors ${
-                        formData.requires_approval ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
-                      }`}
+                      className={`w-12 h-6 rounded-full transition-colors ${formData.requires_approval ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+                        }`}
                     >
-                      <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                        formData.requires_approval ? 'translate-x-6' : 'translate-x-0.5'
-                      }`} />
+                      <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.requires_approval ? 'translate-x-6' : 'translate-x-0.5'
+                        }`} />
                     </button>
                   </div>
                 )}
@@ -283,11 +279,10 @@ export default function CreateHomeGamePage() {
                         key={value}
                         type="button"
                         onClick={() => updateField('game_type', value)}
-                        className={`p-3 rounded-lg border text-sm font-medium transition-colors ${
-                          formData.game_type === value
+                        className={`p-3 rounded-lg border text-sm font-medium transition-colors ${formData.game_type === value
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                             : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
-                        }`}
+                          }`}
                       >
                         {label}
                       </button>
@@ -305,11 +300,10 @@ export default function CreateHomeGamePage() {
                         key={stake}
                         type="button"
                         onClick={() => updateField('stakes', stake)}
-                        className={`p-2 rounded-lg border text-sm font-medium transition-colors ${
-                          formData.stakes === stake
+                        className={`p-2 rounded-lg border text-sm font-medium transition-colors ${formData.stakes === stake
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                             : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
-                        }`}
+                          }`}
                       >
                         {stake}
                       </button>
@@ -367,11 +361,10 @@ export default function CreateHomeGamePage() {
                         key={num}
                         type="button"
                         onClick={() => updateField('max_players', num)}
-                        className={`flex-1 h-10 rounded-lg border font-medium transition-colors ${
-                          formData.max_players === num
+                        className={`flex-1 h-10 rounded-lg border font-medium transition-colors ${formData.max_players === num
                             ? 'border-[#22D3EE] bg-[#22D3EE]/10 text-[#22D3EE]'
                             : 'border-[#4A5E78] text-[#64748B] hover:bg-[#132240]'
-                        }`}
+                          }`}
                       >
                         {num}
                       </button>
@@ -467,13 +460,11 @@ export default function CreateHomeGamePage() {
                   <button
                     type="button"
                     onClick={() => updateField('recurring', !formData.recurring)}
-                    className={`w-12 h-6 rounded-full transition-colors ${
-                      formData.recurring ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
-                    }`}
+                    className={`w-12 h-6 rounded-full transition-colors ${formData.recurring ? 'bg-[#22D3EE]' : 'bg-[#4A5E78]'
+                      }`}
                   >
-                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                      formData.recurring ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
+                    <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${formData.recurring ? 'translate-x-6' : 'translate-x-0.5'
+                      }`} />
                   </button>
                 </div>
 

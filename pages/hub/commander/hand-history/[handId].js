@@ -16,7 +16,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function CardDisplay({ cards, size = 'md' }) {
   if (!cards || cards.length === 0) return null;
@@ -212,10 +212,10 @@ export default function HandDetailPage() {
   return (
     <>
       <SEOHead
-                title="Hand History"
-                description="Smarter.Poker — The Future Of The Game."
-                noindex={true}
-            />
+        title="Hand History"
+        description="Smarter.Poker — The Future Of The Game."
+        noindex={true}
+      />
 
       <div className="cmd-page">
         {/* Header */}
@@ -248,9 +248,8 @@ export default function HandDetailPage() {
 
         <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
           {/* Result Card */}
-          <div className={`rounded-xl p-4 ${
-            hand.profit >= 0 ? 'bg-[#10B981]/10 border border-[#10B981]/20' : 'bg-[#EF4444]/10 border border-[#EF4444]/20'
-          }`}>
+          <div className={`rounded-xl p-4 ${hand.profit >= 0 ? 'bg-[#10B981]/10 border border-[#10B981]/20' : 'bg-[#EF4444]/10 border border-[#EF4444]/20'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#64748B]">{hand.game_type}</p>

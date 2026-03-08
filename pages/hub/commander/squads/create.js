@@ -17,7 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 const GAME_TYPES = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },

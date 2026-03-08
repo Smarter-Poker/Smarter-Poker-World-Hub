@@ -43,7 +43,7 @@ import dynamic from 'next/dynamic';
 const SpotTrainerGame = dynamic(() => import('../../src/games/SpotTrainerGame'), { ssr: false });
 const TournamentModeGame = dynamic(() => import('../../src/games/TournamentModeGame'), { ssr: false });
 import ScenarioFilterPanel, { filterScenarios } from '../../src/games/ScenarioFilterPanel';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 🎨 ACTION COLORS

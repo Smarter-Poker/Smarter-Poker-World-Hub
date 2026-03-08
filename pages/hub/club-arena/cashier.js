@@ -9,7 +9,6 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
-import { getAccessToken } from '../../src/lib/authUtils';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -32,18 +31,17 @@ const CASHOUT_PRESETS = [100, 500, 1000, 'All'];
 // Helper: get auth token for API calls
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
-    //    'smarter-poker-auth' is the storageKey configured in supabase.ts
     try {
         const cached = localStorage.getItem('smarter-poker-auth');
         if (cached) {
             const parsed = JSON.parse(cached);
             if (parsed?.access_token) return parsed.access_token;
         }
-    } catch (_) { /* localStorage unavailable (incognito, quota) */ }
+    } catch (_) { /* localStorage unavailable */ }
 
-    // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
+    // 2. Slow path: ask Supabase (handles token refresh)
     try {
-        const token = getAccessToken();
+        const { data: { session } } = await supabase.auth.getSession();
         return session?.access_token || null;
     } catch (_) {
         return null;
@@ -609,24 +607,24 @@ export default function Cashier() {
                                 const icon = txIcons[tx.transaction_type] || '💱';
                                 const isPos = (tx.amount || 0) >= 0;
                                 return (
-                                <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>
-                                    <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
-                                        <div style={S.txDate}>
-                                            {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
-                                            {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                                    <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>
+                                        <div style={{ fontSize: 20, flexShrink: 0 }}>{icon}</div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={S.txType}>{getTransactionLabel(tx.transaction_type)}</div>
+                                            <div style={S.txDate}>
+                                                {tx.notes ? <span style={{ color: '#B0B3B8' }}>{tx.notes.slice(0, 40)} · </span> : null}
+                                                {tx.created_at ? new Date(tx.created_at).toLocaleString() : 'N/A'}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            ...S.txAmount,
+                                            color: isPos ? FB.success : FB.danger,
+                                            background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
+                                            borderRadius: 6, padding: '3px 8px',
+                                        }}>
+                                            {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
                                         </div>
                                     </div>
-                                    <div style={{
-                                        ...S.txAmount,
-                                        color: isPos ? FB.success : FB.danger,
-                                        background: isPos ? 'rgba(49,162,76,0.1)' : 'rgba(250,56,62,0.1)',
-                                        borderRadius: 6, padding: '3px 8px',
-                                    }}>
-                                        {isPos ? '+' : ''}{(tx.amount || 0).toLocaleString()}
-                                    </div>
-                                </div>
                                 );
                             }) : (
                                 <div style={S.emptyState}>

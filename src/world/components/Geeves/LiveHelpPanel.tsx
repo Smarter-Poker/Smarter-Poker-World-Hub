@@ -119,6 +119,18 @@ export function LiveHelpPanel({
         }
     };
 
+    // Listen for follow-up chip clicks
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const question = (e as CustomEvent).detail;
+            if (question && typeof question === 'string') {
+                onSendMessage(question);
+            }
+        };
+        window.addEventListener('geeves-follow-up', handler);
+        return () => window.removeEventListener('geeves-follow-up', handler);
+    }, [onSendMessage]);
+
     return (
         <>
             {/* Backdrop */}

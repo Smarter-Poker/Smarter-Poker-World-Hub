@@ -10,7 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, Plus, Clock, UserPlus, Check, X } from 'lucide-react';
 import SkeletonLoader from '../../../../src/components/ui/SkeletonLoader';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function SquadCard({ squad, onView }) {
   const statusColors = {

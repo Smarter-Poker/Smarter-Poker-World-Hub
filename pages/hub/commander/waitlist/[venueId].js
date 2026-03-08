@@ -10,7 +10,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Users, MapPin, Loader2, ChevronDown, ChevronUp, X, Globe, CheckCircle } from 'lucide-react';
 import { useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 // Capitalize first letter of every word
 function titleCase(str) {

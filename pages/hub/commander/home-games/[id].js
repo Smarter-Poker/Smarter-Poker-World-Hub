@@ -11,7 +11,7 @@ import { ArrowLeft, Home, Users, Calendar, MapPin, Clock, DollarSign, Share2, Se
 import RsvpForm, { RsvpList } from '../../../../src/components/commander/home-games/RsvpForm';
 import PlayerRating from '../../../../src/components/commander/home-games/PlayerRating';
 import { supabase } from '../../../../src/lib/supabase';
-import { getAccessToken } from '../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../src/lib/authUtils';
 
 function EventCard({ event, onRsvp, userRsvp }) {
   const eventDate = new Date(event.scheduled_date);

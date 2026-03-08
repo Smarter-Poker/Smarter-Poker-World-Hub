@@ -9,7 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import PokerLobby from '../../../src/components/poker/PokerLobby';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import { getAccessToken, getAuthUser } from '../../src/lib/authUtils';
+import { getAccessToken, getAuthUser } from '../../../src/lib/authUtils';
 
 export default function PokerLobbyPage() {
   const router = useRouter();

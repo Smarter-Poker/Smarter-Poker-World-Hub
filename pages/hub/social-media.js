@@ -68,7 +68,7 @@ import { useActiveIdentity } from '../../src/contexts/ActiveIdentityContext';
 import { useSocialStore } from '../../src/stores/socialStore';
 import PageTransition from '../../src/components/transitions/PageTransition';
 import toast from '../../src/stores/toastStore';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 // Light Theme Colors (SmarterPoker-style)
 const C = {
@@ -4964,7 +4964,6 @@ export default function SocialMediaPage() {
         try {
             // Get auth token for server-side API
             const token = getAccessToken();
-            const token = session?.access_token;
 
             if (!token) {
                 console.error('[Delete] No auth token available');

@@ -9,7 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
-import { getAccessToken } from '../../src/lib/authUtils';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -218,19 +218,29 @@ export default function Admin() {
         if (!club?.id) return;
         const ch = supabase
             .channel(`admin-live:${club.id}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tables',
-                filter: `club_id=eq.${club.id}` }, () => loadData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members',
-                filter: `club_id=eq.${club.id}` }, () => loadData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'cashout_requests',
-                filter: `club_id=eq.${club.id}` }, () => loadData())
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'agents',
-                filter: `club_id=eq.${club.id}` }, () => loadData())
-            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'clubs',
-                filter: `id=eq.${club.id}` }, (payload) => {
-                    // Patch treasury/rake in-place without full reload
-                    setClub(prev => prev ? { ...prev, ...payload.new } : prev);
-                })
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'tables',
+                filter: `club_id=eq.${club.id}`
+            }, () => loadData())
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'club_members',
+                filter: `club_id=eq.${club.id}`
+            }, () => loadData())
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'cashout_requests',
+                filter: `club_id=eq.${club.id}`
+            }, () => loadData())
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'agents',
+                filter: `club_id=eq.${club.id}`
+            }, () => loadData())
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'clubs',
+                filter: `id=eq.${club.id}`
+            }, (payload) => {
+                // Patch treasury/rake in-place without full reload
+                setClub(prev => prev ? { ...prev, ...payload.new } : prev);
+            })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
                     console.warn(`[Admin] Realtime channel status: ${status}`);
@@ -342,22 +352,22 @@ export default function Admin() {
         }
 
         askConfirm(`Remove ${memberName} from the club?`, async () => {
-        setConfirmModal(null);
-        setProcessing(true);
-        try {
-            await apiCall('/api/club-arena/manage-agent', {
-                clubId: club.id,
-                action: 'remove',
-                targetUserId: memberUserId,
-            });
-            showToast('Member removed');
-            loadData();
-        } catch (e) {
-            showToast(e.message || 'Failed to remove member', 'error');
-        } finally {
-            setProcessing(false);
-        }
-    });
+            setConfirmModal(null);
+            setProcessing(true);
+            try {
+                await apiCall('/api/club-arena/manage-agent', {
+                    clubId: club.id,
+                    action: 'remove',
+                    targetUserId: memberUserId,
+                });
+                showToast('Member removed');
+                loadData();
+            } catch (e) {
+                showToast(e.message || 'Failed to remove member', 'error');
+            } finally {
+                setProcessing(false);
+            }
+        });
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -922,7 +932,7 @@ export default function Admin() {
                             <select value={agentActionValue} onChange={e => setAgentActionValue(e.target.value)}
                                 style={{ width: '100%', padding: '10px 14px', background: '#18191A', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 16 }}>
                                 <option value="">— Independent (no parent) —</option>
-                                {(members || []).filter(m => ['agent','super_agent'].includes(m.role) && m.user_id !== agentActionModal.agent.user_id).map(a => (
+                                {(members || []).filter(m => ['agent', 'super_agent'].includes(m.role) && m.user_id !== agentActionModal.agent.user_id).map(a => (
                                     <option key={a.user_id} value={a.user_id}>{a.profiles?.display_name || a.profiles?.username || a.user_id.slice(0, 8)}</option>
                                 ))}
                             </select>
@@ -1295,16 +1305,16 @@ export default function Admin() {
                                         <button style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}
                                             onClick={async () => {
                                                 askConfirm(`Suspend agent ${agent.profiles?.display_name || agent.profiles?.username || agent.user_id.slice(0, 8)}?`, async () => {
-                                setConfirmModal(null);
-                                                setProcessing(true);
-                                                try {
-                                                    await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'suspend' });
-                                                    showToast('Agent suspended');
-                                                    loadData();
-                                                } catch (e) { showToast(e.message, 'error'); }
-                                                finally { setProcessing(false); }
-                                            });
-                                        }}>
+                                                    setConfirmModal(null);
+                                                    setProcessing(true);
+                                                    try {
+                                                        await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agent.user_id, action: 'suspend' });
+                                                        showToast('Agent suspended');
+                                                        loadData();
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                    finally { setProcessing(false); }
+                                                });
+                                            }}>
                                             Suspend
                                         </button>
                                         {/* Set Parent Agent (make sub-agent) */}

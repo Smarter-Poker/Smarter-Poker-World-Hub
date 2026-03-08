@@ -12,7 +12,7 @@ import {
   AlertTriangle, CheckCircle, BarChart3, Zap
 } from 'lucide-react';
 import { supabase } from '../../src/lib/supabase';
-import { getAccessToken } from '../src/lib/authUtils';
+import { getAccessToken } from '../../src/lib/authUtils';
 
 export default function GodModePage() {
   const router = useRouter();

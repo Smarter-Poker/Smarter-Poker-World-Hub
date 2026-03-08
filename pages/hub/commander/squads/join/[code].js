@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../../src/components/seo/SEOHead';
 import { Users, Loader2, CheckCircle, XCircle, ArrowLeft } from 'lucide-react';
 import { supabase } from '../../../../../src/lib/supabase';
-import { getAccessToken } from '../../../../src/lib/authUtils';
+import { getAccessToken } from '../../../../../src/lib/authUtils';
 
 export default function SquadJoinPage() {
   const router = useRouter();
