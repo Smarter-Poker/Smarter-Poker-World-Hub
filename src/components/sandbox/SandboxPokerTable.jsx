@@ -55,15 +55,15 @@ export function TableCard({ card, style = {} }) {
 // VERTICAL SEAT POSITIONS — Recalculated for portrait layout
 // ═══════════════════════════════════════════════════════════════════════════
 
-function computeHorizontalSeatPositions(maxSeats) {
-    // For a horizontal table, the ellipse is wider than tall
+function computeVerticalSeatPositions(maxSeats) {
+    // Vertical oval — taller than wide, matching poker-table-black-gold.png
     const cx = 50, cy = 50;
-    const rx = 42;  // Wider horizontal radius
-    const ry = 28;  // Shorter vertical radius
+    const rx = 28;  // Narrower horizontal radius
+    const ry = 36;  // Taller vertical radius
 
     const seatPositions = [];
-    // Place hero at bottom (angle = PI/2 = 6 o'clock)
-    const startAngle = Math.PI / 2; // Start from bottom
+    // Hero at bottom (6 o'clock), villain at top
+    const startAngle = Math.PI / 2;
     for (let i = 0; i < maxSeats; i++) {
         const angle = startAngle + (2 * Math.PI * i) / maxSeats;
         const x = cx + rx * Math.cos(angle);
@@ -98,7 +98,7 @@ export default function SandboxPokerTable({
 }) {
     const totalSeats = 1 + villains.length;
     const maxSeats = Math.max(totalSeats, 2);
-    const { seatPositions } = computeHorizontalSeatPositions(maxSeats);
+    const { seatPositions } = computeVerticalSeatPositions(maxSeats);
 
     // Build seat array: hero at index 0, then villains
     const seatArr = [
@@ -135,13 +135,14 @@ export default function SandboxPokerTable({
             style={{
                 position: 'relative',
                 width: '100%',
+                maxWidth: 280,
                 margin: '0 auto',
-                aspectRatio: '617 / 346',
+                aspectRatio: '1 / 1',
                 overflow: 'visible',
             }}>
-            {/* Poker table image — landscape horizontal, transparent bg */}
+            {/* Poker table — official Smarter.Poker brand table (same as Commander tablets) */}
             <img
-                src="/images/poker-table-horizontal-nobg.png"
+                src="/images/poker-table-black-gold.png"
                 alt="Poker Table"
                 style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
@@ -170,7 +171,7 @@ export default function SandboxPokerTable({
 
             {/* Center info on the table felt */}
             <div style={{
-                position: 'absolute', top: '70%', left: '50%',
+                position: 'absolute', top: '50%', left: '50%',
                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
             }}>
                 {/* Pot Display */}
@@ -211,8 +212,8 @@ export default function SandboxPokerTable({
             {communityCards.length > 0 && (
                 <div
                     style={{
-                        position: 'absolute', top: '40%', left: '50%',
-                        transform: 'translate(-50%, -50%)', display: 'flex', gap: 2, zIndex: 10,
+                        position: 'absolute', top: '38%', left: '50%',
+                        transform: 'translateX(-50%)', display: 'flex', gap: 2, zIndex: 10,
                     }}
                 >
                     {communityCards.map((card, i) => {
@@ -239,8 +240,8 @@ export default function SandboxPokerTable({
                 <div
                     onClick={onTapBoard}
                     style={{
-                        position: 'absolute', top: '40%', left: '50%',
-                        transform: 'translate(-50%, -50%)', display: 'flex', gap: 3, zIndex: 10,
+                        position: 'absolute', top: '38%', left: '50%',
+                        transform: 'translateX(-50%)', display: 'flex', gap: 3, zIndex: 10,
                         cursor: 'pointer',
                     }}
                 >
