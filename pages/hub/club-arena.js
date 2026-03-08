@@ -120,7 +120,7 @@ function CreateClubModal({ onClose, onCreated, user }) {
 // ═══════════════════════════════════════════════════════════════════════════
 function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
     const [clubCode, setClubCode] = useState('');
-    const [agentCode, setAgentCode] = useState(initialAgentCode || '');
+    const [agentPlayerNumber, setAgentPlayerNumber] = useState(initialAgentCode || '');
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState('');
 
@@ -134,7 +134,7 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
         try {
             const result = await apiCall('/api/club-arena/join-club', {
                 clubCode: clubCode.trim(),
-                ...(agentCode.trim() ? { agentCode: agentCode.trim().toUpperCase() } : {}),
+                ...(agentPlayerNumber.trim() ? { agentPlayerNumber: agentPlayerNumber.trim() } : {}),
             });
             onJoined(result.club);
             onClose();
@@ -165,16 +165,15 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
                     />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={labelStyle}>Agent Invite Code <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>(optional — assigns you to an agent in this club)</span></label>
+                    <label style={labelStyle}>Agent Referral Number <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>(optional)</span></label>
                     <input
-                        value={agentCode}
-                        onChange={(e) => setAgentCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase())}
-                        placeholder="6-char code from your agent (e.g. AB3X7Q)"
+                        value={agentPlayerNumber}
+                        onChange={(e) => setAgentPlayerNumber(e.target.value.replace(/\D/g, ''))}
+                        placeholder="Enter your agent's player number"
                         style={inputStyle}
-                        maxLength={6}
                     />
                     <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
-                        This is your club agent&apos;s invite code — different from your Smarter.Poker referral code.
+                        Your agent&apos;s player number assigns you under them in this club. Without it, you&apos;ll join unassigned.
                     </div>
                 </div>
                 {error && <div style={{ color: '#ff4d4d', marginBottom: '16px', fontSize: '13px' }}>{error}</div>}
@@ -284,12 +283,16 @@ export default function ClubArenaPage() {
     const [showFindPlayer, setShowFindPlayer] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
-    // Auto-open join modal if ?agent= or ?join= URL param present
+    // Auto-open join modal if ?agent= URL param present (agent's player_number)
     useEffect(() => {
         const { agent } = router.query;
         if (agent && !showJoinClub) {
-            setInitialAgentCode(String(agent).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase());
-            setShowJoinClub(true);
+            // agent param is the agent's player_number (numeric)
+            const pn = String(agent).replace(/\D/g, '');
+            if (pn) {
+                setInitialAgentCode(pn);
+                setShowJoinClub(true);
+            }
         }
     }, [router.query]); // eslint-disable-line
 

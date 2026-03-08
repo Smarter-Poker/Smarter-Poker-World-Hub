@@ -1,42 +1,12 @@
 -- ============================================================
 -- CLUB ARENA HIERARCHY GAPS — 2026-03-08
--- Adds: invite_code on agents, commission_history table,
+-- Adds: commission_history table,
 --       fn_increment_club_member_count RPC,
 --       fn_increment_agent_player_count RPC
+--
+-- NOTE: Agent referral codes are profiles.player_number (existing).
+-- No separate invite_code column needed on agents table.
 -- ============================================================
-
--- ── 1. Add invite_code to agents table ──────────────────────
-ALTER TABLE public.agents
-  ADD COLUMN IF NOT EXISTS invite_code TEXT;
-
--- Unique per club so two agents in different clubs can have same code
-CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_invite_code_club
-  ON public.agents (club_id, invite_code)
-  WHERE invite_code IS NOT NULL;
-
--- Back-fill existing agents with a unique code
-DO $$
-DECLARE
-  rec RECORD;
-  new_code TEXT;
-  chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  i INT;
-BEGIN
-  FOR rec IN SELECT id, club_id FROM public.agents WHERE invite_code IS NULL LOOP
-    LOOP
-      new_code := '';
-      FOR i IN 1..6 LOOP
-        new_code := new_code || substr(chars, floor(random() * length(chars) + 1)::int, 1);
-      END LOOP;
-      -- Ensure uniqueness within club
-      EXIT WHEN NOT EXISTS (
-        SELECT 1 FROM public.agents
-        WHERE club_id = rec.club_id AND invite_code = new_code
-      );
-    END LOOP;
-    UPDATE public.agents SET invite_code = new_code WHERE id = rec.id;
-  END LOOP;
-END $$;
 
 -- ── 2. commission_history table ─────────────────────────────
 CREATE TABLE IF NOT EXISTS public.commission_history (
@@ -138,7 +108,7 @@ BEGIN
 END;
 $$;
 
--- ── 5. Add invite_code + commission_history to realtime ─────
+-- ── 4. Add commission_history to realtime ───────────────────
 DO $$
 DECLARE t TEXT;
 BEGIN

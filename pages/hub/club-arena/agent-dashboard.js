@@ -107,8 +107,7 @@ export default function AgentDashboard() {
     const [subAgentDistModal, setSubAgentDistModal] = useState(null); // { sa } — distribute chips
     const [subAgentDistAmount, setSubAgentDistAmount] = useState('');
     // Invite code state
-    const [inviteCode, setInviteCode] = useState(null);
-    const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
+    const [myPlayerNumber, setMyPlayerNumber] = useState(null);
     const [showInviteModal, setShowInviteModal] = useState(false);
 
     const showToast = (message, type = 'success') => {
@@ -133,9 +132,11 @@ export default function AgentDashboard() {
         try {
             const data = await apiGet(`/api/club-arena/agent-dashboard?clubId=${clubIdParam}`);
             setDashboard(data);
-            // Extract invite code from own agent record
-            const myAgentRec = (data.agents || []).find(a => a.user_id === getAuthUser()?.id);
-            if (myAgentRec?.invite_code) setInviteCode(myAgentRec.invite_code);
+            // Agent's player_number IS their club referral code — same number,
+            // different context from platform referral (no diamonds here)
+            const authUser = getAuthUser();
+            if (authUser?.player_number) setMyPlayerNumber(authUser.player_number);
+            else if (data.myProfile?.player_number) setMyPlayerNumber(data.myProfile.player_number);
         } catch (err) {
             console.error('Dashboard load failed:', err);
             showToast(err.message, 'error');
@@ -413,20 +414,7 @@ export default function AgentDashboard() {
             <div style={{ padding: '0 20px 100px' }}>
                 {activeTab === 'overview' && (
                     <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
-                        inviteCode={inviteCode}
-                        onRegenerateCode={async () => {
-                            setInviteCodeLoading(true);
-                            try {
-                                const r = await apiCall('/api/club-arena/manage-agent', {
-                                    action: 'regenerate_invite_code',
-                                    clubId: clubIdParam,
-                                });
-                                setInviteCode(r.invite_code);
-                                showToast('Invite code regenerated');
-                            } catch (e) { showToast(e.message, 'error'); }
-                            finally { setInviteCodeLoading(false); }
-                        }}
-                        inviteCodeLoading={inviteCodeLoading}
+                        playerNumber={myPlayerNumber}
                         onShareInvite={() => setShowInviteModal(true)}
                     />
                 )}
@@ -769,17 +757,17 @@ export default function AgentDashboard() {
 
             <ClubArenaBottomNav clubId={clubIdParam} active="admin" />
 
-            {/* ── Agent Invite: Full InviteFriendsModal — same as platform "Invite Friends" ── */}
-            {inviteCode && (
+            {/* ── Agent Invite: Full InviteFriendsModal ── */}
+            {myPlayerNumber && (
                 <InviteFriendsModal
                     isOpen={showInviteModal}
                     onClose={() => setShowInviteModal(false)}
                     user={user}
-                    customUrl={`https://smarter.poker/hub/club-arena?join=${clubIdParam}&agent=${inviteCode}`}
+                    customUrl={`https://smarter.poker/hub/club-arena?join=${clubIdParam}&agent=${myPlayerNumber}`}
                     customTitle="Join My Club on Smarter.Poker"
-                    customMessage={`Join my poker club on Smarter.Poker! Use my invite link to get automatically added to my table roster.`}
-                    customCodeLabel="Your Agent Invite Code"
-                    customCodeValue={inviteCode}
+                    customMessage={`Join my poker club on Smarter.Poker! Enter club code and my player number to get automatically added to my roster.`}
+                    customCodeLabel="My Player Number (Agent Referral)"
+                    customCodeValue={myPlayerNumber}
                 />
             )}
         </div>
@@ -790,7 +778,7 @@ export default function AgentDashboard() {
 // TAB: OVERVIEW
 // ═══════════════════════════════════════════════════════════════
 
-function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCode, onRegenerateCode, inviteCodeLoading, onShareInvite }) {
+function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, playerNumber, onShareInvite }) {
     const statCards = [
         { label: 'My Players', value: stats?.totalPlayers || 0, color: FB.primary },
         { label: 'Online Now', value: stats?.onlinePlayers || 0, color: FB.success },
@@ -813,27 +801,20 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCod
                 ))}
             </div>
 
-            {/* ── Invite Code Panel — same share system as platform "Invite Friends" ── */}
-            {inviteCode && (
+            {/* ── Club Referral Panel ── */}
+            {playerNumber && (
                 <div style={{ ...cardStyle, marginBottom: 12, border: `1px solid ${FB.gold}40` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <h4 style={{ color: FB.gold, fontSize: 13, fontWeight: 700, margin: 0 }}>🔗 Your Player Invite Code</h4>
-                        <button onClick={onRegenerateCode} disabled={inviteCodeLoading}
-                            style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>
-                            {inviteCodeLoading ? '...' : 'Regenerate'}
-                        </button>
-                    </div>
+                    <h4 style={{ color: FB.gold, fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>🔗 Your Club Referral Number</h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: FB.background, borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 800, color: FB.textPrimary, letterSpacing: 3 }}>{inviteCode}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 800, color: FB.textPrimary, letterSpacing: 3 }}>{playerNumber}</span>
                     </div>
-                    {/* Share button — opens full InviteFriendsModal matching platform "Invite Friends" */}
+                    <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 8 }}>
+                        Share your player number with players joining this club. When they enter it alongside the club code, they&apos;ll be auto-assigned to you.
+                    </div>
                     <button onClick={onShareInvite}
                         style={{ width: '100%', background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                        📤 Share Invite Link
+                        📤 Share Club Join Link
                     </button>
-                    <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 6 }}>
-                        Players who join using your link are auto-assigned to you.
-                    </div>
                 </div>
             )}
 

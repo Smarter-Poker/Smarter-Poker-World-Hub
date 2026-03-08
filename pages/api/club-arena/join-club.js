@@ -2,19 +2,25 @@
  * POST /api/club-arena/join-club
  * Join a club by numeric club code.
  *
- * ── Agent assignment (Club Arena only) ──────────────────────────────────────
- * Club Arena uses its OWN invite code system, completely separate from the
- * platform-level referral/diamond reward system (profiles.player_number).
+ * ── Agent assignment ─────────────────────────────────────────────────────────
+ * Every Smarter.Poker player has a player_number (profiles.player_number).
+ * That same number serves two independent purposes depending on context:
  *
- * Club Arena agent invite codes are 6-character alphanumeric strings stored
- * in agents.invite_code, unique per club. They have NO relation to
- * player_number, platform referrals, or diamond rewards.
+ *   1. Platform referral  — "Dan Bekavac is inviting you to join Smarter.Poker"
+ *                           Handled by /api/rewards/referral — awards 500💎
+ *
+ *   2. Club Arena agent   — Player enters a club code + their agent's
+ *                           player_number to be auto-attached to that agent.
+ *                           No diamonds. Club-scoped hierarchy only.
+ *
+ * Same number, completely different flows and outcomes.
+ * If no agentPlayerNumber is provided, player joins unassigned and can be
+ * manually attached to any agent by the club owner or admin later.
  *
  * Body:
- *   clubCode      (required) — 5-digit club code
- *   agentCode     (optional) — 6-char agent invite code (agents.invite_code)
- *                              Club Arena only — NOT the platform referral code
- *   agentUserId   (optional) — direct UUID assignment (owner/admin only)
+ *   clubCode          (required) — 5-digit club code
+ *   agentPlayerNumber (optional) — agent's player_number (Club Arena assignment)
+ *   agentUserId       (optional) — direct UUID assignment (owner/admin only)
  *
  * Auth: Bearer token (any authenticated user)
  */
@@ -36,16 +42,11 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    // NOTE: agentCode is the Club Arena-specific 6-char invite code (agents.invite_code).
-    // It is completely separate from the platform referral system (profiles.player_number).
-    // Do NOT conflate these — they serve different purposes and different reward systems.
-    const { clubCode, agentCode, agentUserId: explicitAgentUserId } = req.body;
+    // agentPlayerNumber is the agent's profiles.player_number.
+    // Same number as the platform referral code, but here it means:
+    // "attach me to this agent in the club" — no diamonds, no reward claim.
+    const { clubCode, agentPlayerNumber, agentUserId: explicitAgentUserId } = req.body;
     if (!clubCode) return res.status(400).json({ success: false, error: 'Club code required' });
-
-    // Validate agentCode format if provided: 6 alphanumeric chars only
-    if (agentCode && !/^[A-Z0-9]{6}$/i.test(agentCode.trim())) {
-        return res.status(400).json({ success: false, error: 'Agent invite code must be 6 alphanumeric characters' });
-    }
 
     // Rate limit — prevent brute-force of club codes
     if (!applyRateLimit(req, res, 'club-arena/join-club')) return;
@@ -79,29 +80,47 @@ export default async function handler(req, res) {
             return res.status(409).json({ success: false, error: 'You are already a member of this club' });
         }
 
-        // ── Resolve agent assignment (Club Arena only) ─────────────────
-        // Uses agents.invite_code — a 6-char alphanumeric code unique per club.
-        // This is NOT the platform player_number / referral system.
-        // Platform referrals (diamonds, rewards) are handled separately in
-        // /api/rewards/referral and /api/promo/validate-referral-code.
+        // ── Resolve agent assignment ──────────────────────────────────
+        // agentPlayerNumber = agent's player_number from profiles.
+        // We look them up by player_number, then verify they are an active
+        // agent in THIS club before assigning. No platform referral reward
+        // is triggered here — that is a separate flow entirely.
         //
-        // Priority: agentCode (invite_code) > explicitAgentUserId (admin-only)
+        // If no agentPlayerNumber: player joins unassigned (agent_id = null).
+        // Owner/admin can manually assign them to any agent later.
+        //
+        // Priority: agentPlayerNumber > explicitAgentUserId (admin-only)
         let resolvedAgentUserId = null;
+        let resolvedAgentPlayerNumber = null;
 
-        if (agentCode) {
-            // Look up the agent directly by their Club Arena invite code + club
-            const { data: agentRecord } = await supabaseAdmin
-                .from('agents')
-                .select('user_id, status')
-                .eq('club_id', club.id)
-                .eq('invite_code', agentCode.trim().toUpperCase())
-                .eq('status', 'active')
-                .maybeSingle();
+        if (agentPlayerNumber) {
+            const pn = parseInt(agentPlayerNumber);
+            if (Number.isFinite(pn) && pn > 0) {
+                // Look up profile by player_number to get their user_id
+                const { data: agentProfile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id, player_number')
+                    .eq('player_number', pn)
+                    .maybeSingle();
 
-            if (agentRecord) {
-                resolvedAgentUserId = agentRecord.user_id;
+                if (agentProfile) {
+                    // Verify they are an active agent in THIS club
+                    const { data: agentRecord } = await supabaseAdmin
+                        .from('agents')
+                        .select('user_id, status')
+                        .eq('club_id', club.id)
+                        .eq('user_id', agentProfile.id)
+                        .eq('status', 'active')
+                        .maybeSingle();
+
+                    if (agentRecord) {
+                        resolvedAgentUserId = agentRecord.user_id;
+                        resolvedAgentPlayerNumber = pn;
+                    }
+                    // player_number exists on platform but not an agent in this club
+                    // → join unassigned, silently ignore
+                }
             }
-            // Invalid/unknown code — silently ignore (agent may be in different club)
         } else if (explicitAgentUserId) {
             // Admin-side direct assignment — requires caller to be owner/admin
             const { data: callerMember } = await supabaseAdmin
@@ -166,6 +185,7 @@ export default async function handler(req, res) {
             club,
             agentAssigned: !!resolvedAgentUserId,
             agentUserId: resolvedAgentUserId,
+            agentPlayerNumber: resolvedAgentPlayerNumber,
         });
     } catch (err) {
         console.error('[join-club]', err);

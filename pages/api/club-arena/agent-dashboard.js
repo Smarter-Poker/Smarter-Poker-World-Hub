@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     // 2. Get agent record(s)
     let agentFilter = isOwnerAdmin
       ? supabaseAdmin.from('agents').select('*').eq('club_id', clubId)
-      : supabaseAdmin.from('agents').select('*, invite_code').eq('club_id', clubId).eq('user_id', user.id)
+      : supabaseAdmin.from('agents').select('*').eq('club_id', clubId).eq('user_id', user.id)
           .limit(100);
 
     const { data: agents } = await agentFilter;
