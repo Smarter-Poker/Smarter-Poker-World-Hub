@@ -132,25 +132,27 @@ async function fetchWithRetry(url, options = {}, maxRetries = 3) {
 
 // ─── Pod → Feature mapping ───
 const POD_FEATURES = {
-  search:    { title: 'Search Venues',   tab: 'venues' },
-  nearme:    { title: 'Near Me',         tab: 'nearnow' },
-  livegames: { title: 'Live Games',      tab: 'live' },
-  mapview:   { title: 'Map View',        tab: 'map' },
-  tours:     { title: 'Tours',           tab: 'tours' },
-  calendar:  { title: 'Calendar',        tab: 'calendar' },
-  daily:     { title: 'Daily',           tab: 'daily' },
-  series:    { title: 'Series',          tab: 'series' },
-  wallet:    { title: 'Rewards',         tab: 'rewards' },
-  roadtrip:  { title: 'Trip Planner',    tab: 'roadtrip' },
-  favorites: { title: 'Saved',           tab: 'favorites' },
-  social:    { title: 'Friends',         tab: 'social' },
-  alerts:    { title: 'Alerts',          tab: 'alerts' },
-  calculator:{ title: 'Trip Calculator', tab: 'calculator' },
+  search: { title: 'Search Venues', tab: 'venues' },
+  nearme: { title: 'Near Me', tab: 'nearnow' },
+  livegames: { title: 'Live Games', tab: 'live' },
+  mapview: { title: 'Map View', tab: 'map' },
+  tours: { title: 'Tours', tab: 'tours' },
+  calendar: { title: 'Calendar', tab: 'calendar' },
+  daily: { title: 'Daily', tab: 'daily' },
+  series: { title: 'Series', tab: 'series' },
+  wallet: { title: 'Rewards', tab: 'rewards' },
+  roadtrip: { title: 'Trip Planner', tab: 'roadtrip' },
+  favorites: { title: 'Saved', tab: 'favorites' },
+  social: { title: 'Friends', tab: 'social' },
+  alerts: { title: 'Alerts', tab: 'alerts' },
+  calculator: { title: 'Trip Calculator', tab: 'calculator' },
 };
 
 export default function PokerNearMeLobby() {
   const router = useRouter();
-  const { avatarUrl, userId } = useAvatar?.() || {};
+  const { user } = useAvatar();
+  const userId = user?.id;
+  const avatarUrl = user?.user_metadata?.avatar_url;
 
   // ─── Core State ───
   const [activePod, setActivePod] = useState(null);
@@ -388,7 +390,7 @@ export default function PokerNearMeLobby() {
     searchTimeoutRef.current = setTimeout(() => {
       if (value.length >= 2) {
         fetchVenues(value);
-        if (userId) addSearchHistoryToDb(userId, value).catch(() => {});
+        if (userId) addSearchHistoryToDb(userId, value).catch(() => { });
       }
     }, SEARCH_DEBOUNCE_MS);
   }, [fetchVenues, userId]);
@@ -402,7 +404,7 @@ export default function PokerNearMeLobby() {
     setSearchQuery(city);
     setCitySuggestions([]);
     fetchVenues(city);
-    if (userId) addSearchHistoryToDb(userId, city).catch(() => {});
+    if (userId) addSearchHistoryToDb(userId, city).catch(() => { });
   }, [fetchVenues, userId]);
 
   // ─── Voice search result handler ───
