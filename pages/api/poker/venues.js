@@ -14,7 +14,7 @@
  *   featured   - if 'true', only featured venues
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
-import { captureError, captureMessage, addBreadcrumb } from '../../../src/lib/sentry';
+import { captureError, addBreadcrumb } from '../../../src/lib/sentry';
 import allVenuesData from '../../../data/all-venues.json';
 import dailyTournamentData from '../../../data/daily-tournament-schedules.json';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
@@ -174,7 +174,7 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
         const searchStateAbbrev = resolveStateAbbrev(search.trim());
 
         // Handle "City, State" format (e.g., "Chicago, IL" or "Las Vegas, NV")
-        const cityStateMatch = search.match(/^([^,]+),\s*(.+)$/);
+        const cityStateMatch = search ? search.match(/^([^,]+),\s*(.+)$/) : null;
         if (cityStateMatch) {
             const cityPart = cityStateMatch[1].trim().toLowerCase();
             const statePart = cityStateMatch[2].trim();
@@ -184,8 +184,8 @@ function applyFilters(venues, { id, state, city, type, tournaments, search, feat
                 const stateMatch = stateAbbrev
                     ? (v.state && v.state.toUpperCase() === stateAbbrev)
                     : (v.state && v.state.toLowerCase().includes(statePart.toLowerCase()));
-                // Match city+state, or just city if no state match found
-                return (cityMatch && stateMatch) || cityMatch;
+                // Require both city and state match when "City, State" format is used
+                return cityMatch && stateMatch;
             });
         } else {
             filtered = filtered.filter(v =>

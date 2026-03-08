@@ -43,7 +43,7 @@ function CardItem({ card, isActive, badge, onSelect }) {
   return (
     <button
       className="lobby-card-btn"
-      onClick={() => onSelect(card.id)}
+      onClick={() => onSelect?.(card.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       aria-label={`Open ${card.label}`}

@@ -144,12 +144,10 @@ const POD_FEATURES = {
   calendar: { title: 'Calendar', tab: 'calendar' },
   daily: { title: 'Daily', tab: 'daily' },
   series: { title: 'Series', tab: 'series' },
-  wallet: { title: 'Rewards', tab: 'rewards' },
   roadtrip: { title: 'Trip Planner', tab: 'roadtrip' },
   favorites: { title: 'Saved', tab: 'favorites' },
   social: { title: 'Friends', tab: 'social' },
   alerts: { title: 'Alerts', tab: 'alerts' },
-  calculator: { title: 'Trip Calculator', tab: 'calculator' },
 };
 
 // ─── Daily Tournaments Panel with day-of-week tabs ───
@@ -166,7 +164,7 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange }) {
 
   // Filter tournaments by selected day (client-side fallback)
   const filtered = tournaments.filter(t => {
-    if (!t.day_of_week) return true;
+    if (!t.day_of_week) return false; // exclude tournaments with no day assigned
     return t.day_of_week.toLowerCase() === selectedDay.toLowerCase();
   });
 
@@ -306,7 +304,7 @@ function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
           `<div style="font-family:sans-serif;font-size:13px;min-width:160px;">
             <strong>${safeName}</strong><br/>
             <span style="color:#666;">${v.city || ''}, ${v.state || ''}</span>
-            ${v.games_offered ? `<br/><span style="color:#3b82f6;">${v.games_offered.slice(0, 3).join(', ')}</span>` : ''}
+            ${Array.isArray(v.games_offered) && v.games_offered.length ? `<br/><span style="color:#3b82f6;">${v.games_offered.slice(0, 3).join(', ')}</span>` : ''}
             <br/><a href="/hub/venues/${v.id}" style="color:#6ee7ef;font-size:12px;text-decoration:underline;margin-top:4px;display:inline-block;">View Details</a>
           </div>`,
           { className: 'pnm-popup' }
@@ -519,6 +517,7 @@ export default function PokerNearMeLobby() {
       const favMap = {};
       const favVenueList = [];
       (favs || []).forEach(f => {
+        if (!f || !f.venue_id) return; // skip malformed entries
         favMap[f.venue_id] = true;
         favVenueList.push({
           id: f.venue_id,
@@ -744,7 +743,14 @@ export default function PokerNearMeLobby() {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
         setGpsActive(true);
-        fetchVenues();
+        // Fetch venues with explicit lat/lng to avoid stale closure on userLocation
+        const gpsUrl = `/api/poker/venues?limit=${PAGE_SIZE}&offset=0&lat=${loc.lat}&lng=${loc.lng}&radius=100${sortBy ? `&sort=${sortBy}` : ''}`;
+        cachedFetch(gpsUrl).then(data => {
+          const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+          setVenues(newVenues);
+          setHasMore(newVenues.length >= PAGE_SIZE);
+          setPage(0);
+        }).catch(err => console.error('GPS venue fetch failed:', err));
         // Auto-open the Near Me panel to show nearby venues
         setActivePod('nearme');
         setShowPanel(true);
@@ -778,24 +784,33 @@ export default function PokerNearMeLobby() {
   const handleToggleFavorite = useCallback(async (venueId, venueData) => {
     if (!userId) return;
     const wasFavorited = !!favorites[venueId];
-    // Optimistic update
+    // Optimistic update — both maps
     setFavorites(prev => ({ ...prev, [venueId]: !wasFavorited }));
+    const venueEntry = { id: venueId, name: venueData?.name || 'Unknown', address: venueData?.address || '', city: venueData?.city || '', state: venueData?.state || '', _fromFavorites: true };
+    if (wasFavorited) {
+      setFavoritedVenues(prev => prev.filter(f => f.id !== venueId));
+    } else {
+      setFavoritedVenues(prev => [...prev, venueEntry]);
+    }
     try {
       if (wasFavorited) {
         await removeVenueFavorite(userId, venueId);
-        setFavoritedVenues(prev => prev.filter(f => f.id !== venueId));
       } else {
         await addVenueFavorite(userId, venueId, venueData);
-        setFavoritedVenues(prev => [...prev, { id: venueId, name: venueData?.name || 'Unknown', address: venueData?.address || '', city: venueData?.city || '', state: venueData?.state || '', _fromFavorites: true }]);
       }
-      // Emit event for cross-page sync
+      // Emit event for cross-page sync after successful DB write
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('pnm:favorites-changed', { detail: { venueId, favorited: !wasFavorited } }));
       }
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
-      // Rollback on error
+      // Full rollback on error — both state maps
       setFavorites(prev => ({ ...prev, [venueId]: wasFavorited }));
+      if (wasFavorited) {
+        setFavoritedVenues(prev => [...prev, venueEntry]);
+      } else {
+        setFavoritedVenues(prev => prev.filter(f => f.id !== venueId));
+      }
     }
   }, [userId, favorites]);
 
@@ -944,22 +959,8 @@ export default function PokerNearMeLobby() {
         component = <SeasonalCalendar />;
         break;
 
-      case 'wallet':
-        component = (
-          <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6ee7ef" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 8px rgba(110,231,239,0.5))', }} ><polygon points="12 2 22 8.5 12 22 2 8.5" /><line x1="2" y1="8.5" x2="22" y2="8.5" /><line x1="12" y1="2" x2="8" y2="8.5" /><line x1="12" y1="2" x2="16" y2="8.5" /><line x1="8" y1="8.5" x2="12" y2="22" /><line x1="16" y1="8.5" x2="12" y2="22" /></svg>
-            <p style={{ fontSize: 16, fontWeight: 600, marginTop: 12, marginBottom: 8 }}>Rewards & Points</p>
-            <p style={{ fontSize: 13 }}>Track loyalty points, comps, and promotions across venues.</p>
-          </div>
-        );
-        break;
-
       case 'roadtrip':
         component = <RoadTripPlanner venues={venues} userLocation={userLocation} />;
-        break;
-
-      case 'calculator':
-        component = <TripCostCalculator venues={venues} userLocation={userLocation} />;
         break;
 
       case 'favorites': {
