@@ -559,7 +559,7 @@ export default function UnionGames() {
         <TournamentDetailModal
           t={selectedTournament} unionId={unionId} clubs={clubs}
           onClose={() => setSelectedTournament(null)}
-          onAction={() => { setSelectedTournament(null); loadData(); }}
+          onAction={(msg) => { setSelectedTournament(null); if (msg) showToast(msg); loadData(); }}
         />
       )}
 
@@ -728,6 +728,8 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
           </label>
         </div>
 
+        {form.rebuyEnabled && F('Rebuy Levels (how many levels rebuys are open)', 'rebuyLevels', 'number', { min: 1 })}
+
         {/* Participating Clubs */}
         {form.type === 'xmtt' && (
           <div style={{ marginBottom: 12 }}>
@@ -889,6 +891,28 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
 function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
   const [regs, setRegs] = useState([]);
   const [tourneyState, setTourneyState] = useState(null);
+  const [actionProcessing, setActionProcessing] = useState(null);
+  const [confirmKey, setConfirmKey] = useState(null);
+
+  const handleTournamentAction = async (action, label) => {
+    const key = `${action}-${t.id}`;
+    if (confirmKey !== key) {
+      setConfirmKey(key);
+      setTimeout(() => setConfirmKey(c => c === key ? null : c), 4000);
+      return;
+    }
+    setConfirmKey(null);
+    setActionProcessing(action);
+    try {
+      const res = await api(action, { unionId, tournamentId: t.id });
+      onAction(res.message || `${label} successful`);
+    } catch (e) {
+      // Surface error inside modal
+      alert(e.message || `Failed: ${label}`);
+    } finally {
+      setActionProcessing(null);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -1053,6 +1077,50 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
             })()}
             {regs.length > 30 && <div style={{ fontSize: 11, color: FB.dim }}>+{regs.length - 30} more</div>}
           </div>
+        </div>
+
+        {/* Admin Actions */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          {/* Pause — running/late_reg/final_table */}
+          {['running', 'late_reg', 'break', 'final_table'].includes(t.status) && (
+            <button
+              disabled={!!actionProcessing}
+              onClick={() => handleTournamentAction('pause_tournament', 'Pause')}
+              style={{
+                flex: 1, padding: '9px 0', background: confirmKey === `pause_tournament-${t.id}` ? '#d97706' : '#eab308',
+                color: '#000', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                opacity: actionProcessing ? 0.5 : 1,
+              }}>
+              {actionProcessing === 'pause_tournament' ? 'Pausing...' : confirmKey === `pause_tournament-${t.id}` ? 'Confirm Pause?' : '⏸ Pause'}
+            </button>
+          )}
+          {/* Resume — paused only */}
+          {t.status === 'paused' && (
+            <button
+              disabled={!!actionProcessing}
+              onClick={() => handleTournamentAction('resume_tournament', 'Resume')}
+              style={{
+                flex: 1, padding: '9px 0', background: FB.teal,
+                color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                opacity: actionProcessing ? 0.5 : 1,
+              }}>
+              {actionProcessing === 'resume_tournament' ? 'Resuming...' : '▶ Resume'}
+            </button>
+          )}
+          {/* Cancel — scheduled/registering/paused */}
+          {['scheduled', 'registering', 'paused', 'running', 'late_reg'].includes(t.status) && (
+            <button
+              disabled={!!actionProcessing}
+              onClick={() => handleTournamentAction('cancel_tournament', 'Cancel')}
+              style={{
+                flex: 1, padding: '9px 0',
+                background: confirmKey === `cancel_tournament-${t.id}` ? '#991b1b' : FB.red,
+                color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                opacity: actionProcessing ? 0.5 : 1,
+              }}>
+              {actionProcessing === 'cancel_tournament' ? 'Cancelling...' : confirmKey === `cancel_tournament-${t.id}` ? 'Confirm Cancel?' : '✕ Cancel'}
+            </button>
+          )}
         </div>
 
         <button onClick={onClose} style={{

@@ -131,7 +131,22 @@ export default async function handler(req, res) {
       admins = admins.map(a => ({ ...a, profile: profMap[a.user_id] || null }));
     }
 
-    // 7. Aggregate stats
+    // 7. Running tournament count across all union clubs
+    let runningTournaments = 0;
+    let scheduledTournaments = 0;
+    if (clubIds.length > 0) {
+      const { data: tournCounts } = await supabaseAdmin
+        .from('club_tournaments')
+        .select('status')
+        .in('club_id', clubIds)
+        .in('status', ['running', 'late_reg', 'break', 'paused', 'final_table', 'scheduled', 'registering']);
+      for (const t of (tournCounts || [])) {
+        if (['running', 'late_reg', 'break', 'paused', 'final_table'].includes(t.status)) runningTournaments++;
+        else scheduledTournaments++;
+      }
+    }
+
+    // 8. Aggregate stats
     const totalTreasury = clubs.reduce((s, c) => s + (c.chip_treasury || 0), 0);
     const totalRake = clubs.reduce((s, c) => s + (c.total_rake || 0), 0);
     const totalMembers = clubs.reduce((s, c) => s + (c.member_count || 0), 0);
@@ -171,6 +186,8 @@ export default async function handler(req, res) {
         unionHoldRate: holdRate,
         estimatedUnionHold: Math.round(currentPeriodRake * holdRate),
         currentPeriodRake,
+        runningTournaments,
+        scheduledTournaments,
       },
       clubs,
       agents,

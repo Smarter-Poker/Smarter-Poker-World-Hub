@@ -3,7 +3,8 @@
  * 
  * Union-level tournament and cash table management.
  * Actions: list_tournaments, list_tables, create_tournament, create_table,
- *          start_tournament, cancel_tournament, open_registration, close_table
+ *          start_tournament, cancel_tournament, open_registration, close_table,
+ *          pause_tournament, resume_tournament
  * 
  * Auth: Bearer token (must be union admin)
  */
@@ -434,6 +435,65 @@ export default async function handler(req, res) {
 
       if (error) throw error;
       return res.json({ success: true });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // PAUSE TOURNAMENT
+    // ════════════════════════════════════════════════════════════
+    if (action === 'pause_tournament') {
+      const { tournamentId } = params;
+      if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
+
+      const { data: tourn } = await supabaseAdmin
+        .from('club_tournaments')
+        .select('id, club_id, status')
+        .eq('id', tournamentId)
+        .maybeSingle();
+
+      if (!tourn || !clubIds.includes(tourn.club_id)) {
+        return res.status(404).json({ success: false, error: 'Tournament not found in union' });
+      }
+      const pauseable = ['running', 'late_reg', 'final_table'];
+      if (!pauseable.includes(tourn.status)) {
+        return res.status(400).json({ success: false, error: `Cannot pause a tournament with status: ${tourn.status}` });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('club_tournaments')
+        .update({ status: 'paused', updated_at: new Date().toISOString() })
+        .eq('id', tournamentId);
+
+      if (error) throw error;
+      return res.json({ success: true, message: 'Tournament paused' });
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // RESUME TOURNAMENT
+    // ════════════════════════════════════════════════════════════
+    if (action === 'resume_tournament') {
+      const { tournamentId } = params;
+      if (!tournamentId) return res.status(400).json({ success: false, error: 'tournamentId required' });
+
+      const { data: tourn } = await supabaseAdmin
+        .from('club_tournaments')
+        .select('id, club_id, status')
+        .eq('id', tournamentId)
+        .maybeSingle();
+
+      if (!tourn || !clubIds.includes(tourn.club_id)) {
+        return res.status(404).json({ success: false, error: 'Tournament not found in union' });
+      }
+      if (tourn.status !== 'paused') {
+        return res.status(400).json({ success: false, error: `Tournament is not paused (status: ${tourn.status})` });
+      }
+
+      const { error } = await supabaseAdmin
+        .from('club_tournaments')
+        .update({ status: 'running', updated_at: new Date().toISOString() })
+        .eq('id', tournamentId);
+
+      if (error) throw error;
+      return res.json({ success: true, message: 'Tournament resumed' });
     }
 
     // ════════════════════════════════════════════════════════════

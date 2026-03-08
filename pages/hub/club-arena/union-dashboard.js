@@ -145,7 +145,6 @@ export default function UnionDashboard() {
             }
             const data = await res.json();
             setDashboard(data);
-            setDashboard(data);
             if (data.union) {
                 // Only pre-fill name/desc on first load — don't overwrite unsaved user edits
             setUnionName(prev => prev || (data.union.name || ''));
@@ -540,6 +539,30 @@ export default function UnionDashboard() {
                             <StatCard label="Union Hold" value={(stats?.estimatedUnionHold ?? 0).toLocaleString()} color={FB.gold}
                                 sub={`${(((stats?.unionHoldRate) || 0) * 100).toFixed(0)}% of period rake`} />
                         </div>
+                        {(stats?.runningTournaments > 0 || stats?.scheduledTournaments > 0) && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+                                {stats.runningTournaments > 0 && (
+                                    <div style={{ background: 'rgba(234,88,12,0.1)', border: '1px solid rgba(234,88,12,0.3)', borderRadius: 10, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                                        onClick={() => router.push(`/hub/club-arena/union-games?union=${unionIdParam}`)}>
+                                        <span style={{ fontSize: 18 }}>🟠</span>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: FB.orange }}>{stats.runningTournaments} Running</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary }}>tournament{stats.runningTournaments !== 1 ? 's' : ''} live</div>
+                                        </div>
+                                    </div>
+                                )}
+                                {stats.scheduledTournaments > 0 && (
+                                    <div style={{ background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.2)', borderRadius: 10, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                                        onClick={() => router.push(`/hub/club-arena/union-games?union=${unionIdParam}`)}>
+                                        <span style={{ fontSize: 18 }}>📅</span>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 700, color: FB.primary }}>{stats.scheduledTournaments} Scheduled</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary }}>upcoming tournament{stats.scheduledTournaments !== 1 ? 's' : ''}</div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {stats?.totalCreditExposure > 0 && (
                             <div style={{ background: 'rgba(250,56,62,0.07)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, border: '1px solid rgba(250,56,62,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: 13, color: FB.textSecondary }}>⚠️ Total Agent Credit In Use</span>
@@ -681,6 +704,29 @@ export default function UnionDashboard() {
                                             }}>
                                                 {agent.status === 'suspended' ? '🚫 SUSPENDED' : '● active'}
                                             </span>
+                                            {isLead && (
+                                                <button
+                                                    onClick={async () => {
+                                                        const action = agent.status === 'suspended' ? 'reactivate' : 'suspend';
+                                                        try {
+                                                            await apiCall('/api/club-arena/manage-agent', {
+                                                                clubId: agent.club_id,
+                                                                action,
+                                                                targetUserId: agent.user_id,
+                                                            });
+                                                            showToast(`Agent ${action === 'suspend' ? 'suspended' : 'reactivated'}`);
+                                                            loadDashboard();
+                                                        } catch (e) { showToast(e.message, 'error'); }
+                                                    }}
+                                                    style={{
+                                                        background: agent.status === 'suspended' ? FB.success : FB.danger,
+                                                        color: '#fff', border: 'none', borderRadius: 6,
+                                                        padding: '4px 10px', fontSize: 11, fontWeight: 700,
+                                                        cursor: 'pointer', whiteSpace: 'nowrap',
+                                                    }}>
+                                                    {agent.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                                                </button>
+                                            )}
                                             {/* Navigate to club admin panel for this agent's club */}
                                             <button
                                                 onClick={() => router.push(`/hub/club-arena/admin?club=${agent.club_id}`)}
