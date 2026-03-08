@@ -21,11 +21,11 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export default async function handler(req, res) {
     if (!applyRateLimit(req, res, LIMITS.read)) return;
 
-    // BUG #245 FIX: Require JWT auth
+    // BUG-05 FIX: Include success:false for consistent client error parsing
     const _token = req.headers.authorization?.replace('Bearer ', '');
-    if (!_token) return res.status(401).json({ error: 'Auth required' });
+    if (!_token) return res.status(401).json({ success: false, error: 'Auth required' });
     const { data: { user: _authUser }, error: _authErr } = await supabase.auth.getUser(_token);
-    if (_authErr || !_authUser) return res.status(401).json({ error: 'Invalid token' });
+    if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -59,8 +59,12 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: 'No questions available for this game/level' });
         }
 
-        // Shuffle questions for variety
-        const shuffled = questions.sort(() => Math.random() - 0.5);
+        // BUG-03 FIX: Use Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
+        const shuffled = [...questions];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
 
         // Return exactly the requested count
         const batch = shuffled.slice(0, questionCount);

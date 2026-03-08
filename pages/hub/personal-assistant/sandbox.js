@@ -1081,7 +1081,40 @@ export default function VirtualSandbox() {
       }
       return next;
     });
+
+    // ── Wave 3 W3-2: Persist equity snapshot to Supabase (non-blocking) ──────
+    (async () => {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const sbc = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        const { data: { session: sbSession } } = await sbc.auth.getSession();
+        if (sbSession?.access_token && snapEquity !== null) {
+          await fetch('/api/sandbox/equity-snapshot', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sbSession.access_token}`,
+            },
+            body: JSON.stringify({
+              heroHand: snapHand,
+              villainRange: villainRangeStr || null,
+              street: snapStreet,
+              equityPct: typeof snapEquity === 'number' ? snapEquity : null,
+              boardCards: snapBoard || null,
+            }),
+          });
+        }
+      } catch (e) {
+        // Non-fatal — equity history is supplementary
+        console.warn('[EquitySnapshot] Save error:', e.message);
+      }
+    })();
   };
+
+
 
 
   // Auto-fill optimalAction in session log when results arrive
@@ -1992,7 +2025,7 @@ export default function VirtualSandbox() {
                 </div>
               )}
 
-              {/* Range Matrix */}
+              {/* Range Matrix — from solver data */}
               {results.rangeHeatmap && (
                 <div style={{ background: '#3A3B3C', borderRadius: 10, padding: '12px', marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -2011,6 +2044,25 @@ export default function VirtualSandbox() {
                     </div>
                   </div>
                   <RangeMatrix rangeHeatmap={results.rangeHeatmap} selectedAction={selectedHeatmapAction} />
+                </div>
+              )}
+
+              {/* Wave 3 W3-7: Villain Range Reveal — archetype opening range as compact text */}
+              {villains?.[0]?.range && (
+                <div style={{ marginBottom: 12 }}>
+                  <button
+                    onClick={() => { setShowVillainRange(v => !v); try { navigator.vibrate?.(8); } catch (e) { } }}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showVillainRange ? 'rgba(139,92,246,0.15)' : '#3A3B3C', border: `1px solid ${showVillainRange ? 'rgba(139,92,246,0.4)' : '#4E4F50'}`, color: showVillainRange ? '#a78bfa' : '#B0B3B8', cursor: 'pointer', textAlign: 'left' }}>
+                    {showVillainRange ? '▲' : '▼'} Villain Opening Range ({villains[0].archetype?.name || 'Unknown'})
+                  </button>
+                  {showVillainRange && (
+                    <div style={{ marginTop: 6, padding: '10px 12px', background: '#1c1c1c', borderRadius: 8, border: '1px solid rgba(139,92,246,0.2)', fontSize: 10, color: '#B0B3B8', fontFamily: 'monospace', lineHeight: 1.6, wordBreak: 'break-all' }}>
+                      <div style={{ fontSize: 9, color: '#65676B', marginBottom: 4, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase', letterSpacing: 1 }}>
+                        VPIP {villains[0].vpip ?? '—'}% | Opening Range
+                      </div>
+                      {villains[0].range}
+                    </div>
+                  )}
                 </div>
               )}
 

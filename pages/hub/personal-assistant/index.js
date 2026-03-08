@@ -74,7 +74,26 @@ export default function PersonalAssistantPage() {
     };
   }, [refetchSessions]);
 
+  // ─── Wave 3: Hand of the Day (W3-4) ─────────────────────────────────────
+  const [dailyHand, setDailyHand] = useState(null);
+  useEffect(() => {
+    fetch('/api/training/hand-of-the-day')
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (json?.hand) setDailyHand(json.hand);
+      })
+      .catch(() => { });
+  }, []);
 
+  const loadHandInSandbox = (hand) => {
+    if (!guardAction()) return;
+    const params = new URLSearchParams();
+    if (hand.heroHand) params.set('h', hand.heroHand);
+    if (hand.position) params.set('p', hand.position);
+    if (hand.board) params.set('b', hand.board);
+    if (hand.pot) params.set('pot', hand.pot);
+    router.push(`/hub/personal-assistant/sandbox?${params.toString()}`);
+  };
 
   if (!mounted) {
     return (
@@ -273,11 +292,53 @@ export default function PersonalAssistantPage() {
         </div>
 
         {/* Global Jarvis widget is removed to avoid duplicate avatars; functionality is inside the frame */}
+
+        {/* Wave 3: Hand of the Day widget (W3-4) */}
+        {dailyHand && (
+          <div style={{
+            maxWidth: 'min(961px, calc((100vh - 100px) * (961 / 1024)))',
+            margin: '12px auto 0',
+            padding: '14px 18px',
+            background: 'linear-gradient(135deg, rgba(35,116,225,0.12), rgba(139,92,246,0.08))',
+            border: '1px solid rgba(35,116,225,0.25)',
+            borderRadius: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#4599FF', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                🃏 Hand of the Day
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB' }}>
+                {dailyHand.heroHand || '??'} — {dailyHand.position || 'BTN'}
+                {dailyHand.board ? <span style={{ color: '#65676B', fontWeight: 400, marginLeft: 6 }}>| Board: {dailyHand.board}</span> : null}
+              </div>
+              {dailyHand.title && (
+                <div style={{ fontSize: 11, color: '#B0B3B8', marginTop: 2 }}>{dailyHand.title}</div>
+              )}
+            </div>
+            <button
+              onClick={() => loadHandInSandbox(dailyHand)}
+              style={{
+                padding: '10px 18px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                background: 'linear-gradient(135deg, #2374E1, #1565c0)',
+                border: 'none', color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap',
+                minHeight: 44, touchAction: 'manipulation',
+              }}
+            >
+              Load in Sandbox ▸
+            </button>
+          </div>
+        )}
       </div>
       {UpgradePopup}
     </PageTransition>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STYLES

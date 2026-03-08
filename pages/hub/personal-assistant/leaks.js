@@ -544,6 +544,36 @@ export default function LeakFinderPage() {
   const { leaks: fetchedLeaks, isLoading: leaksLoading } = useLeaks();
   const { stats: fetchedStats, isLoading: statsLoading } = useAssistantStats();
 
+  // ─── Wave 3: Coach Accuracy from Sandbox Coach Mode ────────────────────────
+  const [coachAccuracy, setCoachAccuracy] = useState(null);
+  const fetchCoachAccuracy = async () => {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const sbc = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      const { data: { session } } = await sbc.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch('/api/sandbox/coach-accuracy', {
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) setCoachAccuracy(json.accuracy);
+      }
+    } catch (e) { /* non-fatal */ }
+  };
+
+  // Fetch on mount and whenever a new coach verdict is saved
+  useEffect(() => {
+    fetchCoachAccuracy();
+    if (typeof window === 'undefined') return;
+    window.addEventListener('sandbox-coach-result-saved', fetchCoachAccuracy);
+    return () => window.removeEventListener('sandbox-coach-result-saved', fetchCoachAccuracy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Separate active and past leaks
   const activeLeaks = fetchedLeaks.filter(l => l.status !== 'resolved');
   const pastLeaks = fetchedLeaks.filter(l => l.status === 'resolved');
@@ -642,6 +672,22 @@ export default function LeakFinderPage() {
                 {stats.avgEvLoss.toFixed(2)} BB/Occurrence
               </span>
             </div>
+            {/* Wave 3: Coach Mode Accuracy — live from sandbox_coach_results */}
+            {coachAccuracy && Number(coachAccuracy.total_hands) > 0 && (
+              <>
+                <div style={styles.statDivider}>|</div>
+                <div style={styles.statItem} title={`${coachAccuracy.correct_count} correct / ${coachAccuracy.total_hands} total hands in Coach Mode`}>
+                  <span style={styles.statLabel}>🎓 GTO Accuracy:</span>
+                  <span style={{
+                    ...styles.statValue,
+                    color: Number(coachAccuracy.accuracy_pct) >= 70 ? '#22c55e' : Number(coachAccuracy.accuracy_pct) >= 50 ? '#fbbf24' : '#ef4444',
+                    fontWeight: 800,
+                  }}>
+                    {coachAccuracy.accuracy_pct ?? '—'}%
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Main Layout */}

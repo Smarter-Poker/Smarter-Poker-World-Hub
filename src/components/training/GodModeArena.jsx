@@ -824,44 +824,45 @@ function GodModeArena({
         sessionSavedRef.current = true;
 
         const saveSession = async () => {
+            // BUG-01 FIX: Build payload OUTSIDE try/catch so catch block can reference it
+            const { getAuthUser } = await import('../../lib/authUtils');
+            const user = getAuthUser();
+            if (!user?.session?.access_token) return;
+
+            // Build position stats from hand history
+            const posStats = {};
+            const classCounts = {};
+            handHistory.forEach(h => {
+                const pos = h.handData?.heroPosition || 'UNK';
+                if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
+                posStats[pos].total++;
+                if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
+                posStats[pos].evLoss += (h.evLoss || 0);
+                if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
+            });
+
+            const payload = {
+                gameId,
+                gameName,
+                gtowScore,
+                totalEVLoss,
+                handsPlayed: totalQuestions,
+                mistakeCount: sessionMistakes,
+                avgEVLossPerHand,
+                avgEVLossPerMistake,
+                avgFrequencyDiff,
+                accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
+                correctCount,
+                bestStreak,
+                levelPassed,
+                level: currentLevel,
+                handHistory: handHistory.slice(0, 100),
+                positionStats: posStats,
+                classificationCounts: classCounts,
+                trainerConfig,
+            };
+
             try {
-                const { getAuthUser } = await import('../../lib/authUtils');
-                const user = getAuthUser();
-                if (!user?.session?.access_token) return;
-
-                // Build position stats from hand history
-                const posStats = {};
-                const classCounts = {};
-                handHistory.forEach(h => {
-                    const pos = h.handData?.heroPosition || 'UNK';
-                    if (!posStats[pos]) posStats[pos] = { correct: 0, total: 0, evLoss: 0 };
-                    posStats[pos].total++;
-                    if (h.classification === 'best' || h.classification === 'correct') posStats[pos].correct++;
-                    posStats[pos].evLoss += (h.evLoss || 0);
-                    if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
-                });
-
-                const payload = {
-                    gameId,
-                    gameName,
-                    gtowScore,
-                    totalEVLoss,
-                    handsPlayed: totalQuestions,
-                    mistakeCount: sessionMistakes,
-                    avgEVLossPerHand,
-                    avgEVLossPerMistake,
-                    avgFrequencyDiff,
-                    accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-                    correctCount,
-                    bestStreak,
-                    levelPassed,
-                    level: currentLevel,
-                    handHistory: handHistory.slice(0, 100),
-                    positionStats: posStats,
-                    classificationCounts: classCounts,
-                    trainerConfig,
-                };
-
                 const res = await fetch('/api/training/save-session', {
                     method: 'POST',
                     headers: {
@@ -876,13 +877,10 @@ function GodModeArena({
 
             } catch (e) {
                 console.warn('[GodModeArena] Network save failed, queueing to OfflineSyncQueue:', e.message);
-                const { getAuthUser } = await import('../../lib/authUtils');
-                const user = getAuthUser();
-                if (user?.session?.access_token) {
-                    await enqueueMutation('/api/training/save-session', payload, {
-                        'Authorization': `Bearer ${user.session.access_token}`
-                    });
-                }
+                // payload is now accessible here — no more ReferenceError
+                await enqueueMutation('/api/training/save-session', payload, {
+                    'Authorization': `Bearer ${user.session.access_token}`
+                });
             }
         };
         saveSession();
@@ -1079,30 +1077,6 @@ function GodModeArena({
                                 {tab.label}
                             </button>
                         ))}
-                    </div>
-
-                    {/* SUMMARY STATS ROW */}
-                    <div style={styles.summaryRow}>
-                        <div style={styles.summaryItem}>
-                            <div style={styles.summaryValue}>{totalQuestions}</div>
-                            <div style={styles.summaryLabel}>Hands</div>
-                        </div>
-                        <div style={styles.summaryItem}>
-                            <div style={{ ...styles.summaryValue, color: '#ef4444' }}>
-                                -{totalEVLoss.toFixed(1)}
-                            </div>
-                            <div style={styles.summaryLabel}>EV Loss (BB)</div>
-                        </div>
-                        <div style={styles.summaryItem}>
-                            <div style={{ ...styles.summaryValue, color: '#fbbf24' }}>
-                                {sessionMistakes}
-                            </div>
-                            <div style={styles.summaryLabel}>Mistakes</div>
-                        </div>
-                        <div style={styles.summaryItem}>
-                            <div style={styles.summaryValue}>{avgEVLossPerHand.toFixed(2)}</div>
-                            <div style={styles.summaryLabel}>EV/Hand</div>
-                        </div>
                     </div>
 
                     {/* ═══ TAB: OVERVIEW ═══ */}
