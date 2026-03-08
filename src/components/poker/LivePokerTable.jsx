@@ -1282,6 +1282,123 @@ function ObserverBar({ tableState, userId, send, onClickSeat, seatOffer }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// REBUY MODAL — Cash game "Add Chips" with balance check + table-chips API
+// ═══════════════════════════════════════════════════════════════════════════
+
+function RebuyModal({ currentStack, maxBuyIn, chipBalance, loading, error, onConfirm, onCancel }) {
+  const maxAdd = Math.max(0, Math.min(maxBuyIn - currentStack, chipBalance ?? 0));
+  const minAdd = 1;
+  const [amount, setAmount] = useState(maxAdd);
+  const insufficient = (chipBalance ?? 0) < minAdd;
+
+  const quickOptions = [
+    { label: 'Top Up', value: maxAdd },
+    { label: 'Half', value: Math.floor(maxAdd / 2) },
+    { label: 'Min', value: minAdd },
+  ].filter(o => o.value > 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 500,
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+        style={{
+          background: '#1C1E21', border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 14, padding: 24, width: 300, boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+        }}
+      >
+        <div style={{ fontSize: 16, fontWeight: 800, color: '#E4E6EB', marginBottom: 4 }}>💰 Add Chips</div>
+        <div style={{ fontSize: 12, color: '#B0B3B8', marginBottom: 16 }}>Top up your stack at the table</div>
+
+        {/* Balance info */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 12 }}>
+          <div>
+            <div style={{ color: '#B0B3B8' }}>Current Stack</div>
+            <div style={{ color: '#fff', fontWeight: 700 }}>{currentStack.toLocaleString()}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ color: '#B0B3B8' }}>Available Balance</div>
+            <div style={{ color: loading ? '#666' : (chipBalance ?? 0) < minAdd ? '#ef5350' : '#4caf50', fontWeight: 700 }}>
+              {loading ? '…' : (chipBalance ?? 0).toLocaleString()}
+            </div>
+          </div>
+        </div>
+
+        {/* Max add-on info */}
+        {!loading && maxAdd > 0 && (
+          <div style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 12 }}>
+            Max add: <strong style={{ color: '#fff' }}>{maxAdd.toLocaleString()}</strong>
+            <span style={{ color: '#666' }}> (table max: {maxBuyIn.toLocaleString()})</span>
+          </div>
+        )}
+
+        {insufficient ? (
+          <div style={{ color: '#ef5350', fontSize: 13, fontWeight: 600, padding: '10px 0' }}>
+            Insufficient chip balance to add chips.
+          </div>
+        ) : maxAdd <= 0 && !loading ? (
+          <div style={{ color: '#f59e0b', fontSize: 13, fontWeight: 600, padding: '10px 0' }}>
+            Stack is already at maximum buy-in ({maxBuyIn.toLocaleString()}).
+          </div>
+        ) : !loading && (
+          <>
+            {/* Quick select */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+              {quickOptions.map(o => (
+                <button key={o.label} onClick={() => setAmount(o.value)} style={{
+                  flex: 1, padding: '6px 0', fontSize: 11, fontWeight: 700,
+                  background: amount === o.value ? 'rgba(35,116,225,0.3)' : 'rgba(255,255,255,0.05)',
+                  color: amount === o.value ? '#4FC3F7' : '#B0B3B8',
+                  border: `1px solid ${amount === o.value ? 'rgba(35,116,225,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  borderRadius: 6, cursor: 'pointer',
+                }}>
+                  {o.label}<br />
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>{o.value.toLocaleString()}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Input */}
+            <input
+              type="number" min={minAdd} max={maxAdd} value={amount}
+              onChange={e => setAmount(Math.min(maxAdd, Math.max(minAdd, parseInt(e.target.value) || 0)))}
+              style={{
+                width: '100%', padding: '8px 10px', borderRadius: 8, fontSize: 14,
+                background: 'rgba(255,255,255,0.05)', color: '#fff',
+                border: '1px solid rgba(255,255,255,0.15)', outline: 'none',
+                boxSizing: 'border-box', marginBottom: 12,
+              }}
+            />
+          </>
+        )}
+
+        {error && <div style={{ color: '#ef5350', fontSize: 12, marginBottom: 10 }}>{error}</div>}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onCancel} style={{
+            flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 700,
+            background: 'rgba(255,255,255,0.05)', color: '#B0B3B8',
+            border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+          }}>Cancel</button>
+          {!insufficient && maxAdd > 0 && !loading && (
+            <button onClick={() => onConfirm(amount)} disabled={amount < minAdd || amount > maxAdd} style={{
+              flex: 2, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 700,
+              background: 'rgba(35,116,225,0.8)', color: '#fff',
+              border: 'none', cursor: 'pointer', opacity: (amount < minAdd || amount > maxAdd) ? 0.5 : 1,
+            }}>Add {amount.toLocaleString()} Chips</button>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // BUY-IN DIALOG
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1574,7 +1691,10 @@ function ChatOverlay({ messages, onSend }) {
 function TournamentHUD({ tournamentId, userId }) {
   const [state, setState] = useState(null);
   const [countdown, setCountdown] = useState(0);
+  const [breakCountdown, setBreakCountdown] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [prevRemaining, setPrevRemaining] = useState(null);
+  const [elimFlash, setElimFlash] = useState(false);
 
   // Poll tournament state every 5s
   useEffect(() => {
@@ -1588,8 +1708,20 @@ function TournamentHUD({ tournamentId, userId }) {
         });
         const d = await res.json();
         if (d.success && active) {
+          // Detect eliminations since last poll
+          if (prevRemaining !== null && d.playersRemaining < prevRemaining) {
+            setElimFlash(true);
+            setTimeout(() => setElimFlash(false), 2000);
+          }
+          setPrevRemaining(d.playersRemaining);
           setState(d);
-          if (d.levelTimeRemaining > 0) setCountdown(d.levelTimeRemaining);
+          if (d.status === 'break' && d.breakTimeRemaining > 0) {
+            setBreakCountdown(d.breakTimeRemaining);
+            setCountdown(0);
+          } else if (d.levelTimeRemaining > 0) {
+            setCountdown(d.levelTimeRemaining);
+            setBreakCountdown(0);
+          }
         }
       } catch (_) { }
     };
@@ -1598,19 +1730,38 @@ function TournamentHUD({ tournamentId, userId }) {
     return () => { active = false; clearInterval(iv); };
   }, [tournamentId]);
 
-  // Local countdown timer
+  // Level countdown
   useEffect(() => {
     if (countdown <= 0) return;
     const iv = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
     return () => clearInterval(iv);
   }, [countdown > 0]);
 
+  // Break countdown
+  useEffect(() => {
+    if (breakCountdown <= 0) return;
+    const iv = setInterval(() => setBreakCountdown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(iv);
+  }, [breakCountdown > 0]);
+
   if (!state) return null;
 
-  const min = Math.floor(countdown / 60);
-  const sec = countdown % 60;
-  const isLow = countdown > 0 && countdown < 60;
+  const isBreak = state.status === 'break';
+  const fmtTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const activeCountdown = isBreak ? breakCountdown : countdown;
+  const isLow = !isBreak && activeCountdown > 0 && activeCountdown < 60;
   const blinds = state.blinds || {};
+
+  // ITM — in the money
+  const paidPlaces = state.paidPlaces || 0;
+  const remaining = state.playersRemaining || 0;
+  const isITM = paidPlaces > 0 && remaining <= paidPlaces;
+  const bubblePlayer = paidPlaces > 0 && remaining === paidPlaces + 1;
 
   return (
     <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 200 }}>
@@ -1618,23 +1769,56 @@ function TournamentHUD({ tournamentId, userId }) {
       <div
         onClick={() => setExpanded(!expanded)}
         style={{
-          background: 'rgba(24,25,26,0.95)', border: '1px solid rgba(255,215,0,0.3)',
+          background: isITM ? 'rgba(20,40,20,0.97)' : 'rgba(24,25,26,0.95)',
+          border: `1px solid ${isITM ? 'rgba(76,175,80,0.5)' : bubblePlayer ? 'rgba(251,191,36,0.6)' : 'rgba(255,215,0,0.3)'}`,
           borderRadius: 10, padding: '6px 14px', cursor: 'pointer',
           backdropFilter: 'blur(10px)', boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', gap: 10, minWidth: 200,
+          display: 'flex', alignItems: 'center', gap: 10, minWidth: 220,
         }}
       >
-        <div style={{ fontSize: 10, fontWeight: 800, color: '#FFD700', textTransform: 'uppercase' }}>🏆 LVL {state.currentLevel}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{blinds.smallBlind || '?'}/{blinds.bigBlind || '?'}</div>
-        {blinds.ante > 0 && <div style={{ fontSize: 11, color: '#B0B3B8' }}>A:{blinds.ante}</div>}
-        <div style={{
-          fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums',
-          color: isLow ? '#FF6B6B' : countdown > 0 ? '#4ECDC4' : '#666',
-          marginLeft: 'auto',
-        }}>
-          {countdown > 0 ? `${min}:${sec.toString().padStart(2, '0')}` : '--:--'}
-        </div>
+        {isBreak ? (
+          <>
+            <div style={{ fontSize: 10, fontWeight: 800, color: '#4ECDC4', textTransform: 'uppercase' }}>☕ BREAK</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+              Next: {state.nextBlinds ? `${state.nextBlinds.smallBlind}/${state.nextBlinds.bigBlind}` : '—'}
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', color: '#4ECDC4', marginLeft: 'auto' }}>
+              {breakCountdown > 0 ? fmtTime(breakCountdown) : '--:--'}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 10, fontWeight: 800, color: isITM ? '#4caf50' : '#FFD700', textTransform: 'uppercase' }}>
+              {isITM ? '💰 ITM' : `🏆 LVL ${state.currentLevel}`}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>{blinds.smallBlind || '?'}/{blinds.bigBlind || '?'}</div>
+            {blinds.ante > 0 && <div style={{ fontSize: 11, color: '#B0B3B8' }}>A:{blinds.ante}</div>}
+            <div style={{
+              fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto',
+              color: isLow ? '#FF6B6B' : countdown > 0 ? '#4ECDC4' : '#666',
+            }}>
+              {countdown > 0 ? fmtTime(countdown) : '--:--'}
+            </div>
+          </>
+        )}
+        {/* Elimination flash */}
+        {elimFlash && (
+          <div style={{ fontSize: 10, fontWeight: 800, color: '#ef5350', animation: 'pulse 0.5s ease-in-out' }}>
+            💀 OUT
+          </div>
+        )}
       </div>
+
+      {/* Bubble warning banner */}
+      {bubblePlayer && (
+        <div style={{
+          marginTop: 4, padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800,
+          background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.5)',
+          color: '#fbbf24', textAlign: 'center',
+        }}>
+          ⚠️ BUBBLE — {remaining} players left, {paidPlaces} paid
+        </div>
+      )}
 
       {/* Expanded panel */}
       <AnimatePresence>
@@ -1646,23 +1830,59 @@ function TournamentHUD({ tournamentId, userId }) {
             style={{
               background: 'rgba(24,25,26,0.97)', border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 10, padding: '12px 14px', overflow: 'hidden',
-              backdropFilter: 'blur(10px)',
+              backdropFilter: 'blur(10px)', minWidth: 220,
             }}
           >
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, fontSize: 12 }}>
-              <div><span style={{ color: '#B0B3B8' }}>Players:</span> <strong style={{ color: '#fff' }}>{state.playersRemaining}/{state.totalEntries}</strong></div>
-              <div><span style={{ color: '#B0B3B8' }}>Avg Stack:</span> <strong style={{ color: '#fff' }}>{(state.averageStack || 0).toLocaleString()}</strong></div>
-              <div><span style={{ color: '#B0B3B8' }}>Prize Pool:</span> <strong style={{ color: '#FFD700' }}>{(state.prizePool || 0).toLocaleString()}</strong></div>
-              <div><span style={{ color: '#B0B3B8' }}>Tables:</span> <strong style={{ color: '#fff' }}>{state.tablesActive || 0}</strong></div>
+              <div>
+                <span style={{ color: '#B0B3B8' }}>Players: </span>
+                <strong style={{ color: elimFlash ? '#ef5350' : '#fff' }}>
+                  {state.playersRemaining}/{state.totalEntries}
+                </strong>
+              </div>
+              <div><span style={{ color: '#B0B3B8' }}>Avg Stack: </span><strong style={{ color: '#fff' }}>{(state.averageStack || 0).toLocaleString()}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Prize Pool: </span><strong style={{ color: '#FFD700' }}>{(state.prizePool || 0).toLocaleString()}</strong></div>
+              <div><span style={{ color: '#B0B3B8' }}>Tables: </span><strong style={{ color: '#fff' }}>{state.tablesActive || 0}</strong></div>
+
+              {/* ITM / paid places */}
+              {paidPlaces > 0 && (
+                <div style={{ gridColumn: '1/3' }}>
+                  <span style={{ color: '#B0B3B8' }}>Paid: </span>
+                  <strong style={{ color: isITM ? '#4caf50' : '#B0B3B8' }}>
+                    Top {paidPlaces} {isITM ? '✅ You\'re in the money!' : `(${remaining - paidPlaces} eliminations to go)`}
+                  </strong>
+                </div>
+              )}
+
+              {/* Next blinds */}
               {state.nextBlinds && (
                 <div style={{ gridColumn: '1/3' }}>
-                  <span style={{ color: '#B0B3B8' }}>Next:</span>{' '}
+                  <span style={{ color: '#B0B3B8' }}>Next Level: </span>
                   <strong style={{ color: '#81C784' }}>
                     {state.nextBlinds.smallBlind}/{state.nextBlinds.bigBlind}
                     {state.nextBlinds.ante > 0 ? ` (A:${state.nextBlinds.ante})` : ''}
                   </strong>
                 </div>
               )}
+
+              {/* Blind schedule — next 3 levels */}
+              {state.blindSchedule && state.blindSchedule.length > 0 && (
+                <div style={{ gridColumn: '1/3', marginTop: 6 }}>
+                  <div style={{ color: '#B0B3B8', marginBottom: 4, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Upcoming Levels</div>
+                  {state.blindSchedule.slice(0, 3).map((lvl, i) => (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', fontSize: 11,
+                      padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      color: i === 0 ? '#4ECDC4' : '#B0B3B8',
+                    }}>
+                      <span>Lvl {(state.currentLevel || 0) + i + 1}</span>
+                      <span>{lvl.smallBlind}/{lvl.bigBlind}{lvl.ante > 0 ? ` A:${lvl.ante}` : ''}</span>
+                      {lvl.duration && <span>{Math.floor(lvl.duration / 60)}m</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {state.lateRegOpen && (
                 <div style={{ gridColumn: '1/3', color: '#4ECDC4', fontWeight: 700 }}>
                   📝 Late Registration Open
@@ -1707,6 +1927,7 @@ function TournamentHUD({ tournamentId, userId }) {
     </div>
   );
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TABLE INFO BAR
@@ -2275,6 +2496,10 @@ function LivePokerTable({
 
   // UI state
   const [buyInSeat, setBuyInSeat] = useState(null);
+  const [showRebuy, setShowRebuy] = useState(false);
+  const [rebuyBalance, setRebuyBalance] = useState(null);
+  const [rebuyBalanceLoading, setRebuyBalanceLoading] = useState(false);
+  const [rebuyError, setRebuyError] = useState(null);
   const [clubChipBalance, setClubChipBalance] = useState(null);
 
   // Auto-open buy-in when waitlist seat is offered
@@ -2463,10 +2688,54 @@ function LivePokerTable({
     soundRef.current?.play('chat');
     send('send_chat', { message });
   }, [send]);
-  const handleAddChips = useCallback(() => {
-    const amount = prompt('Amount to add:');
-    if (amount) send('add_chips', { amount: parseInt(amount) });
-  }, [send]);
+  const handleAddChips = useCallback(async () => {
+    setRebuyError(null);
+    setRebuyBalance(null);
+    setShowRebuy(true);
+    if (!tableState?.clubId || !userId) return;
+    setRebuyBalanceLoading(true);
+    try {
+      const { data } = await supabase
+        .from('club_members')
+        .select('chip_balance')
+        .eq('club_id', tableState.clubId)
+        .eq('user_id', userId)
+        .maybeSingle();
+      setRebuyBalance(data?.chip_balance ?? 0);
+    } catch (_) {
+      setRebuyBalance(0);
+    } finally {
+      setRebuyBalanceLoading(false);
+    }
+  }, [supabase, tableState?.clubId, userId]);
+
+  const handleRebuyConfirm = useCallback(async (amount) => {
+    setRebuyError(null);
+    const token = getAccessToken();
+    try {
+      const res = await fetch('/api/club-arena/table-chips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          clubId: tableState?.clubId,
+          tableId: tableState?.tableId,
+          userId,
+          action: 'rebuy',
+          amount,
+        }),
+      });
+      const d = await res.json();
+      if (!d.success) {
+        setRebuyError(d.error || 'Rebuy failed');
+        return;
+      }
+      // Chips locked — now tell the engine
+      send('add_chips', { amount });
+      setShowRebuy(false);
+    } catch (e) {
+      setRebuyError('Network error. Please try again.');
+    }
+  }, [send, tableState?.clubId, tableState?.tableId, userId]);
   const handleDiscard = useCallback((cardIndex) => {
     send('discard', { cardIndex });
   }, [send]);
@@ -2776,6 +3045,21 @@ function LivePokerTable({
             isClubTable={!!tableState?.clubId}
             onConfirm={handleSitDown}
             onCancel={() => setBuyInSeat(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Rebuy / Add Chips modal */}
+      <AnimatePresence>
+        {showRebuy && (
+          <RebuyModal
+            currentStack={mySeat?.stack || 0}
+            maxBuyIn={tableState?.config?.maxBuyIn || 200}
+            chipBalance={rebuyBalance}
+            loading={rebuyBalanceLoading}
+            error={rebuyError}
+            onConfirm={handleRebuyConfirm}
+            onCancel={() => { setShowRebuy(false); setRebuyError(null); }}
           />
         )}
       </AnimatePresence>
