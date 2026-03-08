@@ -103,31 +103,42 @@ function StarField() {
         void main() {
           vec3 dir = normalize(vWorldPos);
 
-          // Base gradient: deep navy at bottom → dark purple at top
+          // Base gradient: rich navy-purple (BRIGHT enough to see!)
           float y = dir.y * 0.5 + 0.5;
-          vec3 bottomColor = vec3(0.01, 0.02, 0.06);
-          vec3 topColor = vec3(0.04, 0.02, 0.08);
+          vec3 bottomColor = vec3(0.03, 0.05, 0.14);
+          vec3 topColor = vec3(0.08, 0.04, 0.16);
+          vec3 horizonColor = vec3(0.06, 0.10, 0.22);
+          // Add bright horizon band
+          float horizonFactor = 1.0 - abs(dir.y);
+          horizonFactor = pow(horizonFactor, 4.0);
           vec3 color = mix(bottomColor, topColor, y);
+          color = mix(color, horizonColor, horizonFactor * 0.6);
 
-          // Nebula clouds
+          // Nebula clouds — MORE visible
           float neb = noise(dir * 3.0 + uTime * 0.01);
-          neb = neb * neb * 0.15;
-          color += vec3(0.05, 0.02, 0.08) * neb;
-          color += vec3(0.02, 0.06, 0.10) * noise(dir * 5.0 - uTime * 0.005) * 0.1;
+          neb = neb * neb * 0.35;
+          color += vec3(0.10, 0.04, 0.16) * neb;
+          color += vec3(0.04, 0.12, 0.20) * noise(dir * 5.0 - uTime * 0.005) * 0.2;
 
-          // Stars
+          // Bright stars — MORE of them, BRIGHTER
           vec3 starGrid = dir * 200.0;
           float star = hash(floor(starGrid));
-          float brightness = step(0.997, star);
+          float brightness = step(0.994, star);
           float twinkle = 0.5 + 0.5 * sin(uTime * 2.0 + star * 100.0);
-          color += vec3(0.8, 0.9, 1.0) * brightness * twinkle * 0.8;
+          color += vec3(1.0, 1.0, 1.2) * brightness * twinkle * 1.5;
 
-          // Medium stars
+          // Medium stars — more visible
           vec3 starGrid2 = dir * 100.0;
           float star2 = hash(floor(starGrid2));
-          float brightness2 = step(0.993, star2);
+          float brightness2 = step(0.988, star2);
           float twinkle2 = 0.3 + 0.7 * sin(uTime * 1.5 + star2 * 50.0);
-          color += vec3(0.5, 0.7, 1.0) * brightness2 * twinkle2 * 0.4;
+          color += vec3(0.6, 0.8, 1.2) * brightness2 * twinkle2 * 0.7;
+
+          // Faint stars — background density
+          vec3 starGrid3 = dir * 60.0;
+          float star3 = hash(floor(starGrid3));
+          float brightness3 = step(0.975, star3);
+          color += vec3(0.3, 0.4, 0.6) * brightness3 * 0.2;
 
           gl_FragColor = vec4(color, 1.0);
         }
@@ -189,13 +200,13 @@ function NeonGridGround() {
           float pulse = smoothstep(0.3, 0.0, abs(dist - mod(uTime * 2.0, 14.0)));
           float pulse2 = smoothstep(0.3, 0.0, abs(dist - mod(uTime * 2.0 + 7.0, 14.0)));
 
-          // Grid color
+          // Grid color — MUCH brighter
           vec3 gridColor = vec3(0.43, 0.91, 0.94);
-          float alpha = gridLine * fade * 0.2;
-          alpha += gridLine * (pulse + pulse2) * fade * 0.3;
+          float alpha = gridLine * fade * 0.4;
+          alpha += gridLine * (pulse + pulse2) * fade * 0.6;
 
-          // Center glow
-          float centerGlow = exp(-dist * 0.3) * 0.08;
+          // Center glow — stronger
+          float centerGlow = exp(-dist * 0.25) * 0.18;
 
           vec3 color = gridColor * (alpha + centerGlow);
 
@@ -359,25 +370,25 @@ function GroundPlatform({ quality }) {
       {/* Inner ring glow — pod orbit indicator */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[3.85, 3.98, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.55} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.8} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Mid ring */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[2.95, 3.2, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.6} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.85} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer ring glow — platform edge */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.1, 5.55, 64]} />
-        <meshBasicMaterial color="#3b82f6" transparent opacity={0.6} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.85} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer haze ring */}
       <mesh position={[0, -0.99, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.5, 7.5, 64]} />
-        <meshBasicMaterial color="#00d4ff" transparent opacity={0.10} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
+        <meshBasicMaterial color="#00d4ff" transparent opacity={0.20} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
       </mesh>
     </group>
   );
@@ -396,14 +407,14 @@ function EnergyBeam() {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
 
-    // Main beam pulse — much more visible
+    // Main beam pulse — HIGHLY visible
     if (beamRef.current) {
-      beamRef.current.material.opacity = 0.35 + 0.10 * Math.sin(t * 1.5);
+      beamRef.current.material.opacity = 0.55 + 0.15 * Math.sin(t * 1.5);
     }
 
     // Glow beam pulse
     if (glowBeamRef.current) {
-      glowBeamRef.current.material.opacity = 0.12 + 0.06 * Math.sin(t * 1.2);
+      glowBeamRef.current.material.opacity = 0.25 + 0.10 * Math.sin(t * 1.2);
     }
 
     // Top bright spot
@@ -425,13 +436,13 @@ function EnergyBeam() {
 
   return (
     <group position={[0, -0.9, 0]}>
-      {/* Main beam cylinder — MUCH more visible */}
+      {/* Main beam cylinder — HYPER visible */}
       <mesh ref={beamRef}>
         <cylinderGeometry args={[0.25, 0.45, 10, 16, 1, true]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.35}
+          opacity={0.55}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -444,7 +455,7 @@ function EnergyBeam() {
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.12}
+          opacity={0.25}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -498,16 +509,16 @@ function OrbitalHalo() {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
 
-    // Ring 1 — main orbital ring
+    // Ring 1 — main orbital ring — BRIGHT
     if (ring1Ref.current) {
       ring1Ref.current.rotation.z = t * 0.05;
-      ring1Ref.current.material.opacity = 0.25 + 0.08 * Math.sin(t * 0.8);
+      ring1Ref.current.material.opacity = 0.45 + 0.15 * Math.sin(t * 0.8);
     }
 
     // Ring 2 — secondary, tilted ring, slower rotation
     if (ring2Ref.current) {
       ring2Ref.current.rotation.z = t * 0.03;
-      ring2Ref.current.material.opacity = 0.18 + 0.06 * Math.sin(t * 0.6 + 1.5);
+      ring2Ref.current.material.opacity = 0.35 + 0.10 * Math.sin(t * 0.6 + 1.5);
     }
   });
 
@@ -519,7 +530,7 @@ function OrbitalHalo() {
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.25}
+          opacity={0.45}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -536,7 +547,7 @@ function OrbitalHalo() {
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.18}
+          opacity={0.35}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -552,7 +563,7 @@ function OrbitalHalo() {
 function SceneFog() {
   useFrame(({ scene }) => {
     if (!scene.fog) {
-      scene.fog = new FogExp2('#030818', 0.045);
+      scene.fog = new FogExp2('#030818', 0.018);
     }
   });
   return null;
@@ -747,25 +758,25 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       <SceneFog />
 
       {/* ═══ CINEMATIC LIGHTING ═══ */}
-      <ambientLight intensity={0.35} color="#88ccdd" />
+      <ambientLight intensity={0.5} color="#88ccdd" />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={2.2}
+        intensity={3.0}
         color="#ffffff"
         castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-5, 8, -3]} intensity={1.2} color="#6ee7ef" />
-      <directionalLight position={[0, 3, -8]} intensity={0.8} color="#3b82f6" />
-      <pointLight position={[0, 5, 0]} intensity={3.5} color="#6ee7ef" distance={20} decay={2} />
+      <directionalLight position={[-5, 8, -3]} intensity={2.0} color="#6ee7ef" />
+      <directionalLight position={[0, 3, -8]} intensity={1.2} color="#3b82f6" />
+      <pointLight position={[0, 5, 0]} intensity={5.0} color="#6ee7ef" distance={25} decay={2} />
       {/* Underlight for pod pedestals */}
-      <pointLight position={[0, -0.5, 0]} intensity={1.5} color="#ff8c00" distance={8} decay={2} />
+      <pointLight position={[0, -0.5, 0]} intensity={2.5} color="#ff8c00" distance={10} decay={2} />
 
       {/* Additional colored accent lights — hyper-realistic */}
-      <pointLight position={[4, 3, -3]} intensity={1.5} color="#ff4444" distance={12} decay={2} />
-      <pointLight position={[-4, 2, 3]} intensity={1.2} color="#8b5cf6" distance={10} decay={2} />
-      <pointLight position={[0, 6, -2]} intensity={0.8} color="#ffd700" distance={15} decay={2} />
+      <pointLight position={[4, 3, -3]} intensity={2.5} color="#ff4444" distance={15} decay={2} />
+      <pointLight position={[-4, 2, 3]} intensity={2.0} color="#8b5cf6" distance={12} decay={2} />
+      <pointLight position={[0, 6, -2]} intensity={1.5} color="#ffd700" distance={18} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
