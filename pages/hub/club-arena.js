@@ -283,6 +283,13 @@ export default function ClubArenaPage() {
     const [showFindPlayer, setShowFindPlayer] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Midway Union application
+    const [showUnionApply, setShowUnionApply] = useState(false);
+    const [unionApplicationStatus, setUnionApplicationStatus] = useState(null); // null | 'pending' | 'approved' | 'rejected'
+    const [unionApplyMessage, setUnionApplyMessage] = useState('');
+    const [unionApplying, setUnionApplying] = useState(false);
+    const [unionApplyResult, setUnionApplyResult] = useState(null);
+
     // Auto-open join modal if ?agent= URL param present (agent's player_number)
     useEffect(() => {
         const { agent } = router.query;
@@ -403,7 +410,23 @@ export default function ClubArenaPage() {
                     userRole: m.role,
                 })).filter(c => c && c.status === 'active');
                 setClubs(userClubs);
-                if (userClubs.length > 0) setActiveClub(userClubs[0]);
+                if (userClubs.length > 0) {
+                    setActiveClub(userClubs[0]);
+                    // Check union application status for owner's first club
+                    const ownerClub = userClubs.find(c => c.userRole === 'owner' && !c.union_id);
+                    if (ownerClub) {
+                        const token = getAccessToken();
+                        if (token) {
+                            fetch('/api/club-arena/union-application', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ action: 'status', clubId: ownerClub.id }),
+                            }).then(r => r.json()).then(d => {
+                                setUnionApplicationStatus(d.application?.status || null);
+                            }).catch(() => {});
+                        }
+                    }
+                }
             }
         } catch (err) {
             console.error('[ClubArena] Failed to load clubs:', err);
@@ -613,6 +636,103 @@ export default function ClubArenaPage() {
                 {showJoinClub && <JoinClubModal user={user} onClose={() => setShowJoinClub(false)} onJoined={handleClubJoined} initialAgentCode={initialAgentCode} />}
                 {showFindPlayer && <FindPlayerModal onClose={() => setShowFindPlayer(false)} />}
 
+                {/* Midway Union Application Modal */}
+                {showUnionApply && (() => {
+                    const ownerClub = clubs.find(c => c.userRole === 'owner' && !c.union_id);
+                    const isPending = unionApplicationStatus === 'pending';
+                    return (
+                        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+                            onClick={() => setShowUnionApply(false)}>
+                            <div style={{ background: '#242526', borderRadius: 16, padding: 28, width: '100%', maxWidth: 440, border: '1px solid #3E4042' }}
+                                onClick={e => e.stopPropagation()}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                    <h2 style={{ color: '#E4E6EB', fontSize: 20, fontWeight: 800, margin: 0 }}>🏛️ Apply to Midway Union</h2>
+                                    <button onClick={() => setShowUnionApply(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 22, cursor: 'pointer' }}>×</button>
+                                </div>
+
+                                {isPending ? (
+                                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                        <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
+                                        <div style={{ color: '#FFD700', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Application Pending</div>
+                                        <div style={{ color: '#B0B3B8', fontSize: 13, lineHeight: 1.5 }}>
+                                            Your application for <strong style={{ color: '#E4E6EB' }}>{ownerClub?.name}</strong> is under review by the Midway Union admin team. You&apos;ll be notified when a decision is made.
+                                        </div>
+                                    </div>
+                                ) : unionApplyResult ? (
+                                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                                        <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                                        <div style={{ color: '#31A24C', fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Application Submitted!</div>
+                                        <div style={{ color: '#B0B3B8', fontSize: 13, lineHeight: 1.5 }}>{unionApplyResult}</div>
+                                        <button onClick={() => { setShowUnionApply(false); setUnionApplyResult(null); }}
+                                            style={{ marginTop: 20, background: '#2374E1', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                                            Done
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {!ownerClub ? (
+                                            <div style={{ color: '#B0B3B8', fontSize: 14, textAlign: 'center', padding: 20 }}>
+                                                You need to own a club that isn&apos;t already in a union to apply.
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div style={{ background: '#18191A', borderRadius: 10, padding: 14, marginBottom: 16, border: '1px solid #3E4042' }}>
+                                                    <div style={{ fontSize: 12, color: '#B0B3B8', marginBottom: 4 }}>Applying for</div>
+                                                    <div style={{ fontSize: 16, fontWeight: 700, color: '#E4E6EB' }}>{ownerClub.name}</div>
+                                                    <div style={{ fontSize: 12, color: '#B0B3B8', marginTop: 2 }}>Code: {ownerClub.club_id} • {ownerClub.member_count || 0} members</div>
+                                                </div>
+                                                <div style={{ background: '#1a2744', borderRadius: 10, padding: 14, marginBottom: 20, border: '1px solid #2374E144' }}>
+                                                    <div style={{ fontSize: 13, color: '#B0B3B8', lineHeight: 1.6 }}>
+                                                        Joining the <strong style={{ color: '#2374E1' }}>Midway Union</strong> connects your club to the union rake-sharing and settlement system. Your club&apos;s commission rate will be set by the union admin.
+                                                    </div>
+                                                </div>
+                                                <label style={{ display: 'block', fontSize: 13, color: '#B0B3B8', marginBottom: 6, fontWeight: 600 }}>
+                                                    Message to Union Admin <span style={{ fontWeight: 400 }}>(optional)</span>
+                                                </label>
+                                                <textarea
+                                                    value={unionApplyMessage}
+                                                    onChange={e => setUnionApplyMessage(e.target.value)}
+                                                    placeholder="Tell us about your club, player count, activity level..."
+                                                    maxLength={500}
+                                                    rows={3}
+                                                    style={{ width: '100%', background: '#18191A', border: '1px solid #3E4042', borderRadius: 8, color: '#E4E6EB', fontSize: 13, padding: 12, outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: 20 }}
+                                                />
+                                                <button
+                                                    disabled={unionApplying}
+                                                    onClick={async () => {
+                                                        setUnionApplying(true);
+                                                        try {
+                                                            const token = getAccessToken();
+                                                            const res = await fetch('/api/club-arena/union-application', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                body: JSON.stringify({ action: 'apply', clubId: ownerClub.id, message: unionApplyMessage }),
+                                                            });
+                                                            const data = await res.json();
+                                                            if (data.success) {
+                                                                setUnionApplicationStatus('pending');
+                                                                setUnionApplyResult(data.message);
+                                                            } else {
+                                                                alert(data.error || 'Failed to submit application');
+                                                            }
+                                                        } catch (e) {
+                                                            alert('Network error — please try again');
+                                                        } finally {
+                                                            setUnionApplying(false);
+                                                        }
+                                                    }}
+                                                    style={{ width: '100%', background: '#2374E1', color: '#fff', border: 'none', borderRadius: 10, padding: '13px 0', fontSize: 15, fontWeight: 700, cursor: unionApplying ? 'not-allowed' : 'pointer', opacity: unionApplying ? 0.6 : 1 }}>
+                                                    {unionApplying ? 'Submitting...' : '🏛️ Submit Application'}
+                                                </button>
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 {/* Hamburger Menu */}
                 <HamburgerMenu
                     isOpen={menuOpen}
@@ -621,7 +741,14 @@ export default function ClubArenaPage() {
                     theme="dark"
                     user={user}
                     showProfile={true}
-                    {...getMenuConfig('club-arena', user, {}, {})}
+                    {...getMenuConfig('club-arena', user, {
+                        isClubOwner: clubs.some(c => c.userRole === 'owner'),
+                        clubInUnion: clubs.find(c => c.userRole === 'owner')?.union_id ? true : false,
+                        unionApplicationStatus,
+                    }, {
+                        onApplyToUnion: () => { setMenuOpen(false); setShowUnionApply(true); },
+                        onViewApplicationStatus: () => { setMenuOpen(false); setShowUnionApply(true); },
+                    })}
                 />
 
                 {/* CLUB BOTTOM NAVIGATION BAR */}

@@ -866,7 +866,62 @@ export const MENU_CONFIGS = {
             createMenuItem.navigation('Hand Histories', '/hub/club-arena/hand-histories'),
             createMenuItem.navigation('Player Stats', '/hub/club-arena/player-stats'),
             createMenuItem.divider(),
+            // Show Midway Union application option if:
+            // - User is a club owner (state.isClubOwner)
+            // - Their active club is NOT already in a union (state.clubInUnion === false)
+            ...(state.isClubOwner && state.clubInUnion === false ? [
+                createMenuItem.section('Midway Union'),
+                ...(state.unionApplicationStatus === 'pending' ? [
+                    createMenuItem.action(
+                        '⏳ Union Application Pending',
+                        handlers.onViewApplicationStatus,
+                        null, false, true
+                    ),
+                ] : state.unionApplicationStatus === 'approved' ? [] : [
+                    createMenuItem.action(
+                        '🏛️ Apply to Midway Union',
+                        handlers.onApplyToUnion,
+                        null, true, true
+                    ),
+                ]),
+                createMenuItem.divider(),
+            ] : []),
             createMenuItem.section('Settings'),
+            createMenuItem.toggle(
+                'Sound Effects',
+                state.soundEffects !== false,
+                handlers.setSoundEffects
+            ),
+            createMenuItem.toggle(
+                'Notifications',
+                state.notifications !== false,
+                handlers.setNotifications
+            ),
+            createMenuItem.toggle(
+                'Auto-Rebuy',
+                state.autoRebuy || false,
+                handlers.setAutoRebuy
+            ),
+            createMenuItem.toggle(
+                'Show Table Previews',
+                state.tablePreview !== false,
+                handlers.setTablePreview,
+                'See table cards before joining'
+            ),
+            createMenuItem.toggle(
+                'Compact View',
+                state.compactView || false,
+                handlers.setCompactView
+            ),
+            createMenuItem.divider(),
+            createMenuItem.navigation('Table Preferences', '/hub/settings?section=table'),
+            createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy')
+        ],
+        bottomLinks: [
+            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
+            { label: 'Home', href: '/hub', icon: MenuIcons.home }
+        ]
+    }),
             createMenuItem.toggle(
                 'Sound Effects',
                 state.soundEffects !== false,

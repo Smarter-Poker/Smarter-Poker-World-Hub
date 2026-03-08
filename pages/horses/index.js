@@ -138,11 +138,31 @@ export default function HorsesAdmin() {
   // Club Arena admin state
   const [caLoaded, setCaLoaded] = useState(false);
   const [caLoading, setCaLoading] = useState(false);
+  const [caSection, setCaSection] = useState('overview'); // top-level section
+  // Overview stats
+  const [caStats, setCaStats] = useState(null);
+  // Clubs
   const [caClubs, setCaClubs] = useState([]);
   const [caSelectedClub, setCaSelectedClub] = useState(null);
-  const [caFlags, setCaFlags] = useState([]);
-  const [caSessions, setCaSessions] = useState([]);
-  const [caTab, setCaTab] = useState('overview'); // 'overview' | 'flags' | 'sessions'
+  const [caClubDetail, setCaClubDetail] = useState(null); // { members, agents, tables, pending_cashouts, flags, sessions }
+  const [caClubSubTab, setCaClubSubTab] = useState('overview');
+  // Finance
+  const [caFinance, setCaFinance] = useState(null);
+  const [caPendingCashouts, setCaPendingCashouts] = useState([]);
+  // Users
+  const [caUserSearch, setCaUserSearch] = useState('');
+  const [caUserResults, setCaUserResults] = useState([]);
+  const [caUserSearching, setCaUserSearching] = useState(false);
+  const [caSelectedUser, setCaSelectedUser] = useState(null);
+  // Unions
+  const [caUnions, setCaUnions] = useState([]);
+  // Union Applications
+  const [caApplications, setCaApplications] = useState([]);
+  const [caAppLoading, setCaAppLoading] = useState(false);
+  const [caAppTab, setCaAppTab] = useState('pending'); // 'pending' | 'all'
+  const [caAppCommission, setCaAppCommission] = useState({}); // { [appId]: '90' }
+  const [caAppReason, setCaAppReason] = useState(''); // rejection reason text
+  // Processing
   const [caProcessing, setCaProcessing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -498,48 +518,197 @@ export default function HorsesAdmin() {
     }
   };
 
-  const loadClubArenaData = async (clubId) => {
+  // ── Club Arena Admin helpers ──────────────────────────────────────────
+  const caFetch = async (endpoint, body) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  };
+
+  const loadClubArenaData = async () => {
     setCaLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) { showNotification('Session expired', 'error'); return; }
+      // Platform-wide stats from DB
+      const [
+        { count: totalClubs },
+        { count: totalMembers },
+        { count: totalTables },
+        { data: pendingCashouts },
+        { data: clubs },
+        { data: unions },
+        { data: recentMints },
+        { data: recentTxns },
+      ] = await Promise.all([
+        supabase.from('clubs').select('*', { count: 'exact', head: true }),
+        supabase.from('club_members').select('*', { count: 'exact', head: true }),
+        supabase.from('tables').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('cashout_requests').select('id, amount, created_at, club_id, clubs(name)').eq('status', 'pending').order('created_at', { ascending: false }).limit(100),
+        supabase.from('clubs').select('id, name, club_id, member_count, status, created_at, owner_id').order('created_at', { ascending: false }).limit(200),
+        supabase.from('unions').select('id, name, code, created_at').order('created_at', { ascending: false }).limit(100),
+        supabase.from('chip_transactions').select('amount, created_at').eq('type', 'mint').gte('created_at', new Date(Date.now() - 86400000).toISOString()).limit(200),
+        supabase.from('chip_transactions').select('id, amount, type, created_at, club_id, clubs(name)').order('created_at', { ascending: false }).limit(50),
+      ]);
 
-      if (!clubId) {
-        // Load all clubs overview
-        const res = await fetch('/api/club-arena/save-settings?action=list_all', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // Fallback: query supabase directly for clubs list
-        const { data: clubs } = await supabase
-          .from('clubs')
-          .select('id, name, club_id, member_count, status, created_at')
-          .order('created_at', { ascending: false })
-          .limit(100);
-        setCaClubs(clubs || []);
-        setCaLoaded(true);
-      } else {
-        // Load flags + sessions for selected club
-        const [flagsRes, sessionsRes] = await Promise.all([
-          fetch('/api/club-arena/anti-cheat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: 'get_flags', clubId }),
-          }),
-          fetch('/api/club-arena/anti-cheat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: 'get_sessions', clubId }),
-          }),
-        ]);
-        const [flagsData, sessionsData] = await Promise.all([flagsRes.json(), sessionsRes.json()]);
-        setCaFlags(flagsData.flags || []);
-        setCaSessions(sessionsData.sessions || []);
-      }
+      const totalMinted24h = (recentMints || []).reduce((s, t) => s + (t.amount || 0), 0);
+      const pendingCashoutTotal = (pendingCashouts || []).reduce((s, c) => s + (c.amount || 0), 0);
+
+      setCaStats({ totalClubs: totalClubs || 0, totalMembers: totalMembers || 0, totalTables: totalTables || 0, pendingCashouts: pendingCashouts?.length || 0, pendingCashoutTotal, totalMinted24h });
+      setCaClubs(clubs || []);
+      setCaUnions(unions || []);
+      setCaPendingCashouts(pendingCashouts || []);
+      setCaFinance({ recentTxns: recentTxns || [], totalMinted24h, pendingCashoutTotal });
+      setCaLoaded(true);
     } catch (err) {
       showNotification('Failed to load Club Arena data', 'error');
     } finally {
       setCaLoading(false);
+    }
+  };
+
+  const loadApplications = async (statusFilter = 'pending') => {
+    setCaAppLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+      const res = await fetch('/api/club-arena/union-application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'list', statusFilter }),
+      });
+      const data = await res.json();
+      if (data.success) setCaApplications(data.applications || []);
+    } catch (err) {
+      showNotification('Failed to load applications', 'error');
+    } finally {
+      setCaAppLoading(false);
+    }
+  };
+
+  const loadCaClubDetail = async (club) => {
+    setCaSelectedClub(club);
+    setCaClubSubTab('overview');
+    setCaClubDetail(null);
+    setCaLoading(true);
+    try {
+      const [
+        { data: members },
+        { data: agents },
+        { data: tables },
+        { data: pendingCashouts },
+        flagsRes,
+        sessionsRes,
+        { data: recentTxns },
+      ] = await Promise.all([
+        supabase.from('club_members').select('*, profiles(display_name, username, email, player_number)').eq('club_id', club.id).order('created_at', { ascending: false }).limit(200),
+        supabase.from('agents').select('*, profiles(display_name, username)').eq('club_id', club.id),
+        supabase.from('tables').select('*').eq('club_id', club.id).order('created_at', { ascending: false }),
+        supabase.from('cashout_requests').select('*, profiles(display_name, username)').eq('club_id', club.id).eq('status', 'pending').order('created_at', { ascending: false }),
+        caFetch('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }),
+        caFetch('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }),
+        supabase.from('chip_transactions').select('*').eq('club_id', club.id).order('created_at', { ascending: false }).limit(50),
+      ]);
+      setCaClubDetail({
+        members: members || [],
+        agents: agents || [],
+        tables: tables || [],
+        pendingCashouts: pendingCashouts || [],
+        flags: flagsRes.flags || [],
+        sessions: sessionsRes.sessions || [],
+        recentTxns: recentTxns || [],
+      });
+    } catch (err) {
+      showNotification('Failed to load club detail', 'error');
+    } finally {
+      setCaLoading(false);
+    }
+  };
+
+  const searchCaUsers = async (query) => {
+    if (!query.trim()) return;
+    setCaUserSearching(true);
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, username, email, player_number, created_at, role')
+        .or(`display_name.ilike.%${query}%,username.ilike.%${query}%,email.ilike.%${query}%,player_number.eq.${parseInt(query) || 0}`)
+        .limit(20);
+      setCaUserResults(data || []);
+    } catch (err) {
+      showNotification('Search failed', 'error');
+    } finally {
+      setCaUserSearching(false);
+    }
+  };
+
+  const loadCaUserDetail = async (profile) => {
+    setCaSelectedUser({ ...profile, loading: true });
+    try {
+      const { data: memberships } = await supabase
+        .from('club_members')
+        .select('*, clubs(name, club_id)')
+        .eq('user_id', profile.id);
+      const { data: txns } = await supabase
+        .from('chip_transactions')
+        .select('*, clubs(name)')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      const { data: cashouts } = await supabase
+        .from('cashout_requests')
+        .select('*, clubs(name)')
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setCaSelectedUser({ ...profile, memberships: memberships || [], txns: txns || [], cashouts: cashouts || [], loading: false });
+    } catch (err) {
+      setCaSelectedUser(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const toggleClubStatus = async (club, newStatus) => {
+    setCaProcessing(true);
+    try {
+      await supabase.from('clubs').update({ status: newStatus }).eq('id', club.id);
+      setCaClubs(prev => prev.map(c => c.id === club.id ? { ...c, status: newStatus } : c));
+      if (caSelectedClub?.id === club.id) setCaSelectedClub(prev => ({ ...prev, status: newStatus }));
+      showNotification(`Club ${newStatus === 'suspended' ? 'suspended' : 'reactivated'}`);
+    } catch (err) {
+      showNotification('Failed to update club status', 'error');
+    } finally {
+      setCaProcessing(false);
+    }
+  };
+
+  const forceCashoutApprove = async (cashout) => {
+    setCaProcessing(true);
+    try {
+      await caFetch('/api/club-arena/approve-cashout', { cashoutId: cashout.id, clubId: cashout.club_id, action: 'approve' });
+      setCaPendingCashouts(prev => prev.filter(c => c.id !== cashout.id));
+      if (caClubDetail) setCaClubDetail(prev => ({ ...prev, pendingCashouts: prev.pendingCashouts.filter(c => c.id !== cashout.id) }));
+      showNotification('Cashout approved');
+    } catch (err) {
+      showNotification(err.message || 'Failed', 'error');
+    } finally {
+      setCaProcessing(false);
+    }
+  };
+
+  const forceAcAction = async (action, body) => {
+    setCaProcessing(true);
+    try {
+      await caFetch('/api/club-arena/anti-cheat', { action, ...body });
+      showNotification(action === 'kick_player' ? 'Player kicked' : `Flag ${body.verdict || 'actioned'}`);
+      if (caSelectedClub) loadCaClubDetail(caSelectedClub);
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setCaProcessing(false);
     }
   };
 
@@ -939,7 +1108,8 @@ export default function HorsesAdmin() {
             className={activeTab === 'clubarena' ? styles.active : ''}
             onClick={() => {
               setActiveTab('clubarena');
-              if (!caLoaded) loadClubArenaData(null);
+              if (!caLoaded) loadClubArenaData();
+              loadApplications('pending');
             }}
           >
             🃏 Club Arena Admin
@@ -2568,6 +2738,146 @@ export default function HorsesAdmin() {
               <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>
                 Platform-level oversight of all Club Arena clubs. Select a club to inspect anti-cheat flags and active sessions.
               </p>
+
+              {/* ── UNION APPLICATIONS ──────────────────────────────── */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <h3 style={{ margin: 0, color: '#e4e6eb', fontSize: 16 }}>🏛️ Midway Union Applications</h3>
+                    {caApplications.filter(a => a.status === 'pending').length > 0 && (
+                      <span style={{ background: '#FF453A', color: '#fff', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
+                        {caApplications.filter(a => a.status === 'pending').length} pending
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {['pending', 'all'].map(f => (
+                      <button key={f} onClick={() => { setCaAppTab(f); loadApplications(f); }} style={{
+                        background: caAppTab === f ? '#2374E1' : '#2d2d44',
+                        color: caAppTab === f ? '#fff' : '#aaa',
+                        border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 12,
+                        fontWeight: 600, cursor: 'pointer',
+                      }}>{f === 'pending' ? 'Pending' : 'All'}</button>
+                    ))}
+                    <button onClick={() => loadApplications(caAppTab)} disabled={caAppLoading} style={{
+                      background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 6,
+                      padding: '5px 10px', fontSize: 12, cursor: 'pointer',
+                    }}>🔄</button>
+                  </div>
+                </div>
+
+                {caAppLoading ? (
+                  <div style={{ color: '#888', fontSize: 13, padding: '12px 0' }}>Loading applications...</div>
+                ) : caApplications.length === 0 ? (
+                  <div style={{ background: '#1a1a2e', borderRadius: 10, padding: 20, textAlign: 'center', color: '#666', fontSize: 13, border: '1px solid #2d2d44' }}>
+                    {caAppTab === 'pending' ? '✅ No pending applications.' : 'No applications found.'}
+                  </div>
+                ) : caApplications.map(app => (
+                  <div key={app.id} style={{
+                    background: '#1a1a2e', borderRadius: 12, padding: 18, marginBottom: 12,
+                    border: `1px solid ${app.status === 'pending' ? '#FFD70044' : app.status === 'approved' ? '#31a24c44' : '#2d2d44'}`,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                          <span style={{ fontWeight: 700, fontSize: 16, color: '#e4e6eb' }}>{app.club_name}</span>
+                          <span style={{ fontSize: 12, color: '#888' }}>Club #{app.club_code}</span>
+                          <span style={{
+                            background: app.status === 'pending' ? '#FFD70022' : app.status === 'approved' ? '#31a24c22' : '#63636622',
+                            color: app.status === 'pending' ? '#FFD700' : app.status === 'approved' ? '#31a24c' : '#888',
+                            borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700,
+                          }}>{app.status.toUpperCase()}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: '#888' }}>
+                          {app.member_count} members • Applied {new Date(app.applied_at).toLocaleDateString()}
+                          {app.profiles?.display_name && <> • Owner: <strong style={{ color: '#aaa' }}>{app.profiles.display_name}</strong></>}
+                          {app.profiles?.email && <> ({app.profiles.email})</>}
+                        </div>
+                        {app.message && (
+                          <div style={{ marginTop: 8, background: '#12121e', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#b0b3b8', borderLeft: '3px solid #2374E1', fontStyle: 'italic' }}>
+                            &ldquo;{app.message}&rdquo;
+                          </div>
+                        )}
+                        {app.review_note && (
+                          <div style={{ marginTop: 6, fontSize: 12, color: '#888' }}>
+                            Review note: {app.review_note}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {app.status === 'pending' && (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <label style={{ fontSize: 12, color: '#888' }}>Commission %</label>
+                          <input
+                            type="number" min="0" max="100" step="1"
+                            value={caAppCommission[app.id] ?? '90'}
+                            onChange={e => setCaAppCommission(prev => ({ ...prev, [app.id]: e.target.value }))}
+                            style={{ width: 60, background: '#12121e', border: '1px solid #3d3d5c', borderRadius: 6, color: '#e4e6eb', fontSize: 13, padding: '4px 8px', textAlign: 'center' }}
+                          />
+                        </div>
+                        <button disabled={caProcessing} onClick={async () => {
+                          setCaProcessing(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const rate = parseFloat(caAppCommission[app.id] ?? 90) / 100;
+                            const r = await fetch('/api/club-arena/union-application', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                              body: JSON.stringify({ action: 'approve', applicationId: app.id, commissionRate: rate }),
+                            });
+                            const d = await r.json();
+                            if (d.success) {
+                              showNotification(`✅ ${d.message}`, 'success');
+                              loadApplications(caAppTab);
+                            } else {
+                              showNotification(d.error || 'Approval failed', 'error');
+                            }
+                          } catch (e) { showNotification(e.message, 'error'); }
+                          finally { setCaProcessing(false); }
+                        }} style={{
+                          background: '#31a24c', color: '#fff', border: 'none', borderRadius: 8,
+                          padding: '7px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        }}>
+                          ✅ Approve & Add to Union
+                        </button>
+                        <input
+                          placeholder="Rejection reason (optional)"
+                          value={caAppReason}
+                          onChange={e => setCaAppReason(e.target.value)}
+                          style={{ flex: 1, minWidth: 160, background: '#12121e', border: '1px solid #3d3d5c', borderRadius: 6, color: '#e4e6eb', fontSize: 12, padding: '6px 10px' }}
+                        />
+                        <button disabled={caProcessing} onClick={async () => {
+                          setCaProcessing(true);
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const r = await fetch('/api/club-arena/union-application', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                              body: JSON.stringify({ action: 'reject', applicationId: app.id, reason: caAppReason }),
+                            });
+                            const d = await r.json();
+                            if (d.success) {
+                              showNotification(`Application rejected`, 'success');
+                              setCaAppReason('');
+                              loadApplications(caAppTab);
+                            } else {
+                              showNotification(d.error || 'Rejection failed', 'error');
+                            }
+                          } catch (e) { showNotification(e.message, 'error'); }
+                          finally { setCaProcessing(false); }
+                        }} style={{
+                          background: '#FF453A22', color: '#FF453A', border: '1px solid #FF453A44',
+                          borderRadius: 8, padding: '7px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}>
+                          ✗ Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {/* ── END UNION APPLICATIONS ──────────────────────────── */}
 
               {caLoading ? (
                 <div className={styles.loadingSpinner}>Loading Club Arena data...</div>
