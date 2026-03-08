@@ -1,17 +1,16 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES FLOATING ORB — Global "Ask Geeves" button + expandable chat panel
+   GEEVES HELP BAR — Global "Ask Geeves" collapsed bar + expandable chat panel
    
    Renders on EVERY page via _app.js. Provides instant Geeves access even on
    pages without UniversalHeader/HamburgerMenu (e.g., Club Commander, poker
-   table). Auto-hides when HamburgerMenu is already open.
+   table). Collapses to a slim bar at the bottom; click to expand.
    
    Features:
-   - Floating circular button (bottom-right, above bottom nav)
-   - Expands to a full chat panel on click
+   - Slim bar at page bottom (click to open full chat panel)
    - Context-aware quick chips based on current page
    - Cross-page conversation memory via sessionStorage
    - Keyboard shortcut: Cmd+J / Ctrl+J to toggle
-   - Pulsing glow animation to draw attention
+   - Follow-up chip rendering after Geeves responds
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -106,15 +105,15 @@ function getPageChips(path) {
     ];
 }
 
-// ─── Proactive tip per page (shows once per session) ───
+// ─── Proactive tip per page (shows once per session) — NO EMOJI (Rule 8) ───
 function getPageTip(path) {
     const p = (path || '').toLowerCase();
-    if (p.includes('commander')) return '💡 Need help managing your venue? Ask me anything!';
-    if (p.includes('toke-tracker')) return '💡 I can help you track downs, calculate EHR, and more!';
-    if (p.includes('club-arena') && p.includes('table')) return '💡 Questions about the game? I\'m here to help!';
-    if (p.includes('club-arena')) return '💡 Need help with Club Arena? Ask me!';
-    if (p.includes('bankroll')) return '💡 I can explain ROI, bankroll math, and more!';
-    if (p.includes('training') || p.includes('gto')) return '💡 Want to understand GTO concepts? Just ask!';
+    if (p.includes('commander')) return 'Need help managing your venue? Ask me anything!';
+    if (p.includes('toke-tracker')) return 'I can help you track downs, calculate EHR, and more!';
+    if (p.includes('club-arena') && p.includes('table')) return 'Questions about the game? I am here to help!';
+    if (p.includes('club-arena')) return 'Need help with Club Arena? Ask me!';
+    if (p.includes('bankroll')) return 'I can explain ROI, bankroll math, and more!';
+    if (p.includes('training') || p.includes('gto')) return 'Want to understand GTO concepts? Just ask!';
     return null;
 }
 
@@ -249,10 +248,23 @@ export default function GeevesFloatingOrb() {
     }, [input, sendMessage]);
 
     // ── Don't render on landing/auth pages ──
+    // Also suppress on pages with their own bottom nav (ClubArenaBottomNav / LivePokerTable)
+    // to avoid covering critical UI. Those pages already get Geeves via hamburger menu.
     // NOTE: All hooks must be defined ABOVE this guard (Rules of Hooks)
     if (!mounted) return null;
     const cleanPath = path.split('?')[0];
-    if (cleanPath === '/' || cleanPath.startsWith('/auth') || cleanPath.startsWith('/login') || cleanPath.startsWith('/signup')) return null;
+    const suppressedPaths = ['/', '/auth', '/login', '/signup'];
+    if (
+        suppressedPaths.some(p => cleanPath === p || cleanPath.startsWith(p + '/')) ||
+        // Club Arena pages with their own bottom nav
+        cleanPath.includes('/hub/club-arena/messages') ||
+        cleanPath.includes('/hub/club-arena/players') ||
+        cleanPath.includes('/hub/club-arena/cashier') ||
+        cleanPath.includes('/hub/club-arena/player-stats') ||
+        cleanPath.includes('/hub/club-arena/admin') ||
+        // Live poker table has its own action bar at bottom
+        cleanPath.includes('/hub/club-arena/table')
+    ) return null;
 
     const chips = getPageChips(path);
 
@@ -288,13 +300,18 @@ export default function GeevesFloatingOrb() {
                     title="Ask Geeves (⌘J)"
                     style={{
                         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 99998,
-                        height: 44,
-                        paddingBottom: 'env(safe-area-inset-bottom)',
+                        // Use minHeight + paddingBottom so safe-area adds HEIGHT, not just internal padding
+                        // IMPORTANT: Do NOT use the 'padding' shorthand here — it would override paddingBottom
+                        minHeight: 44,
+                        paddingTop: 0,
+                        paddingLeft: 20,
+                        paddingRight: 20,
+                        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
                         background: 'linear-gradient(90deg, #001e3c 0%, #002855 60%, #001e3c 100%)',
                         borderTop: '1px solid rgba(0, 212, 255, 0.25)',
                         cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-                        padding: '0 20px',
+                        boxSizing: 'border-box',
                     }}
                 >
                     <img
@@ -493,10 +510,6 @@ export default function GeevesFloatingOrb() {
 
             {/* ── Animations ── */}
             <style>{`
-                @keyframes geevesPulse {
-                    0%, 100% { box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 15px rgba(0,212,255,0.15); }
-                    50% { box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 25px rgba(0,212,255,0.3); }
-                }
                 @keyframes geevesSlideUp {
                     from { transform: translateY(100%); opacity: 0; }
                     to { transform: translateY(0); opacity: 1; }
