@@ -189,17 +189,27 @@ export default function PokerNearMeLobby() {
 
   // ─── Deep Link: read URL params on mount ───
   // Uses URLSearchParams directly instead of router.query (which can be empty on first render)
+  // Panel opening is delayed via double-rAF to survive React #418 hydration mismatches
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const pod = params.get('pod');
     const q = params.get('q');
-    if (pod && POD_FEATURES[pod]) {
-      setActivePod(pod);
-      setShowPanel(true);
-    }
     if (q) setSearchQuery(q);
-    // Mark hydration complete AFTER state is set
-    hasHydratedRef.current = true;
+
+    if (pod && POD_FEATURES[pod]) {
+      // Double requestAnimationFrame ensures React has fully committed hydration
+      // before we trigger a state update that adds new DOM nodes (the panel).
+      // Single rAF isn't enough because React may still be reconciling.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setActivePod(pod);
+          setShowPanel(true);
+          hasHydratedRef.current = true;
+        });
+      });
+    } else {
+      hasHydratedRef.current = true;
+    }
   }, []);
 
   // ─── Deep Link: write URL params on state change ───
