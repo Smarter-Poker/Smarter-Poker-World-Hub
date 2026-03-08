@@ -112,7 +112,7 @@ export default async function handler(req, res) {
           applied_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (insertErr) throw insertErr;
 
