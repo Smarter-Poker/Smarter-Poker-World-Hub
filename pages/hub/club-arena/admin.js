@@ -122,11 +122,6 @@ export default function Admin() {
     // Rakeback state
     const [rakebackStatus, setRakebackStatus] = useState(null);
     const [rakebackLoading, setRakebackLoading] = useState(false);
-    // Anti-cheat state
-    const [acFlags, setAcFlags] = useState([]);
-    const [acSessions, setAcSessions] = useState([]);
-    const [acLoading, setAcLoading] = useState(false);
-    const [acTab, setAcTab] = useState('flags'); // 'flags' | 'sessions'
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -273,16 +268,6 @@ export default function Admin() {
                 .then(d => setRakebackStatus(d))
                 .catch(() => { })
                 .finally(() => setRakebackLoading(false));
-        }
-        if (activeModal === 'anticheat') {
-            setAcLoading(true);
-            Promise.all([
-                apiCall('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }),
-                apiCall('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }),
-            ]).then(([flagsRes, sessionsRes]) => {
-                setAcFlags(flagsRes.flags || []);
-                setAcSessions(sessionsRes.sessions || []);
-            }).catch(() => { }).finally(() => setAcLoading(false));
         }
     }, [activeModal, club]);
 
@@ -538,7 +523,6 @@ export default function Admin() {
         { id: 'shop', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
         { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
-        { id: 'anticheat', title: '🛡️ Anti-Cheat', desc: 'Review flags, sessions, and violations', color: '#FF453A' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -1522,6 +1506,14 @@ export default function Admin() {
 
             {/* Toast */}
             {toast && (
+                <div style={{ ...S.toast, background: toast.type === 'error' ? FB.danger : FB.success, color: '#fff' }}>
+                    {toast.message}
+                </div>
+            )}
+        </>
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S }) {

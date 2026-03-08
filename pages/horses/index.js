@@ -135,6 +135,15 @@ export default function HorsesAdmin() {
   const [filter, setFilter] = useState('all');
   const [abuseLoaded, setAbuseLoaded] = useState(false);
   const [economyLoaded, setEconomyLoaded] = useState(false);
+  // Club Arena admin state
+  const [caLoaded, setCaLoaded] = useState(false);
+  const [caLoading, setCaLoading] = useState(false);
+  const [caClubs, setCaClubs] = useState([]);
+  const [caSelectedClub, setCaSelectedClub] = useState(null);
+  const [caFlags, setCaFlags] = useState([]);
+  const [caSessions, setCaSessions] = useState([]);
+  const [caTab, setCaTab] = useState('overview'); // 'overview' | 'flags' | 'sessions'
+  const [caProcessing, setCaProcessing] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Analytics State
@@ -486,6 +495,51 @@ export default function HorsesAdmin() {
       setAbuseData(EMPTY_ABUSE_DATA);
     } finally {
       setAbuseLoading(false);
+    }
+  };
+
+  const loadClubArenaData = async (clubId) => {
+    setCaLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) { showNotification('Session expired', 'error'); return; }
+
+      if (!clubId) {
+        // Load all clubs overview
+        const res = await fetch('/api/club-arena/save-settings?action=list_all', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        // Fallback: query supabase directly for clubs list
+        const { data: clubs } = await supabase
+          .from('clubs')
+          .select('id, name, club_id, member_count, status, created_at')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        setCaClubs(clubs || []);
+        setCaLoaded(true);
+      } else {
+        // Load flags + sessions for selected club
+        const [flagsRes, sessionsRes] = await Promise.all([
+          fetch('/api/club-arena/anti-cheat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'get_flags', clubId }),
+          }),
+          fetch('/api/club-arena/anti-cheat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: 'get_sessions', clubId }),
+          }),
+        ]);
+        const [flagsData, sessionsData] = await Promise.all([flagsRes.json(), sessionsRes.json()]);
+        setCaFlags(flagsData.flags || []);
+        setCaSessions(sessionsData.sessions || []);
+      }
+    } catch (err) {
+      showNotification('Failed to load Club Arena data', 'error');
+    } finally {
+      setCaLoading(false);
     }
   };
 
@@ -880,6 +934,15 @@ export default function HorsesAdmin() {
             }}
           >
             🛡️ Anti-Abuse
+          </button>
+          <button
+            className={activeTab === 'clubarena' ? styles.active : ''}
+            onClick={() => {
+              setActiveTab('clubarena');
+              if (!caLoaded) loadClubArenaData(null);
+            }}
+          >
+            🃏 Club Arena Admin
           </button>
         </nav>
 
@@ -2493,6 +2556,178 @@ export default function HorsesAdmin() {
                       🔄 Refresh Anti-Abuse Data
                     </button>
                   </div>
+                </>
+              )}
+            </div>
+          )}
+          )}
+
+          {/* CLUB ARENA ADMIN TAB */}
+          {activeTab === 'clubarena' && (
+            <div className={styles.statsView}>
+              <h2>🃏 Club Arena Admin</h2>
+              <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>
+                Platform-level oversight of all Club Arena clubs. Select a club to inspect anti-cheat flags and active sessions.
+              </p>
+
+              {caLoading ? (
+                <div className={styles.loadingSpinner}>Loading Club Arena data...</div>
+              ) : !caSelectedClub ? (
+                <>
+                  {/* Clubs Overview */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+                    {caClubs.length === 0 ? (
+                      <p style={{ color: '#888' }}>No clubs found.</p>
+                    ) : caClubs.map(club => (
+                      <div key={club.id} style={{
+                        background: '#1a1a2e', border: '1px solid #2d2d44', borderRadius: 12,
+                        padding: 16, cursor: 'pointer', transition: 'border-color 0.2s',
+                      }}
+                        onClick={() => { setCaSelectedClub(club); setCaTab('flags'); loadClubArenaData(club.id); }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = '#4a9eff'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = '#2d2d44'}
+                      >
+                        <div style={{ fontWeight: 700, fontSize: 15, color: '#e4e6eb', marginBottom: 4 }}>{club.name}</div>
+                        <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Code: {club.club_id} • {club.member_count || 0} members</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <span style={{ background: club.status === 'active' ? '#31a24c22' : '#636366', color: club.status === 'active' ? '#31a24c' : '#aaa', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+                            {club.status || 'active'}
+                          </span>
+                          <span style={{ fontSize: 11, color: '#666' }}>
+                            {new Date(club.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className={styles.actionBtn}
+                    style={{ marginTop: 20 }}
+                    onClick={() => loadClubArenaData(null)}
+                    disabled={caLoading}
+                  >
+                    🔄 Refresh Clubs
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* Back + Club Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                    <button
+                      onClick={() => { setCaSelectedClub(null); setCaFlags([]); setCaSessions([]); }}
+                      style={{ background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13 }}
+                    >
+                      ← All Clubs
+                    </button>
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: 16, color: '#e4e6eb' }}>{caSelectedClub.name}</span>
+                      <span style={{ fontSize: 12, color: '#888', marginLeft: 10 }}>Code: {caSelectedClub.club_id} • {caSelectedClub.member_count || 0} members</span>
+                    </div>
+                  </div>
+
+                  {/* Sub-tab bar */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                    {[['flags', `🚩 Flags (${caFlags.length})`], ['sessions', `👁️ Sessions (${caSessions.length})`]].map(([id, label]) => (
+                      <button key={id} onClick={() => setCaTab(id)} style={{
+                        background: caTab === id ? '#FF453A' : '#2d2d44',
+                        color: caTab === id ? '#fff' : '#aaa',
+                        border: 'none', borderRadius: 8, padding: '8px 18px',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}>{label}</button>
+                    ))}
+                    <button onClick={() => loadClubArenaData(caSelectedClub.id)} disabled={caLoading}
+                      style={{ marginLeft: 'auto', background: '#2d2d44', color: '#aaa', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, cursor: 'pointer' }}>
+                      🔄 Refresh
+                    </button>
+                  </div>
+
+                  {caLoading ? (
+                    <div className={styles.loadingSpinner}>Loading...</div>
+                  ) : caTab === 'flags' ? (
+                    caFlags.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>✅ No open flags for this club.</div>
+                    ) : caFlags.map((flag, i) => (
+                      <div key={flag.id || i} style={{
+                        background: '#1a1a2e', borderRadius: 10, padding: 16, marginBottom: 12,
+                        border: `1px solid ${flag.severity === 'high' ? '#FF453A' : flag.severity === 'medium' ? '#FF9500' : '#2d2d44'}`,
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ background: flag.severity === 'high' ? '#FF453A' : flag.severity === 'medium' ? '#FF9500' : '#636366', color: '#fff', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>
+                              {(flag.severity || 'LOW').toUpperCase()}
+                            </span>
+                            <span style={{ fontWeight: 600, color: '#e4e6eb', fontSize: 14 }}>{flag.flag_type || flag.type}</span>
+                          </div>
+                          <span style={{ fontSize: 11, color: '#666' }}>{flag.created_at ? new Date(flag.created_at).toLocaleString() : ''}</span>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#aaa', marginBottom: 10 }}>
+                          Player: <strong style={{ color: '#e4e6eb' }}>{flag.player_name || flag.user_id}</strong>
+                          {flag.description && <> — {flag.description}</>}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {['dismiss', 'reviewed', 'kick'].map(verdict => (
+                            <button key={verdict} disabled={caProcessing} onClick={async () => {
+                              setCaProcessing(true);
+                              try {
+                                const { data: { session } } = await supabase.auth.getSession();
+                                const action = verdict === 'kick' ? 'kick_player' : 'review_flag';
+                                const body = verdict === 'kick'
+                                  ? { action, clubId: caSelectedClub.id, targetUserId: flag.user_id, reason: flag.flag_type }
+                                  : { action, clubId: caSelectedClub.id, flagId: flag.id, verdict };
+                                await fetch('/api/club-arena/anti-cheat', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+                                  body: JSON.stringify(body),
+                                });
+                                showNotification(verdict === 'kick' ? 'Player kicked' : `Flag marked ${verdict}`);
+                                loadClubArenaData(caSelectedClub.id);
+                              } catch (e) { showNotification(e.message, 'error'); }
+                              finally { setCaProcessing(false); }
+                            }} style={{
+                              background: verdict === 'kick' ? '#FF453A22' : '#2d2d44',
+                              color: verdict === 'kick' ? '#FF453A' : '#aaa',
+                              border: verdict === 'kick' ? '1px solid #FF453A44' : 'none',
+                              borderRadius: 6, padding: '5px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                            }}>
+                              {verdict === 'kick' ? '⛔ Kick' : verdict === 'dismiss' ? 'Dismiss' : '✓ Reviewed'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    caSessions.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>No active sessions at this club right now.</div>
+                    ) : caSessions.map((session, i) => (
+                      <div key={session.id || i} style={{
+                        background: '#1a1a2e', borderRadius: 10, padding: 16, marginBottom: 12,
+                        border: '1px solid #2d2d44', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#e4e6eb', fontSize: 14 }}>{session.player_name || session.user_id}</div>
+                          <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                            Table: {session.table_name || session.table_id} • {session.duration_minutes ? `${session.duration_minutes}m` : 'Active'}
+                          </div>
+                        </div>
+                        <button disabled={caProcessing} onClick={async () => {
+                          setCaProcessing(true);
+                          try {
+                            const { data: { session: s } } = await supabase.auth.getSession();
+                            await fetch('/api/club-arena/anti-cheat', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s?.access_token}` },
+                              body: JSON.stringify({ action: 'kick_player', clubId: caSelectedClub.id, targetUserId: session.user_id, reason: 'admin_kick' }),
+                            });
+                            showNotification('Player kicked');
+                            loadClubArenaData(caSelectedClub.id);
+                          } catch (e) { showNotification(e.message, 'error'); }
+                          finally { setCaProcessing(false); }
+                        }} style={{ background: '#FF453A', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                          ⛔ Kick
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </>
               )}
             </div>
