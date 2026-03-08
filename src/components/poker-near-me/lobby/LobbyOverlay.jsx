@@ -17,20 +17,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 // 12 cards total (removed Rewards & Calculator), all same size, evenly spaced
 const ALL_CARD_ITEMS = [
   // Row 1: Main navigation
-  { id: 'nearme',    label: 'Near Me',       color: '#00d2ff', icon: '/images/lobby-pods/nearme.jpg' },
-  { id: 'search',    label: 'Search',        color: '#6ee7ef', icon: '/images/lobby-pods/search.jpg' },
-  { id: 'livegames', label: 'Live Games',    color: '#ff4444', icon: '/images/lobby-pods/livegames.jpg' },
-  { id: 'tours',     label: 'Tours',         color: '#c9a227', icon: '/images/lobby-pods/tours.jpg' },
+  { id: 'nearme',    label: 'Near Me',       color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
+  { id: 'search',    label: 'Search',        color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
+  { id: 'livegames', label: 'Live Games',    color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
+  { id: 'tours',     label: 'Tours',         color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
   // Row 2: Discovery
-  { id: 'mapview',   label: 'Map View',      color: '#3b82f6', icon: '/images/lobby-pods/mapview.jpg' },
-  { id: 'calendar',  label: 'Calendar',      color: '#8b5cf6', icon: '/images/lobby-pods/calendar.jpg' },
-  { id: 'series',    label: 'Series',        color: '#f59e0b', icon: '/images/lobby-pods/series.jpg' },
-  { id: 'daily',     label: 'Daily',         color: '#22c55e', icon: '/images/lobby-pods/daily.jpg' },
+  { id: 'mapview',   label: 'Map View',      color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
+  { id: 'calendar',  label: 'Calendar',      color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
+  { id: 'series',    label: 'Series',        color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
+  { id: 'daily',     label: 'Daily',         color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
   // Row 3: Tools & social
-  { id: 'roadtrip',   label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.jpg' },
-  { id: 'favorites',  label: 'Saved',        color: '#6ee7ef', icon: '/images/lobby-dock/saved.jpg' },
+  { id: 'roadtrip',   label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.png' },
+  { id: 'favorites',  label: 'Saved',        color: '#6ee7ef', icon: '/images/lobby-dock/saved.png' },
   { id: 'social',     label: 'Friends',      color: '#6ee7ef', icon: '/images/lobby-dock/friends.png' },
-  { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.jpg' },
+  { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
 ];
 
 // ─── Card Item — Standalone icon, no frame, transparent background ───
