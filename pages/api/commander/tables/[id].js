@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyStaffSession } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -15,7 +16,7 @@ const supabase = createClient(
 const VALID_STATUSES = ['available', 'in_use', 'reserved', 'maintenance'];
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -233,6 +234,19 @@ async function handlePatch(req, res, tableId) {
       });
     }
 
+    // Audit log
+    if (authResult.staff?.id) {
+      await logAction(AuditActions.TABLE_UPDATE, {
+        venueId: table.venue_id || authResult.staff.venue_id,
+        staffId: authResult.staff.id,
+        targetId: tableId,
+        targetType: 'commander_tables',
+        targetName: updates.table_name || `Table ${table.table_number || tableId}`,
+        changes: updates,
+        req
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: { table }
@@ -260,7 +274,7 @@ async function handleDelete(req, res, tableId) {
     // Verify table exists and is not in use
     const { data: table, error: fetchError } = await supabase
       .from('commander_tables')
-      .select('id, status, current_game_id')
+      .select('id, status, current_game_id, table_number, venue_id')
       .eq('id', tableId)
       .maybeSingle();
 
@@ -288,6 +302,18 @@ async function handleDelete(req, res, tableId) {
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to delete table' }
+      });
+    }
+
+    // Audit log
+    if (authResult.staff?.id) {
+      await logAction(AuditActions.TABLE_DELETE, {
+        venueId: table.venue_id,
+        staffId: authResult.staff.id,
+        targetId: tableId,
+        targetType: 'commander_tables',
+        targetName: `Table ${table.table_number}`,
+        req
       });
     }
 

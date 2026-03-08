@@ -8,6 +8,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { DEFAULT_PERMISSIONS } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -39,7 +40,7 @@ function checkRate(key) {
 }
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -85,6 +86,16 @@ export default async function handler(req, res) {
 
     const permissions = { ...DEFAULT_PERMISSIONS[staff.role], ...(staff.permissions || {}) };
     const name = staff.profiles?.display_name || staff.display_name || staff.role.charAt(0).toUpperCase() + staff.role.slice(1);
+
+    // Audit log
+    await logAction(AuditActions.AUTH_PIN_VERIFY, {
+      venueId: venue_id,
+      staffId: staff.id,
+      targetId: staff.id,
+      targetType: 'commander_staff',
+      targetName: name,
+      req
+    });
 
     return res.status(200).json({
       success: true,

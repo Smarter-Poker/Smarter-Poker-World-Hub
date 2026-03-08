@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -284,6 +285,18 @@ async function handlePost(req, res) {
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to add staff member' }
+      });
+    }
+
+    const authResult = await verifyManagerSession(req, venue_id);
+    if (!authResult.error && authResult.staff) {
+      await logAction(AuditActions.STAFF_CREATE, {
+        venueId: venue_id,
+        staffId: authResult.staff.id,
+        targetId: staff.id,
+        targetType: 'commander_staff',
+        targetName: staff.display_name || 'Staff',
+        req
       });
     }
 

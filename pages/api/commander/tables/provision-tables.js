@@ -10,6 +10,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -18,9 +19,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -96,6 +97,19 @@ export default async function handler(req, res) {
             .from('poker_venues')
             .update({ poker_tables: count })
             .eq('id', venue_id);
+
+        // Audit log
+        if (_auth && _auth.id) {
+            await logAction({ action: 'provision_tables', category: 'table' }, {
+                venueId: venue_id,
+                staffId: _auth.id,
+                targetId: venue_id,
+                targetType: 'poker_venues',
+                targetName: venue.name,
+                metadata: { count_requested: count, tables_created: tablesToInsert.length },
+                req
+            });
+        }
 
         return res.status(200).json({
             success: true,

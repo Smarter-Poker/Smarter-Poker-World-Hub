@@ -4,6 +4,7 @@
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
+import { logAction } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -12,7 +13,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -76,6 +77,16 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (error) throw error;
+
+    // Audit log
+    await logAction({ action: 'pass', category: 'waitlist' }, {
+      venueId: staff.venue_id,
+      staffId: staff.id,
+      targetId: id,
+      targetType: 'commander_waitlist',
+      targetName: entry.player_name || 'Player',
+      req
+    });
 
     return res.status(200).json({
       success: true,

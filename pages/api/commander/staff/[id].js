@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -134,6 +135,19 @@ async function handlePatch(req, res, id) {
       });
     }
 
+    const authResult = await verifyManagerSession(req, target.venue_id);
+    if (!authResult.error && authResult.staff) {
+      await logAction(AuditActions.STAFF_UPDATE, {
+        venueId: target.venue_id,
+        staffId: authResult.staff.id,
+        targetId: id,
+        targetType: 'commander_staff',
+        targetName: staff.display_name || 'Staff',
+        changes: updates,
+        req
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: { staff }
@@ -181,6 +195,18 @@ async function handleDelete(req, res, id) {
       return res.status(500).json({
         success: false,
         error: { code: 'DATABASE_ERROR', message: 'Failed to remove staff member' }
+      });
+    }
+
+    const authResult = await verifyManagerSession(req, target.venue_id);
+    if (!authResult.error && authResult.staff) {
+      await logAction(AuditActions.STAFF_DELETE, {
+        venueId: target.venue_id,
+        staffId: authResult.staff.id,
+        targetId: id,
+        targetType: 'commander_staff',
+        targetName: staff.display_name || 'Staff',
+        req
       });
     }
 

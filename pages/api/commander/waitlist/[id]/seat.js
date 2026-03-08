@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -248,6 +249,17 @@ export default async function handler(req, res) {
           });
       }
     }
+
+    // Audit log
+    await logAction(AuditActions.WAITLIST_SEAT, {
+      venueId: staff.venue_id,
+      staffId: staff.id,
+      targetId: id,
+      targetType: 'commander_waitlist',
+      targetName: entry.player_name || 'Player',
+      metadata: { game_id, seat_number, buyin_amount },
+      req
+    });
 
     return res.status(200).json({
       success: true,

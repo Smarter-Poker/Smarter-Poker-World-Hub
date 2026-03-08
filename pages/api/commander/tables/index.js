@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -205,6 +206,19 @@ async function handlePost(req, res) {
     }
 
     if (!table) return res.status(500).json({ success: false, error: 'Failed to create table' });
+
+    // Audit log
+    if (_authResult && _authResult.id) {
+      await logAction(AuditActions.TABLE_CREATE, {
+        venueId: venue_id,
+        staffId: _authResult.id,
+        targetId: table.id,
+        targetType: 'commander_tables',
+        targetName: insertData.table_name,
+        metadata: { max_seats, game_type, stakes },
+        req
+      });
+    }
 
     return res.status(201).json({
       success: true,

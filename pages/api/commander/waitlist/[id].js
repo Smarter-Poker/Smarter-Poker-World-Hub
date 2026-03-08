@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
 
       // Auth: Allow staff OR entry owner (player with matching player_id)
       let authorized = false;
+      let actingStaffId = null;
 
       // Check staff auth first
       const staffSession = req.headers['x-staff-session'];
@@ -68,7 +70,10 @@ export default async function handler(req, res) {
               .eq('id', sessionData.id)
               .eq('is_active', true)
               .maybeSingle();
-            if (staffCheck) authorized = true;
+            if (staffCheck) {
+              authorized = true;
+              actingStaffId = staffCheck.id;
+            }
           } else if (sessionData.user_id && sessionData.venue_id) {
             const { data: staffCheck } = await supabase
               .from('commander_staff')
@@ -77,7 +82,10 @@ export default async function handler(req, res) {
               .eq('venue_id', sessionData.venue_id)
               .eq('is_active', true)
               .maybeSingle();
-            if (staffCheck) authorized = true;
+            if (staffCheck) {
+              authorized = true;
+              actingStaffId = staffCheck.id;
+            }
             // Owner fallback
             if (!authorized && sessionData.role === 'owner') {
               const { data: sub } = await supabase
@@ -133,6 +141,18 @@ export default async function handler(req, res) {
       const { error: delErr } = await supabase.from('commander_waitlist').delete().eq('id', id);
       if (delErr) {
         return res.status(500).json({ success: false, error: { code: 'DATABASE_ERROR', message: delErr.message } });
+      }
+
+      // Audit log if deleted by staff
+      if (actingStaffId) {
+        await logAction(AuditActions.WAITLIST_LEAVE, {
+          venueId: entry.venue_id,
+          staffId: actingStaffId,
+          targetId: id,
+          targetType: 'commander_waitlist',
+          targetName: entry.player_name || 'Player',
+          req
+        });
       }
 
       return res.status(200).json({ success: true, data: { removed: true } });
@@ -214,6 +234,19 @@ export default async function handler(req, res) {
 
       if (error) {
         return res.status(500).json({ success: false, error: { code: 'DATABASE_ERROR', message: error.message } });
+      }
+
+      // Audit log
+      if (staff?.id) {
+        await logAction({ action: 'update', category: 'waitlist' }, {
+          venueId: data.venue_id,
+          staffId: staff.id,
+          targetId: id,
+          targetType: 'commander_waitlist',
+          targetName: data.player_name || 'Player',
+          changes: updates,
+          req
+        });
       }
 
       return res.status(200).json({ success: true, data });

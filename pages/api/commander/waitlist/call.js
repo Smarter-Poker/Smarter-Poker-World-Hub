@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { sendSeatNotification, isTwilioConfigured } from '../../../../src/lib/commander/twilio';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -14,7 +15,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -23,6 +24,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {
+    const staff = _g; // from guardWriteStaff
     const { waitlist_id, table_number } = req.body;
     if (!waitlist_id) return res.status(400).json({ success: false, error: 'waitlist_id required' });
 
@@ -79,6 +81,17 @@ export default async function handler(req, res) {
         smsResult = { success: false, reason: 'Twilio not configured' };
       }
     }
+
+    // Audit log
+    await logAction(AuditActions.WAITLIST_CALL, {
+      venueId: staff.venue_id,
+      staffId: staff.id,
+      targetId: waitlist_id,
+      targetType: 'commander_waitlist',
+      targetName: entry.player_name || 'Player',
+      metadata: { table_number },
+      req
+    });
 
     return res.status(200).json({
       success: true,

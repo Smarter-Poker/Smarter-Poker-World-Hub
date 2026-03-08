@@ -6,6 +6,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -276,6 +277,19 @@ export default async function handler(req, res) {
             metadata: { xp_earned: XP_FOR_WAITLIST_JOIN }
           });
       }
+    }
+
+    // Audit log if staff added them
+    if (_authResult && _authResult.id) {
+      await logAction(AuditActions.WAITLIST_JOIN, {
+        venueId: venue_id,
+        staffId: _authResult.id,
+        targetId: entry.id,
+        targetType: 'commander_waitlist',
+        targetName: player_name || 'Player',
+        metadata: { game_type, stakes },
+        req
+      });
     }
 
     return res.status(201).json({

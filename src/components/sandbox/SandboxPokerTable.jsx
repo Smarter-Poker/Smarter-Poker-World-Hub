@@ -55,14 +55,14 @@ export function TableCard({ card, style = {} }) {
 // VERTICAL SEAT POSITIONS — Recalculated for portrait layout
 // ═══════════════════════════════════════════════════════════════════════════
 
-function computeVerticalSeatPositions(maxSeats) {
-    // For a vertical table, the ellipse is taller than wide
+function computeHorizontalSeatPositions(maxSeats) {
+    // For a horizontal table, the ellipse is wider than tall
     const cx = 50, cy = 50;
-    const rx = 32;  // Narrower horizontal radius
-    const ry = 38;  // Taller vertical radius
+    const rx = 42;  // Wider horizontal radius
+    const ry = 28;  // Shorter vertical radius
 
     const seatPositions = [];
-    // Place hero at bottom (angle = PI/2 = 6 o'clock), villain at top
+    // Place hero at bottom (angle = PI/2 = 6 o'clock)
     const startAngle = Math.PI / 2; // Start from bottom
     for (let i = 0; i < maxSeats; i++) {
         const angle = startAngle + (2 * Math.PI * i) / maxSeats;
@@ -98,7 +98,7 @@ export default function SandboxPokerTable({
 }) {
     const totalSeats = 1 + villains.length;
     const maxSeats = Math.max(totalSeats, 2);
-    const { seatPositions } = computeVerticalSeatPositions(maxSeats);
+    const { seatPositions } = computeHorizontalSeatPositions(maxSeats);
 
     // Build seat array: hero at index 0, then villains
     const seatArr = [
@@ -135,14 +135,14 @@ export default function SandboxPokerTable({
             style={{
                 position: 'relative',
                 width: '100%',
-                maxWidth: 170,
+                maxWidth: 380,
                 margin: '0 auto',
-                aspectRatio: '172 / 305',
+                aspectRatio: '2 / 1',
                 overflow: 'visible',
             }}>
-            {/* Poker table image — vertical orientation */}
+            {/* Poker table image — horizontal orientation */}
             <img
-                src="/images/poker-table-vertical-nobg.png"
+                src="/images/poker-table-transparent.png"
                 alt="Poker Table"
                 style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
@@ -171,7 +171,7 @@ export default function SandboxPokerTable({
 
             {/* Center info on the table felt */}
             <div style={{
-                position: 'absolute', top: '42%', left: '50%',
+                position: 'absolute', top: '70%', left: '50%',
                 transform: 'translate(-50%, -50%)', zIndex: 5, textAlign: 'center',
             }}>
                 {/* Pot Display */}
@@ -212,8 +212,8 @@ export default function SandboxPokerTable({
             {communityCards.length > 0 && (
                 <div
                     style={{
-                        position: 'absolute', top: '30%', left: '50%',
-                        transform: 'translateX(-50%)', display: 'flex', gap: 2, zIndex: 10,
+                        position: 'absolute', top: '40%', left: '50%',
+                        transform: 'translate(-50%, -50%)', display: 'flex', gap: 2, zIndex: 10,
                     }}
                 >
                     {communityCards.map((card, i) => {
@@ -240,8 +240,8 @@ export default function SandboxPokerTable({
                 <div
                     onClick={onTapBoard}
                     style={{
-                        position: 'absolute', top: '30%', left: '50%',
-                        transform: 'translateX(-50%)', display: 'flex', gap: 3, zIndex: 10,
+                        position: 'absolute', top: '40%', left: '50%',
+                        transform: 'translate(-50%, -50%)', display: 'flex', gap: 3, zIndex: 10,
                         cursor: 'pointer',
                     }}
                 >
@@ -258,7 +258,7 @@ export default function SandboxPokerTable({
             {/* Board Texture Badge */}
             {boardTexture && (
                 <div style={{
-                    position: 'absolute', top: '24%', left: '50%', transform: 'translateX(-50%)',
+                    position: 'absolute', top: '15%', left: '50%', transform: 'translateX(-50%)',
                     padding: '2px 6px', borderRadius: 4, fontSize: 7, fontWeight: 700, zIndex: 10,
                     background: boardTexture.color || 'rgba(59,130,246,0.2)',
                     color: boardTexture.textColor || '#4599FF',

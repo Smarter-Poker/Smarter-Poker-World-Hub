@@ -17,7 +17,7 @@ let _supabase = null;
 function getSupabase() {
     if (!_supabase && typeof window !== 'undefined') {
         const { createClient } = require('@supabase/supabase-js');
-        _supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+        _supabase = typeof window !== 'undefined' ? createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) : null;
     }
     return _supabase;
 }

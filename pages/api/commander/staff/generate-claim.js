@@ -6,6 +6,7 @@
 import crypto from 'crypto';
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { verifyManagerSession } from '../../../../src/lib/commander/auth';
+import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -14,9 +15,9 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
-    if (!applyRateLimit(req, res, LIMITS.write)) return;
-  }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+        if (!applyRateLimit(req, res, LIMITS.write)) return;
+    }
 
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, error: 'Method not allowed' });
@@ -101,6 +102,8 @@ export default async function handler(req, res) {
                 venue_name: venue?.name || 'Unknown Venue',
             },
         });
+
+        // Execute audit log after returning response if possible, or just before
     } catch (err) {
         console.error('Generate claim code error:', err);
         return res.status(500).json({ success: false, error: 'Internal server error' });

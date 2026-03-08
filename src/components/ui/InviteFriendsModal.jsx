@@ -15,10 +15,10 @@ import { createClient } from '@supabase/supabase-js';
 let _supabase;
 function getSupabase() {
     if (!_supabase && typeof window !== 'undefined') {
-        _supabase = createClient(
+        _supabase = typeof window !== 'undefined' ? createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
+        ) : null;
     }
     return _supabase;
 }
