@@ -835,7 +835,7 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
   const handleCreated = useCallback((state) => {
     console.log('[R3FScene] Canvas created, renderer:', state.gl.constructor.name);
     console.log('[R3FScene] Scene children:', state.scene.children.length);
-    state.gl.setClearColor(0x000000, 0);
+    state.gl.setClearColor(0x030818, 1);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
     state.gl.toneMappingExposure = 1.8; // Even brighter for hyper-realistic cinematic
   }, []);
@@ -852,8 +852,9 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
       frameloop="always"
       gl={{
         antialias: !isMobile,
-        alpha: true,
+        alpha: false,
         powerPreference: 'high-performance',
+        preserveDrawingBuffer: true,
       }}
       shadows={quality === 'high'}
       style={{
@@ -862,7 +863,7 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
         left: 0,
         width: '100%',
         height: '100%',
-        background: 'transparent',
+        background: '#030818',
       }}
       onCreated={handleCreated}
     >
