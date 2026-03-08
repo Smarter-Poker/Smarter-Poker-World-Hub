@@ -200,13 +200,13 @@ function NeonGridGround() {
           float pulse = smoothstep(0.3, 0.0, abs(dist - mod(uTime * 2.0, 14.0)));
           float pulse2 = smoothstep(0.3, 0.0, abs(dist - mod(uTime * 2.0 + 7.0, 14.0)));
 
-          // Grid color — MUCH brighter
-          vec3 gridColor = vec3(0.43, 0.91, 0.94);
-          float alpha = gridLine * fade * 0.4;
-          alpha += gridLine * (pulse + pulse2) * fade * 0.6;
+          // Grid color — restrained for dark cinematic
+          vec3 gridColor = vec3(0.3, 0.7, 0.75);
+          float alpha = gridLine * fade * 0.2;
+          alpha += gridLine * (pulse + pulse2) * fade * 0.35;
 
-          // Center glow — subtle
-          float centerGlow = exp(-dist * 0.3) * 0.10;
+          // Center glow — very subtle
+          float centerGlow = exp(-dist * 0.35) * 0.05;
 
           vec3 color = gridColor * (alpha + centerGlow);
 
@@ -370,19 +370,19 @@ function GroundPlatform({ quality }) {
       {/* Inner ring glow — pod orbit indicator */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[3.85, 3.98, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.12} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.06} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Mid ring */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[2.95, 3.2, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.10} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.05} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer ring glow — platform edge */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.1, 5.55, 64]} />
-        <meshBasicMaterial color="#3b82f6" transparent opacity={0.10} blending={AdditiveBlending} depthWrite={false} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.05} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer haze ring */}
