@@ -79,15 +79,21 @@ export default function MembersPage() {
     useEffect(() => {
         if (membersData?.success) {
             setMembers(membersData.data.members || []);
-            setTotal(membersData.data.total || 0);
+            const fetchedTotal = membersData.data.total || 0;
+            setTotal(fetchedTotal);
             // ═══ CRITICAL: Refresh selectedMember with fresh data from API ═══
             setSelectedMember(prev => {
                 if (!prev) return null;
                 const fresh = (membersData.data.members || []).find(m => m.id === prev.id);
                 return fresh || prev;
             });
+
+            const newTotalPages = Math.ceil(fetchedTotal / 50);
+            if (page > newTotalPages && newTotalPages > 0) {
+                setPage(newTotalPages);
+            }
         }
-    }, [membersData]);
+    }, [membersData, page]);
 
     // Commander Data Bus — sync members across tabs
     useCommanderSync(venueId, fetchMembers, { entities: ['members'] });
