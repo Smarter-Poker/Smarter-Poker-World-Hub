@@ -659,13 +659,21 @@ export default function PokerNearMeLobby() {
 
   const handleSearch = useCallback((query) => {
     setCitySuggestions([]);
-    if (query) fetchVenues(query);
+    if (query) {
+      fetchVenues(query);
+      // Auto-open the Search panel to show results
+      setActivePod('search');
+      setShowPanel(true);
+    }
   }, [fetchVenues]);
 
   const handleCitySelect = useCallback((city) => {
     setSearchQuery(city);
     setCitySuggestions([]);
     fetchVenues(city);
+    // Auto-open the Search panel to show results for this city
+    setActivePod('search');
+    setShowPanel(true);
     if (userId) {
       addSearchHistoryToDb(userId, city).catch(() => { });
       // Optimistically update local search history
@@ -682,6 +690,9 @@ export default function PokerNearMeLobby() {
     if (result?.searchQuery) {
       setSearchQuery(result.searchQuery);
       fetchVenues(result.searchQuery);
+      // Auto-open the Search panel to show voice search results
+      setActivePod('search');
+      setShowPanel(true);
     }
     if (result?.filters) {
       setFilters(prev => ({ ...prev, ...result.filters }));
@@ -723,18 +734,23 @@ export default function PokerNearMeLobby() {
       setUserLocation(null);
       return;
     }
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setGpsError('GPS not supported on this device');
+      setTimeout(() => setGpsError(null), 3500);
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(loc);
         setGpsActive(true);
         fetchVenues();
+        // Auto-open the Near Me panel to show nearby venues
+        setActivePod('nearme');
+        setShowPanel(true);
       },
       (err) => {
-        console.warn('GPS error:', err);
         setGpsActive(false);
-        // Brief visual feedback for GPS failure
         setGpsError(err.code === 1 ? 'Location access denied' : 'Could not get location');
         setTimeout(() => setGpsError(null), 3500);
       },
