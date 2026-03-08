@@ -424,7 +424,17 @@ export default function PokerNearMeLobby() {
     const params = new URLSearchParams(window.location.search);
     const pod = params.get('pod');
     const q = params.get('q');
-    if (q) setSearchQuery(q);
+    if (q) {
+      setSearchQuery(q);
+      // Deep-link search: fetch venues matching the URL query
+      const deepUrl = `/api/poker/venues?limit=${PAGE_SIZE}&offset=0&search=${encodeURIComponent(q)}&sort=trust`;
+      cachedFetch(deepUrl).then(data => {
+        const newVenues = data?.data || data?.venues || (Array.isArray(data) ? data : []);
+        setVenues(newVenues);
+        setHasMore(newVenues.length >= PAGE_SIZE);
+        setPage(0);
+      }).catch(err => console.error('Deep-link venue fetch failed:', err));
+    }
 
     if (pod && POD_FEATURES[pod]) {
       // Double requestAnimationFrame ensures React has fully committed hydration
