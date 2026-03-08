@@ -158,6 +158,49 @@ export default async function handler(req, res) {
       }
     }
 
+    // 7b. Pending cashout requests across all union clubs
+    let pendingCashoutCount = 0;
+    let pendingCashoutTotal = 0;
+    if (clubIds.length > 0) {
+      const { data: cashouts } = await supabaseAdmin
+        .from('cashout_requests')
+        .select('amount')
+        .in('club_id', clubIds)
+        .eq('status', 'pending')
+        .limit(500);
+      for (const c of (cashouts || [])) {
+        pendingCashoutCount++;
+        pendingCashoutTotal += Number(c.amount || 0);
+      }
+    }
+
+    // 7c. Commission history — only loaded when ?include=commissions is passed (lazy)
+    let commissionHistory = undefined;
+    if (req.query.include === 'commissions' && clubIds.length > 0) {
+      const { data: commRows } = await supabaseAdmin
+        .from('commission_history')
+        .select('*')
+        .in('club_id', clubIds)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      // Enrich with agent names
+      const agentUserIds = [...new Set((commRows || []).map(r => r.agent_user_id).filter(Boolean))];
+      let profileMap = {};
+      if (agentUserIds.length > 0) {
+        const { data: profs } = await supabaseAdmin
+          .from('profiles')
+          .select('id, username, display_name')
+          .in('id', agentUserIds)
+          .limit(200);
+        for (const p of (profs || [])) profileMap[p.id] = p.display_name || p.username || p.id;
+      }
+      commissionHistory = (commRows || []).map(r => ({
+        ...r,
+        agent_name: profileMap[r.agent_user_id] || null,
+      }));
+    }
+
     // 8. Aggregate stats
     const totalTreasury = clubs.reduce((s, c) => s + (c.chip_treasury || 0), 0);
     const totalRake = clubs.reduce((s, c) => s + (c.total_rake || 0), 0);
@@ -186,6 +229,9 @@ export default async function handler(req, res) {
       adminRole: unionAdmin.role,
       pendingApplications: pendingApps || 0,
       pendingLeaveRequests: pendingLeave || 0,
+      pendingCashoutCount,
+      pendingCashoutTotal,
+      ...(commissionHistory !== undefined ? { commissionHistory } : {}),
       wallets: {
         chip_balance: Number(union.chip_balance || 0),
         rake_wallet: Number(union.rake_wallet || 0),

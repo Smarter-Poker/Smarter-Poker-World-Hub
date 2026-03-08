@@ -61,6 +61,7 @@ const ALL_TABS = [
     { id: 'games', label: 'Games', leadOnly: false },
     { id: 'settlement', label: 'Settlement', leadOnly: false },
     { id: 'wallets', label: 'Wallets', leadOnly: false },
+    { id: 'commissions', label: 'Commissions', leadOnly: false },
     { id: 'mint', label: 'Mint Chips', leadOnly: false },
     { id: 'bbj', label: 'BBJ', leadOnly: false },
     { id: 'admins', label: 'Admins', leadOnly: false },
@@ -126,6 +127,10 @@ export default function UnionDashboard() {
     const [walletProcessing, setWalletProcessing] = useState(false);
     const [walletTxFilter, setWalletTxFilter] = useState('all');
     const [walletMoveAmount, setWalletMoveAmount] = useState('');
+
+    // Commission history state
+    const [commHistory, setCommHistory] = useState(null);
+    const [commHistoryLoading, setCommHistoryLoading] = useState(false);
 
     // Add-club commission rate (required before adding)
     const [addClubCommission, setAddClubCommission] = useState('90');
@@ -296,6 +301,20 @@ export default function UnionDashboard() {
             })
             .subscribe();
 
+        // Channel 5: union wallet transactions — refresh wallet balances live
+        const walletsChannel = supabase
+            .channel(`union-wallets:${unionIdParam}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'union_wallet_transactions',
+                filter: `union_id=eq.${unionIdParam}`,
+            }, () => {
+                // Reload wallet balances silently when a new transaction lands
+                loadWallets();
+            })
+            .subscribe();
+
         // Silent poll every 30s as fallback — Realtime postgres_changes handles live updates
         const poll = setInterval(async () => {
             try {
@@ -315,6 +334,7 @@ export default function UnionDashboard() {
             supabase.removeChannel(clubsChannel);
             supabase.removeChannel(agentsChannel);
             supabase.removeChannel(periodsChannel);
+            supabase.removeChannel(walletsChannel);
             clearInterval(poll);
         };
     }, [unionIdParam, user?.id, loadDashboard]);
@@ -335,6 +355,22 @@ export default function UnionDashboard() {
             else showToast(d.error || 'Failed to load wallets', 'error');
         } catch (e) { showToast(e.message, 'error'); }
         finally { setWalletLoading(false); }
+    };
+
+    // Commission history loading
+    const loadCommHistory = async () => {
+        if (!unionIdParam || commHistoryLoading) return;
+        setCommHistoryLoading(true);
+        try {
+            const token = await getAuthToken();
+            const r = await fetch(`/api/club-arena/union-dashboard?unionId=${unionIdParam}&include=commissions`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const d = await r.json();
+            if (d.success) setCommHistory(d.commissionHistory || []);
+            else showToast(d.error || 'Failed to load commission history', 'error');
+        } catch (e) { showToast(e.message, 'error'); }
+        finally { setCommHistoryLoading(false); }
     };
 
     // Mint chips
@@ -544,7 +580,7 @@ export default function UnionDashboard() {
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: 4, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
                     {TABS.map(tab => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                        <button key={tab.id} onClick={() => { setActiveTab(tab.id); if (tab.id === 'wallets') loadWallets(); if (tab.id === 'commissions') loadCommHistory(); }}
                             style={{
                                 background: activeTab === tab.id ? FB.primary : FB.cardBg,
                                 color: activeTab === tab.id ? '#fff' : FB.textSecondary,
@@ -561,7 +597,7 @@ export default function UnionDashboard() {
                 {activeTab === 'overview' && (
                     <div>
                         {/* Pending applications / leave alerts */}
-                        {(dashboard.pendingApplications > 0 || dashboard.pendingLeaveRequests > 0) && (
+                        {(dashboard.pendingApplications > 0 || dashboard.pendingLeaveRequests > 0 || dashboard.pendingCashoutCount > 0) && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                                 {dashboard.pendingApplications > 0 && (
                                     <div style={{ background: 'rgba(35,116,225,0.1)', borderRadius: 8, padding: '10px 16px', border: '1px solid rgba(35,116,225,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -577,6 +613,14 @@ export default function UnionDashboard() {
                                             {dashboard.pendingLeaveRequests} club{dashboard.pendingLeaveRequests !== 1 ? 's' : ''} requesting to leave this union
                                         </span>
                                         <button onClick={() => setActiveTab('manage_clubs')} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Review</button>
+                                    </div>
+                                )}
+                                {dashboard.pendingCashoutCount > 0 && (
+                                    <div style={{ background: 'rgba(247,197,42,0.08)', borderRadius: 8, padding: '10px 16px', border: '1px solid rgba(247,197,42,0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: 13, color: FB.gold, fontWeight: 600 }}>
+                                            {dashboard.pendingCashoutCount} pending cashout{dashboard.pendingCashoutCount !== 1 ? 's' : ''} — {(dashboard.pendingCashoutTotal || 0).toLocaleString()} chips total
+                                        </span>
+                                        <button onClick={() => setActiveTab('clubs')} style={{ background: FB.gold, color: '#000', border: 'none', borderRadius: 6, padding: '4px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>View Clubs</button>
                                     </div>
                                 )}
                             </div>
@@ -648,11 +692,12 @@ export default function UnionDashboard() {
                             {[
                                 { label: 'View Games', tab: 'games', color: FB.primary },
                                 { label: 'Wallets', tab: 'wallets', color: '#059669' },
+                                { label: 'Commissions', tab: 'commissions', color: FB.orange },
                                 { label: 'Mint Chips', tab: 'mint', color: FB.gold },
                                 { label: 'Settlement', tab: 'settlement', color: FB.purple },
                                 ...(isLead ? [{ label: 'Add Club', tab: 'manage_clubs', color: FB.success }] : []),
                             ].map(q => (
-                                <button key={q.tab} onClick={() => { setActiveTab(q.tab); if (q.tab === 'wallets') loadWallets(); }} style={{
+                                <button key={q.tab} onClick={() => { setActiveTab(q.tab); if (q.tab === 'wallets') loadWallets(); if (q.tab === 'commissions') loadCommHistory(); }} style={{
                                     background: q.color, color: q.color === FB.gold ? '#000' : '#fff',
                                     border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700,
                                     fontSize: 13, cursor: 'pointer', flex: '1 1 120px',
@@ -844,14 +889,14 @@ export default function UnionDashboard() {
                                                     Save
                                                 </button>
                                                 <button onClick={() => setAgentCommEditing(prev => ({ ...prev, [agent.id]: false }))}
-                                                    style={{ background: 'transparent', color: FB.textSecondary, border: 'none', fontSize: 11, cursor: 'pointer' }}>✕</button>
+                                                    style={{ background: 'transparent', color: FB.textSecondary, border: 'none', fontSize: 11, cursor: 'pointer' }}>x</button>
                                             </span>
                                         ) : (
                                             <span
                                                 onClick={() => { setAgentCommEditing(prev => ({ ...prev, [agent.id]: true })); setAgentCommRates(prev => ({ ...prev, [agent.id]: String(((agent.commission_rate || 0) * 100).toFixed(0)) })); }}
                                                 style={{ color: FB.gold, cursor: isLead ? 'pointer' : 'default', textDecoration: isLead ? 'underline dotted' : 'none' }}
                                                 title={isLead ? 'Click to edit commission rate' : undefined}>
-                                                {((agent.commission_rate || 0) * 100).toFixed(0)}%{isLead ? ' ✎' : ''}
+                                                {((agent.commission_rate || 0) * 100).toFixed(0)}%{isLead ? ' [edit]' : ''}
                                             </span>
                                         )}
                                     </div>
@@ -1100,7 +1145,7 @@ export default function UnionDashboard() {
                                     <span style={{ fontWeight: 700, color: FB.primary, fontSize: 14 }}>
                                         Period Status — {clubs.find(c => c.id === settleStatusData.clubId)?.name || ''}
                                     </span>
-                                    <button onClick={() => setSettleStatusData(null)} style={{ background: 'transparent', border: 'none', color: FB.textSecondary, cursor: 'pointer', fontSize: 16 }}>✕</button>
+                                    <button onClick={() => setSettleStatusData(null)} style={{ background: 'transparent', border: 'none', color: FB.textSecondary, cursor: 'pointer', fontSize: 16 }}>x</button>
                                 </div>
                                 {settleStatusData.currentPeriod ? (
                                     <div>
@@ -1561,6 +1606,92 @@ export default function UnionDashboard() {
                     </div>
                 )}
 
+                {/* ═══ COMMISSIONS TAB ═══ */}
+                {activeTab === 'commissions' && (
+                    <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, margin: 0 }}>Commission History</h3>
+                            <button onClick={loadCommHistory} disabled={commHistoryLoading}
+                                style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '7px 16px', fontSize: 12, cursor: 'pointer', opacity: commHistoryLoading ? 0.5 : 1 }}>
+                                {commHistoryLoading ? 'Loading...' : 'Refresh'}
+                            </button>
+                        </div>
+
+                        {/* Summary stats from live agents */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 20 }}>
+                            {[
+                                { label: 'Total Agents', value: (dashboard?.agents || []).length },
+                                { label: 'Active Agents', value: (dashboard?.agents || []).filter(a => a.status === 'active').length, color: FB.success },
+                                { label: 'Total Lifetime Earnings', value: ((dashboard?.agents || []).reduce((s, a) => s + (a.lifetime_earnings || 0), 0)).toLocaleString(), color: FB.gold },
+                                { label: 'Weekly Rake Generated', value: ((dashboard?.agents || []).reduce((s, a) => s + (a.weekly_rake_generated || 0), 0)).toLocaleString(), color: FB.primary },
+                            ].map(s => (
+                                <div key={s.label} style={{ background: FB.hover, borderRadius: 10, padding: '12px 16px', minWidth: 140, flex: '1 1 140px', border: `1px solid ${FB.border}` }}>
+                                    <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4 }}>{s.label}</div>
+                                    <div style={{ fontSize: 18, fontWeight: 800, color: s.color || FB.textPrimary }}>{s.value}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Commission history table */}
+                        {commHistoryLoading && (
+                            <div style={{ textAlign: 'center', padding: 32, color: FB.textSecondary, fontSize: 13 }}>Loading commission history...</div>
+                        )}
+                        {!commHistoryLoading && commHistory === null && (
+                            <div style={{ textAlign: 'center', padding: 32, color: FB.textSecondary, fontSize: 13, border: `1px dashed ${FB.border}`, borderRadius: 10 }}>
+                                Commission history loads on demand. Click Refresh to load.
+                            </div>
+                        )}
+                        {!commHistoryLoading && commHistory !== null && commHistory.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: 32, color: FB.textSecondary, fontSize: 13, border: `1px dashed ${FB.border}`, borderRadius: 10 }}>
+                                No commission history found for this union yet.
+                            </div>
+                        )}
+                        {!commHistoryLoading && commHistory && commHistory.length > 0 && (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: `1px solid ${FB.border}` }}>
+                                            {['Date', 'Club', 'Agent', 'Role', 'Period Rake', 'Commission', 'Rate', 'Type'].map(h => (
+                                                <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: FB.textSecondary, fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {commHistory.map((row, i) => {
+                                            const clubName = (dashboard?.clubs || []).find(c => c.id === row.club_id)?.name || row.club_id?.slice(0, 8);
+                                            const date = row.created_at ? new Date(row.created_at).toLocaleDateString() : '--';
+                                            const roleColor = { super_agent: '#F7C52A', agent: '#2374E1', sub_agent: '#A855F7' }[row.agent_role] || '#B0B3B8';
+                                            return (
+                                                <tr key={i} style={{ borderBottom: `1px solid ${FB.border}`, background: i % 2 === 0 ? FB.cardBg : FB.hover }}>
+                                                    <td style={{ padding: '8px 10px', color: FB.textSecondary, whiteSpace: 'nowrap' }}>{date}</td>
+                                                    <td style={{ padding: '8px 10px', color: FB.textPrimary, fontWeight: 600 }}>{clubName}</td>
+                                                    <td style={{ padding: '8px 10px', color: FB.textSecondary }}>{row.agent_name || row.agent_user_id?.slice(0, 8) || '--'}</td>
+                                                    <td style={{ padding: '8px 10px' }}>
+                                                        <span style={{ fontSize: 11, fontWeight: 700, color: roleColor, background: `${roleColor}22`, padding: '2px 6px', borderRadius: 4 }}>
+                                                            {row.agent_role || '--'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '8px 10px', color: FB.textPrimary }}>{(row.gross_rake || 0).toLocaleString()}</td>
+                                                    <td style={{ padding: '8px 10px', color: FB.gold, fontWeight: 700 }}>{(row.commission_amount || 0).toLocaleString()}</td>
+                                                    <td style={{ padding: '8px 10px', color: FB.textSecondary }}>{((row.commission_rate || 0) * 100).toFixed(1)}%</td>
+                                                    <td style={{ padding: '8px 10px' }}>
+                                                        <span style={{ fontSize: 11, color: row.is_prepaid ? '#31A24C' : '#ea580c', fontWeight: 600 }}>
+                                                            {row.is_prepaid ? 'Prepaid' : 'Credit'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                                <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 12, textAlign: 'right' }}>
+                                    Showing {commHistory.length} most recent commission entries across all clubs in this union.
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* ═══ BBJ TAB ═══ */}
                 {activeTab === 'bbj' && (
                     <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
@@ -1670,9 +1801,9 @@ export default function UnionDashboard() {
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0' }}>
                     {[
-                        { label: 'Club Arena', emoji: '🏠', href: '/hub/club-arena' },
-                        { label: 'Dashboard', emoji: '🏛', href: null, active: true },
-                        { label: 'Games', emoji: '🎮', href: unionIdParam ? `/hub/club-arena/union-games?union=${unionIdParam}` : null },
+                        { label: 'Club Arena', icon: '[ ]', href: '/hub/club-arena' },
+                        { label: 'Dashboard', icon: '[ * ]', href: null, active: true },
+                        { label: 'Games', icon: '[ > ]', href: unionIdParam ? `/hub/club-arena/union-games?union=${unionIdParam}` : null },
                     ].map(item => (
                         item.href ? (
                             <a key={item.label} href={item.href} style={{
@@ -1680,7 +1811,7 @@ export default function UnionDashboard() {
                                 flex: 1, padding: '8px 4px', textDecoration: 'none',
                                 color: item.active ? '#2374E1' : '#B0B3B8',
                             }}>
-                                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                                <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 700 }}>{item.icon}</span>
                                 <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
                             </a>
                         ) : (
@@ -1690,7 +1821,7 @@ export default function UnionDashboard() {
                                 color: item.active ? '#2374E1' : '#B0B3B8',
                                 cursor: 'default',
                             }}>
-                                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                                <span style={{ fontSize: 11, fontFamily: 'monospace', fontWeight: 700 }}>{item.icon}</span>
                                 <span style={{ fontSize: 11, fontWeight: 600 }}>{item.label}</span>
                             </div>
                         )
