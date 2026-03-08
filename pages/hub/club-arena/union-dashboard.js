@@ -129,6 +129,8 @@ export default function UnionDashboard() {
 
     // Add-club commission rate (required before adding)
     const [addClubCommission, setAddClubCommission] = useState('90');
+
+    const showToast = (msg, type = 'info') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 3500);
     };
