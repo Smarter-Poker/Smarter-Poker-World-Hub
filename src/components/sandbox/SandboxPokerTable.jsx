@@ -95,14 +95,14 @@ export default function SandboxPokerTable({
         <div style={{
             position: 'relative',
             width: '100%',
-            maxWidth: 340,
+            maxWidth: 170,
             margin: '0 auto',
-            aspectRatio: '344 / 610',
+            aspectRatio: '172 / 305',
             overflow: 'visible',
         }}>
             {/* Poker table image — vertical orientation */}
             <img
-                src="/images/poker-table-vertical.png"
+                src="/images/poker-table-vertical-nobg.png"
                 alt="Poker Table"
                 style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
