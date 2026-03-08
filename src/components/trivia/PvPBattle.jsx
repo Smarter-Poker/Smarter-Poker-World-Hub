@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Gem, Check, X, Crown, Clock, User } from 'lucide-react';
 import MetalFrame from '../ui/MetalFrame';
 import HexButton from '../ui/HexButton';
+import { busEmit } from '../../engine/EventBus';
 
 const QUESTIONS_PER_BATTLE = 5;
 const TIME_PER_QUESTION = 15;
@@ -90,17 +91,22 @@ export default function PvPBattle({
             if (playerCorrect && !opponentCorrect) {
                 setRoundResult('player');
                 setPlayerScore(prev => prev + 1);
+                busEmit.decisionCorrect(playerScore + 1);
             } else if (!playerCorrect && opponentCorrect) {
                 setRoundResult('opponent');
                 setOpponentScore(prev => prev + 1);
+                busEmit.decisionIncorrect(playerScore);
+                busEmit.screenShake('light');
             } else if (playerCorrect && opponentCorrect) {
                 // Both correct - faster wins
                 if (playerTime < opponentTime) {
                     setRoundResult('player');
                     setPlayerScore(prev => prev + 1);
+                    busEmit.decisionCorrect(playerScore + 1);
                 } else {
                     setRoundResult('opponent');
                     setOpponentScore(prev => prev + 1);
+                    busEmit.decisionIncorrect(playerScore);
                 }
             } else {
                 setRoundResult('tie');
@@ -129,6 +135,13 @@ export default function PvPBattle({
         const playerWon = playerScore > opponentScore;
         const rakeAmount = Math.floor(stakeAmount * 2 * 0.1);
         const winnings = playerWon ? (stakeAmount * 2 - rakeAmount) : 0;
+
+        if (playerWon) {
+            busEmit.diamondsEarned(winnings, 'PvP Battle Victory');
+            busEmit.celebration('confetti');
+        } else {
+            busEmit.diamondsSpent(stakeAmount, 'PvP Battle Loss');
+        }
 
         onComplete?.({
             won: playerWon,

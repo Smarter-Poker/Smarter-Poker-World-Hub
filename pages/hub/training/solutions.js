@@ -707,13 +707,18 @@ export default function SolutionsBrowser() {
                 {/* Content */}
                 <div style={{
                     display: 'flex',
+                    flexWrap: 'wrap',
                     minHeight: 'calc(100vh - 160px)',
+                    width: '100%',
                 }}>
                     {/* Left: Spot List */}
                     <div style={{
-                        width: 320, borderRight: '1px solid rgba(255,255,255,0.06)',
+                        flex: '1 1 320px', maxWidth: '100%',
+                        borderRight: '1px solid rgba(255,255,255,0.06)',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
                         overflowY: 'auto', padding: 12,
                         display: 'flex', flexDirection: 'column', gap: 4,
+                        maxHeight: activeTab === 'grid' ? 'auto' : 'auto',
                     }}>
                         {loading ? (
                             <div style={{ padding: 40, textAlign: 'center' }}>
@@ -824,9 +829,9 @@ export default function SolutionsBrowser() {
 
                     {/* Right: Detail Panel */}
                     <div style={{
-                        flex: 1, padding: '24px 32px',
+                        flex: '1 1 320px', minWidth: 280, padding: '24px 32px',
                         display: 'flex', flexDirection: 'column', alignItems: 'center',
-                        overflowY: 'auto',
+                        overflowY: 'auto', maxWidth: '100%',
                     }}>
                         {!spotDetail && !loadingDetail ? (
                             <div style={{

@@ -132,6 +132,74 @@ function generateAlternateLines(question) {
     return altLines;
 }
 
+// ════════════════════════════════════════════════════
+// Graphic Playing Card Renderer
+// ════════════════════════════════════════════════════
+function PlayingCard({ card, size = 'inline' }) {
+    if (!card) return null;
+
+    const suit = card[card.length - 1]?.toLowerCase();
+    const rank = card.slice(0, -1)?.toUpperCase();
+    const SUIT_CONFIG = {
+        s: { symbol: '♠', color: '#1a1a1a' },
+        h: { symbol: '♥', color: '#ef4444' },
+        d: { symbol: '♦', color: '#3b82f6' },
+        c: { symbol: '♣', color: '#22c55e' }
+    };
+    const config = SUIT_CONFIG[suit] || SUIT_CONFIG.s;
+
+    const sizes = {
+        inline: { width: 16, height: 24, fontSize: 11 },
+        small: { width: 36, height: 50, fontSize: 12 },
+        medium: { width: 52, height: 72, fontSize: 16 },
+        large: { width: 68, height: 94, fontSize: 20 },
+    };
+    const s = sizes[size] || sizes.inline;
+
+    return (
+        <span style={{
+            width: s.width,
+            height: s.height,
+            background: 'linear-gradient(135deg, #fff, #f5f5f5)',
+            borderRadius: 3,
+            display: 'inline-flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+            fontWeight: 'bold',
+            fontSize: s.fontSize,
+            color: config.color,
+            margin: '0 2px',
+            verticalAlign: 'text-bottom',
+        }}>
+            <span style={{ lineHeight: 1 }}>{rank}</span>
+            <span style={{ fontSize: s.fontSize * 1.1, lineHeight: 1 }}>{config.symbol}</span>
+        </span>
+    );
+}
+
+function renderTextWithCards(text) {
+    if (!text) return null;
+    // Match standard card formats like Ah, Ks, 10d, 4c
+    const cardRegex = /\b([2-9]|10|[JQKA])([shdc])\b/gi;
+    const parts = text.split(cardRegex);
+
+    const result = [];
+    let i = 0;
+    while (i < parts.length) {
+        result.push(parts[i]);
+        i++;
+        if (i < parts.length) {
+            const rank = parts[i];
+            const suit = parts[i + 1];
+            result.push(<PlayingCard key={i} card={`${rank}${suit}`} size="inline" />);
+            i += 2;
+        }
+    }
+    return result;
+}
+
 export default function StrategyTrivia({ mode }) {
     const router = useRouter();
     const config = STRATEGY_MODES[mode] || STRATEGY_MODES.mtt;
@@ -741,16 +809,62 @@ export default function StrategyTrivia({ mode }) {
                                     </div>
                                 </div>
 
-                                {/* Question Card */}
-                                <div className="question-card">
-                                    <div className="category-badge" style={{ borderColor: config.color }}>
-                                        {getCategoryName(currentQuestion.category)}
+                                {/* Question Content - Scrollable */}
+                                <div className="question-content-area" style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px', display: 'flex', flexDirection: 'column' }}>
+                                    <div>
+                                        <div className="category-badge" style={{ borderColor: config.color }}>
+                                            {getCategoryName(currentQuestion.category)}
+                                        </div>
                                     </div>
 
                                     <h2 className="question-text">
-                                        {formatPokerText(toTitleCase(currentQuestion.question))}
+                                        {renderTextWithCards(formatPokerText(toTitleCase(currentQuestion.question)))}
                                     </h2>
 
+                                    {/* GTO Scenario Display — Inline rendering */}
+                                    {showResult && (() => {
+                                        const altLines = generateAlternateLines(currentQuestion);
+                                        const altSum = altLines.reduce((sum, l) => sum + l.frequency, 0);
+                                        const computedConfidence = 100 - altSum;
+
+                                        return (
+                                            <div style={{ marginTop: '16px', marginBottom: '8px', width: '100%' }}>
+                                                {/* Result badge */}
+                                                <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    marginBottom: '12px',
+                                                    padding: '10px 16px',
+                                                    borderRadius: '8px',
+                                                    background: selectedAnswer === currentQuestion.correct_index
+                                                        ? 'rgba(34, 197, 94, 0.15)'
+                                                        : 'rgba(239, 68, 68, 0.15)',
+                                                    border: `1px solid ${selectedAnswer === currentQuestion.correct_index ? '#22c55e' : '#ef4444'}`,
+                                                    color: selectedAnswer === currentQuestion.correct_index ? '#22c55e' : '#ef4444',
+                                                    fontWeight: 700,
+                                                    fontSize: '15px',
+                                                }}>
+                                                    {selectedAnswer === currentQuestion.correct_index ? '✓ CORRECT' : '✗ INCORRECT'}
+                                                </div>
+
+                                                <GTOScenarioDisplay
+                                                    action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
+                                                    confidence={computedConfidence}
+                                                    explanation={currentQuestion.explanation}
+                                                    gtoApproach={generateGTOApproach(currentQuestion)}
+                                                    evAnalysis={generateEVAnalysis(currentQuestion)}
+                                                    alternateLines={altLines}
+                                                    isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
+                                                    showDetails={true}
+                                                />
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Fixed Bottom Actions */}
+                                <div className="bottom-actions-area" style={{ flexShrink: 0, marginTop: 'auto', paddingTop: '16px', borderTop: showResult ? '1px solid rgba(255,255,255,0.1)' : 'none' }}>
                                     <div className="options">
                                         {currentQuestion.options.map((option, index) => {
                                             const isEliminated = eliminatedOptions.includes(index);
@@ -775,13 +889,13 @@ export default function StrategyTrivia({ mode }) {
                                                         {isEliminated ? '✗' : String.fromCharCode(65 + index)}
                                                     </span>
                                                     <span className="option-text">
-                                                        {isEliminated ? '---' : formatPokerText(toTitleCase(option))}
+                                                        {isEliminated ? '---' : renderTextWithCards(formatPokerText(toTitleCase(option)))}
                                                     </span>
                                                     {showResult && index === currentQuestion.correct_index && (
-                                                        <CheckCircle size={20} className="icon correct" />
+                                                        <CheckCircle size={20} className="icon correct" style={{ color: 'white' }} />
                                                     )}
                                                     {showResult && index === selectedAnswer && index !== currentQuestion.correct_index && (
-                                                        <XCircle size={20} className="icon incorrect" />
+                                                        <XCircle size={20} className="icon incorrect" style={{ color: 'white' }} />
                                                     )}
                                                 </button>
                                             );
@@ -790,7 +904,7 @@ export default function StrategyTrivia({ mode }) {
 
                                     {/* Lifelines */}
                                     {!showResult && (
-                                        <div className="lifelines" style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '16px' }}>
+                                        <div className="lifelines" style={{ display: 'flex', gap: '12px', justifyContent: 'center', margin: '20px auto 0', maxWidth: '400px', width: '100%' }}>
                                             <button
                                                 className="lifeline-btn"
                                                 onClick={useFiftyFifty}
@@ -803,13 +917,12 @@ export default function StrategyTrivia({ mode }) {
                                                     opacity: (fiftyFiftyUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
                                                     transition: 'opacity 0.3s, transform 0.2s',
                                                     flex: 1,
-                                                    maxWidth: '200px',
                                                 }}
                                             >
                                                 <img
                                                     src="/images/trivia/lifeline-5050.jpg"
                                                     alt="50/50 Lifeline"
-                                                    style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                                                    style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block', border: '1px solid rgba(255,255,255,0.1)' }}
                                                 />
                                             </button>
                                             <button
@@ -824,91 +937,34 @@ export default function StrategyTrivia({ mode }) {
                                                     opacity: (skipUsed || lifelinesUsedCount >= MAX_LIFELINES) ? 0.35 : 1,
                                                     transition: 'opacity 0.3s, transform 0.2s',
                                                     flex: 1,
-                                                    maxWidth: '200px',
                                                 }}
                                             >
                                                 <img
                                                     src="/images/trivia/lifeline-skip.jpg"
                                                     alt="Skip Lifeline"
-                                                    style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
+                                                    style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block', border: '1px solid rgba(255,255,255,0.1)' }}
                                                 />
                                             </button>
                                         </div>
                                     )}
 
-                                </div>
-                            </div>
-
-                            {/* GTO Scenario Display — Full-Screen Overlay */}
-                            {showResult && (() => {
-                                const altLines = generateAlternateLines(currentQuestion);
-                                const altSum = altLines.reduce((sum, l) => sum + l.frequency, 0);
-                                const computedConfidence = 100 - altSum;
-
-                                return (
-                                    <div style={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        zIndex: 9999,
-                                        background: '#0f1923',
-                                        overflowY: 'auto',
-                                        padding: '16px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                    }}>
-                                        {/* Result badge at top */}
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            marginBottom: '12px',
-                                            padding: '8px 16px',
-                                            borderRadius: '8px',
-                                            background: selectedAnswer === currentQuestion.correct_index
-                                                ? 'rgba(0, 255, 136, 0.15)'
-                                                : 'rgba(239, 68, 68, 0.15)',
-                                            border: `1px solid ${selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444'}`,
-                                            color: selectedAnswer === currentQuestion.correct_index ? '#00ff88' : '#ef4444',
-                                            fontWeight: 700,
-                                            fontSize: '14px',
-                                        }}>
-                                            {selectedAnswer === currentQuestion.correct_index ? '✓ CORRECT' : '✗ INCORRECT'}
-                                        </div>
-
-                                        <div style={{ width: '100%', maxWidth: '500px' }}>
-                                            <GTOScenarioDisplay
-                                                action={currentQuestion.options[currentQuestion.correct_index]?.split(' ')[0]?.replace(/[^a-zA-Z-]/g, '').toUpperCase() || 'OPTIMAL'}
-                                                confidence={computedConfidence}
-                                                explanation={currentQuestion.explanation}
-                                                gtoApproach={generateGTOApproach(currentQuestion)}
-                                                evAnalysis={generateEVAnalysis(currentQuestion)}
-                                                alternateLines={altLines}
-                                                isCorrectAnswer={selectedAnswer === currentQuestion.correct_index}
-                                                showDetails={true}
-                                            />
-                                        </div>
-
-                                        {/* Next button at bottom of overlay */}
+                                    {/* Next Button */}
+                                    {showResult && (
                                         <button
                                             className="next-btn"
                                             onClick={nextQuestion}
                                             style={{
                                                 marginTop: '16px',
                                                 width: '100%',
-                                                maxWidth: '500px',
                                             }}
                                         >
                                             {currentQuestionIndex + 1 >= questions.length ? 'See Results' : 'Next Question'}
                                             <ArrowRight size={18} />
                                         </button>
-                                    </div>
-                                );
-                            })()}
+                                    )}
+                                </div>
 
+                            </div>
                         </div>
                     )}
 
@@ -950,15 +1006,24 @@ export default function StrategyTrivia({ mode }) {
 
             <style jsx>{`
                 .strategy-trivia {
-                    min-height: 100vh;
+                    height: 100vh;
+                    height: 100dvh;
+                    overflow: hidden;
                     background: linear-gradient(135deg, #0a0e1a 0%, #0d1525 40%, #0a1628 70%, #060b14 100%);
                     font-family: 'Inter', -apple-system, sans-serif;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .content {
-                    padding: 80px 0 40px;
-                    max-width: 100%;
+                    padding: 12px;
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    max-width: 800px;
+                    width: 100%;
                     margin: 0 auto;
+                    overflow: hidden;
                 }
 
                 /* LOBBY — Full-bleed image */
@@ -1075,17 +1140,25 @@ export default function StrategyTrivia({ mode }) {
                 }
 
                 /* GAME AREA — FULL SCREEN FRAME */
+                .game-area {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+
                 .game-frame {
+                    flex: 1;
                     background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(10, 17, 35, 0.98));
                     border: 1px solid rgba(0, 212, 255, 0.15);
                     border-radius: 20px;
-                    padding: 20px 16px;
+                    padding: 16px;
                     box-shadow:
                         0 0 30px rgba(0, 212, 255, 0.05),
                         inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                    min-height: calc(100vh - 140px);
                     display: flex;
                     flex-direction: column;
+                    overflow: hidden;
                 }
 
                 .game-header {
@@ -1098,6 +1171,7 @@ export default function StrategyTrivia({ mode }) {
                     border: 1px solid rgba(0, 212, 255, 0.1);
                     border-radius: 14px;
                     backdrop-filter: blur(8px);
+                    flex-shrink: 0;
                 }
 
                 .progress {
@@ -1150,9 +1224,19 @@ export default function StrategyTrivia({ mode }) {
                     font-weight: 600;
                 }
 
-                .question-card {
-                    padding: 0;
-                    flex: 1;
+                /* Scrollbar styling for question content area */
+                .question-content-area::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .question-content-area::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.02);
+                }
+                .question-content-area::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 3px;
+                }
+                .question-content-area::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.2);
                 }
 
                 .category-badge {
@@ -1190,7 +1274,7 @@ export default function StrategyTrivia({ mode }) {
                     padding: 14px 18px;
                     background: rgba(255,255,255,0.05);
                     border: 2px solid rgba(255,255,255,0.1);
-                    border-radius: 10px;
+                    border-radius: 12px;
                     color: rgba(255,255,255,0.9);
                     font-size: 15px;
                     text-align: left;
@@ -1208,13 +1292,17 @@ export default function StrategyTrivia({ mode }) {
                 }
 
                 .option.correct {
-                    background: rgba(34, 197, 94, 0.2);
-                    border-color: #22c55e;
+                    background: linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(21, 128, 61, 0.9));
+                    border-color: #4ade80;
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
                 }
 
                 .option.incorrect {
-                    background: rgba(239, 68, 68, 0.2);
-                    border-color: #ef4444;
+                    background: linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(185, 28, 28, 0.9));
+                    border-color: #f87171;
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
                 }
 
                 .option.eliminated {
@@ -1239,54 +1327,8 @@ export default function StrategyTrivia({ mode }) {
                     flex: 1;
                 }
 
-                .icon.correct { color: #22c55e; }
-                .icon.incorrect { color: #ef4444; }
-
-                .lifelines {
-                    display: flex;
-                    gap: 12px;
-                    margin-top: 24px;
-                }
-
-                .lifeline-btn {
-                    flex: 1;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 12px;
-                    background: rgba(255,255,255,0.05);
-                    border: 2px solid rgba(255,255,255,0.1);
-                    border-radius: 10px;
-                    color: white;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .lifeline-btn:hover:not(:disabled) {
-                    background: rgba(255,255,255,0.1);
-                    border-color: #00D4FF;
-                }
-
-                .lifeline-btn:disabled {
-                    opacity: 0.4;
-                    cursor: not-allowed;
-                }
-
-                .cost {
-                    font-size: 12px;
-                    color: #00D4FF;
-                }
-
-                .explanation {
-                    margin-top: 20px;
-                    padding: 16px;
-                    background: rgba(0,0,0,0.2);
-                    border-radius: 10px;
-                    color: rgba(255,255,255,0.7);
-                    font-size: 14px;
-                    line-height: 1.6;
-                }
+                .icon.correct { color: #4ade80; }
+                .icon.incorrect { color: #f87171; }
 
                 .next-btn {
                     display: flex;
@@ -1294,11 +1336,10 @@ export default function StrategyTrivia({ mode }) {
                     justify-content: center;
                     gap: 8px;
                     width: 100%;
-                    margin-top: 20px;
                     padding: 16px;
                     background: linear-gradient(145deg, rgba(20, 30, 48, 0.95), rgba(36, 59, 85, 0.9));
                     border: 1px solid rgba(6, 182, 212, 0.3);
-                    border-radius: 10px;
+                    border-radius: 12px;
                     color: white;
                     font-size: 16px;
                     font-weight: 600;

@@ -96,11 +96,12 @@ export default async function handler(req, res) {
         if (spotId) {
             const { data: spot, error } = await supabase
                 .from('solved_spots_gold')
-                .select('id, scenario_hash, game_type, stack_depth, strategy_matrix, hand_evs')
+                .select('id, scenario_hash, game_type, stack_depth, strategy_matrix')
                 .eq('id', spotId)
                 .maybeSingle();
 
             if (error || !spot) {
+                console.error(`[BrowseSolutions] 404 Error. spotId: "${spotId}", error:`, error);
                 return res.status(404).json({ success: false, error: 'Spot not found' });
             }
 
@@ -126,8 +127,8 @@ export default async function handler(req, res) {
                 }
             });
 
-            // Get EV data if available
-            const handEVs = spot.hand_evs || {};
+            // Get EV data from matrix
+            const handEVs = matrix.hand_evs || {};
 
             // Calculate range equity from hand EVs and frequencies
             let heroEqSum = 0;

@@ -89,6 +89,7 @@ function CompletedEventsList({
                                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                                         <button onClick={() => handleSave(gig.id)} style={styles.eventSaveBtn}>Save</button>
                                         <button onClick={() => setEditingCompletedGig(null)} style={styles.eventCancelBtn}>Cancel</button>
+                                        <button onClick={(e) => { e.stopPropagation(); onDeleteGig(e, gig.id); }} style={{ ...styles.eventDeleteBtn, padding: '10px 14px', flex: 0 }} title="Delete Event">🗑️</button>
                                     </div>
                                 </div>
                             ) : (
@@ -111,8 +112,7 @@ function CompletedEventsList({
                             )}
                             {editingCompletedGig !== gig.id && (
                                 <div style={styles.eventActionRow}>
-                                    <button onClick={(e) => handleEditClick(e, gig)} style={styles.eventEditBtn} title="Edit Event">✏️ Edit</button>
-                                    <button onClick={(e) => onDeleteGig(e, gig.id)} style={styles.eventDeleteBtn} title="Delete Event">🗑️ Remove</button>
+                                    <button onClick={(e) => handleEditClick(e, gig)} style={styles.eventEditBtn} title="Edit Settings">✏️ Edit</button>
                                 </div>
                             )}
                         </motion.div>

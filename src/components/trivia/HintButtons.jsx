@@ -38,9 +38,11 @@ function HintButtons({
     userDiamonds = 0,
     onUseHint,
     disabledHints = [], // Array of hint IDs that can't be used
-    compact = false
+    compact = false,
+    hasTimeLimit = true
 }) {
     const handleUseHint = (hint) => {
+        if (!hasTimeLimit) return;
         if (userDiamonds < hint.cost) return;
         if (disabledHints.includes(hint.id)) return;
         onUseHint?.(hint);
@@ -51,7 +53,7 @@ function HintButtons({
             {HINTS.map((hint) => {
                 const Icon = hint.icon;
                 const canAfford = userDiamonds >= hint.cost;
-                const isDisabled = disabledHints.includes(hint.id) || !canAfford;
+                const isDisabled = disabledHints.includes(hint.id) || !canAfford || !hasTimeLimit;
 
                 return (
                     <motion.button

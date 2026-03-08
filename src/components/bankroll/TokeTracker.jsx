@@ -1614,12 +1614,12 @@ function TokeTracker({ userId: userIdProp, refreshTrigger, standalone = false, t
                                                     <>
                                                         <button onClick={handleSaveDownEdit} style={{ ...styles.downDeleteBtn, background: 'rgba(16,185,129,0.15)', color: '#10b981', borderColor: 'rgba(16,185,129,0.3)' }} title="Save">✓</button>
                                                         <button onClick={() => { setEditingDownId(null); setEditingDownForm(null); }} style={styles.downDeleteBtn} title="Cancel">✕</button>
+                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={{ ...styles.downDeleteBtn, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }} title="Delete Down">🗑️</button>
                                                     </>
                                                 ) : (
                                                     <>
                                                         {isOpen && <button onClick={() => handleEndDown(down.id)} style={styles.endDownSmallBtn}>End</button>}
                                                         <button onClick={() => { setEditingDownId(down.id); setEditingDownForm(down); }} style={{ ...styles.downDeleteBtn, color: '#64748b', borderColor: 'rgba(255,255,255,0.1)', background: 'transparent' }} title="Edit Down">✏️</button>
-                                                        <button onClick={() => { if (confirm('Delete this down?')) handleDeleteDown(down.id); }} style={styles.downDeleteBtn} title="Delete Down">✕</button>
                                                     </>
                                                 )}
                                             </div>
