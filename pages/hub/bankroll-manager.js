@@ -1616,7 +1616,6 @@ export default function BankrollManagerPage() {
                       onClick={async () => {
                         try {
                           const token = getAccessToken();
-                          const token = session?.access_token;
                           const res = await fetch('/api/bankroll/export-pdf', {
                             headers: { Authorization: `Bearer ${token}` }
                           });

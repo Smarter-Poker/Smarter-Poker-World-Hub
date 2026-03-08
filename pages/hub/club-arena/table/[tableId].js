@@ -117,7 +117,6 @@ export default function ClubArenaTable() {
 
       // 2. Get auth token
       const token = getAccessToken();
-      const token = session?.access_token;
 
       // 3. Connect to engine with retry backoff
       setConnectStatus('Connecting to poker engine…');
