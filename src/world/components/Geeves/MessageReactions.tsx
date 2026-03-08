@@ -32,7 +32,7 @@ export function MessageReactions({ messageId, initialReaction, onReact }: Messag
                 return;
             }
 
-            const response = await fetch('/api/live-help/react', {
+            const response = await fetch('/api/geeves/rate', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
