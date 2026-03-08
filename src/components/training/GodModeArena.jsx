@@ -736,6 +736,32 @@ function GodModeArena({
     const [reviewTab, setReviewTab] = useState('overview'); // 'overview' | 'hands' | 'analysis'
     const [adaptiveToast, setAdaptiveToast] = useState(null);
 
+    // ═══ Phase 2: Speed Bonus Aggregation ═══
+    const [speedBonusDiamonds, setSpeedBonusDiamonds] = useState(0);
+
+    // ═══ Phase 2: Adaptive Difficulty Level (1-10) ═══
+    const computedDifficultyLevel = useMemo(() => {
+        if (!handHistory || handHistory.length < 3) return currentLevel || 1;
+        const correct = handHistory.filter(h => h.classification === 'best' || h.classification === 'correct').length;
+        const accuracy = correct / handHistory.length;
+        // Scale: high accuracy on high level = high difficulty
+        const base = Math.min(10, Math.max(1, currentLevel || 1));
+        if (accuracy >= 0.8) return Math.min(10, base + 2);
+        if (accuracy >= 0.6) return Math.min(10, base + 1);
+        if (accuracy < 0.4) return Math.max(1, base - 1);
+        return base;
+    }, [handHistory, currentLevel]);
+
+    // ═══ Phase 2: Wrap submitAnswer to capture speed data ═══
+    const handleSubmitAnswer = useCallback((answerId, meta) => {
+        // Track speed bonus diamonds from UDT
+        if (meta?.answerTimeSeconds !== undefined && meta?.isCorrect) {
+            if (meta.answerTimeSeconds < 5) setSpeedBonusDiamonds(prev => prev + 5);
+            else if (meta.answerTimeSeconds < 10) setSpeedBonusDiamonds(prev => prev + 2);
+        }
+        return submitAnswer(answerId);
+    }, [submitAnswer]);
+
     // Auto-transition from splash → playing once questions are loaded
     useEffect(() => {
         if (gamePhase === 'splash' && currentQuestion && !loading) {
@@ -762,12 +788,22 @@ function GodModeArena({
         return () => window.removeEventListener('adaptiveDifficultyChange', handler);
     }, []);
 
-    // Auto-transition to review when game completes
+    // Auto-transition to review when game completes + emit bus event
     useEffect(() => {
         if (gameComplete && gamePhase === 'playing') {
             setGamePhase('review');
+            // Phase 2: Emit session-complete bus event
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('training:session-complete', {
+                    detail: {
+                        gameId, gameName, gtowScore, totalEVLoss,
+                        totalQuestions, sessionMistakes, correctCount,
+                        bestStreak, speedBonusDiamonds,
+                    }
+                }));
+            }
         }
-    }, [gameComplete, gamePhase]);
+    }, [gameComplete, gamePhase, gameId, gameName, gtowScore, totalEVLoss, totalQuestions, sessionMistakes, correctCount, bestStreak, speedBonusDiamonds]);
 
     // Session timer
     const sessionStartRef = useRef(Date.now());
@@ -1262,6 +1298,61 @@ function GodModeArena({
                             );
                         })()}
 
+                        {/* Phase 2: Speed Bonus Summary */}
+                        {speedBonusDiamonds > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                style={{
+                                    marginBottom: 16, padding: '10px 14px',
+                                    background: 'rgba(251,191,36,0.06)',
+                                    border: '1px solid rgba(251,191,36,0.2)',
+                                    borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                }}
+                            >
+                                <span style={{ fontSize: 12, fontWeight: 700, color: '#fbbf24' }}>Speed Bonus Diamonds</span>
+                                <span style={{ fontSize: 14, fontWeight: 800, color: '#fbbf24' }}>+{speedBonusDiamonds}</span>
+                            </motion.div>
+                        )}
+
+                        {/* Phase 2: Share to Feed */}
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={async () => {
+                                try {
+                                    const res = await fetch('/api/training/share', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            userId,
+                                            shareType: 'session_complete',
+                                            data: {
+                                                gameId, gameName, gtowScore,
+                                                totalEVLoss, totalQuestions,
+                                                sessionMistakes, correctCount,
+                                                bestStreak, speedBonusDiamonds,
+                                            },
+                                        }),
+                                    });
+                                    if (res.ok) {
+                                        toast.success('Shared to your feed!');
+                                    }
+                                } catch (e) {
+                                    console.error('[Share] Error:', e);
+                                }
+                            }}
+                            style={{
+                                width: '100%', padding: '10px 0', marginBottom: 12,
+                                borderRadius: 10, border: '1px solid rgba(0,212,255,0.25)',
+                                background: 'rgba(0,212,255,0.06)',
+                                color: '#00d4ff', fontSize: 13, fontWeight: 700,
+                                cursor: 'pointer', letterSpacing: 0.5,
+                            }}
+                        >
+                            Share to Feed
+                        </motion.button>
+
                     </>)}
 
                     {/* ═══ TAB: HANDS ═══ */}
@@ -1497,6 +1588,7 @@ function GodModeArena({
                                     isMultiStreetActive={isMultiStreetActive}
                                     currentStreet={currentStreet}
                                     onExit={onExit}
+                                    difficultyLevel={computedDifficultyLevel}
                                 />
                             ) : null}
                         </motion.div>
@@ -1550,6 +1642,7 @@ function GodModeArena({
                         isMultiStreetActive={isMultiStreetActive}
                         currentStreet={currentStreet}
                         onExit={onExit}
+                        difficultyLevel={computedDifficultyLevel}
                     />
                 ) : null}
             </div>

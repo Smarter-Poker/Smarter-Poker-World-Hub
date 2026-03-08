@@ -55,7 +55,10 @@ export function warmCache(user) {
                         return;
                     }
                 }
-            } catch { /* noop */ }
+            } catch {
+                // Corrupted cache entry — self-heal by removing it
+                try { localStorage.removeItem(CACHE_KEY); } catch { /* noop */ }
+            }
         }
 
         // Fire-and-forget parallel prefetch

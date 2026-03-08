@@ -12,6 +12,7 @@ import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getAuthUser } from '../../src/lib/authUtils';
 import { claimReward } from '../../src/lib/claimReward';
 import { warmCache } from '../../src/lib/cacheWarmer';
+import { reapStaleCaches } from '../../src/lib/cacheReaper';
 import { CardCustomizerPanel } from '../../src/world/components/CardCustomizerPanel';
 import { HubErrorBoundary } from '../../src/components/ui/HubErrorBoundary';
 
@@ -64,6 +65,9 @@ export default function HubPage() {
 
         // Warm cache — prefetch profile/friends/stats (once per session, fire-and-forget)
         warmCache(authUser);
+
+        // Reap stale caches — clean entries older than 30 min (once per session, idle)
+        reapStaleCaches();
 
         // Award daily login diamonds (fire-and-forget, once per session, with toast)
         if (authUser?.id && !sessionStorage.getItem('dailyLoginClaimed')) {

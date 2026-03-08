@@ -64,6 +64,8 @@ export interface Message {
     timestamp: Date;
     isUser: boolean;
     isTyping?: boolean;
+    cacheId?: string;
+    fromCache?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -207,7 +209,9 @@ export function useLiveHelp() {
                 agentId: 'geeves',
                 content: data.answer,
                 timestamp: new Date(),
-                isUser: false
+                isUser: false,
+                cacheId: data.cacheId || undefined,
+                fromCache: data.fromCache || false,
             };
 
             setMessages(prev => [...prev, agentMessage]);

@@ -1,16 +1,18 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   MESSAGE REACTIONS — Thumbs up/down for Jarvis responses
+   MESSAGE REACTIONS — Thumbs up/down for Geeves responses
+   Maps helpful/unhelpful to rating 5/1 for /api/geeves/rate contract
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState } from 'react';
 
 interface MessageReactionsProps {
     messageId: string;
+    cacheId?: string;
     initialReaction?: 'helpful' | 'unhelpful' | null;
     onReact?: (reaction: 'helpful' | 'unhelpful') => void;
 }
 
-export function MessageReactions({ messageId, initialReaction, onReact }: MessageReactionsProps) {
+export function MessageReactions({ messageId, cacheId, initialReaction, onReact }: MessageReactionsProps) {
     const [reaction, setReaction] = useState<'helpful' | 'unhelpful' | null>(initialReaction || null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -32,6 +34,22 @@ export function MessageReactions({ messageId, initialReaction, onReact }: Messag
                 return;
             }
 
+            // Only call API if we have a cacheId — messages without cache entries can't be rated
+            if (!cacheId) {
+                console.warn('[MessageReactions] No cacheId — skipping API call');
+                onReact?.(finalReaction as any);
+                return;
+            }
+
+            // Map helpful/unhelpful to numeric rating (rate.js expects 1-5)
+            const rating = finalReaction === 'helpful' ? 5 : finalReaction === 'unhelpful' ? 1 : null;
+
+            if (rating === null) {
+                // Toggled off — no API call needed
+                onReact?.(finalReaction as any);
+                return;
+            }
+
             const response = await fetch('/api/geeves/rate', {
                 method: 'POST',
                 headers: {
@@ -39,8 +57,9 @@ export function MessageReactions({ messageId, initialReaction, onReact }: Messag
                     'Authorization': `Bearer ${authData.access_token}`
                 },
                 body: JSON.stringify({
-                    messageId,
-                    reaction: finalReaction
+                    cacheId,
+                    rating,
+                    feedback: finalReaction // Pass the text label as feedback
                 })
             });
 

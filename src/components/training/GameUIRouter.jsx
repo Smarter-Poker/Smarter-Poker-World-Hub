@@ -89,6 +89,8 @@ export default function GameUIRouter({
     currentStreet = 'flop',
     // Quit/Back
     onExit = null,
+    // Phase 2: Adaptive difficulty
+    difficultyLevel = 0,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -139,6 +141,8 @@ export default function GameUIRouter({
             currentStreet={currentStreet}
             // Quit/Back
             onExit={onExit}
+            // Phase 2: Adaptive difficulty
+            difficultyLevel={difficultyLevel}
         />
     );
 }

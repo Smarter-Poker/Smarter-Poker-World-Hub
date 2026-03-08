@@ -19,6 +19,7 @@
  */
 
 import LZString from 'lz-string';
+import { recordHit, recordMiss, recordCorruption } from './cacheTelemetry';
 
 const CACHE_PREFIX = 'swr_auto_';
 const MAX_AGE_MS = 15 * 60 * 1000;       // 15 minutes
@@ -186,20 +187,35 @@ export function getAutoCachedData(swrKey) {
     if (typeof window === 'undefined') return undefined;
     try {
         let raw = localStorage.getItem(getCacheKey(swrKey));
-        if (!raw) return undefined;
+        if (!raw) {
+            recordMiss();
+            return undefined;
+        }
         // Decompress if LZ-compressed
         if (raw.startsWith('lz:')) {
-            try { raw = LZString.decompressFromUTF16(raw.slice(3)); } catch { return undefined; }
+            try { raw = LZString.decompressFromUTF16(raw.slice(3)); } catch {
+                // Corrupted compression — self-heal
+                localStorage.removeItem(getCacheKey(swrKey));
+                recordCorruption();
+                return undefined;
+            }
         }
-        if (!raw) return undefined;
+        if (!raw) {
+            recordMiss();
+            return undefined;
+        }
         const parsed = JSON.parse(raw);
         if (parsed._ts && (Date.now() - parsed._ts) < MAX_AGE_MS) {
+            recordHit();
             return parsed.data;
         }
         // Expired — clean up
         localStorage.removeItem(getCacheKey(swrKey));
     } catch {
-        // Corrupt — ignore
+        // Corrupted entry — self-heal by removing it
+        try { localStorage.removeItem(getCacheKey(swrKey)); } catch { /* noop */ }
+        recordCorruption();
     }
+    recordMiss();
     return undefined;
 }

@@ -431,6 +431,7 @@ function MessageBubble({ message, agent }: MessageBubbleProps) {
                     />
                     <MessageReactions
                         messageId={message.id}
+                        cacheId={message.cacheId}
                         onReact={(reaction) => {
                             console.log('Reaction:', reaction, 'for message:', message.id);
                         }}

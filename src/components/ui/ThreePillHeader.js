@@ -16,7 +16,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabase';
-import { useLiveHelp } from '../../world/components/Geeves';
+import { useLiveHelp, LiveHelpPanel } from '../../world/components/Geeves';
 import DiamondWalletModal from '../store/DiamondWalletModal';
 import { useAvatar } from '../../contexts/AvatarContext';
 import { useUnreadCount } from '../../hooks/useUnreadCount';
@@ -576,6 +576,9 @@ export default function ThreePillHeader({
                 onClose={() => setIsWalletOpen(false)}
                 onBuyClick={() => router.push('/hub/diamond-store')}
             />
+
+            {/* Live Help Panel — renders the full Geeves conversation interface */}
+            <LiveHelpPanel {...liveHelp} />
         </>
     );
 }

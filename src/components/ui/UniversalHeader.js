@@ -1016,7 +1016,7 @@ export default function UniversalHeader({
                             console.log('[UniversalHeader] Live Help button clicked');
                             liveHelp.setIsOpen(true);
                         }}
-                        className="orb-btn hide-mobile"
+                        className="orb-btn"
                         aria-label="Live Help"
                         style={{
                             background: 'none',
