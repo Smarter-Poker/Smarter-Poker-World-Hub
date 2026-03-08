@@ -64,6 +64,22 @@ async function initSingleton(propsRef) {
 
     singletonCanvas = document.createElement('canvas');
     singletonCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;';
+
+    // PRE-CREATE WebGL context with correct attributes BEFORE R3F touches it.
+    // WebGL context attributes are IMMUTABLE after creation. If R3F creates
+    // the context first (with defaults), alpha:true can never be changed.
+    // By creating it here with alpha:false, R3F will reuse this context.
+    singletonCanvas.getContext('webgl2', {
+      alpha: false,
+      antialias: !IS_MOBILE,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true,
+      premultipliedAlpha: true,
+      stencil: true,
+      depth: true,
+    });
+    console.log('[LobbyScene] WebGL context pre-created with alpha:false');
+
     singletonWrapper.appendChild(singletonCanvas);
 
     // Import R3F's createRoot and the scene content
@@ -87,6 +103,7 @@ async function initSingleton(propsRef) {
     console.log('[LobbyScene] Creating R3F root on canvas element...');
 
     // Create R3F root directly on the canvas element
+    // It will reuse the pre-created WebGL context with alpha:false
     singletonR3FRoot = createRoot(singletonCanvas);
 
     // Configure the R3F root with all Canvas-equivalent settings
