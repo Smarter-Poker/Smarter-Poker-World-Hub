@@ -16,6 +16,7 @@ import confetti from 'canvas-confetti';
 import GameCard from '../../../../src/components/training/GameCard';
 import { getGamesByCategory } from '../../../../src/data/TRAINING_LIBRARY';
 import useTrainingProgress from '../../../../src/hooks/useTrainingProgress';
+import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 import { getGameImage } from '../../../../src/data/GAME_IMAGES';
 import GameIntroSplash from '../../../../src/components/training/GameIntroSplash';
 
@@ -51,7 +52,7 @@ const CATEGORY_META = {
     },
     ADVANCED: {
         title: 'ADVANCED THEORY',
-        icon: '🤖',
+        icon: 'AI',
         color: '#2196F3',
         description: 'Deep Dive Into GTO, Range Construction, and Solver Work'
     },
@@ -62,6 +63,7 @@ export default function CategoryPage() {
     if (!router.isReady) return null;
     const { categoryId } = router.query;
     const { getGameProgress } = useTrainingProgress();
+    useTrainingBus('training-category', { categoryId });
     const [showIntro, setShowIntro] = useState(false);
     const [pendingGame, setPendingGame] = useState(null);
 
