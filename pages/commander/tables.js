@@ -5,6 +5,7 @@
  * UI: Dark industrial sci-fi gaming theme, Inter font
  */
 import { useState, useEffect, useCallback } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -60,6 +61,9 @@ function computeSeatPositions(maxSeats) {
 
 export default function CommanderTablesPage() {
   const router = useRouter();
+
+  // ── EventBus: Commander session telemetry ──
+  useEffect(() => { busEmit.sessionStart('commander-tables'); }, []);
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
   const [venue, setVenue] = useState(null);
@@ -211,6 +215,7 @@ export default function CommanderTablesPage() {
         setShowStartGame(false);
         await fetchTables();
         broadcastChange('games');
+        busEmit.celebration('confetti');
       }
     } catch (err) { console.error('Start game error:', err); }
     finally { setActionLoading(false); }
@@ -323,12 +328,12 @@ export default function CommanderTablesPage() {
 
   if (!staff || loading) {
     if (loadError) return (
-    <div style={{ minHeight: '100vh', background: '#18191A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#fff' }}>
-      <span style={{ fontSize: 16 }}>⚠️ {loadError}</span>
-      <button onClick={() => { setLoadError(null); fetchTables(); }} style={{ padding: '8px 20px', background: '#1877F2', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Retry</button>
-    </div>
-  );
-  return (
+      <div style={{ minHeight: '100vh', background: '#18191A', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, color: '#fff' }}>
+        <span style={{ fontSize: 16 }}>⚠️ {loadError}</span>
+        <button onClick={() => { setLoadError(null); fetchTables(); }} style={{ padding: '8px 20px', background: '#1877F2', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Retry</button>
+      </div>
+    );
+    return (
       <div className="cmd-page flex items-center justify-center" style={{ minHeight: '100vh', background: '#18191A' }}>
         <Loader2 className="w-8 h-8 animate-spin text-[#1877F2]" />
       </div>
@@ -469,9 +474,9 @@ export default function CommanderTablesPage() {
                                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, aspectRatio: '1 / 1', marginTop: '-18%' }}>
                                   {/* Table image */}
                                   <Image src="/images/poker-table-black-gold.png" alt="Poker Table" width={640} height={640} style={{
-                                      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-                                      objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
-                                    }} />
+                                    position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                                    objectFit: 'contain', pointerEvents: 'none', zIndex: 0,
+                                  }} />
 
                                   {/* Game info in center */}
                                   <div style={{

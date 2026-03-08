@@ -10,6 +10,7 @@
  * Collapsible transaction log at bottom
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
@@ -37,6 +38,9 @@ const DEFAULT_MEMBERSHIP_TIERS = [
 
 export default function Cashier() {
   const router = useRouter();
+
+  // ── EventBus: Commander session telemetry ──
+  useEffect(() => { busEmit.sessionStart('commander-cashier'); }, []);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [venueId, setVenueId] = useState(null);
@@ -501,6 +505,7 @@ export default function Cashier() {
           staff_name: staff?.display_name || 'Staff'
         });
         playSuccessSound();
+        busEmit.celebration('confetti');
         showSuccessPopup({ title: 'Buy-In Recorded', amount: `$${parseFloat(buyInAmount).toLocaleString()}`, detail: selectedPlayer?.player_name || 'Walk-Up' });
         setBuyInAmount(''); // Reset for next transaction
         fetchData();
@@ -567,6 +572,7 @@ export default function Cashier() {
       setSelectedPlayer(prev => ({ ...prev, time_balance_minutes: newBalance }));
       setShowAddTime(false);
       playSuccessSound();
+      busEmit.celebration('confetti');
       const newHrs = Math.floor(newBalance / 60); const newRm = newBalance % 60;
       showSuccessPopup({ title: 'Time Added', amount: `$${price}`, detail: `${timeLabel} → ${selectedPlayer.player_name}`, balance: `New Balance: ${newHrs}h ${newRm > 0 ? newRm + 'm' : ''}` });
       fetchData();
@@ -630,6 +636,7 @@ export default function Cashier() {
       setSelectedPlayer(prev => ({ ...prev, membership_tier: selectedTier, membership_status: 'active', membership_expires: expires.toISOString() }));
       setShowMembership(false);
       playSuccessSound();
+      busEmit.celebration('confetti');
       showSuccessPopup({ title: 'Membership Updated', amount: `$${price}`, detail: `${tierInfo?.label} Membership → ${selectedPlayer.player_name}`, balance: `Expires: ${expires.toLocaleDateString()}` });
       fetchData();
       broadcastChange('members');

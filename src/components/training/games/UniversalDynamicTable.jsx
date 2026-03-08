@@ -478,7 +478,7 @@ function getHeroSeatIndex(heroPosition, playerCount) {
 // COUNTDOWN TIMER — GTO Wizard-style time pressure ring
 // ═══════════════════════════════════════════════════════════════════════════
 
-function CountdownTimer({ seconds = 15, questionNumber, showFeedback, onTimeout, active = true }) {
+function CountdownTimer({ seconds = 60, questionNumber, showFeedback, active = true }) {
     const [timeLeft, setTimeLeft] = React.useState(seconds);
     const radius = 18;
     const circumference = 2 * Math.PI * radius;
@@ -488,27 +488,26 @@ function CountdownTimer({ seconds = 15, questionNumber, showFeedback, onTimeout,
         setTimeLeft(seconds);
     }, [questionNumber, seconds]);
 
-    // Countdown tick
+    // Countdown tick — stops at 0, never auto-picks
     React.useEffect(() => {
         if (!active || showFeedback || timeLeft <= 0) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    if (onTimeout) onTimeout();
                     return 0;
                 }
                 return prev - 1;
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [active, showFeedback, timeLeft, onTimeout]);
+    }, [active, showFeedback, timeLeft]);
 
     if (!active || showFeedback) return null;
 
     const progress = timeLeft / seconds;
     const dashOffset = circumference * (1 - progress);
-    const color = timeLeft > 10 ? '#22c55e' : timeLeft > 5 ? '#fbbf24' : '#ef4444';
+    const color = timeLeft > 30 ? '#22c55e' : timeLeft > 10 ? '#fbbf24' : '#ef4444';
     const pulseClass = timeLeft <= 5 ? { animation: 'pulse 0.5s infinite' } : {};
 
     return (
@@ -555,13 +554,13 @@ function detectActionType(text) {
     return 'neutral';
 }
 
-// Action-type color mapping (GTO Wizard style)
+// Uniform action button colors (all same color/shape/size)
 const ACTION_COLORS = {
-    fold: { bg: '#4a1515', border: '#ef4444', text: '#ff6b6b' },
-    check: { bg: '#0d3018', border: '#22c55e', text: '#4ade80' },
-    call: { bg: '#0d3018', border: '#22c55e', text: '#4ade80' },
+    fold: { bg: '#0d2540', border: '#3b82f6', text: '#60a5fa' },
+    check: { bg: '#0d2540', border: '#3b82f6', text: '#60a5fa' },
+    call: { bg: '#0d2540', border: '#3b82f6', text: '#60a5fa' },
     raise: { bg: '#0d2540', border: '#3b82f6', text: '#60a5fa' },
-    neutral: { bg: '#2a2a3a', border: '#64748b', text: '#94a3b8' },
+    neutral: { bg: '#0d2540', border: '#3b82f6', text: '#60a5fa' },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -797,10 +796,12 @@ function UniversalDynamicTable({
     totalSessionEVLoss = 0,        // Cumulative EV loss
     sessionMistakes = 0,           // Mistake count this session
     // UI-2: Manual advance callback
-    onNextHand = null,             // Called when user clicks "Next Hand →"
+    onNextHand = null,             // Called when user clicks "Next Hand"
     // Multi-street props
     isMultiStreetActive = false,    // Whether we're mid-hand across streets
     currentStreet = 'flop',         // Current street: 'flop', 'turn', 'river'
+    // Quit/Back
+    onExit = null,                  // Called when user clicks Quit
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
@@ -822,12 +823,12 @@ function UniversalDynamicTable({
     useEffect(() => {
         if (streak > prevStreakRef.current && streak >= 3 && streak % 3 === 0) {
             const messages = {
-                3: '🔥 3 in a row!',
-                6: '🔥🔥 6 streak! On fire!',
-                9: '🔥🔥🔥 9 streak! UNSTOPPABLE!',
-                12: '💎 12 streak! LEGENDARY!',
+                3: '3 in a row!',
+                6: '6 streak! On fire!',
+                9: '9 streak! UNSTOPPABLE!',
+                12: '12 streak! LEGENDARY!',
             };
-            const msg = messages[streak] || `🔥 ${streak} streak!`;
+            const msg = messages[streak] || `${streak} streak!`;
             setStreakToast(msg);
             SoundEngine.play('streak');
             setTimeout(() => setStreakToast(null), 2500);
@@ -1549,26 +1550,35 @@ function UniversalDynamicTable({
                 <div style={styles.statsHUDItem}>
                     <span style={styles.statsHUDLabel}>Streak</span>
                     <span style={{ ...styles.statsHUDValue, color: streak >= 3 ? '#f97316' : '#94a3b8' }}>
-                        {streak >= 2 ? `🔥 ${streak}` : streak}
+                        {streak >= 2 ? `${streak}` : streak}
                     </span>
                 </div>
             </div>
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div style={{ ...styles.actionBar, position: 'relative' }}>
-                {/* Countdown Timer */}
+                {/* Countdown Timer — 60 seconds, no auto-pick */}
                 <CountdownTimer
-                    seconds={15}
+                    seconds={60}
                     questionNumber={questionNumber}
                     showFeedback={showFeedback}
-                    onTimeout={() => {
-                        // Auto-select first option (fold) on timeout
-                        const firstOpt = options[0];
-                        if (firstOpt && !showFeedback) {
-                            handleAnswer(firstOpt.id || 'a');
-                        }
-                    }}
                 />
+                {/* Quit/Back Button */}
+                {onExit && (
+                    <button
+                        onClick={onExit}
+                        style={{
+                            position: 'absolute', top: -40, left: 0,
+                            padding: '6px 14px', borderRadius: 8,
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            color: '#94a3b8', fontSize: 12, fontWeight: 600,
+                            cursor: 'pointer', zIndex: 10,
+                        }}
+                    >
+                        Quit
+                    </button>
+                )}
                 {options.slice(0, 4).map((option, index) => {
                     const optionId = option.id || String.fromCharCode(97 + index);
                     const text = typeof option === 'string' ? option : (option.text || option.label || 'Option');

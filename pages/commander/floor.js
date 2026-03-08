@@ -10,6 +10,7 @@
  *  - Tap a table for details in View Mode
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Users, Loader2, Lock, Unlock, Save, AlertTriangle, Activity, X, Clock, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
@@ -35,6 +36,9 @@ const GRID_COLS = 5;
 
 export default function FloorMap() {
   const router = useRouter();
+
+  // ── EventBus: Commander session telemetry ──
+  useEffect(() => { busEmit.sessionStart('commander-floor'); }, []);
   const canvasRef = useRef(null);
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState({});
@@ -176,6 +180,7 @@ export default function FloorMap() {
       }));
       setHasChanges(false);
       setSaved(true);
+      busEmit.celebration('confetti');
       setTimeout(() => setSaved(false), 2000);
       broadcastChange('tables');
     } catch (err) { console.error('Save error:', err); }

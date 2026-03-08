@@ -7,6 +7,7 @@
  * Route: /commander/tournament-controls
  */
 import { useState, useEffect, useCallback } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Users, Clock, Loader2, Play, Monitor, Settings } from 'lucide-react';
@@ -23,13 +24,16 @@ const STATUS_COLORS = {
 
 export default function TournamentDirector() {
     const router = useRouter();
+
+    // ── EventBus: Commander session telemetry ──
+    useEffect(() => { busEmit.sessionStart('commander-tournament-controls'); }, []);
     const [tournaments, setTournaments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('current'); // 'current' or 'upcoming'
 
     const getVenueId = () => { try { return JSON.parse(localStorage.getItem('commander_staff') || '{}').venue_id || ''; } catch { return ''; } };
 
-    const fetchTournaments = useCallback(async(signal) => {
+    const fetchTournaments = useCallback(async (signal) => {
         try {
             const staffSession = localStorage.getItem('commander_staff') || '';
             const res = await fetch('/api/commander/tournaments', {
@@ -45,13 +49,14 @@ export default function TournamentDirector() {
         finally { setLoading(false); }
     }, []);
 
-    useEffect(() => {    const _c = new AbortController();
+    useEffect(() => {
+        const _c = new AbortController();
 
         const staff = localStorage.getItem('commander_staff');
         if (!staff) { router.push('/commander/login').catch(() => { }); return; }
         fetchTournaments();
-    return () => _c.abort();
-  }, [router, fetchTournaments]);
+        return () => _c.abort();
+    }, [router, fetchTournaments]);
 
     // Commander Data Bus — sync tournaments across tabs
     const [syncVenueId] = useState(() => getVenueId());

@@ -4,6 +4,7 @@
  * NO EMOJIS - Lucide icons only
  */
 import { useState, useEffect, useCallback } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { ArrowLeft, Lock, Crown, StopCircle } from 'lucide-react';
@@ -140,6 +141,9 @@ const CARDS = [
 
 export default function CommanderDashboard() {
   const router = useRouter();
+
+  // ── EventBus: Commander session telemetry ──
+  useEffect(() => { busEmit.sessionStart('commander-dashboard'); }, []);
   const [staff, setStaff] = useState(null);
   const [activeCard, setActiveCard] = useState(null); // which card is "opened"
   const [currentTier, setCurrentTier] = useState('home_game');

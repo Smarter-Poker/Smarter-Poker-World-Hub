@@ -10,6 +10,7 @@
  * Settings persist to Supabase via /api/commander/settings (desk_customization field).
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { busEmit } from '../../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
@@ -55,6 +56,9 @@ const DEFAULT_CUSTOM = {
 
 export default function WaitlistDesk() {
   const router = useRouter();
+
+  // ── EventBus: Commander session telemetry ──
+  useEffect(() => { busEmit.sessionStart('commander-waitlist-desk'); }, []);
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +214,7 @@ export default function WaitlistDesk() {
       else setSmsStatus({ type: 'none', text: 'Called — Notifications Unavailable' });
       await fetchData();
       broadcastChange('waitlist');
+      busEmit.screenFlash('info');
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
     finally { setCallLoading(null); }
@@ -234,6 +239,7 @@ export default function WaitlistDesk() {
       // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
       setSeatModal(null); setSelectedPlayer(null);
+      busEmit.celebration('confetti');
       setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} seated at Table ${tableNumber} Seat ${seatNumber}` });
       setTimeout(() => setSmsStatus(null), 4000);
       await fetchData();
@@ -288,6 +294,7 @@ export default function WaitlistDesk() {
       }
       // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
+      busEmit.screenShake('light');
       await fetchData();
       broadcastChange('waitlist');
     } catch (err) { console.error('Remove error:', err); await fetchData(); }

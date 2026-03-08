@@ -13,6 +13,7 @@
  * Designed for quick triage on mobile.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 
@@ -73,6 +74,9 @@ function formatDuration(seconds) {
 
 export default function FloorCalls() {
   const router = useRouter();
+
+  // ── EventBus: Commander session telemetry ──
+  useEffect(() => { busEmit.sessionStart('commander-floor-calls'); }, []);
   const [calls, setCalls] = useState([]);
   const [resolved, setResolved] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,6 +154,7 @@ export default function FloorCalls() {
     const pendingCount = calls.filter(c => c.status === 'pending').length;
     if (pendingCount > prevPendingRef.current && soundOn) {
       playAlert();
+      busEmit.screenShake('medium');
     }
     prevPendingRef.current = pendingCount;
   }, [calls, soundOn]);
@@ -178,6 +183,7 @@ export default function FloorCalls() {
       });
       fetchCalls();
       broadcastChange('floor_calls');
+      if (status === 'resolved') busEmit.celebration('confetti');
     } catch (err) { console.error(err); }
   };
 

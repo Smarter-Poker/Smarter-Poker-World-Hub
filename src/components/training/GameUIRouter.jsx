@@ -87,6 +87,8 @@ export default function GameUIRouter({
     // Multi-street props
     isMultiStreetActive = false,
     currentStreet = 'flop',
+    // Quit/Back
+    onExit = null,
 }) {
     // Determine which UI to use based on game type
     const isPsychologyGame = PSYCHOLOGY_GAMES.includes(gameId) || gameId?.startsWith('psy-');
@@ -135,6 +137,8 @@ export default function GameUIRouter({
             // Multi-street props
             isMultiStreetActive={isMultiStreetActive}
             currentStreet={currentStreet}
+            // Quit/Back
+            onExit={onExit}
         />
     );
 }

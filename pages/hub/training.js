@@ -57,8 +57,8 @@ const GodModeArena = dynamic(
         loading: () => (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'rgba(255,255,255,0.5)' }}>
                 <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                    <div>Loading game arena...</div>
+                    <div style={{ fontSize: 32, marginBottom: 12, animation: 'spin 1s linear infinite', width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#00d4ff', borderRadius: '50%' }} />
+                    <div>Loading Game Arena...</div>
                 </div>
             </div>
         ),
@@ -77,7 +77,7 @@ import GamificationService from '../../services/GamificationService';
 import AchievementToast from '../../src/components/training/AchievementToast';
 import ChallengesWidget from '../../src/components/training/ChallengesWidget';
 import JarvisRecommendations from '../../src/components/training/JarvisRecommendations';
-import DailyBonusWidget from '../../src/components/training/DailyBonusWidget';
+// DailyBonusWidget removed per UI overhaul
 import useTrainingRealtime from '../../src/hooks/useTrainingRealtime';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
@@ -652,20 +652,26 @@ export default function TrainingPage() {
     });
     const introVideoRef = useRef(null);
 
-    // 🎛️ SETTINGS MENU STATE
+    // SETTINGS MENU STATE
     const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
-    // 💎 DIAMOND ENTRY FEE STATE
+    // Quick Links overlay state
+    const [showQuickLinks, setShowQuickLinks] = useState(false);
+    // Session recap / Jarvis drawers
+    const [showRecapDrawer, setShowRecapDrawer] = useState(false);
+    const [showJarvisDrawer, setShowJarvisDrawer] = useState(false);
+
+    // DIAMOND ENTRY FEE STATE
     const [isVIP, setIsVIP] = useState(false);
     const [diamondBalance, setDiamondBalance] = useState(0);
     const [showOutOfDiamondsModal, setShowOutOfDiamondsModal] = useState(false);
     const GAME_COST = 10; // 10 diamonds per training game
 
-    // 🔔 User ID for authenticated features
+    // User ID for authenticated features
     const [userId, setUserId] = useState(null);
     const [sessionHistory, setSessionHistory] = useState([]);
 
-    // 🔔 Real-time notifications for achievements/leaderboard changes
+    // Real-time notifications for achievements/leaderboard changes
     const {
         newAchievement: realtimeAchievement,
         leaderboardChange,
@@ -684,14 +690,14 @@ export default function TrainingPage() {
     // Show toast for leaderboard rank improvements
     useEffect(() => {
         if (leaderboardChange && leaderboardChange.newRank <= 10) {
-            toast.success(`🏆 You moved to #${leaderboardChange.newRank} on the ${leaderboardChange.periodType} leaderboard!`);
+            toast.success(`You moved to #${leaderboardChange.newRank} on the ${leaderboardChange.periodType} leaderboard!`);
         }
     }, [leaderboardChange]);
 
     // Show toast for challenge completions
     useEffect(() => {
         if (challengeComplete) {
-            toast.success(`🎯 Challenge Complete: ${challengeComplete.name}! Claim your reward!`);
+            toast.success(`Challenge Complete: ${challengeComplete.name}! Claim your reward!`);
         }
     }, [challengeComplete]);
 
@@ -871,7 +877,7 @@ export default function TrainingPage() {
         setActiveGame(null);
     };
 
-    // 🎮 Achievement toast state
+    // Achievement toast state
     const [unlockedAchievements, setUnlockedAchievements] = useState([]);
 
     // Handle arena completion - record to gamification APIs
@@ -905,7 +911,7 @@ export default function TrainingPage() {
 
                 // Show streak toast
                 if (gamificationResult.streak?.streakUpdated) {
-                    toast.success(`🔥 ${gamificationResult.streak.currentStreak} day streak!`);
+                    toast.success(`${gamificationResult.streak.currentStreak} day streak!`);
                 }
             } catch (e) {
                 console.error('[Training] Gamification update failed:', e);
@@ -1037,14 +1043,14 @@ export default function TrainingPage() {
                         onAccept={(clinic) => console.log('[LAW 1] Starting clinic:', clinic.name)}
                     />
 
-                    {/* 💎 Out of Diamonds Modal */}
+                    {/* Out of Diamonds Modal */}
                     <OutOfDiamondsModal
                         isOpen={showOutOfDiamondsModal}
                         onClose={() => setShowOutOfDiamondsModal(false)}
                         gameCost={GAME_COST}
                     />
 
-                    {/* 🏅 Achievement Toast */}
+                    {/* Achievement Toast */}
                     <AchievementToast
                         achievements={unlockedAchievements}
                         onDismiss={() => setUnlockedAchievements([])}
@@ -1081,103 +1087,78 @@ export default function TrainingPage() {
                             }}
                         />
 
-                        {/* Gamification Quick-Access Nav */}
-                        <div style={gamificationNavStyles.container}>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/leaderboard')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🏆</span>
-                                <span style={gamificationNavStyles.label}>Rankings</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/achievements')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🏅</span>
-                                <span style={gamificationNavStyles.label}>Badges</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/streaks')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🔥</span>
-                                <span style={gamificationNavStyles.label}>Streaks</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/challenges')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🎯</span>
-                                <span style={gamificationNavStyles.label}>Goals</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/jarvis')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🧠</span>
-                                <span style={gamificationNavStyles.label}>Coach</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/play-mode')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🎮</span>
-                                <span style={gamificationNavStyles.label}>Play</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/preflop-charts')}
-                            >
-                                <span style={gamificationNavStyles.icon}>📚</span>
-                                <span style={gamificationNavStyles.label}>Charts</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/range-builder')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🏗️</span>
-                                <span style={gamificationNavStyles.label}>Builder</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/solutions')}
-                            >
-                                <span style={gamificationNavStyles.icon}>🔍</span>
-                                <span style={gamificationNavStyles.label}>Solutions</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/analyzer')}
-                            >
-                                <span style={gamificationNavStyles.icon}>📋</span>
-                                <span style={gamificationNavStyles.label}>Analyzer</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/reports')}
-                            >
-                                <span style={gamificationNavStyles.icon}>📊</span>
-                                <span style={gamificationNavStyles.label}>Reports</span>
-                            </div>
-                            <div
-                                style={gamificationNavStyles.navButton}
-                                onClick={() => router.push('/hub/training/aggregate')}
-                            >
-                                <span style={gamificationNavStyles.icon}>📈</span>
-                                <span style={gamificationNavStyles.label}>Aggregate</span>
-                            </div>
-                        </div>
-
-                        {/* 🎁 Daily Bonus Widget */}
-                        {userId && activeFilter === 'ALL' && (
-                            <DailyBonusWidget
-                                userId={userId}
-                                onBonusClaimed={(amount) => {
-                                    toast.success(`💎 +${amount} daily bonus claimed!`);
-                                }}
+                        {/* Quick Links Icon Strip */}
+                        <motion.div
+                            style={gamificationNavStyles.container}
+                            onClick={() => setShowQuickLinks(true)}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <img
+                                src="/images/training/gamification-nav-strip.png"
+                                alt="Quick Links"
+                                style={{ width: '100%', height: 48, objectFit: 'contain', cursor: 'pointer', borderRadius: 8 }}
                             />
+                        </motion.div>
+
+                        {/* Quick Links Full-Screen Overlay */}
+                        {showQuickLinks && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                style={{
+                                    position: 'fixed', inset: 0, zIndex: 9999,
+                                    background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)',
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                    justifyContent: 'center', padding: 24,
+                                }}
+                                onClick={() => setShowQuickLinks(false)}
+                            >
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginBottom: 24, letterSpacing: 1 }}>Quick Links</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, maxWidth: 360 }}>
+                                    {[
+                                        { label: 'Rankings', path: '/hub/training/leaderboard', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
+                                        { label: 'Badges', path: '/hub/training/achievements', icon: 'M12 15l-2 5H6l4-3.5L8.5 22 12 19l3.5 3L14 16.5 18 20h-4l-2-5z' },
+                                        { label: 'Streaks', path: '/hub/training/streaks', icon: 'M13.5 0.67s0.74 2.65 0.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l0.03-0.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5 0.67z' },
+                                        { label: 'Goals', path: '/hub/training/challenges', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z' },
+                                        { label: 'Coach', path: '/hub/training/jarvis', icon: 'M21 10.12h-6.78l2.74-2.82-2.2-2.2L9 10.9V19h8.1l2.1-4.23 1.8.9V10.12z' },
+                                        { label: 'Play', path: '/hub/training/play-mode', icon: 'M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z' },
+                                        { label: 'Charts', path: '/hub/training/preflop-charts', icon: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1z' },
+                                        { label: 'Builder', path: '/hub/training/range-builder', icon: 'M22 9V7h-2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2v-2h-2V9h2zm-4 10H4V5h14v14zM6 13h5v4H6v-4zm6-6h4v3h-4V7zM6 7h5v5H6V7zm6 4h4v6h-4v-6z' },
+                                        { label: 'Solutions', path: '/hub/training/solutions', icon: 'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z' },
+                                        { label: 'Analyzer', path: '/hub/training/analyzer', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z' },
+                                        { label: 'Reports', path: '/hub/training/reports', icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z' },
+                                        { label: 'Aggregate', path: '/hub/training/aggregate', icon: 'M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z' },
+                                    ].map(item => (
+                                        <motion.div
+                                            key={item.label}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={(e) => { e.stopPropagation(); router.push(item.path); }}
+                                            style={{
+                                                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                                                padding: 16, borderRadius: 16,
+                                                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                                                cursor: 'pointer', minHeight: 80, justifyContent: 'center',
+                                            }}
+                                        >
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="#00d4ff">
+                                                <path d={item.icon} />
+                                            </svg>
+                                            <span style={{ fontSize: 11, fontWeight: 600, color: '#fff', letterSpacing: 0.3 }}>{item.label}</span>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => setShowQuickLinks(false)}
+                                    style={{ marginTop: 24, padding: '12px 32px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                                >
+                                    Close
+                                </button>
+                            </motion.div>
                         )}
+
+                        {/* Daily Bonus removed per UI overhaul */}
 
                         {/* Filters */}
                         <FilterBar
@@ -1186,34 +1167,77 @@ export default function TrainingPage() {
                             gameCount={filteredGames.length}
                         />
 
-                        {/* F15: Session Recap & Jarvis Recommendations */}
+                        {/* Session Recap & Jarvis — Collapsed Image Tiles */}
                         {userId && activeFilter === 'ALL' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, margin: '0 16px 16px', '@media (max-width: 768px)': { gridTemplateColumns: '1fr' } }}>
-                                {/* Placeholder for Session Recap; can be dynamically hydrated later */}
-                                <div style={{
-                                    background: 'linear-gradient(180deg, rgba(34, 197, 94, 0.05), transparent)',
-                                    borderRadius: 16, padding: 16, border: '1px solid rgba(34, 197, 94, 0.2)'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                                        <span style={{ fontSize: 24 }}>📊</span>
-                                        <span style={{ fontSize: 16, fontWeight: 700, color: '#4ade80' }}>Last Session Recap</span>
-                                    </div>
-                                    <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 12 }}>
-                                        "Strong performance in MTTS, but work on Big-Blind defense."
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 12 }}>
-                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 8 }}>
-                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>Mistakes</div>
-                                            <div style={{ fontSize: 18, fontWeight: 800, color: '#fbbf24' }}>3</div>
-                                        </div>
-                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)', padding: 10, borderRadius: 8 }}>
-                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>EV Loss</div>
-                                            <div style={{ fontSize: 18, fontWeight: 800, color: '#ef4444' }}>-1.2</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <JarvisRecommendations userId={userId} onGameClick={handleGameClick} />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '0 16px 16px' }}>
+                                <motion.div
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => setShowRecapDrawer(true)}
+                                    style={{ cursor: 'pointer', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(34,197,94,0.2)' }}
+                                >
+                                    <img src="/images/training/session-recap-tile.png" alt="Last Session Recap" style={{ width: '100%', height: 80, objectFit: 'cover' }} />
+                                </motion.div>
+                                <motion.div
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={() => setShowJarvisDrawer(true)}
+                                    style={{ cursor: 'pointer', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(0,212,255,0.2)' }}
+                                >
+                                    <img src="/images/training/jarvis-recommends-tile.png" alt="Jarvis Recommends" style={{ width: '100%', height: 80, objectFit: 'cover' }} />
+                                </motion.div>
                             </div>
+                        )}
+
+                        {/* Session Recap Drawer */}
+                        {showRecapDrawer && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+                                onClick={() => setShowRecapDrawer(false)}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9, y: 30 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f0f1a)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 20, padding: 24, width: '90%', maxWidth: 400 }}
+                                >
+                                    <div style={{ fontSize: 18, fontWeight: 800, color: '#4ade80', marginBottom: 16 }}>Last Session Recap</div>
+                                    <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', marginBottom: 16 }}>
+                                        "Strong performance in MTTs, but work on Big-Blind defense."
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>Mistakes</div>
+                                            <div style={{ fontSize: 22, fontWeight: 800, color: '#fbbf24' }}>3</div>
+                                        </div>
+                                        <div style={{ flex: 1, background: 'rgba(0,0,0,0.3)', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>EV Loss</div>
+                                            <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>-1.2</div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowRecapDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Close</button>
+                                </motion.div>
+                            </motion.div>
+                        )}
+
+                        {/* Jarvis Recommends Drawer */}
+                        {showJarvisDrawer && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+                                onClick={() => setShowJarvisDrawer(false)}
+                            >
+                                <motion.div
+                                    initial={{ scale: 0.9, y: 30 }}
+                                    animate={{ scale: 1, y: 0 }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ background: 'linear-gradient(180deg, #1a1a2e, #0f0f1a)', border: '1px solid rgba(0,212,255,0.3)', borderRadius: 20, padding: 24, width: '90%', maxWidth: 400 }}
+                                >
+                                    <JarvisRecommendations userId={userId} onGameClick={(game) => { setShowJarvisDrawer(false); handleGameClick(game); }} />
+                                    <button onClick={() => setShowJarvisDrawer(false)} style={{ width: '100%', padding: 12, borderRadius: 10, border: '1px solid rgba(255,255,255,0.15)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 12 }}>Close</button>
+                                </motion.div>
+                            </motion.div>
                         )}
 
                         {/* Game Lanes */}

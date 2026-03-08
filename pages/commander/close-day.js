@@ -10,6 +10,7 @@
  * 5. Generate end-of-day report
  */
 import { useState, useEffect } from 'react';
+import { busEmit } from '../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { CheckCircle2, XCircle, AlertTriangle, Loader2, Lock, FileText, ChevronRight } from 'lucide-react';
@@ -120,6 +121,8 @@ export default function CloseDay() {
       if (json.success && json.data?.valid && json.data?.staff) {
         // Generate daily report
         setStep(4);
+        busEmit.sessionEnd('commander-close-day');
+        busEmit.celebration('confetti');
       } else {
         setPin('');
       }
