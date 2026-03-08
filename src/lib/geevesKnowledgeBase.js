@@ -1,16 +1,21 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   GEEVES KNOWLEDGE BASE — Upgraded Matching Engine v2.0
+   GEEVES KNOWLEDGE BASE — Upgraded Matching Engine v3.0
    
+   Strategy 1: Auto-Learning — missed Qs logged to Supabase (in chat.js)
+   Strategy 2: Cache Warming (warmGeevesCache.js)
    Strategy 3: Partial Match Chaining + Dynamic Threshold
    Strategy 4: Semantic Synonym Expansion
+   Strategy 5: Role-Aware Scoring — +20 boost for user's relevant categories
+   Strategy 6: Levenshtein Fuzzy Matching — catches typos (edit-distance ≤ 2)
    
    3-Tier Pipeline: Local KB (FREE) → Cache (FREE) → Grok (PAID)
-   Goal: Answer ~80% of all questions from Tier 1 (zero cost).
+   Goal: Answer ~85% of all questions from Tier 1 (zero cost).
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import { KNOWLEDGE_ENTRIES } from './geevesKB/geevesKnowledgeEntries';
 import { buildSynonymIndex } from './geevesKB/synonyms';
 import { checkContentGuard, sanitizeAnswer } from './geevesKB/contentGuard';
+import { getRoleBoosts } from './geevesKB/rolePersonalization';
 
 // ── Build the synonym index once at module load ──
 const SYNONYM_INDEX = buildSynonymIndex();
@@ -37,6 +42,24 @@ function stem(word) {
     if (word.endsWith('ed') && word.length > 4) return word.slice(0, -2);
     if (word.endsWith('er') && word.length > 4) return word.slice(0, -2);
     return word;
+}
+
+// ── Levenshtein edit distance (Strategy 6: Fuzzy Typo Matching) ──
+// Only used for words ≥ 5 chars to avoid noise on short words.
+// Max edit distance of 2 catches: "trakcer"→"tracker", "diomonds"→"diamonds"
+function levenshtein(a, b) {
+    if (Math.abs(a.length - b.length) > 2) return 99; // fast bail-out
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, (_, i) => [i]);
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            dp[i][j] = a[i - 1] === b[j - 1]
+                ? dp[i - 1][j - 1]
+                : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+        }
+    }
+    return dp[m][n];
 }
 
 // ── Get all synonym group indices that appear in a text string ──
@@ -118,6 +141,26 @@ function scoreEntry(question, entry, questionSynonymGroups) {
         }
     }
 
+    // 6. Fuzzy typo matching — only kicks in if score is still low (performance guard)
+    // +8 per fuzzy keyword match (less than exact hit but still meaningful)
+    if (score < 30) {
+        const longQWords = qWords.filter(w => w.length >= 5);
+        const entryKws = (entry.keywords || []).map(normalize);
+        for (const qw of longQWords) {
+            for (const kw of entryKws) {
+                if (kw.length >= 5) {
+                    const kwWords = kw.split(' ');
+                    for (const kwWord of kwWords) {
+                        if (kwWord.length >= 5 && levenshtein(qw, kwWord) <= 2) {
+                            score += 8;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return score;
 }
 
@@ -179,7 +222,8 @@ function tryChainAnswers(topMatches) {
 }
 
 // ── Main lookup function ──
-export function lookupKnowledgeBase(question, currentPage) {
+// roleBoosts: string[] of category names to score +20 (from rolePersonalization)
+export function lookupKnowledgeBase(question, currentPage, roleBoosts = []) {
     if (!question || question.trim().length < 3) return null;
 
     // ── SECURITY & BRAND GUARD (runs first — before any KB or Grok call) ──
@@ -200,6 +244,14 @@ export function lookupKnowledgeBase(question, currentPage) {
             const entryCategory = entry.category.toLowerCase();
             if (pageCategories.some(c => entryCategory.includes(c.toLowerCase()))) {
                 score += 15;
+            }
+        }
+
+        // Role personalization boost: +20 if entry matches user's role categories
+        if (roleBoosts.length > 0 && entry.category) {
+            const entryCategory = entry.category.toLowerCase();
+            if (roleBoosts.some(c => entryCategory.includes(c.toLowerCase()))) {
+                score += 20;
             }
         }
 

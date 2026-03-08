@@ -15,6 +15,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { extractRoleFromToken } from '../../lib/geevesKB/rolePersonalization';
 
 // ─── Auth helper (SSR-safe) ───
 function getAuthToken() {
@@ -97,6 +98,11 @@ function getPageChips(path) {
         { label: 'Pot odds', q: 'How are pot odds calculated?' },
         { label: 'Equity', q: 'What is equity realization?' },
     ];
+    if (p.includes('horses')) return [
+        { label: 'Add a Horse persona', q: 'How do I add a new Horse persona to the Horses admin?' },
+        { label: 'Content pipeline', q: 'What does the Horses content pipeline do and how do I trigger it?' },
+        { label: 'View missed questions', q: 'How do I see what questions Geeves could not answer?' },
+    ];
     // Default
     return [
         { label: 'What is Smarter.Poker?', q: 'What is Smarter.Poker and what can I do here?' },
@@ -125,9 +131,11 @@ export default function GeevesFloatingOrb() {
     const [isTyping, setIsTyping] = useState(false);
     const [showTip, setShowTip] = useState(false);
     const [tipText, setTipText] = useState('');
+    const [isListening, setIsListening] = useState(false); // Voice input state
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
-    const msgIdRef = useRef(0); // ← atomic counter avoids Date.now() ID collisions
+    const msgIdRef = useRef(0);
+    const recognitionRef = useRef(null); // SpeechRecognition instance
     const path = router.asPath || '';
 
     // ── SSR guard — only render on client ──
@@ -197,6 +205,13 @@ export default function GeevesFloatingOrb() {
         return () => window.removeEventListener('keydown', handler);
     }, [isOpen]);
 
+    // ── Listen for geeves-open custom event (from Horses page header button) ──
+    useEffect(() => {
+        const handler = () => { setIsOpen(true); setShowTip(false); };
+        window.addEventListener('geeves-open', handler);
+        return () => window.removeEventListener('geeves-open', handler);
+    }, []);
+
     // ── Send message — MUST be above any early returns (Rules of Hooks) ──
     const sendMessage = useCallback(async (text) => {
         if (!text?.trim()) return;
@@ -211,12 +226,26 @@ export default function GeevesFloatingOrb() {
             const headers = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
+            // Feature 3: Role personalization — extract from JWT (no extra API call)
+            const { role: userRole, isVIP } = token
+                ? extractRoleFromToken(token)
+                : { role: null, isVIP: false };
+
+            // Feature 2: Conversation memory — pass last 6 messages for follow-up context
+            const conversationHistory = messages.slice(-6).map(m => ({
+                isUser: m.isUser,
+                content: String(m.content || '').slice(0, 400),
+            }));
+
             const res = await fetch('/api/geeves/chat', {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({
                     message: text.trim(),
                     currentPage: path,
+                    conversationHistory,
+                    userRole,
+                    isVIP,
                 }),
             });
 
@@ -242,10 +271,36 @@ export default function GeevesFloatingOrb() {
         }
     }, [path]);
 
-    // ── Enter key submit — memoized so it doesn't recreate every render ──
+    // ── Enter key submit ──
     const handleKeyDown = useCallback((e) => {
         if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
     }, [input, sendMessage]);
+
+    // ── Feature 7: Voice Input ──
+    const voiceSupported = typeof window !== 'undefined' &&
+        ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+    const startVoiceInput = useCallback(() => {
+        if (!voiceSupported) return;
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'en-US';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        recognitionRef.current = rec;
+        setIsListening(true);
+        rec.start();
+        rec.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            setIsListening(false);
+            // Auto-send the transcribed speech
+            sendMessage(transcript);
+        };
+        rec.onerror = () => setIsListening(false);
+        rec.onend = () => setIsListening(false);
+        // Safety: stop after 10s
+        setTimeout(() => { try { rec.stop(); } catch { } }, 10000);
+    }, [voiceSupported, sendMessage]);
 
     // ── Don't render on landing/auth pages ──
     // Also suppress on pages with their own bottom nav (ClubArenaBottomNav / LivePokerTable)
@@ -274,17 +329,17 @@ export default function GeevesFloatingOrb() {
 
     return (
         <>
-            {/* ── Proactive Tip Bubble — floats above the collapsed bar ── */}
+            {/* ── Proactive Tip Bubble (above corner button) ── */}
             {showTip && !isOpen && (
                 <div
                     onClick={() => { setShowTip(false); setIsOpen(true); }}
                     style={{
-                        position: 'fixed', bottom: 58, right: 16, zIndex: 99997,
-                        maxWidth: 240, padding: '9px 13px', borderRadius: 10,
+                        position: 'fixed', bottom: 72, right: 16, zIndex: 99997,
+                        maxWidth: 220, padding: '8px 12px', borderRadius: 10,
                         background: 'linear-gradient(135deg, #001e3c 0%, #002855 100%)',
                         border: '1px solid rgba(0, 212, 255, 0.3)',
                         color: '#e0f0ff', fontSize: 12, lineHeight: 1.4,
-                        boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
                         cursor: 'pointer', animation: 'geevesSlideIn 0.3s ease-out',
                     }}
                 >
@@ -293,59 +348,69 @@ export default function GeevesFloatingOrb() {
                 </div>
             )}
 
-            {/* ── Collapsed Bottom Bar (click to open) ── */}
+            {/* ── Collapsed Corner Button (small, bottom-right, unobtrusive) ── */}
             {!isOpen && (
                 <button
                     onClick={() => { setIsOpen(true); setShowTip(false); }}
                     title="Ask Geeves (⌘J)"
+                    aria-label="Open Geeves help"
                     style={{
-                        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 99998,
-                        // Use minHeight + paddingBottom so safe-area adds HEIGHT, not just internal padding
-                        // IMPORTANT: Do NOT use the 'padding' shorthand here — it would override paddingBottom
-                        minHeight: 44,
-                        paddingTop: 0,
-                        paddingLeft: 20,
-                        paddingRight: 20,
-                        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-                        background: 'linear-gradient(90deg, #001e3c 0%, #002855 60%, #001e3c 100%)',
-                        borderTop: '1px solid rgba(0, 212, 255, 0.25)',
+                        position: 'fixed',
+                        bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+                        right: 16,
+                        zIndex: 99998,
+                        width: 48,
+                        height: 48,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #001e3c 0%, #0066cc 100%)',
+                        border: '2px solid rgba(0, 212, 255, 0.45)',
+                        boxShadow: '0 4px 18px rgba(0, 100, 200, 0.45)',
                         cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
-                        boxSizing: 'border-box',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                    }}
+                    onMouseEnter={e => {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 6px 24px rgba(0, 150, 255, 0.55)';
+                    }}
+                    onMouseLeave={e => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = '0 4px 18px rgba(0, 100, 200, 0.45)';
                     }}
                 >
                     <img
                         src="/images/geeves-avatar.png"
-                        alt="Geeves"
-                        style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(0,212,255,0.35)', flexShrink: 0 }}
-                        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        alt="G"
+                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                        onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                     />
                     <span style={{
-                        display: 'none', width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-                        background: 'rgba(0, 212, 255, 0.15)', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 14, color: '#00d4ff', border: '1px solid rgba(0,212,255,0.35)',
+                        display: 'none', width: 32, height: 32, borderRadius: '50%',
+                        alignItems: 'center', justifyContent: 'center',
+                        fontSize: 17, fontWeight: 700, color: '#00d4ff',
                     }}>G</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#e0f4ff', letterSpacing: '0.3px' }}>
-                        Ask Geeves
-                    </span>
-                    <span style={{ fontSize: 11, color: 'rgba(0,212,255,0.5)', marginLeft: 4 }}>⌘J</span>
-                    <svg style={{ marginLeft: 'auto', opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2.5" strokeLinecap="round">
-                        <polyline points="18 15 12 9 6 15" />
-                    </svg>
                 </button>
             )}
 
-            {/* ── Expanded Chat Panel (slide-up) ── */}
+            {/* ── Expanded Chat Panel (anchored bottom-right, 360px wide) ── */}
             {isOpen && (
                 <div style={{
-                    position: 'fixed', bottom: 0, right: 0, left: 0, zIndex: 99999,
-                    height: '70vh', maxHeight: 520,
+                    position: 'fixed',
+                    bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+                    right: 16,
+                    width: 'min(360px, calc(100vw - 32px))',
+                    height: 'min(520px, calc(100vh - 80px))',
+                    zIndex: 99999,
                     background: 'linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%)',
-                    borderTop: '2px solid rgba(0, 212, 255, 0.3)',
-                    borderRadius: '20px 20px 0 0',
-                    display: 'flex', flexDirection: 'column',
-                    boxShadow: '0 -8px 40px rgba(0,0,0,0.5)',
-                    animation: 'geevesSlideUp 0.25s ease-out',
+                    border: '1px solid rgba(0, 212, 255, 0.3)',
+                    borderRadius: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.08)',
+                    animation: 'geevesSlideUp 0.2s ease-out',
                 }}>
                     {/* Panel Header */}
                     <div style={{
@@ -491,22 +556,55 @@ export default function GeevesFloatingOrb() {
                                 fontSize: 15, outline: 'none',
                             }}
                         />
+                        {/* Voice mic button — Feature 7: Voice Input */}
+                        {voiceSupported && (
+                            <button
+                                onClick={startVoiceInput}
+                                disabled={isListening || isTyping}
+                                title={isListening ? 'Listening...' : 'Speak your question'}
+                                aria-label={isListening ? 'Listening' : 'Voice input'}
+                                style={{
+                                    width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
+                                    background: isListening
+                                        ? 'linear-gradient(135deg, #cc0000 0%, #ff3333 100%)'
+                                        : 'rgba(255,255,255,0.07)',
+                                    border: isListening
+                                        ? '2px solid rgba(255,80,80,0.6)'
+                                        : '1px solid rgba(0,212,255,0.2)',
+                                    cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    animation: isListening ? 'geevesListenPulse 0.8s ease-in-out infinite' : 'none',
+                                    transition: 'all 0.2s',
+                                }}
+                            >
+                                {/* Mic SVG icon */}
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke={isListening ? '#fff' : 'rgba(0,212,255,0.7)'}
+                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="2" width="6" height="11" rx="3" />
+                                    <path d="M5 10a7 7 0 0 0 14 0" />
+                                    <line x1="12" y1="20" x2="12" y2="23" />
+                                    <line x1="8" y1="23" x2="16" y2="23" />
+                                </svg>
+                            </button>
+                        )}
                         <button
                             onClick={() => sendMessage(input)}
                             disabled={!input.trim() || isTyping}
                             style={{
-                                width: 42, height: 42, borderRadius: '50%',
+                                width: 38, height: 38, borderRadius: '50%',
                                 background: input.trim() ? 'linear-gradient(135deg, #0066cc 0%, #0088ff 100%)' : 'rgba(255,255,255,0.05)',
                                 border: 'none', cursor: input.trim() ? 'pointer' : 'default',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                opacity: isTyping ? 0.5 : 1, transition: 'all 0.2s',
+                                opacity: isTyping ? 0.5 : 1, transition: 'all 0.2s', flexShrink: 0,
                             }}
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z" /></svg>
                         </button>
                     </div>
                 </div>
             )}
+
 
             {/* ── Animations ── */}
             <style>{`
@@ -521,6 +619,10 @@ export default function GeevesFloatingOrb() {
                 @keyframes geevesOrbDot {
                     0%, 100% { transform: scale(0.7); opacity: 0.4; }
                     50% { transform: scale(1); opacity: 1; }
+                }
+                @keyframes geevesListenPulse {
+                    0%, 100% { box-shadow: 0 0 0 0 rgba(255,60,60,0.5); }
+                    50% { box-shadow: 0 0 0 8px rgba(255,60,60,0); }
                 }
             `}</style>
         </>

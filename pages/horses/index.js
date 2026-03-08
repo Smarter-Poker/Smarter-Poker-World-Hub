@@ -174,6 +174,12 @@ export default function HorsesAdmin() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
 
+  // Geeves Analytics State
+  const [geevesAnalytics, setGeevesAnalytics] = useState({ summary: null, questions: [] });
+  const [geevesAnalyticsLoaded, setGeevesAnalyticsLoaded] = useState(false);
+  const [geevesAnalyticsLoading, setGeevesAnalyticsLoading] = useState(false);
+  const [geevesMarkingId, setGeevesMarkingId] = useState(null);
+
   // Promo Code State
   const [promoCodes, setPromoCodes] = useState([]);
   const [promoLoading, setPromoLoading] = useState(false);
@@ -474,6 +480,53 @@ export default function HorsesAdmin() {
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
+  };
+
+  const loadGeevesAnalytics = async () => {
+    setGeevesAnalyticsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const headers = { Authorization: `Bearer ${session.access_token}` };
+      const [summaryRes, missedRes] = await Promise.all([
+        fetch('/api/geeves/analytics?action=summary', { headers }),
+        fetch('/api/geeves/analytics?action=top_missed', { headers }),
+      ]);
+      const [summaryData, missedData] = await Promise.all([summaryRes.json(), missedRes.json()]);
+      setGeevesAnalytics({
+        summary: summaryData.success ? summaryData.summary : null,
+        questions: missedData.success ? missedData.questions : [],
+      });
+      setGeevesAnalyticsLoaded(true);
+    } catch (err) {
+      console.error('Failed to load Geeves analytics:', err);
+    } finally {
+      setGeevesAnalyticsLoading(false);
+    }
+  };
+
+  const markGeevesQuestionResolved = async (id, addedToKB) => {
+    setGeevesMarkingId(id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+      const res = await fetch('/api/geeves/analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'mark_resolved', id, added_to_kb: addedToKB }),
+      });
+      if (res.ok) {
+        setGeevesAnalytics(prev => ({
+          ...prev,
+          questions: prev.questions.filter(q => q.id !== id),
+        }));
+        showNotification(addedToKB ? 'Marked as added to KB' : 'Marked as resolved');
+      }
+    } catch (err) {
+      showNotification('Failed to mark question', 'error');
+    } finally {
+      setGeevesMarkingId(null);
+    }
   };
 
   const EMPTY_ABUSE_DATA = {
@@ -1063,6 +1116,12 @@ export default function HorsesAdmin() {
               <span>{settings.engine_enabled ? 'Engine Running' : 'Engine Stopped'}</span>
             </div>
             <span className={styles.userInfo}>{user?.email}</span>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('geeves-open'))}
+              style={{ marginRight: 8, background: 'rgba(0,180,255,0.12)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+            >
+              Ask Geeves
+            </button>
             <button onClick={handleLogout} className={styles.logoutBtn}>
               Logout
             </button>
@@ -1137,7 +1196,16 @@ export default function HorsesAdmin() {
               loadLeaveRequests('pending');
             }}
           >
-            🃏 Club Arena Admin
+            Club Arena Admin
+          </button>
+          <button
+            className={activeTab === 'geeves' ? styles.active : ''}
+            onClick={() => {
+              setActiveTab('geeves');
+              if (!geevesAnalyticsLoaded) loadGeevesAnalytics();
+            }}
+          >
+            Geeves KB
           </button>
         </nav>
 
@@ -1448,7 +1516,7 @@ export default function HorsesAdmin() {
                         </td>
                         <td>
                           {grinderData?.roster?.find((r) => r.horse_id === persona.id)?.status ===
-                          'playing' ? (
+                            'playing' ? (
                             <span
                               className={styles.statusActive}
                               style={{ color: '#22c55e', fontWeight: 'bold' }}
@@ -1711,7 +1779,7 @@ export default function HorsesAdmin() {
                     <h3>Content Type Breakdown (Last 7 Days)</h3>
                     <div className={styles.breakdownGrid}>
                       {analyticsData &&
-                      Object.keys(analyticsData.sourceDistribution || {}).length > 0 ? (
+                        Object.keys(analyticsData.sourceDistribution || {}).length > 0 ? (
                         Object.entries(analyticsData.sourceDistribution).map(
                           ([source, count], i) => (
                             <div key={i} className={styles.breakdownItem}>
@@ -3191,7 +3259,102 @@ export default function HorsesAdmin() {
               )}
             </div>
           )}
+
+          {/* ── GEEVES KB ANALYTICS TAB ── */}
+          {activeTab === 'geeves' && (
+            <div style={{ padding: '24px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#fff' }}>Geeves Knowledge Base Analytics</h2>
+                  <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
+                    Questions that fell through to Grok — add them to the KB to make Geeves smarter.
+                  </p>
+                </div>
+                <button
+                  onClick={loadGeevesAnalytics}
+                  disabled={geevesAnalyticsLoading}
+                  style={{ background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00d4ff', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                >
+                  {geevesAnalyticsLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+
+              {/* KPI Cards */}
+              {geevesAnalytics.summary && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 28 }}>
+                  {[
+                    { label: 'Missed (this week)', value: geevesAnalytics.summary.missedThisWeek, color: '#ff6b6b' },
+                    { label: 'Resolved (this week)', value: geevesAnalytics.summary.resolvedThisWeek, color: '#51cf66' },
+                    { label: 'Total Added to KB', value: geevesAnalytics.summary.totalAddedToKB, color: '#00d4ff' },
+                    { label: 'Cache Answers Served', value: geevesAnalytics.summary.cacheAnswersServedThisWeek, color: '#ffd43b' },
+                    { label: 'Avg Cache Rating', value: geevesAnalytics.summary.avgCacheRating ? `${geevesAnalytics.summary.avgCacheRating}/5` : 'N/A', color: '#cc5de8' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '16px 20px' }}>
+                      <div style={{ fontSize: 26, fontWeight: 800, color }}>{value ?? '—'}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Missed Questions Table */}
+              {geevesAnalyticsLoading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.4)' }}>Loading Geeves analytics...</div>
+              ) : geevesAnalytics.questions.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
+                  No unanswered questions — Geeves is handling everything locally!
+                </div>
+              ) : (
+                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                        {['Question', 'Page', 'Asked', 'Last Asked', 'Actions'].map(h => (
+                          <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {geevesAnalytics.questions.map((q, i) => (
+                        <tr key={q.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                          <td style={{ padding: '12px 16px', fontSize: 13, color: '#fff', maxWidth: 340, wordBreak: 'break-word' }}>
+                            <div>{q.question}</div>
+                            {q.grok_answer && (
+                              <details style={{ marginTop: 4 }}>
+                                <summary style={{ fontSize: 11, color: 'rgba(0,212,255,0.6)', cursor: 'pointer' }}>View Grok answer</summary>
+                                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 6, lineHeight: 1.5, maxHeight: 120, overflowY: 'auto', background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: 6 }}>{q.grok_answer}</div>
+                              </details>
+                            )}
+                          </td>
+                          <td style={{ padding: '12px 16px', fontSize: 12, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{q.page ? q.page.replace('/hub/', '') : '—'}</td>
+                          <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 700, color: q.asked_count >= 5 ? '#ff6b6b' : '#ffd43b', textAlign: 'center' }}>{q.asked_count}x</td>
+                          <td style={{ padding: '12px 16px', fontSize: 12, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>{new Date(q.last_asked).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
+                            <button
+                              onClick={() => markGeevesQuestionResolved(q.id, true)}
+                              disabled={geevesMarkingId === q.id}
+                              style={{ marginRight: 8, background: 'rgba(81,207,102,0.15)', border: '1px solid rgba(81,207,102,0.35)', color: '#51cf66', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                            >
+                              {geevesMarkingId === q.id ? '...' : 'Added to KB'}
+                            </button>
+                            <button
+                              onClick={() => markGeevesQuestionResolved(q.id, false)}
+                              disabled={geevesMarkingId === q.id}
+                              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12 }}
+                            >
+                              Dismiss
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </main>
+
 
         {showCreateModal && (
           <div className={styles.modalOverlay}>

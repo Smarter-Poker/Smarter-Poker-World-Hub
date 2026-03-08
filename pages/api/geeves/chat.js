@@ -7,8 +7,8 @@ import { getGrokClient } from '../../../src/lib/grokClient';
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import crypto from 'crypto';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
-import { getServerUser } from '../../../src/lib/serverAuth';
 import { lookupKnowledgeBase } from '../../../src/lib/geevesKnowledgeBase';
+import { getRoleBoosts } from '../../../src/lib/geevesKB/rolePersonalization';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -57,14 +57,16 @@ export default async function handler(req, res) {
     }
 
     // ── Parse body first (before auth, so KB can serve guests) ──
-    const { message, context, history, currentPage } = req.body;
+    const { message, context, conversationHistory, currentPage, userRole, isVIP } = req.body;
 
     if (!message) {
         return res.status(400).json({ success: false, error: 'Message is required' });
     }
 
     // ── STEP 0: Check Local KB (FREE, instant, no auth needed) ──
-    const kbResult = lookupKnowledgeBase(message, currentPage);
+    // Pass role boosts from the client (extracted client-side from JWT payload, used for scoring only)
+    const clientRoleBoosts = getRoleBoosts(userRole || null, Boolean(isVIP));
+    const kbResult = lookupKnowledgeBase(message, currentPage, clientRoleBoosts);
     if (kbResult && kbResult.confidence >= 45) {
         return res.status(200).json({
             response: kbResult.answer,
@@ -114,33 +116,34 @@ export default async function handler(req, res) {
             console.warn('[Geeves Chat] Cache lookup failed (non-critical):', cacheErr.message);
         }
 
-        // ── STEP 2: No cache hit — call Grok ──
+        // ── STEP 2: No cache hit — call Grok with conversation context ──
         const grok = getGrokClient();
 
-        // Build messages array
-        const messages = [
-            { role: 'system', content: GEEVES_SYSTEM_PROMPT }
+        // Build messages array with system prompt
+        const grokMessages = [
+            { role: 'system', content: GEEVES_SYSTEM_PROMPT },
         ];
 
-        // Add conversation history if provided
-        if (history && history.length > 0) {
-            const recentHistory = history.slice(-6);
+        // Feature 2: Conversation Memory — prepend last 6 turns so follow-up questions
+        // have context ("how do I close it?" knows "it" = settlement period, etc.)
+        if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+            const recentHistory = conversationHistory.slice(-6); // Max 6 turns (3 exchanges)
             recentHistory.forEach(msg => {
-                messages.push({
-                    role: msg.role === 'user' ? 'user' : 'assistant',
-                    content: msg.content
+                grokMessages.push({
+                    role: msg.isUser ? 'user' : 'assistant',
+                    content: String(msg.content || '').slice(0, 600), // Trim long answers
                 });
             });
         }
 
-        messages.push({ role: 'user', content: message });
+        grokMessages.push({ role: 'user', content: message });
 
         const response = await grok.chat.completions.create({
             model: 'grok-beta',
-            messages,
+            messages: grokMessages,
             temperature: 0.7,
-            max_tokens: 800, // Shorter for widget
-            stream: false
+            max_tokens: 800,
+            stream: false,
         });
 
         const answer = response.choices[0].message.content;
@@ -169,9 +172,42 @@ export default async function handler(req, res) {
             console.warn('[Geeves Chat] Cache save failed (non-critical):', saveErr.message);
         }
 
+        // ── STEP 4: Auto-Learning Loop — log missed question to Supabase ──
+        // This feeds the Geeves Analytics dashboard in Horses so admins can
+        // identify knowledge gaps and add them to the KB.
+        try {
+            await supabaseAdmin.rpc('geeves_upsert_missed_question', {
+                p_question: message,
+                p_hash: questionHash,
+                p_page: currentPage || null,
+                p_grok_answer: answer,
+            });
+        } catch (logErr) {
+            // Non-critical — best effort. If the RPC or table doesn't exist yet, skip silently.
+            // Fallback: direct upsert
+            try {
+                await supabaseAdmin
+                    .from('geeves_missed_questions')
+                    .upsert(
+                        {
+                            question: message,
+                            question_hash: questionHash,
+                            page: currentPage || null,
+                            grok_answer: answer,
+                            asked_count: 1,
+                            last_asked: new Date().toISOString(),
+                        },
+                        {
+                            onConflict: 'question_hash',
+                            ignoreDuplicates: false,
+                        }
+                    );
+            } catch { /* truly silent — never break the user experience */ }
+        }
+
         return res.status(200).json({
             response: answer,
-            message: answer, // Fallback for compatibility
+            message: answer,
             success: true,
             fromCache: false,
             cacheId,
