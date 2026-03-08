@@ -52,6 +52,19 @@ Violation of ANY rule = automatic rollback and investigation.
    - Run `npm run build` to verify compilation passes
    - After pushing: check Vercel deployment status within 5 minutes
 
+8. **NEVER use emoji characters anywhere in UI code, page text, button labels, modal titles,
+   tab names, toast messages, admin panels, or any user-facing string in `.js`, `.jsx`, or
+   `.tsx` files.** This is an absolute, permanent, zero-exception rule across ALL pages and
+   ALL components in this codebase. This means no emoji in:
+   - JSX text content (`<h1>`, `<span>`, `<p>`, `<button>`, etc.)
+   - String literals passed as props (`title="..."`, `label="..."`, `desc="..."`)
+   - Toast / notification messages
+   - Menu item labels and section headers
+   - Admin tile titles and descriptions
+   - Comment-adjacent UI strings
+   Use plain text or Unicode symbols (arrows, dashes, bullets) instead.
+   **Every agent and every session must scan for and strip any emoji before committing.**
+
 ### Post-Push Verification Protocol:
 After EVERY push to main:
 1. Wait 5 minutes for Vercel deploy
