@@ -3,10 +3,11 @@
  * Integrated into hub-vanguard Next.js app at /horses
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { supabase } from '../../src/lib/supabase';
+import { eventBus, EventType } from '../../src/engine/EventBus';
 import styles from './horses.module.css';
 
 // Sync Channel Name
@@ -179,6 +180,60 @@ export default function HorsesAdmin() {
   const [geevesAnalyticsLoaded, setGeevesAnalyticsLoaded] = useState(false);
   const [geevesAnalyticsLoading, setGeevesAnalyticsLoading] = useState(false);
   const [geevesMarkingId, setGeevesMarkingId] = useState(null);
+
+  // ── EventBus Listeners — Geeves real-time updates ──
+  // When a new question is missed (answered by Grok anywhere on the platform),
+  // this handler live-appends it to the Geeves KB tab so admins see it instantly.
+  useEffect(() => {
+    // GEEVES_QUESTION_MISSED: live-append new missed questions to the table
+    const unsubMissed = eventBus.on(EventType.GEEVES_QUESTION_MISSED, (event) => {
+      const { question, page } = event.payload;
+      if (!question) return;
+      setGeevesAnalytics(prev => {
+        // Don't duplicate if already in the list
+        const exists = prev.questions.some(q => q.question === question);
+        if (exists) {
+          return {
+            ...prev,
+            questions: prev.questions.map(q =>
+              q.question === question
+                ? { ...q, asked_count: (q.asked_count || 1) + 1, last_asked: new Date().toISOString() }
+                : q
+            ),
+          };
+        }
+        return {
+          ...prev,
+          questions: [
+            {
+              id: `live-${Date.now()}`,
+              question,
+              page: page || null,
+              asked_count: 1,
+              last_asked: new Date().toISOString(),
+              grok_answer: null,
+            },
+            ...prev.questions,
+          ],
+        };
+      });
+    });
+
+    // GEEVES_KB_UPDATED: remove question from list when marked resolved from another context
+    const unsubKB = eventBus.on(EventType.GEEVES_KB_UPDATED, (event) => {
+      const { questionId } = event.payload;
+      if (!questionId) return;
+      setGeevesAnalytics(prev => ({
+        ...prev,
+        questions: prev.questions.filter(q => q.id !== questionId),
+      }));
+    });
+
+    return () => {
+      unsubMissed();
+      unsubKB();
+    };
+  }, []);
 
   // Promo Code State
   const [promoCodes, setPromoCodes] = useState([]);
@@ -520,6 +575,8 @@ export default function HorsesAdmin() {
           ...prev,
           questions: prev.questions.filter(q => q.id !== id),
         }));
+        // Emit bus event so other listeners (cross-tab, other components) can react
+        eventBus.emit(EventType.GEEVES_KB_UPDATED, { questionId: id, addedToKB }, 'GeevesAdmin');
         showNotification(addedToKB ? 'Marked as added to KB' : 'Marked as resolved');
       }
     } catch (err) {

@@ -41,6 +41,11 @@ export const EventType = {
     TOURNAMENT_STARTED: 'TOURNAMENT_STARTED',
     TOURNAMENT_LEVEL_CHANGE: 'TOURNAMENT_LEVEL_CHANGE',
     DATA_MUTATED: 'DATA_MUTATED',
+
+    // ── Geeves AI Help Bot ──
+    GEEVES_QUESTION_MISSED: 'GEEVES_QUESTION_MISSED', // Question answered by Grok (not local KB)
+    GEEVES_KB_UPDATED: 'GEEVES_KB_UPDATED',           // Admin marked question as added to KB
+    GEEVES_OPENED: 'GEEVES_OPENED',                   // User opened the Geeves panel
 };
 
 class GlobalEventBus {
@@ -181,5 +186,15 @@ export const busEmit = {
 
     dataMutated: (entity) =>
         eventBus.emit(EventType.DATA_MUTATED, { entity, ..._getStaffCtx() }, 'DataSync'),
+
+    // ── Geeves AI Help Bot ──
+    geevesQuestionMissed: (question, page) =>
+        eventBus.emit(EventType.GEEVES_QUESTION_MISSED, { question, page }, 'GeevesChat'),
+
+    geevesKBUpdated: (questionId, addedToKB) =>
+        eventBus.emit(EventType.GEEVES_KB_UPDATED, { questionId, addedToKB }, 'GeevesAdmin'),
+
+    geevesOpened: () =>
+        eventBus.emit(EventType.GEEVES_OPENED, {}, 'GeevesOrb'),
 };
 

@@ -176,32 +176,47 @@ export default async function handler(req, res) {
         // This feeds the Geeves Analytics dashboard in Horses so admins can
         // identify knowledge gaps and add them to the KB.
         try {
+            // Use raw SQL so we can do a proper ON CONFLICT DO UPDATE with arithmetic
+            // The RPC is preferred but falls back to direct PostgREST if not yet created.
             await supabaseAdmin.rpc('geeves_upsert_missed_question', {
                 p_question: message,
                 p_hash: questionHash,
                 p_page: currentPage || null,
                 p_grok_answer: answer,
             });
-        } catch (logErr) {
-            // Non-critical — best effort. If the RPC or table doesn't exist yet, skip silently.
-            // Fallback: direct upsert
+        } catch (_rpcErr) {
+            // RPC not yet available — use raw INSERT via PostgREST with SQL function
+            // Supabase's REST API doesn't natively support ON CONFLICT DO UPDATE with expressions,
+            // so we use separate insert + update logic:
             try {
-                await supabaseAdmin
+                // Try INSERT first
+                const { error: insErr } = await supabaseAdmin
                     .from('geeves_missed_questions')
-                    .upsert(
-                        {
-                            question: message,
-                            question_hash: questionHash,
-                            page: currentPage || null,
-                            grok_answer: answer,
-                            asked_count: 1,
-                            last_asked: new Date().toISOString(),
-                        },
-                        {
-                            onConflict: 'question_hash',
-                            ignoreDuplicates: false,
-                        }
-                    );
+                    .insert({
+                        question: message,
+                        question_hash: questionHash,
+                        page: currentPage || null,
+                        grok_answer: answer.slice(0, 2000), // Cap Grok answer size
+                        asked_count: 1,
+                        first_asked: new Date().toISOString(),
+                        last_asked: new Date().toISOString(),
+                    });
+
+                if (insErr && insErr.code === '23505') {
+                    // Unique constraint violation = already exists, increment count
+                    await supabaseAdmin.rpc('geeves_increment_missed_count', {
+                        p_hash: questionHash,
+                        p_grok_answer: answer.slice(0, 2000),
+                        p_page: currentPage || null,
+                    }).catch(() => {
+                        // Final fallback: direct update (no increment, still more correct than resetting to 1)
+                        supabaseAdmin
+                            .from('geeves_missed_questions')
+                            .update({ last_asked: new Date().toISOString(), grok_answer: answer.slice(0, 2000) })
+                            .eq('question_hash', questionHash)
+                            .then(() => { }).catch(() => { });
+                    });
+                }
             } catch { /* truly silent — never break the user experience */ }
         }
 

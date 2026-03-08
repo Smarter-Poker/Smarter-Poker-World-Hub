@@ -16,6 +16,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { extractRoleFromToken } from '../../lib/geevesKB/rolePersonalization';
+import { busEmit } from '../../engine/EventBus';
 
 // ─── Auth helper (SSR-safe) ───
 function getAuthToken() {
@@ -136,6 +137,7 @@ export default function GeevesFloatingOrb() {
     const inputRef = useRef(null);
     const msgIdRef = useRef(0);
     const recognitionRef = useRef(null); // SpeechRecognition instance
+    const messagesRef = useRef([]); // Always-current messages for sendMessage (avoids stale closure)
     const path = router.asPath || '';
 
     // ── SSR guard — only render on client ──
@@ -148,8 +150,12 @@ export default function GeevesFloatingOrb() {
     }, [mounted]);
 
     // ── Save messages to session when they change ──
+    // Also keep messagesRef in sync so sendMessage always has the latest (avoids stale closure)
     useEffect(() => {
-        if (mounted && messages.length > 0) saveSessionMessages(messages);
+        if (mounted) {
+            if (messages.length > 0) saveSessionMessages(messages);
+            messagesRef.current = messages; // Keep ref current for API calls
+        }
     }, [messages, mounted]);
 
     // ── Auto-scroll ──
@@ -205,9 +211,13 @@ export default function GeevesFloatingOrb() {
         return () => window.removeEventListener('keydown', handler);
     }, [isOpen]);
 
-    // ── Listen for geeves-open custom event (from Horses page header button) ──
+    // ── Listen for geeves-open custom event (from Horses page header button + other pages) ──
     useEffect(() => {
-        const handler = () => { setIsOpen(true); setShowTip(false); };
+        const handler = () => {
+            setIsOpen(true);
+            setShowTip(false);
+            busEmit.geevesOpened(); // Emit to EventBus for analytics
+        };
         window.addEventListener('geeves-open', handler);
         return () => window.removeEventListener('geeves-open', handler);
     }, []);
@@ -232,7 +242,8 @@ export default function GeevesFloatingOrb() {
                 : { role: null, isVIP: false };
 
             // Feature 2: Conversation memory — pass last 6 messages for follow-up context
-            const conversationHistory = messages.slice(-6).map(m => ({
+            // Uses messagesRef (not messages state) to avoid stale closure on the useCallback
+            const conversationHistory = messagesRef.current.slice(-6).map(m => ({
                 isUser: m.isUser,
                 content: String(m.content || '').slice(0, 400),
             }));

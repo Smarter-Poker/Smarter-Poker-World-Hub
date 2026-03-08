@@ -15,7 +15,6 @@
 import { KNOWLEDGE_ENTRIES } from './geevesKB/geevesKnowledgeEntries';
 import { buildSynonymIndex } from './geevesKB/synonyms';
 import { checkContentGuard, sanitizeAnswer } from './geevesKB/contentGuard';
-import { getRoleBoosts } from './geevesKB/rolePersonalization';
 
 // ── Build the synonym index once at module load ──
 const SYNONYM_INDEX = buildSynonymIndex();
