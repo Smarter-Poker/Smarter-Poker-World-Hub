@@ -137,12 +137,12 @@ export default function SandboxPokerTable({
                 width: '100%',
                 maxWidth: 280,
                 margin: '0 auto',
-                aspectRatio: '1 / 1',
+                aspectRatio: '341 / 609',
                 overflow: 'visible',
             }}>
             {/* Poker table — official Smarter.Poker brand table (same as Commander tablets) */}
             <img
-                src="/images/poker-table-black-gold.png"
+                src="/images/poker-table-black-gold-nobg.png"
                 alt="Poker Table"
                 style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
