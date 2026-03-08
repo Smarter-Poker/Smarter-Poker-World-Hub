@@ -5,7 +5,7 @@
  * 
  * FLOW:
  *   1. Validate player has enough chips
- *   2. HOLD chips (deduct from balance → escrow)
+ *   2. HOLD chips (deduct from balance => escrow)
  *   3. Create cashout_request (status: 'pending')
  *   4. Send in-app message to agent via messenger
  *   5. Send push notification to agent
@@ -178,7 +178,7 @@ export default async function handler(req, res) {
         await supabaseAdmin.rpc('fn_send_message', {
           p_conversation_id: convId,
           p_sender_id: user.id,
-          p_content: `💰 Cashout Request\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
+          p_content: `[CASHOUT REQUEST]\n\n${playerName} is requesting to cash out ${amount.toLocaleString()} chips.\n\nGo to your Agent Dashboard to approve or cancel.`,
         });
       }
     } catch (msgErr) {
@@ -203,7 +203,7 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify({
             userId: member.agent_id,
-            title: '💰 Cashout Request',
+            title: 'Cashout Request',
             message: `${playerName} wants to cash out ${amount.toLocaleString()} chips`,
             url: '/hub/club-arena/admin?tab=cashouts',
           }),

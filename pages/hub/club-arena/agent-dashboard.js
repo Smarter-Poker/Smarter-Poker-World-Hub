@@ -382,11 +382,11 @@ export default function AgentDashboard() {
                             Agent Dashboard
                         </h1>
                         <span style={{ fontSize: 12, color: FB.primary, fontWeight: 600, textTransform: 'uppercase' }}>
-                            {role === 'owner' ? '👑 Owner View'
-                                : role === 'admin' ? '🛡 Admin View'
+                            {role === 'owner' ? 'Owner View'
+                                : role === 'admin' ? 'Admin View'
                                 : role === 'super_agent' ? '⭐ Super Agent'
-                                : role === 'sub_agent' ? '🔹 Sub Agent'
-                                : '🎯 Agent View'}
+                                : role === 'sub_agent' ? 'Sub Agent'
+                                : 'Agent View'}
                         </span>
                     </div>
                     <button onClick={loadDashboard} style={{ ...btnStyle, padding: '6px 14px', fontSize: 12 }}>
@@ -449,7 +449,7 @@ export default function AgentDashboard() {
                             </div>
                         ) : subAgents.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
-                                <div style={{ fontSize: 32, marginBottom: 12 }}>👤</div>
+                                <div style={{ fontSize: 32, marginBottom: 12 }}>[player]</div>
                                 <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
                                 <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap ↑ to promote a player.</div>
                             </div>
@@ -461,7 +461,7 @@ export default function AgentDashboard() {
                                             {sa.profile?.display_name || sa.profile?.username || 'Unknown'}
                                         </div>
                                         <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                                            {sa.status === 'active' ? '🟢' : '🔴'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
+                                            {sa.status === 'active' ? '[A]' : '[S]'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
                                         </div>
                                     </div>
                                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -473,7 +473,7 @@ export default function AgentDashboard() {
                                         {/* Distribute chips */}
                                         <button onClick={() => { setSubAgentDistModal(sa); setSubAgentDistAmount(''); }}
                                             style={{ background: FB.gold, color: '#000', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                            💰 Send
+                                            Send
                                         </button>
                                         {/* Suspend / Reactivate */}
                                         <button onClick={async () => {
@@ -804,7 +804,7 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, playerNum
             {/* ── Club Referral Panel ── */}
             {playerNumber && (
                 <div style={{ ...cardStyle, marginBottom: 12, border: `1px solid ${FB.gold}40` }}>
-                    <h4 style={{ color: FB.gold, fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>🔗 Your Club Referral Number</h4>
+                    <h4 style={{ color: FB.gold, fontSize: 13, fontWeight: 700, margin: '0 0 8px' }}>Your Club Referral Number</h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: FB.background, borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
                         <span style={{ fontFamily: 'monospace', fontSize: 28, fontWeight: 800, color: FB.textPrimary, letterSpacing: 3 }}>{playerNumber}</span>
                     </div>
@@ -813,7 +813,7 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, playerNum
                     </div>
                     <button onClick={onShareInvite}
                         style={{ width: '100%', background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                        📤 Share Club Join Link
+                        * Share Club Join Link
                     </button>
                 </div>
             )}

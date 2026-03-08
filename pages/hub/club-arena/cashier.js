@@ -279,7 +279,7 @@ export default function Cashier() {
     }, [club?.id, user?.id]);
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // BUY-IN: Diamonds → Club Chips
+    // BUY-IN: Diamonds * Club Chips
     // ═══════════════════════════════════════════════════════════════════════════
     const handleBuyIn = async () => {
         const amount = parseInt(buyInAmount);
@@ -320,7 +320,7 @@ export default function Cashier() {
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // CASH-OUT: Club Chips → Diamonds
+    // CASH-OUT: Club Chips * Diamonds
     // ═══════════════════════════════════════════════════════════════════════════
     const handleCashOut = async () => {
         let amount = cashOutAmount === 'All' ? chipBalance : parseInt(cashOutAmount);
@@ -600,11 +600,11 @@ export default function Cashier() {
                             <h2 style={S.sectionTitle}>Transaction History</h2>
                             {transactions.length > 0 ? transactions.map((tx, i) => {
                                 const txIcons = {
-                                    buyin: '📥', deposit: '📥', withdrawal: '📤', cashout: '📤',
-                                    win: '🏆', loss: '📉', rake: '🃏', send: '➡️', receive: '⬅️',
-                                    purchase: '🛍️', rakeback: '💰', bonus: '🎁', promo: '🎉',
+                                    buyin: '[+]', deposit: '[+]', withdrawal: '[-]', cashout: '[-]',
+                                    win: '[W]', loss: '[L]', rake: '[R]', send: '[>]', receive: '[<]',
+                                    purchase: '[$]', rakeback: '[RB]', bonus: '[+]', promo: '[P]',
                                 };
-                                const icon = txIcons[tx.transaction_type] || '💱';
+                                const icon = txIcons[tx.transaction_type] || '[?]';
                                 const isPos = (tx.amount || 0) >= 0;
                                 return (
                                     <div key={tx.id || i} style={{ ...S.listItem, gap: '10px', alignItems: 'center', display: 'flex' }}>

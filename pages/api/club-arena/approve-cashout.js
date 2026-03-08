@@ -3,7 +3,7 @@
  * 
  * Agent (or owner) approves or cancels a player's cashout request.
  * 
- * On APPROVE: completes the cashout (held chips → diamonds to player).
+ * On APPROVE: completes the cashout (held chips => diamonds to player).
  * On CANCEL:  returns held/escrowed chips back to player's balance.
  * 
  * Agents can ONLY remove chips from a player account via:
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
     const agentName = agentProfile?.display_name || agentProfile?.username || 'Your agent';
 
     // ═════════════════════════════════════════════════════════════
-    // APPROVE: Held chips → diamonds
+    // APPROVE: Held chips => diamonds
     // ═════════════════════════════════════════════════════════════
     if (action === 'approve') {
       // Rate: 100 chips = 38 diamonds
@@ -147,7 +147,7 @@ export default async function handler(req, res) {
         // during next settlement reconciliation.
       }
 
-      // Mark cashout completed (from 'completing' → 'completed')
+      // Mark cashout completed (from 'completing' => 'completed')
       await supabaseAdmin
         .from('cashout_requests')
         .update({
@@ -164,13 +164,16 @@ export default async function handler(req, res) {
         to_user_id: cashout.agent_id,
         amount: cashout.amount,
         transaction_type: 'cashout_approved',
-        notes: `Cashout approved: ${cashout.amount.toLocaleString()} chips → ${diamondsReturned} 💎`,
+        notes: `Cashout approved: ${cashout.amount.toLocaleString()} chips => ${diamondsReturned} diamonds`,
       });
 
       // Notify player: message + push
       await notifyPlayer(cashout, playerName, agentName,
-        `✅ Cashout Approved\n\n${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.\nYou received ${diamondsReturned} 💎 diamonds.`,
-        `✅ Cashout approved! ${cashout.amount.toLocaleString()} chips → ${diamondsReturned} 💎`
+        `[CASHOUT APPROVED]
+
+${agentName} approved your cashout of ${cashout.amount.toLocaleString()} chips.
+You received ${diamondsReturned} diamonds.`,
+        `[OK] Cashout approved! ${cashout.amount.toLocaleString()} chips => ${diamondsReturned} diamonds`
       );
 
       return res.status(200).json({
@@ -208,7 +211,7 @@ export default async function handler(req, res) {
         .eq('user_id', cashout.player_id)
         .maybeSingle();
 
-      // Mark cashout cancelled (from 'cancelling' → 'cancelled')
+      // Mark cashout cancelled (from 'cancelling' => 'cancelled')
       await supabaseAdmin
         .from('cashout_requests')
         .update({
@@ -230,8 +233,10 @@ export default async function handler(req, res) {
 
       // Notify player: message + push
       await notifyPlayer(cashout, playerName, agentName,
-        `❌ Cashout Cancelled\n\n${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString()} chips.\nYour chips have been returned to your balance.${note ? `\n\nNote: ${note}` : ''}`,
-        `❌ Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`
+        `[CASHOUT CANCELLED]
+
+${agentName} cancelled your cashout request for ${cashout.amount.toLocaleString()} chips.\nYour chips have been returned to your balance.${note ? `\n\nNote: ${note}` : ''}`,
+        `Cashout cancelled. ${cashout.amount.toLocaleString()} chips returned to your balance.`
       );
 
       return res.status(200).json({
@@ -288,7 +293,7 @@ async function notifyPlayer(cashout, playerName, agentName, messageText, pushTex
         },
         body: JSON.stringify({
           userId: cashout.player_id,
-          title: pushText.startsWith('✅') ? '✅ Cashout Approved' : '❌ Cashout Cancelled',
+          title: pushText.startsWith('[CASHOUT APPROVED]') ? 'Cashout Approved' : 'Cashout Cancelled',
           message: pushText,
           url: '/hub/club-arena/cashier',
         }),

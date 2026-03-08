@@ -333,6 +333,108 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, commissionRate: newRate });
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // UNION ANNOUNCEMENT BROADCAST
+    // Sends an in-app announcement to all members of union clubs
+    // or to a specific club. Uses clubs.announcements table.
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'union_announcement') {
+      if (callerAdmin.role !== 'union_lead') {
+        return res.status(403).json({ success: false, error: 'Only union lead can broadcast announcements' });
+      }
+      const { message: annMsg, clubId: targetClub } = req.body;
+      if (!annMsg?.trim()) return res.status(400).json({ success: false, error: 'message required' });
+      if (annMsg.length > 500) return res.status(400).json({ success: false, error: 'message max 500 chars' });
+
+      // Determine target clubs
+      const { data: unionClubs } = await supabaseAdmin
+        .from('union_clubs')
+        .select('club_id')
+        .eq('union_id', unionId);
+
+      const targetClubIds = targetClub
+        ? [targetClub]
+        : (unionClubs || []).map(uc => uc.club_id);
+
+      if (targetClubIds.length === 0) {
+        return res.status(400).json({ success: false, error: 'No clubs found in this union' });
+      }
+
+      // Insert announcement into each target club
+      const announcements = targetClubIds.map(cid => ({
+        club_id: cid,
+        author_id: user.id,
+        content: annMsg.trim(),
+        type: 'union_announcement',
+        created_at: new Date().toISOString(),
+      }));
+
+      const { error: annErr } = await supabaseAdmin
+        .from('announcements')
+        .insert(announcements);
+
+      if (annErr) throw annErr;
+
+      return res.status(200).json({
+        success: true,
+        clubsReached: targetClubIds.length,
+        message: `Announcement sent to ${targetClubIds.length} club${targetClubIds.length !== 1 ? 's' : ''}`,
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LEAVE REQUEST ACTIONS (list, approve, deny)
+    // Union lead manages club leave requests
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'list_leave') {
+      const { data: leaveReqs } = await supabaseAdmin
+        .from('union_leave_requests')
+        .select('*, clubs(name)')
+        .eq('union_id', unionId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      const enriched = (leaveReqs || []).map(r => ({
+        ...r,
+        club_name: r.clubs?.name || r.club_id,
+      }));
+
+      return res.status(200).json({ success: true, leaveRequests: enriched });
+    }
+
+    if (action === 'approve_leave' || action === 'deny_leave') {
+      if (callerAdmin.role !== 'union_lead') {
+        return res.status(403).json({ success: false, error: 'Only union lead can handle leave requests' });
+      }
+      const { leaveRequestId } = req.body;
+      if (!leaveRequestId) return res.status(400).json({ success: false, error: 'leaveRequestId required' });
+
+      const { data: req_ } = await supabaseAdmin
+        .from('union_leave_requests')
+        .select('club_id, status, union_id')
+        .eq('id', leaveRequestId)
+        .maybeSingle();
+
+      if (!req_) return res.status(404).json({ success: false, error: 'Leave request not found' });
+      if (req_.union_id !== unionId) return res.status(403).json({ success: false, error: 'Leave request belongs to a different union' });
+      if (req_.status !== 'pending') return res.status(400).json({ success: false, error: `Already ${req_.status}` });
+
+      const newStatus = action === 'approve_leave' ? 'approved' : 'denied';
+
+      await supabaseAdmin
+        .from('union_leave_requests')
+        .update({ status: newStatus, reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+        .eq('id', leaveRequestId);
+
+      if (action === 'approve_leave') {
+        // Remove club from union
+        await supabaseAdmin.from('union_clubs').delete().eq('union_id', unionId).eq('club_id', req_.club_id);
+        await supabaseAdmin.from('clubs').update({ union_id: null }).eq('id', req_.club_id).eq('union_id', unionId);
+      }
+
+      return res.status(200).json({ success: true, status: newStatus });
+    }
+
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
   } catch (err) {
     console.error('[manage-union]', err);

@@ -158,23 +158,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 7b. Pending cashout requests across all union clubs
-    let pendingCashoutCount = 0;
-    let pendingCashoutTotal = 0;
-    if (clubIds.length > 0) {
-      const { data: cashouts } = await supabaseAdmin
-        .from('cashout_requests')
-        .select('amount')
-        .in('club_id', clubIds)
-        .eq('status', 'pending')
-        .limit(500);
-      for (const c of (cashouts || [])) {
-        pendingCashoutCount++;
-        pendingCashoutTotal += Number(c.amount || 0);
-      }
-    }
-
-    // 7c. Commission history — only loaded when ?include=commissions is passed (lazy)
+    // 7b. Commission history — only loaded when ?include=commissions is passed (lazy)
     let commissionHistory = undefined;
     if (req.query.include === 'commissions' && clubIds.length > 0) {
       const { data: commRows } = await supabaseAdmin
@@ -229,8 +213,6 @@ export default async function handler(req, res) {
       adminRole: unionAdmin.role,
       pendingApplications: pendingApps || 0,
       pendingLeaveRequests: pendingLeave || 0,
-      pendingCashoutCount,
-      pendingCashoutTotal,
       ...(commissionHistory !== undefined ? { commissionHistory } : {}),
       wallets: {
         chip_balance: Number(union.chip_balance || 0),

@@ -1,18 +1,18 @@
 /**
  * /api/club-arena/union-application
  *
- * Club owners apply to join the Midway Union.
- * Platform admins review, approve, or reject applications.
+ * Club owners apply to join a union.
+ * Union leads (union_lead role) OR platform admins review/approve/reject their union's applications.
  *
  * Actions:
  *   apply    — Club owner submits an application (POST)
- *   list     — Platform admin lists all applications (POST)
- *   approve  — Platform admin approves + fully integrates club into union (POST)
- *   reject   — Platform admin rejects application with optional reason (POST)
+ *   list     — Union lead or platform admin lists applications for a union (POST)
+ *   approve  — Union lead or platform admin approves + integrates club into union (POST)
+ *   reject   — Union lead or platform admin rejects application (POST)
  *   status   — Club owner checks their own application status (POST)
  *
  * "Midway Union" is resolved dynamically — the union whose name ILIKE '%midway%'.
- * This means no hard-coded UUID is needed.
+ * For list/approve/reject: if unionId is provided, scoped to that union.
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { getServerUser } from '../../../src/lib/serverAuth';
@@ -44,6 +44,26 @@ async function isPlatformAdmin(userId) {
   return ['admin', 'superadmin'].includes(data?.role);
 }
 
+// Check if caller is union_lead for the given unionId
+async function isUnionLead(userId, unionId) {
+  const { data } = await supabaseAdmin
+    .from('union_admins')
+    .select('role')
+    .eq('union_id', unionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data?.role === 'union_lead';
+}
+
+// Check if caller can administer this union (platform admin OR union_lead)
+async function canAdminUnion(userId, unionId) {
+  const [admin, lead] = await Promise.all([
+    isPlatformAdmin(userId),
+    isUnionLead(userId, unionId),
+  ]);
+  return admin || lead;
+}
+
 export default async function handler(req, res) {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
@@ -57,7 +77,7 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { action, clubId, applicationId, message, reason, commissionRate } = req.body;
+  const { action, clubId, applicationId, unionId: bodyUnionId, message, reason, commissionRate } = req.body;
   if (!action) return res.status(400).json({ success: false, error: 'action required' });
 
   try {
@@ -146,17 +166,26 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // LIST — Platform admin sees all applications
+    // LIST — Union lead or platform admin lists applications for a union
     // ═══════════════════════════════════════════════════════════════
     if (action === 'list') {
-      if (!(await isPlatformAdmin(user.id))) {
-        return res.status(403).json({ success: false, error: 'Platform admin access required' });
+      // Resolve target union: caller-provided unionId (for union dashboard) or Midway Union (for horses)
+      let targetUnionId = bodyUnionId;
+      if (!targetUnionId) {
+        const midway = await getMidwayUnionId();
+        if (!midway) return res.status(404).json({ success: false, error: 'Union not found' });
+        targetUnionId = midway.id;
+      }
+
+      if (!(await canAdminUnion(user.id, targetUnionId))) {
+        return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
       }
 
       const statusFilter = req.body.statusFilter || 'pending';
       let query = supabaseAdmin
         .from('union_applications')
         .select('*, unions(name), profiles!applicant_user_id(display_name, username, email)')
+        .eq('union_id', targetUnionId)
         .order('applied_at', { ascending: false });
 
       if (statusFilter !== 'all') query = query.eq('status', statusFilter);
@@ -168,15 +197,12 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // APPROVE — Platform admin approves + integrates club into union
+    // APPROVE — Union lead or platform admin approves + integrates club into union
     // ═══════════════════════════════════════════════════════════════
     if (action === 'approve') {
-      if (!(await isPlatformAdmin(user.id))) {
-        return res.status(403).json({ success: false, error: 'Platform admin access required' });
-      }
       if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
 
-      // Load application
+      // Load application first to get union_id for auth check
       const { data: app } = await supabaseAdmin
         .from('union_applications')
         .select('*')
@@ -185,6 +211,10 @@ export default async function handler(req, res) {
 
       if (!app) return res.status(404).json({ success: false, error: 'Application not found' });
       if (app.status !== 'pending') return res.status(400).json({ success: false, error: `Application is already ${app.status}` });
+
+      if (!(await canAdminUnion(user.id, app.union_id))) {
+        return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
+      }
 
       const rate = parseFloat(commissionRate) || 0.90;
 
@@ -218,22 +248,23 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // REJECT — Platform admin rejects application
+    // REJECT — Union lead or platform admin rejects application
     // ═══════════════════════════════════════════════════════════════
     if (action === 'reject') {
-      if (!(await isPlatformAdmin(user.id))) {
-        return res.status(403).json({ success: false, error: 'Platform admin access required' });
-      }
       if (!applicationId) return res.status(400).json({ success: false, error: 'applicationId required' });
 
       const { data: app } = await supabaseAdmin
         .from('union_applications')
-        .select('club_name, status')
+        .select('club_name, status, union_id')
         .eq('id', applicationId)
         .maybeSingle();
 
       if (!app) return res.status(404).json({ success: false, error: 'Application not found' });
       if (app.status !== 'pending') return res.status(400).json({ success: false, error: `Application is already ${app.status}` });
+
+      if (!(await canAdminUnion(user.id, app.union_id))) {
+        return res.status(403).json({ success: false, error: 'Union lead or platform admin access required' });
+      }
 
       await supabaseAdmin
         .from('union_applications')

@@ -135,6 +135,22 @@ export default function UnionDashboard() {
     // Add-club commission rate (required before adding)
     const [addClubCommission, setAddClubCommission] = useState('90');
 
+    // Union applications review state
+    const [pendingApps, setPendingApps] = useState(null);
+    const [appsLoading, setAppsLoading] = useState(false);
+    const [appCommRate, setAppCommRate] = useState({}); // keyed by app.id
+    const [appProcessing, setAppProcessing] = useState({});
+
+    // Leave requests review state  
+    const [leaveRequests, setLeaveRequests] = useState(null);
+    const [leaveLoading, setLeaveLoading] = useState(false);
+    const [leaveProcessing, setLeaveProcessing] = useState({});
+
+    // Announcement broadcast state
+    const [announceText, setAnnounceText] = useState('');
+    const [announceClub, setAnnounceClub] = useState('all');
+    const [announceProcessing, setAnnounceProcessing] = useState(false);
+
     const showToast = (msg, type = 'info') => {
         setToast({ msg, type });
         setTimeout(() => setToast(null), 3500);
@@ -373,6 +389,46 @@ export default function UnionDashboard() {
         finally { setCommHistoryLoading(false); }
     };
 
+    // Load pending union applications (lazy — only when manage_clubs tab opened)
+    const loadPendingApps = async () => {
+        if (!unionIdParam || appsLoading) return;
+        setAppsLoading(true);
+        try {
+            const d = await apiCall('/api/club-arena/union-application', { action: 'list', unionId: unionIdParam, statusFilter: 'pending' });
+            setPendingApps(d.applications || []);
+        } catch (e) { showToast(e.message || 'Failed to load applications', 'error'); }
+        finally { setAppsLoading(false); }
+    };
+
+    // Load pending leave requests (lazy)
+    const loadLeaveRequests = async () => {
+        if (!unionIdParam || leaveLoading) return;
+        setLeaveLoading(true);
+        try {
+            const d = await apiCall('/api/club-arena/manage-union', { action: 'list_leave', unionId: unionIdParam });
+            setLeaveRequests(d.leaveRequests || []);
+        } catch (e) { showToast(e.message || 'Failed to load leave requests', 'error'); }
+        finally { setLeaveLoading(false); }
+    };
+
+    // Send union-wide announcement to all clubs or a specific club
+    const sendAnnouncement = async () => {
+        if (!announceText.trim()) { showToast('Enter announcement text', 'error'); return; }
+        setAnnounceProcessing(true);
+        try {
+            const payload = {
+                action: 'union_announcement',
+                unionId: unionIdParam,
+                message: announceText.trim(),
+            };
+            if (announceClub !== 'all') payload.clubId = announceClub;
+            await apiCall('/api/club-arena/manage-union', payload);
+            showToast('Announcement sent to ' + (announceClub === 'all' ? 'all clubs' : clubs.find(c => c.id === announceClub)?.name || announceClub));
+            setAnnounceText('');
+        } catch (e) { showToast(e.message || 'Announcement failed', 'error'); }
+        finally { setAnnounceProcessing(false); }
+    };
+
     // Mint chips
     const handleMint = async () => {
         if (!mintClubId || !mintAmount || parseInt(mintAmount) <= 0) {
@@ -580,7 +636,7 @@ export default function UnionDashboard() {
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: 4, marginBottom: 20, overflowX: 'auto', paddingBottom: 4 }}>
                     {TABS.map(tab => (
-                        <button key={tab.id} onClick={() => { setActiveTab(tab.id); if (tab.id === 'wallets') loadWallets(); if (tab.id === 'commissions') loadCommHistory(); }}
+                        <button key={tab.id} onClick={() => { setActiveTab(tab.id); if (tab.id === 'wallets') loadWallets(); if (tab.id === 'commissions') loadCommHistory(); if (tab.id === 'manage_clubs') { loadPendingApps(); loadLeaveRequests(); } }}
                             style={{
                                 background: activeTab === tab.id ? FB.primary : FB.cardBg,
                                 color: activeTab === tab.id ? '#fff' : FB.textSecondary,
@@ -597,7 +653,7 @@ export default function UnionDashboard() {
                 {activeTab === 'overview' && (
                     <div>
                         {/* Pending applications / leave alerts */}
-                        {(dashboard.pendingApplications > 0 || dashboard.pendingLeaveRequests > 0 || dashboard.pendingCashoutCount > 0) && (
+                        {(dashboard.pendingApplications > 0 || dashboard.pendingLeaveRequests > 0) && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
                                 {dashboard.pendingApplications > 0 && (
                                     <div style={{ background: 'rgba(35,116,225,0.1)', borderRadius: 8, padding: '10px 16px', border: '1px solid rgba(35,116,225,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -613,14 +669,6 @@ export default function UnionDashboard() {
                                             {dashboard.pendingLeaveRequests} club{dashboard.pendingLeaveRequests !== 1 ? 's' : ''} requesting to leave this union
                                         </span>
                                         <button onClick={() => setActiveTab('manage_clubs')} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Review</button>
-                                    </div>
-                                )}
-                                {dashboard.pendingCashoutCount > 0 && (
-                                    <div style={{ background: 'rgba(247,197,42,0.08)', borderRadius: 8, padding: '10px 16px', border: '1px solid rgba(247,197,42,0.25)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: 13, color: FB.gold, fontWeight: 600 }}>
-                                            {dashboard.pendingCashoutCount} pending cashout{dashboard.pendingCashoutCount !== 1 ? 's' : ''} — {(dashboard.pendingCashoutTotal || 0).toLocaleString()} chips total
-                                        </span>
-                                        <button onClick={() => setActiveTab('clubs')} style={{ background: FB.gold, color: '#000', border: 'none', borderRadius: 6, padding: '4px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>View Clubs</button>
                                     </div>
                                 )}
                             </div>
@@ -670,19 +718,14 @@ export default function UnionDashboard() {
                             </div>
                         )}
 
-                        {/* BBJ Summary — shown if any balance > 0 */}
-                        {(union?.main_bbj_balance > 0 || union?.backup_bbj_balance > 0 || union?.promo_fund_balance > 0) && (
+                        {/* BBJ Summary — shown if BBJ wallet has balance */}
+                        {(dashboard?.wallets?.bbj_wallet > 0) && (
                             <div style={{ background: 'rgba(255,215,0,0.06)', borderRadius: 12, padding: 16, marginBottom: 20, border: '1px solid rgba(255,215,0,0.15)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#FFD700' }}>Bad Beat Jackpot</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#FFD700' }}>Bad Beat Jackpot Pool</span>
                                     <span style={{ fontSize: 18, fontWeight: 900, color: '#FFD700' }}>
-                                        {((union.main_bbj_balance || 0) + (union.backup_bbj_balance || 0) + (union.promo_fund_balance || 0)).toLocaleString()}
+                                        {(dashboard.wallets.bbj_wallet || 0).toLocaleString()}
                                     </span>
-                                </div>
-                                <div style={{ display: 'flex', gap: 20, fontSize: 12 }}>
-                                    <span style={{ color: '#FFD700' }}>Main: {(union.main_bbj_balance || 0).toLocaleString()}</span>
-                                    <span style={{ color: '#C0C0C0' }}>Backup: {(union.backup_bbj_balance || 0).toLocaleString()}</span>
-                                    <span style={{ color: '#4BB543' }}>Promo: {(union.promo_fund_balance || 0).toLocaleString()}</span>
                                 </div>
                             </div>
                         )}
@@ -697,7 +740,7 @@ export default function UnionDashboard() {
                                 { label: 'Settlement', tab: 'settlement', color: FB.purple },
                                 ...(isLead ? [{ label: 'Add Club', tab: 'manage_clubs', color: FB.success }] : []),
                             ].map(q => (
-                                <button key={q.tab} onClick={() => { setActiveTab(q.tab); if (q.tab === 'wallets') loadWallets(); if (q.tab === 'commissions') loadCommHistory(); }} style={{
+                                <button key={q.tab} onClick={() => { setActiveTab(q.tab); if (q.tab === 'wallets') loadWallets(); if (q.tab === 'commissions') loadCommHistory(); if (q.tab === 'manage_clubs') { loadPendingApps(); loadLeaveRequests(); } }} style={{
                                     background: q.color, color: q.color === FB.gold ? '#000' : '#fff',
                                     border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700,
                                     fontSize: 13, cursor: 'pointer', flex: '1 1 120px',
@@ -1393,10 +1436,168 @@ export default function UnionDashboard() {
                                 </div>
                             </div>
                         ))}
+
+                        {/* ── Pending Join Applications ── */}
+                        <div style={{ marginTop: 20 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, margin: 0 }}>
+                                    Join Applications
+                                    {dashboard.pendingApplications > 0 && (
+                                        <span style={{ marginLeft: 8, background: FB.primary, color: '#fff', borderRadius: 12, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                                            {dashboard.pendingApplications}
+                                        </span>
+                                    )}
+                                </h3>
+                                <button onClick={loadPendingApps} disabled={appsLoading} style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer' }}>
+                                    {appsLoading ? 'Loading...' : 'Refresh'}
+                                </button>
+                            </div>
+                            {pendingApps === null ? (
+                                <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+                                    {appsLoading ? 'Loading applications...' : 'Click Refresh to load pending applications.'}
+                                </div>
+                            ) : pendingApps.length === 0 ? (
+                                <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No pending applications.</div>
+                            ) : pendingApps.map(app => (
+                                <div key={app.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: '1px solid rgba(35,116,225,0.25)', marginBottom: 8 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                                        <div>
+                                            <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{app.club_name || app.club_id}</div>
+                                            <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                                {app.member_count || 0} members · Applied {new Date(app.applied_at).toLocaleDateString()}
+                                            </div>
+                                            {app.message && <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 4, fontStyle: 'italic' }}>"{app.message}"</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                            <input
+                                                type="number" min="1" max="99" placeholder="90"
+                                                value={appCommRate[app.id] ?? '90'}
+                                                onChange={e => setAppCommRate(prev => ({ ...prev, [app.id]: e.target.value }))}
+                                                style={{ width: 54, background: FB.background, color: FB.gold, border: `1px solid ${FB.gold}`, borderRadius: 6, padding: '4px 6px', fontSize: 12, textAlign: 'center' }}
+                                            />
+                                            <span style={{ fontSize: 11, color: FB.gold }}>%</span>
+                                            <button disabled={appProcessing[app.id]} onClick={async () => {
+                                                const rate = parseFloat(appCommRate[app.id] || '90');
+                                                if (isNaN(rate) || rate < 1 || rate > 99) { showToast('Commission must be 1–99%', 'error'); return; }
+                                                setAppProcessing(prev => ({ ...prev, [app.id]: 'approve' }));
+                                                try {
+                                                    const r = await apiCall('/api/club-arena/union-application', { action: 'approve', applicationId: app.id, commissionRate: rate / 100, unionId: unionIdParam });
+                                                    showToast(r.message || `${app.club_name} approved`);
+                                                    setPendingApps(prev => prev.filter(a => a.id !== app.id));
+                                                    loadDashboard();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setAppProcessing(prev => ({ ...prev, [app.id]: null })); }
+                                            }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: appProcessing[app.id] ? 0.6 : 1 }}>
+                                                {appProcessing[app.id] === 'approve' ? '...' : 'Approve'}
+                                            </button>
+                                            <button disabled={appProcessing[app.id]} onClick={async () => {
+                                                setAppProcessing(prev => ({ ...prev, [app.id]: 'reject' }));
+                                                try {
+                                                    await apiCall('/api/club-arena/union-application', { action: 'reject', applicationId: app.id, unionId: unionIdParam });
+                                                    showToast(`${app.club_name} rejected`);
+                                                    setPendingApps(prev => prev.filter(a => a.id !== app.id));
+                                                    loadDashboard();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setAppProcessing(prev => ({ ...prev, [app.id]: null })); }
+                                            }} style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: appProcessing[app.id] ? 0.6 : 1 }}>
+                                                {appProcessing[app.id] === 'reject' ? '...' : 'Reject'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* ── Leave Requests ── */}
+                        {dashboard.pendingLeaveRequests > 0 && (
+                            <div style={{ marginTop: 20 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                    <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.danger, margin: 0 }}>
+                                        Leave Requests
+                                        <span style={{ marginLeft: 8, background: FB.danger, color: '#fff', borderRadius: 12, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                                            {dashboard.pendingLeaveRequests}
+                                        </span>
+                                    </h3>
+                                    <button onClick={loadLeaveRequests} disabled={leaveLoading} style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer' }}>
+                                        {leaveLoading ? 'Loading...' : 'Refresh'}
+                                    </button>
+                                </div>
+                                {leaveRequests === null ? (
+                                    <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>
+                                        {leaveLoading ? 'Loading...' : 'Click Refresh to load leave requests.'}
+                                    </div>
+                                ) : leaveRequests.length === 0 ? (
+                                    <div style={{ color: FB.textSecondary, fontSize: 13, textAlign: 'center', padding: '16px 0' }}>No pending leave requests.</div>
+                                ) : leaveRequests.map(req => (
+                                    <div key={req.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: '1px solid rgba(250,56,62,0.25)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>{req.club_name || req.club_id}</div>
+                                            <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                                Requested {new Date(req.requested_at || req.created_at).toLocaleDateString()}
+                                                {req.reason && ` · "${req.reason}"`}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            <button disabled={leaveProcessing[req.id]} onClick={async () => {
+                                                setLeaveProcessing(prev => ({ ...prev, [req.id]: 'approve' }));
+                                                try {
+                                                    await apiCall('/api/club-arena/manage-union', { action: 'approve_leave', leaveRequestId: req.id, unionId: unionIdParam });
+                                                    showToast(`${req.club_name} approved to leave`);
+                                                    setLeaveRequests(prev => prev.filter(r => r.id !== req.id));
+                                                    loadDashboard();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setLeaveProcessing(prev => ({ ...prev, [req.id]: null })); }
+                                            }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: leaveProcessing[req.id] ? 0.6 : 1 }}>
+                                                {leaveProcessing[req.id] === 'approve' ? '...' : 'Approve'}
+                                            </button>
+                                            <button disabled={leaveProcessing[req.id]} onClick={async () => {
+                                                setLeaveProcessing(prev => ({ ...prev, [req.id]: 'deny' }));
+                                                try {
+                                                    await apiCall('/api/club-arena/manage-union', { action: 'deny_leave', leaveRequestId: req.id, unionId: unionIdParam });
+                                                    showToast(`${req.club_name} leave request denied`);
+                                                    setLeaveRequests(prev => prev.filter(r => r.id !== req.id));
+                                                    loadDashboard();
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                                finally { setLeaveProcessing(prev => ({ ...prev, [req.id]: null })); }
+                                            }} style={{ background: 'transparent', color: FB.danger, border: `1px solid ${FB.danger}`, borderRadius: 6, padding: '5px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: leaveProcessing[req.id] ? 0.6 : 1 }}>
+                                                {leaveProcessing[req.id] === 'deny' ? '...' : 'Deny'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* ── Union Announcement Broadcast ── */}
+                        {isLead && (
+                            <div style={{ marginTop: 20, background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}` }}>
+                                <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.textPrimary, marginBottom: 6 }}>Broadcast Announcement</h3>
+                                <p style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 12 }}>
+                                    Post a message to all members across union clubs, or target a specific club.
+                                </p>
+                                <select value={announceClub} onChange={e => setAnnounceClub(e.target.value)}
+                                    style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 8 }}>
+                                    <option value="all">All clubs in union</option>
+                                    {clubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                                <textarea
+                                    value={announceText}
+                                    onChange={e => { if (e.target.value.length <= 500) setAnnounceText(e.target.value); }}
+                                    placeholder="Announcement message..."
+                                    rows={3}
+                                    style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px 12px', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                                    <span style={{ fontSize: 11, color: announceText.length > 450 ? FB.orange : FB.textSecondary }}>{announceText.length}/500</span>
+                                    <button onClick={sendAnnouncement} disabled={announceProcessing || !announceText.trim()}
+                                        style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (announceProcessing || !announceText.trim()) ? 0.5 : 1 }}>
+                                        {announceProcessing ? 'Sending...' : 'Send'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
-
-                {/* ═══ ADMINS TAB ═══ */}
                 {activeTab === 'admins' && (
                     <div>
                         {isLead && (
@@ -1697,12 +1898,11 @@ export default function UnionDashboard() {
                     <div style={{ background: FB.cardBg, borderRadius: 12, padding: 20, border: `1px solid ${FB.border}` }}>
                         <h3 style={{ fontSize: 18, fontWeight: 700, color: FB.textPrimary, marginBottom: 16 }}>Bad Beat Jackpot</h3>
 
-                        {/* Pool Balances — from union data directly */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
+                        {/* Pool Balance — from wallets system */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
                             {[
-                                { label: 'Main BBJ', value: union?.main_bbj_balance || 0, color: '#FFD700' },
-                                { label: 'Backup BBJ', value: union?.backup_bbj_balance || 0, color: '#C0C0C0' },
-                                { label: 'Promo Fund', value: union?.promo_fund_balance || 0, color: '#4BB543' },
+                                { label: 'BBJ Wallet', value: dashboard?.wallets?.bbj_wallet || 0, color: '#FFD700' },
+                                { label: 'Promo Wallet', value: dashboard?.wallets?.promo_wallet || 0, color: '#4BB543' },
                             ].map(p => (
                                 <div key={p.label} style={{ background: FB.background, borderRadius: 10, padding: 14, textAlign: 'center', border: `1px solid ${FB.border}` }}>
                                     <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 4 }}>{p.label}</div>
@@ -1715,7 +1915,7 @@ export default function UnionDashboard() {
                         <div style={{ background: 'rgba(255,215,0,0.06)', borderRadius: 10, padding: 14, marginBottom: 16, textAlign: 'center', border: '1px solid rgba(255,215,0,0.2)' }}>
                             <div style={{ fontSize: 12, color: '#FFD700', marginBottom: 2 }}>TOTAL BBJ POOL</div>
                             <div style={{ fontSize: 28, fontWeight: 900, color: '#FFD700' }}>
-                                {((union?.main_bbj_balance || 0) + (union?.backup_bbj_balance || 0) + (union?.promo_fund_balance || 0)).toLocaleString()}
+                                {((dashboard?.wallets?.bbj_wallet || 0) + (dashboard?.wallets?.promo_wallet || 0)).toLocaleString()}
                             </div>
                         </div>
 
