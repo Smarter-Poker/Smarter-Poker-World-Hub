@@ -33,7 +33,7 @@ const ALL_CARD_ITEMS = [
   { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.jpg' },
 ];
 
-// ─── Card Item — Playing card shaped frame (portrait 3:4 ratio) ───
+// ─── Card Item — Standalone icon, no frame, transparent background ───
 function CardItem({ card, isActive, badge, onSelect }) {
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
@@ -57,27 +57,21 @@ function CardItem({ card, isActive, badge, onSelect }) {
         cursor: 'pointer',
         padding: 0,
         WebkitTapHighlightColor: 'transparent',
-        transform: active ? 'scale(1.05)' : 'scale(1)',
-        transition: 'transform 0.25s ease',
+        transform: active ? 'scale(1.08)' : 'scale(1)',
+        filter: active ? `drop-shadow(0 0 10px ${card.color}60)` : 'none',
+        transition: 'transform 0.25s ease, filter 0.25s ease',
       }}
     >
-      {/* Playing card frame — 3:4 aspect ratio */}
+      {/* Icon — standalone, no frame, no background */}
       <div
         className="lobby-card-frame"
         style={{
           width: '100%',
-          aspectRatio: '3 / 4',
-          borderRadius: 10,
-          background: '#0a0e16',
-          border: `1.5px solid ${active ? card.color : `${card.color}40`}`,
-          boxShadow: active
-            ? `0 0 16px ${card.color}50, 0 4px 20px rgba(0,0,0,0.6)`
-            : `0 2px 12px rgba(0,0,0,0.5), 0 0 6px ${card.color}15`,
-          overflow: 'hidden',
-          transition: 'all 0.3s ease',
+          aspectRatio: '1 / 1',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'visible',
         }}
       >
         {!imgError ? (
@@ -90,24 +84,17 @@ function CardItem({ card, isActive, badge, onSelect }) {
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
-              backgroundColor: '#0a0e16',
+              objectFit: 'contain',
               opacity: imgLoaded ? 1 : 0,
               transition: 'opacity 0.4s ease-in',
             }}
           />
         ) : (
-          <div style={{
-            width: '100%', height: '100%',
-            background: 'linear-gradient(135deg, #0a0e16, #111827)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{ color: `${card.color}60`, fontSize: 24 }}>?</span>
-          </div>
+          <span style={{ color: `${card.color}60`, fontSize: 24 }}>?</span>
         )}
       </div>
 
-      {/* Label below card */}
+      {/* Label below icon */}
       <span
         className="lobby-card-label"
         style={{
@@ -123,7 +110,7 @@ function CardItem({ card, isActive, badge, onSelect }) {
             : '0 1px 3px rgba(0,0,0,0.8)',
           transition: 'color 0.25s',
           lineHeight: 1.2,
-          marginTop: 3,
+          marginTop: 4,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
