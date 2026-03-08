@@ -922,41 +922,6 @@ export const MENU_CONFIGS = {
             { label: 'Home', href: '/hub', icon: MenuIcons.home }
         ]
     }),
-            createMenuItem.toggle(
-                'Sound Effects',
-                state.soundEffects !== false,
-                handlers.setSoundEffects
-            ),
-            createMenuItem.toggle(
-                'Notifications',
-                state.notifications !== false,
-                handlers.setNotifications
-            ),
-            createMenuItem.toggle(
-                'Auto-Rebuy',
-                state.autoRebuy || false,
-                handlers.setAutoRebuy
-            ),
-            createMenuItem.toggle(
-                'Show Table Previews',
-                state.tablePreview !== false,
-                handlers.setTablePreview,
-                'See table cards before joining'
-            ),
-            createMenuItem.toggle(
-                'Compact View',
-                state.compactView || false,
-                handlers.setCompactView
-            ),
-            createMenuItem.divider(),
-            createMenuItem.navigation('Table Preferences', '/hub/settings?section=table'),
-            createMenuItem.navigation('Privacy Settings', '/hub/settings?section=privacy')
-        ],
-        bottomLinks: [
-            { label: 'Help & Rules', href: '/hub/help', icon: MenuIcons.help },
-            { label: 'Home', href: '/hub', icon: MenuIcons.home }
-        ]
-    }),
 
     'lives': (user, state, handlers) => ({
         menuItems: [
