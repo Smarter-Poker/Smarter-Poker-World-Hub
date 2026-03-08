@@ -21,6 +21,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 
 const BOARD_TYPES = [
     { value: 'custom', label: 'Custom Points', icon: '', desc: 'Manually assign points to players' },
@@ -41,7 +42,8 @@ const PERIOD_TYPES = [
 ];
 
 export default function LeaderboardBuilder() {
-  useEffect(() => { busEmit.sessionStart('commander-leaderboard-builder'); }, []);
+    useEffect(() => { busEmit.sessionStart('commander-leaderboard-builder'); }, []);
+    const { broadcastChange } = useCommanderSync({ entities: ['leaderboards'] });
     const [boards, setBoards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState(null);
@@ -140,6 +142,7 @@ export default function LeaderboardBuilder() {
                 setShowCreate(false);
                 setNewBoard({ name: '', description: '', leaderboard_type: 'custom', period_type: 'monthly', start_date: '', end_date: '', prizes: '', rules_description: '', status: 'active' });
                 fetchBoards();
+                broadcastChange('leaderboards');
             } else {
                 flash('error', json.error || 'Failed to create board');
             }
@@ -166,6 +169,7 @@ export default function LeaderboardBuilder() {
                 flash('success', 'Entry added!');
                 setAddEntry({ player_id: '', score: '', hours_played: '', sessions_count: '' });
                 fetchEntries(boardId);
+                broadcastChange('leaderboards');
             } else {
                 const json = await res.json();
                 flash('error', json.error || 'Failed to add entry');
@@ -186,6 +190,7 @@ export default function LeaderboardBuilder() {
             if (res.ok) {
                 flash('success', `Board ${newStatus === 'active' ? 'activated' : 'deactivated'}`);
                 fetchBoards();
+                broadcastChange('leaderboards');
             } else {
                 const json = await res.json().catch(() => ({}));
                 flash('error', json.error || `Failed to update (${res.status})`);
@@ -205,6 +210,7 @@ export default function LeaderboardBuilder() {
             const json = await res.json().catch(() => ({}));
             if (res.ok) {
                 flash('success', `Calculated ${json.entries_updated || 0} entries`);
+                broadcastChange('leaderboards');
             } else {
                 flash('error', json.error || `Calculation failed (${res.status})`);
             }

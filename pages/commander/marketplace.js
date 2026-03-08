@@ -10,6 +10,7 @@ import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { getToken } from '../../src/lib/commander/clientAuth';
 import { busEmit } from '../../src/engine/EventBus';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
@@ -315,7 +316,7 @@ function DealerCard({ dealer, onBook }) {
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-[#1877F2]/10 rounded-full flex items-center justify-center">
             {dealer.profiles?.avatar_url ? (
-              <img src={dealer.profiles.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover"  loading="lazy" />
+              <img src={dealer.profiles.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover" loading="lazy" />
             ) : (
               <Users className="w-6 h-6 text-[#1877F2]" />
             )}
@@ -431,6 +432,7 @@ function EquipmentCard({ equipment, onRent }) {
 export default function MarketplacePage() {
   useEffect(() => { busEmit.sessionStart('commander-marketplace'); }, []);
   const router = useRouter();
+  const { broadcastChange } = useCommanderSync({ entities: ['marketplace'] });
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);

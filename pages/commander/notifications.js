@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, DollarSign, AlertTriangle, MessageSquare, Star, Plus, Edit3, X, Megaphone, Send, ChevronDown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 
 const TYPE_CONFIG = {
   seat_available: { icon: Users, color: '#31A24C', label: 'Seat Available' },
@@ -53,6 +54,7 @@ const ANNOUNCEMENT_TEMPLATES = [
 
 export default function NotificationCenter() {
   useEffect(() => { busEmit.sessionStart('commander-notifications'); }, []);
+  const { broadcastChange } = useCommanderSync({ entities: ['notifications', 'announcements'] });
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notifications');
   const [notifications, setNotifications] = useState([]);
@@ -109,6 +111,7 @@ export default function NotificationCenter() {
       });
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
+      broadcastChange('notifications');
     } catch (err) { console.error(err); }
   };
 
@@ -121,6 +124,7 @@ export default function NotificationCenter() {
       });
       setNotifications(prev => prev.map(n => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
       setUnreadCount(0);
+      broadcastChange('notifications');
     } catch (err) { console.error(err); }
     finally { setMarkingAll(false); }
   };
@@ -132,6 +136,7 @@ export default function NotificationCenter() {
         headers: { Authorization: `Bearer ${getToken()}`, 'x-staff-session': getStaffSession() }
       });
       setNotifications(prev => prev.filter(n => n.id !== id));
+      broadcastChange('notifications');
     } catch (err) { console.error(err); }
   };
 
@@ -229,6 +234,7 @@ export default function NotificationCenter() {
       setShowCreateForm(false);
       setEditingAnnouncement(null);
       fetchAnnouncements();
+      broadcastChange('announcements');
     } catch (err) {
       console.error(err);
       alert(err.message || 'Failed to save');
@@ -246,6 +252,7 @@ export default function NotificationCenter() {
       const json = await res.json();
       if (json.success) {
         setAnnouncements(prev => prev.filter(a => a.id !== id));
+        broadcastChange('announcements');
       }
     } catch (err) { console.error(err); }
   };

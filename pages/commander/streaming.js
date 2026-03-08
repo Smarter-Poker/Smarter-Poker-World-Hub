@@ -10,6 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, Facebook, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 
 const PLATFORMS = [
   { id: 'youtube', label: 'YouTube', icon: Youtube, color: '#FF0000' },
@@ -263,6 +264,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
 export default function StreamingPage() {
   useEffect(() => { busEmit.sessionStart('commander-streaming'); }, []);
   const router = useRouter();
+  const { broadcastChange } = useCommanderSync({ entities: ['streaming'] });
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -329,6 +331,7 @@ export default function StreamingPage() {
         body: JSON.stringify({ venue_id: venueId })
       });
       fetchStreams();
+      broadcastChange('streaming');
     } catch (err) {
       console.error('Start stream failed:', err);
     }
@@ -344,6 +347,7 @@ export default function StreamingPage() {
         body: JSON.stringify({ venue_id: venueId })
       });
       fetchStreams();
+      broadcastChange('streaming');
     } catch (err) {
       console.error('Stop stream failed:', err);
     }
@@ -360,6 +364,7 @@ export default function StreamingPage() {
       });
       setConfiguring(null);
       fetchStreams();
+      broadcastChange('streaming');
     } catch (err) {
       console.error('Save config failed:', err);
     }
