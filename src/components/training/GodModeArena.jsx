@@ -1,5 +1,5 @@
 /**
- * 🎮 GOD MODE ARENA — GTO Wizard-Style Training UI
+ * GOD MODE ARENA — GTO Wizard-Style Training UI
  * ═══════════════════════════════════════════════════════════════════════════
  * Full-immersion training with:
  * - GTO Wizard-style action buttons + 5-tier feedback
@@ -503,7 +503,7 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
             }}
         >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 18 }}>{achieved ? '🏆' : '🎯'}</span>
+                <span style={{ fontSize: 18 }}>{achieved ? '✓' : '◎'}</span>
                 <div>
                     <div style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#a78bfa' }}>
                         {achieved ? 'Daily Challenge Complete!' : 'Daily Challenge'}
@@ -519,7 +519,7 @@ function DailyChallengeBanner({ gtowScore, targetScore = 85 }) {
                 background: achieved ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${achieved ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.1)'}`,
             }}>
-                <span style={{ fontSize: 14 }}>💎</span>
+                <span style={{ fontSize: 14, color: '#60a5fa' }}>◆</span>
                 <span style={{ fontSize: 12, fontWeight: 'bold', color: achieved ? '#22c55e' : '#94a3b8' }}>
                     {achieved ? '+25' : '25'}
                 </span>
@@ -627,8 +627,8 @@ function GodModeArena({
             const { from, to, direction } = e.detail;
             setAdaptiveToast({
                 message: direction === 'up'
-                    ? `📈 Difficulty increased! Level ${from} → ${to}`
-                    : `📉 Difficulty decreased: Level ${from} → ${to}`,
+                    ? `Difficulty increased! Level ${from} → ${to}`
+                    : `Difficulty decreased: Level ${from} → ${to}`,
                 direction,
             });
             setTimeout(() => setAdaptiveToast(null), 3000);
@@ -885,7 +885,7 @@ function GodModeArena({
                         display: 'flex', gap: 0, marginBottom: 16, borderRadius: 8, overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.08)',
                     }}>
-                        {[{ id: 'overview', label: '📊 Overview' }, { id: 'hands', label: '🂱 Hands' }, { id: 'analysis', label: '🔬 Analysis' }].map(tab => (
+                        {[{ id: 'overview', label: 'Overview' }, { id: 'hands', label: 'Hands' }, { id: 'analysis', label: 'Analysis' }].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setReviewTab(tab.id)}
@@ -1219,7 +1219,7 @@ function GodModeArena({
                                 transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
                                 style={styles.splashContent}
                             >
-                                <div style={styles.splashIcon}>🎯</div>
+                                <div style={styles.splashIcon}>◎</div>
                                 <div style={styles.splashTitle}>{gameName || 'GTO Training'}</div>
                                 <div style={styles.splashSubtitle}>Level {currentLevel}</div>
                                 <motion.div
@@ -1324,6 +1324,7 @@ function GodModeArena({
                                     onNextHand={handleNextQuestion}
                                     isMultiStreetActive={isMultiStreetActive}
                                     currentStreet={currentStreet}
+                                    onExit={onExit}
                                 />
                             ) : null}
                         </motion.div>
@@ -1349,7 +1350,7 @@ function GodModeArena({
             <div style={styles.questionContainer}>
                 {error ? (
                     <div style={styles.errorState}>
-                        <p style={{ color: '#ef4444', fontSize: 18 }}>⚠️ {error}</p>
+                        <p style={{ color: '#ef4444', fontSize: 18 }}>{error}</p>
                         <button onClick={() => window.location.reload()} style={styles.retryButton}>
                             Retry
                         </button>
@@ -1376,6 +1377,7 @@ function GodModeArena({
                         onNextHand={nextQuestion}
                         isMultiStreetActive={isMultiStreetActive}
                         currentStreet={currentStreet}
+                        onExit={onExit}
                     />
                 ) : null}
             </div>
@@ -1396,7 +1398,7 @@ function GodModeArena({
                 <div style={styles.footerStat}>
                     <span style={{ color: '#94a3b8' }}>Streak:</span>
                     <span style={{ color: '#f97316', fontWeight: 'bold', marginLeft: 6 }}>
-                        {streak} 🔥
+                        {streak}
                     </span>
                 </div>
             </div>

@@ -27,7 +27,7 @@ export default function SmartPracticeCard({ handHistory, onStartPractice }) {
             style={styles.card}
         >
             <div style={styles.header}>
-                <span style={styles.icon}>🎯</span>
+                <span style={styles.icon}>◎</span>
                 <span style={styles.title}>Smart Practice</span>
             </div>
 

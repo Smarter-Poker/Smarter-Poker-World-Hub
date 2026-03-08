@@ -181,8 +181,12 @@ function getResultsSummary(results) {
 const SUIT_MAP = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
 const RANK_MAP = { 'A': 'a', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', 'T': '10', 'J': 'j', 'Q': 'q', 'K': 'k' };
 
-function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
+function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose, mode, pickProgress }) {
   if (!isOpen) return null;
+  const isHeroMode = mode === 'hero';
+  const headerText = isHeroMode
+    ? `Pick Card ${pickProgress || 1} of 2`
+    : mode === 'board' ? 'Select Board Card' : 'Select a Card';
   return (
     <>
       {/* Backdrop — tap to close */}
@@ -202,7 +206,16 @@ function VisualDeckPicker({ onSelect, usedCards = [], isOpen, onClose }) {
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#4E4F50' }} />
         </div>
-        <div style={{ fontSize: '11px', color: '#B0B3B8', textAlign: 'center', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Select a Card</div>
+        {/* Progress indicator for dual-card mode */}
+        <div style={{ textAlign: 'center', marginBottom: '8px' }}>
+          <div style={{ fontSize: '12px', color: isHeroMode ? '#4599FF' : '#B0B3B8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{headerText}</div>
+          {isHeroMode && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 4 }}>
+              <div style={{ width: 20, height: 3, borderRadius: 2, background: pickProgress >= 1 ? '#4599FF' : '#3A3B3C' }} />
+              <div style={{ width: 20, height: 3, borderRadius: 2, background: pickProgress >= 2 ? '#4599FF' : '#3A3B3C' }} />
+            </div>
+          )}
+        </div>
         {SUITS.map(suit => (
           <div key={suit.code} style={{ display: 'flex', gap: '3px', marginBottom: '3px', justifyContent: 'center' }}>
             {RANKS.map(rank => {
@@ -657,9 +670,25 @@ export default function VirtualSandbox() {
     setPotSize(Math.round(pot * 10) / 10);
   }, [actionHistory, heroStack]);
 
-  // Deck card selection handler — keeps deck open for multi-card flop selection (#6)
+  // Dual-card hero picker progress
+  const [heroPickStep, setHeroPickStep] = useState(0); // 0=not picking, 1=picking card1, 2=picking card2
+  // Range chart toggle
+  const [showRangeChart, setShowRangeChart] = useState(false);
+
+  // Deck card selection handler — dual-card hero mode + multi-card flop
   const handleDeckSelect = (card) => {
-    if (deckTarget === 'hero1') {
+    if (deckTarget === 'hero') {
+      // Dual-card picker: pick both cards in sequence
+      if (!heroHand.card1 || heroPickStep === 1) {
+        setHeroHand(h => ({ ...h, card1: card }));
+        setHeroPickStep(2); // advance to card 2
+      } else {
+        setHeroHand(h => ({ ...h, card2: card }));
+        setHeroPickStep(0);
+        setShowDeck(false);
+        setDeckTarget(null);
+      }
+    } else if (deckTarget === 'hero1') {
       setHeroHand(h => ({ ...h, card1: card }));
       setShowDeck(false);
       setDeckTarget(null);
@@ -688,6 +717,17 @@ export default function VirtualSandbox() {
         return prev;
       });
     }
+  };
+
+  // Table tap handlers
+  const openHeroPicker = () => {
+    setDeckTarget('hero');
+    setHeroPickStep(heroHand.card1 ? 2 : 1);
+    setShowDeck(true);
+  };
+  const openBoardPicker = () => {
+    setDeckTarget('board');
+    setShowDeck(true);
   };
 
   // Random board (Feature #8) — exclude only hero cards, not current board
@@ -910,15 +950,15 @@ export default function VirtualSandbox() {
         isAnalyzing={isAnalyzing}
       />
 
-      {/* MAIN LAYOUT — Mobile-first responsive */}
-      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+      {/* MAIN LAYOUT — Mobile-first single-screen */}
+      <div className="sandbox-main-layout" style={{ maxWidth: 1400, margin: '0 auto', padding: '8px 12px', display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
         {/* LEFT — Setup + Table */}
         <div>
           {/* Weekly Spot Challenge -- Phase 4 */}
           <WeeklySpotBanner spot={weeklySpot} onLoad={loadWeeklySpot} />
 
-          {/* Visual Poker Table */}
-          <div className="sandbox-table-wrap" style={{ marginBottom: '16px' }}>
+          {/* Visual Poker Table — Vertical Mobile-First */}
+          <div className="sandbox-table-wrap" style={{ marginBottom: '8px' }}>
             <SandboxPokerTable
               heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
               communityCards={communityCards}
@@ -927,20 +967,186 @@ export default function VirtualSandbox() {
               heroStack={heroStack}
               villains={villains}
               street={currentStreet}
+              boardTexture={boardTexture}
+              equity={equity?.heroEquity}
+              onTapHeroCards={openHeroPicker}
+              onTapBoard={openBoardPicker}
             />
           </div>
-          {/* Equity Gauge — Phase 1 */}
-          <EquityGauge equity={equity?.heroEquity} label={equity ? `${equity.heroEquity}% vs random hand` : null} />
 
-          {/* Board Texture HUD */}
-          <BoardTextureHUD texture={boardTexture} />
+          {/* ═══ COMPACT CONTROL STRIP — Directly under table ═══ */}
+          <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '10px', marginBottom: '8px' }}>
+            {/* Row 1: Position | Game | Stack */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: '#65676B', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Pos</label>
+                <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
+                  style={{ width: '100%', padding: '6px 4px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: '#65676B', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Game</label>
+                <select value={gameType} onChange={e => setGameType(e.target.value)}
+                  style={{ width: '100%', padding: '6px 4px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
+                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: '#65676B', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 2 }}>Stack</label>
+                <input type="text" inputMode="numeric" pattern="[0-9]*"
+                  value={heroStack}
+                  onChange={e => {
+                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
+                    setHeroStack(val === 0 ? '' : val);
+                  }}
+                  onBlur={() => setHeroStack(h => h || 100)}
+                  style={{ width: '100%', padding: '6px 4px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box', textAlign: 'center' }} />
+              </div>
+            </div>
 
-          {/* Equity Display */}
-          <EquityDisplay heroHand={heroHand} board={board} />
+            {/* Row 2: Hero Cards (tap to pick both) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Hand:</span>
+              <div onClick={openHeroPicker} style={{ display: 'flex', gap: 3, cursor: 'pointer', padding: '4px 8px', borderRadius: 6, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', minHeight: 40, alignItems: 'center' }}>
+                {heroHand.card1 ? (
+                  <CardSlot card={heroHand.card1} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card1: null })); }} />
+                ) : (
+                  <div style={{ width: 30, height: 42, borderRadius: 3, border: '1.5px dashed rgba(35,116,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#4599FF' }}>?</div>
+                )}
+                {heroHand.card2 ? (
+                  <CardSlot card={heroHand.card2} onRemove={(e) => { e?.stopPropagation(); setHeroHand(h => ({ ...h, card2: null })); }} />
+                ) : (
+                  <div style={{ width: 30, height: 42, borderRadius: 3, border: '1.5px dashed rgba(35,116,225,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#4599FF' }}>?</div>
+                )}
+                <span style={{ fontSize: 10, color: '#4599FF', fontWeight: 600, marginLeft: 4 }}>Tap to pick</span>
+              </div>
+            </div>
 
-          {/* Preflop Chart -- Phase 2 */}
+            {/* Row 3: Board Cards */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Board:</span>
+              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
+                {board.flop.length < 3 && <CardSlot label="Flop" onClick={openBoardPicker} />}
+                {board.flop.length === 3 && <div style={{ width: 1, height: 30, background: '#3A3B3C', margin: '0 2px' }} />}
+                {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={openBoardPicker} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
+                {board.turn && <CardSlot card={board.river} label="R" onClick={openBoardPicker} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
+              </div>
+              <div style={{ display: 'flex', gap: 3, marginLeft: 'auto' }}>
+                <button onClick={randomBoard} style={{ padding: '3px 6px', borderRadius: 4, fontSize: 9, background: 'rgba(35,116,225,0.12)', border: 'none', color: '#4599FF', cursor: 'pointer', fontWeight: 600 }}>Random</button>
+                {board.flop.length === 3 && !board.river && (
+                  <button onClick={dealNextStreet} style={{ padding: '3px 6px', borderRadius: 4, fontSize: 9, background: 'rgba(34,197,94,0.12)', border: 'none', color: '#86efac', cursor: 'pointer', fontWeight: 600 }}>
+                    Deal {!board.turn ? 'Turn' : 'River'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Row 4: Opponent */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Opp:</span>
+              <select value={villains[0]?.position || 'BB'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], position: e.target.value }; setVillains(u); }}
+                style={{ padding: '5px 4px', borderRadius: 6, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', flex: '0 0 60px' }}>
+                {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={villains[0]?.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
+                style={{ padding: '5px 4px', borderRadius: 6, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', flex: 1 }}>
+                {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+
+            {/* Row 5: Pot Size + Action History (compact) */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700, minWidth: 36 }}>Pot:</span>
+              <input
+                type="text" inputMode="decimal" pattern="[0-9.]*"
+                value={potSize}
+                onChange={e => {
+                  const val = parseFloat(e.target.value.replace(/[^\d.]/g, ''));
+                  skipPotCalcRef.current = true;
+                  setPotSize(isNaN(val) ? '' : val);
+                }}
+                onBlur={() => { if (!potSize && potSize !== 0) setPotSize(1.5); }}
+                style={{ width: 60, padding: '5px 6px', borderRadius: 6, fontSize: 12, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', textAlign: 'center', fontFamily: "'Orbitron',monospace", boxSizing: 'border-box' }}
+              />
+              <span style={{ color: '#65676B', fontSize: 10, fontWeight: 700 }}>BB</span>
+              <div style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
+                {[3, 6, 10, 20, 50].map(p => (
+                  <button key={p} onClick={() => { skipPotCalcRef.current = true; setPotSize(p); }}
+                    style={{
+                      padding: '3px 6px', borderRadius: 4, fontSize: 9, fontWeight: 600,
+                      background: potSize === p ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
+                      border: `1px solid ${potSize === p ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
+                      color: potSize === p ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
+                    }}>{p}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Action History inline */}
+            <div id="action-history">
+              <ActionHistoryBuilder actions={actionHistory}
+                onAdd={a => setActionHistory([...actionHistory, a])}
+                onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
+                potSize={potSize} />
+            </div>
+          </div>
+
+          {/* ⚡ ANALYZE HAND — directly under control strip */}
+          <div id="run-analysis">
+            <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
+              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
+                cursor: isAnalyzing ? 'wait' : 'pointer',
+                background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
+                color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
+                fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
+                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
+                marginBottom: 8,
+              }}>
+              {isAnalyzing ? 'Running Analysis...' : '⚡ Analyze Hand'}
+            </motion.button>
+            {isAnalyzing && <AnalysisSkeleton />}
+          </div>
+
+          {/* Quick Scenario Presets (only when empty) */}
+          {!heroHand.card1 && board.flop.length === 0 && (
+            <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '10px', marginBottom: '8px' }}>
+              <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Quick Start</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
+                {QUICK_PRESETS.map((preset, i) => (
+                  <button key={i} onClick={() => {
+                    setHeroHand(preset.hand); setHeroPosition(preset.position);
+                    setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
+                    setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
+                  }} style={{ padding: '6px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left' }}>
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preflop Range Chart — behind toggle */}
           {currentStreet === 'preflop' && (
-            <PreflopChartOverlay position={heroPosition} scenario={preflopScenario} rangeGrid={rangeGrid} rangePercent={rangePercent} onChangeScenario={setPreflopScenario} />
+            <div style={{ marginBottom: 8 }}>
+              <button onClick={() => setShowRangeChart(!showRangeChart)} style={{
+                width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                background: showRangeChart ? 'rgba(35,116,225,0.15)' : '#3A3B3C',
+                border: `1px solid ${showRangeChart ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
+                color: showRangeChart ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
+                textTransform: 'uppercase', letterSpacing: 0.5,
+              }}>
+                {showRangeChart ? '▼ Hide Range Chart' : '▶ Show Range Chart'}
+              </button>
+              {showRangeChart && (
+                <div style={{ marginTop: 6 }}>
+                  <PreflopChartOverlay position={heroPosition} scenario={preflopScenario} rangeGrid={rangeGrid} rangePercent={rangePercent} onChangeScenario={setPreflopScenario} />
+                </div>
+              )}
+            </div>
           )}
 
           {/* Runout Simulator -- Phase 2 */}
