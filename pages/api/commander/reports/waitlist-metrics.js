@@ -5,6 +5,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { getServerUser } from '../../../../src/lib/serverAuth';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,6 +25,8 @@ function getDateRange(range) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   try {

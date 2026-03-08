@@ -6,6 +6,7 @@
 import { createClient } from '../../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../../src/lib/commander/errorMonitoring';
 import { guardWriteStaff } from '../../../../../src/lib/commander/auth';
+import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,6 +14,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   // Auth guard: require staff auth for write operations
   const _authResult = await guardWriteStaff(req, res);
   if (!_authResult) return;

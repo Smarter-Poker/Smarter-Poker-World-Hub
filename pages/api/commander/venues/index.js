@@ -4,6 +4,7 @@
  * Reference: API_REFERENCE.md - Venues section
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
+import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -25,6 +26,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 export default async function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
   if (req.method !== 'GET') {
     return res.status(405).json({
       success: false,

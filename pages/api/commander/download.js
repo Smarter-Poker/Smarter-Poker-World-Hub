@@ -1,4 +1,5 @@
 // API route to serve Club Commander desktop downloads
+import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 // Redirects to GitHub release assets so users download from smarter.poker
 
 const GITHUB_BASE = 'https://github.com/Smarter-Poker/club-commander-desktop/releases/download';
@@ -18,6 +19,8 @@ const DOWNLOADS = {
 };
 
 export default function handler(req, res) {
+  if (!applyRateLimit(req, res, LIMITS.read)) return;
+
     const { platform } = req.query;
 
     if (!platform || !DOWNLOADS[platform]) {
