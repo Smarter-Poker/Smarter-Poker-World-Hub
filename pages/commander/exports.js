@@ -10,6 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Download, FileText, Loader2, RefreshCw, Clock, Users, Trophy, BarChart3, Gift, Shield, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 
 const EXPORT_TYPES = [
   { value: 'players', label: 'Player Data', icon: Users, desc: 'Member profiles, stats, visit history', color: '#1877F2' },
@@ -30,6 +31,7 @@ const STATUS_STYLES = {
 export default function ExportsHub() {
   useEffect(() => { busEmit.sessionStart('commander-exports'); }, []);
   const router = useRouter();
+  const { broadcastChange } = useCommanderSync({ entities: ['exports'] });
   const [exports, setExports] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +88,7 @@ export default function ExportsHub() {
         setMessage({ type: 'success', text: 'Export Created!' });
         setShowOptions(null);
         fetchData();
+        broadcastChange('exports');
       } else {
         setMessage({ type: 'error', text: json.error || 'Export failed' });
       }

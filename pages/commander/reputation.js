@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Star, Loader2, ChevronDown, ChevronUp, Plus, X, Send } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import useCommanderSync from '../../src/lib/commander/useCommanderSync';
 
 const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },
@@ -20,6 +21,7 @@ const RATING_LABELS = {
 export default function PlayerReputation() {
   useEffect(() => { busEmit.sessionStart('commander-reputation'); }, []);
   const router = useRouter();
+  const { broadcastChange } = useCommanderSync({ entities: ['reputation'] });
   const [staff, setStaff] = useState(null);
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,8 @@ export default function PlayerReputation() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
@@ -44,13 +47,14 @@ export default function PlayerReputation() {
     return () => _c.abort();
   }, []);
 
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     if (staff?.venue_id) fetchScores();
     return () => _c.abort();
   }, [staff]);
 
-  const fetchScores = async(signal) => {
+  const fetchScores = async (signal) => {
     setLoading(true);
     try {
       const token = getToken();
@@ -107,6 +111,7 @@ export default function PlayerReputation() {
         setReviewForm({ reliability: 3, sportsmanship: 3, etiquette: 3, communication: 3, comment: '', context: 'cash_game' });
         fetchScores();
         if (expandedId) fetchReviews(expandedId);
+        broadcastChange('reputation');
       }
     } catch (err) { console.error(err); }
     finally { setSubmitting(false); }

@@ -14,6 +14,7 @@ import AuditLogViewer from '../../../src/components/commander/admin/AuditLogView
 import ExportManager from '../../../src/components/commander/admin/ExportManager';
 import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
+import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 
 // API Keys Modal
 function ApiKeysModal({ isOpen, onClose, venueId }) {
@@ -429,6 +430,7 @@ const TABS = [
 export default function AdminDashboard() {
   useEffect(() => { busEmit.sessionStart('commander-admin-index'); }, []);
   const router = useRouter();
+  const { broadcastChange } = useCommanderSync({ entities: ['admin', 'exports', 'venues'] });
   const [activeTab, setActiveTab] = useState('overview');
   const [venues, setVenues] = useState([]);
   const [summary, setSummary] = useState({});
@@ -519,6 +521,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.export) {
         setExports([data.export, ...exports]);
+        broadcastChange('exports');
       }
     } catch (err) {
       console.error('Create export error:', err);
@@ -566,7 +569,7 @@ export default function AdminDashboard() {
         description="Club Commander Admin Dashboard."
         noindex={true}
       >
-        
+
       </SEOHead>
 
       <div className="cmd-page" style={{ fontFamily: 'Inter, sans-serif' }}>
