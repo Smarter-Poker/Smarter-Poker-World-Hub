@@ -7,6 +7,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
+import { busEmit } from '../../../engine/EventBus';
 
 // ─── Auth helper (SSR-safe) ───
 function getAuthToken() {
@@ -67,6 +68,12 @@ export default function GeevesMenuWidget() {
             if (!response.ok) throw new Error('Failed');
 
             const data = await response.json();
+
+            if (data.missedQuestion) {
+                const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+                busEmit.geevesQuestionMissed(text, currentPath);
+            }
+
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 content: data.response || data.message || data.reply || data.answer || 'I had trouble with that. Try again!',
@@ -94,7 +101,7 @@ export default function GeevesMenuWidget() {
     const router = useRouter(); // Import at top required: import { useRouter } from 'next/router';
 
     const getQuickQuestions = useCallback(() => {
-        const path = (router?.asPath || typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
+        const path = (router?.asPath || (typeof window !== 'undefined' ? window.location.pathname : '') || '').toLowerCase();
 
         if (path.includes('toke-tracker')) return [
             'How do I track my downs?',
@@ -151,6 +158,12 @@ export default function GeevesMenuWidget() {
             if (!response.ok) throw new Error('Failed');
 
             const data = await response.json();
+
+            if (data.missedQuestion) {
+                const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+                busEmit.geevesQuestionMissed(text, currentPath);
+            }
+
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 content: data.response || data.message || 'I had trouble with that. Try again!',
