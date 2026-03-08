@@ -28,6 +28,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/EquityEngine';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import { parseHandHistory } from '../../../src/lib/sandbox/HandHistoryParser';
+import { getArchetypeRange, getArchetypeVPIP, getArchetypeInfo, ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRanges';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import RangeHeatGrid from '../../../src/components/sandbox/RangeHeatGrid';
 import useSandboxSounds from '../../../src/hooks/useSandboxSounds';
@@ -38,6 +39,8 @@ import {
   PreflopChartOverlay, RunoutChart, ExploitToggle,
   QuizPanel, StudyReplayCard, AccuracyBadge,
   LeaderboardCard,
+  // Wave 2 additions
+  EquityGraph, SessionLogModal, CoachActionPicker, CoachVerdict, ActionReplayBar, ShareHandModal,
 } from '../../../src/components/sandbox/SandboxComponents';
 import { ExportCard } from '../../../src/components/sandbox/ExportCard';
 
@@ -56,7 +59,7 @@ const GAME_TYPES = [
   { id: 'cash', label: 'Cash Game', icon: '' },
   { id: 'tournament', label: 'Tournament', icon: '' },
 ];
-const DEFAULT_VILLAINS = [{ position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100 }];
+const DEFAULT_VILLAINS = [{ position: 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: 100, range: '' }];
 
 // ═══════════════════════════════════════════════════════════════
 // QUICK SCENARIO PRESETS (Improvement #2)
@@ -656,6 +659,49 @@ export default function VirtualSandbox() {
   const [leakStats, setLeakStats] = useState(null);
   const [showLeakStats, setShowLeakStats] = useState(false);
 
+  // ─── WAVE 2: Session Log (Feature 5) ────────────────────────────────────
+  const [sessionLog, setSessionLog] = useState([]);
+  const [showSessionLog, setShowSessionLog] = useState(false);
+
+  // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
+  const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
+  const [showCoachPicker, setShowCoachPicker] = useState(false);
+  const [coachUserPick, setCoachUserPick] = useState(null); // the action user picked
+  const [coachEvDelta, setCoachEvDelta] = useState(null);
+  const toggleCoachMode = useCallback(() => {
+    setCoachMode(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') localStorage.setItem('sandbox-coach-mode', next);
+      return next;
+    });
+  }, []);
+
+  // ─── WAVE 2: Action Replay (Feature 8) ───────────────────────────────────
+  const [replayIndex, setReplayIndex] = useState(null);
+  // Compute replayed pot when in replay mode
+  const replayedPotSize = useMemo(() => {
+    if (replayIndex == null) return potSize;
+    let pot = 1.5;
+    actionHistory.slice(0, replayIndex + 1).forEach(a => {
+      if (a.action === 'call') pot += pot * 0.5;
+      else if (a.action === 'raise') pot += pot * 1.5;
+      else if (a.action === 'allin') pot = heroStack * 2;
+      else if (a.action && a.action.startsWith('bet_')) {
+        const pct = parseInt(a.action.split('_')[1], 10);
+        if (!isNaN(pct) && pct > 0) pot += pot * (pct / 100);
+      }
+    });
+    return Math.round(pot * 10) / 10;
+  }, [replayIndex, actionHistory, heroStack]);
+  const onReplayTo = useCallback((i) => {
+    try { navigator.vibrate?.(i === null ? 20 : 10); } catch (e) { }
+    setReplayIndex(i);
+  }, []);
+
+  // ─── WAVE 2: Share Hand Modal (Feature 7) ─────────────────────────────────
+  const [showShareHand, setShowShareHand] = useState(false);
+  const exportCardRef = useRef(null);
+
   // Voice input
   const [isListening, setIsListening] = useState(false);
   const speechRef = useRef(null);
@@ -945,17 +991,91 @@ export default function VirtualSandbox() {
     }
   };
 
-  // Run analysis
-  const runAnalysis = async () => {
+  // Run analysis — with optional Socratic coach intercept
+  const runAnalysis = async (skipCoach = false) => {
     if (!heroHand.card1 || !heroHand.card2) return;
+    // Coach mode: show action picker first if mode is on and user hasn't picked yet
+    if (coachMode && !skipCoach && !coachUserPick) {
+      try { navigator.vibrate?.(20); } catch (e) { }
+      setShowCoachPicker(true);
+      return;
+    }
     try { navigator.vibrate?.(10); } catch (e) { }
+    // Get villain range string for most relevant villain
+    const villainRangeStr = villains[0]?.range || getArchetypeRangeString(villains[0]?.archetype?.id || 'gto_neutral', villains[0]?.position || 'BB');
     await analyze({
       heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard',
       exploitMode, villainArchetype: villains[0]?.archetype?.id, bubbleFactor: gameType === 'tournament' ? bubbleFactor : undefined,
+      villainRange: villainRangeStr,
+      socratic: coachMode && coachUserPick ? { userPick: coachUserPick } : undefined,
     });
     setShowResults(true);
     playAnalysisDing(); // Sound effect
     logAnalytics(); // Track for leak detection
+    // Auto-append to session log
+    setSessionLog(prev => [...prev, {
+      id: Date.now(),
+      hand: `${heroHand.card1}${heroHand.card2}`,
+      position: heroPosition,
+      street: currentStreet,
+      board: board.flop.join(' ') || '',
+      equity: equity?.heroEquity ?? null,
+      optimalAction: null, // will be filled post-result via effect
+    }]);
+  };
+
+  // Auto-fill optimalAction in session log when results arrive
+  useEffect(() => {
+    if (results?.optimalAction?.label && sessionLog.length > 0) {
+      setSessionLog(prev => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last && !last.optimalAction) {
+          updated[updated.length - 1] = { ...last, optimalAction: results.optimalAction.label };
+        }
+        return updated;
+      });
+      // Compute coach EV delta (approximate from result EV)
+      if (coachUserPick && results.ev) {
+        const gtaEV = results.ev.hero || 0;
+        const correctLabel = results.optimalAction?.label?.toLowerCase().split(' ')[0];
+        const isCorrect = coachUserPick.toLowerCase().split(' ')[0] === correctLabel;
+        setCoachEvDelta(isCorrect ? 0 : -(Math.abs(gtaEV) * 0.2)); // approximate -20% penalty
+      }
+    }
+  }, [results]);
+
+  // Coach picker: user picked an action — run analysis with it
+  const handleCoachPick = useCallback((action) => {
+    setCoachUserPick(action);
+    setShowCoachPicker(false);
+    runAnalysis(true); // skip coach re-check
+  }, [heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, exploitMode, bubbleFactor, coachMode]);
+
+  const handleCoachSkip = useCallback(() => {
+    setCoachUserPick(null);
+    setShowCoachPicker(false);
+    runAnalysis(true);
+  }, [heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, exploitMode, bubbleFactor, coachMode]);
+
+  // Villain archetype change — auto-populate range from VillainArchetypeRanges
+  const handleVillainArchetypeChange = useCallback((villainIdx, archetypeId) => {
+    const info = getArchetypeInfo(archetypeId) || {};
+    const villainPos = villains[villainIdx]?.position || 'BB';
+    const range = getArchetypeRangeString(archetypeId, villainPos);
+    const vpip = getArchetypeVPIP(archetypeId, villainPos);
+    setVillains(prev => prev.map((v, i) => i === villainIdx ? {
+      ...v,
+      archetype: { id: archetypeId, name: info.name || archetypeId },
+      range,
+      vpip,
+    } : v));
+  }, [villains]);
+
+  // Get archetype range string for a villain (used in analyze call)
+  const getArchetypeRangeString = (archetypeId, position) => {
+    const range = getArchetypeRange(archetypeId, position);
+    return range.join(',');
   };
 
   // Position comparison (Feature #11)
@@ -999,6 +1119,33 @@ export default function VirtualSandbox() {
       {/* Share Modal */}
       <ShareAnalysisModal isOpen={showShare} onClose={() => setShowShare(false)}
         results={results} scenario={{ board: communityCards.join(' ') }} />
+
+      {/* ── Wave 2 Modals ── */}
+      <SessionLogModal
+        isOpen={showSessionLog}
+        onClose={() => setShowSessionLog(false)}
+        sessionLog={sessionLog}
+        onClearSession={() => { setSessionLog([]); }}
+        onLoadEntry={(entry) => {
+          // Restore scenario from session log entry
+          if (entry.hand?.length >= 4) setHeroHand({ card1: entry.hand.substring(0, 2), card2: entry.hand.substring(2, 4) });
+          if (entry.position) setHeroPosition(entry.position);
+        }}
+      />
+      <CoachActionPicker
+        isOpen={showCoachPicker}
+        onPick={handleCoachPick}
+        onSkip={handleCoachSkip}
+      />
+      <ShareHandModal
+        isOpen={showShareHand}
+        onClose={() => setShowShareHand(false)}
+        results={results}
+        heroHand={heroHand}
+        board={board}
+        scenario={{ position: heroPosition }}
+        cardRef={exportCardRef}
+      />
 
       {/* Sessions Sidebar */}
       <AnimatePresence>{showSessions && (
@@ -1101,6 +1248,21 @@ export default function VirtualSandbox() {
                 <button onClick={() => { saveAsTemplate(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Save Template</button>
                 <button onClick={() => { setShowLeakStats(true); loadLeakStats(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>My Stats</button>
                 <button onClick={() => { toggleSound(); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>{soundEnabled ? 'Sound On' : 'Sound Off'}</button>
+                {/* Wave 2 menu items */}
+                <button onClick={() => { setShowSessionLog(true); setShowMenu(false); try { navigator.vibrate?.(10); } catch (e) { } }}
+                  style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: sessionLog.length > 0 ? 'rgba(35,116,225,0.12)' : '#3A3B3C', border: `1px solid ${sessionLog.length > 0 ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`, color: sessionLog.length > 0 ? '#4599FF' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>
+                  📓 Session ({sessionLog.length})
+                </button>
+                <button onClick={() => { toggleCoachMode(); setShowMenu(false); try { navigator.vibrate?.(15); } catch (e) { } }}
+                  style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: coachMode ? 'rgba(167,139,250,0.15)' : '#3A3B3C', border: `1px solid ${coachMode ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: coachMode ? '#a78bfa' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>
+                  🧠 Coach {coachMode ? 'ON' : 'OFF'}
+                </button>
+                {results && (
+                  <button onClick={() => { setShowShareHand(true); setShowMenu(false); try { navigator.vibrate?.(10); } catch (e) { } }}
+                    style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', color: '#4ade80', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>
+                    📸 Share Hand
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
@@ -1161,11 +1323,31 @@ export default function VirtualSandbox() {
           {/* Villain Style */}
           <div>
             <div style={{ fontSize: 8, color: '#65676B', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Style</div>
-            <select value={villains[0]?.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
+            <select value={villains[0]?.archetype?.id || 'gto_neutral'}
+              onChange={e => handleVillainArchetypeChange(0, e.target.value)}
               style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 10, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-              {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              {Object.values(ARCHETYPE_CONFIG).map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
             </select>
+            {/* VPIP badge */}
+            {(villains[0]?.vpip != null) && (
+              <div style={{ fontSize: 9, color: '#65676B', marginTop: 2 }}>
+                VPIP: <span style={{ color: villains[0].vpip > 40 ? '#f97316' : villains[0].vpip > 25 ? '#fbbf24' : '#4ade80', fontWeight: 700 }}>{villains[0].vpip}%</span>
+                {' '}<span style={{ color: '#65676B' }}>• {ARCHETYPE_CONFIG[villains[0].archetype?.id]?.postflopTip?.substring(0, 22) || ''}</span>
+              </div>
+            )}
           </div>
+
+          {/* ICM / Bubble Factor — shown only in Tournament mode */}
+          {gameType === 'tournament' && (
+            <div>
+              <div style={{ fontSize: 8, color: '#65676B', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Bubble Factor</div>
+              <input type="range" min="1" max="3" step="0.1" value={bubbleFactor}
+                onChange={e => setBubbleFactor(parseFloat(e.target.value))}
+                style={{ width: '100%', accentColor: '#f59e0b', marginBottom: 2 }} />
+              <div style={{ fontSize: 9, color: '#fbbf24', textAlign: 'center', fontWeight: 700 }}>{bubbleFactor.toFixed(1)}x</div>
+              <div style={{ fontSize: 8, color: '#65676B', textAlign: 'center' }}>{bubbleFactor <= 1.2 ? 'Deep' : bubbleFactor <= 2.0 ? 'Bubble' : 'Final Table'}</div>
+            </div>
+          )}
 
           {/* Stack */}
           <div>
@@ -1267,12 +1449,19 @@ export default function VirtualSandbox() {
             </div>
           </div>
 
-          {/* Action History */}
-          <div id="action-history" style={{ maxHeight: 44, overflowY: 'auto' }}>
+          {/* Action History + Replay Bar */}
+          <div id="action-history" style={{ maxHeight: 80, overflowY: 'auto' }}>
+            <ActionReplayBar
+              actions={actionHistory}
+              replayIndex={replayIndex}
+              onReplayTo={onReplayTo}
+              onExitReplay={() => onReplayTo(null)}
+            />
+            {/* Add action builder — rendered below replay bar */}
             <ActionHistoryBuilder actions={actionHistory}
               onAdd={a => setActionHistory([...actionHistory, a])}
               onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
-              potSize={potSize} />
+              potSize={replayIndex != null ? replayedPotSize : potSize} />
           </div>
 
           {/* Range Grid */}
@@ -1294,7 +1483,7 @@ export default function VirtualSandbox() {
               fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.3,
               boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 2px 12px rgba(35,116,225,0.3)',
             }}>
-            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+            {isAnalyzing ? 'Analyzing...' : coachMode ? '🧠 What Would You Do?' : 'Analyze'}
           </motion.button>
 
           {/* Daily Challenge */}
@@ -1605,6 +1794,20 @@ export default function VirtualSandbox() {
               {quizMode && results && (
                 <QuizPanel onGuess={handleQuizGuess} correctAction={results.optimalAction?.label} revealed={quizRevealed} userGuess={userGuess} score={quizScore} />
               )}
+
+              {/* Wave 2: Coach Verdict — shown when coach mode picked an action */}
+              {coachMode && coachUserPick && results && (
+                <CoachVerdict
+                  userPick={coachUserPick}
+                  gtoAction={results.optimalAction?.label}
+                  evDelta={coachEvDelta}
+                />
+              )}
+
+              {/* Wave 2: Equity Graph — shown when multi-street history exists */}
+              <EquityGraph streetHistory={streetHistory} currentEquity={equity?.heroEquity} />
+
+
               {getResultsSummary(results) && (
                 <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(35,116,225,0.08)', border: '1px solid rgba(35,116,225,0.15)', marginBottom: 12, fontSize: 12, lineHeight: 1.5, color: '#E4E6EB', textTransform: 'none' }}>
                   {getResultsSummary(results)}

@@ -881,3 +881,328 @@ export function LeaderboardCard({ entries }) {
         </div>
     );
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EQUITY GRAPH — Wave 2 Feature 4
+// SVG line chart: tracks hero equity across streets
+// ═══════════════════════════════════════════════════════════════════════════
+export function EquityGraph({ streetHistory, currentEquity }) {
+    const streets = ['Pre', 'Flop', 'Turn', 'River'];
+    const points = useMemo(() => {
+        const pts = [];
+        if (currentEquity != null) pts.push({ street: 'Pre', equity: currentEquity });
+        streetHistory?.forEach((entry, i) => {
+            if (entry.equity != null) pts.push({ street: streets[i + 1] || 'S' + (i + 1), equity: entry.equity });
+        });
+        return pts;
+    }, [streetHistory, currentEquity]);
+
+    if (points.length < 2) return null;
+
+    const W = 260, H = 80, PAD = 16;
+    const xStep = (W - PAD * 2) / (points.length - 1);
+    const yScale = (v) => PAD + (H - PAD * 2) * (1 - v / 100);
+    const lineD = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${PAD + i * xStep},${yScale(p.equity)}`).join(' ');
+    const areaD = lineD + ` L${PAD + (points.length - 1) * xStep},${H - PAD} L${PAD},${H - PAD} Z`;
+    const lastEquity = points[points.length - 1]?.equity || 50;
+    const color = lastEquity >= 50 ? '#22c55e' : '#ef4444';
+
+    return (
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '700', color: '#B0B3B8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
+                Equity Progression
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: 'block', overflow: 'visible' }}>
+                {[25, 50, 75].map(v => (
+                    <line key={v} x1={PAD} y1={yScale(v)} x2={W - PAD} y2={yScale(v)} stroke="#3A3B3C" strokeWidth="1" strokeDasharray="3,3" />
+                ))}
+                <text x={W - PAD + 2} y={yScale(50) + 4} fontSize="8" fill="#65676B">50%</text>
+                <defs>
+                    <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+                    </linearGradient>
+                </defs>
+                <path d={areaD} fill="url(#eqGrad)" />
+                <path d={lineD} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {points.map((p, i) => (
+                    <g key={i}>
+                        <circle cx={PAD + i * xStep} cy={yScale(p.equity)} r="3" fill={color} />
+                        <text x={PAD + i * xStep} y={H - 2} textAnchor="middle" fontSize="8" fill="#65676B">{p.street}</text>
+                        <text x={PAD + i * xStep} y={yScale(p.equity) - 6} textAnchor="middle" fontSize="8" fill={color} fontWeight="700">
+                            {Math.round(p.equity)}%
+                        </text>
+                    </g>
+                ))}
+            </svg>
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SESSION LOG MODAL — Wave 2 Feature 5
+// ═══════════════════════════════════════════════════════════════════════════
+export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onClearSession }) {
+    if (!isOpen) return null;
+    const ACTION_COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', bet: '#22c55e', raise: '#22c55e', allin: '#f97316' };
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{
+            position: 'fixed', inset: 0, zIndex: 9990, background: 'rgba(0,0,0,0.75)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+        }} onClick={onClose}>
+            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} onClick={e => e.stopPropagation()} style={{
+                background: '#18191A', borderRadius: '20px 20px 0 0', border: '1px solid #3A3B3C',
+                width: '100%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            }}>
+                <div style={{ padding: '16px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#E4E6EB' }}>
+                        Session Log <span style={{ fontSize: '12px', color: '#65676B', fontWeight: '600' }}>({sessionLog?.length || 0} hands)</span>
+                    </h3>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {(sessionLog?.length > 0) && (
+                            <button onClick={() => { try { navigator.vibrate?.(30); } catch (e) {} onClearSession(); }}
+                                style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
+                                Clear
+                            </button>
+                        )}
+                        <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', color: '#E4E6EB', cursor: 'pointer', fontSize: '18px', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                    </div>
+                </div>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+                    {!sessionLog?.length ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: '#65676B', fontSize: '13px' }}>
+                            No hands yet. Run an analysis to start tracking.
+                        </div>
+                    ) : [...sessionLog].reverse().map((entry, i) => {
+                        const actionKey = (entry.optimalAction || '').toLowerCase().split(' ')[0];
+                        const badgeColor = ACTION_COLORS[actionKey] || '#4599FF';
+                        return (
+                            <button key={entry.id || i} onClick={() => { try { navigator.vibrate?.(10); } catch (e) {} onLoadEntry(entry); onClose(); }}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', marginBottom: '6px', borderRadius: '10px', background: '#242526', border: '1px solid #3A3B3C', cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: '10px', background: `${badgeColor}22`, border: `1px solid ${badgeColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', color: badgeColor, flexShrink: 0 }}>
+                                    {(entry.optimalAction || '??').substring(0, 4)}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#E4E6EB' }}>{entry.hand} — {entry.position}</div>
+                                    <div style={{ fontSize: '11px', color: '#B0B3B8', marginTop: '2px' }}>{entry.street} · {entry.board || 'Preflop'}{entry.equity != null ? ` · ${Math.round(entry.equity)}% eq` : ''}</div>
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#65676B', flexShrink: 0 }}>↩</div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COACH ACTION PICKER — Wave 2 Feature 6 (Socratic Coach)
+// ═══════════════════════════════════════════════════════════════════════════
+export function CoachActionPicker({ isOpen, onPick, onSkip }) {
+    if (!isOpen) return null;
+    const ACTIONS = [
+        { id: 'fold', label: 'Fold', color: '#ef4444' },
+        { id: 'check', label: 'Check', color: '#94a3b8' },
+        { id: 'call', label: 'Call', color: '#fbbf24' },
+        { id: 'bet_33', label: 'Bet 33%', color: '#4ade80' },
+        { id: 'bet_66', label: 'Bet 66%', color: '#22c55e' },
+        { id: 'bet_100', label: 'Bet Pot', color: '#16a34a' },
+        { id: 'raise', label: 'Raise', color: '#3b82f6' },
+        { id: 'allin', label: 'All-In', color: '#f97316' },
+    ];
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} style={{ background: '#18191A', border: '1px solid rgba(35,116,225,0.3)', borderRadius: '20px', padding: '24px', maxWidth: '360px', width: '100%', boxShadow: '0 0 60px rgba(35,116,225,0.18)' }}>
+                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>🧠</div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#E4E6EB', fontFamily: "'Orbitron', sans-serif" }}>Coach Mode</div>
+                    <div style={{ fontSize: '13px', color: '#B0B3B8', marginTop: '4px' }}>What would you do in this spot?</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
+                    {ACTIONS.map(a => (
+                        <button key={a.id} onClick={() => { try { navigator.vibrate?.(15); } catch (e) {} onPick(a.label); }}
+                            style={{ padding: '12px 8px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', background: `${a.color}15`, border: `1px solid ${a.color}40`, color: a.color, cursor: 'pointer', touchAction: 'manipulation' }}>
+                            {a.label}
+                        </button>
+                    ))}
+                </div>
+                <button onClick={onSkip} style={{ width: '100%', padding: '10px', borderRadius: '10px', fontSize: '12px', background: 'none', border: '1px solid #3A3B3C', color: '#65676B', cursor: 'pointer' }}>
+                    Skip — just show the answer
+                </button>
+            </motion.div>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COACH VERDICT — Shows user pick vs GTO verdict
+// ═══════════════════════════════════════════════════════════════════════════
+export function CoachVerdict({ userPick, gtoAction, evDelta }) {
+    if (!userPick || !gtoAction) return null;
+    const isCorrect = userPick.toLowerCase().split(' ')[0] === gtoAction.toLowerCase().split(' ')[0];
+    return (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            style={{ padding: '14px', borderRadius: '12px', marginBottom: '12px', background: isCorrect ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${isCorrect ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '20px' }}>{isCorrect ? '✅' : '❌'}</span>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: isCorrect ? '#4ade80' : '#fca5a5' }}>{isCorrect ? 'Correct!' : 'Not optimal'}</div>
+            </div>
+            <div style={{ fontSize: '12px', color: '#B0B3B8' }}>
+                You: <strong style={{ color: '#E4E6EB' }}>{userPick}</strong>{' '}vs GTO: <strong style={{ color: '#4599FF' }}>{gtoAction}</strong>
+                {evDelta != null && <span style={{ marginLeft: 8, color: evDelta >= 0 ? '#4ade80' : '#fca5a5', fontWeight: '700' }}>({evDelta >= 0 ? '+' : ''}{evDelta.toFixed(2)} EV)</span>}
+            </div>
+        </motion.div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACTION REPLAY BAR — Wave 2 Feature 8
+// Tappable history scrubber with playhead indicator and haptics
+// ═══════════════════════════════════════════════════════════════════════════
+export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay }) {
+    if (!actions || actions.length === 0) return null;
+    const COLORS = { fold: '#ef4444', check: '#94a3b8', call: '#fbbf24', raise: '#22c55e', allin: '#f97316' };
+    const getBubbleColor = (action) => COLORS[(action || '').toLowerCase().split('_')[0]] || '#2374E1';
+
+    return (
+        <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ color: replayIndex != null ? '#4599FF' : '#B0B3B8', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: 0, fontWeight: '700' }}>
+                    {replayIndex != null ? '▶ Replay Mode' : 'Action History'}
+                </h4>
+                {replayIndex != null && (
+                    <button onClick={() => { try { navigator.vibrate?.(20); } catch (e) {} onExitReplay(); }}
+                        style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
+                        Exit
+                    </button>
+                )}
+            </div>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: replayIndex == null ? '#4599FF' : '#3A3B3C', border: '2px solid #2374E1', flexShrink: 0 }} />
+                {actions.map((a, i) => {
+                    const color = getBubbleColor(a.action);
+                    const isActive = replayIndex === i;
+                    const isPast = replayIndex != null && i <= replayIndex;
+                    return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <div style={{ width: 14, height: 2, background: isPast ? color : '#3A3B3C', transition: 'background 0.2s' }} />
+                            <button
+                                onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) {} onReplayTo(isActive ? null : i); }}
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '700', background: isActive ? `${color}30` : isPast ? `${color}15` : '#3A3B3C', border: `1px solid ${isActive ? color : isPast ? color + '55' : '#4E4F50'}`, color: isActive ? color : isPast ? color + 'cc' : '#B0B3B8', cursor: 'pointer', minWidth: 34, boxShadow: isActive ? `0 0 8px ${color}40` : 'none', touchAction: 'manipulation' }}>
+                                <span style={{ color: isPast ? '#4599FF' : '#65676B', fontSize: '8px' }}>{a.position}</span>
+                                <span>{a.label}</span>
+                            </button>
+                        </div>
+                    );
+                })}
+            </div>
+            {replayIndex != null && (
+                <div style={{ marginTop: '8px', fontSize: '10px', color: '#4599FF', textAlign: 'center' }}>
+                    Rewound to: <strong>{actions[replayIndex]?.position} {actions[replayIndex]?.label}</strong>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARE HAND MODAL — Wave 2 Feature 7
+// Download PNG + Post to Smarter.Poker profile + Native share sheet
+// ═══════════════════════════════════════════════════════════════════════════
+export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, board, cardRef }) {
+    if (!isOpen || !results) return null;
+    const [isPosting, setIsPosting] = useState(false);
+    const [capturedUrl, setCapturedUrl] = useState(null);
+
+    const captureCanvas = async () => {
+        if (!cardRef?.current) return null;
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(cardRef.current, { backgroundColor: '#18191a', scale: 2, useCORS: true });
+            const url = canvas.toDataURL('image/png');
+            setCapturedUrl(url);
+            return url;
+        } catch (e) { return null; }
+    };
+
+    const handleDownload = async () => {
+        try { navigator.vibrate?.(20); } catch (e) {}
+        const url = capturedUrl || await captureCanvas();
+        if (!url) return;
+        const link = document.createElement('a');
+        link.download = `smarter-poker-hand-${Date.now()}.png`;
+        link.href = url;
+        link.click();
+    };
+
+    const handlePostToProfile = async () => {
+        try { navigator.vibrate?.(15); } catch (e) {}
+        setIsPosting(true);
+        try {
+            const user = getAuthUser();
+            if (!user) { alert('Log in to post'); setIsPosting(false); return; }
+            const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2}` : '??';
+            const boardStr = board?.flop?.join(' ') || 'Preflop';
+            const content = `🃏 Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
+            const res = await fetch('/api/social/create-post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: user.id, content, content_type: 'sandbox_hand', metadata: { hand, board: boardStr, position: scenario?.position, optimalAction: results.optimalAction?.label, challengeEnabled: true } }),
+            });
+            if (res.ok) setTimeout(onClose, 1200);
+        } catch (err) { console.error('Post error:', err); }
+        setIsPosting(false);
+    };
+
+    const handleNativeShare = async () => {
+        try { navigator.vibrate?.(15); } catch (e) {}
+        const shareUrl = `${window.location.origin}/hub/personal-assistant/sandbox`;
+        const text = `I analyzed ${heroHand?.card1 || '??'}${heroHand?.card2 || '??'} on the GTO Sandbox — GTO line: ${results.optimalAction?.label}`;
+        try {
+            if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis — Smarter.Poker', text, url: shareUrl }); }
+            else { navigator.clipboard?.writeText(`${text}\n${shareUrl}`); }
+        } catch (e) {}
+    };
+
+    const actions = [
+        { icon: '📸', label: 'Download Image', sub: 'Save PNG to device', onClick: handleDownload, color: '#4599FF' },
+        { icon: '🃏', label: isPosting ? 'Posting...' : 'Post to My Profile', sub: 'Share to your Smarter.Poker feed', onClick: handlePostToProfile, color: '#22c55e', primary: true },
+        { icon: '↗️', label: 'Share Link', sub: 'Copy link or open share sheet', onClick: handleNativeShare, color: '#a78bfa' },
+    ];
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9995, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <motion.div initial={{ y: 80 }} animate={{ y: 0 }} onClick={e => e.stopPropagation()} style={{ background: '#18191A', borderRadius: '20px 20px 0 0', border: '1px solid #3A3B3C', width: '100%', maxWidth: 500, padding: '24px', paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#E4E6EB' }}>Share Hand</h3>
+                    <button onClick={onClose} style={{ background: '#3A3B3C', border: 'none', color: '#E4E6EB', cursor: 'pointer', fontSize: '18px', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                </div>
+                <div style={{ background: '#242526', borderRadius: '12px', padding: '12px', marginBottom: '20px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#E4E6EB' }}>
+                        {heroHand?.card1 || '??'}{heroHand?.card2 || '??'} — {scenario?.position || 'BTN'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#B0B3B8', marginTop: '4px' }}>
+                        GTO: <span style={{ color: '#22c55e', fontWeight: '600' }}>{results.optimalAction?.label}</span> ({results.optimalAction?.frequency}%)
+                    </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {actions.map(a => (
+                        <button key={a.label} onClick={a.onClick} disabled={isPosting && a.primary}
+                            style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderRadius: '14px', cursor: isPosting && a.primary ? 'wait' : 'pointer', background: a.primary ? `${a.color}15` : '#242526', border: `1px solid ${a.primary ? a.color + '30' : '#3A3B3C'}`, opacity: isPosting && a.primary ? 0.7 : 1, touchAction: 'manipulation' }}>
+                            <span style={{ fontSize: '24px', minWidth: 32, textAlign: 'center' }}>{a.icon}</span>
+                            <div style={{ textAlign: 'left', flex: 1 }}>
+                                <div style={{ fontSize: '14px', fontWeight: '700', color: a.primary ? a.color : '#E4E6EB' }}>{a.label}</div>
+                                <div style={{ fontSize: '11px', color: '#65676B', marginTop: '2px' }}>{a.sub}</div>
+                            </div>
+                            <span style={{ color: '#65676B' }}>›</span>
+                        </button>
+                    ))}
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+}
