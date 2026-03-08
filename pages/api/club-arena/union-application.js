@@ -155,7 +155,7 @@ export default async function handler(req, res) {
 
       const { data: app } = await supabaseAdmin
         .from('union_applications')
-        .select('*')
+        .select('id, club_id, union_id, status, applied_at, reviewed_at, review_note')
         .eq('club_id', clubId)
         .eq('union_id', union.id)
         .order('applied_at', { ascending: false })
@@ -205,7 +205,7 @@ export default async function handler(req, res) {
       // Load application first to get union_id for auth check
       const { data: app } = await supabaseAdmin
         .from('union_applications')
-        .select('*')
+        .select('id, club_id, union_id, club_name, status, applied_at')
         .eq('id', applicationId)
         .maybeSingle();
 

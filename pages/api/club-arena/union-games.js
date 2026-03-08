@@ -87,7 +87,7 @@ export default async function handler(req, res) {
 
       const { data: tournaments, error } = await supabaseAdmin
         .from('club_tournaments')
-        .select('*')
+        .select('id, club_id, name, status, game_type, buy_in, starting_chips, max_players, registered_count, prize_pool, guaranteed_prize, start_time, late_reg_levels, rebuy_enabled, rebuy_levels, addon_enabled, settings, created_at')
         .in('club_id', clubIds)
         .in('status', statusFilter)
         .order('start_time', { ascending: true })
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
       const tableStatusFilter = params.statusFilter;
       let tablesQuery = supabaseAdmin
         .from('tables')
-        .select('*')
+        .select('id, club_id, name, status, game_type, game_variant, small_blind, big_blind, min_buyin, max_buyin, min_buy_in, max_buy_in, current_players, max_seats, max_players, settings, created_at')
         .in('club_id', clubIds)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -553,7 +553,6 @@ export default async function handler(req, res) {
         p_union_id: unionId,
       });
       if (rpcErr) {
-        console.warn('[union-games] get_bbj_status rpc failed:', rpcErr.message);
         return res.status(200).json({ success: true, data: null, rpcNotAvailable: true });
       }
       return res.json({ success: true, data });

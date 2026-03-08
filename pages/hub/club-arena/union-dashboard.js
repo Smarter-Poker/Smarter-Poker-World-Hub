@@ -95,6 +95,8 @@ const router = useRouter();
     const [settleAction, setSettleAction] = useState('open');
     const [settleProcessing, setSettleProcessing] = useState(false);
     const [settleStatusData, setSettleStatusData] = useState(null); // result of 'status' action
+    const [bulkStatusData, setBulkStatusData] = useState(null);    // result of bulk check all
+    const [bulkStatusLoading, setBulkStatusLoading] = useState(false);
 
     // Manage clubs state
     const [addClubId, setAddClubId] = useState('');
@@ -503,6 +505,27 @@ const router = useRouter();
         }
     };
 
+    // Bulk settlement status — check all clubs at once
+    const handleBulkStatus = async () => {
+        if (!clubs.length) { showToast('No clubs in union', 'error'); return; }
+        setBulkStatusLoading(true);
+        setBulkStatusData(null);
+        try {
+            const results = await Promise.allSettled(
+                clubs.map(club =>
+                    apiCall('/api/club-arena/settle-period', { clubId: club.id, action: 'status' })
+                        .then(d => ({ clubId: club.id, clubName: club.name, ...d }))
+                        .catch(e => ({ clubId: club.id, clubName: club.name, error: e.message }))
+                )
+            );
+            setBulkStatusData(results.map(r => r.status === 'fulfilled' ? r.value : r.reason));
+        } catch (e) {
+            showToast(e.message || 'Bulk status check failed', 'error');
+        } finally {
+            setBulkStatusLoading(false);
+        }
+    };
+
     // Loading
     if (isLoading || !user) {
         return (
@@ -688,6 +711,10 @@ const router = useRouter();
                             <StatCard label="Weekly Rake" value={(stats?.totalWeeklyRake ?? 0).toLocaleString()} color={FB.primary} />
                             <StatCard label="Union Hold" value={(stats?.estimatedUnionHold ?? 0).toLocaleString()} color={FB.gold}
                                 sub={`${(((stats?.unionHoldRate) || 0) * 100).toFixed(0)}% of period rake`} />
+                            {stats?.totalSeatedPlayers > 0 && (
+                                <StatCard label="Playing Now" value={stats.totalSeatedPlayers} color={FB.success}
+                                    sub={`across ${stats.totalActiveTables} table${stats.totalActiveTables !== 1 ? 's' : ''}`} />
+                            )}
                         </div>
                         {(stats?.runningTournaments > 0 || stats?.scheduledTournaments > 0) && (
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
@@ -988,9 +1015,24 @@ const router = useRouter();
                                 <div style={{ fontSize: 13, fontWeight: 700, color: FB.textPrimary, marginBottom: 10 }}>Club Activity</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                                     {clubs.map(club => (
-                                        <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${FB.border}` }}>
-                                            <div style={{ fontWeight: 700, fontSize: 13, color: FB.textPrimary, marginBottom: 6 }}>{club.name}</div>
-                                            <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>{club.member_count || 0} members</div>
+                                        <div key={club.id} style={{ background: FB.cardBg, borderRadius: 10, padding: 14, border: `1px solid ${club.active_tables > 0 ? 'rgba(49,162,76,0.4)' : FB.border}` }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                                                <div style={{ fontWeight: 700, fontSize: 13, color: FB.textPrimary }}>{club.name}</div>
+                                                {club.active_tables > 0 && (
+                                                    <span style={{ fontSize: 10, background: 'rgba(49,162,76,0.15)', color: FB.success, padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                                                        LIVE
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 6, display: 'flex', gap: 10 }}>
+                                                <span>{club.member_count || 0} members</span>
+                                                {club.active_tables > 0 && (
+                                                    <>
+                                                        <span style={{ color: FB.success }}>🎮 {club.active_tables} table{club.active_tables !== 1 ? 's' : ''}</span>
+                                                        {club.seated_players > 0 && <span style={{ color: FB.primary }}>👥 {club.seated_players} seated</span>}
+                                                    </>
+                                                )}
+                                            </div>
                                             <div style={{ display: 'flex', gap: 8 }}>
                                                 <button onClick={() => router.push(`/hub/club-arena/lobby?club=${club.id}`)}
                                                     style={{ flex: 1, background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 0', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Lobby</button>
@@ -1181,6 +1223,92 @@ const router = useRouter();
                             <div style={{ fontSize: 11, color: FB.textSecondary }}>
                                 Tip: Run "Check Status" first to see the current period before taking action.
                             </div>
+                        </div>
+
+                        {/* ── Bulk Status — Check All Clubs ── */}
+                        <div style={{ background: FB.cardBg, borderRadius: 12, padding: 16, border: `1px solid ${FB.border}`, marginBottom: 20 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: bulkStatusData ? 14 : 0 }}>
+                                <div>
+                                    <div style={{ fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>All Clubs Status</div>
+                                    <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 2 }}>Check settlement period status across every club at once.</div>
+                                </div>
+                                <button onClick={handleBulkStatus} disabled={bulkStatusLoading}
+                                    style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: bulkStatusLoading ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                                    {bulkStatusLoading ? 'Checking...' : '⚡ Check All Clubs'}
+                                </button>
+                            </div>
+                            {bulkStatusData && bulkStatusData.length > 0 && (() => {
+                                const open = bulkStatusData.filter(r => r.currentPeriod?.status === 'open');
+                                const closed = bulkStatusData.filter(r => r.currentPeriod?.status === 'closed');
+                                const noPeriod = bulkStatusData.filter(r => !r.currentPeriod && !r.error);
+                                const errors = bulkStatusData.filter(r => r.error);
+                                return (
+                                    <div>
+                                        {/* Summary row */}
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                                            {[
+                                                { label: 'Open', count: open.length, color: FB.success },
+                                                { label: 'Closed (unpaid)', count: closed.length, color: FB.orange },
+                                                { label: 'No Period', count: noPeriod.length, color: FB.textSecondary },
+                                                ...(errors.length ? [{ label: 'Errors', count: errors.length, color: FB.danger }] : []),
+                                            ].map(s => (
+                                                <div key={s.label} style={{ background: FB.hover, borderRadius: 8, padding: '8px 14px', border: `1px solid ${FB.border}` }}>
+                                                    <span style={{ fontSize: 11, color: FB.textSecondary }}>{s.label}: </span>
+                                                    <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Per-club grid */}
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: `1px solid ${FB.border}` }}>
+                                                        {['Club', 'Period', 'Status', 'Rake Collected', 'Pending Comms', 'Action'].map(h => (
+                                                            <th key={h} style={{ padding: '6px 10px', textAlign: 'left', color: FB.textSecondary, fontWeight: 600, fontSize: 11 }}>{h}</th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {bulkStatusData.map((row, i) => {
+                                                        const p = row.currentPeriod;
+                                                        const statusColor = p?.status === 'open' ? FB.success : p?.status === 'closed' ? FB.orange : FB.textSecondary;
+                                                        const pendingCount = row.pendingCommissions?.length ?? 0;
+                                                        return (
+                                                            <tr key={row.clubId} style={{ borderBottom: `1px solid ${FB.border}`, background: i % 2 === 0 ? FB.cardBg : FB.hover }}>
+                                                                <td style={{ padding: '8px 10px', fontWeight: 700, color: FB.textPrimary }}>{row.clubName}</td>
+                                                                <td style={{ padding: '8px 10px', color: FB.textSecondary }}>{p?.period_number ? `#${p.period_number}` : '—'}</td>
+                                                                <td style={{ padding: '8px 10px' }}>
+                                                                    {row.error ? (
+                                                                        <span style={{ color: FB.danger, fontSize: 11 }}>Error</span>
+                                                                    ) : (
+                                                                        <span style={{ color: statusColor, fontWeight: 700, fontSize: 11, textTransform: 'uppercase' }}>
+                                                                            {p?.status || 'No Period'}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td style={{ padding: '8px 10px', color: FB.gold, fontWeight: 600 }}>{p ? (p.total_rake_collected || 0).toLocaleString() : '—'}</td>
+                                                                <td style={{ padding: '8px 10px' }}>
+                                                                    {pendingCount > 0 ? (
+                                                                        <span style={{ color: FB.orange, fontWeight: 700 }}>{pendingCount} pending</span>
+                                                                    ) : p ? (
+                                                                        <span style={{ color: FB.success, fontSize: 11 }}>✓ All paid</span>
+                                                                    ) : '—'}
+                                                                </td>
+                                                                <td style={{ padding: '8px 10px' }}>
+                                                                    <button onClick={() => { setSettleClubId(row.clubId); setSettleStatusData({ ...row, clubId: row.clubId }); }}
+                                                                        style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 4, padding: '3px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                                                        Select
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         {/* Status Panel — shown after running 'status' action */}
@@ -1512,8 +1640,7 @@ const router = useRouter();
                         </div>
 
                         {/* ── Leave Requests ── */}
-                        {dashboard.pendingLeaveRequests > 0 && (
-                            <div style={{ marginTop: 20 }}>
+                        <div style={{ marginTop: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                                     <h3 style={{ fontSize: 15, fontWeight: 700, color: FB.danger, margin: 0 }}>
                                         Leave Requests
@@ -1569,7 +1696,7 @@ const router = useRouter();
                                     </div>
                                 ))}
                             </div>
-                        )}
+                        </div>
 
                         {/* ── Union Announcement Broadcast ── */}
                         {isLead && (
@@ -1942,12 +2069,12 @@ const router = useRouter();
                                         unionId: unionIdParam,
                                     });
                                     if (result.rpcNotAvailable) {
-                                        showToast('Detailed BBJ activity not available yet', 'error');
+                                        setBbjData({ rpcNotAvailable: true, recent_entries: [] });
                                     } else {
-                                        setBbjData(result.data);
+                                        setBbjData(result.data || { recent_entries: [] });
                                     }
                                 } catch (e) {
-                                    showToast('Detailed BBJ activity not available yet', 'error');
+                                    showToast(e.message || 'Failed to load BBJ activity', 'error');
                                 } finally { setBbjLoading(false); }
                             }} disabled={bbjLoading} style={{
                                 width: '100%', background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`,
@@ -1957,7 +2084,11 @@ const router = useRouter();
                         ) : (
                             <div>
                                 <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>Recent BBJ Activity</div>
-                                {(bbjData.recent_entries || []).length === 0 ? (
+                                {bbjData.rpcNotAvailable ? (
+                                    <div style={{ textAlign: 'center', padding: 20, color: FB.textSecondary, fontSize: 13, border: `1px dashed ${FB.border}`, borderRadius: 8 }}>
+                                        BBJ activity tracking not yet configured. Enable the <code style={{ color: FB.gold }}>get_union_bbj_status</code> RPC in your database to see detailed BBJ entry history.
+                                    </div>
+                                ) : (bbjData.recent_entries || []).length === 0 ? (
                                     <div style={{ textAlign: 'center', padding: 20, color: FB.textSecondary, fontSize: 13 }}>
                                         No BBJ activity yet. BBJ drops start when tables have bbj_percent configured.
                                     </div>

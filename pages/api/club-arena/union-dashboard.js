@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     // 2. Get union info
     const { data: union } = await supabaseAdmin
       .from('unions')
-      .select('*')
+      .select('id, name, code, description, owner_id, settings, chip_balance, rake_wallet, bbj_wallet, promo_wallet, created_at')
       .eq('id', unionId)
       .maybeSingle();
 
@@ -78,7 +78,7 @@ export default async function handler(req, res) {
     if (clubIds.length > 0) {
       const { data: clubData } = await supabaseAdmin
         .from('clubs')
-        .select('id, name, club_id, member_count, chip_treasury, total_rake, owner_id, settings, club_commission_rate, created_at')
+        .select('id, name, club_id, member_count, chip_treasury, total_rake, weekly_rake, hands_played, owner_id, settings, club_commission_rate, created_at')
         .in('id', clubIds)
         .limit(200); // BUG FIX: was 100, but union_clubs limit is 200 → agents in clubs 101+ showed "Unknown Club"
       clubs = clubData || [];
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
     if (clubIds.length > 0) {
       const { data: periodData } = await supabaseAdmin
         .from('settlement_periods')
-        .select('*')
+        .select('id, club_id, status, period_number, total_rake_collected, total_hands_dealt, start_at, end_at, created_at')
         .in('club_id', clubIds)
         .order('created_at', { ascending: false })
         .limit(50); // Raised from 20 — with 10+ clubs, 20 periods is ~2 per club
@@ -143,6 +143,28 @@ export default async function handler(req, res) {
       admins = admins.map(a => ({ ...a, profile: profMap[a.user_id] || null }));
     }
 
+    // 6b. Active tables count per club (for Games tab)
+    const activeTablesByClub = {};
+    if (clubIds.length > 0) {
+      const { data: activeTables } = await supabaseAdmin
+        .from('tables')
+        .select('club_id, status, current_players')
+        .in('club_id', clubIds)
+        .in('status', ['waiting', 'running'])
+        .limit(500);
+      for (const t of (activeTables || [])) {
+        if (!activeTablesByClub[t.club_id]) activeTablesByClub[t.club_id] = { count: 0, seats: 0 };
+        activeTablesByClub[t.club_id].count++;
+        activeTablesByClub[t.club_id].seats += (t.current_players || 0);
+      }
+      // Enrich clubs with live table data
+      clubs = clubs.map(c => ({
+        ...c,
+        active_tables: activeTablesByClub[c.id]?.count || 0,
+        seated_players: activeTablesByClub[c.id]?.seats || 0,
+      }));
+    }
+
     // 7. Running tournament count across all union clubs
     let runningTournaments = 0;
     let scheduledTournaments = 0;
@@ -163,7 +185,7 @@ export default async function handler(req, res) {
     if (req.query.include === 'commissions' && clubIds.length > 0) {
       const { data: commRows } = await supabaseAdmin
         .from('commission_history')
-        .select('*')
+        .select('id, club_id, agent_user_id, agent_role, commission_rate, commission_amount, gross_rake, is_prepaid, created_at')
         .in('club_id', clubIds)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -189,6 +211,8 @@ export default async function handler(req, res) {
     const totalTreasury = clubs.reduce((s, c) => s + (c.chip_treasury || 0), 0);
     const totalRake = clubs.reduce((s, c) => s + (c.total_rake || 0), 0);
     const totalMembers = clubs.reduce((s, c) => s + (c.member_count || 0), 0);
+    const totalSeatedPlayers = clubs.reduce((s, c) => s + (c.seated_players || 0), 0);
+    const totalActiveTables = clubs.reduce((s, c) => s + (c.active_tables || 0), 0);
     const activeAgents = agents.filter(a => a.status === 'active');
     const suspendedAgents = agents.filter(a => a.status === 'suspended');
     const totalAgents = activeAgents.length;
@@ -236,6 +260,8 @@ export default async function handler(req, res) {
         currentPeriodRake,
         runningTournaments,
         scheduledTournaments,
+        totalSeatedPlayers,
+        totalActiveTables,
       },
       clubs,
       agents,

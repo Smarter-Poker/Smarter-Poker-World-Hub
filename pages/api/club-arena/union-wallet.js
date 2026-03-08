@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         .select('*, clubs(name)')
         .eq('union_id', unionId)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(100);
 
       return res.json({
         success: true,

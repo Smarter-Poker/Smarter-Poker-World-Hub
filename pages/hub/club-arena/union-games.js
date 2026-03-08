@@ -147,15 +147,15 @@ const router = useRouter();
     }
   }, [unionId, tableFilter]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       if (tab === 'tournaments') await loadTournaments();
       else await loadTables();
     } catch (e) {
       console.error('[union-games] loadData:', e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [tab, loadTournaments, loadTables]);
 
@@ -199,8 +199,7 @@ const router = useRouter();
 
     // Polling fallback every 15s — silent (no loading state change)
     const poll = setInterval(async () => {
-      if (tab === 'tournaments') await loadTournaments();
-      else await loadTables();
+      await loadData(true); // silent — don't flash loading skeleton
     }, 15000);
 
     return () => {
