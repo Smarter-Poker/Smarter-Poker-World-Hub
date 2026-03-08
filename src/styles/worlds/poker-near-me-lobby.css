@@ -274,8 +274,8 @@
     letter-spacing: 3px;
   }
   .lobby-card-grid {
-    grid-template-columns: repeat(4, 1fr) !important;
-    max-width: 320px !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    max-width: 280px !important;
   }
 }
 

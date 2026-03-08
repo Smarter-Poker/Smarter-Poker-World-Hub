@@ -4,7 +4,7 @@
  * Renders:
  *   - "POKER NEAR ME" title
  *   - Search bar with autocomplete + voice + GPS
- *   - Unified playing-card grid (14 cards: 9 pods + 5 dock, all same size)
+ *   - Unified playing-card grid (12 cards: 8 pods + 4 dock, all same size)
  *
  * NOTE: The feature panel drawer is rendered at the PAGE level
  * (poker-near-me-lobby.js) to avoid z-index stacking context issues.
@@ -14,24 +14,23 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── ALL lobby items — unified playing-card frames ───
-// 9 pods + 5 dock = 14 cards total, all same size, evenly spaced
+// 12 cards total (removed Rewards & Calculator), all same size, evenly spaced
 const ALL_CARD_ITEMS = [
-  // Row 1-3: Main pods
-  { id: 'nearme',    label: 'Near Me',       color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
-  { id: 'search',    label: 'Search',        color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
-  { id: 'livegames', label: 'Live Games',    color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
-  { id: 'tours',     label: 'Tours',         color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
-  { id: 'mapview',   label: 'Map View',      color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
-  { id: 'calendar',  label: 'Calendar',      color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
-  { id: 'series',    label: 'Series',        color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
-  { id: 'daily',     label: 'Daily',         color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
-  { id: 'wallet',    label: 'Rewards',       color: '#ffd700', icon: '/images/lobby-pods/wallet.png' },
-  // Row 4-5: Dock items (same card format)
-  { id: 'roadtrip',   label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.png' },
-  { id: 'calculator', label: 'Calculator',   color: '#6ee7ef', icon: '/images/lobby-dock/calculator.png' },
-  { id: 'favorites',  label: 'Saved',        color: '#6ee7ef', icon: '/images/lobby-dock/saved.png' },
+  // Row 1: Main navigation
+  { id: 'nearme',    label: 'Near Me',       color: '#00d2ff', icon: '/images/lobby-pods/nearme.jpg' },
+  { id: 'search',    label: 'Search',        color: '#6ee7ef', icon: '/images/lobby-pods/search.jpg' },
+  { id: 'livegames', label: 'Live Games',    color: '#ff4444', icon: '/images/lobby-pods/livegames.jpg' },
+  { id: 'tours',     label: 'Tours',         color: '#c9a227', icon: '/images/lobby-pods/tours.jpg' },
+  // Row 2: Discovery
+  { id: 'mapview',   label: 'Map View',      color: '#3b82f6', icon: '/images/lobby-pods/mapview.jpg' },
+  { id: 'calendar',  label: 'Calendar',      color: '#8b5cf6', icon: '/images/lobby-pods/calendar.jpg' },
+  { id: 'series',    label: 'Series',        color: '#f59e0b', icon: '/images/lobby-pods/series.jpg' },
+  { id: 'daily',     label: 'Daily',         color: '#22c55e', icon: '/images/lobby-pods/daily.jpg' },
+  // Row 3: Tools & social
+  { id: 'roadtrip',   label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.jpg' },
+  { id: 'favorites',  label: 'Saved',        color: '#6ee7ef', icon: '/images/lobby-dock/saved.jpg' },
   { id: 'social',     label: 'Friends',      color: '#6ee7ef', icon: '/images/lobby-dock/friends.png' },
-  { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
+  { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.jpg' },
 ];
 
 // ─── Card Item — Playing card shaped frame (portrait 3:4 ratio) ───
@@ -391,9 +390,9 @@ export default function LobbyOverlay({
       }}>
         <div className="lobby-card-grid" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: 'clamp(6px, 1.5vw, 12px)',
-          maxWidth: 420,
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 'clamp(8px, 2vw, 14px)',
+          maxWidth: 400,
           width: '100%',
           paddingTop: 4,
           paddingBottom: 24,
