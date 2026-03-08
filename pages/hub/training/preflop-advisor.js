@@ -5,7 +5,7 @@
  * Deal 2 hole cards + position → decide Raise / Call / Fold
  * Validates against GTO canonical ranges · Tracks per-position accuracy
  */
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
