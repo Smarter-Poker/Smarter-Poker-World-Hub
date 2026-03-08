@@ -476,7 +476,7 @@ export default function ClubMessages() {
     async function loadClubData(userId) {
         try {
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
-            const { data: clubData } = await supabase.from('clubs').select('*').eq(isUUID ? 'id' : 'club_id', clubIdParam).maybeSingle();
+            const { data: clubData } = await supabase.from('clubs').select('id, name, club_id, avatar_url, settings, member_count').eq(isUUID ? 'id' : 'club_id', clubIdParam).maybeSingle();
             if (clubData) {
                 setClub(clubData);
 

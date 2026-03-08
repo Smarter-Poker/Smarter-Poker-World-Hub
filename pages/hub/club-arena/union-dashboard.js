@@ -11,6 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -427,7 +428,7 @@ const router = useRouter();
             };
             if (announceClub !== 'all') payload.clubId = announceClub;
             await apiCall('/api/club-arena/manage-union', payload);
-            showToast('Announcement sent to ' + (announceClub === 'all' ? 'all clubs' : clubs.find(c => c.id === announceClub)?.name || announceClub));
+            showToast('Announcement sent to ' + (announceClub === 'all' ? 'all clubs' : clubs.find(c => c.id === announceClub)?.name || announceClub)); busEmit.dataMutated('union_announcement');
             setAnnounceText('');
         } catch (e) { showToast(e.message || 'Announcement failed', 'error'); }
         finally { setAnnounceProcessing(false); }
@@ -1507,6 +1508,7 @@ const router = useRouter();
                                     showToast(`Added ${r.clubName || addClubId} at ${(r.club_commission_rate * 100).toFixed(0)}% commission`);
                                     setAddClubId('');
                                     loadDashboard();
+                                    busEmit.dataMutated('union_club_added');
                                 } catch (e) { showToast(e.message, 'error'); }
                             }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                                 Add Club
@@ -1538,6 +1540,7 @@ const router = useRouter();
                                             await apiCall('/api/club-arena/manage-union', { action: 'remove_club', unionId: unionIdParam, clubId: club.id });
                                             showToast(`Removed ${club.name}`);
                                             loadDashboard();
+                                            busEmit.dataMutated('union_club_removed');
                                         } catch (e) { showToast(e.message, 'error'); }
                                     }} style={{ background: confirmRemoveClub === club.id ? '#b91c1c' : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                                         {confirmRemoveClub === club.id ? 'Confirm?' : 'Remove'}

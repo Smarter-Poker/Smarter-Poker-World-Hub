@@ -11,6 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -237,6 +238,7 @@ const router = useRouter();
       try {
         const res = await api('start_tournament', { unionId, tournamentId: id });
         showToast(`Tournament started with ${res.players || 0} players`);
+        busEmit.tournamentStarted('Union Tournament', res.players || 0);
         loadData();
       } catch (e) { showToast(e.message || 'Failed to start tournament', 'error'); }
     });
@@ -694,6 +696,7 @@ function CreateTournamentModal({ unionId, clubs, onClose, onCreated }) {
         scheduledStart: form.scheduledStart || null,
         participatingClubIds: form.selectedClubs,
       });
+      busEmit.dataMutated('union_tournament_created');
       onCreated();
     } catch (e) {
       setSaveError(e.message || 'Failed to create tournament');
@@ -850,6 +853,7 @@ function CreateTableModal({ unionId, clubs, onClose, onCreated }) {
     setSaving(true);
     try {
       await api('create_table', { unionId, ...form });
+      busEmit.tableOpened(form.name || 'Union Table', form.gameType || 'NLH');
       onCreated();
     } catch (e) {
       setSaveError(e.message || 'Failed to create table');
