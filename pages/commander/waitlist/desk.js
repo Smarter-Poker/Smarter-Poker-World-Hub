@@ -14,6 +14,7 @@ import { busEmit } from '../../../src/engine/EventBus';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
 import SEOHead from '../../../src/components/seo/SEOHead';
+import Pagination from '../../../src/components/commander/shared/Pagination';
 
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { Loader2, Users, UserPlus, ArrowLeft, ArrowRight, ArrowRightLeft, PhoneCall, Armchair, SkipForward, Trash2, MessageSquare, Phone, X, Settings, Upload, Plus, Trash, GripVertical, CheckCircle } from 'lucide-react';
@@ -626,10 +627,16 @@ export default function WaitlistDesk() {
 
         {/* ═══ CONTROLS BAR ═══ */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px', borderBottom: `1px solid ${c.borderColor}33`, background: c.cardBgColor }}>
-          <span style={{ fontSize: '18px', color: `${c.textColor}88`, fontWeight: 600 }}>
-            {totalWaiting} waiting &bull; {gameEntries.length} game{gameEntries.length !== 1 ? 's' : ''}
-            {totalPages > 1 && <span style={{ marginLeft: '8px', color: c.accentColor }}>Page {currentPage + 1}/{totalPages}</span>}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ fontSize: '18px', color: `${c.textColor}88`, fontWeight: 600 }}>
+              {totalWaiting} waiting &bull; {gameEntries.length} game{gameEntries.length !== 1 ? 's' : ''}
+            </span>
+            <Pagination
+              currentPage={currentPage + 1}
+              totalPages={totalPages}
+              onPageChange={(p) => setCurrentPage(p - 1)}
+            />
+          </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => setShowAddWalkIn(true)} style={makeBtn(c)}>
               <UserPlus size={18} /> Add Player

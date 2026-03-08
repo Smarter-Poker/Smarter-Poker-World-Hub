@@ -12,6 +12,8 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, UserPlus, ScanLine, Search, Filter, ChevronDown, User, Clock, Loader2, DollarSign, CreditCard } from 'lucide-react';
 import AddMemberModal from '../../src/components/commander/members/AddMemberModal';
 import ScanMemberModal from '../../src/components/commander/members/ScanMemberModal';
+import useDebounce from '../../src/hooks/useDebounce';
+import Pagination from '../../src/components/commander/shared/Pagination';
 const MemberDetailPanel = dynamic(() => import('../../src/components/commander/members/MemberDetailPanel'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
@@ -37,6 +39,8 @@ export default function MembersPage() {
     const [statusFilter, setStatusFilter] = useState('');
     const [tierFilter, setTierFilter] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+
+    useEffect(() => { setPage(1); }, [statusFilter, tierFilter]);
 
     // Modals
     const [showAddModal, setShowAddModal] = useState(false);
@@ -90,10 +94,12 @@ export default function MembersPage() {
 
     // Search debounce
     const [searchInput, setSearchInput] = useState('');
+    const debouncedSearchInput = useDebounce(searchInput, 300);
+
     useEffect(() => {
-        const t = setTimeout(() => { setSearch(searchInput); setPage(1); }, 300);
-        return () => clearTimeout(t);
-    }, [searchInput]);
+        setSearch(debouncedSearchInput);
+        setPage(1);
+    }, [debouncedSearchInput]);
 
     const handleMemberCreated = (newMember) => {
         setMembers(prev => [newMember, ...prev]);
@@ -374,15 +380,12 @@ export default function MembersPage() {
                                     </div>
 
                                     {/* Pagination */}
-                                    {total > 50 && (
-                                        <div className="flex items-center justify-center gap-3 mt-6">
-                                            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
-                                                className="px-4 py-2 bg-[#3A3B3C] text-[#B0B3B8] rounded-lg text-sm disabled:opacity-50">Previous</button>
-                                            <span className="text-sm text-[#B0B3B8]">Page {page} of {Math.ceil(total / 50)}</span>
-                                            <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(total / 50)}
-                                                className="px-4 py-2 bg-[#3A3B3C] text-[#B0B3B8] rounded-lg text-sm disabled:opacity-50">Next</button>
-                                        </div>
-                                    )}
+                                    <Pagination
+                                        className="mt-6"
+                                        currentPage={page}
+                                        totalPages={Math.ceil(total / 50)}
+                                        onPageChange={setPage}
+                                    />
                                 </>
                             )}
                         </div>

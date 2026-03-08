@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import MistakeCluster from '../../../src/components/training/MistakeCluster';
+import GhostReplayEngine from '../../../src/components/training/GhostReplayEngine';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH HELPER
@@ -108,6 +109,7 @@ export default function SessionDashboardPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [activeReplay, setActiveReplay] = useState(null); // { sessionName, handHistory }
 
     // Fetch all data
     const fetchData = useCallback(async () => {
@@ -420,9 +422,24 @@ export default function SessionDashboardPage() {
                                                         fontSize: 14, fontWeight: 900,
                                                         fontFamily: "'Orbitron', monospace",
                                                         color: acc >= 70 ? '#22c55e' : acc >= 50 ? '#f97316' : '#ef4444',
+                                                        marginRight: 8
                                                     }}>
                                                         {Math.round(acc)}%
                                                     </span>
+
+                                                    {s.hand_history && s.hand_history.length > 0 && (
+                                                        <button
+                                                            onClick={() => setActiveReplay({ sessionName: s.game_id || 'Session', handHistory: s.hand_history })}
+                                                            style={{
+                                                                background: 'rgba(0, 212, 255, 0.1)',
+                                                                border: '1px solid rgba(0, 212, 255, 0.3)',
+                                                                color: '#00d4ff', borderRadius: 6,
+                                                                padding: '4px 10px', fontSize: 10, fontWeight: 700,
+                                                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4
+                                                            }}>
+                                                            ▶ REPLAY
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -534,6 +551,14 @@ export default function SessionDashboardPage() {
                     </div>
                 </div>
             </div>
+            {/* Phase 25: Ghost Replay Engine Overlay */}
+            {activeReplay && (
+                <GhostReplayEngine
+                    sessionName={activeReplay.sessionName}
+                    handHistory={activeReplay.handHistory}
+                    onClose={() => setActiveReplay(null)}
+                />
+            )}
         </>
     );
 }

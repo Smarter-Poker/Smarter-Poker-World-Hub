@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { Plus, Trophy, Clock, Users, DollarSign, Calendar, Play, ChevronRight, Filter, Loader2, RefreshCw, Sliders } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
+import Pagination from '../../../src/components/commander/shared/Pagination';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
 
@@ -73,6 +74,8 @@ export default function CommanderTournamentsPage() {
   const [showCreateModal, setShowCreate] = useState(false);
   const [page, setPage] = useState(1);
 
+  useEffect(() => { setPage(1); }, [filter]);
+
   /* ─── Init staff session ─── */
   useEffect(() => {
     const raw = localStorage.getItem('commander_staff');
@@ -112,7 +115,24 @@ export default function CommanderTournamentsPage() {
   const activeTournaments = useMemo(() => tournaments.filter(t => ['running', 'paused', 'break', 'final_table'].includes(t.status)), [tournaments]);
   const upcomingTournaments = useMemo(() => tournaments.filter(t => ['scheduled', 'registration', 'registering'].includes(t.status)), [tournaments]);
   const completedTournaments = useMemo(() => tournaments.filter(t => ['completed', 'cancelled'].includes(t.status)), [tournaments]);
-  const paginated = useMemo(() => tournaments.slice(0, page * 25), [tournaments, page]);
+
+  const ITEMS_PER_PAGE = 25;
+  const filteredTournaments = useMemo(() => {
+    switch (filter) {
+      case 'active': return activeTournaments;
+      case 'upcoming': return upcomingTournaments;
+      case 'completed': return completedTournaments;
+      case 'current_future': return [...activeTournaments, ...upcomingTournaments];
+      case 'all': default: return tournaments;
+    }
+  }, [tournaments, activeTournaments, upcomingTournaments, completedTournaments, filter]);
+
+  const totalPages = Math.ceil(filteredTournaments.length / ITEMS_PER_PAGE);
+  const paginated = useMemo(() => filteredTournaments.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE), [filteredTournaments, page]);
+
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) setPage(totalPages);
+  }, [totalPages, page]);
 
   /* ─── Loading state ─── */
   if (!staff || loading) {
@@ -349,14 +369,12 @@ export default function CommanderTournamentsPage() {
                 );
               })}
 
-              {tournaments.length > paginated.length && (
-                <button
-                  onClick={() => setPage(p => p + 1)}
-                  style={{ ...S.panel, width: '100%', padding: '14px', textAlign: 'center', color: '#B0B3B8', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none' }}
-                >
-                  Load More Tournaments
-                </button>
-              )}
+              <Pagination
+                className="mt-4"
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </div>
           )}
         </div>

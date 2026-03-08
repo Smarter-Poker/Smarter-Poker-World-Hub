@@ -22,6 +22,7 @@ import dynamic from 'next/dynamic';
 import Confetti from 'react-confetti';
 import TRAINING_CONFIG from '../../config/trainingConfig';
 import { getGameById } from '../../data/TRAINING_LIBRARY';
+import { enqueueMutation } from '../../engine/OfflineSyncQueue';
 
 // ALL GAMES use full-screen immersive UI with GameUIRouter
 const FULL_SCREEN_UI_GAMES = [
@@ -840,36 +841,48 @@ function GodModeArena({
                     if (h.classification) classCounts[h.classification] = (classCounts[h.classification] || 0) + 1;
                 });
 
-                await fetch('/api/training/save-session', {
+                const payload = {
+                    gameId,
+                    gameName,
+                    gtowScore,
+                    totalEVLoss,
+                    handsPlayed: totalQuestions,
+                    mistakeCount: sessionMistakes,
+                    avgEVLossPerHand,
+                    avgEVLossPerMistake,
+                    avgFrequencyDiff,
+                    accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
+                    correctCount,
+                    bestStreak,
+                    levelPassed,
+                    level: currentLevel,
+                    handHistory: handHistory.slice(0, 100),
+                    positionStats: posStats,
+                    classificationCounts: classCounts,
+                    trainerConfig,
+                };
+
+                const res = await fetch('/api/training/save-session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${user.session.access_token}`,
                     },
-                    body: JSON.stringify({
-                        gameId,
-                        gameName,
-                        gtowScore,
-                        totalEVLoss,
-                        handsPlayed: totalQuestions,
-                        mistakeCount: sessionMistakes,
-                        avgEVLossPerHand,
-                        avgEVLossPerMistake,
-                        avgFrequencyDiff,
-                        accuracy: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-                        correctCount,
-                        bestStreak,
-                        levelPassed,
-                        level: currentLevel,
-                        handHistory: handHistory.slice(0, 100),
-                        positionStats: posStats,
-                        classificationCounts: classCounts,
-                        trainerConfig,
-                    }),
+                    body: JSON.stringify(payload),
                 });
-                console.log('[GodModeArena] Session saved to database');
+
+                if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+                console.log('[GodModeArena] Session saved directly to database');
+
             } catch (e) {
-                console.warn('[GodModeArena] save-session failed:', e.message);
+                console.warn('[GodModeArena] Network save failed, queueing to OfflineSyncQueue:', e.message);
+                const { getAuthUser } = await import('../../lib/authUtils');
+                const user = getAuthUser();
+                if (user?.session?.access_token) {
+                    await enqueueMutation('/api/training/save-session', payload, {
+                        'Authorization': `Bearer ${user.session.access_token}`
+                    });
+                }
             }
         };
         saveSession();

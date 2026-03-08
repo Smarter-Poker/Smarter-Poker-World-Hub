@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, AlertTriangle, CreditCard, QrCode, Link2, Copy, CheckCircle, Search } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import useDebounce from '../../src/hooks/useDebounce';
+import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 
@@ -54,6 +55,11 @@ export default function CommanderStaffPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchQuery = useDebounce(searchTerm, 300);
+
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => { setPage(1); }, [debouncedSearchQuery]);
 
   // Check staff session
   useEffect(() => {
@@ -281,6 +287,13 @@ export default function CommanderStaffPage() {
     return name.includes(q) || roleMatch;
   });
 
+  const totalPages = Math.ceil(filteredStaff.length / ITEMS_PER_PAGE);
+  const paginatedStaff = filteredStaff.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) setPage(totalPages);
+  }, [totalPages, page]);
+
   // Generate link code for staff member
   async function handleGenerateLinkCode(staffId) {
     setLinkCodeLoading(staffId);
@@ -374,10 +387,10 @@ export default function CommanderStaffPage() {
               </div>
 
               <div className="cmd-panel divide-y divide-[#3A3B3C]">
-                {filteredStaff.length === 0 ? (
+                {paginatedStaff.length === 0 ? (
                   <div className="p-8 text-center text-[#B0B3B8]">No staff matched your search</div>
                 ) : (
-                  filteredStaff.map((staff) => {
+                  paginatedStaff.map((staff) => {
                     const role = ROLES.find(r => r.value === staff.role) || ROLES[4];
                     return (
                       <div
@@ -484,10 +497,19 @@ export default function CommanderStaffPage() {
                         )}
                       </div>
                     );
-                  })}
+                  })
+                )}
               </div>
+
+              <Pagination
+                className="mt-6"
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </>
           )}
-            </main>
+        </main>
       </div>
 
       {/* Add/Edit Modal */}

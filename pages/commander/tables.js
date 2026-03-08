@@ -11,6 +11,7 @@ import Image from 'next/image';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Trash2, Table2, Users, Loader2, Play, Square, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import Pagination from '../../src/components/commander/shared/Pagination';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const STATUS_COLORS = {
@@ -76,6 +77,12 @@ export default function CommanderTablesPage() {
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const totalPages = Math.ceil(tables.length / 24);
+    if (page > totalPages && totalPages > 0) setPage(totalPages);
+  }, [tables.length, page]);
 
   // Start Game state
   const [showStartGame, setShowStartGame] = useState(false);
@@ -340,9 +347,13 @@ export default function CommanderTablesPage() {
     );
   }
 
+  // Apply pagination first
+  const ITEMS_PER_PAGE = 24;
+  const paginatedTables = tables.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
   // Separate tables into active (with game) and idle (no game)
-  const activeTables = tables.filter(t => getGameForTable(t));
-  const idleTables = tables.filter(t => !getGameForTable(t));
+  const activeTables = paginatedTables.filter(t => getGameForTable(t));
+  const idleTables = paginatedTables.filter(t => !getGameForTable(t));
 
   return (
     <CommanderLayout title={`Table Management | ${venue?.name || 'Commander'}`} backHref="/commander/dashboard?card=floor">
@@ -911,6 +922,15 @@ export default function CommanderTablesPage() {
                   </div>
                 )}
               </div>
+            )}
+
+            {tables.length > 0 && (
+              <Pagination
+                className="mt-8"
+                currentPage={page}
+                totalPages={Math.ceil(tables.length / ITEMS_PER_PAGE)}
+                onPageChange={setPage}
+              />
             )}
           </main>
         </div>
