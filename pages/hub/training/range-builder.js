@@ -88,7 +88,7 @@ function BuilderCell({ hand, isSelected, isDiffMode, diffResult, onToggle, size 
             style={{
                 width: size, height: size,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: size > 28 ? 10 : 8, fontWeight: 700,
+                fontSize: typeof size === 'number' ? (size > 28 ? 10 : 8) : 'clamp(7px, 2vw, 10px)', fontWeight: 700,
                 fontFamily: "'Inter', sans-serif",
                 cursor: isDiffMode ? 'default' : 'pointer',
                 borderRadius: 2,
@@ -222,7 +222,10 @@ export default function RangeBuilder() {
         try {
             const res = await fetch('/api/training/grade-range', {
                 method: 'POST',
-                headers: getAuthHeaders(),
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders(),
+                },
                 body: JSON.stringify({
                     position,
                     scenario: 'rfi',

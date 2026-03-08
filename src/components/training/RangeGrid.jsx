@@ -469,10 +469,10 @@ export default function RangeGrid({ gridData, actions = [], cellSize = 30, onHan
                 {/* 13×13 Grid */}
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(13, 1fr)',
+                    gridTemplateColumns: typeof cellSize === 'string' ? `repeat(13, ${cellSize})` : 'repeat(13, 1fr)',
                     gap: 1,
                     width: '100%',
-                    maxWidth: 13 * cellSize + 12,
+                    ...(typeof cellSize === 'number' ? { maxWidth: 13 * cellSize + 12 } : {}),
                     margin: '0 auto',
                 }}>
                     {grid.flat()}

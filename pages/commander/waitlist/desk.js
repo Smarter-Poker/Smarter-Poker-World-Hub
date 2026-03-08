@@ -214,7 +214,7 @@ export default function WaitlistDesk() {
       else setSmsStatus({ type: 'none', text: 'Called — Notifications Unavailable' });
       await fetchData();
       broadcastChange('waitlist');
-      busEmit.screenFlash('info');
+      busEmit.screenFlash('#1877F2', 300);
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
     finally { setCallLoading(null); }

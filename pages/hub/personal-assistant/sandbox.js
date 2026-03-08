@@ -29,9 +29,9 @@ import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/Equit
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import {
-  FrequencyBar, RangeMatrix, classifyBoardTexture, BoardTextureHUD,
+  FrequencyBar, RangeMatrix, classifyBoardTexture,
   ActionHistoryBuilder, SizingSensitivity, TreeVisualization,
-  OnboardingTour, ShareAnalysisModal, StreetTimeline, EquityGauge, AnalysisSkeleton,
+  OnboardingTour, ShareAnalysisModal, StreetTimeline, AnalysisSkeleton,
   PreflopChartOverlay, RunoutChart, ExploitToggle,
   QuizPanel, StudyReplayCard, AccuracyBadge,
   WeeklySpotBanner, LeaderboardCard,
@@ -1154,198 +1154,11 @@ export default function VirtualSandbox() {
             <RunoutChart runoutData={runoutData} />
           )}
 
-          {/* Your Hand */}
-          <div id="hero-setup" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, fontWeight: 700 }}>Your Hand</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', position: 'relative', flexWrap: 'wrap' }}>
-              <span style={{ color: '#B0B3B8', fontSize: 12, minWidth: 45 }}>Hand:</span>
-              <CardSlot card={heroHand.card1} label="1" onClick={() => { setDeckTarget('hero1'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card1: null }))} />
-              <CardSlot card={heroHand.card2} label="2" onClick={() => { setDeckTarget('hero2'); setShowDeck(true); }} onRemove={() => setHeroHand(h => ({ ...h, card2: null }))} />
-              <VisualDeckPicker isOpen={showDeck} onSelect={handleDeckSelect} usedCards={allUsedCards} onClose={() => setShowDeck(false)} />
-            </div>
-            <div className="sandbox-hero-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Position<HelpTip text="Your seat at the table. BTN (Button) acts last and has the most advantage." /></label>
-                <select value={heroPosition} onChange={e => setHeroPosition(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Stack<HelpTip text="How many big blinds you have. 100BB is the standard starting stack." /></label>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={heroStack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    setHeroStack(val === 0 ? '' : val);
-                  }}
-                  onBlur={() => setHeroStack(h => h || 100)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ color: '#B0B3B8', fontSize: 10, display: 'flex', alignItems: 'center', marginBottom: 4 }}>Game<HelpTip text="Cash game or tournament. Strategy differs between formats." /></label>
-                <select value={gameType} onChange={e => setGameType(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: 6, fontSize: 12, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {GAME_TYPES.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Board Builder */}
-          <div id="board-builder" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Board</h3>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button onClick={randomBoard} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>Random</button>
-                {board.flop.length === 3 && !board.river && (
-                  <button onClick={dealNextStreet} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.15)', border: 'none', color: '#86efac', cursor: 'pointer' }}>
-                    Deal {!board.turn ? 'Turn' : 'River'}
-                  </button>
-                )}
-                {results && board.flop.length === 3 && !board.river && (
-                  <button onClick={() => { pushUndo(); dealAndAnalyze(); }} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.15)', border: 'none', color: '#4599FF', cursor: 'pointer' }}>
-                    Deal + Analyze
-                  </button>
-                )}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
-              {board.flop.map((c, i) => <CardSlot key={`f${i}`} card={c} onRemove={() => { const f = [...board.flop]; f.splice(i, 1); setBoard({ flop: f, turn: null, river: null }); }} />)}
-              {board.flop.length < 3 && <CardSlot label="Flop" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} />}
-              {board.flop.length === 3 && <div style={{ width: 2, height: 40, background: '#3A3B3C', margin: '0 2px' }} />}
-              {board.flop.length === 3 && <CardSlot card={board.turn} label="T" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, turn: null, river: null }))} />}
-              {board.turn && <CardSlot card={board.river} label="R" onClick={() => { setDeckTarget('board'); setShowDeck(true); }} onRemove={() => setBoard(b => ({ ...b, river: null }))} />}
-            </div>
-
-            {/* Quick Scenario Presets (Improvement #2) */}
-            {!heroHand.card1 && board.flop.length === 0 && (
-              <div style={{ background: 'rgba(35,116,225,0.08)', borderRadius: 10, border: '1px solid rgba(35,116,225,0.15)', padding: '12px', marginTop: '10px' }}>
-                <div style={{ color: '#4599FF', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Quick Start - Common Spots</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  {QUICK_PRESETS.map((preset, i) => (
-                    <button key={i} onClick={() => {
-                      setHeroHand(preset.hand); setHeroPosition(preset.position);
-                      setHeroStack(preset.stack); setBoard(preset.board); setGameType(preset.gameType);
-                      setVillains([{ position: preset.position === 'BB' ? 'SB' : 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: preset.stack }]);
-                    }} style={{ padding: '8px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'rgba(35,116,225,0.15)'}
-                      onMouseOut={e => e.currentTarget.style.background = '#3A3B3C'}>
-                      {preset.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}</div>
-
-          {/* Villains */}
-          <div style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Opponents ({villains.length})</h3>
-              <button onClick={() => { if (villains.length >= 8) return; const used = [heroPosition, ...villains.map(v => v.position)]; setVillains([...villains, { position: POSITIONS.find(p => !used.includes(p)) || 'BB', archetype: { id: 'gto_neutral', name: 'GTO Neutral' }, stack: heroStack }]); }}
-                disabled={villains.length >= 8} style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80', cursor: 'pointer', opacity: villains.length >= 8 ? 0.4 : 1 }}>+ Add</button>
-            </div>
-            {villains.map((v, i) => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '70px 1fr 60px 24px', gap: '6px', alignItems: 'center', marginBottom: '6px' }}>
-                <select value={v.position} onChange={e => { const u = [...villains]; u[i] = { ...u[i], position: e.target.value }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select value={v.archetype?.id || 'gto_neutral'} onChange={e => { const u = [...villains]; u[i] = { ...u[i], archetype: archetypes.find(a => a.id === e.target.value) || { id: e.target.value } }; setVillains(u); }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
-                  {archetypes.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-                <input type="text" inputMode="numeric" pattern="[0-9]*"
-                  value={v.stack}
-                  onChange={e => {
-                    const val = Math.min(500, parseInt(e.target.value.replace(/\D/g, '') || '0', 10));
-                    const u = [...villains];
-                    u[i] = { ...u[i], stack: val === 0 ? '' : val };
-                    setVillains(u);
-                  }}
-                  onBlur={() => {
-                    const u = [...villains];
-                    u[i] = { ...u[i], stack: v.stack || 100 };
-                    setVillains(u);
-                  }}
-                  style={{ padding: '4px 6px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', width: '100%', boxSizing: 'border-box' }} />
-                <button onClick={() => villains.length > 1 && setVillains(villains.filter((_, j) => j !== i))} disabled={villains.length <= 1}
-                  style={{ background: 'none', border: 'none', color: villains.length <= 1 ? '#4E4F50' : '#ef4444', cursor: 'pointer', fontSize: 14 }}>×</button>
-              </div>
-            ))}
-          </div>
-
-          {/* Action History */}
-          <div id="action-history">
-            <ActionHistoryBuilder actions={actionHistory}
-              onAdd={a => setActionHistory([...actionHistory, a])}
-              onRemove={i => setActionHistory(actionHistory.filter((_, j) => j !== i))}
-              potSize={potSize} />
-          </div>
-
-          {/* Pot Size — Editable per-street */}
-          <div className="pot-size-editor" style={{ background: '#242526', borderRadius: 12, border: '1px solid #3A3B3C', padding: '14px', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <h3 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.5, margin: 0, fontWeight: 700 }}>Pot Size (BB)</h3>
-              <button onClick={() => { skipPotCalcRef.current = false; setActionHistory([...actionHistory]); }}
-                style={{ padding: '3px 8px', borderRadius: 5, fontSize: 10, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', touchAction: 'manipulation' }}>Auto-Calc</button>
-            </div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
-              <input
-                type="text" inputMode="decimal" pattern="[0-9.]*"
-                className="pot-input"
-                value={potSize}
-                onChange={e => {
-                  const val = parseFloat(e.target.value.replace(/[^\d.]/g, ''));
-                  skipPotCalcRef.current = true;
-                  setPotSize(isNaN(val) ? '' : val);
-                }}
-                onBlur={() => { if (!potSize && potSize !== 0) setPotSize(1.5); }}
-                style={{
-                  flex: 1, padding: '10px 12px', borderRadius: 8, fontSize: 16, fontWeight: 700,
-                  background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB',
-                  fontFamily: "'Orbitron',monospace", textAlign: 'center',
-                  minHeight: 44, touchAction: 'manipulation', boxSizing: 'border-box',
-                }}
-              />
-              <span style={{ color: '#65676B', fontSize: 12, fontWeight: 700, minWidth: 24 }}>BB</span>
-            </div>
-            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-              {[3, 6, 10, 15, 20, 30, 50].map(p => (
-                <button key={p} onClick={() => { skipPotCalcRef.current = true; setPotSize(p); }}
-                  style={{
-                    padding: '6px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                    background: potSize === p ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-                    border: `1px solid ${potSize === p ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
-                    color: potSize === p ? '#4599FF' : '#B0B3B8', cursor: 'pointer',
-                    touchAction: 'manipulation', minHeight: 32,
-                  }}>{p}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* Run Analysis */}
-          <div id="run-analysis">
-            <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
-              whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-              style={{
-                width: '100%', padding: '14px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none',
-                cursor: isAnalyzing ? 'wait' : 'pointer',
-                background: (!heroHand.card1 || !heroHand.card2) ? '#3A3B3C' : isAnalyzing ? 'rgba(35,116,225,0.3)' : 'linear-gradient(135deg,#2374E1,#4599FF)',
-                color: (!heroHand.card1 || !heroHand.card2) ? '#65676B' : '#fff',
-                fontFamily: "'Orbitron',sans-serif", letterSpacing: 1,
-                boxShadow: (!heroHand.card1 || !heroHand.card2) ? 'none' : '0 4px 20px rgba(35,116,225,0.3)',
-              }}>
-              {isAnalyzing ? 'Running Analysis...' : 'Analyze Hand'}
-            </motion.button>
-            {isAnalyzing && <AnalysisSkeleton />}
-          </div>
-
           {/* Position Comparison — Feature #11 */}
           {results && (
-            <div style={{ marginTop: '12px', background: '#242526', borderRadius: 10, padding: '12px' }}>
-              <h4 style={{ color: '#B0B3B8', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 8px', fontWeight: 700 }}>Compare from another position</h4>
-              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <div style={{ marginTop: '8px', background: '#242526', borderRadius: 10, padding: '10px' }}>
+              <h4 style={{ color: '#B0B3B8', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 6px', fontWeight: 700 }}>Compare Position</h4>
+              <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
                 {POSITIONS.map(p => {
                   const isCurrentTarget = comparePosition ? comparePosition === p : heroPosition === p;
                   return (
@@ -1360,7 +1173,7 @@ export default function VirtualSandbox() {
                       }}
                       disabled={isAnalyzing}
                       style={{
-                        padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                        padding: '3px 8px', borderRadius: 5, fontSize: 10, fontWeight: 600,
                         background: isCurrentTarget ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
                         border: '1px solid #4E4F50', color: isCurrentTarget ? '#4599FF' : '#B0B3B8',
                         cursor: isAnalyzing ? 'not-allowed' : 'pointer', opacity: isAnalyzing ? 0.5 : 1,
@@ -1372,12 +1185,22 @@ export default function VirtualSandbox() {
           )}
 
           {error && (
-            <div style={{ marginTop: '10px', padding: '10px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 12 }}>
+            <div style={{ marginTop: '8px', padding: '8px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 11 }}>
               {error}
             </div>
           )}
         </div>
       </div>
+
+      {/* GLOBAL DECK PICKER — dual-card mode with progress */}
+      <VisualDeckPicker
+        isOpen={showDeck}
+        onSelect={handleDeckSelect}
+        usedCards={allUsedCards}
+        onClose={() => { setShowDeck(false); setDeckTarget(null); setHeroPickStep(0); }}
+        mode={deckTarget === 'hero' ? 'hero' : deckTarget === 'board' ? 'board' : 'single'}
+        pickProgress={heroPickStep}
+      />
 
       {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */}
       <AnimatePresence>
@@ -1668,25 +1491,15 @@ export default function VirtualSandbox() {
             font-size: 13px !important;
           }
 
-          /* --- Analyze Button: sticky bottom CTA --- */
+          /* --- Analyze Button: inline (not fixed) --- */
           #run-analysis {
-            position: fixed !important;
-            bottom: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            z-index: 45 !important;
-            padding: 10px 14px !important;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
-            background: rgba(24, 25, 26, 0.92) !important;
-            backdrop-filter: blur(12px) !important;
-            -webkit-backdrop-filter: blur(12px) !important;
-            border-top: 1px solid #3A3B3C !important;
+            padding: 4px 12px !important;
           }
           #run-analysis button {
-            font-size: 16px !important;
-            padding: 16px !important;
-            min-height: 52px !important;
-            border-radius: 14px !important;
+            font-size: 15px !important;
+            padding: 14px !important;
+            min-height: 50px !important;
+            border-radius: 12px !important;
           }
 
           /* --- Results Panel: bottom-sheet feel --- */
@@ -1708,9 +1521,8 @@ export default function VirtualSandbox() {
             padding-top: calc(16px + env(safe-area-inset-top, 0px)) !important;
           }
 
-          /* --- Poker Table: compact --- */
+          /* --- Poker Table: vertical, fill width --- */
           .sandbox-table-wrap {
-            max-height: 200px;
             overflow: visible;
             border-radius: 12px;
           }
