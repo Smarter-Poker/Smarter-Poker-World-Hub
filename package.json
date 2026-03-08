@@ -8,7 +8,8 @@
     "nuke:dev": "npx kill-port 3000 && rm -rf .next node_modules/.cache && NODE_OPTIONS='--max-old-space-size=8192' next dev -p 3000",
     "build": "NODE_OPTIONS='--max-old-space-size=7168' next build",
     "start": "next start",
-    "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts"
+    "ingest:us-events": "npx ts-node --esm src/ingest_us_events/run.ts",
+    "warm-geeves": "node scripts/warmGeevesCache.js"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
