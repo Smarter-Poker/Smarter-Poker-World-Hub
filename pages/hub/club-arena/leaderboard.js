@@ -11,6 +11,7 @@ import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -42,7 +43,9 @@ const TIME_PERIODS = [
 ];
 
 export default function Leaderboard() {
-    const router = useRouter();
+        useTrainingBus('club-arena-leaderboard');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State

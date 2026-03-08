@@ -43,6 +43,7 @@ const apiCall = async (endpoint, body) => {
 };
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 
 // SmarterPoker Dark Color Scheme
@@ -78,7 +79,9 @@ const CATEGORIES = [
 ];
 
 export default function Marketplace() {
-    const router = useRouter();
+        useTrainingBus('club-arena-marketplace');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State

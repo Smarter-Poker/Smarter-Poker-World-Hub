@@ -10,6 +10,7 @@ import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -43,7 +44,9 @@ const api = async (action, params) => {
 };
 
 export default function UnionGames() {
-  const router = useRouter();
+      useTrainingBus('club-arena-union-games');
+
+const router = useRouter();
   const unionId = router.query?.union || null;
 
   const [user, setUser] = useState(null);
@@ -456,12 +459,12 @@ export default function UnionGames() {
                 </div>
                 {/* Info row */}
                 <div style={{ display: 'flex', gap: 12, fontSize: 12, color: FB.dim, flexWrap: 'wrap', marginBottom: 4 }}>
-                  <span>🏢 {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
+                  <span>[CLUB] {clubs.find(cl => cl.id === t.club_id)?.name || 'Unknown Club'}</span>
                   <span>🃏 {(t.game_type || 'NLHE').toUpperCase()} {(t.settings?.tournamentType || 'MTT').toUpperCase()}</span>
-                  <span>💰 Buy-in: {Number(t.buy_in).toLocaleString()}</span>
-                  <span>👥 {t.registered_count}/{t.max_players}</span>
-                  <span style={{ color: FB.gold }}>🏆 {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
-                  {t.start_time && <span>🕐 {new Date(t.start_time).toLocaleString()}</span>}
+                  <span>[CHIPS] Buy-in: {Number(t.buy_in).toLocaleString()}</span>
+                  <span>[PLAYERS] {t.registered_count}/{t.max_players}</span>
+                  <span style={{ color: FB.gold }}>[TROPHY] {Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}{Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}</span>
+                  {t.start_time && <span>[TIME] {new Date(t.start_time).toLocaleString()}</span>}
                 </div>
                 {/* Actions */}
                 {['scheduled', 'registering'].includes(t.status) && (
@@ -571,9 +574,9 @@ export default function UnionGames() {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '6px 0' }}>
           {[
-            { label: 'Club Arena', emoji: '🏠', href: '/hub/club-arena' },
-            { label: 'Dashboard', emoji: '🏛', href: `/hub/club-arena/union-dashboard?union=${unionId}` },
-            { label: 'Games', emoji: '🎮', href: null, active: true },
+            { label: 'Club Arena', emoji: '[HOME]', href: '/hub/club-arena' },
+            { label: 'Dashboard', emoji: '[UNION]', href: `/hub/club-arena/union-dashboard?union=${unionId}` },
+            { label: 'Games', emoji: '[GAME]', href: null, active: true },
           ].map(item => (
             item.href ? (
               <a key={item.label} href={item.href} style={{
@@ -1118,7 +1121,7 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
                 color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer',
                 opacity: actionProcessing ? 0.5 : 1,
               }}>
-              {actionProcessing === 'cancel_tournament' ? 'Cancelling...' : confirmKey === `cancel_tournament-${t.id}` ? 'Confirm Cancel?' : '✕ Cancel'}
+              {actionProcessing === 'cancel_tournament' ? 'Cancelling...' : confirmKey === `cancel_tournament-${t.id}` ? 'Confirm Cancel?' : '[X] Cancel'}
             </button>
           )}
         </div>

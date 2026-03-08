@@ -10,6 +10,7 @@ import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedState from '../../../src/hooks/usePersistedState';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -101,7 +102,9 @@ function ProfitSparkline({ activities }) {
 }
 
 export default function PlayerStats() {
-    const router = useRouter();
+        useTrainingBus('club-arena-player-stats');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State

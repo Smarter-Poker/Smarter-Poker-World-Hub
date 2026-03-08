@@ -10,6 +10,7 @@ import { usePersistedFilters } from '../../../src/hooks/usePersistedFilters';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -30,7 +31,9 @@ const SUIT_SYMBOLS = { h: '', d: '', c: '', s: '' };
 const SUIT_COLORS = { h: '#E74C3C', d: '#3498DB', c: '#27AE60', s: '#2C3E50' };
 
 export default function HandHistories() {
-    const router = useRouter();
+        useTrainingBus('club-arena-hand-histories');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State

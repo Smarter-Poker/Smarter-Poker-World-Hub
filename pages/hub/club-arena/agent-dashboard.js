@@ -13,6 +13,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -81,7 +82,9 @@ function Toast({ message, type }) {
 // ═══════════════════════════════════════════════════════════════
 
 export default function AgentDashboard() {
-    const router = useRouter();
+        useTrainingBus('club-arena-agent-dashboard');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);

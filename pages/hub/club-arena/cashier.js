@@ -9,6 +9,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -62,7 +63,9 @@ const apiCall = async (endpoint, body) => {
 };
 
 export default function Cashier() {
-    const router = useRouter();
+        useTrainingBus('club-arena-cashier');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State

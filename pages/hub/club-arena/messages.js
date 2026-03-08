@@ -17,6 +17,7 @@ import { createMultiDeviceAuthListener, persistSession } from '../../../src/util
 import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 // Local helper — reads token from localStorage (same pattern as other club-arena pages)
 const getAccessToken = () => {
     try {
@@ -168,7 +169,9 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const inputRef = useRef(null);
+        useTrainingBus('club-arena-messages');
+
+const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
     const emojis = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
@@ -1016,17 +1019,17 @@ export default function ClubMessages() {
                         <div style={{ flex: 1 }}>
                             <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{incomingCall.callerName}</div>
                             <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13 }}>
-                                Incoming {incomingCall.callType === 'video' ? '📹 Video' : '📞 Voice'} Call
+                                Incoming {incomingCall.callType === 'video' ? '[VIDEO] Video' : '[CALL] Voice'} Call
                             </div>
                         </div>
                         <button onClick={handleAcceptCall} style={{
                             background: '#31A24C', border: 'none', borderRadius: 50, width: 44, height: 44,
                             cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }} title="Accept">✓</button>
+                        }} title="Accept">[OK]</button>
                         <button onClick={handleRejectCall} style={{
                             background: '#FA383E', border: 'none', borderRadius: 50, width: 44, height: 44,
                             cursor: 'pointer', fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }} title="Reject">✕</button>
+                        }} title="Reject">[X]</button>
                     </div>
                 )}
 

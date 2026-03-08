@@ -10,6 +10,7 @@ import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -71,7 +72,9 @@ const apiGet = async (url) => {
 };
 
 export default function Admin() {
-    const router = useRouter();
+        useTrainingBus('club-arena-admin');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // Core state
@@ -528,7 +531,7 @@ export default function Admin() {
         { id: 'shop', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
         { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
-        { id: 'bbj', title: '🎰 BBJ Config', desc: 'Enable / disable Bad Beat Jackpot for this club', color: '#FFD700' },
+        { id: 'bbj', title: '[GAME] BBJ Config', desc: 'Enable / disable Bad Beat Jackpot for this club', color: '#FFD700' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -835,7 +838,7 @@ export default function Admin() {
                         </div>
                         <div style={S.modalBody}>
                             <div style={{ padding: '20px', background: 'rgba(250,56,62,0.1)', borderRadius: '8px', border: `1px solid ${FB.danger}` }}>
-                                <h3 style={{ color: FB.danger, fontSize: '16px', marginBottom: '8px' }}>⚠️ Delete Club</h3>
+                                <h3 style={{ color: FB.danger, fontSize: '16px', marginBottom: '8px' }}>[WARN] Delete Club</h3>
                                 <p style={{ color: FB.textSecondary, fontSize: '14px', marginBottom: '12px' }}>
                                     This action cannot be undone. All members, tables, and data will be permanently deleted.
                                 </p>
@@ -1426,7 +1429,7 @@ export default function Admin() {
                 <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
                     <div style={{ ...S.modal, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
                         <div style={S.modalHeader}>
-                            <span style={S.modalTitle}>🛡️ Anti-Cheat</span>
+                            <span style={S.modalTitle}>[SECURITY] Anti-Cheat</span>
                             <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
                         </div>
                         <div style={S.modalBody}>
@@ -1437,14 +1440,14 @@ export default function Admin() {
                                         color: acTab === tab ? '#fff' : FB.textSecondary,
                                         border: 'none', borderRadius: 8, padding: '8px 0',
                                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                    }}>{tab === 'flags' ? `🚩 Flags (${acFlags.length})` : `👁️ Sessions (${acSessions.length})`}</button>
+                                    }}>{tab === 'flags' ? `[FLAG] Flags (${acFlags.length})` : `[VIEW] Sessions (${acSessions.length})`}</button>
                                 ))}
                             </div>
                             {acLoading ? (
                                 <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 30 }}>Loading...</div>
                             ) : acTab === 'flags' ? (
                                 acFlags.length === 0 ? (
-                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>✅ No open flags — club is clean.</div>
+                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>[OK] No open flags — club is clean.</div>
                                 ) : acFlags.map((flag, i) => (
                                     <div key={flag.id || i} style={{
                                         background: FB.background, borderRadius: 10, padding: 14, marginBottom: 10,
@@ -1477,7 +1480,7 @@ export default function Admin() {
                                                     } catch (e) { showToast(e.message, 'error'); }
                                                     finally { setProcessing(false); }
                                                 }} style={{ background: verdict === 'kick' ? '#FF453A' : FB.hover, color: verdict === 'kick' ? '#fff' : FB.textSecondary, border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                                                    {verdict === 'kick' ? '⛔ Kick' : verdict === 'dismiss' ? 'Dismiss' : '✓ Reviewed'}
+                                                    {verdict === 'kick' ? '[BLOCKED] Kick' : verdict === 'dismiss' ? 'Dismiss' : '[OK] Reviewed'}
                                                 </button>
                                             ))}
                                         </div>
@@ -1501,7 +1504,7 @@ export default function Admin() {
                                                 setAcSessions(r.sessions || []);
                                             } catch (e) { showToast(e.message, 'error'); }
                                             finally { setProcessing(false); }
-                                        }} style={{ background: '#FF453A', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>⛔ Kick</button>
+                                        }} style={{ background: '#FF453A', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>[BLOCKED] Kick</button>
                                     </div>
                                 ))
                             )}
@@ -1792,7 +1795,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                     <div style={S.modalOverlay} onClick={() => { setActiveModal(null); setBbjConfig(null); }}>
                         <div style={{ ...S.modal, maxWidth: 420 }} onClick={e => e.stopPropagation()}>
                             <div style={S.modalHeader}>
-                                <span style={S.modalTitle}>🎰 Bad Beat Jackpot Config</span>
+                                <span style={S.modalTitle}>[GAME] Bad Beat Jackpot Config</span>
                                 <button style={S.modalClose} onClick={() => { setActiveModal(null); setBbjConfig(null); }}>&times;</button>
                             </div>
                             <div style={S.modalBody}>

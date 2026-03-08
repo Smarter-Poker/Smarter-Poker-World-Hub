@@ -11,6 +11,7 @@ import { getSafeUser, getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -41,7 +42,9 @@ const ROLE_BADGES = {
 };
 
 export default function Players() {
-    const router = useRouter();
+        useTrainingBus('club-arena-players');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
@@ -392,7 +395,7 @@ export default function Players() {
                                         <div style={S.playerName}>
                                             {member.profiles?.display_name || member.profiles?.username || 'Player'}
                                             {isMe && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
-                                            {notes[member.user_id] && <span style={{ marginLeft: 6, fontSize: 11, color: '#F7C52A' }} title={notes[member.user_id]}>📝</span>}
+                                            {notes[member.user_id] && <span style={{ marginLeft: 6, fontSize: 11, color: '#F7C52A' }} title={notes[member.user_id]}>[NOTES]</span>}
                                         </div>
                                         <div style={S.playerMeta}>
                                             <span style={{
@@ -517,7 +520,7 @@ export default function Players() {
                                                 setSelectedPlayer(null);
                                             }}
                                         >
-                                            {notes[selectedPlayer.user_id] ? '📝 Edit Note' : '📝 Add Note'}
+                                            {notes[selectedPlayer.user_id] ? '[NOTES] Edit Note' : '[NOTES] Add Note'}
                                         </button>
                                     </div>
                                 );
@@ -534,7 +537,7 @@ export default function Players() {
                     <div style={{ background: FB.cardBg, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, border: `1px solid ${FB.border}` }}
                         onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                            <h3 style={{ color: FB.textPrimary, fontSize: 16, fontWeight: 700, margin: 0 }}>📝 Note: {noteModal.name}</h3>
+                            <h3 style={{ color: FB.textPrimary, fontSize: 16, fontWeight: 700, margin: 0 }}>[NOTES] Note: {noteModal.name}</h3>
                             <button onClick={() => setNoteModal(null)} style={{ background: 'none', border: 'none', color: FB.textSecondary, fontSize: 20, cursor: 'pointer' }}>×</button>
                         </div>
                         <textarea

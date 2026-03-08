@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
   if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-  const { action, unionId, name, description, settings, clubId, adminUserId, adminRole } = req.body;
+  const { action, unionId, name, description, settings, clubId, adminUserId, adminRole, leaveRequestId } = req.body;
   if (!action) return res.status(400).json({ success: false, error: 'action required' });
 
   try {
@@ -360,17 +360,17 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, error: 'No clubs found in this union' });
       }
 
-      // Insert announcement into each target club
+      // Insert announcement into each target club using correct club_announcements table
       const announcements = targetClubIds.map(cid => ({
         club_id: cid,
         author_id: user.id,
+        title: `Union Announcement`,
         content: annMsg.trim(),
-        type: 'union_announcement',
-        created_at: new Date().toISOString(),
+        pinned: false,
       }));
 
       const { error: annErr } = await supabaseAdmin
-        .from('announcements')
+        .from('club_announcements')
         .insert(announcements);
 
       if (annErr) throw annErr;
@@ -389,35 +389,29 @@ export default async function handler(req, res) {
     if (action === 'list_leave') {
       const { data: leaveReqs } = await supabaseAdmin
         .from('union_leave_requests')
-        .select('*, clubs(name)')
+        .select('id, union_id, club_id, club_name, reason, status, requested_at, reviewed_by, reviewed_at')
         .eq('union_id', unionId)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('requested_at', { ascending: false });
 
-      const enriched = (leaveReqs || []).map(r => ({
-        ...r,
-        club_name: r.clubs?.name || r.club_id,
-      }));
-
-      return res.status(200).json({ success: true, leaveRequests: enriched });
+      return res.status(200).json({ success: true, leaveRequests: leaveReqs || [] });
     }
 
     if (action === 'approve_leave' || action === 'deny_leave') {
       if (callerAdmin.role !== 'union_lead') {
         return res.status(403).json({ success: false, error: 'Only union lead can handle leave requests' });
       }
-      const { leaveRequestId } = req.body;
       if (!leaveRequestId) return res.status(400).json({ success: false, error: 'leaveRequestId required' });
 
-      const { data: req_ } = await supabaseAdmin
+      const { data: leaveReq } = await supabaseAdmin
         .from('union_leave_requests')
         .select('club_id, status, union_id')
         .eq('id', leaveRequestId)
         .maybeSingle();
 
-      if (!req_) return res.status(404).json({ success: false, error: 'Leave request not found' });
-      if (req_.union_id !== unionId) return res.status(403).json({ success: false, error: 'Leave request belongs to a different union' });
-      if (req_.status !== 'pending') return res.status(400).json({ success: false, error: `Already ${req_.status}` });
+      if (!leaveReq) return res.status(404).json({ success: false, error: 'Leave request not found' });
+      if (leaveReq.union_id !== unionId) return res.status(403).json({ success: false, error: 'Leave request belongs to a different union' });
+      if (leaveReq.status !== 'pending') return res.status(400).json({ success: false, error: `Already ${leaveReq.status}` });
 
       const newStatus = action === 'approve_leave' ? 'approved' : 'denied';
 
@@ -428,8 +422,8 @@ export default async function handler(req, res) {
 
       if (action === 'approve_leave') {
         // Remove club from union
-        await supabaseAdmin.from('union_clubs').delete().eq('union_id', unionId).eq('club_id', req_.club_id);
-        await supabaseAdmin.from('clubs').update({ union_id: null }).eq('id', req_.club_id).eq('union_id', unionId);
+        await supabaseAdmin.from('union_clubs').delete().eq('union_id', unionId).eq('club_id', leaveReq.club_id);
+        await supabaseAdmin.from('clubs').update({ union_id: null }).eq('id', leaveReq.club_id).eq('union_id', unionId);
       }
 
       return res.status(200).json({ success: true, status: newStatus });

@@ -10,6 +10,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -38,7 +39,9 @@ async function api(action, params) {
 }
 
 export default function TournamentsPage() {
-  const router = useRouter();
+      useTrainingBus('club-arena-tournaments');
+
+const router = useRouter();
   const { club: clubId } = router.query;
 
   const [user, setUser] = useState(null);

@@ -10,6 +10,7 @@ import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import dynamic from 'next/dynamic';
 import usePersistedState from '../../../src/hooks/usePersistedState';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const FB = {
@@ -70,7 +71,9 @@ const ALL_TABS = [
 ];
 
 export default function UnionDashboard() {
-    const router = useRouter();
+        useTrainingBus('club-arena-union-dashboard');
+
+const router = useRouter();
     const unionIdParam = router.query?.union || null;
 
     const [user, setUser] = useState(null);

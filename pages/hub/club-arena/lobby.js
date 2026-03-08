@@ -16,6 +16,7 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 import useDebounce from '../../../src/hooks/useDebounce';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -59,7 +60,9 @@ const apiGet = async (url) => {
 };
 
 export default function ClubLobby() {
-    const router = useRouter();
+        useTrainingBus('club-arena-lobby');
+
+const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);
