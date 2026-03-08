@@ -24,9 +24,9 @@ import { useAvatar } from '../../src/contexts/AvatarContext';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
-import { getPokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
-import { addSearchHistory as addSearchHistoryToDb, getSearchHistory as getSearchHistoryFromDb } from '../../src/services/pokerNearMeSearchHistory';
+import { addSearchHistory as addSearchHistoryToDb } from '../../src/services/pokerNearMeSearchHistory';
+import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Dynamic imports — Canvas lobby (client-only, no SSR)
 const LobbyCanvas = dynamic(
@@ -154,6 +154,9 @@ export default function PokerNearMeLobby() {
   const userId = user?.id;
   const avatarUrl = user?.user_metadata?.avatar_url;
 
+  // 🚌 Bus — emit SESSION_START on mount, SESSION_END on unmount
+  useTrainingBus('poker-near-me-lobby');
+
   // ─── Core State ───
   const [activePod, setActivePod] = useState(null);
   const [showPanel, setShowPanel] = useState(false);
@@ -165,6 +168,7 @@ export default function PokerNearMeLobby() {
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [selectedVenueForReview, setSelectedVenueForReview] = useState(null);
+  const [gpsError, setGpsError] = useState(null);
 
   // ─── Data State ───
   const [venues, setVenues] = useState([]);
@@ -465,6 +469,9 @@ export default function PokerNearMeLobby() {
       (err) => {
         console.warn('GPS error:', err);
         setGpsActive(false);
+        // Brief visual feedback for GPS failure
+        setGpsError(err.code === 1 ? 'Location access denied' : 'Could not get location');
+        setTimeout(() => setGpsError(null), 3500);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -796,6 +803,7 @@ export default function PokerNearMeLobby() {
           citySuggestions={citySuggestions}
           onCitySelect={handleCitySelect}
           onVoiceClick={() => setShowVoiceSearch(true)}
+          gpsError={gpsError}
         />
 
 

@@ -91,6 +91,7 @@ export default function LobbyCanvas() {
   useEffect(() => {
     const img = new Image();
     img.onload = () => setBgLoaded(true);
+    img.onerror = () => console.warn('[LobbyCanvas] Background image failed to load, using fallback gradient');
     img.src = '/images/lobby-bg/default.png';
   }, []);
 

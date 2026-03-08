@@ -39,6 +39,7 @@ function PodGridItem({ pod, isActive, onSelect }) {
       onClick={() => onSelect(pod.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      aria-label={`Open ${pod.label}`}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -210,6 +211,7 @@ export default function LobbyOverlay({
   citySuggestions = [],
   onCitySelect,
   onVoiceClick,
+  gpsError,
 }) {
   const searchRef = useRef(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -267,6 +269,7 @@ export default function LobbyOverlay({
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
               autoComplete="off"
+              aria-label="Search for poker venues by city, venue name, or zip code"
             />
 
             {/* Voice Search Button */}
@@ -355,6 +358,17 @@ export default function LobbyOverlay({
         </form>
       </header>
 
+      {/* GPS Error Toast */}
+      {gpsError && (
+        <div style={{
+          textAlign: 'center', padding: '6px 16px',
+          fontSize: 12, color: '#ff6b6b', fontFamily: 'Inter, sans-serif',
+          letterSpacing: 0.5, pointerEvents: 'none',
+        }} role="alert">
+          {gpsError}
+        </div>
+      )}
+
       {/* ═══ POD GRID — Dynamic images below search ═══ */}
       <div style={{
         flex: 1,
@@ -415,6 +429,7 @@ export default function LobbyOverlay({
               onClick={() => onPodSelect?.(item.id)}
               onMouseEnter={() => setIsHovered(true)}
               onMouseLeave={() => setIsHovered(false)}
+              aria-label={`Open ${item.label}`}
             >
               <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
               <span className="lobby-dock-label" style={{
