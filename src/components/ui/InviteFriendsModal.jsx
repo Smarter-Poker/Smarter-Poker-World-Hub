@@ -28,10 +28,16 @@ export default function InviteFriendsModal({
     contacts = [],
     onOpenChat = () => { },
     onSearch = () => { },
-    searchResults = []
+    searchResults = [],
+    // Optional overrides — used by agent invite, club invite, etc.
+    customUrl = null,         // If set, skips player_number fetch and uses this URL directly
+    customTitle = null,       // Override share title
+    customMessage = null,     // Override share message
+    customCodeLabel = null,   // Override "Your Referral Code" footer label
+    customCodeValue = null,   // Override the code value shown in footer
 }) {
     const [playerNumber, setPlayerNumber] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!customUrl); // skip loading if custom URL provided
     const [copied, setCopied] = useState(false);
     const [canNativeShare, setCanNativeShare] = useState(false);
     const [q, setQ] = useState('');
@@ -41,9 +47,9 @@ export default function InviteFriendsModal({
         setCanNativeShare(typeof navigator !== 'undefined' && !!navigator.share);
     }, []);
 
-    // Fetch player number on open
+    // Fetch player number on open — skipped when customUrl is provided
     useEffect(() => {
-        if (!isOpen || !user?.id) return;
+        if (!isOpen || !user?.id || customUrl) return;
         setLoading(true);
         supabase
             .from('profiles')
@@ -55,13 +61,14 @@ export default function InviteFriendsModal({
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, [isOpen, user?.id]);
+    }, [isOpen, user?.id, customUrl]);
 
-    const referralUrl = playerNumber
+    const shareTitle = customTitle || SHARE_TITLE;
+    const referralUrl = customUrl || (playerNumber
         ? `https://smarter.poker/auth/signup?ref=${playerNumber}`
-        : 'https://smarter.poker';
-
-    const fullMessage = `${SHARE_MESSAGE}\n\n${referralUrl}`;
+        : 'https://smarter.poker');
+    const shareMsg = customMessage || SHARE_MESSAGE;
+    const fullMessage = `${shareMsg}\n\n${referralUrl}`;
 
     // Copy link handler
     const handleCopyLink = useCallback(async () => {
@@ -86,8 +93,8 @@ export default function InviteFriendsModal({
     const handleNativeShare = useCallback(async () => {
         try {
             await navigator.share({
-                title: SHARE_TITLE,
-                text: SHARE_MESSAGE,
+                title: shareTitle,
+                text: shareMsg,
                 url: referralUrl,
             });
         } catch (err) {
@@ -128,7 +135,7 @@ export default function InviteFriendsModal({
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
             ),
-            getUrl: () => `twitter://post?message=${encodeURIComponent(SHARE_MESSAGE + '\n' + referralUrl)}`,
+            getUrl: () => `twitter://post?message=${encodeURIComponent(shareMsg + '\n' + referralUrl)}`,
         },
         {
             name: 'Telegram',
@@ -138,7 +145,7 @@ export default function InviteFriendsModal({
                     <path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0a12 12 0 00-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                 </svg>
             ),
-            getUrl: () => `tg://msg_url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent(SHARE_MESSAGE)}`,
+            getUrl: () => `tg://msg_url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent(shareMsg)}`,
         },
         {
             name: 'Instagram',
@@ -179,7 +186,7 @@ export default function InviteFriendsModal({
                     <path d="M12 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 01-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 01.042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 014.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 01.14-.197.35.35 0 01.238-.042l2.906.617a1.214 1.214 0 011.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 00-.231.094.33.33 0 000 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 000-.462.342.342 0 00-.462 0c-.545.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 00-.205-.095z" />
                 </svg>
             ),
-            getUrl: () => `reddit://submit?url=${encodeURIComponent(referralUrl)}&title=${encodeURIComponent(SHARE_TITLE)}`,
+            getUrl: () => `reddit://submit?url=${encodeURIComponent(referralUrl)}&title=${encodeURIComponent(shareTitle)}`,
         },
         {
             name: 'Discord',
@@ -252,7 +259,10 @@ export default function InviteFriendsModal({
                             fontSize: 13,
                             color: 'rgba(255,255,255,0.5)',
                         }}>
-                            Earn <strong style={{ color: '#31A24C' }}>500 Diamonds</strong> For Every Friend Who Signs Up!
+                            {customUrl
+                                ? <span>{shareMsg}</span>
+                                : <>Earn <strong style={{ color: '#31A24C' }}>500 Diamonds</strong> For Every Friend Who Signs Up!</>
+                            }
                         </p>
                     </div>
                     <button
@@ -378,7 +388,7 @@ export default function InviteFriendsModal({
                 {/* Email & SMS */}
                 <div style={{ padding: '0 24px 16px', display: 'flex', gap: 10 }}>
                     <a
-                        href={`mailto:?subject=${encodeURIComponent(SHARE_TITLE)}&body=${encodeURIComponent(fullMessage)}`}
+                        href={`mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(fullMessage)}`}
                         style={{
                             flex: 1,
                             padding: '12px 16px',
@@ -571,9 +581,12 @@ export default function InviteFriendsModal({
                         color: 'rgba(255,255,255,0.3)',
                         lineHeight: 1.5,
                     }}>
-                        Your Referral Code: <strong style={{ color: '#1877F2' }}>#{playerNumber || '...'}</strong>
+                        {customCodeLabel || 'Your Referral Code'}: <strong style={{ color: '#1877F2' }}>{customCodeValue || `#${playerNumber || '...'}`}</strong>
                         <br />
-                        Friends Enter Your Code During Signup And You Earn 500 Diamonds Each Time
+                        {customUrl
+                            ? 'Share this link and let your friends join directly.'
+                            : 'Friends Enter Your Code During Signup And You Earn 500 Diamonds Each Time'
+                        }
                     </p>
                 </div>
             </div>

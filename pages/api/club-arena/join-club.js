@@ -1,11 +1,17 @@
 /**
  * POST /api/club-arena/join-club
- * Join a club by numeric code. Prevents duplicate membership.
- * 
- * Optional body fields:
- *   agentCode    - Agent's unique invite code (auto-assigns player to that agent)
- *   agentUserId  - Agent's user_id (admin-side assignment, requires owner/admin caller)
- * 
+ * Join a club by numeric club code.
+ *
+ * Agent assignment: every player on Smarter.Poker is assigned a player_number
+ * at signup (stored in profiles.player_number). Agents share their player_number
+ * as their referral/agent code. To be assigned to an agent, provide their
+ * player_number in the agentPlayerNumber field.
+ *
+ * Body:
+ *   clubCode          (required) — 5-digit club code
+ *   agentPlayerNumber (optional) — agent's player_number from profiles (their referral code)
+ *   agentUserId       (optional) — direct UUID assignment (owner/admin only)
+ *
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -26,24 +32,23 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { clubCode, agentCode, agentUserId: explicitAgentUserId } = req.body;
+    const { clubCode, agentPlayerNumber, agentUserId: explicitAgentUserId } = req.body;
     if (!clubCode) return res.status(400).json({ success: false, error: 'Club code required' });
 
-    // BUG #281: No rate limit — attacker could brute-force all numeric club codes
+    // Rate limit — prevent brute-force of club codes
     if (!applyRateLimit(req, res, 'club-arena/join-club')) return;
 
-    // Validate club code is a reasonable integer
     const codeNum = parseInt(clubCode);
     if (!Number.isFinite(codeNum) || codeNum <= 0) {
-      return res.status(400).json({ success: false, error: 'Invalid club code' });
+        return res.status(400).json({ success: false, error: 'Invalid club code' });
     }
 
     try {
-        // Find club
+        // Find club by 5-digit club_id
         const { data: club, error: findErr } = await supabaseAdmin
             .from('clubs')
             .select('id, member_count')
-            .eq('club_id', parseInt(clubCode))
+            .eq('club_id', codeNum)
             .maybeSingle();
 
         if (findErr || !club) {
@@ -51,49 +56,64 @@ export default async function handler(req, res) {
         }
 
         // Check existing membership
-        const { data: existing, error: existingErr } = await supabaseAdmin
+        const { data: existing } = await supabaseAdmin
             .from('club_members')
             .select('id')
             .eq('club_id', club.id)
             .eq('user_id', user.id)
             .maybeSingle();
 
-        if (existingErr) {
-            console.error('[join-club] Membership check error:', existingErr);
-            return res.status(500).json({ success: false, error: 'Failed to check membership' });
-        }
-
         if (existing) {
             return res.status(409).json({ success: false, error: 'You are already a member of this club' });
         }
 
         // ── Resolve agent assignment ──────────────────────────────────
-        // Priority: agentCode (player invite flow) > explicitAgentUserId (admin assign)
+        // Every player has a player_number (profiles.player_number) that serves
+        // as their referral/agent code. Agents share their player_number with
+        // players to get them assigned under them in the club hierarchy.
+        //
+        // Priority: agentPlayerNumber > explicitAgentUserId (admin-only)
         let resolvedAgentUserId = null;
+        let resolvedAgentPlayerNumber = null;
 
-        if (agentCode) {
-            // Player joined via agent's invite link/code
-            const { data: agentByCode } = await supabaseAdmin
-                .from('agents')
-                .select('user_id, status')
-                .eq('club_id', club.id)
-                .eq('invite_code', agentCode.trim().toUpperCase())
-                .eq('status', 'active')
-                .maybeSingle();
-            if (agentByCode) {
-                resolvedAgentUserId = agentByCode.user_id;
+        if (agentPlayerNumber) {
+            const pn = parseInt(agentPlayerNumber);
+            if (Number.isFinite(pn) && pn > 0) {
+                // Look up the profile by player_number to get their user_id
+                const { data: agentProfile } = await supabaseAdmin
+                    .from('profiles')
+                    .select('id, player_number')
+                    .eq('player_number', pn)
+                    .maybeSingle();
+
+                if (agentProfile) {
+                    // Verify they are an active agent in THIS club
+                    const { data: agentRecord } = await supabaseAdmin
+                        .from('agents')
+                        .select('user_id, status')
+                        .eq('club_id', club.id)
+                        .eq('user_id', agentProfile.id)
+                        .eq('status', 'active')
+                        .maybeSingle();
+
+                    if (agentRecord) {
+                        resolvedAgentUserId = agentRecord.user_id;
+                        resolvedAgentPlayerNumber = pn;
+                    }
+                    // If they exist on the platform but are not an agent in this club,
+                    // we silently ignore — they may be a player in another club
+                }
             }
         } else if (explicitAgentUserId) {
-            // Admin-side explicit assignment — verify caller is owner/admin
+            // Admin-side direct assignment — requires caller to be owner/admin
             const { data: callerMember } = await supabaseAdmin
                 .from('club_members')
                 .select('role')
                 .eq('club_id', club.id)
                 .eq('user_id', user.id)
                 .maybeSingle();
-            const isAdmin = callerMember && ['owner', 'admin'].includes(callerMember.role);
-            if (isAdmin) {
-                // Verify the target agent is active in this club
+
+            if (callerMember && ['owner', 'admin'].includes(callerMember.role)) {
                 const { data: agentCheck } = await supabaseAdmin
                     .from('agents')
                     .select('user_id')
@@ -120,21 +140,19 @@ export default async function handler(req, res) {
 
         if (joinErr) throw joinErr;
 
-        // Increment agent's active_player_count if assigned
+        // Atomically increment agent's player count
         if (resolvedAgentUserId) {
             await supabaseAdmin.rpc('fn_increment_agent_player_count', {
                 p_agent_user_id: resolvedAgentUserId,
                 p_club_id: club.id,
-            }).catch(() => {
-                // Non-fatal — count will reconcile on next settlement
-            });
+            }).catch(() => { /* non-fatal — reconciled at settlement */ });
         }
 
-        // Atomic member count increment — avoids race condition stale read
+        // Atomically increment club member count
         await supabaseAdmin.rpc('fn_increment_club_member_count', {
             p_club_id: club.id,
         }).catch(async () => {
-            // Fallback: non-atomic increment (acceptable if RPC doesn't exist yet)
+            // Fallback if RPC not yet deployed
             const { count } = await supabaseAdmin
                 .from('club_members')
                 .select('*', { count: 'exact', head: true })
@@ -150,6 +168,7 @@ export default async function handler(req, res) {
             club,
             agentAssigned: !!resolvedAgentUserId,
             agentUserId: resolvedAgentUserId,
+            agentPlayerNumber: resolvedAgentPlayerNumber,
         });
     } catch (err) {
         console.error('[join-club]', err);

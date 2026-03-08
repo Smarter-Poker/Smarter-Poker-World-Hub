@@ -10,6 +10,7 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 
@@ -108,6 +109,7 @@ export default function AgentDashboard() {
     // Invite code state
     const [inviteCode, setInviteCode] = useState(null);
     const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -425,7 +427,7 @@ export default function AgentDashboard() {
                             finally { setInviteCodeLoading(false); }
                         }}
                         inviteCodeLoading={inviteCodeLoading}
-                        clubCode={dashboard?.clubCode}
+                        onShareInvite={() => setShowInviteModal(true)}
                     />
                 )}
                 {activeTab === 'players' && (
@@ -766,6 +768,20 @@ export default function AgentDashboard() {
             )}
 
             <ClubArenaBottomNav clubId={clubIdParam} active="admin" />
+
+            {/* ── Agent Invite: Full InviteFriendsModal — same as platform "Invite Friends" ── */}
+            {inviteCode && (
+                <InviteFriendsModal
+                    isOpen={showInviteModal}
+                    onClose={() => setShowInviteModal(false)}
+                    user={user}
+                    customUrl={`https://smarter.poker/hub/club-arena?join=${clubIdParam}&agent=${inviteCode}`}
+                    customTitle="Join My Club on Smarter.Poker"
+                    customMessage={`Join my poker club on Smarter.Poker! Use my invite link to get automatically added to my table roster.`}
+                    customCodeLabel="Your Agent Invite Code"
+                    customCodeValue={inviteCode}
+                />
+            )}
         </div>
     );
 }
@@ -774,14 +790,7 @@ export default function AgentDashboard() {
 // TAB: OVERVIEW
 // ═══════════════════════════════════════════════════════════════
 
-function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCode, onRegenerateCode, inviteCodeLoading, clubCode }) {
-    const [copied, setCopied] = React.useState(false);
-    const copyInviteLink = () => {
-        if (!inviteCode || !clubCode) return;
-        const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/hub/club-arena/lobby?join=${clubCode}&agent=${inviteCode}`;
-        navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-    };
-
+function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCode, onRegenerateCode, inviteCodeLoading, onShareInvite }) {
     const statCards = [
         { label: 'My Players', value: stats?.totalPlayers || 0, color: FB.primary },
         { label: 'Online Now', value: stats?.onlinePlayers || 0, color: FB.success },
@@ -804,7 +813,7 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCod
                 ))}
             </div>
 
-            {/* ── Invite Code Panel ── */}
+            {/* ── Invite Code Panel — same share system as platform "Invite Friends" ── */}
             {inviteCode && (
                 <div style={{ ...cardStyle, marginBottom: 12, border: `1px solid ${FB.gold}40` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -814,15 +823,16 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCod
                             {inviteCodeLoading ? '...' : 'Regenerate'}
                         </button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: FB.background, borderRadius: 8, padding: '8px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: FB.background, borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
                         <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 800, color: FB.textPrimary, letterSpacing: 3 }}>{inviteCode}</span>
-                        <button onClick={copyInviteLink}
-                            style={{ marginLeft: 'auto', background: copied ? FB.success : FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                            {copied ? '✓ Copied!' : 'Copy Link'}
-                        </button>
                     </div>
+                    {/* Share button — opens full InviteFriendsModal matching platform "Invite Friends" */}
+                    <button onClick={onShareInvite}
+                        style={{ width: '100%', background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                        📤 Share Invite Link
+                    </button>
                     <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 6 }}>
-                        Share this code with players. When they join using your link, they're auto-assigned to you.
+                        Players who join using your link are auto-assigned to you.
                     </div>
                 </div>
             )}
