@@ -34,6 +34,7 @@ function getAuthToken() {
 // ─── Session storage key for cross-page memory ───
 const SESSION_KEY = 'geeves-orb-messages';
 const SEEN_PAGES_KEY = 'geeves-seen-pages';
+const HIDDEN_KEY = 'geeves-hidden'; // localStorage: persists across all pages
 
 function loadSessionMessages() {
     try {
@@ -144,6 +145,31 @@ export default function GeevesFloatingOrb() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => { setMounted(true); }, []);
 
+    // ── Hidden state — persisted in localStorage so hiding on one page hides everywhere ──
+    const [isHidden, setIsHidden] = useState(false);
+    // Initialize from localStorage after mount (SSR-safe)
+    useEffect(() => {
+        if (mounted) {
+            try {
+                setIsHidden(localStorage.getItem(HIDDEN_KEY) === '1');
+            } catch { }
+        }
+    }, [mounted]);
+
+    const hideGeeves = useCallback(() => {
+        try { localStorage.setItem(HIDDEN_KEY, '1'); } catch { }
+        setIsHidden(true);
+        setIsOpen(false);
+        setShowTip(false);
+    }, []);
+
+    const showGeeves = useCallback(() => {
+        try { localStorage.removeItem(HIDDEN_KEY); } catch { }
+        setIsHidden(false);
+        setIsOpen(true);
+        setShowTip(false);
+    }, []);
+
     // ── Load messages from session on mount ──
     useEffect(() => {
         if (mounted) setMessages(loadSessionMessages());
@@ -189,19 +215,18 @@ export default function GeevesFloatingOrb() {
     }, [path, mounted, isOpen]);
 
     // ── Keyboard shortcut: Cmd+J / Ctrl+J ──
-    // IMPORTANT: Only register if LiveHelpPanel's KeyboardShortcuts isn't active
-    // (detected by checking for the Geeves shortcut marker in the DOM)
     useEffect(() => {
         const handler = (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
-                // If LiveHelpPanel's shortcut handler exists, let it handle Cmd+J
-                // (pages with UniversalHeader/ThreePillHeader already have Cmd+J wired)
                 const hasExistingHandler = document.querySelector('[data-geeves-live-help]');
-                if (hasExistingHandler) return; // Don't conflict — let LiveHelpPanel handle it
+                if (hasExistingHandler) return;
                 e.preventDefault();
-                setIsOpen(prev => !prev);
+                if (isHidden) {
+                    showGeeves(); // Always un-hide when user explicitly presses Cmd+J
+                } else {
+                    setIsOpen(prev => !prev);
+                }
             }
-            // Escape closes the panel
             if (e.key === 'Escape' && isOpen) {
                 e.preventDefault();
                 setIsOpen(false);
@@ -209,18 +234,17 @@ export default function GeevesFloatingOrb() {
         };
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
-    }, [isOpen]);
+    }, [isOpen, isHidden, showGeeves]);
 
-    // ── Listen for geeves-open custom event (from Horses page header button + other pages) ──
+    // ── Listen for geeves-open event — always clears hidden state + opens ──
     useEffect(() => {
         const handler = () => {
-            setIsOpen(true);
-            setShowTip(false);
-            busEmit.geevesOpened(); // Emit to EventBus for analytics
+            showGeeves(); // clears localStorage hidden flag
+            busEmit.geevesOpened();
         };
         window.addEventListener('geeves-open', handler);
         return () => window.removeEventListener('geeves-open', handler);
-    }, []);
+    }, [showGeeves]);
 
     // ── Send message — MUST be above any early returns (Rules of Hooks) ──
     const sendMessage = useCallback(async (text) => {
@@ -313,23 +337,32 @@ export default function GeevesFloatingOrb() {
         setTimeout(() => { try { rec.stop(); } catch { } }, 10000);
     }, [voiceSupported, sendMessage]);
 
-    // ── Don't render on landing/auth pages ──
-    // Also suppress on pages with their own bottom nav (ClubArenaBottomNav / LivePokerTable)
-    // to avoid covering critical UI. Those pages already get Geeves via hamburger menu.
+    // ── Suppress on: auth pages, gameplay, video, live streams, and if user hid Geeves ──
     // NOTE: All hooks must be defined ABOVE this guard (Rules of Hooks)
     if (!mounted) return null;
+    if (isHidden) return null; // User dismissed — stays hidden across all pages
     const cleanPath = path.split('?')[0];
     const suppressedPaths = ['/', '/auth', '/login', '/signup'];
     if (
         suppressedPaths.some(p => cleanPath === p || cleanPath.startsWith(p + '/')) ||
-        // Club Arena pages with their own bottom nav
+        // Club Arena gameplay (own bottom nav / action bars)
         cleanPath.includes('/hub/club-arena/messages') ||
         cleanPath.includes('/hub/club-arena/players') ||
         cleanPath.includes('/hub/club-arena/cashier') ||
         cleanPath.includes('/hub/club-arena/player-stats') ||
         cleanPath.includes('/hub/club-arena/admin') ||
-        // Live poker table has its own action bar at bottom
-        cleanPath.includes('/hub/club-arena/table')
+        cleanPath.includes('/hub/club-arena/table') ||    // Live poker table
+        // Video / live-stream pages (immersive, full-screen)
+        cleanPath.includes('/hub/video-library') ||
+        cleanPath.includes('/hub/video') ||
+        cleanPath.includes('/hub/live-stream') ||
+        cleanPath.includes('/hub/streams') ||
+        cleanPath.includes('/hub/reels') ||
+        // Training gameplay pages (shot clock / GTO challenge)
+        cleanPath.includes('/hub/training/daily-challenge') ||
+        cleanPath.includes('/hub/training/time-attack') ||
+        cleanPath.includes('/hub/training/pvp') ||
+        cleanPath.includes('/hub/training/tournaments')
     ) return null;
 
     const chips = getPageChips(path);
@@ -359,51 +392,83 @@ export default function GeevesFloatingOrb() {
                 </div>
             )}
 
-            {/* ── Collapsed Corner Button (small, bottom-right, unobtrusive) ── */}
+            {/* ── Collapsed Corner Button + hover-reveal Hide option ── */}
             {!isOpen && (
-                <button
-                    onClick={() => { setIsOpen(true); setShowTip(false); }}
-                    title="Ask Geeves (⌘J)"
-                    aria-label="Open Geeves help"
-                    style={{
-                        position: 'fixed',
-                        bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
-                        right: 16,
-                        zIndex: 99998,
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #001e3c 0%, #0066cc 100%)',
-                        border: '2px solid rgba(0, 212, 255, 0.45)',
-                        boxShadow: '0 4px 18px rgba(0, 100, 200, 0.45)',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0,
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                    }}
+                <div
+                    style={{ position: 'fixed', bottom: 'max(16px, env(safe-area-inset-bottom, 16px))', right: 16, zIndex: 99998 }}
                     onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'scale(1.1)';
-                        e.currentTarget.style.boxShadow = '0 6px 24px rgba(0, 150, 255, 0.55)';
+                        const hideBtn = e.currentTarget.querySelector('[data-hide-btn]');
+                        if (hideBtn) hideBtn.style.opacity = '1';
                     }}
                     onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                        e.currentTarget.style.boxShadow = '0 4px 18px rgba(0, 100, 200, 0.45)';
+                        const hideBtn = e.currentTarget.querySelector('[data-hide-btn]');
+                        if (hideBtn) hideBtn.style.opacity = '0';
                     }}
                 >
-                    <img
-                        src="/images/geeves-avatar.png"
-                        alt="G"
-                        style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
-                        onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                    />
-                    <span style={{
-                        display: 'none', width: 32, height: 32, borderRadius: '50%',
-                        alignItems: 'center', justifyContent: 'center',
-                        fontSize: 17, fontWeight: 700, color: '#00d4ff',
-                    }}>G</span>
-                </button>
+                    {/* Main orb button */}
+                    <button
+                        onClick={() => { setIsOpen(true); setShowTip(false); }}
+                        title="Ask Geeves (\u2318J)"
+                        aria-label="Open Geeves help"
+                        style={{
+                            width: 48, height: 48, borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #001e3c 0%, #0066cc 100%)',
+                            border: '2px solid rgba(0, 212, 255, 0.45)',
+                            boxShadow: '0 4px 18px rgba(0, 100, 200, 0.45)',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            padding: 0,
+                            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                            e.currentTarget.style.boxShadow = '0 6px 24px rgba(0, 150, 255, 0.55)';
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = '0 4px 18px rgba(0, 100, 200, 0.45)';
+                        }}
+                    >
+                        <img
+                            src="/images/geeves-avatar.png"
+                            alt="G"
+                            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }}
+                            onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                        <span style={{
+                            display: 'none', width: 32, height: 32, borderRadius: '50%',
+                            alignItems: 'center', justifyContent: 'center',
+                            fontSize: 17, fontWeight: 700, color: '#00d4ff',
+                        }}>G</span>
+                    </button>
+
+                    {/* Hide button — appears on hover, sits above the orb */}
+                    <button
+                        data-hide-btn
+                        onClick={hideGeeves}
+                        title="Hide Geeves on all pages"
+                        aria-label="Hide Geeves"
+                        style={{
+                            position: 'absolute',
+                            top: -26,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            background: 'rgba(10, 22, 40, 0.92)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            borderRadius: 10,
+                            padding: '3px 9px',
+                            fontSize: 11,
+                            color: 'rgba(255,255,255,0.55)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            opacity: 0,
+                            transition: 'opacity 0.15s ease',
+                            pointerEvents: 'all',
+                        }}
+                    >
+                        Hide
+                    </button>
+                </div>
             )}
 
             {/* ── Expanded Chat Panel (anchored bottom-right, 360px wide) ── */}
