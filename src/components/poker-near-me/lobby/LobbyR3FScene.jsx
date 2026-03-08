@@ -419,7 +419,7 @@ function EnergyBeam() {
 
     // Top bright spot
     if (topGlowRef.current) {
-      topGlowRef.current.material.emissive.setHex(0x6ee7ef);
+      topGlowRef.current.material.emissive.set(0x6ee7ef);
       topGlowRef.current.material.emissiveIntensity = 0.6 + 0.4 * Math.sin(t * 2);
     }
 
