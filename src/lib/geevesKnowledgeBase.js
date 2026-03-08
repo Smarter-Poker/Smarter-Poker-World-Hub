@@ -10,6 +10,7 @@
 
 import { KNOWLEDGE_ENTRIES } from './geevesKB/geevesKnowledgeEntries';
 import { buildSynonymIndex } from './geevesKB/synonyms';
+import { checkContentGuard, sanitizeAnswer } from './geevesKB/contentGuard';
 
 // ── Build the synonym index once at module load ──
 const SYNONYM_INDEX = buildSynonymIndex();
@@ -181,6 +182,10 @@ function tryChainAnswers(topMatches) {
 export function lookupKnowledgeBase(question, currentPage) {
     if (!question || question.trim().length < 3) return null;
 
+    // ── SECURITY & BRAND GUARD (runs first — before any KB or Grok call) ──
+    const guardResult = checkContentGuard(question);
+    if (guardResult) return guardResult;
+
     // Pre-compute synonym groups for the question (done once, reused per entry)
     const questionSynonymGroups = getSynonymGroups(question);
     const pageCategories = getPageCategories(currentPage);
@@ -211,15 +216,12 @@ export function lookupKnowledgeBase(question, currentPage) {
     const [best] = scored;
 
     // ── Dynamic threshold ──
-    // If best score is very high (clear match) → return it immediately
-    // If moderate → check if chaining two partial matches is better
-    // If low → too uncertain, defer to Grok
     const STRONG_THRESHOLD = 60;
     const WEAK_THRESHOLD = 30;
 
     if (best.score >= STRONG_THRESHOLD) {
         return {
-            answer: best.entry.answer,
+            answer: sanitizeAnswer(best.entry.answer),
             category: best.entry.category,
             followUps: best.entry.followUps || [],
             confidence: Math.min(best.score, 100),
@@ -229,15 +231,13 @@ export function lookupKnowledgeBase(question, currentPage) {
     }
 
     if (best.score >= WEAK_THRESHOLD) {
-        // Try chaining the top 2 matches if they are complementary
         const chained = tryChainAnswers(scored.slice(0, 3));
         if (chained && chained.confidence >= WEAK_THRESHOLD) {
-            return chained;
+            return { ...chained, answer: sanitizeAnswer(chained.answer) };
         }
 
-        // Return the single best match if still above threshold
         return {
-            answer: best.entry.answer,
+            answer: sanitizeAnswer(best.entry.answer),
             category: best.entry.category,
             followUps: best.entry.followUps || [],
             confidence: Math.min(best.score, 100),
