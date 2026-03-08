@@ -251,7 +251,6 @@ const router = useRouter();
             }, () => { loadDashboard(); })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[UnionDashboard] union channel status: ${status}`);
                 }
             });
 

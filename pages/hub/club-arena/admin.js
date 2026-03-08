@@ -102,6 +102,13 @@ const router = useRouter();
     const [bbjLoading, setBbjLoading] = useState(false);
     const [bbjSaving, setBbjSaving] = useState(false);
 
+    // Tables management state
+    const [tables, setTables] = useState([]);
+    const [tablesLoading, setTablesLoading] = useState(false);
+    const [editTableModal, setEditTableModal] = useState(null); // table object
+    const [editTableForm, setEditTableForm] = useState({});
+    const [tableProcessing, setTableProcessing] = useState(false);
+
     // Settings form
     const [clubName, setClubName] = useState('');
     const [clubDescription, setClubDescription] = useState('');
@@ -213,13 +220,29 @@ const router = useRouter();
                 });
             }
         } catch (e) {
-            console.error('[Admin] Error loading data:', e);
+            
         } finally {
             setIsLoading(false);
         }
     }, [clubIdParam]);
 
-    useEffect(() => { const _c = new AbortController(); loadData(_c.signal); return () => _c.abort(); }, [loadData]);
+    // Load all tables for this club (lazy — only when Tables modal opens)
+    const loadTables = useCallback(async () => {
+        if (!clubIdParam) return;
+        setTablesLoading(true);
+        try {
+            const { data } = await supabase
+                .from('tables')
+                .select('id, name, status, game_variant, small_blind, big_blind, max_players, current_players, min_buyin, max_buyin, ante, action_time, created_at')
+                .eq('club_id', clubIdParam)
+                .order('created_at', { ascending: false })
+                .limit(100);
+            setTables(data || []);
+        } catch (_) {
+        } finally {
+            setTablesLoading(false);
+        }
+    }, [clubIdParam]);
 
     // ── Realtime: live table + member + cashout + agent updates ─────────────
     useEffect(() => {
@@ -251,7 +274,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Admin] Realtime channel status: ${status}`);
+                    
                 }
             });
         return () => { supabase.removeChannel(ch); };
@@ -410,6 +433,50 @@ const router = useRouter();
     };
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // TABLE MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════════════
+    const handleTableAction = async (tableId, action) => {
+        setTableProcessing(true);
+        try {
+            await apiCall('/api/club-arena/manage-table', { tableId, clubId: club.id, action });
+            showToast(`Table ${action}d`);
+            loadTables();
+            if (action === 'delete') {
+                setStats(prev => ({ ...prev, activeTables: Math.max(0, prev.activeTables - 1) }));
+            }
+        } catch (e) {
+            showToast(e.message || `Failed to ${action} table`, 'error');
+        } finally {
+            setTableProcessing(false);
+        }
+    };
+
+    const saveTableSettings = async () => {
+        if (!editTableModal) return;
+        setTableProcessing(true);
+        try {
+            await apiCall('/api/club-arena/update-table-settings', {
+                tableId: editTableModal.id,
+                clubId: club.id,
+                name: editTableForm.name,
+                smallBlind: editTableForm.small_blind ? parseFloat(editTableForm.small_blind) : undefined,
+                bigBlind: editTableForm.big_blind ? parseFloat(editTableForm.big_blind) : undefined,
+                maxPlayers: editTableForm.max_players ? parseInt(editTableForm.max_players) : undefined,
+                minBuyIn: editTableForm.min_buyin ? parseInt(editTableForm.min_buyin) : undefined,
+                maxBuyIn: editTableForm.max_buyin ? parseInt(editTableForm.max_buyin) : undefined,
+                actionTime: editTableForm.action_time ? parseInt(editTableForm.action_time) : undefined,
+            });
+            showToast('Table settings saved');
+            setEditTableModal(null);
+            loadTables();
+        } catch (e) {
+            showToast(e.message || 'Failed to save', 'error');
+        } finally {
+            setTableProcessing(false);
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // CLUB SETTINGS
     // ═══════════════════════════════════════════════════════════════════════════
     const saveClubSettings = async () => {
@@ -532,6 +599,7 @@ const router = useRouter();
         { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
         { id: 'bbj', title: '[GAME] BBJ Config', desc: 'Enable / disable Bad Beat Jackpot for this club', color: '#FFD700' },
+        { id: 'tables', title: 'Table Management', desc: 'Pause, close, delete, or edit table settings', color: '#0EA5E9' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -583,7 +651,7 @@ const router = useRouter();
                                 <div
                                     key={opt.id}
                                     style={S.actionCard}
-                                    onClick={() => setActiveModal(opt.id)}
+                                    onClick={() => { setActiveModal(opt.id); if (opt.id === 'tables') loadTables(); }}
                                     onMouseEnter={e => e.currentTarget.style.background = FB.hover}
                                     onMouseLeave={e => e.currentTarget.style.background = FB.cardBg}
                                 >
@@ -1544,7 +1612,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                 setAgents(r.agents || []);
                 setTotalAgentPromo(r.totalAgentPromo);
             }
-        } catch (e) { console.error('Promo load error:', e); }
+        } catch (e) {  }
         finally { setLoading(false); }
     };
 
@@ -1874,6 +1942,109 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                     </div>
                 );
             })()}
+
+            {/* ═══════════════════════════════════════════════════════════════════════
+ TABLE MANAGEMENT MODAL
+ ═══════════════════════════════════════════════════════════════════════ */}
+            {activeModal === 'tables' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Table Management</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <button onClick={loadTables} disabled={tablesLoading}
+                                style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '6px 14px', fontSize: 12, cursor: 'pointer', marginBottom: 14 }}>
+                                {tablesLoading ? 'Loading...' : 'Refresh'}
+                            </button>
+                            {tablesLoading ? (
+                                <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>Loading tables...</div>
+                            ) : tables.length === 0 ? (
+                                <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>No tables found for this club.</div>
+                            ) : tables.map(t => {
+                                const statusColor = { active: FB.success, waiting: FB.primary, paused: '#F7C52A', closed: FB.textSecondary, deleted: FB.danger }[t.status] || FB.textSecondary;
+                                const variant = (t.game_variant || 'NLH').toUpperCase().replace('NO_LIMIT_HOLDEM', 'NLH').replace('HOLDEM', 'NLH');
+                                return (
+                                    <div key={t.id} style={{ background: FB.cardBg, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: 14, color: FB.textPrimary }}>{t.name || 'Unnamed Table'}</div>
+                                                <div style={{ fontSize: 12, color: FB.textSecondary, marginTop: 2 }}>
+                                                    {variant} {t.small_blind}/{t.big_blind} &bull; {t.current_players || 0}/{t.max_players || 9} players
+                                                    &bull; <span style={{ color: statusColor, fontWeight: 600 }}>{t.status}</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                <button onClick={() => { setEditTableModal(t); setEditTableForm({ name: t.name || '', small_blind: String(t.small_blind || ''), big_blind: String(t.big_blind || ''), max_players: String(t.max_players || ''), min_buyin: String(t.min_buyin || ''), max_buyin: String(t.max_buyin || ''), action_time: String(t.action_time || '') }); }}
+                                                    style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                    Edit
+                                                </button>
+                                                {t.status === 'active' && (
+                                                    <button onClick={() => { if (confirm('Pause this table? No new hands will be dealt.')) handleTableAction(t.id, 'pause'); }}
+                                                        style={{ background: '#F7C52A', color: '#000', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                        Pause
+                                                    </button>
+                                                )}
+                                                {t.status === 'paused' && (
+                                                    <button onClick={() => handleTableAction(t.id, 'resume')}
+                                                        style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                        Resume
+                                                    </button>
+                                                )}
+                                                {['active', 'paused', 'waiting'].includes(t.status) && (
+                                                    <button onClick={() => { if (confirm('Close this table? Active players will be removed.')) handleTableAction(t.id, 'close'); }}
+                                                        style={{ background: FB.hover, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                        Close
+                                                    </button>
+                                                )}
+                                                {['closed', 'waiting'].includes(t.status) && (
+                                                    <button onClick={() => { if (confirm('Permanently delete this table? This cannot be undone.')) handleTableAction(t.id, 'delete'); }}
+                                                        style={{ background: FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }} disabled={tableProcessing}>
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Table Settings Modal */}
+            {editTableModal && (
+                <div style={S.modalOverlay} onClick={() => setEditTableModal(null)}>
+                    <div style={{ ...S.modal, maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>Edit: {editTableModal.name || 'Table'}</span>
+                            <button style={S.modalClose} onClick={() => setEditTableModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            {[['name', 'Table Name', 'text'], ['small_blind', 'Small Blind', 'number'], ['big_blind', 'Big Blind', 'number'], ['max_players', 'Max Players', 'number'], ['min_buyin', 'Min Buy-in (chips)', 'number'], ['max_buyin', 'Max Buy-in (chips)', 'number'], ['action_time', 'Action Time (seconds)', 'number']].map(([key, label, type]) => (
+                                <div key={key} style={{ marginBottom: 14 }}>
+                                    <label style={S.formLabel}>{label}</label>
+                                    <input
+                                        type={type}
+                                        value={editTableForm[key] || ''}
+                                        onChange={e => setEditTableForm(prev => ({ ...prev, [key]: e.target.value }))}
+                                        style={S.formInput}
+                                    />
+                                </div>
+                            ))}
+                            <button
+                                onClick={saveTableSettings}
+                                disabled={tableProcessing}
+                                style={{ width: '100%', background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '12px', fontSize: 14, fontWeight: 700, cursor: tableProcessing ? 'not-allowed' : 'pointer', opacity: tableProcessing ? 0.6 : 1, marginTop: 4 }}
+                            >
+                                {tableProcessing ? 'Saving...' : 'Save Settings'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
         </div>
     );

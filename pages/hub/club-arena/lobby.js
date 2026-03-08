@@ -133,7 +133,7 @@ const router = useRouter();
             setClub({ ...club, description: newDescription });
             setIsEditingDescription(false);
         } catch (err) {
-            console.error('Error updating description:', err);
+            
             showToast('Failed to update description.', 'error');
         }
     }
@@ -195,7 +195,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Lobby] Realtime channel status: ${status}`);
+                    
                 }
             });
 
@@ -255,12 +255,11 @@ const router = useRouter();
             chipBc = new BroadcastChannel('smarter_poker_chips_sync');
             chipBc.onmessage = (event) => {
                 if (event.data === 'refresh') {
-                    console.log('[Lobby] Chip balance refresh via BroadcastChannel');
+                    
                     loadClubData();
                 }
             };
         } catch (e) {
-            console.warn('[Lobby] Failed to set up chip balance realtime:', e);
         }
 
         return () => {

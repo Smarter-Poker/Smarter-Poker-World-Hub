@@ -188,7 +188,7 @@ const router = useRouter();
                 } catch (e) { /* rakeback is optional */ }
             }
         } catch (e) {
-            console.error('[Cashier] Error loading data:', e);
+            
         } finally {
             setIsLoading(false);
         }
@@ -219,7 +219,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Cashier] Member channel status: ${status}`);
+                    
                 }
             });
 
@@ -238,7 +238,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Cashier] Cashout channel status: ${status}`);
+                    
                 }
             });
 
@@ -257,7 +257,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Cashier] Txn channel status: ${status}`);
+                    
                 }
             });
 
@@ -267,7 +267,7 @@ const router = useRouter();
             bc = new BroadcastChannel('smarter_poker_chips_sync');
             bc.onmessage = (event) => {
                 if (event.data === 'refresh') {
-                    console.log('[Cashier] Chip balance refresh via BroadcastChannel');
+                    
                     loadData();
                 }
             };

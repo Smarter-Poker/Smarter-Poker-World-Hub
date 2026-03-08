@@ -123,7 +123,6 @@ const router = useRouter();
       })
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') {
-          console.warn(`[Tournaments] List channel status: ${status}`);
         }
       });
 
@@ -530,7 +529,6 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
     });
     tCh.subscribe((status) => {
       if (status !== 'SUBSCRIBED') {
-        console.warn(`[Tournament] Broadcast channel ${t.id} status: ${status}`);
       }
     });
 
@@ -551,7 +549,6 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
       })
       .subscribe((status) => {
         if (status !== 'SUBSCRIBED') {
-          console.warn(`[Tournament] Postgres channel ${t.id} status: ${status}`);
         }
       });
 

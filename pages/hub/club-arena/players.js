@@ -160,7 +160,6 @@ const router = useRouter();
                 () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Players] Realtime channel status: ${status}`);
                 }
             });
         return () => { supabase.removeChannel(ch); };

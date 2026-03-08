@@ -222,14 +222,6 @@ const inputRef = useRef(null);
                 )}
             </button>
 
-            {/* GIF Button */}
-            <button onClick={() => { if (typeof setToast === 'function') { /* GIF coming soon */ } }} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, opacity: 0.4 }} title="GIF — Coming Soon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="5" width="18" height="14" rx="2" stroke={C.blue} strokeWidth="1.5" />
-                    <text x="12" y="14" textAnchor="middle" fontSize="7" fontWeight="bold" fill={C.blue}>GIF</text>
-                </svg>
-            </button>
-
             {/* Input wrapper */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', background: C.hoverBg, borderRadius: 24, padding: '0 12px', position: 'relative' }}>
                 <input ref={inputRef} type="text" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown} placeholder="Aa" disabled={disabled}
@@ -584,7 +576,6 @@ export default function ClubMessages() {
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Messages] Message channel status: ${status}`);
                 }
             });
 
@@ -617,7 +608,6 @@ export default function ClubMessages() {
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Messages] Call channel status: ${status}`);
                 }
             });
 

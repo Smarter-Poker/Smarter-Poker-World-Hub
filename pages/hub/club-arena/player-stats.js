@@ -178,7 +178,7 @@ const router = useRouter();
                     // Engine saves to hand_histories with hand_data JSONB containing full action log
                     let handQuery = supabase
                         .from('hand_histories')
-                        .select('*')
+                        .select('id, hand_number, variant, pot_total, player_ids, winner_ids, hand_data, rake, completed_at, club_id')
                         .contains('player_ids', [authUser.id])
                         .limit(100) // player hands
 
@@ -266,7 +266,7 @@ const router = useRouter();
                         // Try to get stats from chip_transactions as fallback
                         let txQuery = supabase
                             .from('chip_transactions')
-                            .select('*')
+                            .select('id, transaction_type, amount, from_user_id, to_user_id, created_at, club_id, notes')
                             .eq('club_id', clubData.id)
                             .or(`from_user_id.eq.${authUser.id},to_user_id.eq.${authUser.id}`)
                             .in('transaction_type', ['win', 'loss', 'table_win', 'table_loss'])
@@ -328,7 +328,6 @@ const router = useRouter();
                 filter: `club_id=eq.${clubIdParam}` }, () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[PlayerStats] Realtime channel status: ${status}`);
                 }
             });
         return () => { supabase.removeChannel(ch); };

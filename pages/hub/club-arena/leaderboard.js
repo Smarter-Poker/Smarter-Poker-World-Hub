@@ -80,7 +80,7 @@ const router = useRouter();
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
             const { data: clubData } = await supabase
                 .from('clubs')
-                .select('*')
+                .select('id, name, club_id, union_id, avatar_url, total_rake, hands_played')
                 .eq(isUUID ? 'id' : 'club_id', clubIdParam)
                 .maybeSingle();
 
@@ -190,7 +190,7 @@ const router = useRouter();
                 }
             }
         } catch (e) {
-            console.error('[Leaderboard] Error loading data:', e);
+            
         } finally {
             setIsLoading(false);
         }
@@ -207,7 +207,7 @@ const router = useRouter();
                 filter: `club_id=eq.${clubIdParam}` }, () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[Leaderboard] Realtime channel status: ${status}`);
+                    
                 }
             });
         return () => { supabase.removeChannel(ch); };

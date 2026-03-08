@@ -188,7 +188,7 @@ const router = useRouter();
                 }
             }
         } catch (e) {
-            console.error('[HandHistories] Error loading data:', e);
+            
         } finally {
             setIsLoading(false);
         }
@@ -215,7 +215,7 @@ const router = useRouter();
                 })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[HandHistories] Realtime channel status: ${status}`);
+                    
                 }
             });
         return () => { supabase.removeChannel(ch); };

@@ -141,7 +141,7 @@ const router = useRouter();
             if (authUser?.player_number) setMyPlayerNumber(authUser.player_number);
             else if (data.myProfile?.player_number) setMyPlayerNumber(data.myProfile.player_number);
         } catch (err) {
-            console.error('Dashboard load failed:', err);
+            
             showToast(err.message, 'error');
         } finally {
             setIsLoading(false);
@@ -166,7 +166,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[AgentDashboard] Cashout channel status: ${status}`);
+                    
                 }
             });
 
@@ -183,7 +183,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[AgentDashboard] Txn channel status: ${status}`);
+                    
                 }
             });
 
@@ -201,7 +201,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    console.warn(`[AgentDashboard] Agent self channel status: ${status}`);
+                    
                 }
             });
 
@@ -1184,7 +1184,7 @@ function PromoWalletTab({ dashboard, clubId, userId, apiCall, showToast, players
                 setPromoHistory(histData?.history || []);
                 setLoaded(true);
             } catch (e) {
-                console.error('Promo load error:', e);
+                
                 setLoaded(true);
             }
         })();
