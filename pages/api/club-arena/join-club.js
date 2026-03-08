@@ -2,15 +2,19 @@
  * POST /api/club-arena/join-club
  * Join a club by numeric club code.
  *
- * Agent assignment: every player on Smarter.Poker is assigned a player_number
- * at signup (stored in profiles.player_number). Agents share their player_number
- * as their referral/agent code. To be assigned to an agent, provide their
- * player_number in the agentPlayerNumber field.
+ * ── Agent assignment (Club Arena only) ──────────────────────────────────────
+ * Club Arena uses its OWN invite code system, completely separate from the
+ * platform-level referral/diamond reward system (profiles.player_number).
+ *
+ * Club Arena agent invite codes are 6-character alphanumeric strings stored
+ * in agents.invite_code, unique per club. They have NO relation to
+ * player_number, platform referrals, or diamond rewards.
  *
  * Body:
- *   clubCode          (required) — 5-digit club code
- *   agentPlayerNumber (optional) — agent's player_number from profiles (their referral code)
- *   agentUserId       (optional) — direct UUID assignment (owner/admin only)
+ *   clubCode      (required) — 5-digit club code
+ *   agentCode     (optional) — 6-char agent invite code (agents.invite_code)
+ *                              Club Arena only — NOT the platform referral code
+ *   agentUserId   (optional) — direct UUID assignment (owner/admin only)
  *
  * Auth: Bearer token (any authenticated user)
  */
@@ -32,8 +36,16 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { clubCode, agentPlayerNumber, agentUserId: explicitAgentUserId } = req.body;
+    // NOTE: agentCode is the Club Arena-specific 6-char invite code (agents.invite_code).
+    // It is completely separate from the platform referral system (profiles.player_number).
+    // Do NOT conflate these — they serve different purposes and different reward systems.
+    const { clubCode, agentCode, agentUserId: explicitAgentUserId } = req.body;
     if (!clubCode) return res.status(400).json({ success: false, error: 'Club code required' });
+
+    // Validate agentCode format if provided: 6 alphanumeric chars only
+    if (agentCode && !/^[A-Z0-9]{6}$/i.test(agentCode.trim())) {
+        return res.status(400).json({ success: false, error: 'Agent invite code must be 6 alphanumeric characters' });
+    }
 
     // Rate limit — prevent brute-force of club codes
     if (!applyRateLimit(req, res, 'club-arena/join-club')) return;
@@ -67,43 +79,29 @@ export default async function handler(req, res) {
             return res.status(409).json({ success: false, error: 'You are already a member of this club' });
         }
 
-        // ── Resolve agent assignment ──────────────────────────────────
-        // Every player has a player_number (profiles.player_number) that serves
-        // as their referral/agent code. Agents share their player_number with
-        // players to get them assigned under them in the club hierarchy.
+        // ── Resolve agent assignment (Club Arena only) ─────────────────
+        // Uses agents.invite_code — a 6-char alphanumeric code unique per club.
+        // This is NOT the platform player_number / referral system.
+        // Platform referrals (diamonds, rewards) are handled separately in
+        // /api/rewards/referral and /api/promo/validate-referral-code.
         //
-        // Priority: agentPlayerNumber > explicitAgentUserId (admin-only)
+        // Priority: agentCode (invite_code) > explicitAgentUserId (admin-only)
         let resolvedAgentUserId = null;
-        let resolvedAgentPlayerNumber = null;
 
-        if (agentPlayerNumber) {
-            const pn = parseInt(agentPlayerNumber);
-            if (Number.isFinite(pn) && pn > 0) {
-                // Look up the profile by player_number to get their user_id
-                const { data: agentProfile } = await supabaseAdmin
-                    .from('profiles')
-                    .select('id, player_number')
-                    .eq('player_number', pn)
-                    .maybeSingle();
+        if (agentCode) {
+            // Look up the agent directly by their Club Arena invite code + club
+            const { data: agentRecord } = await supabaseAdmin
+                .from('agents')
+                .select('user_id, status')
+                .eq('club_id', club.id)
+                .eq('invite_code', agentCode.trim().toUpperCase())
+                .eq('status', 'active')
+                .maybeSingle();
 
-                if (agentProfile) {
-                    // Verify they are an active agent in THIS club
-                    const { data: agentRecord } = await supabaseAdmin
-                        .from('agents')
-                        .select('user_id, status')
-                        .eq('club_id', club.id)
-                        .eq('user_id', agentProfile.id)
-                        .eq('status', 'active')
-                        .maybeSingle();
-
-                    if (agentRecord) {
-                        resolvedAgentUserId = agentRecord.user_id;
-                        resolvedAgentPlayerNumber = pn;
-                    }
-                    // If they exist on the platform but are not an agent in this club,
-                    // we silently ignore — they may be a player in another club
-                }
+            if (agentRecord) {
+                resolvedAgentUserId = agentRecord.user_id;
             }
+            // Invalid/unknown code — silently ignore (agent may be in different club)
         } else if (explicitAgentUserId) {
             // Admin-side direct assignment — requires caller to be owner/admin
             const { data: callerMember } = await supabaseAdmin
@@ -168,7 +166,6 @@ export default async function handler(req, res) {
             club,
             agentAssigned: !!resolvedAgentUserId,
             agentUserId: resolvedAgentUserId,
-            agentPlayerNumber: resolvedAgentPlayerNumber,
         });
     } catch (err) {
         console.error('[join-club]', err);

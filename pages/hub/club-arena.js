@@ -165,14 +165,17 @@ function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
                     />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                    <label style={labelStyle}>Agent Invite Code <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>(optional — auto-assigns you to an agent)</span></label>
+                    <label style={labelStyle}>Agent Invite Code <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>(optional — assigns you to an agent in this club)</span></label>
                     <input
                         value={agentCode}
                         onChange={(e) => setAgentCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase())}
-                        placeholder="e.g. AB3X7Q"
+                        placeholder="6-char code from your agent (e.g. AB3X7Q)"
                         style={inputStyle}
                         maxLength={6}
                     />
+                    <div style={{ fontSize: 11, color: '#888', marginTop: 4 }}>
+                        This is your club agent&apos;s invite code — different from your Smarter.Poker referral code.
+                    </div>
                 </div>
                 {error && <div style={{ color: '#ff4d4d', marginBottom: '16px', fontSize: '13px' }}>{error}</div>}
                 <button onClick={handleJoin} disabled={isJoining} style={actionBtnPrimary}>
