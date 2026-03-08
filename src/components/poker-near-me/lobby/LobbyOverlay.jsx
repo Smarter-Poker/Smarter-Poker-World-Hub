@@ -4,8 +4,7 @@
  * Renders:
  *   - "POKER NEAR ME" title
  *   - Search bar with autocomplete + voice + GPS
- *   - Pod icon grid (dynamic images in a scrollable grid below search)
- *   - Bottom dock (Trip Planner, Calculator, Saved, Friends, Alerts)
+ *   - Unified playing-card grid (14 cards: 9 pods + 5 dock, all same size)
  *
  * NOTE: The feature panel drawer is rendered at the PAGE level
  * (poker-near-me-lobby.js) to avoid z-index stacking context issues.
@@ -14,21 +13,29 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ─── Pod grid items (main features shown below search) ───
-const POD_GRID_ITEMS = [
-  { id: 'nearme',    label: 'Near Me',    color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
-  { id: 'search',    label: 'Search',     color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
-  { id: 'livegames', label: 'Live Games', color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
-  { id: 'tours',     label: 'Tours',      color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
-  { id: 'mapview',   label: 'Map View',   color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
-  { id: 'calendar',  label: 'Calendar',   color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
-  { id: 'series',    label: 'Series',     color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
-  { id: 'daily',     label: 'Daily',      color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
-  { id: 'wallet',    label: 'Rewards',    color: '#ffd700', icon: '/images/lobby-pods/wallet.png' },
+// ─── ALL lobby items — unified playing-card frames ───
+// 9 pods + 5 dock = 14 cards total, all same size, evenly spaced
+const ALL_CARD_ITEMS = [
+  // Row 1-3: Main pods
+  { id: 'nearme',    label: 'Near Me',       color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
+  { id: 'search',    label: 'Search',        color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
+  { id: 'livegames', label: 'Live Games',    color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
+  { id: 'tours',     label: 'Tours',         color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
+  { id: 'mapview',   label: 'Map View',      color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
+  { id: 'calendar',  label: 'Calendar',      color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
+  { id: 'series',    label: 'Series',        color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
+  { id: 'daily',     label: 'Daily',         color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
+  { id: 'wallet',    label: 'Rewards',       color: '#ffd700', icon: '/images/lobby-pods/wallet.png' },
+  // Row 4-5: Dock items (same card format)
+  { id: 'roadtrip',   label: 'Trip Planner', color: '#6ee7ef', icon: '/images/lobby-dock/trip-planner.png' },
+  { id: 'calculator', label: 'Calculator',   color: '#6ee7ef', icon: '/images/lobby-dock/calculator.png' },
+  { id: 'favorites',  label: 'Saved',        color: '#6ee7ef', icon: '/images/lobby-dock/saved.png' },
+  { id: 'social',     label: 'Friends',      color: '#6ee7ef', icon: '/images/lobby-dock/friends.png' },
+  { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
 ];
 
-// ─── Pod Grid Item ───
-function PodGridItem({ pod, isActive, onSelect }) {
+// ─── Card Item — Playing card shaped frame (portrait 3:4 ratio) ───
+function CardItem({ card, isActive, badge, onSelect }) {
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -36,198 +43,117 @@ function PodGridItem({ pod, isActive, onSelect }) {
 
   return (
     <button
-      onClick={() => onSelect(pod.id)}
+      className="lobby-card-btn"
+      onClick={() => onSelect(card.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      aria-label={`Open ${pod.label}`}
+      aria-label={`Open ${card.label}`}
       style={{
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 4,
         background: 'none',
         border: 'none',
         cursor: 'pointer',
-        padding: 4,
+        padding: 0,
         WebkitTapHighlightColor: 'transparent',
-        transform: active ? 'scale(1.08)' : 'scale(1)',
+        transform: active ? 'scale(1.05)' : 'scale(1)',
         transition: 'transform 0.25s ease',
       }}
     >
-      {/* Icon circle — solid black background so PNGs never distort */}
+      {/* Playing card frame — 3:4 aspect ratio */}
       <div
+        className="lobby-card-frame"
         style={{
-          width: 58,
-          height: 58,
-          borderRadius: '50%',
-          background: '#000000',
-          border: `2px solid ${active ? pod.color : `${pod.color}50`}`,
+          width: '100%',
+          aspectRatio: '3 / 4',
+          borderRadius: 10,
+          background: '#0a0e16',
+          border: `1.5px solid ${active ? card.color : `${card.color}40`}`,
           boxShadow: active
-            ? `0 0 20px ${pod.color}60, 0 0 40px ${pod.color}25`
-            : `0 0 10px ${pod.color}20`,
+            ? `0 0 16px ${card.color}50, 0 4px 20px rgba(0,0,0,0.6)`
+            : `0 2px 12px rgba(0,0,0,0.5), 0 0 6px ${card.color}15`,
+          overflow: 'hidden',
+          transition: 'all 0.3s ease',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'hidden',
-          transition: 'all 0.3s ease',
         }}
       >
         {!imgError ? (
           <img
-            src={pod.icon}
-            alt={pod.label}
+            src={card.icon}
+            alt={card.label}
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             style={{
-              width: 54,
-              height: 54,
+              width: '100%',
+              height: '100%',
               objectFit: 'cover',
-              borderRadius: '50%',
-              backgroundColor: '#000000',
+              backgroundColor: '#0a0e16',
               opacity: imgLoaded ? 1 : 0,
               transition: 'opacity 0.4s ease-in',
             }}
           />
         ) : (
           <div style={{
-            width: 54, height: 54, borderRadius: '50%',
-            background: '#000000',
-            border: `1px solid ${pod.color}60`,
-          }} />
+            width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, #0a0e16, #111827)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <span style={{ color: `${card.color}60`, fontSize: 24 }}>?</span>
+          </div>
         )}
       </div>
 
-      {/* Label */}
+      {/* Label below card */}
       <span
+        className="lobby-card-label"
         style={{
           fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
-          fontSize: 11,
+          fontSize: 9,
           fontWeight: 700,
-          color: active ? '#ffffff' : 'rgba(200, 220, 240, 0.75)',
+          color: active ? '#ffffff' : 'rgba(200, 220, 240, 0.7)',
           textTransform: 'uppercase',
-          letterSpacing: '0.08em',
+          letterSpacing: '0.06em',
           textAlign: 'center',
           textShadow: active
-            ? `0 0 10px ${pod.color}80, 0 1px 3px rgba(0,0,0,0.9)`
+            ? `0 0 8px ${card.color}80, 0 1px 3px rgba(0,0,0,0.9)`
             : '0 1px 3px rgba(0,0,0,0.8)',
           transition: 'color 0.25s',
           lineHeight: 1.2,
+          marginTop: 3,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '100%',
         }}
       >
-        {pod.label}
+        {card.label}
       </span>
+
+      {/* Badge (for alerts, saved, friends) */}
+      {badge > 0 && (
+        <span className="lobby-card-badge" style={{
+          position: 'absolute', top: -4, right: -4,
+          minWidth: 18, height: 18, borderRadius: 9,
+          background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)',
+          color: '#fff', fontSize: 10, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '0 4px',
+          boxShadow: '0 2px 8px rgba(238, 90, 36, 0.5)',
+          zIndex: 2,
+        }}>
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
 
-// ─── Dock Item (extracted to fix Rules of Hooks) ───
-function DockItem({ item, isActive, badge, onSelect }) {
-  const [isHovered, setIsHovered] = useState(false);
-  return (
-    <button
-      className={`lobby-dock-btn ${isActive ? 'active' : ''}`}
-      style={{
-        pointerEvents: 'auto',
-        backdropFilter: 'blur(12px)',
-        background: isActive ? 'rgba(110, 231, 239, 0.12)' : (isHovered ? 'rgba(110, 231, 239, 0.08)' : 'rgba(6, 21, 37, 0.6)'),
-        border: isActive ? '1px solid rgba(110, 231, 239, 0.5)' : (isHovered ? '1px solid rgba(110, 231, 239, 0.4)' : '1px solid rgba(110, 231, 239, 0.15)'),
-        borderRadius: 16,
-        boxShadow: isActive ? '0 0 20px rgba(110, 231, 239, 0.3)' : 'none',
-        transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-        transition: 'all 0.25s ease',
-      }}
-      onClick={() => onSelect?.(item.id)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      aria-label={`Open ${item.label}`}
-    >
-      <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
-      <span className="lobby-dock-label" style={{
-        fontSize: 11,
-        letterSpacing: '0.05em',
-        textTransform: 'uppercase',
-        fontWeight: 600,
-      }}>{item.label}</span>
-      {badge > 0 && <span className="lobby-dock-badge" style={{ boxShadow: '0 0 8px rgba(110, 231, 239, 0.5)' }}>{badge}</span>}
-    </button>
-  );
-}
-
-// ─── Dock icons ───
-const DOCK_ICON_IMAGES = {
-  roadtrip:   '/images/lobby-dock/trip-planner.png',
-  calculator: '/images/lobby-dock/calculator.png',
-  favorites:  '/images/lobby-dock/saved.png',
-  social:     '/images/lobby-dock/friends.png',
-  alerts:     '/images/lobby-dock/alerts.png',
-};
-
-const DockIconSVG = ({ id }) => {
-  const imageSrc = DOCK_ICON_IMAGES[id];
-  if (imageSrc) {
-    return (
-      <img
-        src={imageSrc}
-        alt={id}
-        style={{
-          width: 72,
-          height: 72,
-          objectFit: 'cover',
-          backgroundColor: '#000000',
-          filter: 'drop-shadow(0 4px 16px rgba(110, 231, 239, 0.6)) drop-shadow(0 0 8px rgba(110, 231, 239, 0.3))',
-          transition: 'transform 0.25s ease, filter 0.25s ease',
-          borderRadius: '50%',
-        }}
-        draggable={false}
-      />
-    );
-  }
-  // Fallback SVG
-  const props = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
-  switch (id) {
-    case 'roadtrip': return (
-      <svg {...props}>
-        <path d="M3 12h4l3-9 4 18 3-9h4" />
-        <circle cx="5" cy="19" r="2" /><circle cx="19" cy="19" r="2" />
-        <path d="M7 19h10" />
-      </svg>
-    );
-    case 'calculator': return (
-      <svg {...props}>
-        <rect x="4" y="2" width="16" height="20" rx="2" />
-        <line x1="8" y1="6" x2="16" y2="6" />
-      </svg>
-    );
-    case 'favorites': return (
-      <svg {...props}>
-        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-      </svg>
-    );
-    case 'social': return (
-      <svg {...props}>
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-      </svg>
-    );
-    case 'alerts': return (
-      <svg {...props}>
-        <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-        <path d="M13.73 21a2 2 0 01-3.46 0" />
-      </svg>
-    );
-    default: return null;
-  }
-};
-
-// Dock items (bottom bar)
-const DOCK_ITEMS = [
-  { id: 'roadtrip',   label: 'Trip Planner' },
-  { id: 'calculator',  label: 'Calculator' },
-  { id: 'favorites',  label: 'Saved' },
-  { id: 'social',     label: 'Friends' },
-  { id: 'alerts',     label: 'Alerts' },
-];
+// (DockItem, DockIconSVG, DOCK_ITEMS removed — unified into card grid above)
 
 /**
  * LobbyOverlay — the full UI layer.
@@ -449,8 +375,8 @@ export default function LobbyOverlay({
         </div>
       )}
 
-      {/* ═══ POD GRID — Dynamic images below search ═══ */}
-      <div style={{
+      {/* ═══ CARD GRID — Unified playing-card icons below search ═══ */}
+      <div className="lobby-card-scroll" style={{
         flex: 1,
         display: 'flex',
         alignItems: 'flex-start',
@@ -460,44 +386,31 @@ export default function LobbyOverlay({
         overflowY: 'auto',
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
-        /* Hide scrollbar but still scrollable */
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
       }}>
-        <div style={{
+        <div className="lobby-card-grid" style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 'clamp(4px, 1.5vw, 12px)',
-          maxWidth: 340,
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: 'clamp(6px, 1.5vw, 12px)',
+          maxWidth: 420,
           width: '100%',
           paddingTop: 4,
-          paddingBottom: 100,
+          paddingBottom: 24,
         }}>
-          {POD_GRID_ITEMS.map((pod) => (
-            <PodGridItem
-              key={pod.id}
-              pod={pod}
-              isActive={activePod === pod.id}
+          {ALL_CARD_ITEMS.map((card) => (
+            <CardItem
+              key={card.id}
+              card={card}
+              isActive={activePod === card.id}
+              badge={card.id === 'alerts' ? alertCount :
+                     card.id === 'favorites' ? savedCount :
+                     card.id === 'social' ? friendsNearby : 0}
               onSelect={onPodSelect}
             />
           ))}
         </div>
       </div>
-
-      {/* BOTTOM DOCK */}
-      <nav className="lobby-dock" style={{ pointerEvents: 'none' }}>
-        {DOCK_ITEMS.map((item) => (
-          <DockItem
-            key={item.id}
-            item={item}
-            isActive={activePod === item.id}
-            badge={item.id === 'alerts' ? alertCount :
-                   item.id === 'favorites' ? savedCount :
-                   item.id === 'social' ? friendsNearby : 0}
-            onSelect={onPodSelect}
-          />
-        ))}
-      </nav>
     </div>
   );
 }

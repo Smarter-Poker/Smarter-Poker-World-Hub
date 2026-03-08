@@ -36,8 +36,8 @@
 
 /* ─── SCAN LINE — REMOVED ─── */
 
-/* Hide scrollbar on pod grid while keeping it scrollable */
-.lobby-overlay > div:nth-child(2)::-webkit-scrollbar {
+/* Hide scrollbar on card grid while keeping it scrollable */
+.lobby-card-scroll::-webkit-scrollbar {
   display: none;
 }
 
@@ -155,109 +155,13 @@
   box-shadow: 0 0 12px rgba(110, 231, 239, 0.2);
 }
 
-/* ─── BOTTOM DOCK ─── */
-.lobby-dock {
-  display: flex;
-  justify-content: center;
-  gap: clamp(4px, 1.5vw, 12px);
-  padding: 4px 10px 8px;
-  background: linear-gradient(to top, rgba(5, 8, 16, 0.92) 50%, rgba(5, 8, 16, 0.4) 80%, transparent);
-  pointer-events: auto;
-  position: relative;
-  z-index: 20;
-  animation: lobby-dockIn 0.6s 0.6s ease forwards;
+/* ─── CARD GRID (unified playing-card layout) ─── */
+.lobby-card-grid {
+  animation: lobby-fadeIn 0.6s 0.4s ease forwards;
   opacity: 0;
-  transform: translateY(20px);
 }
-@keyframes lobby-dockIn {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.lobby-dock-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  position: relative;
-  transition: transform 0.3s var(--premium-ease),
-              filter 0.3s var(--premium-ease);
-  -webkit-tap-highlight-color: transparent;
-}
-.lobby-dock-btn:hover,
-.lobby-dock-btn.active {
-  transform: translateY(-4px) scale(1.06);
-  filter: drop-shadow(0 0 12px rgba(110, 231, 239, 0.3));
-}
-
-.lobby-dock-icon {
-  width: clamp(48px, 8vw, 64px);
-  height: clamp(48px, 8vw, 64px);
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: clamp(18px, 2.5vw, 24px);
-  background: #000000;
-  border: 1px solid rgba(110, 231, 239, 0.15);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
-              0 0 10px rgba(110, 231, 239, 0.06);
-  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
-  overflow: hidden;
-}
-.lobby-dock-icon img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 14px;
-  background-color: #000000;
-}
-.lobby-dock-btn:hover .lobby-dock-icon,
-.lobby-dock-btn.active .lobby-dock-icon {
-  border-color: rgba(110, 231, 239, 0.4);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5),
-              0 0 20px rgba(110, 231, 239, 0.15),
-              inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transform: scale(1.08);
-}
-
-.lobby-dock-label {
-  font-size: clamp(9px, 1.2vw, 11px);
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(200, 214, 229, 0.5);
-  transition: color 0.3s;
-}
-.lobby-dock-btn:hover .lobby-dock-label,
-.lobby-dock-btn.active .lobby-dock-label {
-  color: #6ee7ef;
-}
-
-.lobby-dock-badge {
-  position: absolute;
-  top: -4px;
-  right: 8px;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 9px;
-  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  box-shadow: 0 2px 8px rgba(238, 90, 36, 0.4);
-  animation: lobby-badgePop 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-@keyframes lobby-badgePop {
-  0% { transform: scale(0); }
-  60% { transform: scale(1.3); }
-  100% { transform: scale(1); }
+.lobby-card-btn:active {
+  transform: scale(0.97) !important;
 }
 
 /* ─── FEATURE PANEL DRAWER ─── */
@@ -369,9 +273,9 @@
     font-size: 20px;
     letter-spacing: 3px;
   }
-  .lobby-dock {
-    gap: 10px;
-    padding: 10px 10px 16px;
+  .lobby-card-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    max-width: 320px !important;
   }
 }
 
@@ -390,10 +294,9 @@
     animation: none !important;
     opacity: 1;
   }
-  .lobby-dock {
+  .lobby-card-grid {
     animation: none !important;
     opacity: 1;
-    transform: none;
   }
 }
 
