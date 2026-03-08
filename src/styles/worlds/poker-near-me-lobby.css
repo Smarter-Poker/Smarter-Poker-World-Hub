@@ -200,11 +200,10 @@
   align-items: center;
   justify-content: center;
   font-size: clamp(18px, 2.5vw, 24px);
-  background: linear-gradient(145deg, rgba(20, 30, 50, 0.85), rgba(8, 14, 24, 0.95));
+  background: #000000;
   border: 1px solid rgba(110, 231, 239, 0.15);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
-              0 0 10px rgba(110, 231, 239, 0.06),
-              inset 0 1px 0 rgba(255, 255, 255, 0.04);
+              0 0 10px rgba(110, 231, 239, 0.06);
   transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
   overflow: hidden;
 }
@@ -213,6 +212,7 @@
   height: 100% !important;
   object-fit: cover !important;
   border-radius: 14px;
+  background-color: #000000;
 }
 .lobby-dock-btn:hover .lobby-dock-icon,
 .lobby-dock-btn.active .lobby-dock-icon {

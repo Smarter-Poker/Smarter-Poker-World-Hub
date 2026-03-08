@@ -54,23 +54,21 @@ function PodGridItem({ pod, isActive, onSelect }) {
         transition: 'transform 0.25s ease',
       }}
     >
-      {/* Icon circle */}
+      {/* Icon circle — solid black background so PNGs never distort */}
       <div
         style={{
           width: 58,
           height: 58,
           borderRadius: '50%',
-          background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.4))`,
+          background: '#000000',
           border: `2px solid ${active ? pod.color : `${pod.color}50`}`,
           boxShadow: active
-            ? `0 0 20px ${pod.color}60, 0 0 40px ${pod.color}25, inset 0 0 12px rgba(0,0,0,0.4)`
-            : `0 0 10px ${pod.color}20, inset 0 0 12px rgba(0,0,0,0.5)`,
+            ? `0 0 20px ${pod.color}60, 0 0 40px ${pod.color}25`
+            : `0 0 10px ${pod.color}20`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
           transition: 'all 0.3s ease',
         }}
       >
@@ -82,18 +80,19 @@ function PodGridItem({ pod, isActive, onSelect }) {
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             style={{
-              width: 46,
-              height: 46,
+              width: 54,
+              height: 54,
               objectFit: 'cover',
               borderRadius: '50%',
+              backgroundColor: '#000000',
               opacity: imgLoaded ? 1 : 0,
               transition: 'opacity 0.4s ease-in',
             }}
           />
         ) : (
           <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: `radial-gradient(circle, ${pod.color}40, ${pod.color}10)`,
+            width: 54, height: 54, borderRadius: '50%',
+            background: '#000000',
             border: `1px solid ${pod.color}60`,
           }} />
         )}
@@ -174,7 +173,8 @@ const DockIconSVG = ({ id }) => {
         style={{
           width: 72,
           height: 72,
-          objectFit: 'contain',
+          objectFit: 'cover',
+          backgroundColor: '#000000',
           filter: 'drop-shadow(0 4px 16px rgba(110, 231, 239, 0.6)) drop-shadow(0 0 8px rgba(110, 231, 239, 0.3))',
           transition: 'transform 0.25s ease, filter 0.25s ease',
           borderRadius: '50%',
