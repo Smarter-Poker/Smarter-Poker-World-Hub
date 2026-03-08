@@ -181,6 +181,17 @@ export default function ClubLobby() {
                 table: 'club_tournaments',
                 filter: `club_id=eq.${club.id}`,
             }, () => { loadClubData(); })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'club_announcements',
+                filter: `club_id=eq.${club.id}`,
+            }, () => {
+                // Re-fetch announcements live — new announcements appear without refresh
+                apiGet(`/api/club-arena/announcements?clubId=${club.id}`)
+                    .then(d => setAnnouncements(d.announcements || []))
+                    .catch(() => {});
+            })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
                     console.warn(`[Lobby] Realtime channel status: ${status}`);
