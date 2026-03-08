@@ -394,11 +394,11 @@ export default function DiamondArcade() {
                 const queueId = json.queue_id;
                 const pollStart = Date.now();
 
-                // Realtime channel: fires instantly when duel_queue row changes to 'matched'
+                // Realtime channel: fires instantly when arcade_duel_queue row changes to 'matched'
                 const duelChannel = supabase
                     .channel(`duel-queue:${queueId}`)
                     .on('postgres_changes', {
-                        event: 'UPDATE', schema: 'public', table: 'duel_queue',
+                        event: 'UPDATE', schema: 'public', table: 'arcade_duel_queue',
                         filter: `id=eq.${queueId}`,
                     }, (payload) => {
                         if (payload.new?.status === 'matched') {
