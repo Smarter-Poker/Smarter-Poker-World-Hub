@@ -11,6 +11,7 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { getToken } from '../../src/lib/commander/clientAuth';
 import { busEmit } from '../../src/engine/EventBus';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import useDebounce from '../../src/hooks/useDebounce';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
@@ -508,14 +509,16 @@ export default function MarketplacePage() {
     setShowRentModal(true);
   }
 
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const filteredDealers = dealers.filter(d =>
-    d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.games_offered?.some(g => g.toLowerCase().includes(searchTerm.toLowerCase()))
+    d.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    d.games_offered?.some(g => g.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
   );
 
   const filteredEquipment = equipment.filter(e =>
-    e.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.category?.toLowerCase().includes(searchTerm.toLowerCase())
+    e.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+    e.category?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   );
 
   if (!staff) {

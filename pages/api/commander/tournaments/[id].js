@@ -7,6 +7,7 @@
  */
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -15,7 +16,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -120,6 +121,17 @@ async function updateTournament(req, res, id, staff) {
 
     if (error) throw error;
 
+    // Audit log
+    await logAction({ action: 'update_tournament', category: 'tournament' }, {
+      venueId: existing.venue_id,
+      staffId: staff.id,
+      targetId: id,
+      targetType: 'commander_tournaments',
+      targetName: tournament.name || 'Tournament',
+      changes: updates,
+      req
+    });
+
     return res.status(200).json({ success: true, data: { tournament } });
   } catch (error) {
     console.error('Update tournament error:', error);
@@ -171,6 +183,16 @@ async function cancelTournament(req, res, id, staff) {
       .maybeSingle();
 
     if (error) throw error;
+
+    // Audit log
+    await logAction({ action: 'cancel_tournament', category: 'tournament' }, {
+      venueId: existing.venue_id,
+      staffId: staff.id,
+      targetId: id,
+      targetType: 'commander_tournaments',
+      targetName: tournament.name || 'Tournament',
+      req
+    });
 
     return res.status(200).json({ success: true, data: { tournament, message: 'Tournament cancelled' } });
   } catch (error) {

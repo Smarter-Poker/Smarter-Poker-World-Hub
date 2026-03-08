@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { AlertTriangle, Plus, Clock, User, Check, X, Search, Loader2, MapPin, Shield, Flame, Zap } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import useDebounce from '../../src/hooks/useDebounce';
 import { busEmit } from '../../src/engine/EventBus';
 
 const INCIDENT_TYPES = [
@@ -359,6 +360,7 @@ export default function IncidentsPage() {
   const [incidents, setIncidents] = useState([]);
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
 
@@ -437,9 +439,9 @@ export default function IncidentsPage() {
       return true;
     })
     .filter(i =>
-      i.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.incident_type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      i.reported_by_name?.toLowerCase().includes(searchQuery.toLowerCase())
+      i.description?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      i.incident_type?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      i.reported_by_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
     );
 
   const openCount = incidents.filter(i => !i.resolved).length;

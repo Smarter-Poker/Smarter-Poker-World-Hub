@@ -35,6 +35,7 @@ import GameCostPopup from '../../src/components/gates/GameCostPopup';
 import GameIntroSplash from '../../src/components/training/GameIntroSplash';
 import LeakFixerIntercept from '../../src/components/training/LeakFixerIntercept';
 import SmartPracticeCard from '../../src/components/training/SmartPracticeCard';
+import StudyStreakMap from '../../src/components/training/StudyStreakMap';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for GodModeArena to avoid SSR issues
@@ -1071,6 +1072,9 @@ export default function TrainingPage() {
 
                         {/* Promo/Ad Section */}
                         <PromoSection onPlayFeatured={handlePlayFeatured} />
+
+                        {/* Phase 24: GitHub-Style Study Streak Map */}
+                        <StudyStreakMap sessionHistory={sessionHistory} />
 
                         {/* Streaks Badge */}
                         <StreaksBadge bestStreak={bestStreak} />

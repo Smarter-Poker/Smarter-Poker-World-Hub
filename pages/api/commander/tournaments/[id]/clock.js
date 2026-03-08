@@ -14,6 +14,7 @@ import {
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
 import { checkAndExecuteAutoBreak } from '../../../../../src/lib/commander/tournamentAutoBreak';
+import { logAction } from '../../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../../src/lib/apiRateLimit';
 
 
@@ -23,7 +24,7 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     if (!applyRateLimit(req, res, LIMITS.write)) return;
   }
 
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    return handleClockAction(req, res, tournamentId);
+    return handleClockAction(req, res, tournamentId, _g);
   }
 
   res.setHeader('Allow', ['GET', 'POST']);
@@ -161,7 +162,7 @@ async function getClockState(req, res, tournamentId) {
   }
 }
 
-async function handleClockAction(req, res, tournamentId) {
+async function handleClockAction(req, res, tournamentId, staff) {
   try {
     // Staff is already validated by guardWriteStaff at the handler level
 
@@ -479,6 +480,17 @@ async function handleClockAction(req, res, tournamentId) {
       autoBreakResult = await checkAndExecuteAutoBreak(tournamentId, updated);
     }
 
+    // Audit log
+    await logAction({ action: `clock_${action}`, category: 'tournament' }, {
+      venueId: updated.venue_id,
+      staffId: staff.id,
+      targetId: tournamentId,
+      targetType: 'commander_tournaments',
+      targetName: updated.name,
+      metadata: { action, level: updates.current_level },
+      req
+    });
+
     return res.status(200).json({
       success: true,
       data: {
@@ -507,7 +519,7 @@ async function fireTournamentStartNotification(tournamentId, tournamentName) {
     .select('player_id')
     .eq('tournament_id', tournamentId)
     .in('status', ['registered', 'seated', 'active'])
-        .limit(100);
+    .limit(100);
 
   const playerIds = (entries || []).map(e => e.player_id).filter(Boolean);
   if (playerIds.length === 0) return;

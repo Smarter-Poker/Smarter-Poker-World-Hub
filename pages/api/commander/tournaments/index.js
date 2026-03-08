@@ -7,6 +7,7 @@
 import { createClient } from '../../../../src/lib/supabaseServerClient';
 import { captureException } from '../../../../src/lib/commander/errorMonitoring';
 import { guardWriteStaff } from '../../../../src/lib/commander/auth';
+import { logAction } from '../../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -180,6 +181,16 @@ async function createTournament(req, res, staff) {
       .maybeSingle();
 
     if (error) throw error;
+
+    // Audit log
+    await logAction({ action: 'create_tournament', category: 'tournament' }, {
+      venueId: venue_id,
+      staffId: staff.id,
+      targetId: tournament.id,
+      targetType: 'commander_tournaments',
+      targetName: name,
+      req
+    });
 
     return res.status(201).json({ success: true, data: { tournament } });
   } catch (error) {

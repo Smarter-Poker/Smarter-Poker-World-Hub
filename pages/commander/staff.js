@@ -5,8 +5,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
-import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, AlertTriangle, CreditCard, QrCode, Link2, Copy, CheckCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, AlertTriangle, CreditCard, QrCode, Link2, Copy, CheckCircle, Search } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import useDebounce from '../../src/hooks/useDebounce';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
 
@@ -50,6 +51,9 @@ export default function CommanderStaffPage() {
   const [revealedPinId, setRevealedPinId] = useState(null);
   const [linkCodeData, setLinkCodeData] = useState(null); // { staffId, token, url }
   const [linkCodeLoading, setLinkCodeLoading] = useState(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchQuery = useDebounce(searchTerm, 300);
 
   // Check staff session
   useEffect(() => {
@@ -268,6 +272,15 @@ export default function CommanderStaffPage() {
   // Check permissions
   const canManageStaff = currentStaff?.permissions?.manage_staff !== false;
 
+  // Filter staff list based on search
+  const filteredStaff = staffList.filter(s => {
+    if (!debouncedSearchQuery) return true;
+    const q = debouncedSearchQuery.toLowerCase();
+    const name = (s.profiles?.display_name || s.display_name || 'Staff Member').toLowerCase();
+    const roleMatch = (ROLES.find(r => r.value === s.role)?.label || '').toLowerCase().includes(q);
+    return name.includes(q) || roleMatch;
+  });
+
   // Generate link code for staff member
   async function handleGenerateLinkCode(staffId) {
     setLinkCodeLoading(staffId);
@@ -347,118 +360,134 @@ export default function CommanderStaffPage() {
               )}
             </div>
           ) : (
-            <div className="cmd-panel divide-y divide-[#3A3B3C]">
-              {staffList.map((staff) => {
-                const role = ROLES.find(r => r.value === staff.role) || ROLES[4];
-                return (
-                  <div
-                    key={staff.id}
-                    className="p-4 flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-[#3A3B3C] rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-[#B0B3B8]" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-white">
-                          {staff.profiles?.display_name || staff.display_name || 'Staff Member'}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${role.color}`}>
-                            {role.label}
-                          </span>
-                          {staff.pin_code && (() => {
-                            const isAdmin = currentStaff?.role === 'owner' || currentStaff?.role === 'manager';
-                            const isSelf = staff.id === currentStaff?.id;
-                            const canReveal = isAdmin || isSelf;
-                            const isRevealed = revealedPinId === staff.id;
-                            return (
-                              <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
-                                PIN: {isRevealed ? staff.pin_code : '****'}
-                                {canReveal && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
-                                    className="p-0.5 hover:text-[#1877F2] transition-colors"
-                                    title={isRevealed ? 'Hide PIN' : 'Show PIN'}
-                                  >
-                                    {isRevealed
-                                      ? <EyeOff className="w-3.5 h-3.5" />
-                                      : <Eye className="w-3.5 h-3.5" />
-                                    }
-                                  </button>
-                                )}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                        {staff.linked_user_id ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
-                            <CheckCircle className="w-3 h-3" /> Linked
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-[#65676B] rounded-full bg-[#3A3B3C]/50">
-                            Not linked
-                          </span>
-                        )}
-                      </div>
-                    </div>
+            <>
+              {/* Search Bar */}
+              <div className="mb-4 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#B0B3B8]" />
+                <input
+                  type="text"
+                  placeholder="Search staff by name or role..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="cmd-input w-full pl-10 h-10"
+                />
+              </div>
 
-                    {canManageStaff && staff.id !== currentStaff.id && (
-                      <div className="flex gap-2">
-                        {!staff.linked_user_id && (
-                          linkCodeData?.staffId === staff.id ? (
-                            <div className="flex items-center gap-2 px-2 py-1 bg-[#1877F2]/10 rounded-lg border border-[#1877F2]/30">
-                              <span className="text-xs font-mono font-bold text-[#1877F2] tracking-wider">{linkCodeData.token}</span>
-                              <button
-                                onClick={() => { navigator.clipboard.writeText(linkCodeData.url); }}
-                                className="p-1 text-[#1877F2] hover:bg-[#1877F2]/20 rounded transition-colors"
-                                title="Copy claim URL"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
+              <div className="cmd-panel divide-y divide-[#3A3B3C]">
+                {filteredStaff.length === 0 ? (
+                  <div className="p-8 text-center text-[#B0B3B8]">No staff matched your search</div>
+                ) : (
+                  filteredStaff.map((staff) => {
+                    const role = ROLES.find(r => r.value === staff.role) || ROLES[4];
+                    return (
+                      <div
+                        key={staff.id}
+                        className="p-4 flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-[#3A3B3C] rounded-full flex items-center justify-center">
+                            <User className="w-6 h-6 text-[#B0B3B8]" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white">
+                              {staff.profiles?.display_name || staff.display_name || 'Staff Member'}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${role.color}`}>
+                                {role.label}
+                              </span>
+                              {staff.pin_code && (() => {
+                                const isAdmin = currentStaff?.role === 'owner' || currentStaff?.role === 'manager';
+                                const isSelf = staff.id === currentStaff?.id;
+                                const canReveal = isAdmin || isSelf;
+                                const isRevealed = revealedPinId === staff.id;
+                                return (
+                                  <span className="inline-flex items-center gap-1 text-xs text-[#B0B3B8]">
+                                    PIN: {isRevealed ? staff.pin_code : '****'}
+                                    {canReveal && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setRevealedPinId(isRevealed ? null : staff.id)}
+                                        className="p-0.5 hover:text-[#1877F2] transition-colors"
+                                        title={isRevealed ? 'Hide PIN' : 'Show PIN'}
+                                      >
+                                        {isRevealed
+                                          ? <EyeOff className="w-3.5 h-3.5" />
+                                          : <Eye className="w-3.5 h-3.5" />
+                                        }
+                                      </button>
+                                    )}
+                                  </span>
+                                );
+                              })()}
                             </div>
-                          ) : (
+                            {staff.linked_user_id ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-[#22C55E]/15 text-[#22C55E] border border-[#22C55E]/30">
+                                <CheckCircle className="w-3 h-3" /> Linked
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs text-[#65676B] rounded-full bg-[#3A3B3C]/50">
+                                Not linked
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {canManageStaff && staff.id !== currentStaff.id && (
+                          <div className="flex gap-2">
+                            {!staff.linked_user_id && (
+                              linkCodeData?.staffId === staff.id ? (
+                                <div className="flex items-center gap-2 px-2 py-1 bg-[#1877F2]/10 rounded-lg border border-[#1877F2]/30">
+                                  <span className="text-xs font-mono font-bold text-[#1877F2] tracking-wider">{linkCodeData.token}</span>
+                                  <button
+                                    onClick={() => { navigator.clipboard.writeText(linkCodeData.url); }}
+                                    className="p-1 text-[#1877F2] hover:bg-[#1877F2]/20 rounded transition-colors"
+                                    title="Copy claim URL"
+                                  >
+                                    <Copy className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleGenerateLinkCode(staff.id)}
+                                  disabled={linkCodeLoading === staff.id}
+                                  className="p-2 text-[#1877F2] hover:bg-[#1877F2]/10 rounded-lg transition-colors"
+                                  title="Generate link code for employee"
+                                >
+                                  <Link2 className="w-4 h-4" />
+                                </button>
+                              )
+                            )}
                             <button
-                              onClick={() => handleGenerateLinkCode(staff.id)}
-                              disabled={linkCodeLoading === staff.id}
-                              className="p-2 text-[#1877F2] hover:bg-[#1877F2]/10 rounded-lg transition-colors"
-                              title="Generate link code for employee"
+                              onClick={() => setEditingStaff(staff)}
+                              className="p-2 text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
                             >
-                              <Link2 className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4" />
                             </button>
-                          )
-                        )}
-                        <button
-                          onClick={() => setEditingStaff(staff)}
-                          className="p-2 text-[#B0B3B8] hover:bg-[#3A3B3C] rounded-lg transition-colors"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        {confirmDeleteId === staff.id ? (
-                          <button
-                            onClick={() => handleDeleteStaff(staff.id)}
-                            className="px-3 py-1.5 text-xs font-semibold bg-[#EF4444] text-white rounded-lg transition-colors hover:bg-red-600"
-                          >
-                            Confirm?
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleDeleteStaff(staff.id)}
-                            className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
-                            title="Remove staff member"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                            {confirmDeleteId === staff.id ? (
+                              <button
+                                onClick={() => handleDeleteStaff(staff.id)}
+                                className="px-3 py-1.5 text-xs font-semibold bg-[#EF4444] text-white rounded-lg transition-colors hover:bg-red-600"
+                              >
+                                Confirm?
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteStaff(staff.id)}
+                                className="p-2 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
+                                title="Remove staff member"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+              </div>
           )}
-        </main>
+            </main>
       </div>
 
       {/* Add/Edit Modal */}

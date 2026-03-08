@@ -6,6 +6,7 @@
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { guardStaff } from '../../../src/lib/commander/auth';
+import { logAction, AuditActions } from '../../../src/lib/commander/audit';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
 const supabase = createClient(
@@ -120,6 +121,17 @@ async function handlePost(req, res, staff) {
     if (error) throw error;
     if (!data) return res.status(500).json({ success: false, error: 'Failed to record transaction' });
 
+    // Audit log
+    await logAction({ action: `cashier_${type}`, category: 'cashier' }, {
+      venueId: venue_id,
+      staffId: pin_verified_by || staff.id,
+      targetId: data.id,
+      targetType: 'commander_cash_transactions',
+      targetName: player_name,
+      metadata: { amount: parsedAmount, method: payment_method },
+      req
+    });
+
     // Get updated player totals for this session — EXCLUDE voided transactions
     let playerTotals = null;
     if (session_id) {
@@ -185,6 +197,16 @@ async function handlePatch(req, res, staff) {
       .maybeSingle();
 
     if (error) throw error;
+
+    // Audit log
+    await logAction({ action: 'cashier_void', category: 'cashier' }, {
+      venueId: existing.venue_id,
+      staffId: staff.id,
+      targetId: transaction_id,
+      targetType: 'commander_cash_transactions',
+      metadata: { reason: void_reason },
+      req
+    });
 
     return res.status(200).json({ success: true, data });
   } catch (err) {

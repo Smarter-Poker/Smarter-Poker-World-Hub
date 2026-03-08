@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import MistakeCluster from '../../../src/components/training/MistakeCluster';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH HELPER
@@ -434,6 +435,9 @@ export default function SessionDashboardPage() {
                     {/* WEAK SPOTS TAB */}
                     {!loading && activeTab === 'weak spots' && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            {/* Phase 24: Actionable Leak Identification */}
+                            <MistakeCluster progressData={progress} />
+
                             {weakSpots.length === 0 ? (
                                 <div style={{
                                     textAlign: 'center', padding: 40, color: '#475569',

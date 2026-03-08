@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import useDebounce from '../../../src/hooks/useDebounce';
 import { ChevronLeft, Phone, Mail, MapPin, Search, Filter, ChevronDown, XCircle, Building2, MoreVertical } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { getToken } from '../../../src/lib/commander/clientAuth';
@@ -43,6 +44,8 @@ export default function LeadManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLead, setSelectedLead] = useState(null);
   const [showStatusMenu, setShowStatusMenu] = useState(null);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
     fetchLeads();
@@ -90,13 +93,13 @@ export default function LeadManagementPage() {
     }
   }
 
-  const filteredLeads = searchTerm
+  const filteredLeads = debouncedSearchTerm
     ? leads.filter(
       (lead) =>
-        lead.venue_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.contact_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lead.city.toLowerCase().includes(searchTerm.toLowerCase())
+        lead.venue_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        lead.contact_name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        lead.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        lead.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
     )
     : leads;
 

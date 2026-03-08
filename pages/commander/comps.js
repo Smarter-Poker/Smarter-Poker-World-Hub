@@ -17,6 +17,7 @@ import { Gift, DollarSign, Users, Clock, Search, TrendingUp, Loader2, RefreshCw,
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import useDebounce from '../../src/hooks/useDebounce';
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [
@@ -73,7 +74,7 @@ export default function CompSystem() {
   const [awardError, setAwardError] = useState('');
   const [lastAwardData, setLastAwardData] = useState(null);
   const [successOverlay, setSuccessOverlay] = useState(null);
-  const searchTimeoutRef = useRef(null);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // ─── PIN auth state ───
   const [showPinModal, setShowPinModal] = useState(false);
@@ -212,11 +213,9 @@ export default function CompSystem() {
 
   // Auto-search with debounce as user types
   useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    if (!searchQuery || searchQuery.length < 2) { setSearchResults([]); return; }
-    searchTimeoutRef.current = setTimeout(() => { searchMembers(searchQuery); }, 300);
-    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
-  }, [searchQuery]);
+    if (!debouncedSearchQuery || debouncedSearchQuery.length < 2) { setSearchResults([]); return; }
+    searchMembers(debouncedSearchQuery);
+  }, [debouncedSearchQuery]);
 
   // ─── Step 1: Click Issue Comp → show PIN modal ───
   const requestComp = () => {

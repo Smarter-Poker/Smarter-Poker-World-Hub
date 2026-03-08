@@ -11,6 +11,7 @@ import { Users, Plus, Clock, Search, Loader2, Edit2, RotateCw, Star, Check, X, H
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import useDebounce from '../../src/hooks/useDebounce';
 
 const GAME_CERTIFICATIONS = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -309,6 +310,7 @@ export default function DealersPage() {
   const [tables, setTables] = useState([]);
   const [rotations, setRotations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingDealer, setEditingDealer] = useState(null);
   const [rotatingDealer, setRotatingDealer] = useState(null);
@@ -459,8 +461,8 @@ export default function DealersPage() {
   }
 
   const filteredDealers = dealers.filter(d =>
-    d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    d.employee_id?.toLowerCase().includes(searchQuery.toLowerCase())
+    d.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+    d.employee_id?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
   );
 
   const activeDealers = filteredDealers.filter(d => d.current_table);

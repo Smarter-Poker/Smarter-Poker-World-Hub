@@ -12,11 +12,13 @@ import {
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
+import useDebounce from '../../src/hooks/useDebounce';
 
 export default function ResponsibleGaming() {
   useEffect(() => { busEmit.sessionStart('commander-responsible-gaming'); }, []);
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [searchResult, setSearchResult] = useState(null);
   const [searching, setSearching] = useState(false);
   const [members, setMembers] = useState([]);
@@ -46,13 +48,13 @@ export default function ResponsibleGaming() {
   useEffect(() => { const _c = new AbortController(); fetchMembers(_c.signal); return () => _c.abort(); }, [fetchMembers]);
 
   // Search/check specific player
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const executeSearch = useCallback(async (query) => {
+    if (!query.trim()) return;
     setSearching(true);
     setSearchResult(null);
     try {
       // Search members first
-      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(searchQuery)}&venue_id=${venueId}`, {
+      const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(query)}&venue_id=${venueId}`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       const json = await res.json();
@@ -86,7 +88,17 @@ export default function ResponsibleGaming() {
       setSearchResult({ found: false, error: true });
     }
     finally { setSearching(false); }
-  };
+  }, [venueId]); // getToken is defined outside and uses local storage, safe to omit from deps
+
+  useEffect(() => {
+    if (debouncedSearchQuery && debouncedSearchQuery.trim()) {
+      executeSearch(debouncedSearchQuery);
+    } else {
+      setSearchResult(null);
+    }
+  }, [debouncedSearchQuery, executeSearch]);
+
+  const handleSearch = () => executeSearch(searchQuery);
 
   // Stats
   const totalMembers = members.length;
@@ -96,10 +108,10 @@ export default function ResponsibleGaming() {
     <CommanderLayout title="Responsible Gaming" backHref="/commander/dashboard?card=reports">
       <>
         <SEOHead
-                title="Commander — Responsible Gaming"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-            />
+          title="Commander — Responsible Gaming"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
           <div className="bg-[#242526] border-b border-[#3A3B3C] px-4 py-3 flex items-center gap-3">
             <div className="flex-1">

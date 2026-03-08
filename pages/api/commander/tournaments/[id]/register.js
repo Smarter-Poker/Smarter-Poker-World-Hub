@@ -13,6 +13,7 @@ import {
   sendPushNotification,
   isOneSignalConfigured
 } from '../../../../../src/lib/commander/pushNotifications';
+import { logAction, AuditActions } from '../../../../../src/lib/commander/audit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -31,9 +32,9 @@ export default async function handler(req, res) {
   const { id } = req.query;
 
   if (req.method === 'POST') {
-    return handleRegister(req, res, id);
+    return handleRegister(req, res, id, _staff);
   } else if (req.method === 'DELETE') {
-    return handleUnregister(req, res, id);
+    return handleUnregister(req, res, id, _staff);
   }
 
   return res.status(405).json({
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
   });
 }
 
-async function handleRegister(req, res, tournamentId) {
+async function handleRegister(req, res, tournamentId, staff) {
   const { player_id } = req.body;
 
   if (!player_id) {
@@ -228,6 +229,17 @@ async function handleRegister(req, res, tournamentId) {
         .catch(err => console.error('[register.js] Auto-story failed:', err.message));
     }
 
+    // Audit log
+    await logAction({ action: 'register_player', category: 'tournament' }, {
+      venueId: tournament.venue_id,
+      staffId: staff.id,
+      targetId: player_id,
+      targetType: 'commander_tournament_entries',
+      targetName: pName || 'Player',
+      metadata: { tournament_id: tournamentId, amount: totalAmount },
+      req
+    });
+
     return res.status(201).json({
       success: true,
       data: { entry }
@@ -241,7 +253,7 @@ async function handleRegister(req, res, tournamentId) {
   }
 }
 
-async function handleUnregister(req, res, tournamentId) {
+async function handleUnregister(req, res, tournamentId, staff) {
   const { player_id } = req.body;
 
   if (!player_id) {
@@ -277,6 +289,16 @@ async function handleUnregister(req, res, tournamentId) {
       .eq('status', 'registered');
 
     if (error) throw error;
+
+    // Audit log
+    await logAction({ action: 'unregister_player', category: 'tournament' }, {
+      venueId: tournament.venue_id,
+      staffId: staff.id,
+      targetId: player_id,
+      targetType: 'commander_tournament_entries',
+      metadata: { tournament_id: tournamentId },
+      req
+    });
 
     return res.status(200).json({
       success: true,

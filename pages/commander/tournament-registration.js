@@ -11,6 +11,7 @@ import { Trophy, Search, Users, Loader2, CheckCircle2, AlertTriangle, Clock, Dol
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import useDebounce from '../../src/hooks/useDebounce';
 
 export default function TournamentRegistration() {
     const router = useRouter();
@@ -24,6 +25,7 @@ export default function TournamentRegistration() {
     const [searchLoading, setSearchLoading] = useState(false);
     const [selectedPlayer, setSelectedPlayer] = useState(null);
     const [selectedTournament, setSelectedTournament] = useState(null);
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     useEffect(() => {
         try {
@@ -55,8 +57,7 @@ export default function TournamentRegistration() {
     useCommanderSync(venueId || '', fetchTournaments, { entities: ['tournaments', 'members'] });
 
     // Player search
-    const searchPlayers = async (query) => {
-        setSearchQuery(query);
+    const executeSearch = useCallback(async (query) => {
         if (!query || query.length < 2) { setSearchResults([]); return; }
         setSearchLoading(true);
         try {
@@ -68,7 +69,15 @@ export default function TournamentRegistration() {
             setSearchResults(json.data || []);
         } catch { setSearchResults([]); }
         finally { setSearchLoading(false); }
-    };
+    }, [venueId]);
+
+    useEffect(() => {
+        if (debouncedSearchQuery && debouncedSearchQuery.length >= 2) {
+            executeSearch(debouncedSearchQuery);
+        } else {
+            setSearchResults([]);
+        }
+    }, [debouncedSearchQuery, executeSearch]);
 
     const selectPlayer = (m) => {
         const name = m.name || `${m.first_name || ''} ${m.last_name || ''}`.trim();
@@ -362,7 +371,7 @@ ${total > 0 ? `<div class="fin-total-row"><span class="fin-total-label">Total Bu
                                 <input
                                     type="text"
                                     value={searchQuery}
-                                    onChange={e => searchPlayers(e.target.value)}
+                                    onChange={e => setSearchQuery(e.target.value)}
                                     placeholder="Search by Name or Phone..."
                                     style={{
                                         width: '100%', background: '#3A3B3C', border: '1px solid #4A4B4C', borderRadius: 10,

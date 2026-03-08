@@ -17,6 +17,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { QrCode, CreditCard, Loader2, Search, CheckCircle2, AlertTriangle, ChevronDown, Receipt, Lock, Delete, DollarSign, Banknote, Users, Printer } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import useDebounce from '../../src/hooks/useDebounce';
 
 const QUICK_AMOUNTS = [50, 100, 200, 300, 500, 1000];
 // Fallback time options — overridden by owner settings from Time Billing page
@@ -64,7 +65,7 @@ export default function Cashier() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const searchTimeoutRef = useRef(null);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const pendingModalRef = useRef(null); // Track which modal to return to after player search
 
   // Modals
@@ -78,7 +79,7 @@ export default function Cashier() {
   const [printCardSearchResults, setPrintCardSearchResults] = useState([]);
   const [printCardSearchLoading, setPrintCardSearchLoading] = useState(false);
   const [printCardSelectedPlayer, setPrintCardSelectedPlayer] = useState(null);
-  const printCardSearchTimeoutRef = useRef(null);
+  const debouncedPrintCardSearchQuery = useDebounce(printCardSearchQuery, 300);
   const [playerHistoryLoading, setPlayerHistoryLoading] = useState(false);
 
   // Buy-In form
@@ -378,30 +379,36 @@ export default function Cashier() {
   };
 
   // Manual player search — supports empty query (returns staff + recent members)
-  const searchPlayers = async (query) => {
+  const executeSearch = useCallback(async (query) => {
+    setSearchLoading(true);
+    try {
+      const token = getToken();
+      const staffSession = localStorage.getItem('commander_staff') || '';
+      const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
+      const params = query ? `q=${encodeURIComponent(query)}&` : '';
+      const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
+      const json = await res.json();
+      setSearchResults(json.data || []);
+    } catch { setSearchResults([]); }
+    finally { setSearchLoading(false); }
+  }, [venueId]);
+
+  useEffect(() => {
+    if (showPlayerSearch && venueId) {
+      executeSearch(debouncedSearchQuery);
+    }
+  }, [debouncedSearchQuery, showPlayerSearch, venueId, executeSearch]);
+
+  const searchPlayers = (query) => {
     setSearchQuery(query);
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(async () => {
-      setSearchLoading(true);
-      try {
-        const token = getToken();
-        const staffSession = localStorage.getItem('commander_staff') || '';
-        const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-        const params = query ? `q=${encodeURIComponent(query)}&` : '';
-        const res = await fetch(`/api/commander/members/search?${params}venue_id=${venueId}&limit=15`, { headers });
-        const json = await res.json();
-        setSearchResults(json.data || []);
-      } catch { setSearchResults([]); }
-      finally { setSearchLoading(false); }
-    }, query ? 300 : 50);
   };
 
   // Auto-load staff + recent members when search modal opens
   useEffect(() => {
-    if (showPlayerSearch && venueId && searchResults.length === 0) {
-      searchPlayers('');
+    if (showPlayerSearch && venueId && searchResults.length === 0 && !searchQuery) {
+      executeSearch('');
     }
-  }, [showPlayerSearch, venueId]);
+  }, [showPlayerSearch, venueId, searchResults.length, searchQuery, executeSearch]);
 
   // === PIN Logic ===
   const requestPinFor = async (action) => {
@@ -1642,22 +1649,7 @@ export default function Cashier() {
                       type="text"
                       value={printCardSearchQuery}
                       onChange={e => {
-                        const val = e.target.value;
-                        setPrintCardSearchQuery(val);
-                        if (printCardSearchTimeoutRef.current) clearTimeout(printCardSearchTimeoutRef.current);
-                        if (!val || val.length < 2) { setPrintCardSearchResults([]); return; }
-                        printCardSearchTimeoutRef.current = setTimeout(async () => {
-                          setPrintCardSearchLoading(true);
-                          try {
-                            const token = getToken();
-                            const staffSession = localStorage.getItem('commander_staff') || '';
-                            const headers = { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession };
-                            const res = await fetch(`/api/commander/members/search?q=${encodeURIComponent(val)}&venue_id=${venueId}&limit=8`, { headers });
-                            const json = await res.json();
-                            setPrintCardSearchResults(json.data || []);
-                          } catch { setPrintCardSearchResults([]); }
-                          finally { setPrintCardSearchLoading(false); }
-                        }, 300);
+                        setPrintCardSearchQuery(e.target.value);
                       }}
                       placeholder="Search by Name or Phone..."
                       autoFocus
