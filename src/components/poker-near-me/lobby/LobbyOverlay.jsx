@@ -136,10 +136,16 @@ export default function LobbyOverlay({
       <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
 
         {/* POKER NEAR ME Title */}
-        <h1 className="lobby-title">POKER NEAR ME</h1>
+        <h1 className="lobby-title" style={{ textShadow: '0 0 40px rgba(110, 231, 239, 0.5), 0 0 80px rgba(110, 231, 239, 0.2)' }}>POKER NEAR ME</h1>
 
         <form className="lobby-search-form" onSubmit={handleSearchSubmit} style={{ position: 'relative', pointerEvents: 'auto' }}>
-          <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`}>
+          <div className={`lobby-search-wrap ${searchFocused ? 'focused' : ''}`} style={{
+            backdropFilter: 'blur(16px)',
+            background: 'rgba(6, 21, 37, 0.7)',
+            border: searchFocused ? '1px solid rgba(110, 231, 239, 0.5)' : '1px solid rgba(110, 231, 239, 0.2)',
+            boxShadow: searchFocused ? '0 0 24px rgba(110, 231, 239, 0.15)' : 'none',
+            transition: 'all 0.25s',
+          }}>
             <svg className="lobby-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -249,16 +255,33 @@ export default function LobbyOverlay({
           const badge = item.id === 'alerts' ? alertCount :
                        item.id === 'favorites' ? savedCount :
                        item.id === 'social' ? friendsNearby : 0;
+          const [isHovered, setIsHovered] = React.useState(false);
           return (
             <button
               key={item.id}
               className={`lobby-dock-btn ${isActive ? 'active' : ''}`}
-              style={{ pointerEvents: 'auto' }}
+              style={{
+                pointerEvents: 'auto',
+                backdropFilter: 'blur(12px)',
+                background: isActive ? 'rgba(110, 231, 239, 0.12)' : (isHovered ? 'rgba(110, 231, 239, 0.08)' : 'rgba(6, 21, 37, 0.6)'),
+                border: isActive ? '1px solid rgba(110, 231, 239, 0.5)' : (isHovered ? '1px solid rgba(110, 231, 239, 0.4)' : '1px solid rgba(110, 231, 239, 0.15)'),
+                borderRadius: 16,
+                boxShadow: isActive ? '0 0 20px rgba(110, 231, 239, 0.3)' : 'none',
+                transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+                transition: 'all 0.25s ease',
+              }}
               onClick={() => onPodSelect?.(item.id)}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
             >
               <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
-              <span className="lobby-dock-label">{item.label}</span>
-              {badge > 0 && <span className="lobby-dock-badge">{badge}</span>}
+              <span className="lobby-dock-label" style={{
+                fontSize: 11,
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                fontWeight: 600,
+              }}>{item.label}</span>
+              {badge > 0 && <span className="lobby-dock-badge" style={{ boxShadow: '0 0 8px rgba(110, 231, 239, 0.5)' }}>{badge}</span>}
             </button>
           );
         })}

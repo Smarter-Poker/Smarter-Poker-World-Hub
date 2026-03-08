@@ -180,26 +180,26 @@ function GroundPlatform({ quality }) {
 
       {/* Inner ring glow — pod orbit indicator */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[3.9, 3.95, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.35} blending={AdditiveBlending} depthWrite={false} />
+        <ringGeometry args={[3.85, 3.98, 64]} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.55} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Mid ring */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[3.0, 3.15, 64]} />
-        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.4} blending={AdditiveBlending} depthWrite={false} />
+        <ringGeometry args={[2.95, 3.2, 64]} />
+        <meshBasicMaterial color="#6ee7ef" transparent opacity={0.6} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer ring glow — platform edge */}
       <mesh position={[0, -0.96, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[5.2, 5.5, 64]} />
-        <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} blending={AdditiveBlending} depthWrite={false} />
+        <ringGeometry args={[5.1, 5.55, 64]} />
+        <meshBasicMaterial color="#3b82f6" transparent opacity={0.6} blending={AdditiveBlending} depthWrite={false} />
       </mesh>
 
       {/* Outer haze ring */}
       <mesh position={[0, -0.99, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[5.5, 7.5, 64]} />
-        <meshBasicMaterial color="#00d4ff" transparent opacity={0.05} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
+        <meshBasicMaterial color="#00d4ff" transparent opacity={0.10} blending={AdditiveBlending} depthWrite={false} side={DoubleSide} />
       </mesh>
     </group>
   );
@@ -218,7 +218,7 @@ function EnergyBeam() {
 
     // Beam pulse
     if (beamRef.current) {
-      beamRef.current.material.opacity = 0.08 + 0.04 * Math.sin(t * 1.5);
+      beamRef.current.material.opacity = 0.20 + 0.10 * Math.sin(t * 1.5);
     }
 
     // Floating rings orbit upward
@@ -227,20 +227,20 @@ function EnergyBeam() {
       const phase = (t * 0.15 + i * 0.33) % 1;
       ring.position.y = phase * 6;
       ring.scale.setScalar(0.3 + phase * 0.7);
-      ring.material.opacity = (1 - phase) * 0.15;
+      ring.material.opacity = (1 - phase) * 0.35;
       ring.rotation.y = t * 0.5 + i * 2;
     });
   });
 
   return (
     <group position={[0, -0.9, 0]}>
-      {/* Main beam cylinder — very subtle, bloom does the heavy lifting */}
+      {/* Main beam cylinder — much stronger glow */}
       <mesh ref={beamRef}>
-        <cylinderGeometry args={[0.08, 0.15, 8, 16, 1, true]} />
+        <cylinderGeometry args={[0.15, 0.25, 8, 16, 1, true]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.08}
+          opacity={0.20}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -253,7 +253,7 @@ function EnergyBeam() {
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.03}
+          opacity={0.08}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -271,7 +271,7 @@ function EnergyBeam() {
           <meshBasicMaterial
             color="#6ee7ef"
             transparent
-            opacity={0.15}
+            opacity={0.35}
             blending={AdditiveBlending}
             depthWrite={false}
             side={DoubleSide}
@@ -292,16 +292,16 @@ function OrbitalHalo() {
     if (!ringRef.current) return;
     const t = clock.getElapsedTime();
     ringRef.current.rotation.z = t * 0.05;
-    ringRef.current.material.opacity = 0.06 + 0.03 * Math.sin(t * 0.8);
+    ringRef.current.material.opacity = 0.18 + 0.08 * Math.sin(t * 0.8);
   });
 
   return (
     <mesh ref={ringRef} position={[0, 2.5, 0]} rotation={[-Math.PI / 2.2, 0, 0]}>
-      <ringGeometry args={[5.5, 5.7, 96]} />
+      <ringGeometry args={[5.3, 5.8, 96]} />
       <meshBasicMaterial
         color="#6ee7ef"
         transparent
-        opacity={0.06}
+        opacity={0.18}
         blending={AdditiveBlending}
         depthWrite={false}
         side={DoubleSide}
@@ -316,7 +316,7 @@ function OrbitalHalo() {
 function SceneFog() {
   useFrame(({ scene }) => {
     if (!scene.fog) {
-      scene.fog = new FogExp2('#020810', 0.035);
+      scene.fog = new FogExp2('#020810', 0.055);
     }
   });
   return null;
@@ -495,20 +495,20 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       <SceneFog />
 
       {/* ═══ CINEMATIC LIGHTING ═══ */}
-      <ambientLight intensity={0.2} color="#88ccdd" />
+      <ambientLight intensity={0.35} color="#88ccdd" />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={1.8}
+        intensity={2.2}
         color="#ffffff"
         castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-5, 8, -3]} intensity={0.8} color="#6ee7ef" />
-      <directionalLight position={[0, 3, -8]} intensity={0.5} color="#3b82f6" />
-      <pointLight position={[0, 5, 0]} intensity={2.2} color="#6ee7ef" distance={15} decay={2} />
+      <directionalLight position={[-5, 8, -3]} intensity={1.2} color="#6ee7ef" />
+      <directionalLight position={[0, 3, -8]} intensity={0.8} color="#3b82f6" />
+      <pointLight position={[0, 5, 0]} intensity={3.5} color="#6ee7ef" distance={20} decay={2} />
       {/* Underlight for pod pedestals */}
-      <pointLight position={[0, -0.5, 0]} intensity={0.8} color="#ff8c00" distance={8} decay={2} />
+      <pointLight position={[0, -0.5, 0]} intensity={1.5} color="#ff8c00" distance={8} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />
@@ -569,14 +569,14 @@ export function R3FScene({ propsRef, initialQuality, initialDpr, isMobile }) {
     console.log('[R3FScene] Scene children:', state.scene.children.length);
     state.gl.setClearColor(0x000000, 0);
     state.gl.toneMapping = 4; // ACESFilmicToneMapping
-    state.gl.toneMappingExposure = 1.2; // Slightly brighter for Phase 2
+    state.gl.toneMappingExposure = 1.6; // Brighter for AAA cinematic
   }, []);
 
   return (
     <Canvas
       camera={{
-        position: [0, 4.5, 9.5],
-        fov: 48,
+        position: [0, 3.5, 7.5],
+        fov: 52,
         near: 0.1,
         far: 100,
       }}
