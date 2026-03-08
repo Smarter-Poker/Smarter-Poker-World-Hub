@@ -8,9 +8,11 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, Clock, Users, Save, Loader2, ChevronRight, DollarSign, Package, Image, Upload, X as XIcon, Shield } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function CommanderSettingsPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-settings'); }, []);
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -175,6 +177,7 @@ export default function CommanderSettingsPage() {
       const data = await res.json();
       if (data.success) {
         broadcastChange('settings');
+        busEmit.celebration('confetti');
         // Store security gate state for CommanderLayout to read
         localStorage.setItem('commander_security_gate', settings.security_gate_enabled === false ? 'off' : 'on');
         setSuccess('Settings saved successfully');

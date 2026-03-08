@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function ShiftHandoff() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-shift-handoff'); }, []);
   const [staff, setStaff] = useState(null);
   const [mode, setMode] = useState('menu'); // menu | create | history
   const [handoffs, setHandoffs] = useState([]);
@@ -34,7 +36,8 @@ export default function ShiftHandoff() {
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
 
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     const stored = localStorage.getItem('commander_staff');
     if (!stored) { router.push('/commander/login').catch(() => { }); return; }
@@ -47,7 +50,7 @@ export default function ShiftHandoff() {
   }, []);
 
   // fetchHandoffs declared FIRST — must precede useEffect/useCommanderSync that reference it
-  const fetchHandoffs = async(signal) => {
+  const fetchHandoffs = async (signal) => {
     setLoading(true);
     try {
       const token = getToken();
@@ -61,7 +64,8 @@ export default function ShiftHandoff() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => {    const _c = new AbortController();
+  useEffect(() => {
+    const _c = new AbortController();
 
     if (staff?.venue_id) fetchHandoffs();
     return () => _c.abort();
@@ -100,6 +104,7 @@ export default function ShiftHandoff() {
         setMode('history');
         fetchHandoffs();
         broadcastChange('staff');
+        busEmit.sessionEnd('commander-shift-handoff');
       } else {
         setToast({ type: 'error', msg: json.error?.message || 'Failed to submit' });
       }

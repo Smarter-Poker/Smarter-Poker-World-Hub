@@ -21,6 +21,7 @@ import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const PUSH_THRESHOLD = 30; // minutes before highlighting for rotation
 const PUSH_WARNING = 25;   // minutes before showing amber warning
@@ -37,6 +38,7 @@ function formatTime(dateStr) {
 
 export default function DealerRotation() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-dealer-rotation'); }, []);
   const [dealers, setDealers] = useState([]);
   const [tables, setTables] = useState([]);
   const [games, setGames] = useState([]);

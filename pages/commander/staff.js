@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Edit2, Trash2, User, Loader2, X, Eye, EyeOff, AlertTriangle, CreditCard, QrCode, Link2, Copy, CheckCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const ID_TYPES = [
   { value: 'drivers_license', label: "Driver's License" },
@@ -36,6 +37,7 @@ const ROLES = [
 
 export default function CommanderStaffPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-staff'); }, []);
 
   const [currentStaff, setCurrentStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -115,6 +117,7 @@ export default function CommanderStaffPage() {
       if (data.success) {
         fetchStaff();
         broadcastChange('staff');
+        busEmit.celebration('confetti');
         setShowAddModal(false);
         // Auto-print QR badge
         const staff = data.data?.staff;

@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Edit2, Trash2, X, Loader2, Save, DollarSign, Users, Percent, Clock, ToggleLeft, ToggleRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const PRESET_GAMES = [
   { name: 'No Limit Hold\'em', short_code: 'NLH', max_players: 9, color: '#1877F2' },
@@ -24,6 +25,7 @@ const PRESET_GAMES = [
 
 export default function GameTypesPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-game-types'); }, []);
   const [gameTypes, setGameTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

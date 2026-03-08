@@ -15,6 +15,7 @@ import ScanMemberModal from '../../src/components/commander/members/ScanMemberMo
 const MemberDetailPanel = dynamic(() => import('../../src/components/commander/members/MemberDetailPanel'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const TIER_COLORS = { daily: '#3B82F6', weekly: '#F59E0B', monthly: '#10B981', yearly: '#A855F7' };
 const TIER_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -41,6 +42,8 @@ export default function MembersPage() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showScanModal, setShowScanModal] = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
+
+    useEffect(() => { busEmit.sessionStart('commander-members'); }, []);
 
     // Auth
     useEffect(() => {
@@ -97,6 +100,7 @@ export default function MembersPage() {
         setTotal(prev => prev + 1);
         setSelectedMember(newMember);
         broadcastChange('members');
+        busEmit.celebration('confetti');
     };
 
     const handleMemberUpdated = (updatedMember) => {

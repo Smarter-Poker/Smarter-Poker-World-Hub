@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { AlertTriangle, Plus, Clock, User, Check, X, Search, Loader2, MapPin, Shield, Flame, Zap } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const INCIDENT_TYPES = [
   { value: 'dispute', label: 'Player Dispute', emoji: '⚔️' },
@@ -351,6 +352,7 @@ function IncidentDetailModal({ incident, onResolve, onClose }) {
 
 export default function IncidentsPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-incidents'); }, []);
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -408,6 +410,7 @@ export default function IncidentsPage() {
         setShowCreateModal(false);
         fetchIncidents();
         broadcastChange('incidents');
+        busEmit.screenShake('medium');
       }
     } catch (err) { console.error('Create incident failed:', err); }
   }

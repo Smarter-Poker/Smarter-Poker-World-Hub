@@ -10,6 +10,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, Plus, Clock, Search, Loader2, Edit2, RotateCw, Star, Check, X, History, ArrowRight, AlertCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const GAME_CERTIFICATIONS = [
   { value: 'nlhe', label: 'No Limit Hold\'em' },
@@ -299,6 +300,7 @@ function RotateModal({ dealer, tables, onSubmit, onClose }) {
 
 export default function DealersPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-dealers'); }, []);
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);

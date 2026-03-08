@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Calendar, Users, Plus, X, Clock, Send, ChevronLeft, ChevronRight, Loader2, RefreshCw, MessageSquare, Mail, Filter, AlertCircle, CheckCircle2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
@@ -215,6 +216,7 @@ function generateMockShifts() {
 
 export default function StaffSchedule() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-schedule'); }, []);
   const [weekStart, setWeekStart] = useState(getWeekStart(new Date()));
   const [shifts, setShifts] = useState([]);
   const [allStaff, setAllStaff] = useState([]);
@@ -429,7 +431,7 @@ export default function StaffSchedule() {
       <SEOHead title="Commander — Staff Schedule" description="Weekly Staff Scheduling For Club Commander." noindex={true} />
 
       {/* ══ EXTERIOR FRAME — 2px border matching other Commander pages ══ */}
-      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), -apple-system, sans-serif" , border: '2px solid #3A3B3C' }}>
+      <div style={{ minHeight: '100vh', background: '#18191A', color: '#E4E6EB', fontFamily: "var(--font-inter), -apple-system, sans-serif", border: '2px solid #3A3B3C' }}>
 
         {/* Demo Banner */}
         {usingMockData && (

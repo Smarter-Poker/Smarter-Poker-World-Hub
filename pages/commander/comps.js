@@ -16,6 +16,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Gift, DollarSign, Users, Clock, Search, TrendingUp, Loader2, RefreshCw, Check, Shield, X, UtensilsCrossed, Ticket, Coins, Timer, CreditCard, ShoppingBag, FileText, Award, BarChart3 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 // ─── Comp Categories ─────────────────────────────────────────
 const COMP_CATEGORIES = [
@@ -49,6 +50,7 @@ const TIME_QUICKPICKS = [
 
 export default function CompSystem() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-comps'); }, []);
   const [tab, setTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
 
@@ -138,8 +140,8 @@ export default function CompSystem() {
 
   // ─── Fetch tab data ───
   const fetchData = useCallback(async () => {
-        const controller = new AbortController();
-        const { signal } = controller;
+    const controller = new AbortController();
+    const { signal } = controller;
 
     setLoading(true);
     try {
@@ -304,6 +306,7 @@ export default function CompSystem() {
       const json = await res.json();
       if (json.success) {
         broadcastChange('members');
+        busEmit.celebration('confetti');
         const receiptData = {
           memberName: `${selectedMember.first_name} ${selectedMember.last_name}`,
           amount: isMembership ? (parseFloat(membershipCost) || 0) : parseFloat(compAmount),

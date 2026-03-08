@@ -14,6 +14,7 @@ import PromotionBuilder from '../../src/components/commander/promotions/Promotio
 import HighHandDisplay from '../../src/components/commander/promotions/HighHandDisplay';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 import { getToken } from '../../src/lib/commander/clientAuth';
 
 const PROMO_TYPES = [
@@ -285,6 +286,7 @@ function CurrentHighHandBanner({ highHand }) {
 
 export default function PromotionsPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-promotions'); }, []);
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);

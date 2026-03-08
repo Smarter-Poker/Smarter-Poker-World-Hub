@@ -8,6 +8,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Send, Users, Clock, CheckCircle, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const QUICK_MESSAGES = [
   { label: 'Game Starting', message: 'New Game Starting! Check In At The Desk.' },
@@ -20,6 +21,7 @@ const QUICK_MESSAGES = [
 
 export default function CommanderAnnouncementsPage() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-announcements'); }, []);
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -92,6 +94,7 @@ export default function CommanderAnnouncementsPage() {
         ].slice(0, 10));
         setMessage('');
         broadcastChange('settings');
+        busEmit.celebration('confetti');
         setTimeout(() => setSuccess(null), 3000);
       } else {
         setError(data.error?.message || 'Failed to send announcement');

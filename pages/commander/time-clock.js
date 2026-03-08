@@ -9,9 +9,11 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { Clock, ScanLine, UserCheck, LogIn, LogOut, Camera, X, AlertCircle, CheckCircle, Timer, Users } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function TimeClock() {
     const router = useRouter();
+    useEffect(() => { busEmit.sessionStart('commander-time-clock'); }, []);
     const [staff, setStaff] = useState(null);
     const [venueId, setVenueId] = useState(null);
     const [entries, setEntries] = useState([]);
@@ -114,6 +116,7 @@ export default function TimeClock() {
             if (data.success) {
                 setScanResult(data.data);
                 broadcastChange('staff');
+                busEmit.celebration('confetti');
                 fetchEntries();
                 // Auto-dismiss after 5 seconds
                 setTimeout(() => setScanResult(null), 5000);

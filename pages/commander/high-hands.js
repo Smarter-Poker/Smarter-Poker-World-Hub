@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Plus, Trophy, CheckCircle2, Loader2, RefreshCw, Trash2, Star, X, Crown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const HAND_RANKS = [
   'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House',
@@ -23,6 +24,7 @@ const RANK_SCORES = {
 
 export default function HighHands() {
   const router = useRouter();
+  useEffect(() => { busEmit.sessionStart('commander-high-hands'); }, []);
   const [highHands, setHighHands] = useState([]);
   const [currentHigh, setCurrentHigh] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,7 @@ export default function HighHands() {
       const json = await res.json();
       if (json.high_hand) {
         setMessage({ type: 'success', text: 'High Hand Recorded!' });
+        busEmit.celebration('confetti');
         setShowForm(false);
         setForm({ player_name: '', hand_description: '', hand_rank: '', table_number: '', prize_amount: '' });
         broadcastChange('settings');
