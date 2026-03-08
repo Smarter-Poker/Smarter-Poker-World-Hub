@@ -262,52 +262,59 @@ export default function GeevesFloatingOrb() {
 
     return (
         <>
-            {/* ── Proactive Tip Bubble ── */}
+            {/* ── Proactive Tip Bubble — floats above the collapsed bar ── */}
             {showTip && !isOpen && (
                 <div
                     onClick={() => { setShowTip(false); setIsOpen(true); }}
                     style={{
-                        position: 'fixed', bottom: 100, right: 20, zIndex: 99997,
-                        maxWidth: 260, padding: '10px 14px', borderRadius: 12,
+                        position: 'fixed', bottom: 58, right: 16, zIndex: 99997,
+                        maxWidth: 240, padding: '9px 13px', borderRadius: 10,
                         background: 'linear-gradient(135deg, #001e3c 0%, #002855 100%)',
                         border: '1px solid rgba(0, 212, 255, 0.3)',
-                        color: '#e0f0ff', fontSize: 13, lineHeight: 1.4,
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                        color: '#e0f0ff', fontSize: 12, lineHeight: 1.4,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.45)',
                         cursor: 'pointer', animation: 'geevesSlideIn 0.3s ease-out',
                     }}
                 >
                     {tipText}
-                    <div style={{ fontSize: 11, color: 'rgba(0,212,255,0.7)', marginTop: 4 }}>Tap to ask →</div>
+                    <div style={{ fontSize: 10, color: 'rgba(0,212,255,0.7)', marginTop: 3 }}>Tap to ask →</div>
                 </div>
             )}
 
-            {/* ── Floating Orb Button ── */}
+            {/* ── Collapsed Bottom Bar (click to open) ── */}
             {!isOpen && (
                 <button
                     onClick={() => { setIsOpen(true); setShowTip(false); }}
                     title="Ask Geeves (⌘J)"
                     style={{
-                        position: 'fixed', bottom: 85, right: 18, zIndex: 99998,
-                        width: 56, height: 56, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #001e3c 0%, #003366 100%)',
-                        border: '2px solid rgba(0, 212, 255, 0.4)',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 212, 255, 0.15)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: 0, overflow: 'hidden',
-                        animation: 'geevesPulse 3s ease-in-out infinite',
+                        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 99998,
+                        height: 44,
+                        paddingBottom: 'env(safe-area-inset-bottom)',
+                        background: 'linear-gradient(90deg, #001e3c 0%, #002855 60%, #001e3c 100%)',
+                        borderTop: '1px solid rgba(0, 212, 255, 0.25)',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9,
+                        padding: '0 20px',
                     }}
                 >
                     <img
                         src="/images/geeves-avatar.png"
-                        alt="Ask Geeves"
-                        style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
+                        alt="Geeves"
+                        style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(0,212,255,0.35)', flexShrink: 0 }}
                         onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                     />
                     <span style={{
-                        display: 'none', width: 40, height: 40, borderRadius: '50%',
+                        display: 'none', width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
                         background: 'rgba(0, 212, 255, 0.15)', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 22, color: '#00d4ff',
+                        fontSize: 14, color: '#00d4ff', border: '1px solid rgba(0,212,255,0.35)',
                     }}>G</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#e0f4ff', letterSpacing: '0.3px' }}>
+                        Ask Geeves
+                    </span>
+                    <span style={{ fontSize: 11, color: 'rgba(0,212,255,0.5)', marginLeft: 4 }}>⌘J</span>
+                    <svg style={{ marginLeft: 'auto', opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" strokeWidth="2.5" strokeLinecap="round">
+                        <polyline points="18 15 12 9 6 15" />
+                    </svg>
                 </button>
             )}
 
