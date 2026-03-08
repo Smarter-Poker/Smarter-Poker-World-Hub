@@ -4293,6 +4293,10 @@ export default function SocialMediaPage() {
                         const feedCache = JSON.parse(feedCacheRaw);
                         if (feedCache._cachedAt && (Date.now() - feedCache._cachedAt) < 15 * 60 * 1000 && feedCache.posts?.length) {
                             setPosts(feedCache.posts);
+                            // Delta sync: only fetch posts newer than the newest cached post
+                            if (feedCache._newestPostTime) {
+                                window.__spFeedDeltaSince = feedCache._newestPostTime;
+                            }
                         }
                     }
                 } catch { /* cache miss */ }
@@ -4702,10 +4706,16 @@ export default function SocialMediaPage() {
                 } else {
                     setPosts(formattedPosts);
                     // Cache first 20 posts for instant render on next visit
+                    // Store _newestPostTime for delta sync on next visit
                     try {
                         const cacheSlice = formattedPosts.slice(0, 20);
+                        const newestTime = cacheSlice.reduce((max, p) => {
+                            const t = p.created_at || p.timestamp;
+                            return t && t > max ? t : max;
+                        }, '');
                         localStorage.setItem('sp-feed-cache', JSON.stringify({
                             _cachedAt: Date.now(),
+                            _newestPostTime: newestTime || null,
                             posts: cacheSlice,
                         }));
                     } catch { /* quota exceeded */ }

@@ -20,6 +20,14 @@ export function warmCache(user) {
     if (!user?.id) return;
     if (typeof window === 'undefined') return;
 
+    // ── CONNECTION-AWARE: Skip prefetching on slow connections ──
+    try {
+        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (conn && (conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g')) {
+            return; // Save bandwidth on slow connections
+        }
+    } catch { /* API not available — proceed normally */ }
+
     // Only warm once per session
     try {
         if (sessionStorage.getItem(WARMED_KEY)) return;

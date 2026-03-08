@@ -173,6 +173,56 @@ const SoundEngine = {
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
                     osc.start(now); osc.stop(now + 0.5);
                     break;
+                case 'level_up': {
+                    // Major chord arpeggio C-E-G-C for milestone celebrations
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.setValueAtTime(659, now + 0.1);
+                    osc.frequency.setValueAtTime(784, now + 0.2);
+                    osc.frequency.setValueAtTime(1047, now + 0.3);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                    osc.start(now); osc.stop(now + 0.7);
+                    break;
+                }
+                case 'speed_bonus': {
+                    // Quick ascending trill for speed bonus
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.setValueAtTime(1175, now + 0.04);
+                    osc.frequency.setValueAtTime(1397, now + 0.08);
+                    osc.frequency.setValueAtTime(1760, now + 0.12);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now); osc.stop(now + 0.25);
+                    break;
+                }
+                case 'card_flip': {
+                    // Quick swoosh for card reveal
+                    const swoosh = ctx.createBufferSource();
+                    const swooshBuf = ctx.createBuffer(1, ctx.sampleRate * 0.12, ctx.sampleRate);
+                    const swooshData = swooshBuf.getChannelData(0);
+                    for (let i = 0; i < swooshData.length; i++) {
+                        swooshData[i] = (Math.random() * 2 - 1) * (1 - i / swooshData.length);
+                    }
+                    swoosh.buffer = swooshBuf;
+                    const swooshGain = ctx.createGain();
+                    swooshGain.gain.setValueAtTime(0.06, now);
+                    swooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                    swoosh.connect(swooshGain);
+                    swooshGain.connect(ctx.destination);
+                    swoosh.start(now);
+                    return;
+                }
+                case 'session_complete': {
+                    // Triumphant fanfare for session end
+                    osc.frequency.setValueAtTime(523, now);
+                    osc.frequency.setValueAtTime(659, now + 0.15);
+                    osc.frequency.setValueAtTime(784, now + 0.3);
+                    osc.frequency.setValueAtTime(1047, now + 0.45);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+                    osc.start(now); osc.stop(now + 0.9);
+                    break;
+                }
                 default:
                     osc.frequency.setValueAtTime(440, now);
                     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
@@ -802,10 +852,18 @@ function UniversalDynamicTable({
     currentStreet = 'flop',         // Current street: 'flop', 'turn', 'river'
     // Quit/Back
     onExit = null,                  // Called when user clicks Quit
+    // Enhancement: Adaptive difficulty
+    difficultyLevel = 0,            // 0-10 difficulty level for display
 }) {
     const [selectedAnswer, setSelectedAnswer] = React.useState(null);
     const [streakToast, setStreakToast] = React.useState(null);
+    const [showWhyDrawer, setShowWhyDrawer] = React.useState(false);
+    const [showRangeGrid, setShowRangeGrid] = React.useState(false);
+    const [streakCelebration, setStreakCelebration] = React.useState(null);
+    const [speedBonusToast, setSpeedBonusToast] = React.useState(null);
+    const answerStartTime = useRef(Date.now());
     const prevStreakRef = useRef(streak);
+    const swipeTouchRef = useRef(null);
 
     // F8: Sound effects on feedback
     useEffect(() => {
@@ -815,26 +873,76 @@ function UniversalDynamicTable({
             inaccuracy: 'wrong', wrong: 'wrong', blunder: 'blunder'
         };
         SoundEngine.play(soundMap[moveClassification] || 'wrong');
+        // Haptic feedback on mobile for wrong/blunder
+        if ((moveClassification === 'wrong' || moveClassification === 'blunder') && navigator.vibrate) {
+            navigator.vibrate(moveClassification === 'blunder' ? [100, 50, 100] : [80]);
+        }
     }, [showFeedback, moveClassification]);
 
 
 
-    // F11: Streak milestone toasts
+    // F11: Streak milestone celebrations (enhanced)
     useEffect(() => {
-        if (streak > prevStreakRef.current && streak >= 3 && streak % 3 === 0) {
-            const messages = {
-                3: '3 in a row!',
-                6: '6 streak! On fire!',
-                9: '9 streak! UNSTOPPABLE!',
-                12: '12 streak! LEGENDARY!',
-            };
-            const msg = messages[streak] || `${streak} streak!`;
-            setStreakToast(msg);
-            SoundEngine.play('streak');
-            setTimeout(() => setStreakToast(null), 2500);
+        if (streak > prevStreakRef.current && streak >= 3) {
+            // Major milestones: 5, 10, 15, 20 — full celebration overlay
+            if (streak >= 5 && streak % 5 === 0) {
+                const rewards = { 5: 5, 10: 10, 15: 15, 20: 25 };
+                const icons = { 5: 'star', 10: 'diamond', 15: 'crown', 20: 'legend' };
+                setStreakCelebration({
+                    streak,
+                    reward: rewards[streak] || 5,
+                    icon: icons[streak] || 'star',
+                });
+                SoundEngine.play('level_up');
+                // Auto-dismiss after 2.5s
+                setTimeout(() => setStreakCelebration(null), 2500);
+            } else if (streak % 3 === 0) {
+                // Minor milestones: 3, 6, 9, 12 — toast only
+                const messages = {
+                    3: '3 in a row!',
+                    6: '6 streak! On fire!',
+                    9: '9 streak! UNSTOPPABLE!',
+                    12: '12 streak! LEGENDARY!',
+                };
+                const msg = messages[streak] || `${streak} streak!`;
+                setStreakToast(msg);
+                SoundEngine.play('streak');
+                setTimeout(() => setStreakToast(null), 2500);
+            }
         }
         prevStreakRef.current = streak;
     }, [streak]);
+
+    // Speed tracking: reset timer on new question
+    useEffect(() => {
+        answerStartTime.current = Date.now();
+        setShowWhyDrawer(false);
+        setShowRangeGrid(false);
+    }, [questionNumber]);
+
+    // Swipe navigation: swipe left on feedback = Next Hand
+    useEffect(() => {
+        if (!showFeedback) return;
+        const handleTouchStart = (e) => {
+            swipeTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        };
+        const handleTouchEnd = (e) => {
+            if (!swipeTouchRef.current) return;
+            const dx = e.changedTouches[0].clientX - swipeTouchRef.current.x;
+            const dy = Math.abs(e.changedTouches[0].clientY - swipeTouchRef.current.y);
+            // Swipe left with > 60px distance and not vertical
+            if (dx < -60 && dy < 100 && onNextHand) {
+                onNextHand();
+            }
+            swipeTouchRef.current = null;
+        };
+        window.addEventListener('touchstart', handleTouchStart, { passive: true });
+        window.addEventListener('touchend', handleTouchEnd, { passive: true });
+        return () => {
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, [showFeedback, onNextHand]);
 
     // Phase 25: Keyboard Shortcuts (1-4 for actions, Space for next, Esc to exit)
     useEffect(() => {
@@ -1044,8 +1152,27 @@ function UniversalDynamicTable({
     const handleAnswer = useCallback((answerId) => {
         if (showFeedback) return;
         setSelectedAnswer(answerId);
-        onAnswer(answerId);
+        // Speed bonus tracking
+        const elapsed = (Date.now() - answerStartTime.current) / 1000;
+        onAnswer(answerId, { answerTimeSeconds: elapsed });
     }, [showFeedback, onAnswer]);
+
+    // Speed bonus toast on correct feedback
+    useEffect(() => {
+        if (!showFeedback || !moveClassification) return;
+        if (moveClassification === 'best' || moveClassification === 'correct') {
+            const elapsed = (Date.now() - answerStartTime.current) / 1000;
+            if (elapsed < 5) {
+                setSpeedBonusToast({ label: 'LIGHTNING +5', color: '#fbbf24' });
+                SoundEngine.play('speed_bonus');
+                setTimeout(() => setSpeedBonusToast(null), 2000);
+            } else if (elapsed < 10) {
+                setSpeedBonusToast({ label: 'SPEED BONUS +2', color: '#22c55e' });
+                SoundEngine.play('speed_bonus');
+                setTimeout(() => setSpeedBonusToast(null), 2000);
+            }
+        }
+    }, [showFeedback, moveClassification]);
 
     // F9: Keyboard shortcuts (must be after handleAnswer definition)
     useEffect(() => {
@@ -1172,6 +1299,13 @@ function UniversalDynamicTable({
 
     return (
         <div style={styles.container}>
+            {/* CSS Animation Keyframes */}
+            <style>{`
+                @keyframes heroGlow {
+                    0%, 100% { box-shadow: 0 0 15px rgba(0,212,255,0.6), 0 0 30px rgba(0,212,255,0.2); }
+                    50% { box-shadow: 0 0 25px rgba(0,212,255,0.8), 0 0 50px rgba(0,212,255,0.35); }
+                }
+            `}</style>
             {/* F11: Streak Toast */}
             <AnimatePresence>
                 <StreakToast message={streakToast} show={!!streakToast} />
@@ -1352,8 +1486,9 @@ function UniversalDynamicTable({
                                         ...styles.avatar,
                                         border: isHero ? '3px solid #00d4ff' : '3px solid #4a4a5a',
                                         boxShadow: isHero
-                                            ? '0 0 15px rgba(0, 212, 255, 0.6)'
+                                            ? '0 0 15px rgba(0, 212, 255, 0.6), 0 0 30px rgba(0, 212, 255, 0.2)'
                                             : '0 0 8px rgba(0, 0, 0, 0.5)',
+                                        animation: isHero ? 'heroGlow 2s ease-in-out infinite' : 'none',
                                     }}
                                 />
 
@@ -1425,25 +1560,35 @@ function UniversalDynamicTable({
                     })}
                 </div>
 
-                {/* BOARD CARDS - Center of table (F10: Enhanced dealing animation) */}
+                {/* BOARD CARDS - Center of table (3D card flip animation) */}
                 {boardCards.length > 0 && (
                     <div style={styles.boardCards}>
                         {boardCards.map((card, i) => (
-                            <motion.img
+                            <motion.div
                                 key={`${card}-${i}-${questionNumber}`}
-                                src={getCardPath(card)}
-                                alt={card}
-                                style={styles.boardCard}
-                                initial={{ scale: 0, rotateY: 180, x: -80, opacity: 0 }}
-                                animate={{ scale: 1, rotateY: 0, x: 0, opacity: 1 }}
+                                initial={{ rotateY: 180, scale: 0.8 }}
+                                animate={{ rotateY: 0, scale: 1 }}
                                 transition={{
-                                    delay: i * 0.12,
-                                    duration: 0.45,
+                                    delay: i * 0.15,
+                                    duration: 0.5,
                                     type: 'spring',
-                                    stiffness: 200,
-                                    damping: 18,
+                                    stiffness: 180,
+                                    damping: 16,
                                 }}
-                            />
+                                onAnimationComplete={() => {
+                                    if (i === 0) SoundEngine.play('card_flip');
+                                }}
+                                style={{ perspective: 600, transformStyle: 'preserve-3d' }}
+                            >
+                                <img
+                                    src={getCardPath(card)}
+                                    alt={card}
+                                    style={{
+                                        ...styles.boardCard,
+                                        backfaceVisibility: 'hidden',
+                                    }}
+                                />
+                            </motion.div>
                         ))}
                         {/* F6: Board Texture Badge */}
                         {boardTexture && (
@@ -1533,7 +1678,7 @@ function UniversalDynamicTable({
                 </motion.div>
             </div>
 
-            {/* SESSION STATS HUD — Score, EV Loss, Mistakes */}
+            {/* SESSION STATS HUD — Score, EV Loss, Mistakes + Difficulty Bar */}
             <div style={styles.statsHUD}>
                 <div style={styles.statsHUDItem}>
                     <span style={styles.statsHUDLabel}>EV Loss</span>
@@ -1553,7 +1698,119 @@ function UniversalDynamicTable({
                         {streak >= 2 ? `${streak}` : streak}
                     </span>
                 </div>
+                {/* Adaptive Difficulty Indicator */}
+                {difficultyLevel > 0 && (
+                    <div style={styles.statsHUDItem}>
+                        <span style={styles.statsHUDLabel}>Difficulty</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <div style={{
+                                width: 40, height: 5, borderRadius: 3,
+                                background: 'rgba(255,255,255,0.1)',
+                                overflow: 'hidden',
+                            }}>
+                                <motion.div
+                                    animate={{ width: `${Math.min(difficultyLevel * 10, 100)}%` }}
+                                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                                    style={{
+                                        height: '100%', borderRadius: 3,
+                                        background: difficultyLevel <= 3 ? '#22c55e'
+                                            : difficultyLevel <= 6 ? '#fbbf24'
+                                                : difficultyLevel <= 8 ? '#f97316' : '#ef4444',
+                                    }}
+                                />
+                            </div>
+                            <span style={{
+                                fontSize: 9, fontWeight: 700, fontFamily: "'Orbitron', monospace",
+                                color: difficultyLevel <= 3 ? '#22c55e'
+                                    : difficultyLevel <= 6 ? '#fbbf24'
+                                        : difficultyLevel <= 8 ? '#f97316' : '#ef4444',
+                            }}>
+                                {difficultyLevel}
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* STREAK CELEBRATION OVERLAY */}
+            <AnimatePresence>
+                {streakCelebration && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                            position: 'absolute', inset: 0, zIndex: 200,
+                            display: 'flex', flexDirection: 'column',
+                            alignItems: 'center', justifyContent: 'center',
+                            background: 'rgba(0,0,0,0.75)',
+                            backdropFilter: 'blur(6px)',
+                        }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.3, rotateZ: -20 }}
+                            animate={{ scale: 1, rotateZ: 0 }}
+                            transition={{ type: 'spring', stiffness: 200, damping: 12 }}
+                            style={{
+                                width: 80, height: 80, borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #fbbf24 0%, #f97316 100%)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 36, boxShadow: '0 0 40px rgba(251,191,36,0.5)',
+                                marginBottom: 12,
+                            }}
+                        >
+                            <ClassificationSVGIcon icon="star" size={36} color="#fff" />
+                        </motion.div>
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.15 }}
+                            style={{
+                                fontFamily: "'Orbitron', sans-serif", fontSize: 22,
+                                fontWeight: 900, color: '#fbbf24', letterSpacing: 2,
+                                textShadow: '0 2px 8px rgba(251,191,36,0.4)',
+                            }}
+                        >
+                            {streakCelebration.streak} STREAK!
+                        </motion.div>
+                        <motion.div
+                            initial={{ y: 10, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            style={{
+                                fontSize: 14, fontWeight: 700, marginTop: 8,
+                                color: '#00d4ff', letterSpacing: 1,
+                            }}
+                        >
+                            +{streakCelebration.reward} Diamonds
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* SPEED BONUS TOAST */}
+            <AnimatePresence>
+                {speedBonusToast && (
+                    <motion.div
+                        initial={{ y: -30, opacity: 0, scale: 0.8 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: -20, opacity: 0 }}
+                        style={{
+                            position: 'absolute', top: 80, left: '50%',
+                            transform: 'translateX(-50%)', zIndex: 150,
+                            padding: '8px 20px', borderRadius: 10,
+                            background: `linear-gradient(135deg, ${speedBonusToast.color}22 0%, ${speedBonusToast.color}11 100%)`,
+                            border: `1px solid ${speedBonusToast.color}66`,
+                            color: speedBonusToast.color,
+                            fontFamily: "'Orbitron', monospace",
+                            fontSize: 13, fontWeight: 800, letterSpacing: 1.5,
+                            boxShadow: `0 0 20px ${speedBonusToast.color}33`,
+                        }}
+                    >
+                        {speedBonusToast.label}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* ACTION BUTTONS — GTO Wizard-style poker action bar (F2: Dynamic sizing + F9: Keyboard hints) */}
             <div style={{ ...styles.actionBar, position: 'relative' }}>
@@ -1803,102 +2060,170 @@ function UniversalDynamicTable({
                             </motion.div>
                         )}
 
-                        {/* Explanation */}
+                        {/* Explanation + Why Drawer */}
                         {explanation && (
-                            <div style={styles.feedbackExplanation}>{explanation}</div>
-                        )}
-
-                        {/* F12: Villain Range Summary */}
-                        {question?.rawFrequencies && (
-                            <div style={{
-                                fontSize: 10,
-                                color: '#94a3b8',
-                                padding: '4px 8px',
-                                background: 'rgba(255,255,255,0.03)',
-                                borderRadius: 6,
-                                marginTop: 4,
-                                textAlign: 'center',
-                            }}>
-                                <span style={{ fontWeight: 'bold', color: '#64748b' }}>GTO Strategy: </span>
-                                {options.slice(0, 4).map(o => {
-                                    const f = computedFrequencies[o.id] || 0;
-                                    if (f <= 0) return null;
-                                    return (
-                                        <span key={o.id} style={{ marginRight: 8 }}>
-                                            {o.text}: <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>{f}%</span>
-                                        </span>
-                                    );
-                                })}
+                            <div>
+                                <div style={styles.feedbackExplanation}>{explanation}</div>
+                                <button
+                                    onClick={() => setShowWhyDrawer(!showWhyDrawer)}
+                                    style={{
+                                        marginTop: 6, padding: '5px 14px', borderRadius: 6,
+                                        background: 'rgba(0, 212, 255, 0.08)',
+                                        border: '1px solid rgba(0, 212, 255, 0.25)',
+                                        color: '#00d4ff', fontSize: 11, fontWeight: 700,
+                                        cursor: 'pointer', letterSpacing: 0.5,
+                                    }}
+                                >
+                                    {showWhyDrawer ? 'Hide Details' : 'Why?'}
+                                </button>
+                                <AnimatePresence>
+                                    {showWhyDrawer && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.25 }}
+                                            style={{ overflow: 'hidden' }}
+                                        >
+                                            <div style={{
+                                                marginTop: 8, padding: '10px 12px',
+                                                background: 'rgba(0, 212, 255, 0.04)',
+                                                borderRadius: 8,
+                                                border: '1px solid rgba(0, 212, 255, 0.12)',
+                                                fontSize: 11, color: '#cbd5e1', lineHeight: 1.6,
+                                            }}>
+                                                <div style={{ fontWeight: 700, color: '#00d4ff', marginBottom: 6, fontSize: 10, letterSpacing: 1 }}>
+                                                    SOLVER ANALYSIS
+                                                </div>
+                                                <div style={{ marginBottom: 4 }}>
+                                                    <strong style={{ color: '#22c55e' }}>Optimal Play:</strong>{' '}
+                                                    {options.find(o => o.id === correctAnswer)?.text || correctAnswer}
+                                                    {computedFrequencies[correctAnswer] > 0 && (
+                                                        <span style={{ color: '#94a3b8' }}> at {computedFrequencies[correctAnswer]}% frequency</span>
+                                                    )}
+                                                </div>
+                                                {selectedAnswer && selectedAnswer !== correctAnswer && (
+                                                    <div style={{ marginBottom: 4 }}>
+                                                        <strong style={{ color: '#ef4444' }}>Your Pick:</strong>{' '}
+                                                        {options.find(o => o.id === selectedAnswer)?.text || selectedAnswer}
+                                                        {evLoss > 0 && (
+                                                            <span style={{ color: '#ef4444' }}> loses {evLoss.toFixed(2)} BB vs optimal</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {boardTexture && (
+                                                    <div style={{ marginBottom: 4 }}>
+                                                        <strong style={{ color: '#94a3b8' }}>Board:</strong>{' '}
+                                                        {boardTexture.suitTexture} + {boardTexture.connectTexture} texture.
+                                                        {' '}{heroPosition && `Hero in ${POSITION_NAMES[heroPosition] || heroPosition}.`}
+                                                    </div>
+                                                )}
+                                                {street && (
+                                                    <div style={{ color: '#64748b', fontSize: 10, marginTop: 4 }}>
+                                                        Street: {street.charAt(0).toUpperCase() + street.slice(1)} | Pot: {pot} BB | SPR: {spr || 'N/A'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         )}
 
-                        {/* F1: Interactive Range Grid — GTO Wizard-style 13×13 */}
-                        {question?.rawFrequencies && (() => {
-                            // Transform rawFrequencies { action: { hand: freq } } → gridData { hand: { action: freq% } }
-                            const actions = Object.keys(question.rawFrequencies);
-                            const gridData = {};
-                            const allRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-                            for (let r = 0; r < 13; r++) {
-                                for (let c = 0; c < 13; c++) {
-                                    let hand;
-                                    if (r === c) hand = allRanks[r] + allRanks[c];
-                                    else if (r < c) hand = allRanks[r] + allRanks[c] + 's';
-                                    else hand = allRanks[c] + allRanks[r] + 'o';
-                                    const handFreqs = {};
-                                    let hasAny = false;
-                                    actions.forEach(action => {
-                                        const freq = question.rawFrequencies[action]?.[hand];
-                                        if (freq !== undefined && freq > 0) {
-                                            handFreqs[action] = Math.round(freq * 1000) / 10;
-                                            hasAny = true;
+                        {/* F12: Villain Range Summary + Range Grid Toggle */}
+                        {question?.rawFrequencies && (
+                            <div>
+                                <div style={{
+                                    fontSize: 10,
+                                    color: '#94a3b8',
+                                    padding: '4px 8px',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    borderRadius: 6,
+                                    marginTop: 4,
+                                    textAlign: 'center',
+                                }}>
+                                    <span style={{ fontWeight: 'bold', color: '#64748b' }}>GTO Strategy: </span>
+                                    {options.slice(0, 4).map(o => {
+                                        const f = computedFrequencies[o.id] || 0;
+                                        if (f <= 0) return null;
+                                        return (
+                                            <span key={o.id} style={{ marginRight: 8 }}>
+                                                {o.text}: <span style={{ color: '#e2e8f0', fontWeight: 'bold' }}>{f}%</span>
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* F1: Interactive Range Grid — GTO Wizard-style 13x13 */}
+                                {question?.rawFrequencies && (() => {
+                                    // Transform rawFrequencies { action: { hand: freq } } → gridData { hand: { action: freq% } }
+                                    const actions = Object.keys(question.rawFrequencies);
+                                    const gridData = {};
+                                    const allRanks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+                                    for (let r = 0; r < 13; r++) {
+                                        for (let c = 0; c < 13; c++) {
+                                            let hand;
+                                            if (r === c) hand = allRanks[r] + allRanks[c];
+                                            else if (r < c) hand = allRanks[r] + allRanks[c] + 's';
+                                            else hand = allRanks[c] + allRanks[r] + 'o';
+                                            const handFreqs = {};
+                                            let hasAny = false;
+                                            actions.forEach(action => {
+                                                const freq = question.rawFrequencies[action]?.[hand];
+                                                if (freq !== undefined && freq > 0) {
+                                                    handFreqs[action] = Math.round(freq * 1000) / 10;
+                                                    hasAny = true;
+                                                }
+                                            });
+                                            gridData[hand] = hasAny ? handFreqs : null;
                                         }
-                                    });
-                                    gridData[hand] = hasAny ? handFreqs : null;
-                                }
-                            }
-                            // Derive hero hand notation from question data
-                            const heroCards = question?.heroCards || question?.cards;
-                            let heroHand = null;
-                            if (heroCards && heroCards.length >= 2) {
-                                const r1 = heroCards[0]?.[0]?.toUpperCase();
-                                const r2 = heroCards[1]?.[0]?.toUpperCase();
-                                if (r1 && r2) {
-                                    const s1 = heroCards[0]?.[1];
-                                    const s2 = heroCards[1]?.[1];
-                                    const ranks = 'AKQJT98765432';
-                                    const i1 = ranks.indexOf(r1);
-                                    const i2 = ranks.indexOf(r2);
-                                    if (i1 >= 0 && i2 >= 0) {
-                                        if (r1 === r2) heroHand = r1 + r2;
-                                        else if (s1 === s2) heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 's';
-                                        else heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 'o';
                                     }
-                                }
-                            }
-                            return (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    transition={{ duration: 0.3, delay: 0.35 }}
-                                    style={{ marginTop: 8 }}
-                                >
-                                    <div style={{
-                                        fontSize: 9, fontWeight: 700, color: '#64748b',
-                                        letterSpacing: 1.2, textTransform: 'uppercase',
-                                        marginBottom: 6, textAlign: 'center',
-                                    }}>
-                                        GTO Range Matrix {heroHand && <span style={{ color: '#00d4ff' }}>• Your Hand: {heroHand}</span>}
-                                    </div>
-                                    <RangeGrid
-                                        gridData={gridData}
-                                        actions={actions}
-                                        cellSize={20}
-                                        heroHand={heroHand}
-                                        compact={true}
-                                    />
-                                </motion.div>
-                            );
-                        })()}
+                                    // Derive hero hand notation from question data
+                                    const heroCards = question?.heroCards || question?.cards;
+                                    let heroHand = null;
+                                    if (heroCards && heroCards.length >= 2) {
+                                        const r1 = heroCards[0]?.[0]?.toUpperCase();
+                                        const r2 = heroCards[1]?.[0]?.toUpperCase();
+                                        if (r1 && r2) {
+                                            const s1 = heroCards[0]?.[1];
+                                            const s2 = heroCards[1]?.[1];
+                                            const ranks = 'AKQJT98765432';
+                                            const i1 = ranks.indexOf(r1);
+                                            const i2 = ranks.indexOf(r2);
+                                            if (i1 >= 0 && i2 >= 0) {
+                                                if (r1 === r2) heroHand = r1 + r2;
+                                                else if (s1 === s2) heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 's';
+                                                else heroHand = (i1 < i2 ? r1 + r2 : r2 + r1) + 'o';
+                                            }
+                                        }
+                                    }
+                                    return (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            transition={{ duration: 0.3, delay: 0.35 }}
+                                            style={{ marginTop: 8 }}
+                                        >
+                                            <div style={{
+                                                fontSize: 9, fontWeight: 700, color: '#64748b',
+                                                letterSpacing: 1.2, textTransform: 'uppercase',
+                                                marginBottom: 6, textAlign: 'center',
+                                            }}>
+                                                GTO Range Matrix {heroHand && <span style={{ color: '#00d4ff' }}>• Your Hand: {heroHand}</span>}
+                                            </div>
+                                            <RangeGrid
+                                                gridData={gridData}
+                                                actions={actions}
+                                                cellSize={20}
+                                                heroHand={heroHand}
+                                                compact={true}
+                                            />
+                                        </motion.div>
+                                    );
+                                })()}
+
+                            </div>
+                        )}
 
                         {/* UI-2: Next Hand / Continue Hand button */}
                         {onNextHand ? (

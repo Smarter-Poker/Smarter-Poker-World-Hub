@@ -1,12 +1,13 @@
 /**
  * 🚌 GLOBAL EVENT BUS
  * ═══════════════════════════════════════════════════════════════════════════
- * The Central Nervous System of PokerIQ Training.
+ * The Central Nervous System of PokerIQ + Club Commander.
  * All engines, services, and components communicate through this bus.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
 export const EventType = {
+    // ── Training / GTO ──
     STREAK_MILESTONE: 'STREAK_MILESTONE',
     STREAK_LOST: 'STREAK_LOST',
     COMBO_LEVEL_UP: 'COMBO_LEVEL_UP',
@@ -26,6 +27,20 @@ export const EventType = {
     SCREEN_FLASH: 'SCREEN_FLASH',
     CELEBRATION: 'CELEBRATION',
     SOUND_PLAY: 'SOUND_PLAY',
+
+    // ── Commander Operations ──
+    WAITLIST_PLAYER_ADDED: 'WAITLIST_PLAYER_ADDED',
+    WAITLIST_PLAYER_CALLED: 'WAITLIST_PLAYER_CALLED',
+    WAITLIST_PLAYER_SEATED: 'WAITLIST_PLAYER_SEATED',
+    TABLE_OPENED: 'TABLE_OPENED',
+    TABLE_CLOSED: 'TABLE_CLOSED',
+    STAFF_CLOCKED_IN: 'STAFF_CLOCKED_IN',
+    STAFF_CLOCKED_OUT: 'STAFF_CLOCKED_OUT',
+    COMP_ISSUED: 'COMP_ISSUED',
+    INCIDENT_REPORTED: 'INCIDENT_REPORTED',
+    TOURNAMENT_STARTED: 'TOURNAMENT_STARTED',
+    TOURNAMENT_LEVEL_CHANGE: 'TOURNAMENT_LEVEL_CHANGE',
+    DATA_MUTATED: 'DATA_MUTATED',
 };
 
 class GlobalEventBus {
@@ -81,8 +96,19 @@ class GlobalEventBus {
 
 export const eventBus = new GlobalEventBus();
 
+// ─── Staff Context Helper ──────────────────────────────────────
+// Reads staff session from localStorage once per emit for payload enrichment.
+function _getStaffCtx() {
+    if (typeof window === 'undefined') return {};
+    try {
+        const s = JSON.parse(localStorage.getItem('commander_staff') || '{}');
+        return { staffId: s.id || null, venueId: s.venue_id || null, role: s.role || null, staffName: s.name || null };
+    } catch { return {}; }
+}
+
 // Convenience emit functions
 export const busEmit = {
+    // ── Training / GTO ──
     diamondsEarned: (amount, reason) =>
         eventBus.emit(EventType.DIAMONDS_EARNED, { amount, reason }, 'DiamondEngine'),
 
@@ -114,8 +140,46 @@ export const busEmit = {
         eventBus.emit(EventType.TIMER_EXPIRED, {}, 'PressureTimer'),
 
     sessionStart: (source = 'FlowState') =>
-        eventBus.emit(EventType.SESSION_START, {}, source),
+        eventBus.emit(EventType.SESSION_START, { ..._getStaffCtx() }, source),
 
     sessionEnd: (source = 'FlowState') =>
-        eventBus.emit(EventType.SESSION_END, {}, source)
+        eventBus.emit(EventType.SESSION_END, { ..._getStaffCtx() }, source),
+
+    // ── Commander Operations ──
+    waitlistPlayerAdded: (playerName, gameType) =>
+        eventBus.emit(EventType.WAITLIST_PLAYER_ADDED, { playerName, gameType, ..._getStaffCtx() }, 'WaitlistDesk'),
+
+    waitlistPlayerCalled: (playerName, gameType) =>
+        eventBus.emit(EventType.WAITLIST_PLAYER_CALLED, { playerName, gameType, ..._getStaffCtx() }, 'WaitlistDesk'),
+
+    waitlistPlayerSeated: (playerName, tableNumber, seatNumber) =>
+        eventBus.emit(EventType.WAITLIST_PLAYER_SEATED, { playerName, tableNumber, seatNumber, ..._getStaffCtx() }, 'WaitlistDesk'),
+
+    tableOpened: (tableNumber, gameType) =>
+        eventBus.emit(EventType.TABLE_OPENED, { tableNumber, gameType, ..._getStaffCtx() }, 'FloorManager'),
+
+    tableClosed: (tableNumber) =>
+        eventBus.emit(EventType.TABLE_CLOSED, { tableNumber, ..._getStaffCtx() }, 'FloorManager'),
+
+    staffClockedIn: (staffName) =>
+        eventBus.emit(EventType.STAFF_CLOCKED_IN, { staffName, ..._getStaffCtx() }, 'TimeClock'),
+
+    staffClockedOut: (staffName) =>
+        eventBus.emit(EventType.STAFF_CLOCKED_OUT, { staffName, ..._getStaffCtx() }, 'TimeClock'),
+
+    compIssued: (memberName, amount, category) =>
+        eventBus.emit(EventType.COMP_ISSUED, { memberName, amount, category, ..._getStaffCtx() }, 'CompSystem'),
+
+    incidentReported: (type, severity) =>
+        eventBus.emit(EventType.INCIDENT_REPORTED, { type, severity, ..._getStaffCtx() }, 'IncidentManager'),
+
+    tournamentStarted: (tournamentName, entryCount) =>
+        eventBus.emit(EventType.TOURNAMENT_STARTED, { tournamentName, entryCount, ..._getStaffCtx() }, 'TournamentDirector'),
+
+    tournamentLevelChange: (level, blinds) =>
+        eventBus.emit(EventType.TOURNAMENT_LEVEL_CHANGE, { level, blinds, ..._getStaffCtx() }, 'TournamentDirector'),
+
+    dataMutated: (entity) =>
+        eventBus.emit(EventType.DATA_MUTATED, { entity, ..._getStaffCtx() }, 'DataSync'),
 };
+

@@ -79,6 +79,9 @@ export default function WaitlistDesk() {
   const [newGameTable, setNewGameTable] = useState('');
   const [mustMoveData, setMustMoveData] = useState(null); // Must-move groups from the API
   const [moveLoading, setMoveLoading] = useState(null);
+  // ── Hardening: optimistic UI lock ──
+  const [actionLock, setActionLock] = useState(null); // entry.id being processed
+  const genIdempotencyKey = () => `wl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   const getToken = () => typeof window !== 'undefined'
     ? localStorage.getItem('commander_token') || localStorage.getItem('sb-access-token') : null;
@@ -185,17 +188,18 @@ export default function WaitlistDesk() {
 
   // ── ACTION HANDLERS ─────────────────────────────────────────────
   const handleCall = async (entry) => {
+    if (actionLock) return; // Optimistic lock — prevent double-tap
     if (!entry.player_phone) {
       alert(`⚠️ NO PHONE NUMBER\n\n${titleCase(entry.player_name || '')} does not have a phone number on file. Please page them verbally in the room.`);
     }
-    setCallLoading(entry.id); setSmsStatus(null);
+    setActionLock(entry.id); setCallLoading(entry.id); setSmsStatus(null);
     setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/waitlist/${entry.id}/call`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ notify_sms: true, notify_push: true })
       });
       const json = await res.json();
@@ -212,21 +216,24 @@ export default function WaitlistDesk() {
       if (notifCount > 0) setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} notified (${notifCount} notification${notifCount > 1 ? 's' : ''})` });
       else if (!entry.player_phone) setSmsStatus({ type: 'none', text: 'No Phone — Verbal Page Only' });
       else setSmsStatus({ type: 'none', text: 'Called — Notifications Unavailable' });
+      busEmit.waitlistPlayerCalled(entry.player_name, entry.game_type);
       await fetchData();
       broadcastChange('waitlist');
       busEmit.screenFlash('#1877F2', 300);
       setTimeout(() => setSmsStatus(null), 3000);
     } catch (err) { console.error('Call error:', err); setSmsStatus({ type: 'none', text: 'Network error' }); setTimeout(() => setSmsStatus(null), 3000); }
-    finally { setCallLoading(null); }
+    finally { setCallLoading(null); setActionLock(null); }
   };
 
   const handleSeat = async (entry, tableNumber, seatNumber) => {
+    if (actionLock) return; // Optimistic lock — prevent double-tap
+    setActionLock(entry.id);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const res = await fetch('/api/commander/waitlist/seat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({ waitlist_id: entry.id, table_number: tableNumber, seat_number: seatNumber })
       });
       const json = await res.json();
@@ -239,22 +246,26 @@ export default function WaitlistDesk() {
       // Only remove from UI after confirmed success
       setWaitlists(prev => prev.filter(e => e.id !== entry.id));
       setSeatModal(null); setSelectedPlayer(null);
+      busEmit.waitlistPlayerSeated(entry.player_name, tableNumber, seatNumber);
       busEmit.celebration('confetti');
       setSmsStatus({ type: 'sent', text: `${titleCase(entry.player_name)} seated at Table ${tableNumber} Seat ${seatNumber}` });
       setTimeout(() => setSmsStatus(null), 4000);
       await fetchData();
       broadcastChange('waitlist');
     } catch (err) { console.error('Seat error:', err); setSmsStatus({ type: 'none', text: 'Seat failed: ' + err.message }); setTimeout(() => setSmsStatus(null), 4000); await fetchData(); }
+    finally { setActionLock(null); }
   };
 
   const handlePass = async (entry) => {
+    if (actionLock) return; // Optimistic lock
+    setActionLock(entry.id);
     setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/waitlist/${entry.id}/pass`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -273,16 +284,19 @@ export default function WaitlistDesk() {
       await fetchData();
       broadcastChange('waitlist');
     } catch (err) { console.error('Pass error:', err); await fetchData(); }
+    finally { setActionLock(null); }
   };
 
   const handleRemove = async (entry) => {
+    if (actionLock) return; // Optimistic lock
+    setActionLock(entry.id);
     setSelectedPlayer(null);
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const res = await fetch(`/api/commander/waitlist/${entry.id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession }
+        headers: { Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() }
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -298,6 +312,7 @@ export default function WaitlistDesk() {
       await fetchData();
       broadcastChange('waitlist');
     } catch (err) { console.error('Remove error:', err); await fetchData(); }
+    finally { setActionLock(null); }
   };
 
   const handleCheckIn = async (entry) => {
@@ -323,23 +338,36 @@ export default function WaitlistDesk() {
   };
 
   const handleAddWalkIn = async (playerData) => {
+    // ── Hardening: Duplicate-name guard ——
+    const nameNorm = (playerData.player_name || '').trim().toLowerCase();
+    const duplicate = waitlists.find(w =>
+      (w.status === 'waiting' || w.status === 'called') &&
+      (w.player_name || '').trim().toLowerCase() === nameNorm
+    );
+    if (duplicate) {
+      const proceed = confirm(`"${titleCase(playerData.player_name)}" is already on the waitlist for ${duplicate.game_type || 'a game'}. Add them again?`);
+      if (!proceed) return;
+    }
     try {
       const token = getToken();
       const staffSession = getStaffSession();
       const staffData = JSON.parse(localStorage.getItem('commander_staff') || '{}');
       const parts = (playerData.game_type || 'NLH 1/3').split(' ');
+      const gameType = parts[0] || 'NLH';
+      const stakes = parts.slice(1).join(' ') || '1/3';
       const res = await fetch('/api/commander/waitlist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-staff-session': staffSession, 'x-idempotency-key': genIdempotencyKey() },
         body: JSON.stringify({
           venue_id: staffData.venue_id, player_name: playerData.player_name,
-          game_type: parts[0] || 'NLH', stakes: parts.slice(1).join(' ') || '1/3',
+          game_type: gameType, stakes: stakes,
           player_phone: playerData.phone || null, signup_method: 'staff'
         })
       });
       const json = await res.json();
       if (json.success) {
         setShowAddWalkIn(false);
+        busEmit.waitlistPlayerAdded(playerData.player_name, `${gameType} ${stakes}`);
         setSmsStatus({ type: 'sent', text: `${titleCase(playerData.player_name)} added to waitlist` });
         setTimeout(() => setSmsStatus(null), 3000);
         await fetchData(); broadcastChange('waitlist');

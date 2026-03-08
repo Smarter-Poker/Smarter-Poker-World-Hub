@@ -14,6 +14,7 @@
  */
 
 import { supabase } from '../lib/supabase';
+import { dedup } from '../lib/requestDedup';
 
 // Track which profiles are already prefetched to avoid duplicates
 const prefetchedSet = new Set();
@@ -28,6 +29,14 @@ const inflightSet = new Set();
 export function prefetchProfile(userId, username) {
     if (!userId || !username) return;
     if (typeof window === 'undefined') return;
+
+    // ── CONNECTION-AWARE: Skip on slow connections ──
+    try {
+        const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (conn && (conn.effectiveType === '2g' || conn.effectiveType === 'slow-2g')) {
+            return;
+        }
+    } catch { /* API not available */ }
 
     const cacheKey = `sp-profile-cache-${username}`;
 
@@ -51,12 +60,13 @@ export function prefetchProfile(userId, username) {
 
     schedule(() => {
         // Lightweight prefetch — just profile + stats (no posts/photos to keep it small)
-        Promise.all([
+        // Wrapped through dedup to prevent duplicate in-flight requests for the same user
+        dedup(`prefetch:${username}`, () => Promise.all([
             supabase.from('profiles').select('*').eq('username', username).maybeSingle(),
             supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('status', 'accepted').or(`user_id.eq.${userId},friend_id.eq.${userId}`),
             supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', userId),
             supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', userId),
-        ]).then(([profileRes, friendsCount, followingCount, followersCount]) => {
+        ])).then(([profileRes, friendsCount, followingCount, followersCount]) => {
             if (!profileRes.data) return;
             try {
                 const cachePayload = {

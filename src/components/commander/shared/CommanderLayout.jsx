@@ -26,6 +26,9 @@ import { canAccessRoute, getUpgradeTier, getTierConfig, TIERS } from '../../../l
 import { canRoleAccessRoute, isSensitiveRoute } from '../../../lib/commander/auth';
 import useClubBranding from '../../../lib/commander/useClubBranding';
 import { supabase } from '../../../lib/supabase';
+import CommanderEffectsProvider from './CommanderEffectsProvider';
+import PushNotificationProvider from './PushNotificationProvider';
+import useBusBridge from '../../../lib/commander/useBusBridge';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', href: '/commander/dashboard', icon: Layout },
@@ -57,6 +60,8 @@ const NAV_ITEMS = [
 ];
 
 export default function CommanderLayout({ children, title, backHref = '/commander/dashboard', hideBack }) {
+  // ── Cross-tab EventBus bridge ──
+  useBusBridge();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [staff, setStaff] = useState(null);
@@ -952,7 +957,13 @@ export default function CommanderLayout({ children, title, backHref = '/commande
         {staff?.venue_id && <FloorCallAlert venueId={staff.venue_id} />}
 
         {/* ── PAGE CONTENT (hidden when route is blocked) ── */}
-        {routeBlocked ? null : children}
+        {routeBlocked ? null : (
+          <PushNotificationProvider>
+            <CommanderEffectsProvider>
+              {children}
+            </CommanderEffectsProvider>
+          </PushNotificationProvider>
+        )}
       </CommanderErrorBoundary>
     </>
   );
