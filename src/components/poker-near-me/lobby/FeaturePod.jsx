@@ -1,16 +1,16 @@
 /**
- * FeaturePod.jsx — Photorealistic 3D pod with image-based icons.
+ * FeaturePod.jsx — Holographic orb pod with floating image icon.
  *
- * Uses AI-generated photorealistic images rendered as textured billboards
- * in the 3D scene, replacing primitive geometry for AAA visual quality.
- * Each pod floats on a metallic pedestal with cinematic glow effects.
+ * Each pod is a glowing glass sphere containing the AI-generated image,
+ * floating above a metallic pedestal with cinematic glow effects.
+ * The sphere acts as a crystal ball / holographic display.
  */
 
 import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import {
-  Color, Vector3, DoubleSide, AdditiveBlending,
+  Color, Vector3, DoubleSide, AdditiveBlending, FrontSide,
   TextureLoader, LinearFilter, SRGBColorSpace,
 } from 'three';
 
@@ -32,53 +32,75 @@ const POD_IMAGES = {
 };
 
 /**
- * Glowing holographic base ring that orbits beneath the icon.
+ * GlassOrb — The holographic sphere that contains the image.
+ * Uses a translucent glass-like material with a subtle iridescent glow.
  */
-function HoloBaseRing({ color, isHovered, isActive }) {
-  const ringRef = useRef();
+function GlassOrb({ color, isHovered, isActive, orbRadius }) {
+  const meshRef = useRef();
 
   useFrame(({ clock }) => {
-    if (!ringRef.current) return;
-    ringRef.current.rotation.z = clock.getElapsedTime() * 0.3;
+    if (!meshRef.current?.material) return;
+    const t = clock.getElapsedTime();
+    // Subtle pulse on the glass orb
+    const baseOpacity = isHovered ? 0.25 : isActive ? 0.2 : 0.12;
+    meshRef.current.material.opacity = baseOpacity + Math.sin(t * 2) * 0.03;
   });
 
-  const opacity = isHovered ? 0.9 : isActive ? 0.7 : 0.45;
-
   return (
-    <group ref={ringRef} position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      {/* Outer glow ring */}
-      <mesh>
-        <ringGeometry args={[0.7, 0.82, 48]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={opacity * 0.7}
-          blending={AdditiveBlending}
-          depthWrite={false}
-          side={DoubleSide}
-        />
-      </mesh>
-      {/* Inner glow ring */}
-      <mesh>
-        <ringGeometry args={[0.5, 0.55, 48]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={opacity * 0.5}
-          blending={AdditiveBlending}
-          depthWrite={false}
-          side={DoubleSide}
-        />
-      </mesh>
-    </group>
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[orbRadius, 32, 32]} />
+      <meshPhysicalMaterial
+        color={color}
+        transparent
+        opacity={0.15}
+        metalness={0.1}
+        roughness={0.1}
+        clearcoat={1.0}
+        clearcoatRoughness={0.05}
+        transmission={0.6}
+        thickness={0.5}
+        ior={1.5}
+        envMapIntensity={0.8}
+        side={FrontSide}
+        depthWrite={false}
+      />
+    </mesh>
   );
 }
 
 /**
- * The image billboard — a plane with the photorealistic icon texture.
- * Always faces the camera (billboard behavior via onBeforeRender).
+ * OrbGlowRing — Glowing ring around the orb equator.
  */
-function PodImage({ podId, isHovered, isActive }) {
+function OrbGlowRing({ color, isHovered, isActive, orbRadius }) {
+  const ringRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (!ringRef.current) return;
+    ringRef.current.rotation.z = clock.getElapsedTime() * 0.4;
+  });
+
+  const opacity = isHovered ? 0.7 : isActive ? 0.5 : 0.25;
+
+  return (
+    <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[orbRadius * 0.95, orbRadius * 1.08, 64]} />
+      <meshBasicMaterial
+        color={color}
+        transparent
+        opacity={opacity}
+        blending={AdditiveBlending}
+        depthWrite={false}
+        side={DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * PodImage — The image billboard rendered INSIDE the glass orb.
+ * Sized to fit within the sphere, billboard-facing the camera.
+ */
+function PodImage({ podId, isHovered, isActive, orbRadius }) {
   const meshRef = useRef();
   const [texture, setTexture] = useState(null);
 
@@ -106,25 +128,23 @@ function PodImage({ podId, isHovered, isActive }) {
     // Billboard: face the camera
     meshRef.current.quaternion.copy(camera.quaternion);
     // Scale animation
-    const targetScale = isHovered ? 1.25 : isActive ? 1.12 : 1.0;
+    const targetScale = isHovered ? 1.15 : isActive ? 1.08 : 1.0;
     const s = meshRef.current.scale.x + (targetScale - meshRef.current.scale.x) * 0.08;
     meshRef.current.scale.setScalar(s);
   });
 
   if (!texture) return null;
 
-  // Image aspect ratio (Grok generates ~16:9 images)
-  const aspect = texture.image ? texture.image.width / texture.image.height : 16 / 9;
-  const height = 1.4;
-  const width = height * aspect;
+  // Size the image to fit inside the orb (inscribed square in circle)
+  const imageSize = orbRadius * 1.3; // fills ~65% of the orb diameter
 
   return (
-    <mesh ref={meshRef} position={[0, 0.35, 0]}>
-      <planeGeometry args={[width, height]} />
+    <mesh ref={meshRef} position={[0, 0, 0]}>
+      <planeGeometry args={[imageSize, imageSize]} />
       <meshBasicMaterial
         map={texture}
         transparent
-        alphaTest={0.05}
+        alphaTest={0.08}
         depthWrite={false}
         toneMapped={false}
       />
@@ -133,13 +153,16 @@ function PodImage({ podId, isHovered, isActive }) {
 }
 
 /**
- * FeaturePod — a photorealistic image icon floating on a metallic pedestal
- * with cinematic glow effects and holographic base rings.
+ * FeaturePod — A holographic glass orb containing a photorealistic icon,
+ * floating above a sleek pedestal with cinematic glow effects.
  */
 export function FeaturePod({ pod, radius, y, isActive, onClick }) {
   const groupRef = useRef();
   const glowRef = useRef();
   const [hovered, setHovered] = useState(false);
+
+  // Orb size — slightly smaller so 9 pods don't overlap
+  const orbRadius = 0.55;
 
   const basePos = useMemo(() => {
     const rad = degToRad(pod.angle - 90);
@@ -173,12 +196,12 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
     if (!groupRef.current) return;
     const t = clock.getElapsedTime();
 
-    // Idle bobbing
-    const bob = Math.sin(t * 0.8 + pod.angle * 0.05) * 0.08;
+    // Gentle idle bobbing
+    const bob = Math.sin(t * 0.6 + pod.angle * 0.04) * 0.06;
     groupRef.current.position.y = basePos.y + bob;
 
     // Hover lift
-    const targetLift = hovered ? 0.4 : 0;
+    const targetLift = hovered ? 0.35 : 0;
     const currentLift = groupRef.current.userData.lift || 0;
     const newLift = currentLift + (targetLift - currentLift) * 0.06;
     groupRef.current.userData.lift = newLift;
@@ -186,7 +209,7 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
 
     // Glow pulse
     if (glowRef.current?.material) {
-      const alpha = hovered ? 0.8 : isActive ? 0.6 : (0.3 + 0.12 * Math.sin(t * 1.5 + pod.angle * 0.08));
+      const alpha = hovered ? 0.7 : isActive ? 0.5 : (0.2 + 0.08 * Math.sin(t * 1.5 + pod.angle * 0.08));
       glowRef.current.material.opacity += (alpha - glowRef.current.material.opacity) * 0.06;
     }
   });
@@ -200,63 +223,75 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
       onPointerOut={handlePointerOut}
       onClick={handleClick}
     >
-      {/* ─── PHOTOREALISTIC IMAGE ICON ─── */}
-      <PodImage podId={pod.id} isHovered={hovered} isActive={isActive} />
+      {/* ─── GLASS ORB ─── */}
+      <group position={[0, orbRadius + 0.15, 0]}>
+        {/* The holographic glass sphere */}
+        <GlassOrb
+          color={pod.color}
+          isHovered={hovered}
+          isActive={isActive}
+          orbRadius={orbRadius}
+        />
 
-      {/* ─── HOLOGRAPHIC BASE RING ─── */}
-      <HoloBaseRing color={pod.color} isHovered={hovered} isActive={isActive} />
+        {/* Image inside the orb */}
+        <PodImage
+          podId={pod.id}
+          isHovered={hovered}
+          isActive={isActive}
+          orbRadius={orbRadius}
+        />
 
-      {/* ─── METALLIC PEDESTAL ─── */}
-      {/* Main pedestal cylinder */}
-      <mesh position={[0, -0.55, 0]}>
-        <cylinderGeometry args={[0.22, 0.35, 0.5, 24]} />
+        {/* Equator glow ring */}
+        <OrbGlowRing
+          color={pod.color}
+          isHovered={hovered}
+          isActive={isActive}
+          orbRadius={orbRadius}
+        />
+
+        {/* Inner light source for the orb */}
+        <pointLight
+          color={pod.color}
+          intensity={hovered ? 1.5 : isActive ? 1.0 : 0.4}
+          distance={3}
+          decay={2}
+        />
+      </group>
+
+      {/* ─── PEDESTAL ─── */}
+      {/* Slim column */}
+      <mesh position={[0, -0.1, 0]}>
+        <cylinderGeometry args={[0.08, 0.15, 0.45, 16]} />
         <meshPhysicalMaterial
           color="#1a2a3a"
           metalness={0.95}
           roughness={0.08}
           clearcoat={0.7}
-          clearcoatRoughness={0.15}
-          iridescence={0.3}
-          iridescenceIOR={2.0}
           emissive={pod.color}
-          emissiveIntensity={0.08}
+          emissiveIntensity={0.05}
         />
       </mesh>
 
-      {/* Pedestal top ring */}
-      <mesh position={[0, -0.28, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.18, 0.38, 32]} />
-        <meshPhysicalMaterial
-          color="#1e3045"
-          metalness={0.92}
-          roughness={0.12}
-          clearcoat={0.8}
-          emissive={pod.color}
-          emissiveIntensity={0.2}
-          iridescence={0.4}
-        />
-      </mesh>
-
-      {/* Pedestal base */}
-      <mesh position={[0, -0.82, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.4, 0.4, 0.04, 32]} />
+      {/* Pedestal base disc */}
+      <mesh position={[0, -0.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.3, 0.3, 0.04, 24]} />
         <meshPhysicalMaterial
           color="#1a2a3a"
           metalness={0.95}
           roughness={0.08}
           clearcoat={0.5}
-          emissive="#ff8c00"
-          emissiveIntensity={0.15}
+          emissive={pod.color}
+          emissiveIntensity={0.12}
         />
       </mesh>
 
-      {/* ─── BASE GLOW (Bloom participator) ─── */}
-      <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.81, 0]}>
-        <ringGeometry args={[0.35, 0.65, 32]} />
+      {/* ─── BASE GLOW ─── */}
+      <mesh ref={glowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.34, 0]}>
+        <ringGeometry args={[0.25, 0.5, 32]} />
         <meshBasicMaterial
-          color="#ff8c00"
+          color={pod.color}
           transparent
-          opacity={0.3}
+          opacity={0.25}
           side={DoubleSide}
           blending={AdditiveBlending}
           depthWrite={false}
@@ -264,12 +299,12 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
       </mesh>
 
       {/* Ground light pool */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.84, 0]}>
-        <circleGeometry args={[0.75, 24]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.37, 0]}>
+        <circleGeometry args={[0.6, 24]} />
         <meshBasicMaterial
           color={pod.color}
           transparent
-          opacity={0.06}
+          opacity={0.04}
           blending={AdditiveBlending}
           depthWrite={false}
         />
@@ -277,15 +312,15 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
 
       {/* ─── FLOATING LABEL ─── */}
       <Text
-        position={[0, -1.05, 0.3]}
-        fontSize={0.18}
+        position={[0, -0.55, 0.3]}
+        fontSize={0.16}
         anchorX="center"
         anchorY="top"
         color={hovered || isActive ? '#ffffff' : '#c8d6e5'}
         textAlign="center"
-        maxWidth={2.2}
-        letterSpacing={0.1}
-        outlineWidth={0.025}
+        maxWidth={2.0}
+        letterSpacing={0.08}
+        outlineWidth={0.02}
         outlineColor="#000000"
         font="/fonts/Inter-Bold.woff"
       >
@@ -294,8 +329,8 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
 
       {/* Active indicator dot */}
       {isActive && (
-        <mesh position={[0, -1.35, 0.3]}>
-          <sphereGeometry args={[0.05, 12, 12]} />
+        <mesh position={[0, -0.75, 0.3]}>
+          <sphereGeometry args={[0.04, 12, 12]} />
           <meshBasicMaterial color={pod.color} />
         </mesh>
       )}

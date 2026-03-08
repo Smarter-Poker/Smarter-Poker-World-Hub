@@ -29,8 +29,8 @@ const FEATURE_PODS = [
   { id: 'wallet',    label: 'REWARDS',       angle: 320, color: '#ffd700' },
 ];
 
-const POD_ORBIT_RADIUS = 4.2;
-const POD_Y = 0.5;
+const POD_ORBIT_RADIUS = 5.5;
+const POD_Y = 0.3;
 
 // ─── Quality presets for adaptive rendering ───
 const QUALITY = {
