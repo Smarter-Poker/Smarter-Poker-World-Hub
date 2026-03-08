@@ -107,7 +107,10 @@ function cachedFetch(url, ttl = API_CACHE_TTL) {
   if (apiCache[url] && (now - apiCache[url].time) < ttl) {
     return Promise.resolve(apiCache[url].data);
   }
-  return fetch(url).then(r => r.json()).then(data => {
+  return fetch(url).then(r => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }).then(data => {
     apiCache[url] = { data, time: now };
     return data;
   });
@@ -244,9 +247,12 @@ function DailyTournamentsPanel({ tournaments = [], onDayChange }) {
 function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const mountedRef = useRef(true);
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     if (mapInstanceRef.current) return; // Already initialized
     if (!mapRef.current) return;
 
@@ -262,6 +268,9 @@ function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
 
       // Import Leaflet
       const L = (await import('leaflet')).default;
+
+      // Guard: component may have unmounted during async import
+      if (!mountedRef.current || !mapRef.current) return;
 
       const center = userLocation
         ? [userLocation.lat, userLocation.lng]
@@ -281,9 +290,10 @@ function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
 
       mapInstanceRef.current = map;
 
-      // Add venue markers
+      // Add venue markers — popup only (no auto-navigate on click)
       const validVenues = venues.filter(v => v.latitude && v.longitude);
       validVenues.forEach(v => {
+        const safeName = (v.name || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         const marker = L.circleMarker([v.latitude, v.longitude], {
           radius: 7,
           fillColor: v.is_featured ? '#ffd700' : '#6ee7ef',
@@ -294,14 +304,13 @@ function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
 
         marker.bindPopup(
           `<div style="font-family:sans-serif;font-size:13px;min-width:160px;">
-            <strong>${v.name}</strong><br/>
+            <strong>${safeName}</strong><br/>
             <span style="color:#666;">${v.city || ''}, ${v.state || ''}</span>
             ${v.games_offered ? `<br/><span style="color:#3b82f6;">${v.games_offered.slice(0, 3).join(', ')}</span>` : ''}
+            <br/><a href="/hub/venues/${v.id}" style="color:#6ee7ef;font-size:12px;text-decoration:underline;margin-top:4px;display:inline-block;">View Details</a>
           </div>`,
           { className: 'pnm-popup' }
         );
-
-        marker.on('click', () => onVenueSelect?.(v));
       });
 
       // Add user location marker
@@ -325,6 +334,7 @@ function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
     loadLeaflet().catch(err => console.error('Failed to load map:', err));
 
     return () => {
+      mountedRef.current = false;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -635,7 +645,14 @@ export default function PokerNearMeLobby() {
     searchTimeoutRef.current = setTimeout(() => {
       if (value.length >= 2) {
         fetchVenues(value);
-        if (userId) addSearchHistoryToDb(userId, value).catch(() => { });
+        if (userId) {
+          addSearchHistoryToDb(userId, value).catch(() => { });
+          // Optimistically update local search history
+          setSearchHistory(prev => {
+            const filtered = prev.filter(h => h.search_query !== value);
+            return [{ id: `local-${Date.now()}`, search_query: value, searched_at: new Date().toISOString() }, ...filtered].slice(0, 10);
+          });
+        }
       }
     }, SEARCH_DEBOUNCE_MS);
   }, [fetchVenues, userId]);
@@ -649,7 +666,14 @@ export default function PokerNearMeLobby() {
     setSearchQuery(city);
     setCitySuggestions([]);
     fetchVenues(city);
-    if (userId) addSearchHistoryToDb(userId, city).catch(() => { });
+    if (userId) {
+      addSearchHistoryToDb(userId, city).catch(() => { });
+      // Optimistically update local search history
+      setSearchHistory(prev => {
+        const filtered = prev.filter(h => h.search_query !== city);
+        return [{ id: `local-${Date.now()}`, search_query: city, searched_at: new Date().toISOString() }, ...filtered].slice(0, 10);
+      });
+    }
   }, [fetchVenues, userId]);
 
   // ─── Voice search result handler ───
@@ -977,7 +1001,7 @@ export default function PokerNearMeLobby() {
     }
 
     return { title: feature.title, component };
-  }, [activePod, venues, tours, series, dailyTournaments, liveGames, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page]);
+  }, [activePod, venues, tours, series, dailyTournaments, liveGames, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page, fetchDaily, loadMore, handleSortChange, handleFilterChange, favoritedVenues]);
 
   // ─── Live data for the 3D scene (drives visual behavior) ───
   const liveData = useMemo(() => ({
