@@ -9,15 +9,22 @@
  *   - Cinematic lighting (5 optimized lights + IBL)
  *   - Holographic sphere pods with iridescent PBR materials
  *
- * ARCHITECTURE: This component uses next/dynamic ssr:false (set by the page)
- * to ensure it only runs client-side. The R3F Canvas is rendered directly
- * in the component tree — no isolated React root needed.
+ * ARCHITECTURE: Uses a module-level singleton pattern for the R3F Canvas.
+ * React #418 hydration errors on this 950+ page Next.js app cause repeated
+ * unmount/remount cycles. If the R3F Canvas is inside React's tree, each
+ * cycle destroys the WebGL context before Three.js can finish initializing.
  *
- * An error boundary wraps the Canvas to prevent R3F crashes from taking
- * down the entire page.
+ * Solution: Create the R3F React root ONCE at module scope, then just
+ * attach/detach the DOM node when the component mounts/unmounts. The WebGL
+ * context persists across hydration recovery cycles, so the 3D scene loads
+ * reliably even when React remounts the component 4+ times.
+ *
+ * The next/dynamic ssr:false wrapper (set by the page) ensures this only
+ * runs client-side.
  */
 
-import React, { useEffect, useRef, useState, useCallback, Suspense } from 'react';
+import React, { useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom/client';
 
 // ─── Detect device quality ONCE at module load (not inside a component) ───
 const IS_MOBILE = typeof window !== 'undefined' && (
@@ -27,109 +34,147 @@ const IS_MOBILE = typeof window !== 'undefined' && (
 const INITIAL_QUALITY = IS_MOBILE ? 'low' : 'high';
 const INITIAL_DPR = IS_MOBILE ? 0.75 : 1.5;
 
+// ─── Module-level singleton for the R3F scene ───
+// This survives React hydration remount cycles.
+let singletonMountPoint = null;  // The DOM div holding the R3F Canvas
+let singletonRoot = null;        // The isolated ReactDOM root
+let singletonPropsRef = null;    // Shared ref for latest props
+let singletonInitialized = false;
+let singletonError = null;
+
 /**
- * Error boundary to catch R3F/Three.js crashes without killing the page.
+ * Initialize the R3F singleton (called once, ever).
+ * Creates an isolated React root with the R3F Canvas inside it.
  */
-class R3FErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+function initSingleton(propsRef) {
+  if (singletonInitialized) return;
+  singletonInitialized = true;
+  singletonPropsRef = propsRef;
 
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
+  console.log('[LobbyScene] Initializing R3F singleton...');
 
-  componentDidCatch(error, errorInfo) {
-    console.error('[R3FErrorBoundary] 3D scene crashed:', error);
-    console.error('[R3FErrorBoundary] Component stack:', errorInfo?.componentStack);
-  }
+  // Create a detached DOM node for the R3F scene
+  singletonMountPoint = document.createElement('div');
+  singletonMountPoint.style.cssText = 'position:absolute;inset:0;';
+  singletonMountPoint.className = 'r3f-singleton-mount';
 
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: '#030818', color: '#6ee7ef',
-          fontFamily: 'Orbitron, sans-serif', fontSize: 14,
-          flexDirection: 'column', gap: 12,
-        }}>
-          <div>3D Scene Error — Reloading...</div>
-          <div style={{ color: '#ff4444', fontSize: 11, maxWidth: '80%', textAlign: 'center' }}>
-            {this.state.error?.message?.substring(0, 120)}
-          </div>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              background: '#1877f2', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '10px 24px', cursor: 'pointer',
-              fontSize: 13,
-            }}
-          >
-            Refresh
-          </button>
-        </div>
+  // Create isolated React root (outside main app's React tree)
+  singletonRoot = ReactDOM.createRoot(singletonMountPoint);
+
+  // Dynamically import and render the R3F scene
+  import('./LobbyR3FScene')
+    .then((mod) => {
+      if (!singletonRoot) return; // Page navigated away
+      console.log('[LobbyScene] R3F scene module loaded, rendering into singleton root...');
+      const R3FScene = mod.R3FScene;
+      singletonRoot.render(
+        <R3FScene
+          propsRef={singletonPropsRef}
+          initialQuality={INITIAL_QUALITY}
+          initialDpr={INITIAL_DPR}
+          isMobile={IS_MOBILE}
+        />
       );
-    }
-    return this.props.children;
+    })
+    .catch((err) => {
+      console.error('[LobbyScene] Failed to load R3F scene:', err);
+      singletonError = err.message;
+    });
+}
+
+/**
+ * Destroy the singleton (called on page navigation away).
+ * Cleans up WebGL context and React root.
+ */
+function destroySingleton() {
+  if (!singletonInitialized) return;
+  console.log('[LobbyScene] Destroying R3F singleton...');
+
+  if (singletonRoot) {
+    singletonRoot.unmount();
+    singletonRoot = null;
   }
+  if (singletonMountPoint?.parentNode) {
+    singletonMountPoint.parentNode.removeChild(singletonMountPoint);
+  }
+  singletonMountPoint = null;
+  singletonPropsRef = null;
+  singletonInitialized = false;
+  singletonError = null;
 }
 
 /**
  * LobbyScene — The exported component.
  *
- * Directly renders the R3F Canvas with all 3D content.
- * The next/dynamic ssr:false wrapper ensures this only runs client-side.
+ * On mount: creates the singleton (if needed) and attaches the R3F DOM node.
+ * On unmount: detaches the DOM node but does NOT destroy the WebGL context.
+ * On page navigation away: destroys the singleton via routeChangeStart listener.
+ *
+ * This ensures the 3D scene survives React's hydration error recovery cycles
+ * (which cause repeated unmount/remount of the component tree).
  */
 export default function LobbyScene({ onPodClick, activePod, liveData }) {
+  const containerRef = useRef(null);
   const propsRef = useRef({ onPodClick, activePod, liveData });
-  const [R3FScene, setR3FScene] = useState(null);
-  const [loadError, setLoadError] = useState(null);
 
-  // Keep props ref updated without triggering R3F re-renders
+  // Keep props ref updated (this ref is shared with the singleton)
   useEffect(() => {
     propsRef.current = { onPodClick, activePod, liveData };
+    // Also update the singleton's ref if it exists
+    if (singletonPropsRef) {
+      singletonPropsRef.current = { onPodClick, activePod, liveData };
+    }
   });
 
-  // Dynamically import the R3F scene to code-split Three.js
+  // Attach/detach the singleton R3F DOM node
   useEffect(() => {
-    let cancelled = false;
-    console.log('[LobbyScene] Loading R3F scene module...');
+    const container = containerRef.current;
+    if (!container) return;
 
-    import('./LobbyR3FScene')
-      .then((mod) => {
-        if (cancelled) return;
-        console.log('[LobbyScene] R3F scene module loaded successfully');
-        setR3FScene(() => mod.R3FScene);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error('[LobbyScene] Failed to load R3F scene:', err);
-        setLoadError(err.message);
-      });
+    // Initialize singleton on first mount
+    initSingleton(propsRef);
 
-    return () => { cancelled = true; };
+    // Attach the R3F mount point to our container
+    if (singletonMountPoint && singletonMountPoint.parentNode !== container) {
+      container.appendChild(singletonMountPoint);
+      console.log('[LobbyScene] R3F singleton attached to DOM');
+    }
+
+    return () => {
+      // On unmount: just detach, do NOT destroy
+      // This preserves the WebGL context across hydration remounts
+      if (singletonMountPoint && singletonMountPoint.parentNode === container) {
+        container.removeChild(singletonMountPoint);
+        console.log('[LobbyScene] R3F singleton detached from DOM (preserved)');
+      }
+    };
   }, []);
 
-  if (loadError) {
-    return (
-      <div
-        className="lobby-scene-container"
-        style={{
-          position: 'absolute', inset: 0, zIndex: 1,
-          background: '#030818', display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          color: '#ff4444', fontFamily: 'Orbitron, sans-serif', fontSize: 14,
-        }}
-      >
-        3D Scene failed to load: {loadError}
-      </div>
-    );
-  }
+  // Clean up singleton on page navigation (Next.js route change)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const { Router } = require('next/router');
+    const handleRouteChange = () => {
+      destroySingleton();
+    };
+
+    Router.events.on('routeChangeStart', handleRouteChange);
+    return () => {
+      Router.events.off('routeChangeStart', handleRouteChange);
+    };
+  }, []);
+
+  // Clean up singleton on full page unload
+  useEffect(() => {
+    const handleUnload = () => destroySingleton();
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
 
   return (
     <div
+      ref={containerRef}
       className="lobby-scene-container"
       style={{
         position: 'absolute',
@@ -138,24 +183,17 @@ export default function LobbyScene({ onPodClick, activePod, liveData }) {
         background: '#030818',
       }}
     >
-      <R3FErrorBoundary>
-        {R3FScene ? (
-          <R3FScene
-            propsRef={propsRef}
-            initialQuality={INITIAL_QUALITY}
-            initialDpr={INITIAL_DPR}
-            isMobile={IS_MOBILE}
-          />
-        ) : (
-          <div style={{
-            position: 'absolute', inset: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 14,
-          }}>
-            Loading 3D Engine...
-          </div>
-        )}
-      </R3FErrorBoundary>
+      {/* R3F singleton DOM node is attached here via useEffect */}
+      {singletonError && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#ff4444', fontFamily: 'Orbitron, sans-serif', fontSize: 14,
+          zIndex: 10,
+        }}>
+          3D Scene failed to load: {singletonError}
+        </div>
+      )}
     </div>
   );
 }
