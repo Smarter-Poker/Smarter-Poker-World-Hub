@@ -1,21 +1,127 @@
 /**
- * LobbyOverlay.jsx — The 2D UI layer that sits ON TOP of the 3D scene.
+ * LobbyOverlay.jsx — The UI layer on top of the background.
  *
- * This renders:
- *   - "POKER NEAR ME" cinematic title
- *   - Search bar with city autocomplete + voice search button
+ * Renders:
+ *   - "POKER NEAR ME" title
+ *   - Search bar with autocomplete + voice + GPS
+ *   - Pod icon grid (dynamic images in a scrollable grid below search)
  *   - Bottom dock (Trip Planner, Calculator, Saved, Friends, Alerts)
- *   - Scan line + ambient UI effects
  *
  * NOTE: The feature panel drawer is rendered at the PAGE level
  * (poker-near-me-lobby.js) to avoid z-index stacking context issues.
- * This overlay only handles search + dock + title.
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Photorealistic 3D dock icons — AI-generated images for premium quality
+// ─── Pod grid items (main features shown below search) ───
+const POD_GRID_ITEMS = [
+  { id: 'nearme',    label: 'Near Me',    color: '#00d2ff', icon: '/images/lobby-pods/nearme.png' },
+  { id: 'search',    label: 'Search',     color: '#6ee7ef', icon: '/images/lobby-pods/search.png' },
+  { id: 'livegames', label: 'Live Games', color: '#ff4444', icon: '/images/lobby-pods/livegames.png' },
+  { id: 'tours',     label: 'Tours',      color: '#c9a227', icon: '/images/lobby-pods/tours.png' },
+  { id: 'mapview',   label: 'Map View',   color: '#3b82f6', icon: '/images/lobby-pods/mapview.png' },
+  { id: 'calendar',  label: 'Calendar',   color: '#8b5cf6', icon: '/images/lobby-pods/calendar.png' },
+  { id: 'series',    label: 'Series',     color: '#f59e0b', icon: '/images/lobby-pods/series.png' },
+  { id: 'daily',     label: 'Daily',      color: '#22c55e', icon: '/images/lobby-pods/daily.png' },
+  { id: 'wallet',    label: 'Rewards',    color: '#ffd700', icon: '/images/lobby-pods/wallet.png' },
+];
+
+// ─── Pod Grid Item ───
+function PodGridItem({ pod, isActive, onSelect }) {
+  const [hovered, setHovered] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const active = isActive || hovered;
+
+  return (
+    <button
+      onClick={() => onSelect(pod.id)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 8,
+        WebkitTapHighlightColor: 'transparent',
+        transform: active ? 'scale(1.08)' : 'scale(1)',
+        transition: 'transform 0.25s ease',
+      }}
+    >
+      {/* Icon circle */}
+      <div
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: '50%',
+          background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.4))`,
+          border: `2px solid ${active ? pod.color : `${pod.color}50`}`,
+          boxShadow: active
+            ? `0 0 20px ${pod.color}60, 0 0 40px ${pod.color}25, inset 0 0 12px rgba(0,0,0,0.4)`
+            : `0 0 10px ${pod.color}20, inset 0 0 12px rgba(0,0,0,0.5)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          transition: 'all 0.3s ease',
+        }}
+      >
+        {!imgError ? (
+          <img
+            src={pod.icon}
+            alt={pod.label}
+            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+            style={{
+              width: 58,
+              height: 58,
+              objectFit: 'cover',
+              borderRadius: '50%',
+              opacity: imgLoaded ? 1 : 0,
+              transition: 'opacity 0.4s ease-in',
+            }}
+          />
+        ) : (
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: `radial-gradient(circle, ${pod.color}40, ${pod.color}10)`,
+            border: `1px solid ${pod.color}60`,
+          }} />
+        )}
+      </div>
+
+      {/* Label */}
+      <span
+        style={{
+          fontFamily: "'Orbitron', 'Rajdhani', sans-serif",
+          fontSize: 11,
+          fontWeight: 700,
+          color: active ? '#ffffff' : 'rgba(200, 220, 240, 0.75)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          textAlign: 'center',
+          textShadow: active
+            ? `0 0 10px ${pod.color}80, 0 1px 3px rgba(0,0,0,0.9)`
+            : '0 1px 3px rgba(0,0,0,0.8)',
+          transition: 'color 0.25s',
+          lineHeight: 1.2,
+        }}
+      >
+        {pod.label}
+      </span>
+    </button>
+  );
+}
+
+// ─── Dock icons ───
 const DOCK_ICON_IMAGES = {
   roadtrip:   '/images/lobby-dock/trip-planner.png',
   calculator: '/images/lobby-dock/calculator.png',
@@ -90,7 +196,7 @@ const DOCK_ITEMS = [
 ];
 
 /**
- * LobbyOverlay — the full 2D UI layer.
+ * LobbyOverlay — the full UI layer.
  */
 export default function LobbyOverlay({
   activePod,
@@ -127,14 +233,15 @@ export default function LobbyOverlay({
   const friendsNearby = liveData.friendsNearby || 0;
 
   return (
-    <div className="lobby-overlay" style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
+    <div className="lobby-overlay" style={{
+      position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none',
+      display: 'flex', flexDirection: 'column',
+    }}>
 
-      {/* SCAN LINE */}
-      <div className="lobby-scanline" />
+      {/* NO SCAN LINE — removed per user request */}
 
       {/* TOP BAR — Title + Search */}
       <header className="lobby-topbar" style={{ pointerEvents: 'none' }}>
-
         {/* POKER NEAR ME Title */}
         <h1 className="lobby-title" style={{ textShadow: '0 0 40px rgba(110, 231, 239, 0.5), 0 0 80px rgba(110, 231, 239, 0.2)' }}>POKER NEAR ME</h1>
 
@@ -247,6 +354,34 @@ export default function LobbyOverlay({
           </AnimatePresence>
         </form>
       </header>
+
+      {/* ═══ POD GRID — Dynamic images below search ═══ */}
+      <div style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'auto',
+        padding: '8px 16px',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 'clamp(8px, 2vw, 16px)',
+          maxWidth: 380,
+          width: '100%',
+        }}>
+          {POD_GRID_ITEMS.map((pod) => (
+            <PodGridItem
+              key={pod.id}
+              pod={pod}
+              isActive={activePod === pod.id}
+              onSelect={onPodSelect}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* BOTTOM DOCK */}
       <nav className="lobby-dock" style={{ pointerEvents: 'none' }}>

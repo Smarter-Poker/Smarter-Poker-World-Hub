@@ -778,12 +778,8 @@ export default function PokerNearMeLobby() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Layer 1 — Canvas Lobby */}
-        <LobbyCanvas
-          onPodClick={handlePodClick}
-          activePod={activePod}
-          liveData={liveData}
-        />
+        {/* Layer 1 — Canvas Background (galaxy + radar effects) */}
+        <LobbyCanvas />
 
         {/* Layer 2 — UI Overlay */}
         <LobbyOverlay
