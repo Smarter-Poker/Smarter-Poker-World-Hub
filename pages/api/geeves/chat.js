@@ -57,14 +57,14 @@ export default async function handler(req, res) {
     }
 
     // ── Parse body first (before auth, so KB can serve guests) ──
-    const { message, context, history } = req.body;
+    const { message, context, history, currentPage } = req.body;
 
     if (!message) {
         return res.status(400).json({ success: false, error: 'Message is required' });
     }
 
     // ── STEP 0: Check Local KB (FREE, instant, no auth needed) ──
-    const kbResult = lookupKnowledgeBase(message);
+    const kbResult = lookupKnowledgeBase(message, currentPage);
     if (kbResult && kbResult.confidence >= 45) {
         return res.status(200).json({
             response: kbResult.answer,

@@ -7,10 +7,12 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { ChevronLeft, Phone, Mail, MapPin, Search, Filter, ChevronDown, XCircle, Building2, MoreVertical } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
-import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
+import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 const STATUS_CONFIG = {
   new: { label: 'New', color: 'bg-blue-500', textColor: 'text-blue-400' },
@@ -27,7 +29,12 @@ const STATUS_CONFIG = {
 
 export default function LeadManagementPage() {
   useEffect(() => { busEmit.sessionStart('commander-admin-leads'); }, []);
-  const { broadcastChange } = useCommanderSync({ entities: ['leads'] });
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) { router.push('/commander/login').catch(() => { }); }
+  }, []);
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
@@ -44,7 +51,10 @@ export default function LeadManagementPage() {
   async function fetchLeads(signal) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/commander/admin/leads?status=${statusFilter}`);
+      const token = getToken();
+      const res = await fetch(`/api/commander/admin/leads?status=${statusFilter}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setLeads(data.leads);
@@ -61,9 +71,10 @@ export default function LeadManagementPage() {
 
   async function updateLeadStatus(leadId, newStatus) {
     try {
+      const token = getToken();
       const res = await fetch('/api/commander/admin/leads', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ id: leadId, status: newStatus }),
       });
       const data = await res.json();
@@ -162,8 +173,8 @@ export default function LeadManagementPage() {
             <button
               onClick={() => setStatusFilter('all')}
               className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${statusFilter === 'all'
-                  ? 'bg-[#1877F2] text-[#0F172A]'
-                  : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
+                ? 'bg-[#1877F2] text-[#0F172A]'
+                : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
                 }`}
             >
               All ({totalLeads})
@@ -173,8 +184,8 @@ export default function LeadManagementPage() {
                 key={key}
                 onClick={() => setStatusFilter(key)}
                 className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${statusFilter === key
-                    ? 'bg-[#1877F2] text-[#0F172A]'
-                    : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
+                  ? 'bg-[#1877F2] text-[#0F172A]'
+                  : 'bg-[#1E293B] text-[#94A3B8] hover:text-white'
                   }`}
               >
                 <span className={`w-2 h-2 rounded-full ${config.color}`} />
@@ -403,8 +414,8 @@ export default function LeadManagementPage() {
                               setSelectedLead((prev) => ({ ...prev, status: key }));
                             }}
                             className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${selectedLead.status === key
-                                ? `${config.color}/20 border-current ${config.textColor}`
-                                : 'border-[#374151] text-[#94A3B8] hover:text-white hover:border-[#B0B3B8]'
+                              ? `${config.color}/20 border-current ${config.textColor}`
+                              : 'border-[#374151] text-[#94A3B8] hover:text-white hover:border-[#B0B3B8]'
                               }`}
                           >
                             <span className={`w-2 h-2 rounded-full ${config.color}`} />

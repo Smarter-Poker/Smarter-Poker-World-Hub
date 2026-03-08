@@ -12,6 +12,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -238,6 +239,11 @@ export default function AnnouncementsDisplay() {
 
   return (
     <CommanderLayout title="Announcements Display" backHref="/commander/dashboard?card=displays">
+      <SEOHead
+              title="Commander — Announcement Display"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <style jsx global>{`
         @keyframes pulse-urgent { 0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(239,68,68,0.3); } 50% { opacity: 0.85; box-shadow: 0 0 40px rgba(239,68,68,0.5); } }
         .urgent-pulse { animation: pulse-urgent 2s ease-in-out infinite; }

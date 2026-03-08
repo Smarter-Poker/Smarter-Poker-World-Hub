@@ -11,6 +11,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 export default function DealerRotationDisplay() {
   useEffect(() => { busEmit.sessionStart('commander-displays-dealers'); }, []);
@@ -77,6 +78,11 @@ export default function DealerRotationDisplay() {
 
   return (
     <CommanderLayout title="Dealer Rotation Display" backHref="/commander/dashboard?card=displays">
+      <SEOHead
+              title="Commander — Dealer Display"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <style jsx global>{`
         @keyframes pulse-break { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .break-pulse { animation: pulse-break 2s ease-in-out infinite; }

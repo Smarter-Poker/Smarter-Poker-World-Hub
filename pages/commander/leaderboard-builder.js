@@ -21,7 +21,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import useCommanderSync from '../../src/lib/commander/useCommanderSync';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import SEOHead from '../../src/components/seo/SEOHead';
 
 const BOARD_TYPES = [
     { value: 'custom', label: 'Custom Points', icon: '', desc: 'Manually assign points to players' },
@@ -43,7 +44,6 @@ const PERIOD_TYPES = [
 
 export default function LeaderboardBuilder() {
     useEffect(() => { busEmit.sessionStart('commander-leaderboard-builder'); }, []);
-    const { broadcastChange } = useCommanderSync({ entities: ['leaderboards'] });
     const [boards, setBoards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState(null);
@@ -237,6 +237,11 @@ export default function LeaderboardBuilder() {
 
     return (
         <CommanderLayout title="Leaderboard Builder" backHref="/commander/dashboard?card=displays">
+            <SEOHead
+                title="Commander — Leaderboard Builder"
+                description="Club Commander Poker Room Management Tool."
+                noindex={true}
+            />
             <div style={{ minHeight: '100vh', background: '#0a0a1a', padding: '20px', fontFamily: 'Inter, sans-serif', color: 'white' }}>
                 {/* Toast */}
                 {toast && (

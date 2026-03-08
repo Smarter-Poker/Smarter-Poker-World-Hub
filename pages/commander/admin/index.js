@@ -14,10 +14,10 @@ import AuditLogViewer from '../../../src/components/commander/admin/AuditLogView
 import ExportManager from '../../../src/components/commander/admin/ExportManager';
 import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
-import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
+import { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 
 // API Keys Modal
-function ApiKeysModal({ isOpen, onClose, venueId }) {
+function ApiKeysModal({ isOpen, onClose, venueId, onSuccess }) {
   const [apiKeys, setApiKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -73,6 +73,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
         setNewKeyName('');
         // Show the new key briefly
         setShowKey({ [data.data.key.id]: true });
+        onSuccess?.();
       } else {
         setError(data.error?.message || 'Failed to create API key');
       }
@@ -96,6 +97,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
       const data = await res.json();
       if (data.success) {
         setApiKeys(apiKeys.filter(k => k.id !== keyId));
+        onSuccess?.();
       } else {
         setError(data.error?.message || 'Failed to delete API key');
       }
@@ -208,7 +210,7 @@ function ApiKeysModal({ isOpen, onClose, venueId }) {
 }
 
 // Venue Settings Modal
-function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
+function VenueSettingsModal({ isOpen, onClose, venue, onSave, onSuccess }) {
   const [settings, setSettings] = useState({
     comp_rate: 1.0,
     auto_text_enabled: true,
@@ -251,6 +253,7 @@ function VenueSettingsModal({ isOpen, onClose, venue, onSave }) {
       const data = await res.json();
       if (data.success) {
         onSave?.(data.data?.venue || { ...venue, ...settings });
+        onSuccess?.();
         onClose();
       }
     } catch (err) {
@@ -430,7 +433,6 @@ const TABS = [
 export default function AdminDashboard() {
   useEffect(() => { busEmit.sessionStart('commander-admin-index'); }, []);
   const router = useRouter();
-  const { broadcastChange } = useCommanderSync({ entities: ['admin', 'exports', 'venues'] });
   const [activeTab, setActiveTab] = useState('overview');
   const [venues, setVenues] = useState([]);
   const [summary, setSummary] = useState({});
@@ -699,6 +701,7 @@ export default function AdminDashboard() {
         isOpen={showApiKeysModal}
         onClose={() => setShowApiKeysModal(false)}
         venueId={selectedVenue?.id || venues[0]?.id}
+        onSuccess={() => broadcastChange('admin')}
       />
 
       <VenueSettingsModal
@@ -709,6 +712,7 @@ export default function AdminDashboard() {
         }}
         venue={settingsVenue}
         onSave={handleVenueSettingsSaved}
+        onSuccess={() => broadcastChange('venues')}
       />
     </CommanderLayout>
   );

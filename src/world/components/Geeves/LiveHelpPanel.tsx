@@ -132,7 +132,7 @@ export function LiveHelpPanel({
     }, [onSendMessage]);
 
     return (
-        <>
+        <div data-geeves-live-help="true" style={{ display: 'contents' }}>
             {/* Backdrop */}
             <div
                 onClick={onClose}
@@ -353,7 +353,7 @@ export function LiveHelpPanel({
                     </div>
                 </div>
             </div >
-        </>
+        </div>
     );
 }
 

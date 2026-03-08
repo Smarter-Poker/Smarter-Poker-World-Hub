@@ -28,6 +28,7 @@ import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const MEDAL_E = ['1st', '2nd', '3rd'];
@@ -258,6 +259,11 @@ export default function LeaderboardDisplay() {
   // ═══════════════════════════════════════════════════════════════
   return (
     <CommanderLayout title="Leaderboard Display" backHref="/commander/dashboard?card=displays">
+      <SEOHead
+              title="Commander — Leaderboard Display"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <style jsx global>{`
         @keyframes slideIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes crownPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }

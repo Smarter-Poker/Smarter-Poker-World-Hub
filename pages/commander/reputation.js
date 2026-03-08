@@ -9,7 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Star, Loader2, ChevronDown, ChevronUp, Plus, X, Send } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../src/engine/EventBus';
-import useCommanderSync from '../../src/lib/commander/useCommanderSync';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },
@@ -21,7 +21,6 @@ const RATING_LABELS = {
 export default function PlayerReputation() {
   useEffect(() => { busEmit.sessionStart('commander-reputation'); }, []);
   const router = useRouter();
-  const { broadcastChange } = useCommanderSync({ entities: ['reputation'] });
   const [staff, setStaff] = useState(null);
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(true);

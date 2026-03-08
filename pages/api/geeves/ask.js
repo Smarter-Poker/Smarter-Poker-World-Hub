@@ -224,7 +224,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { question, conversationId, conversationHistory } = req.body;
+        const { question, conversationId, conversationHistory, currentPage } = req.body;
 
         if (!question) {
             return res.status(400).json({ error: 'Question is required' });
@@ -233,7 +233,7 @@ export default async function handler(req, res) {
         // ═══════════════════════════════════════════════════════════════════
         // STEP 0: Check Local Knowledge Base (FREE, instant, no auth needed)
         // ═══════════════════════════════════════════════════════════════════
-        const kbResult = lookupKnowledgeBase(question);
+        const kbResult = lookupKnowledgeBase(question, currentPage);
 
         if (kbResult && kbResult.confidence >= 45) {
             // Try to save to conversation if user is authenticated

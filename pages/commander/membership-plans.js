@@ -13,6 +13,7 @@ import { Loader2, Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../src/engine/EventBus';
+import SEOHead from '../../src/components/seo/SEOHead';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -154,6 +155,11 @@ export default function MembershipPlansPage() {
 
   return (
     <CommanderLayout title="Membership Plans" backHref="/commander/dashboard">
+      <SEOHead
+              title="Commander — Membership Plans"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <style jsx>{`
         .mp-page {
           min-height: 100vh;

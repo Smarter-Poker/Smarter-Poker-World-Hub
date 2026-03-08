@@ -10,11 +10,11 @@ import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { getToken } from '../../src/lib/commander/clientAuth';
 import { busEmit } from '../../src/engine/EventBus';
-import useCommanderSync from '../../src/lib/commander/useCommanderSync';
+import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
-function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
+function RentEquipmentModal({ isOpen, onClose, equipment, venueId, onSuccess }) {
   const [formData, setFormData] = useState({
     start_date: '',
     end_date: '',
@@ -51,6 +51,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
       const data = await res.json();
       if (data.success) {
         setSuccess(true);
+        onSuccess?.();
         setTimeout(() => {
           onClose();
           setSuccess(false);
@@ -159,7 +160,7 @@ function RentEquipmentModal({ isOpen, onClose, equipment, venueId }) {
   );
 }
 
-function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
+function BookDealerModal({ isOpen, onClose, dealer, venueId, onSuccess }) {
   const [formData, setFormData] = useState({
     date: '',
     start_time: '18:00',
@@ -193,6 +194,7 @@ function BookDealerModal({ isOpen, onClose, dealer, venueId }) {
       const data = await res.json();
       if (data.success) {
         setSuccess(true);
+        onSuccess?.();
         setTimeout(() => {
           onClose();
           setSuccess(false);
@@ -432,7 +434,6 @@ function EquipmentCard({ equipment, onRent }) {
 export default function MarketplacePage() {
   useEffect(() => { busEmit.sessionStart('commander-marketplace'); }, []);
   const router = useRouter();
-  const { broadcastChange } = useCommanderSync({ entities: ['marketplace'] });
 
   const [staff, setStaff] = useState(null);
   const [venueId, setVenueId] = useState(null);
@@ -625,6 +626,7 @@ export default function MarketplacePage() {
           }}
           dealer={selectedDealer}
           venueId={venueId}
+          onSuccess={() => broadcastChange('marketplace')}
         />
 
         <RentEquipmentModal
@@ -635,6 +637,7 @@ export default function MarketplacePage() {
           }}
           equipment={selectedEquipment}
           venueId={venueId}
+          onSuccess={() => broadcastChange('marketplace')}
         />
         <style jsx>{`
 `}</style>

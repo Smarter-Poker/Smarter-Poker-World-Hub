@@ -8,10 +8,11 @@
 import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, MapPin, Calendar, Target, Award } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
-import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6
 const SUCCESS_CRITERIA = {
@@ -31,7 +32,12 @@ const TARGET_REGIONS = [
 
 export default function PilotVenuesPage() {
   useEffect(() => { busEmit.sessionStart('commander-admin-pilots'); }, []);
-  useCommanderSync({ entities: ['pilots'] });
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) { router.push('/commander/login').catch(() => { }); }
+  }, []);
   const [pilots, setPilots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -44,7 +50,10 @@ export default function PilotVenuesPage() {
   async function fetchPilots(signal) {
     setLoading(true);
     try {
-      const res = await fetch('/api/commander/admin/pilots');
+      const token = getToken();
+      const res = await fetch('/api/commander/admin/pilots', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       const data = await res.json();
       if (data.success) {
         setPilots(data.pilots || []);
@@ -269,10 +278,10 @@ export default function PilotVenuesPage() {
                       <div className="flex items-center gap-2">
                         <span
                           className={`px-2 py-1 rounded text-xs font-medium ${pilot.status === 'active'
-                              ? 'bg-green-500/20 text-green-400'
-                              : pilot.status === 'completed'
-                                ? 'bg-blue-500/20 text-blue-400'
-                                : 'bg-gray-500/20 text-gray-400'
+                            ? 'bg-green-500/20 text-green-400'
+                            : pilot.status === 'completed'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : 'bg-gray-500/20 text-gray-400'
                             }`}
                         >
                           {pilot.status}
@@ -387,7 +396,7 @@ export default function PilotVenuesPage() {
                 description={`${activePilots.length}/5 venues currently active`}
               />
               <ChecklistItem
-                checked={avgUptime >= 95 && AvgTickets <= 5 && avgSatisfaction >= 4 && avgAdoption >= 50}
+                checked={avgUptime >= 95 && avgTickets <= 5 && avgSatisfaction >= 4 && avgAdoption >= 50}
                 label="Success Metrics Met"
                 description="95% Uptime, <5 Tickets/week, 4+/5 Satisfaction, 50%+ Adoption"
               />

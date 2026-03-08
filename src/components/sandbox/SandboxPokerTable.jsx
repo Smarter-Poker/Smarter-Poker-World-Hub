@@ -5,8 +5,24 @@
  * Elliptical seat positions recalculated for vertical layout.
  * Community cards, pot, equity, and board texture all rendered ON the table felt.
  */
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
+
+// Long-press hook for card removal
+function useLongPress(callback, ms = 500) {
+    const timerRef = useRef(null);
+    const onStart = useCallback((e) => {
+        e.preventDefault();
+        timerRef.current = setTimeout(() => {
+            try { navigator.vibrate?.(20); } catch (e) { }
+            callback?.();
+        }, ms);
+    }, [callback, ms]);
+    const onEnd = useCallback(() => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+    }, []);
+    return { onTouchStart: onStart, onTouchEnd: onEnd, onTouchCancel: onEnd, onMouseDown: onStart, onMouseUp: onEnd, onMouseLeave: onEnd };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD COMPONENT
@@ -73,6 +89,12 @@ export default function SandboxPokerTable({
     equity,
     onTapHeroCards,
     onTapBoard,
+    onReset,
+    onRemoveHeroCard,
+    onRemoveBoardCard,
+    // Swipe gesture handlers
+    onSwipeLeft,
+    onSwipeRight,
 }) {
     const totalSeats = 1 + villains.length;
     const maxSeats = Math.max(totalSeats, 2);
@@ -91,15 +113,33 @@ export default function SandboxPokerTable({
 
     const avatarSize = 38;
 
+    // Swipe gesture tracking for street navigation
+    const touchStartRef = useRef({ x: 0, y: 0 });
+    const handleTouchStart = (e) => {
+        touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    };
+    const handleTouchEnd = (e) => {
+        const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+        const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            try { navigator.vibrate?.(10); } catch (e) { }
+            if (dx < 0) onSwipeLeft?.();
+            else onSwipeRight?.();
+        }
+    };
+
     return (
-        <div style={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: 170,
-            margin: '0 auto',
-            aspectRatio: '172 / 305',
-            overflow: 'visible',
-        }}>
+        <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: 170,
+                margin: '0 auto',
+                aspectRatio: '172 / 305',
+                overflow: 'visible',
+            }}>
             {/* Poker table image — vertical orientation */}
             <img
                 src="/images/poker-table-vertical-nobg.png"
@@ -110,6 +150,24 @@ export default function SandboxPokerTable({
                 }}
                 loading="lazy"
             />
+
+            {/* Quick Reset Button — top-right corner */}
+            {onReset && (
+                <motion.button
+                    onClick={() => { try { navigator.vibrate?.(10); } catch (e) { } onReset(); }}
+                    whileTap={{ scale: 0.85, rotate: -90 }}
+                    style={{
+                        position: 'absolute', top: 6, right: 6, zIndex: 20,
+                        width: 28, height: 28, borderRadius: '50%',
+                        background: 'rgba(36,37,38,0.85)', border: '1px solid #3A3B3C',
+                        color: '#B0B3B8', fontSize: 14, fontWeight: 700,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer', backdropFilter: 'blur(4px)',
+                        touchAction: 'manipulation',
+                    }}
+                    aria-label="Reset hand"
+                >↻</motion.button>
+            )}
 
             {/* Center info on the table felt */}
             <div style={{
@@ -150,21 +208,30 @@ export default function SandboxPokerTable({
                 </div>
             </div>
 
-            {/* Community Cards — centered above pot */}
+            {/* Community Cards — centered above pot, long-press to remove */}
             {communityCards.length > 0 && (
                 <div
-                    onClick={onTapBoard}
                     style={{
                         position: 'absolute', top: '30%', left: '50%',
                         transform: 'translateX(-50%)', display: 'flex', gap: 2, zIndex: 10,
-                        cursor: onTapBoard ? 'pointer' : 'default',
                     }}
                 >
-                    {communityCards.map((card, i) => (
-                        <motion.div key={i} initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: i * 0.08 }}>
-                            <TableCard card={card} style={{ width: 32, height: 45 }} />
-                        </motion.div>
-                    ))}
+                    {communityCards.map((card, i) => {
+                        const lp = useLongPress(() => onRemoveBoardCard?.(i));
+                        return (
+                            <motion.div
+                                key={card || i}
+                                {...lp}
+                                onClick={onTapBoard}
+                                initial={{ y: -15, opacity: 0, scale: 0.5 }}
+                                animate={{ y: 0, opacity: 1, scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 180, damping: 12, delay: i * 0.1 }}
+                                style={{ cursor: onTapBoard ? 'pointer' : 'default' }}
+                            >
+                                <TableCard card={card} style={{ width: 32, height: 45 }} />
+                            </motion.div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -273,30 +340,33 @@ export default function SandboxPokerTable({
                 );
             })}
 
-            {/* Hero Cards — positioned near hero seat (bottom) */}
+            {/* Hero Cards — positioned near hero seat (bottom), long-press to remove */}
             {heroCards.length > 0 && seatPositions.length > 0 && (
                 <div
-                    onClick={onTapHeroCards}
                     style={{
                         position: 'absolute',
                         top: `calc(${seatPositions[0].top} - 50px)`,
                         left: seatPositions[0].left,
                         transform: 'translateX(-50%)',
                         display: 'flex', zIndex: 150,
-                        cursor: onTapHeroCards ? 'pointer' : 'default',
                     }}
                 >
-                    {heroCards.map((card, i) => (
-                        <motion.div
-                            key={i}
-                            initial={{ y: 15, opacity: 0, rotate: i === 0 ? -8 : 8 }}
-                            animate={{ y: 0, opacity: 1, rotate: i === 0 ? -5 : 5 }}
-                            transition={{ delay: 0.2 + i * 0.1 }}
-                            style={{ marginLeft: i > 0 ? -6 : 0 }}
-                        >
-                            <TableCard card={card} style={{ width: 34, height: 48 }} />
-                        </motion.div>
-                    ))}
+                    {heroCards.map((card, i) => {
+                        const lp = useLongPress(() => onRemoveHeroCard?.(i));
+                        return (
+                            <motion.div
+                                key={card || i}
+                                {...lp}
+                                onClick={onTapHeroCards}
+                                initial={{ y: 20, opacity: 0, rotateY: 90 }}
+                                animate={{ y: 0, opacity: 1, rotateY: 0, rotate: i === 0 ? -5 : 5 }}
+                                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.15 + i * 0.12 }}
+                                style={{ marginLeft: i > 0 ? -6 : 0, cursor: 'pointer', perspective: 800 }}
+                            >
+                                <TableCard card={card} style={{ width: 34, height: 48 }} />
+                            </motion.div>
+                        );
+                    })}
                 </div>
             )}
 

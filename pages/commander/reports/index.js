@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, ChevronRight, TrendingUp, Filter } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 const REPORTS = [
   {
@@ -105,6 +106,11 @@ export default function ReportsPage() {
 
   return (
     <CommanderLayout title="Reports" backHref="/commander/dashboard">
+      <SEOHead
+              title="Commander — Reports"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Date Range Filter */}

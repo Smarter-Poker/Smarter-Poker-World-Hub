@@ -28,6 +28,10 @@ import {
     getTimeUntilReset,
 } from '../../src/lib/arcade/arcadeEngine';
 import { busEmit } from '../../src/engine/EventBus';
+import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../src/config/hamburgerMenus';
+import { getDiamondArcadePreferences, updateDiamondArcadePreferences } from '../../src/services/diamondArcadePreferences';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GAME CARD BACKGROUNDS - Rich photographic-style gradients

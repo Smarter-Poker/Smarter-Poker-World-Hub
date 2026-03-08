@@ -16,6 +16,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 function formatClockTime(seconds) {
   if (!seconds || seconds <= 0) return '0:00';
@@ -115,6 +116,11 @@ export default function CombinedDisplay() {
 
   return (
     <CommanderLayout title="Combined Display" backHref="/commander/dashboard?card=displays">
+      <SEOHead
+              title="Commander — Combined Display"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <style jsx global>{`
         @keyframes pulse-called { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         .called { animation: pulse-called 1.5s ease-in-out infinite; }

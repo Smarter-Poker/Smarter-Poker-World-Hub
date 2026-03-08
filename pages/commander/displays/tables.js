@@ -17,6 +17,7 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -528,6 +529,11 @@ export default function TablesDisplay() {
 
     return (
       <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
+        <SEOHead
+                title="Commander — Tables Display"
+                description="Club Commander Poker Room Management Tool."
+                noindex={true}
+              />
         <div style={{
           position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
           background: 'radial-gradient(ellipse at 50% 45%, #0f1a12 0%, #0c1210 25%, #080d0b 50%, #050808 75%, #020303 100%)',

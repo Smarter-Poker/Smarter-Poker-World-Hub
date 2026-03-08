@@ -40,15 +40,49 @@ function scoreEntry(question, entry) {
     return score;
 }
 
+// ── Page-to-category mapping for context-aware boosting ──
+const PAGE_CONTEXT_MAP = {
+    'toke-tracker': ['Toke Tracker', 'Bankroll', 'Financial'],
+    'commander': ['Club Commander', 'Tournament', 'Venue'],
+    'club-arena': ['Club Arena', 'Club', 'Gaming'],
+    'training': ['Training', 'GTO', 'Strategy'],
+    'gto': ['GTO', 'Training', 'Strategy'],
+    'bankroll': ['Bankroll', 'Financial', 'Toke Tracker'],
+    'trivia': ['Trivia', 'Gaming'],
+    'social': ['Social', 'Platform'],
+    'sandbox': ['Strategy', 'Training', 'GTO'],
+    'diamond': ['Diamond', 'VIP', 'Economy'],
+    'tournament': ['Tournament', 'Club Commander'],
+};
+
+function getPageCategories(currentPage) {
+    if (!currentPage) return [];
+    const p = currentPage.toLowerCase();
+    for (const [key, cats] of Object.entries(PAGE_CONTEXT_MAP)) {
+        if (p.includes(key)) return cats;
+    }
+    return [];
+}
+
 // ── Main lookup function ──
-export function lookupKnowledgeBase(question) {
+export function lookupKnowledgeBase(question, currentPage) {
     if (!question || question.trim().length < 3) return null;
 
+    const pageCategories = getPageCategories(currentPage);
     let bestMatch = null;
     let bestScore = 0;
 
     for (const entry of KNOWLEDGE_ENTRIES) {
-        const score = scoreEntry(question, entry);
+        let score = scoreEntry(question, entry);
+
+        // Context-aware boost: entries matching the current page category get +15
+        if (pageCategories.length > 0 && entry.category) {
+            const entryCategory = entry.category.toLowerCase();
+            if (pageCategories.some(c => entryCategory.includes(c.toLowerCase()))) {
+                score += 15;
+            }
+        }
+
         if (score > bestScore) {
             bestScore = score;
             bestMatch = entry;

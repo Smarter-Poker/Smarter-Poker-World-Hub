@@ -16,6 +16,7 @@ import useClubBranding from '../../../src/lib/commander/useClubBranding';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { getToken } from '../../../src/lib/commander/clientAuth';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 const PROMO_TYPE_STYLES = {
   high_hand: { bg: 'from-yellow-900/40 to-yellow-700/20', accent: '#F59E0B', label: 'HIGH HAND' },
@@ -143,6 +144,11 @@ export default function PromotionsDisplay() {
 
   return (
     <CommanderLayout title="Promotions Display" backHref="/commander/dashboard?card=displays">
+      <SEOHead
+              title="Commander — Promotions Display"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <style jsx global>{`
         @keyframes shimmer { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
         .shimmer { animation: shimmer 3s ease-in-out infinite; }

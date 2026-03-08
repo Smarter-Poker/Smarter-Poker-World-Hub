@@ -17,7 +17,7 @@
  * 13. Onboarding Tour
  */
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSandboxAnalysis, useArchetypes, useRecentSessions, useBookmarks, useStudyDeck, useQuizLeaderboard } from '../../../src/hooks/useAssistant';
@@ -27,7 +27,10 @@ import { getSafeUser } from '../../../src/lib/authUtils';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/EquityEngine';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
+import { parseHandHistory } from '../../../src/lib/sandbox/HandHistoryParser';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
+import RangeHeatGrid from '../../../src/components/sandbox/RangeHeatGrid';
+import useSandboxSounds from '../../../src/hooks/useSandboxSounds';
 import {
   FrequencyBar, RangeMatrix, classifyBoardTexture,
   ActionHistoryBuilder, SizingSensitivity, TreeVisualization,
@@ -637,12 +640,200 @@ export default function VirtualSandbox() {
   }, [actionHistory, heroStack]);
 
   // Dual-card hero picker progress
-  const [heroPickStep, setHeroPickStep] = useState(0); // 0=not picking, 1=picking card1, 2=picking card2
-  // Range chart toggle
+  const [heroPickStep, setHeroPickStep] = useState(0);
   const [showRangeChart, setShowRangeChart] = useState(false);
+
+  // ═══════════════════════════════════════════════════════════
+  // ENHANCEMENT SUITE STATE
+  // ═══════════════════════════════════════════════════════════
+  const { soundEnabled, toggleSound, playCardDeal, playChipClick, playAnalysisDing } = useSandboxSounds();
+  const [showHHImport, setShowHHImport] = useState(false);
+  const [hhText, setHHText] = useState('');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [showRangeGrid, setShowRangeGrid] = useState(false);
+  const [tableFelt, setTableFelt] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-felt') || 'default' : 'default');
+  const [leakStats, setLeakStats] = useState(null);
+  const [showLeakStats, setShowLeakStats] = useState(false);
+
+  // Voice input
+  const [isListening, setIsListening] = useState(false);
+  const speechRef = useRef(null);
+
+  const startVoiceInput = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Voice input not supported in this browser'); return; }
+    try { navigator.vibrate?.(10); } catch (e) { }
+    const recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript.toLowerCase();
+      parseVoiceCommand(transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
+    setIsListening(true);
+    speechRef.current = recognition;
+  }, []);
+
+  const parseVoiceCommand = useCallback((text) => {
+    // Parse: "ace king suited button 100 big blinds cash"
+    const rankWords = { 'ace': 'A', 'king': 'K', 'queen': 'Q', 'jack': 'J', 'ten': 'T', 'nine': '9', 'eight': '8', 'seven': '7', 'six': '6', 'five': '5', 'four': '4', 'three': '3', 'two': '2', 'deuce': '2' };
+    const suitWords = { 'spade': 's', 'spades': 's', 'heart': 'h', 'hearts': 'h', 'diamond': 'd', 'diamonds': 'd', 'club': 'c', 'clubs': 'c' };
+    const posWords = { 'under the gun': 'UTG', 'utg': 'UTG', 'middle': 'MP', 'cutoff': 'CO', 'cut off': 'CO', 'button': 'BTN', 'small blind': 'SB', 'big blind': 'BB' };
+
+    const words = text.split(/\s+/);
+    let cards = [];
+    let suit = null;
+
+    // Extract ranks and suits
+    for (const w of words) {
+      if (rankWords[w]) cards.push(rankWords[w]);
+      if (suitWords[w]) suit = suitWords[w];
+    }
+
+    // Set hero hand
+    if (cards.length >= 2) {
+      const s1 = suit || 's';
+      const s2 = suit ? (suit === 's' ? 'h' : 's') : 'h';
+      pushUndo();
+      setHeroHand({ card1: `${cards[0]}${s1}`, card2: `${cards[1]}${text.includes('suited') ? s1 : s2}` });
+    }
+
+    // Set position
+    for (const [key, val] of Object.entries(posWords)) {
+      if (text.includes(key)) { setHeroPosition(val); break; }
+    }
+
+    // Set stack
+    const stackMatch = text.match(/(\d+)\s*(bb|big blind)/i);
+    if (stackMatch) setHeroStack(parseInt(stackMatch[1]));
+
+    // Set game type
+    if (text.includes('tournament') || text.includes('mtt')) setGameType('tournament');
+    else if (text.includes('cash')) setGameType('cash');
+  }, []);
+
+  // Hand history import
+  const importHandHistory = useCallback(() => {
+    const result = parseHandHistory(hhText);
+    if (!result) { alert('Could not parse hand history. Supported: PokerStars, GGPoker, 888poker'); return; }
+    pushUndo();
+    if (result.heroHand) setHeroHand(result.heroHand);
+    if (result.heroPosition) setHeroPosition(result.heroPosition);
+    if (result.heroStack) setHeroStack(result.heroStack);
+    if (result.gameType) setGameType(result.gameType);
+    if (result.board) setBoard(result.board);
+    if (result.villains?.length) setVillains(result.villains);
+    if (result.actionHistory?.length) setActionHistory(result.actionHistory);
+    setShowHHImport(false);
+    setHHText('');
+  }, [hhText]);
+
+  // Templates
+  const loadTemplates = useCallback(async () => {
+    try {
+      const user = getAuthUser();
+      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/assistant/sandbox/sandbox-templates', {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      const json = await r.json();
+      setTemplates(json.templates || []);
+    } catch (e) { console.warn('[Templates] Load error:', e); }
+  }, []);
+
+  const saveAsTemplate = useCallback(async () => {
+    const name = prompt('Template name:');
+    if (!name) return;
+    try {
+      const user = getAuthUser();
+      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      await fetch('/api/assistant/sandbox/sandbox-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          name,
+          scenario: { heroHand, heroPosition, heroStack, gameType, board, villains, actionHistory, potSize },
+        }),
+      });
+      loadTemplates();
+    } catch (e) { console.warn('[Templates] Save error:', e); }
+  }, [heroHand, heroPosition, heroStack, gameType, board, villains, actionHistory, potSize]);
+
+  const loadTemplate = useCallback((t) => {
+    if (!t?.scenario_json) return;
+    const s = t.scenario_json;
+    pushUndo();
+    if (s.heroHand) setHeroHand(s.heroHand);
+    if (s.heroPosition) setHeroPosition(s.heroPosition);
+    if (s.heroStack) setHeroStack(s.heroStack);
+    if (s.gameType) setGameType(s.gameType);
+    if (s.board) setBoard(s.board);
+    if (s.villains) setVillains(s.villains);
+    if (s.actionHistory) setActionHistory(s.actionHistory);
+    if (s.potSize) { skipPotCalcRef.current = true; setPotSize(s.potSize); }
+    setShowTemplates(false);
+  }, []);
+
+  // Table felt color
+  const changeFeltColor = useCallback((color) => {
+    setTableFelt(color);
+    if (typeof window !== 'undefined') localStorage.setItem('sandbox-felt', color);
+  }, []);
+
+  const FELT_COLORS = [
+    { id: 'default', label: 'Black', filter: 'none' },
+    { id: 'green', label: 'Green', filter: 'hue-rotate(100deg) saturate(1.5)' },
+    { id: 'blue', label: 'Blue', filter: 'hue-rotate(200deg) saturate(1.3)' },
+    { id: 'red', label: 'Red', filter: 'hue-rotate(340deg) saturate(1.5)' },
+  ];
+
+  // Leak tracker
+  const loadLeakStats = useCallback(async () => {
+    try {
+      const user = getAuthUser();
+      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/assistant/sandbox/sandbox-analytics', {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` },
+      });
+      const json = await r.json();
+      setLeakStats(json);
+    } catch (e) { console.warn('[LeakStats] Load error:', e); }
+  }, []);
+
+  // Log analysis to leak tracker
+  const logAnalytics = useCallback(async () => {
+    try {
+      const user = getAuthUser();
+      if (!user) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      fetch('/api/assistant/sandbox/sandbox-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          position: heroPosition,
+          street: currentStreet,
+          gameType,
+          action: results?.optimalAction?.label || null,
+          isCorrect: quizRevealed ? (userGuess?.toLowerCase().includes(results?.optimalAction?.label?.toLowerCase()?.split(' ')[0] || '')) : null,
+          handStrength: getHandStrength(heroHand)?.label || null,
+        }),
+      }).catch(() => { });
+    } catch (e) { /* silent */ }
+  }, [heroPosition, currentStreet, gameType, results, heroHand, quizRevealed, userGuess]);
 
   // Deck card selection handler — dual-card hero mode + multi-card flop
   const handleDeckSelect = (card) => {
+    try { navigator.vibrate?.(10); } catch (e) { } // Haptic feedback
     if (deckTarget === 'hero') {
       // Dual-card picker: pick both cards in sequence
       if (!heroHand.card1 || heroPickStep === 1) {
@@ -757,11 +948,14 @@ export default function VirtualSandbox() {
   // Run analysis
   const runAnalysis = async () => {
     if (!heroHand.card1 || !heroHand.card2) return;
+    try { navigator.vibrate?.(10); } catch (e) { }
     await analyze({
       heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard',
       exploitMode, villainArchetype: villains[0]?.archetype?.id, bubbleFactor: gameType === 'tournament' ? bubbleFactor : undefined,
     });
-    setShowResults(true); // auto-open fullscreen analysis popup
+    setShowResults(true);
+    playAnalysisDing(); // Sound effect
+    logAnalytics(); // Track for leak detection
   };
 
   // Position comparison (Feature #11)
@@ -902,6 +1096,11 @@ export default function VirtualSandbox() {
                 {results && <button onClick={() => { setShowShare(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Share</button>}
                 <button onClick={() => { popUndo(); setShowMenu(false); }} disabled={undoStackRef.current.length === 0} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Undo</button>
                 <button onClick={() => { resetAll(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Reset</button>
+                <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Templates</button>
+                <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Import HH</button>
+                <button onClick={() => { saveAsTemplate(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>Save Template</button>
+                <button onClick={() => { setShowLeakStats(true); loadLeakStats(); setShowMenu(false); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>My Stats</button>
+                <button onClick={() => { toggleSound(); }} style={{ padding: '12px', borderRadius: 10, fontSize: 13, fontWeight: '600', background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer', minHeight: 48, touchAction: 'manipulation' }}>{soundEnabled ? 'Sound On' : 'Sound Off'}</button>
               </div>
             </motion.div>
           )}
@@ -934,7 +1133,7 @@ export default function VirtualSandbox() {
       </div>
 
       {/* ═══ POKER TABLE — Clean, centered, nothing beside it ═══ */}
-      <div className="sandbox-table-wrap" style={{ maxWidth: 420, margin: '2px auto', padding: '0 12px' }}>
+      <div className="sandbox-table-wrap" style={{ maxWidth: 420, margin: '2px auto', padding: '0 12px', filter: FELT_COLORS.find(f => f.id === tableFelt)?.filter || 'none' }}>
         <SandboxPokerTable
           heroCards={[heroHand.card1, heroHand.card2].filter(Boolean)}
           communityCards={communityCards}
@@ -947,7 +1146,75 @@ export default function VirtualSandbox() {
           equity={equity?.heroEquity}
           onTapHeroCards={openHeroPicker}
           onTapBoard={openBoardPicker}
+          onReset={resetAll}
+          onRemoveHeroCard={(idx) => {
+            try { navigator.vibrate?.(15); } catch (e) { }
+            if (idx === 0) setHeroHand(h => ({ ...h, card1: h.card2, card2: null }));
+            else setHeroHand(h => ({ ...h, card2: null }));
+          }}
+          onRemoveBoardCard={(idx) => {
+            try { navigator.vibrate?.(15); } catch (e) { }
+            const allCards = [...board.flop];
+            if (board.turn) allCards.push(board.turn);
+            if (board.river) allCards.push(board.river);
+            allCards.splice(idx, 1);
+            setBoard({ flop: allCards.slice(0, Math.min(3, allCards.length)), turn: allCards[3] || null, river: allCards[4] || null });
+          }}
+          onSwipeLeft={() => {
+            // Swipe left = deal next street
+            if (board.flop.length === 3 && !board.river) dealNextStreet();
+          }}
+          onSwipeRight={() => {
+            // Swipe right = undo last street
+            if (board.river) setBoard(b => ({ ...b, river: null }));
+            else if (board.turn) setBoard(b => ({ ...b, turn: null }));
+          }}
         />
+      </div>
+
+      {/* ═══ MICRO TOOLBAR — Mic, Felt, Range Grid ═══ */}
+      <div style={{ maxWidth: 420, margin: '0 auto', padding: '1px 12px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        {/* Voice input mic — small */}
+        <motion.button
+          onClick={startVoiceInput}
+          whileTap={{ scale: 0.85 }}
+          style={{
+            width: 24, height: 24, borderRadius: '50%', padding: 0, border: 'none',
+            background: isListening ? 'rgba(239,68,68,0.3)' : 'rgba(35,116,225,0.12)',
+            color: isListening ? '#fca5a5' : '#4599FF', cursor: 'pointer',
+            fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            touchAction: 'manipulation',
+            animation: isListening ? 'analyze-pulse 1s ease-in-out infinite' : 'none',
+          }}
+          title="Voice input"
+        >{isListening ? '...' : '🎤'}</motion.button>
+
+        {/* Felt color dots */}
+        <div style={{ display: 'flex', gap: 2, marginLeft: 2 }}>
+          {FELT_COLORS.map(f => (
+            <button key={f.id} onClick={() => changeFeltColor(f.id)}
+              style={{
+                width: 14, height: 14, borderRadius: '50%', border: tableFelt === f.id ? '2px solid #4599FF' : '1px solid #4E4F50',
+                background: f.id === 'default' ? '#18191A' : f.id === 'green' ? '#166534' : f.id === 'blue' ? '#1e3a5f' : '#7f1d1d',
+                cursor: 'pointer', touchAction: 'manipulation', padding: 0,
+              }}
+              title={f.label}
+            />
+          ))}
+        </div>
+
+        {/* Range grid button */}
+        {communityCards.length >= 3 && (
+          <button onClick={() => setShowRangeGrid(true)}
+            style={{ padding: '2px 6px', borderRadius: 4, fontSize: 8, fontWeight: 700, background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.2)', color: '#c4b5fd', cursor: 'pointer', marginLeft: 'auto', touchAction: 'manipulation' }}>
+            Range Grid
+          </button>
+        )}
+
+        {/* Swipe hint (show once) */}
+        {board.flop.length === 3 && !board.turn && (
+          <span style={{ fontSize: 7, color: '#65676B', marginLeft: communityCards.length < 3 ? 'auto' : 2 }}>← swipe to deal →</span>
+        )}
       </div>
 
       {/* ═══ CONTROLS BELOW TABLE — Board | Stack | Pot | Actions ═══ */}
@@ -1107,6 +1374,149 @@ export default function VirtualSandbox() {
         mode={deckTarget === 'hero' ? 'hero' : deckTarget === 'board' ? 'board' : 'single'}
         pickProgress={heroPickStep}
       />
+
+      {/* ═══ HAND HISTORY IMPORT MODAL ═══ */}
+      <AnimatePresence>
+        {showHHImport && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              style={{ background: '#242526', borderRadius: 16, padding: 16, width: '100%', maxWidth: 400, border: '1px solid #3A3B3C' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>Import Hand History</h3>
+                <button onClick={() => setShowHHImport(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 18, cursor: 'pointer' }}>x</button>
+              </div>
+              <p style={{ fontSize: 11, color: '#B0B3B8', marginBottom: 8 }}>
+                Paste a hand history from PokerStars, GGPoker, or 888poker
+              </p>
+              <textarea
+                value={hhText}
+                onChange={e => setHHText(e.target.value)}
+                placeholder="Paste hand history here..."
+                style={{
+                  width: '100%', minHeight: 160, padding: 10, borderRadius: 8, fontSize: 11,
+                  background: '#18191A', border: '1px solid #3A3B3C', color: '#E4E6EB',
+                  resize: 'vertical', fontFamily: 'monospace', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={importHandHistory} disabled={!hhText.trim()}
+                  style={{ flex: 1, padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 700, background: hhText.trim() ? 'linear-gradient(135deg,#2374E1,#4599FF)' : '#3A3B3C', border: 'none', color: hhText.trim() ? '#fff' : '#65676B', cursor: hhText.trim() ? 'pointer' : 'default' }}>
+                  Import
+                </button>
+                <button onClick={() => setShowHHImport(false)}
+                  style={{ flex: 1, padding: 10, borderRadius: 8, fontSize: 12, fontWeight: 600, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#B0B3B8', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ TEMPLATES MODAL ═══ */}
+      <AnimatePresence>
+        {showTemplates && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              style={{ background: '#242526', borderRadius: 16, padding: 16, width: '100%', maxWidth: 400, maxHeight: '70vh', overflowY: 'auto', border: '1px solid #3A3B3C' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>My Templates</h3>
+                <button onClick={() => setShowTemplates(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 18, cursor: 'pointer' }}>x</button>
+              </div>
+              {templates.length === 0 ? (
+                <p style={{ fontSize: 11, color: '#65676B', textAlign: 'center', padding: 20 }}>No saved templates yet. Save one from the menu.</p>
+              ) : templates.map(t => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid #3A3B3C' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#E4E6EB' }}>{t.name}</div>
+                    <div style={{ fontSize: 9, color: '#65676B' }}>{new Date(t.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <button onClick={() => loadTemplate(t)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'rgba(35,116,225,0.15)', border: '1px solid rgba(35,116,225,0.3)', color: '#4599FF', cursor: 'pointer' }}>Load</button>
+                  <button onClick={async () => {
+                    try {
+                      const user = getAuthUser();
+                      const { data: { session } } = await supabase.auth.getSession();
+                      await fetch('/api/assistant/sandbox/sandbox-templates', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+                        body: JSON.stringify({ id: t.id }),
+                      });
+                      loadTemplates();
+                    } catch (e) { }
+                  }} style={{ padding: '4px 8px', borderRadius: 6, fontSize: 10, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>x</button>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ LEAK STATS MODAL ═══ */}
+      <AnimatePresence>
+        {showLeakStats && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              style={{ background: '#242526', borderRadius: 16, padding: 16, width: '100%', maxWidth: 380, border: '1px solid #3A3B3C' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#E4E6EB', margin: 0 }}>Study Analytics</h3>
+                <button onClick={() => setShowLeakStats(false)} style={{ background: 'none', border: 'none', color: '#B0B3B8', fontSize: 18, cursor: 'pointer' }}>x</button>
+              </div>
+              {!leakStats ? (
+                <p style={{ fontSize: 11, color: '#65676B', textAlign: 'center', padding: 20 }}>Loading stats...</p>
+              ) : (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+                    <div style={{ textAlign: 'center', padding: 10, borderRadius: 8, background: '#18191A' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#4599FF' }}>{leakStats.totalAnalyses || 0}</div>
+                      <div style={{ fontSize: 8, color: '#65676B', fontWeight: 600, textTransform: 'uppercase' }}>Total Hands</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: 10, borderRadius: 8, background: '#18191A' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: leakStats.accuracy >= 70 ? '#4ade80' : leakStats.accuracy >= 50 ? '#fbbf24' : '#fca5a5' }}>{leakStats.accuracy != null ? `${leakStats.accuracy}%` : '--'}</div>
+                      <div style={{ fontSize: 8, color: '#65676B', fontWeight: 600, textTransform: 'uppercase' }}>Accuracy</div>
+                    </div>
+                    <div style={{ textAlign: 'center', padding: 10, borderRadius: 8, background: '#18191A' }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: '#c4b5fd' }}>{leakStats.mostStudied || '--'}</div>
+                      <div style={{ fontSize: 8, color: '#65676B', fontWeight: 600, textTransform: 'uppercase' }}>Top Position</div>
+                    </div>
+                  </div>
+                  {/* Position breakdown */}
+                  {leakStats.positionDistribution && Object.keys(leakStats.positionDistribution).length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, color: '#B0B3B8', fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>Position Distribution</div>
+                      {Object.entries(leakStats.positionDistribution).sort((a, b) => b[1] - a[1]).map(([pos, count]) => {
+                        const maxCount = Math.max(...Object.values(leakStats.positionDistribution));
+                        return (
+                          <div key={pos} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB', width: 30 }}>{pos}</span>
+                            <div style={{ flex: 1, height: 8, borderRadius: 4, background: '#3A3B3C', overflow: 'hidden' }}>
+                              <div style={{ width: `${(count / maxCount) * 100}%`, height: '100%', borderRadius: 4, background: 'linear-gradient(90deg, #2374E1, #4599FF)' }} />
+                            </div>
+                            <span style={{ fontSize: 9, color: '#65676B', width: 20, textAlign: 'right' }}>{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* Insights */}
+                  {leakStats.insights?.length > 0 && (
+                    <div style={{ padding: 10, borderRadius: 8, background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)' }}>
+                      {leakStats.insights.map((insight, i) => (
+                        <p key={i} style={{ fontSize: 11, color: '#c4b5fd', margin: i > 0 ? '6px 0 0' : 0, lineHeight: 1.4 }}>{insight}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ RANGE HEAT GRID ═══ */}
+      <RangeHeatGrid boardCards={communityCards} isOpen={showRangeGrid} onClose={() => setShowRangeGrid(false)} />
 
       {/* ═══════ FULLSCREEN ANALYSIS POPUP (#8) ═══════ */}
       <AnimatePresence>

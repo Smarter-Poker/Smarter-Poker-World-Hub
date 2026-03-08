@@ -17,6 +17,7 @@ import { Monitor, Tv, ExternalLink, Copy, CheckCircle2, Clock, Users, Trophy, Me
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import { busEmit } from '../../../src/engine/EventBus';
+import SEOHead from '../../../src/components/seo/SEOHead';
 
 export default function DisplayManagement() {
   useEffect(() => { busEmit.sessionStart('commander-displays-index'); }, []);
@@ -78,6 +79,11 @@ export default function DisplayManagement() {
 
   return (
     <CommanderLayout title="Display Management" backHref="/commander/dashboard?card=displays">
+      <SEOHead
+              title="Commander — Displays Hub"
+              description="Club Commander Poker Room Management Tool."
+              noindex={true}
+            />
       <div className="min-h-screen bg-[#18191A] text-[#E4E6EB] font-['Inter']">
 
         {/* Subtitle */}
