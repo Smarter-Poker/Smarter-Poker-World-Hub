@@ -396,3 +396,11 @@
     transform: none;
   }
 }
+
+/* ─── SUGGESTION & HISTORY HOVER ─── */
+.lobby-suggestion-btn:hover {
+  background: rgba(110, 231, 239, 0.08) !important;
+}
+.lobby-history-btn:hover {
+  background: rgba(110, 231, 239, 0.06) !important;
+}

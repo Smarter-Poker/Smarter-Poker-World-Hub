@@ -122,6 +122,39 @@ function PodGridItem({ pod, isActive, onSelect }) {
   );
 }
 
+// ─── Dock Item (extracted to fix Rules of Hooks) ───
+function DockItem({ item, isActive, badge, onSelect }) {
+  const [isHovered, setIsHovered] = useState(false);
+  return (
+    <button
+      className={`lobby-dock-btn ${isActive ? 'active' : ''}`}
+      style={{
+        pointerEvents: 'auto',
+        backdropFilter: 'blur(12px)',
+        background: isActive ? 'rgba(110, 231, 239, 0.12)' : (isHovered ? 'rgba(110, 231, 239, 0.08)' : 'rgba(6, 21, 37, 0.6)'),
+        border: isActive ? '1px solid rgba(110, 231, 239, 0.5)' : (isHovered ? '1px solid rgba(110, 231, 239, 0.4)' : '1px solid rgba(110, 231, 239, 0.15)'),
+        borderRadius: 16,
+        boxShadow: isActive ? '0 0 20px rgba(110, 231, 239, 0.3)' : 'none',
+        transform: isHovered ? 'scale(1.08)' : 'scale(1)',
+        transition: 'all 0.25s ease',
+      }}
+      onClick={() => onSelect?.(item.id)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      aria-label={`Open ${item.label}`}
+    >
+      <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
+      <span className="lobby-dock-label" style={{
+        fontSize: 11,
+        letterSpacing: '0.05em',
+        textTransform: 'uppercase',
+        fontWeight: 600,
+      }}>{item.label}</span>
+      {badge > 0 && <span className="lobby-dock-badge" style={{ boxShadow: '0 0 8px rgba(110, 231, 239, 0.5)' }}>{badge}</span>}
+    </button>
+  );
+}
+
 // ─── Dock icons ───
 const DOCK_ICON_IMAGES = {
   roadtrip:   '/images/lobby-dock/trip-planner.png',
@@ -344,8 +377,7 @@ export default function LobbyOverlay({
                       cursor: 'pointer', fontFamily: 'inherit',
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={(e) => e.target.style.background = 'rgba(110,231,239,0.08)'}
-                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    className="lobby-suggestion-btn"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(110,231,239,0.5)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
@@ -391,8 +423,7 @@ export default function LobbyOverlay({
                       cursor: 'pointer', fontFamily: 'inherit',
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={(e) => e.target.style.background = 'rgba(110,231,239,0.06)'}
-                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    className="lobby-history-btn"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.3)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
                       <circle cx="12" cy="12" r="10" />
@@ -455,42 +486,17 @@ export default function LobbyOverlay({
 
       {/* BOTTOM DOCK */}
       <nav className="lobby-dock" style={{ pointerEvents: 'none' }}>
-        {DOCK_ITEMS.map((item) => {
-          const isActive = activePod === item.id;
-          const badge = item.id === 'alerts' ? alertCount :
-                       item.id === 'favorites' ? savedCount :
-                       item.id === 'social' ? friendsNearby : 0;
-          const [isHovered, setIsHovered] = React.useState(false);
-          return (
-            <button
-              key={item.id}
-              className={`lobby-dock-btn ${isActive ? 'active' : ''}`}
-              style={{
-                pointerEvents: 'auto',
-                backdropFilter: 'blur(12px)',
-                background: isActive ? 'rgba(110, 231, 239, 0.12)' : (isHovered ? 'rgba(110, 231, 239, 0.08)' : 'rgba(6, 21, 37, 0.6)'),
-                border: isActive ? '1px solid rgba(110, 231, 239, 0.5)' : (isHovered ? '1px solid rgba(110, 231, 239, 0.4)' : '1px solid rgba(110, 231, 239, 0.15)'),
-                borderRadius: 16,
-                boxShadow: isActive ? '0 0 20px rgba(110, 231, 239, 0.3)' : 'none',
-                transform: isHovered ? 'scale(1.08)' : 'scale(1)',
-                transition: 'all 0.25s ease',
-              }}
-              onClick={() => onPodSelect?.(item.id)}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-              aria-label={`Open ${item.label}`}
-            >
-              <span className="lobby-dock-icon"><DockIconSVG id={item.id} /></span>
-              <span className="lobby-dock-label" style={{
-                fontSize: 11,
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                fontWeight: 600,
-              }}>{item.label}</span>
-              {badge > 0 && <span className="lobby-dock-badge" style={{ boxShadow: '0 0 8px rgba(110, 231, 239, 0.5)' }}>{badge}</span>}
-            </button>
-          );
-        })}
+        {DOCK_ITEMS.map((item) => (
+          <DockItem
+            key={item.id}
+            item={item}
+            isActive={activePod === item.id}
+            badge={item.id === 'alerts' ? alertCount :
+                   item.id === 'favorites' ? savedCount :
+                   item.id === 'social' ? friendsNearby : 0}
+            onSelect={onPodSelect}
+          />
+        ))}
       </nav>
     </div>
   );

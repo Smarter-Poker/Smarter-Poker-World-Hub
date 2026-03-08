@@ -702,7 +702,7 @@ export default function PokerNearMeLobby() {
   // ─── Re-fetch when sort or filters change ───
   useEffect(() => {
     fetchVenues(searchQuery);
-  }, [sortBy, filters]);
+  }, [sortBy, filters, fetchVenues, searchQuery]);
 
   // ─── Cross-page favorites sync ───
   useEffect(() => {
@@ -897,7 +897,7 @@ export default function PokerNearMeLobby() {
       case 'tours':
         component = (
           <div style={{ display: 'grid', gap: 12 }}>
-            {tours.map((t, i) => <TourCard key={t.tour_code || i} tour={t} />)}
+            {tours.map((t, i) => <TourCard key={t.tour_code || t.id || `tour-${i}`} tour={t} />)}
             {tours.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 Loading tours...
@@ -910,7 +910,7 @@ export default function PokerNearMeLobby() {
       case 'series':
         component = (
           <div style={{ display: 'grid', gap: 12 }}>
-            {series.map((s, i) => <SeriesCard key={s.series_code || i} series={s} />)}
+            {series.map((s, i) => <SeriesCard key={s.series_code || s.id || `series-${i}`} series={s} />)}
             {series.length === 0 && (
               <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
                 Loading series...
