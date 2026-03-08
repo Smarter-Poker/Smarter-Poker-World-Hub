@@ -7,7 +7,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { busEmit } from '../../../engine/EventBus';
+import { busEmit } from '../../engine/EventBus';
 
 // ─── Auth helper (SSR-safe) ───
 function getAuthToken() {
