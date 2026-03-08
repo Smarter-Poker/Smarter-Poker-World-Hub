@@ -36,6 +36,11 @@
 
 /* ─── SCAN LINE — REMOVED ─── */
 
+/* Hide scrollbar on pod grid while keeping it scrollable */
+.lobby-overlay > div:nth-child(2)::-webkit-scrollbar {
+  display: none;
+}
+
 /* ─── TOP BAR ─── */
 .lobby-topbar {
   display: flex;

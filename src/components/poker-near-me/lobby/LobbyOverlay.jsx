@@ -43,11 +43,11 @@ function PodGridItem({ pod, isActive, onSelect }) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 8,
+        gap: 4,
         background: 'none',
         border: 'none',
         cursor: 'pointer',
-        padding: 8,
+        padding: 4,
         WebkitTapHighlightColor: 'transparent',
         transform: active ? 'scale(1.08)' : 'scale(1)',
         transition: 'transform 0.25s ease',
@@ -56,8 +56,8 @@ function PodGridItem({ pod, isActive, onSelect }) {
       {/* Icon circle */}
       <div
         style={{
-          width: 72,
-          height: 72,
+          width: 58,
+          height: 58,
           borderRadius: '50%',
           background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), rgba(0,0,0,0.4))`,
           border: `2px solid ${active ? pod.color : `${pod.color}50`}`,
@@ -81,8 +81,8 @@ function PodGridItem({ pod, isActive, onSelect }) {
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             style={{
-              width: 58,
-              height: 58,
+              width: 46,
+              height: 46,
               objectFit: 'cover',
               borderRadius: '50%',
               opacity: imgLoaded ? 1 : 0,
@@ -359,18 +359,25 @@ export default function LobbyOverlay({
       <div style={{
         flex: 1,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         pointerEvents: 'auto',
-        padding: '8px 16px',
-        overflow: 'hidden',
+        padding: '4px 16px',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+        /* Hide scrollbar but still scrollable */
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
       }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 'clamp(8px, 2vw, 16px)',
-          maxWidth: 380,
+          gap: 'clamp(4px, 1.5vw, 12px)',
+          maxWidth: 340,
           width: '100%',
+          paddingTop: 4,
+          paddingBottom: 8,
         }}>
           {POD_GRID_ITEMS.map((pod) => (
             <PodGridItem
