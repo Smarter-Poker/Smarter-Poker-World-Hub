@@ -9,8 +9,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { QrCode, Download, Maximize2 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function VenueQRCodePage() {
+  useEffect(() => { busEmit.sessionStart('commander-qr-code'); }, []);
   const router = useRouter();
 
   const [staff, setStaff] = useState(null);

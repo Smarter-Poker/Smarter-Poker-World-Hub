@@ -16,8 +16,10 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { Clock, DollarSign, Users, Calendar, Loader2, Plus, Ban, Check } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function MemberProfile() {
+  useEffect(() => { busEmit.sessionStart('commander-members-id'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id } = router.query;

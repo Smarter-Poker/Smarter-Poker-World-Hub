@@ -12,6 +12,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../../src/engine/EventBus';
 import {
   Trophy, Users, DollarSign,
   AlertTriangle, ChevronRight, RefreshCw, Loader2,
@@ -53,6 +54,7 @@ function formatMoney(n) {
 }
 
 export default function TDControlCenter() {
+  useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-index'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { tournamentId } = router.query;

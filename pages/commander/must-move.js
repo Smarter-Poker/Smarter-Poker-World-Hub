@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const GAME_LABELS = { nlh: 'NLH', plo: 'PLO', plo5: 'PLO5', NLH: 'NLH', PLO: 'PLO', mixed: 'Mixed', limit: 'Limit', stud: 'Stud', razz: 'Razz', other: 'Other' };
 
@@ -33,6 +34,7 @@ function ordinal(n) {
 }
 
 export default function MustMoveManager() {
+  useEffect(() => { busEmit.sessionStart('commander-must-move'); }, []);
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

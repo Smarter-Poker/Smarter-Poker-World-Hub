@@ -15,6 +15,7 @@ import DealerTicker from '../../../src/components/commander/shared/DealerTicker'
 import useClubBranding from '../../../src/lib/commander/useClubBranding';
 import useWakeLock from '../../../src/hooks/useWakeLock';
 import { getToken } from '../../../src/lib/commander/clientAuth';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const PROMO_TYPE_STYLES = {
   high_hand: { bg: 'from-yellow-900/40 to-yellow-700/20', accent: '#F59E0B', label: 'HIGH HAND' },
@@ -32,6 +33,7 @@ const PROMO_TYPE_STYLES = {
 };
 
 export default function PromotionsDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-promotions'); }, []);
   const [promotions, setPromotions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [now, setNow] = useState(new Date());

@@ -10,6 +10,7 @@ import { BarChart3, Users, DollarSign, Clock, TrendingUp, TrendingDown, Trophy, 
 import AnalyticsDashboard from '../../src/components/commander/analytics/AnalyticsDashboard';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 function StatCard({ title, value, change, icon: Icon, color = '#1877F2' }) {
   const hasChange = change !== undefined && change !== null;
@@ -95,6 +96,7 @@ function TopPlayersTable({ players }) {
 }
 
 export default function AnalyticsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-analytics'); }, []);
   const router = useRouter();
 
   const [staff, setStaff] = useState(null);

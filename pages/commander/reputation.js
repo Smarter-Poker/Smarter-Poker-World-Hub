@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Star, Loader2, ChevronDown, ChevronUp, Plus, X, Send } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 const RATING_LABELS = {
   reliability: { label: 'Reliability', desc: 'Shows up, stays committed' },
@@ -17,6 +18,7 @@ const RATING_LABELS = {
 };
 
 export default function PlayerReputation() {
+  useEffect(() => { busEmit.sessionStart('commander-reputation'); }, []);
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [scores, setScores] = useState([]);

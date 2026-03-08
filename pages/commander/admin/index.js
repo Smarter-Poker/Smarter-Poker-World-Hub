@@ -13,6 +13,7 @@ import MultiVenueDashboard from '../../../src/components/commander/admin/MultiVe
 import AuditLogViewer from '../../../src/components/commander/admin/AuditLogViewer';
 import ExportManager from '../../../src/components/commander/admin/ExportManager';
 import { getToken } from '../../../src/lib/commander/clientAuth';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // API Keys Modal
 function ApiKeysModal({ isOpen, onClose, venueId }) {
@@ -426,6 +427,7 @@ const TABS = [
 ];
 
 export default function AdminDashboard() {
+  useEffect(() => { busEmit.sessionStart('commander-admin-index'); }, []);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [venues, setVenues] = useState([]);

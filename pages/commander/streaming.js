@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Video, Play, Square, Settings, Loader2, Clock, Wifi, Youtube, Twitch, Facebook, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 const PLATFORMS = [
   { id: 'youtube', label: 'YouTube', icon: Youtube, color: '#FF0000' },
@@ -260,6 +261,7 @@ function ConfigureModal({ stream, onSave, onClose }) {
 }
 
 export default function StreamingPage() {
+  useEffect(() => { busEmit.sessionStart('commander-streaming'); }, []);
   const router = useRouter();
 
   const [staff, setStaff] = useState(null);

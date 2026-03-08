@@ -21,8 +21,10 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Loader2, RefreshCw, Printer, ArrowRight, Check, Zap } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange, useCommanderSync } from '../../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 export default function BreakManager() {
+  useEffect(() => { busEmit.sessionStart('commander-tournaments-id-break-manager'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id: tournamentId } = router.query;

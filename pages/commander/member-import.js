@@ -6,12 +6,13 @@
  * Supports column mapping, validation, duplicate detection.
  * Handles files from other poker room management systems.
  */
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Upload, Check, AlertTriangle, Loader2, ChevronRight } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const REQUIRED_FIELDS = ['first_name', 'last_name'];
 const OPTIONAL_FIELDS = ['phone', 'email', 'member_number', 'membership_tier', 'notes', 'address', 'city', 'state', 'zip'];
@@ -56,6 +57,7 @@ function guessMapping(header) {
 }
 
 export default function MemberImport() {
+  useEffect(() => { busEmit.sessionStart('commander-member-import'); }, []);
   const router = useRouter();
   const fileRef = useRef(null);
   const [step, setStep] = useState(1); // 1: upload, 2: map, 3: preview, 4: importing, 5: done

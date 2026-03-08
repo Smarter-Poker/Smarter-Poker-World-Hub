@@ -10,6 +10,7 @@ import { Plus, Trophy, Clock, Users, DollarSign, Calendar, Play, ChevronRight, F
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import CreateTournamentModal from '../../../src/components/commander/modals/CreateTournamentModal';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../src/engine/EventBus';
 
 /* ─── Status Config ─────────────────────────────────────────── */
 const STATUS_CONFIG = {
@@ -59,6 +60,7 @@ const S = {
 
 /* ─── Page ──────────────────────────────────────────────────── */
 export default function CommanderTournamentsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-tournaments-index'); }, []);
   const router = useRouter();
 
   const [staff, setStaff] = useState(null);

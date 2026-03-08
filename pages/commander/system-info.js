@@ -11,8 +11,10 @@ import { Server, Database, Wifi, Shield, Clock, RefreshCw,
   Users, Layout, Gamepad2, ExternalLink
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function SystemInfoPage() {
+  useEffect(() => { busEmit.sessionStart('commander-system-info'); }, []);
   const router = useRouter();
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);

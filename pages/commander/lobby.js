@@ -19,8 +19,10 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import DealerTicker from '../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../src/hooks/useWakeLock';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function LobbyDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-lobby'); }, []);
   const router = useRouter();
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState({});

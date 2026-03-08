@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { Palette, Save, Loader2, Check, Plus, Trash2, Copy, Volume2, VolumeX, Image, MonitorPlay } from 'lucide-react';
+import { busEmit } from '../../src/engine/EventBus';
 
 const DEFAULT_THEME = {
     background: '#0D192E',
@@ -64,6 +65,7 @@ const STARTER_THEMES = [
 ];
 
 export default function ClockSetup() {
+  useEffect(() => { busEmit.sessionStart('commander-clock-setup'); }, []);
     const router = useRouter();
     const [staff, setStaff] = useState(null);
     const [presets, setPresets] = useState([]);

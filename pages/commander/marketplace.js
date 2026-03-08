@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Users, Package, Star, MapPin, Calendar, CheckCircle, Search, Loader2, X } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { getToken } from '../../src/lib/commander/clientAuth';
+import { busEmit } from '../../src/engine/EventBus';
 
 const GAME_TYPES = ['nlhe', 'plo', 'plo8', 'mixed', 'stud', 'razz', 'omaha'];
 
@@ -428,6 +429,7 @@ function EquipmentCard({ equipment, onRent }) {
 }
 
 export default function MarketplacePage() {
+  useEffect(() => { busEmit.sessionStart('commander-marketplace'); }, []);
   const router = useRouter();
 
   const [staff, setStaff] = useState(null);

@@ -19,6 +19,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import { AlertTriangle, Coffee, Hash, Loader2, RefreshCw, UserX, Bell, RotateCcw, ScanLine, Camera, X, CheckCircle2, Shield, Timer, Plus, DollarSign, AlertCircle, User, Power, Lock, Unlock } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../src/hooks/useWakeLock';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const TIER_COLORS = { standard: '#B0B3B8', gold: '#F59E0B', platinum: '#94A3B8', vip: '#A855F7' };
 
@@ -42,6 +43,7 @@ function getSeatPositions(count) {
 }
 
 export default function DealerTablet() {
+  useEffect(() => { busEmit.sessionStart('commander-dealer-tableNumber'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { tableNumber } = router.query;

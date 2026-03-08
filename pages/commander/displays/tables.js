@@ -16,6 +16,7 @@ import Image from 'next/image';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useCommanderSync, { broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../src/engine/EventBus';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 
@@ -66,6 +67,7 @@ function getTimerColor(seconds) {
 /* ─── Main Component ─────────────────────────────────────── */
 
 export default function TablesDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-tables'); }, []);
   const [tables, setTables] = useState([]);
   const [now, setNow] = useState(new Date());
   const [dealerMap, setDealerMap] = useState({});

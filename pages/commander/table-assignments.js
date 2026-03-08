@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const MODE_COLORS = {
   inactive: { bg: '#3A3B3C', border: '#4A4B4C', text: '#B0B3B8', label: 'Inactive', icon: Power },
@@ -27,6 +28,7 @@ const MODE_COLORS = {
 };
 
 export default function TableAssignments() {
+  useEffect(() => { busEmit.sessionStart('commander-table-assignments'); }, []);
   const router = useRouter();
   const [tables, setTables] = useState([]);
   const [tournaments, setTournaments] = useState([]);

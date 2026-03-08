@@ -36,6 +36,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Script from 'next/script';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../src/engine/EventBus';
 
 function formatCountdown(seconds) {
   if (seconds === null || seconds === undefined) return '--:--';
@@ -300,6 +301,7 @@ function PlayerInfoModal({ player, venueType, onRemove, onClose }) {
 }
 
 export default function PlayerTableDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-player-tableNumber'); }, []);
   const router = useRouter();
   const { tableNumber } = router.query;
   const [players, setPlayers] = useState([]);

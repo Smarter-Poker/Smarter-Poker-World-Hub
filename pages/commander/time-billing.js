@@ -13,6 +13,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { DollarSign, Clock, Loader2, Package, Trash2, Save, RefreshCw, Receipt } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 function formatDuration(startTime) {
   if (!startTime) return '0:00';
@@ -32,6 +33,7 @@ function calculateCharge(startTime, ratePerHour) {
 }
 
 export default function TimeBilling() {
+  useEffect(() => { busEmit.sessionStart('commander-time-billing'); }, []);
   const router = useRouter();
   const [sessions, setSessions] = useState([]);
   const [tables, setTables] = useState([]);

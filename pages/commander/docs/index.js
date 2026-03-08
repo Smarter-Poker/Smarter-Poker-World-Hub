@@ -8,6 +8,8 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { Users, Settings, HelpCircle, AlertTriangle, ExternalLink, FileText } from 'lucide-react';
+import { useEffect } from 'react';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const DOCUMENTATION = [
   {
@@ -55,6 +57,7 @@ const QUICK_LINKS = [
 ];
 
 export default function DocumentationIndexPage() {
+  useEffect(() => { busEmit.sessionStart('commander-docs-index'); }, []);
   return (
     <CommanderLayout title="Documentation | Commander" backHref="/commander/dashboard">
       <SEOHead

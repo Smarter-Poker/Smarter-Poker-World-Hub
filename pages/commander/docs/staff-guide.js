@@ -4,7 +4,7 @@
  *
  * Comprehensive guide for floor staff using Club Commander
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import {
@@ -24,6 +24,7 @@ import {
   Search,
 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const GUIDE_SECTIONS = [
   {
@@ -342,6 +343,7 @@ const GUIDE_SECTIONS = [
 ];
 
 export default function StaffGuidePage() {
+  useEffect(() => { busEmit.sessionStart('commander-docs-staff-guide'); }, []);
   const [activeSection, setActiveSection] = useState('getting-started');
   const [searchTerm, setSearchTerm] = useState('');
 

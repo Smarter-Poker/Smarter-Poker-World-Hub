@@ -13,6 +13,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Loader2, RefreshCw, X, ArrowRightLeft, AlertTriangle, Printer, UserX, DollarSign, FileText } from 'lucide-react';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 const NAV_ITEMS = [
   { key: 'control', icon: Trophy, label: 'Control', path: '' },
@@ -54,6 +55,7 @@ function getSeatPositions(maxSeats) {
 }
 
 export default function TDTablesMap() {
+  useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-tables'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { tournamentId } = router.query;

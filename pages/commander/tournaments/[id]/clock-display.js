@@ -24,6 +24,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { calculateICM, calculateChipChop } from '../../../../src/lib/commander/icm-utils';
 import { useCommanderSync, broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 function formatClock(seconds) {
   if (!seconds && seconds !== 0) return '--:--';
@@ -62,6 +63,7 @@ const DEFAULT_THEME = {
 const SCREENS = { CLOCK: 'clock', PAYOUTS: 'payouts', SCHEDULE: 'schedule', ICM: 'icm' };
 
 export default function ClockDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-tournaments-id-clock-display'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id } = router.query;

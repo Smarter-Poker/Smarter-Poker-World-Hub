@@ -15,6 +15,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { UserCheck, Users, Search, Phone, ChevronRight, Loader2, CheckCircle2, AlertTriangle, Plus, X } from 'lucide-react';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import useWakeLock from '../../src/hooks/useWakeLock';
+import { busEmit } from '../../src/engine/EventBus';
 
 // Format phone to 555-555-5555 (internal display only)
 function formatPhone(raw) {
@@ -40,6 +41,7 @@ function liveFormatPhone(value) {
 }
 
 export default function MembershipKiosk() {
+  useEffect(() => { busEmit.sessionStart('commander-kiosk'); }, []);
   const router = useRouter();
   const [mode, setMode] = useState('home');
   // home | checkin_pick | checkin_scan | checkin_name | checkin_phone

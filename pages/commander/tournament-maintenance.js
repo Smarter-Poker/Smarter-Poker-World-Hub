@@ -8,8 +8,10 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Calendar, ChevronLeft, ChevronRight, Edit2, Loader2, Clock, DollarSign, Users } from 'lucide-react';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function TournamentMaintenance() {
+  useEffect(() => { busEmit.sessionStart('commander-tournament-maintenance'); }, []);
     const router = useRouter();
     const [staff, setStaff] = useState(null);
     const [tournaments, setTournaments] = useState([]);

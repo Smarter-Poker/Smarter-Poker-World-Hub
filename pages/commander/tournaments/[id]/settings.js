@@ -14,6 +14,7 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { Save, Plus, Trash2, Clock, DollarSign, Coffee, ChevronUp, ChevronDown, Loader2, Settings, Check, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 // ===== PRESET TEMPLATES =====
 // All templates use BB Ante (ante = Big-Blind) and 10-min breaks every ~2 hours
@@ -223,6 +224,7 @@ function calculatePayouts(entries, buyinAmount, structure) {
 }
 
 export default function TournamentSettings() {
+  useEffect(() => { busEmit.sessionStart('commander-tournaments-id-settings'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id } = router.query;

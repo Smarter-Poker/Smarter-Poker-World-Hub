@@ -4,11 +4,12 @@
  *
  * Technical troubleshooting for Club Commander issues
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { ChevronLeft, ChevronDown, AlertTriangle, Wifi, Smartphone, Server, Bell, Shield, Clock, Search, CheckCircle, XCircle } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const TROUBLESHOOTING_SECTIONS = [
   {
@@ -466,6 +467,7 @@ const TROUBLESHOOTING_SECTIONS = [
 ];
 
 export default function TroubleshootingPage() {
+  useEffect(() => { busEmit.sessionStart('commander-docs-troubleshooting'); }, []);
   const [activeSection, setActiveSection] = useState('connectivity');
   const [expandedIssue, setExpandedIssue] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');

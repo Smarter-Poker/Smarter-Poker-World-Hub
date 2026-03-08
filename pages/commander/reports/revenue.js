@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { DollarSign, Trophy, Clock, Gift, Loader2, RefreshCw } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const RANGES = [
   { value: 'today', label: 'Today' },
@@ -19,6 +20,7 @@ const RANGES = [
 function fmt(n) { return '$' + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 export default function RevenueReport() {
+  useEffect(() => { busEmit.sessionStart('commander-reports-revenue'); }, []);
   const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

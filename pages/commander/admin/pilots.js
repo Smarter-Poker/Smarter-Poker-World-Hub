@@ -10,6 +10,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { ChevronLeft, Building2, CheckCircle, XCircle, AlertTriangle, RefreshCw, Plus, MapPin, Calendar, Target, Award } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // Success criteria from IMPLEMENTATION_PHASES.md Step 6.6
 const SUCCESS_CRITERIA = {
@@ -28,6 +29,7 @@ const TARGET_REGIONS = [
 ];
 
 export default function PilotVenuesPage() {
+  useEffect(() => { busEmit.sessionStart('commander-admin-pilots'); }, []);
   const [pilots, setPilots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);

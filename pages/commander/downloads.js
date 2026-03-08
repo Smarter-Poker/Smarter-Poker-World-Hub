@@ -4,8 +4,10 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function DownloadsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-downloads'); }, []);
   const [platform, setPlatform] = useState('windows');
   const [downloading, setDownloading] = useState(false);
 

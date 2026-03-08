@@ -12,6 +12,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Play, Pause, SkipForward, SkipBack, Loader2, RefreshCw, Maximize, Minimize, Coffee, Hand, Star, Volume2, Plus, Minus, DollarSign, FileText } from 'lucide-react';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
@@ -22,6 +23,7 @@ const NAV_ICONS = { control: Trophy, tables: LayoutGrid, players: Users, payouts
 
 
 export default function TDClock() {
+  useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-clock'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { tournamentId } = router.query;

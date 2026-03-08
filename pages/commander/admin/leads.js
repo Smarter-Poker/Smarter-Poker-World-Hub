@@ -9,6 +9,7 @@ import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { ChevronLeft, Phone, Mail, MapPin, Search, Filter, ChevronDown, XCircle, Building2, MoreVertical } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const STATUS_CONFIG = {
   new: { label: 'New', color: 'bg-blue-500', textColor: 'text-blue-400' },
@@ -24,6 +25,7 @@ const STATUS_CONFIG = {
 };
 
 export default function LeadManagementPage() {
+  useEffect(() => { busEmit.sessionStart('commander-admin-leads'); }, []);
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);

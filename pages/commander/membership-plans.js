@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import { Loader2, Check } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const PLAN_ORDER = ['daily', 'weekly', 'monthly', 'yearly'];
 const PLAN_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly', yearly: 'Yearly' };
@@ -44,6 +45,7 @@ function getPriceField(tier) {
 }
 
 export default function MembershipPlansPage() {
+  useEffect(() => { busEmit.sessionStart('commander-membership-plans'); }, []);
   const router = useRouter();
   const imgRef = useRef(null);
   const [venueId, setVenueId] = useState(null);

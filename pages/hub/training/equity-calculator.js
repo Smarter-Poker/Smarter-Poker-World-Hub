@@ -624,7 +624,7 @@ export default function EquityCalculatorPage() {
 
                     {/* Hand Inputs */}
                     <div style={{
-                        display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16,
+                        display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16,
                         alignItems: 'flex-start',
                     }}>
                         {Array.from({ length: numPlayers }).map((_, idx) => (
@@ -632,7 +632,7 @@ export default function EquityCalculatorPage() {
                                 background: 'rgba(255,255,255,0.03)',
                                 border: `1px solid ${PLAYER_COLORS[idx]}20`,
                                 borderRadius: 10, padding: '10px 14px',
-                                flex: '1 1 140px',
+                                flex: '1 1 120px', minWidth: 0,
                             }}>
                                 <div style={{
                                     fontSize: 10, fontWeight: 800, color: PLAYER_COLORS[idx],

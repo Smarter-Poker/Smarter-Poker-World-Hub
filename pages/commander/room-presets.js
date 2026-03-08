@@ -15,10 +15,12 @@ import {
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import { hasFeature } from '../../src/lib/commander/tierConfig';
+import { busEmit } from '../../src/engine/EventBus';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function DailyPresetsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-room-presets'); }, []);
   const router = useRouter();
   const [presets, setPresets] = useState([]);
   const [gameTypes, setGameTypes] = useState([]);

@@ -26,6 +26,7 @@ import EliminatePlayerModal from '../../../src/components/commander/modals/Elimi
 import PayoutModal from '../../../src/components/commander/modals/PayoutModal';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const STATUS_CONFIG = {
   scheduled: { bg: 'bg-[#64748B]/10', text: 'text-[#64748B]', label: 'Scheduled' },
@@ -45,6 +46,7 @@ function formatTime(seconds) {
 }
 
 export default function TournamentDetailPage() {
+  useEffect(() => { busEmit.sessionStart('commander-tournaments-id'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id } = router.query;

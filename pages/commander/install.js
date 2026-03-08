@@ -3,13 +3,15 @@
  * /commander/install
  * Step-by-step guide to add Commander to tablet/phone home screen
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Smartphone, Tablet, Monitor, ArrowRight, CheckCircle2, Download } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function CommanderInstall() {
+  useEffect(() => { busEmit.sessionStart('commander-install'); }, []);
     const [tab, setTab] = useState('ipad');
 
     const steps = {

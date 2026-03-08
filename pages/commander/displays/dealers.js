@@ -10,8 +10,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function DealerRotationDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-dealers'); }, []);
   const [dealers, setDealers] = useState([]);
   const [rotations, setRotations] = useState([]);
   const [now, setNow] = useState(new Date());

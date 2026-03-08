@@ -15,8 +15,10 @@ import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function PokerRoomFunctions() {
+  useEffect(() => { busEmit.sessionStart('commander-poker-room'); }, []);
   const router = useRouter();
   const [roomOpen, setRoomOpen] = useState(false);
   const [toggling, setToggling] = useState(false);

@@ -8,8 +8,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { BarChart3, Users, DollarSign, Clock, TrendingUp, Loader2, Printer, CreditCard, Banknote, AlertTriangle } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function DailySummaryReport() {
+  useEffect(() => { busEmit.sessionStart('commander-reports-daily-summary'); }, []);
   const router = useRouter();
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [data, setData] = useState(null);

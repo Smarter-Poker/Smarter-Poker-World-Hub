@@ -8,8 +8,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { Trophy, ChevronDown, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function TournamentResultsReport() {
+  useEffect(() => { busEmit.sessionStart('commander-reports-tournament-results'); }, []);
   const router = useRouter();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);

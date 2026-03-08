@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 
 import { BarChart3, Users, Trophy, Clock, DollarSign, FileText, Activity, ChevronRight, TrendingUp, Filter } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const REPORTS = [
   {
@@ -76,6 +77,7 @@ const REPORTS = [
 ];
 
 export default function ReportsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-reports-index'); }, []);
   const router = useRouter();
   const [dateRange, setDateRange] = useState('today');
   const [summary, setSummary] = useState(null);

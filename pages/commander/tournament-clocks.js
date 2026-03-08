@@ -8,8 +8,10 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
 import { Clock, Monitor, Play, Loader2, Tv } from 'lucide-react';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function TournamentClocks() {
+  useEffect(() => { busEmit.sessionStart('commander-tournament-clocks'); }, []);
     const router = useRouter();
     const [staff, setStaff] = useState(null);
     const [tournaments, setTournaments] = useState([]);

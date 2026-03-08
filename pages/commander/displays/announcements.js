@@ -11,6 +11,7 @@ import { Plus, Edit3, Trash2, X, Send, Loader2, ChevronDown, Settings, Megaphone
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -51,6 +52,7 @@ const TYPE_ICONS = {
 };
 
 export default function AnnouncementsDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-announcements'); }, []);
   // ─── Display state ───
   const [announcements, setAnnouncements] = useState([]);
   const [allAnnouncements, setAllAnnouncements] = useState([]);

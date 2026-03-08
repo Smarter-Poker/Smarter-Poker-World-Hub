@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../src/components/seo/SEOHead';
 import { Bell, BellOff, CheckCheck, Loader2, RefreshCw, Trash2, Trophy, Users, DollarSign, AlertTriangle, MessageSquare, Star, Plus, Edit3, X, Megaphone, Send, ChevronDown } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 const TYPE_CONFIG = {
   seat_available: { icon: Users, color: '#31A24C', label: 'Seat Available' },
@@ -51,6 +52,7 @@ const ANNOUNCEMENT_TEMPLATES = [
 ];
 
 export default function NotificationCenter() {
+  useEffect(() => { busEmit.sessionStart('commander-notifications'); }, []);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('notifications');
   const [notifications, setNotifications] = useState([]);

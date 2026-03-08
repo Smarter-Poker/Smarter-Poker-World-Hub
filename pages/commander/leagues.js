@@ -11,6 +11,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Trophy, Plus, Users, Calendar, DollarSign, Loader2, ChevronDown, ChevronUp, Gift, Target, UserPlus, Trash2, Check, RefreshCw } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 /* ───────── Status colors ───────── */
 const STATUS_COLORS = {
@@ -39,6 +40,7 @@ const QUAL_PERIODS = [
 ];
 
 export default function LeaguesAndFreerollsManagement() {
+  useEffect(() => { busEmit.sessionStart('commander-leagues'); }, []);
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [activeTab, setActiveTab] = useState('leagues');

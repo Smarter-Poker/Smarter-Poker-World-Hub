@@ -14,6 +14,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Monitor, Users, Loader2, Trophy, Clock, Timer, Armchair, ScanLine, Camera, X, CheckCircle, Maximize2, Copy, ExternalLink, ChevronDown, ChevronUp, Link2, Lock, Unlock, ShieldCheck, AlertTriangle, ArrowRightLeft, Coins, Skull, XCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync, broadcastChange } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const STATUS_BADGE = {
     in_use: { bg: '#31A24C', label: 'Active' },
@@ -121,6 +122,7 @@ function computeSeatPositions(maxSeats) {
 }
 
 export default function TableTabletsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-table-tablets'); }, []);
     const router = useRouter();
     const [tables, setTables] = useState([]);
     const [loading, setLoading] = useState(true);

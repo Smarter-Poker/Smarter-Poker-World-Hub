@@ -4,11 +4,12 @@
  *
  * Comprehensive guide for venue managers using Club Commander
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Settings, BarChart3, Shield, Trophy, Key, Search, AlertTriangle, DollarSign, UserCog, Building2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const GUIDE_SECTIONS = [
   {
@@ -431,6 +432,7 @@ const GUIDE_SECTIONS = [
 ];
 
 export default function ManagerGuidePage() {
+  useEffect(() => { busEmit.sessionStart('commander-docs-manager-guide'); }, []);
   const [activeSection, setActiveSection] = useState('venue-setup');
   const [searchTerm, setSearchTerm] = useState('');
 

@@ -7,8 +7,10 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { Activity, Loader2 } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 export default function StaffActivity() {
+  useEffect(() => { busEmit.sessionStart('commander-reports-staff-activity'); }, []);
   const router = useRouter();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);

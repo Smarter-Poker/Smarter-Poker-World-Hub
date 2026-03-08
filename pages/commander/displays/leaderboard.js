@@ -27,11 +27,13 @@ import CommanderLayout from '../../../src/components/commander/shared/CommanderL
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../../src/hooks/useWakeLock';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const MEDAL = ['#FFD700', '#C0C0C0', '#CD7F32'];
 const MEDAL_E = ['1st', '2nd', '3rd'];
 
 export default function LeaderboardDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-leaderboard'); }, []);
   const [boards, setBoards] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [now, setNow] = useState(new Date());

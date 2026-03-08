@@ -9,6 +9,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
+import { busEmit } from '../../../../src/engine/EventBus';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
     Calculator, Save, RefreshCw, Loader2, FileText,
@@ -32,6 +33,7 @@ function formatMoney(n) {
 }
 
 export default function TDPayouts() {
+    useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-payouts'); }, []);
     const router = useRouter();
     if (!router.isReady) return null;
     const { tournamentId } = router.query;

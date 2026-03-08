@@ -18,6 +18,7 @@ import { Plus, Loader2, RefreshCw, UserPlus, ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 function formatCountdown(minutes) {
   if (!minutes && minutes !== 0) return '--:--';
@@ -27,6 +28,7 @@ function formatCountdown(minutes) {
 }
 
 export default function TableSeating() {
+  useEffect(() => { busEmit.sessionStart('commander-table-id'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id } = router.query;

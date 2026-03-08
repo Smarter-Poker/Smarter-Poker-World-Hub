@@ -15,6 +15,7 @@ import { useRouter } from 'next/router';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../../src/lib/commander/useCommanderSync';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
+import { busEmit } from '../../../src/engine/EventBus';
 
 function formatClockTime(seconds) {
   if (!seconds || seconds <= 0) return '0:00';
@@ -24,6 +25,7 @@ function formatClockTime(seconds) {
 }
 
 export default function CombinedDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-combined'); }, []);
   const router = useRouter();
   const { layout = 'clock+waitlist', tournament } = router.query;
 

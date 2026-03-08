@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { createClient } from '@supabase/supabase-js';
+import { busEmit } from '../../../src/engine/EventBus';
 
 /* ─── Supabase client for Realtime (no auth needed for display) ── */
 /* GUARD: createClient must NOT run during SSG — localStorage doesn't exist on server */
@@ -80,6 +81,7 @@ function computeSeatPositions(maxSeats) {
 /* ─── Page Component ─────────────────────────────────────────── */
 
 export default function TabletDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-tablet-tableNumber'); }, []);
     const router = useRouter();
     const { tableNumber, venue } = router.query;
 

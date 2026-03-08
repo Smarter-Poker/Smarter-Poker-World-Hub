@@ -13,6 +13,7 @@ import useCommanderSync from '../../../src/lib/commander/useCommanderSync';
 import { Loader2, Users, ArrowLeft, CheckCircle } from 'lucide-react';
 import DealerTicker from '../../../src/components/commander/shared/DealerTicker';
 import useWakeLock from '../../../src/hooks/useWakeLock';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // Capitalize first letter of every word
 function titleCase(str) {
@@ -38,6 +39,7 @@ const DEFAULT_CUSTOM = {
 };
 
 export default function WaitlistDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-displays-waitlist'); }, []);
   const router = useRouter();
   const [tables, setTables] = useState([]);
   const [waitlists, setWaitlists] = useState([]);

@@ -12,6 +12,7 @@ import CommanderLayout from '../../../../src/components/commander/shared/Command
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import { broadcastChange } from '../../../../src/lib/commander/useCommanderSync';
 import { Trophy, LayoutGrid, Users, Monitor, Search, X, Loader2, ChevronDown, ArrowRightLeft, UserX, RotateCcw, Star, Coins, DollarSign, FileText } from 'lucide-react';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 const NAV_ITEMS = [
   { key: 'control', path: '' }, { key: 'tables', path: '/tables' },
@@ -35,6 +36,7 @@ function formatChips(n) {
 }
 
 export default function TDPlayers() {
+  useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-players'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { tournamentId, move: moveEntryId } = router.query;

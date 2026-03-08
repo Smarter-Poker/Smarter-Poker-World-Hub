@@ -12,8 +12,10 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import DealerTicker from '../../../../src/components/commander/shared/DealerTicker';
 import useTournamentRealtime from '../../../../src/hooks/useTournamentRealtime';
 import useWakeLock from '../../../../src/hooks/useWakeLock';
+import { busEmit } from '../../../../src/engine/EventBus';
 
 export default function StructureDisplay() {
+  useEffect(() => { busEmit.sessionStart('commander-tournaments-id-structure-display'); }, []);
   const router = useRouter();
   if (!router.isReady) return null;
   const { id } = router.query;

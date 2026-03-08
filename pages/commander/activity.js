@@ -19,6 +19,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { RefreshCw, Loader2, UserCheck, LogIn, LogOut, Clock, AlertTriangle, Users, DollarSign, Bell, Play, Pause, Timer, XCircle } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const EVENT_TYPES = {
   check_in: { icon: UserCheck, color: '#31A24C', label: 'Check In' },
@@ -49,6 +50,7 @@ function timeAgo(dateStr) {
 }
 
 export default function ActivityFeed() {
+  useEffect(() => { busEmit.sessionStart('commander-activity'); }, []);
   const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);

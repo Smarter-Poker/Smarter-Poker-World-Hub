@@ -11,12 +11,14 @@ import CommanderLayout from '../../src/components/commander/shared/CommanderLayo
 import { broadcastChange } from '../../src/lib/commander/useCommanderSync';
 import BlindStructureEditor from '../../src/components/commander/tournaments/BlindStructureEditor';
 import { TOURNAMENT_TEMPLATES, TOURNAMENT_TYPES, formatBuyin, formatChips } from '../../src/components/commander/tournaments/tournamentTemplates';
+import { busEmit } from '../../src/engine/EventBus';
 
 const ICON_MAP = {
     Trophy, Zap, Crown, Target, RefreshCw, Rocket, Crosshair,
 };
 
 export default function TournamentSettingsPage() {
+  useEffect(() => { busEmit.sessionStart('commander-tournament-settings'); }, []);
     const router = useRouter();
     const [staff, setStaff] = useState(null);
     const [venue, setVenue] = useState(null);

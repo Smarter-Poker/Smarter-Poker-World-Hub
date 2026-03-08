@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { LayoutGrid, Loader2, RefreshCw, Clock, Users, TrendingUp, ArrowLeft } from 'lucide-react';
 import CommanderLayout from '../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const RANGES = [
   { value: 'today', label: 'Today' },
@@ -16,6 +17,7 @@ const RANGES = [
 ];
 
 export default function TableUtilization() {
+  useEffect(() => { busEmit.sessionStart('commander-reports-table-utilization'); }, []);
   const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

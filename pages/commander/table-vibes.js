@@ -9,6 +9,7 @@ import SEOHead from '../../src/components/seo/SEOHead';
 import { Loader2, MessageSquare } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
 import { useCommanderSync } from '../../src/lib/commander/useCommanderSync';
+import { busEmit } from '../../src/engine/EventBus';
 
 const VIBE_COLORS = {
   'Action Game': { bg: '#FEF2F2', text: '#991B1B', border: '#EF4444', emoji: '🔥' },
@@ -21,6 +22,7 @@ const VIBE_COLORS = {
 };
 
 export default function TableVibes() {
+  useEffect(() => { busEmit.sessionStart('commander-table-vibes'); }, []);
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [vibes, setVibes] = useState([]);

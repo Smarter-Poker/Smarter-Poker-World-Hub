@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import SEOHead from '../../../../src/components/seo/SEOHead';
 import CommanderLayout from '../../../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../../../src/engine/EventBus';
 import {
     Trophy, Users, DollarSign, LayoutGrid, Monitor,
     FileText, Download, Loader2, ClipboardList,
@@ -38,6 +39,7 @@ function formatMoney(n) {
 }
 
 export default function TDReports() {
+    useEffect(() => { busEmit.sessionStart('commander-td-tournamentId-reports'); }, []);
     const router = useRouter();
     if (!router.isReady) return null;
     const { tournamentId } = router.query;
@@ -67,10 +69,11 @@ export default function TDReports() {
         }
     }, [tournamentId, getToken]);
 
-    useEffect(() => {    const _c = new AbortController();
- fetchReport(tab);
-    return () => _c.abort();
-  }, [tab, fetchReport]);
+    useEffect(() => {
+        const _c = new AbortController();
+        fetchReport(tab);
+        return () => _c.abort();
+    }, [tab, fetchReport]);
 
     const exportCSV = () => {
         if (!reportData) return;
@@ -168,8 +171,8 @@ export default function TDReports() {
                                             {(reportData.entries || []).map((e, i) => (
                                                 <div key={e.id || i} className="px-4 py-2.5 flex items-center gap-3">
                                                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${e.status === 'eliminated' ? 'bg-[#EF4444]' :
-                                                            e.status === 'winner' ? 'bg-[#F59E0B]' :
-                                                                ['active', 'seated'].includes(e.status) ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
+                                                        e.status === 'winner' ? 'bg-[#F59E0B]' :
+                                                            ['active', 'seated'].includes(e.status) ? 'bg-[#31A24C]' : 'bg-[#1877F2]'
                                                         }`} />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm text-[#E4E6EB] truncate">{e.profiles?.display_name || e.player_name || 'Unknown'}</p>
@@ -242,8 +245,8 @@ export default function TDReports() {
                                             {(reportData.activities || []).slice(0, 100).map((a, i) => (
                                                 <div key={i} className="px-4 py-2.5 flex items-center gap-3">
                                                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${a.type === 'elimination' ? 'bg-[#EF4444]' :
-                                                            a.type === 'registration' ? 'bg-[#31A24C]' :
-                                                                a.type === 'rebuy' ? 'bg-[#F59E0B]' : 'bg-[#1877F2]'
+                                                        a.type === 'registration' ? 'bg-[#31A24C]' :
+                                                            a.type === 'rebuy' ? 'bg-[#F59E0B]' : 'bg-[#1877F2]'
                                                         }`} />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm text-[#E4E6EB]">
@@ -253,8 +256,8 @@ export default function TDReports() {
                                                     </div>
                                                     <div className="text-right flex-shrink-0">
                                                         <span className={`text-[10px] px-2 py-0.5 rounded uppercase font-medium ${a.type === 'elimination' ? 'bg-[#EF4444]/10 text-[#EF4444]' :
-                                                                a.type === 'registration' ? 'bg-[#31A24C]/10 text-[#31A24C]' :
-                                                                    'bg-[#F59E0B]/10 text-[#F59E0B]'
+                                                            a.type === 'registration' ? 'bg-[#31A24C]/10 text-[#31A24C]' :
+                                                                'bg-[#F59E0B]/10 text-[#F59E0B]'
                                                             }`}>{a.type}</span>
                                                         <p className="text-[10px] text-[#B0B3B8] mt-0.5">
                                                             {a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}

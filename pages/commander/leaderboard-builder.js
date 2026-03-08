@@ -20,6 +20,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 const BOARD_TYPES = [
     { value: 'custom', label: 'Custom Points', icon: '', desc: 'Manually assign points to players' },
@@ -40,6 +41,7 @@ const PERIOD_TYPES = [
 ];
 
 export default function LeaderboardBuilder() {
+  useEffect(() => { busEmit.sessionStart('commander-leaderboard-builder'); }, []);
     const [boards, setBoards] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState(null);

@@ -11,8 +11,10 @@ import {
   Loader2, ChevronDown, ChevronUp, Clock, Calendar
 } from 'lucide-react';
 import CommanderLayout from '../../src/components/commander/shared/CommanderLayout';
+import { busEmit } from '../../src/engine/EventBus';
 
 export default function ChurnPrediction() {
+  useEffect(() => { busEmit.sessionStart('commander-churn-prediction'); }, []);
   const router = useRouter();
   const [staff, setStaff] = useState(null);
   const [predictions, setPredictions] = useState([]);
