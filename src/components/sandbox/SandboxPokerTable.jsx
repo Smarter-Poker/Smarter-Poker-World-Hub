@@ -136,12 +136,12 @@ export default function SandboxPokerTable({
                 position: 'relative',
                 width: '100%',
                 margin: '0 auto',
-                aspectRatio: '610 / 344',
+                aspectRatio: '617 / 346',
                 overflow: 'visible',
             }}>
-            {/* Poker table image — landscape horizontal */}
+            {/* Poker table image — landscape horizontal, transparent bg */}
             <img
-                src="/images/poker-table-cropped.png"
+                src="/images/poker-table-horizontal-nobg.png"
                 alt="Poker Table"
                 style={{
                     position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
