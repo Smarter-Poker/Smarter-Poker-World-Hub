@@ -30,6 +30,29 @@ function busEmit(event, data) {
     }
 }
 
+// ── Save-session helper (SSR-safe) ──────────────────────────────
+function getAuthToken() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return parsed?.access_token || parsed?.currentSession?.access_token || null;
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function saveSession(payload) {
+    const token = getAuthToken();
+    if (!token) return;
+    fetch('/api/training/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+    }).catch(() => {});
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND EVALUATOR ENGINE — Best 5 From N Cards
 // ═══════════════════════════════════════════════════════════════════════════
@@ -362,6 +385,14 @@ export default function HandComparison() {
                 winner: eq.equityA > eq.equityB ? 'A' : eq.equityB > eq.equityA ? 'B' : 'TIE',
                 equityA: eq.equityA,
                 equityB: eq.equityB,
+            });
+            // Persist to Supabase
+            saveSession({
+                game_id: 'hand-comparison',
+                hands_played: 1,
+                accuracy: eq.equityA > eq.equityB ? 100 : 0,
+                correct_answers: 1,
+                total_questions: 1,
             });
         }, 50);
     }, [handA, handB, board]); // FIX: removed `canRun` from deps — guard is direct check

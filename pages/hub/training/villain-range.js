@@ -32,6 +32,29 @@ function busEmit(event, data) {
     }
 }
 
+// ── Save-session helper (SSR-safe) ──────────────────────────────
+function getAuthToken() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return parsed?.access_token || parsed?.currentSession?.access_token || null;
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function saveSession(payload) {
+    const token = getAuthToken();
+    if (!token) return;
+    fetch('/api/training/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+    }).catch(() => {});
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO RANGE DATA (Canonical preflop ranges at 100BB Cash)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -193,12 +216,21 @@ export default function VillainRange() {
         const newStats = { correct: quizStats.correct + (isCorrect ? 1 : 0), total: quizStats.total + 1 };
         setQuizStats(newStats);
 
+        const accuracy = Math.round((newStats.correct / newStats.total) * 100);
         // Emit to training bus
         busEmit('training:session-complete', {
             game_id: 'villain-range',
             correct_answers: newStats.correct,
             total_questions: newStats.total,
-            accuracy: Math.round((newStats.correct / newStats.total) * 100),
+            accuracy,
+        });
+        // Persist to Supabase
+        saveSession({
+            game_id: 'villain-range',
+            accuracy,
+            hands_played: newStats.total,
+            correct_answers: newStats.correct,
+            total_questions: newStats.total,
         });
     }, [quizResult, currentBoard, rangeArr, quizStats]);
 

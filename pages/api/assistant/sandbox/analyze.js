@@ -518,7 +518,7 @@ function buildPreflopHeatmap(chart) {
 async function analyzeWithGrok(params) {
   try {
     const grok = getGrokClient();
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor } = params;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, potSize, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic } = params;
 
     const boardCards = [...(board?.flop || []), board?.turn, board?.river].filter(Boolean);
     const boardStr = boardCards.length > 0 ? boardCards.join(' ') : 'Preflop';
@@ -545,6 +545,18 @@ async function analyzeWithGrok(params) {
       icmContext = `\n\nICM CONTEXT: Bubble Factor = ${bubbleFactor.toFixed(1)}x. ${bubbleFactor > 1.2 ? 'High bubble pressure — survival premium, tighten calling ranges and avoid marginal spots.' : bubbleFactor < 0.8 ? 'Low bubble pressure — chip accumulation mode, can take more risks.' : 'Moderate bubble pressure.'}`;
     }
 
+    // Villain range context (from archetype preflop opening range)
+    let villainRangeContext = '';
+    if (villainRange && villainRange.trim().length > 0) {
+      villainRangeContext = `\n- Villain Opening Range: ${villainRange.substring(0, 80)}${villainRange.length > 80 ? '...' : ''}`;
+    }
+
+    // Socratic coach mode context — show what the user picked
+    let socraticContext = '';
+    if (socratic?.userPick) {
+      socraticContext = `\n\nPLAYER SUBMITTED ACTION: ${socratic.userPick}\nPlease evaluate if this is GTO or exploitative, and what the EV difference is.`;
+    }
+
     const prompt = `You are a GTO poker solver. Analyze this scenario with precise frequencies.${exploitMode === 'exploit' ? ' ADJUST for villain tendencies (exploit mode).' : ''}
 
 SCENARIO:
@@ -554,26 +566,26 @@ SCENARIO:
 - Game Type: ${gameType === 'tournament' ? 'Tournament (ICM)' : 'Cash Game (ChipEV)'}
 - Pot Size: ${potSize || 6}bb
 - Board: ${boardStr}
-- Villains: ${villainDesc}${exploitContext}${icmContext}
+- Villains: ${villainDesc}${villainRangeContext}${exploitContext}${icmContext}${socraticContext}
 
-Respond in EXACT JSON format (no markdown):
+Respond in EXACT JSON format(no markdown):
 {
   "actions": [
-    {"id": "b66", "label": "Bet 66%", "frequency": 55},
-    {"id": "c", "label": "Check", "frequency": 30},
-    {"id": "b33", "label": "Bet 33%", "frequency": 15}
+    { "id": "b66", "label": "Bet 66%", "frequency": 55 },
+    { "id": "c", "label": "Check", "frequency": 30 },
+    { "id": "b33", "label": "Bet 33%", "frequency": 15 }
   ],
-  "explanation": "On this board texture, a 66% pot bet is the highest-frequency play with this hand because...",
-  "isMixed": true,
-  "confidence": "Medium"
+    "explanation": "On this board texture, a 66% pot bet is the highest-frequency play with this hand because...",
+      "isMixed": true,
+        "confidence": "Medium"
 }
 
 RULES:
 - Frequencies MUST sum to 100
-- Provide 2-4 actions
-- Use action IDs: f, c, b25, b33, b50, b66, b75, b100, b150, allin
-- Be precise about GTO frequencies
-- Consider stack depth, position, and board texture`;
+  - Provide 2 - 4 actions
+    - Use action IDs: f, c, b25, b33, b50, b66, b75, b100, b150, allin
+      - Be precise about GTO frequencies
+        - Consider stack depth, position, and board texture`;
 
     const response = await grok.chat.completions.create({
       model: 'grok-3',
@@ -596,7 +608,7 @@ RULES:
     }));
 
     return {
-      heroHand: heroHandToNotation(heroHand) || `${heroHand?.card1}${heroHand?.card2}`,
+      heroHand: heroHandToNotation(heroHand) || `${heroHand?.card1}${heroHand?.card2} `,
       actions: grokActions,
       optimalAction: grokActions[0] || { id: 'c', label: 'Check', frequency: 100, color: '#6b7280' },
       isMixed: parsed.isMixed || false,
@@ -662,9 +674,9 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
   if (isMixed) {
     const parts = actions
       .filter(a => a.frequency > 1)
-      .map(a => `${a.label} ${a.frequency}%`)
+      .map(a => `${a.label} ${a.frequency}% `)
       .join(', ');
-    explanation = `GTO mixes here: ${parts}. The highest-frequency play is ${optimalAction.label} at ${freq}%.`;
+    explanation = `GTO mixes here: ${parts}. The highest - frequency play is ${optimalAction.label} at ${freq}%.`;
   } else {
     explanation = `This is a pure ${optimalAction.label} (${freq}% frequency).`;
   }
@@ -688,17 +700,17 @@ function buildExplanation(handAnalysis, matchTier, street, exploitMode, villainA
       fish: 'Exploit Tip: Bet bigger with strong hands against this fish. Simplify your decisions.',
     };
     const tip = exploitTips[villainArchetype];
-    if (tip) explanation += ` ${tip}`;
+    if (tip) explanation += ` ${tip} `;
   }
 
   // ICM bubble factor context
   if (bubbleFactor && bubbleFactor !== 1.0) {
     if (bubbleFactor > 1.2) {
-      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)}x — survival premium is high. Tighten calling ranges and avoid marginal spots.`;
+      explanation += ` ICM Warning: Bubble factor ${bubbleFactor.toFixed(1)} x — survival premium is high.Tighten calling ranges and avoid marginal spots.`;
     } else if (bubbleFactor < 0.8) {
-      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)}x — chip accumulation mode. You can take more risks here.`;
+      explanation += ` ICM Note: Bubble factor ${bubbleFactor.toFixed(1)} x — chip accumulation mode.You can take more risks here.`;
     } else {
-      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)}x — moderate pressure.`;
+      explanation += ` ICM: Bubble factor ${bubbleFactor.toFixed(1)} x — moderate pressure.`;
     }
   }
 
@@ -728,7 +740,7 @@ export default async function handler(req, res) {
       } catch (e) { console.warn('[Sandbox] Auth token validation failed:', e.message); }
     }
 
-    const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, bubbleFactor } = req.body;
+    const { heroHand, heroPosition, heroStack, gameType, villains, board, betSizing, potSize, actionHistory, exploitMode, villainArchetype, bubbleFactor, villainRange, socratic } = req.body;
 
     // Context authority check — only for authenticated users
     if (userId) {
@@ -803,7 +815,7 @@ export default async function handler(req, res) {
 
       analysis = await analyzeWithGrok({
         heroHand, heroPosition, heroStack, gameType, villains, board, potSize: calculatedPot,
-        exploitMode, villainArchetype, bubbleFactor,
+        exploitMode, villainArchetype, bubbleFactor, villainRange, socratic,
       });
 
       if (!analysis) {
@@ -837,7 +849,7 @@ export default async function handler(req, res) {
       rangeHeatmap,
 
       // Context
-      context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition}`,
+      context: `${gameType === 'tournament' ? 'Tournament' : 'Cash Game'} — ${heroStack} BB — ${heroPosition} `,
     };
 
     // ━━━ ICM-ADJUSTED EV (Tournament mode with bubble factor) ━━━
@@ -847,7 +859,7 @@ export default async function handler(req, res) {
       responseData.bubbleFactor = bubbleFactor;
       responseData.icmEV = {
         hero: icmHero,
-        heroDisplay: `${icmHero >= 0 ? '+' : ''}${icmHero.toFixed(2)} BB (ICM)`,
+        heroDisplay: `${icmHero >= 0 ? '+' : ''}${icmHero.toFixed(2)} BB(ICM)`,
       };
     }
 
@@ -864,7 +876,7 @@ export default async function handler(req, res) {
         .from('sandbox_sessions')
         .insert({
           user_id: userId,
-          hero_hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''}`,
+          hero_hand: `${heroHand?.card1 || ''}${heroHand?.card2 || ''} `,
           hero_position: heroPosition,
           hero_stack_bb: heroStack,
           game_type: gameType,

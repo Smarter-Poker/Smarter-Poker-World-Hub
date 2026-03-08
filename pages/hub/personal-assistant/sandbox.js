@@ -28,7 +28,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import { calculateEquity, simulateRunouts } from '../../../src/lib/sandbox/EquityEngine';
 import { getRangeGrid, getRangePercentage } from '../../../src/lib/sandbox/PreflopCharts';
 import { parseHandHistory } from '../../../src/lib/sandbox/HandHistoryParser';
-import { getArchetypeRange, getArchetypeVPIP, getArchetypeInfo, ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRanges';
+import { getArchetypeRange, getArchetypeRangeString, getArchetypeVPIP, getArchetypeInfo, ARCHETYPE_CONFIG } from '../../../src/lib/sandbox/VillainArchetypeRanges';
 import SandboxPokerTable, { TableCard } from '../../../src/components/sandbox/SandboxPokerTable';
 import RangeHeatGrid from '../../../src/components/sandbox/RangeHeatGrid';
 import useSandboxSounds from '../../../src/hooks/useSandboxSounds';
@@ -41,6 +41,8 @@ import {
   LeaderboardCard,
   // Wave 2 additions
   EquityGraph, SessionLogModal, CoachActionPicker, CoachVerdict, ActionReplayBar, ShareHandModal,
+  // Wave 3 additions
+  VillainReadCard, ShortcutLegend,
 } from '../../../src/components/sandbox/SandboxComponents';
 import { ExportCard } from '../../../src/components/sandbox/ExportCard';
 
@@ -452,7 +454,14 @@ export default function VirtualSandbox() {
   // Phase 1: Deal + Analyze for multi-street
   const dealAndAnalyze = () => {
     if (results) {
-      setStreetHistory(prev => [...prev, { street: currentStreet, board: { ...board, flop: [...board.flop] }, results }]);
+      // Include hero equity so EquityGraph can plot this street's data point
+      const equityValue = equity?.heroEquity ?? null;
+      setStreetHistory(prev => [...prev, {
+        street: currentStreet,
+        board: { ...board, flop: [...board.flop] },
+        results,
+        equity: equityValue,   // Wave 2: required by EquityGraph
+      }]);
     }
     dealNextStreet();
   };
@@ -676,6 +685,30 @@ export default function VirtualSandbox() {
     });
   }, []);
 
+  // ─── WAVE 3: Keyboard Shortcuts (W3-6) — Desktop Power Mode ──────────────
+  useEffect(() => {
+    const handleKey = (e) => {
+      // Don't fire shortcuts when typing in an input or textarea
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      switch (e.key.toLowerCase()) {
+        case 'a': runAnalysis(); break;
+        case 'r': resetAll(); break;
+        case 'u': popUndo(); break;
+        case 's': saveBookmark(); break;
+        case 'c': toggleCoachMode(); break;
+        case '?': setShowShortcutLegend(prev => !prev); break;
+        case 'escape': setShowResults(false); setShowShortcutLegend(false); break;
+        default: break;
+      }
+    };
+    if (typeof window !== 'undefined') window.addEventListener('keydown', handleKey);
+    return () => { if (typeof window !== 'undefined') window.removeEventListener('keydown', handleKey); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [toggleCoachMode]); // only re-register when toggleCoachMode identity changes
+
+
+
   // ─── WAVE 2: Action Replay (Feature 8) ───────────────────────────────────
   const [replayIndex, setReplayIndex] = useState(null);
   // Compute replayed pot when in replay mode
@@ -701,6 +734,11 @@ export default function VirtualSandbox() {
   // ─── WAVE 2: Share Hand Modal (Feature 7) ─────────────────────────────────
   const [showShareHand, setShowShareHand] = useState(false);
   const exportCardRef = useRef(null);
+
+  // ─── WAVE 3: Villain Range Heatgrid Toggle ─────────────────────────────────
+  const [showVillainRange, setShowVillainRange] = useState(false);
+  // ─── WAVE 3: Keyboard Shortcut Legend ─────────────────────────────────────
+  const [showShortcutLegend, setShowShortcutLegend] = useState(false);
 
   // Voice input
   const [isListening, setIsListening] = useState(false);
@@ -992,76 +1030,153 @@ export default function VirtualSandbox() {
   };
 
   // Run analysis — with optional Socratic coach intercept
-  const runAnalysis = async (skipCoach = false) => {
+  // pickedAction: if provided, the coach mode user action (bypasses state timing issue)
+  const runAnalysis = async (skipCoach = false, pickedAction = null) => {
     if (!heroHand.card1 || !heroHand.card2) return;
-    // Coach mode: show action picker first if mode is on and user hasn't picked yet
-    if (coachMode && !skipCoach && !coachUserPick) {
+    // Coach mode: show action picker first if mode is on and no pick yet
+    if (coachMode && !skipCoach && !coachUserPick && !pickedAction) {
       try { navigator.vibrate?.(20); } catch (e) { }
       setShowCoachPicker(true);
       return;
     }
     try { navigator.vibrate?.(10); } catch (e) { }
-    // Get villain range string for most relevant villain
-    const villainRangeStr = villains[0]?.range || getArchetypeRangeString(villains[0]?.archetype?.id || 'gto_neutral', villains[0]?.position || 'BB');
+    // Use pickedAction (direct parameter) OR stored coachUserPick — avoids stale closure bug
+    const resolvedPick = pickedAction || coachUserPick;
+    // Get villain range string for most relevant villain (prefer pre-computed range on villain object)
+    const villainArcId = villains[0]?.archetype?.id || 'gto_neutral';
+    const villainPos = villains[0]?.position || 'BB';
+    const villainRangeStr = villains[0]?.range || getArchetypeRangeString(villainArcId, villainPos);
     await analyze({
       heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, betSizing: 'standard',
-      exploitMode, villainArchetype: villains[0]?.archetype?.id, bubbleFactor: gameType === 'tournament' ? bubbleFactor : undefined,
+      exploitMode,
+      villainArchetype: villainArcId,
+      bubbleFactor: gameType === 'tournament' ? bubbleFactor : undefined,
       villainRange: villainRangeStr,
-      socratic: coachMode && coachUserPick ? { userPick: coachUserPick } : undefined,
+      socratic: coachMode && resolvedPick ? { userPick: resolvedPick } : undefined,
     });
     setShowResults(true);
-    playAnalysisDing(); // Sound effect
-    logAnalytics(); // Track for leak detection
-    // Auto-append to session log
-    setSessionLog(prev => [...prev, {
-      id: Date.now(),
-      hand: `${heroHand.card1}${heroHand.card2}`,
-      position: heroPosition,
-      street: currentStreet,
-      board: board.flop.join(' ') || '',
-      equity: equity?.heroEquity ?? null,
-      optimalAction: null, // will be filled post-result via effect
-    }]);
+    playAnalysisDing();
+    logAnalytics();
+    // Auto-append to session log (equity captured pre-analysis as current equity)
+    const snapEquity = equity?.heroEquity ?? null;
+    const snapHand = `${heroHand.card1}${heroHand.card2}`;
+    const snapPos = heroPosition;
+    const snapBoard = board.flop.join(' ') || '';
+    const snapStreet = currentStreet;
+    setSessionLog(prev => {
+      const next = [...prev, {
+        id: Date.now(),
+        hand: snapHand,
+        position: snapPos,
+        street: snapStreet,
+        board: snapBoard,
+        equity: snapEquity,
+        optimalAction: null, // filled by the useEffect below when results arrive
+      }];
+      // 📢 Bus listener: notify any listening pages that session log changed
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('sandbox-session-log-updated', { detail: { count: next.length } }));
+        window.dispatchEvent(new CustomEvent('pa-sandbox-updated', { detail: { type: 'analysis' } }));
+      }
+      return next;
+    });
   };
 
-  // Auto-fill optimalAction in session log when results arrive
-  useEffect(() => {
-    if (results?.optimalAction?.label && sessionLog.length > 0) {
-      setSessionLog(prev => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last && !last.optimalAction) {
-          updated[updated.length - 1] = { ...last, optimalAction: results.optimalAction.label };
-        }
-        return updated;
-      });
-      // Compute coach EV delta (approximate from result EV)
-      if (coachUserPick && results.ev) {
-        const gtaEV = results.ev.hero || 0;
-        const correctLabel = results.optimalAction?.label?.toLowerCase().split(' ')[0];
-        const isCorrect = coachUserPick.toLowerCase().split(' ')[0] === correctLabel;
-        setCoachEvDelta(isCorrect ? 0 : -(Math.abs(gtaEV) * 0.2)); // approximate -20% penalty
-      }
-    }
-  }, [results]);
 
-  // Coach picker: user picked an action — run analysis with it
+  // Auto-fill optimalAction in session log when results arrive
+  // Also compute coach EV delta
+  // NOTE: We use a ref snapshot pattern to avoid needing all state in deps
+  const coachUserPickRef = useRef(null);
+  useEffect(() => { coachUserPickRef.current = coachUserPick; }, [coachUserPick]);
+
+  useEffect(() => {
+    if (!results?.optimalAction?.label) return;
+    // Fill optimalAction in last session log entry
+    setSessionLog(prev => {
+      if (prev.length === 0) return prev;
+      const updated = [...prev];
+      const last = updated[updated.length - 1];
+      if (last && !last.optimalAction) {
+        updated[updated.length - 1] = { ...last, optimalAction: results.optimalAction.label };
+      }
+      return updated;
+    });
+    // Compute coach EV delta using the ref (avoids stale closure)
+    const currentPick = coachUserPickRef.current;
+    if (currentPick && results.ev) {
+      const gtoEV = results.ev.hero || 0;
+      const correctLabel = results.optimalAction?.label?.toLowerCase().split(' ')[0];
+      const isCorrect = currentPick.toLowerCase().split(' ')[0] === correctLabel;
+      const delta = isCorrect ? 0 : -(Math.abs(gtoEV) * 0.2);
+      setCoachEvDelta(delta);
+
+      // ── Wave 3: Persist coach result to Supabase ──────────────────────────
+      (async () => {
+        try {
+          const { createClient } = await import('@supabase/supabase-js');
+          const sbc = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+          );
+          const { data: { session } } = await sbc.auth.getSession();
+          if (session?.access_token) {
+            await fetch('/api/sandbox/coach-result', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                hand: `${heroHand.card1}${heroHand.card2}`,
+                position: heroPosition,
+                street: currentStreet,
+                board: board.flop.join(' ') || '',
+                userPick: currentPick,
+                gtoAction: results.optimalAction?.label,
+                isCorrect,
+                evDelta: delta,
+              }),
+            });
+            // Dispatch bus event so leaks.js can refresh coach accuracy
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('sandbox-coach-result-saved', {
+                detail: { isCorrect, evDelta: delta }
+              }));
+            }
+          }
+        } catch (e) {
+          // Non-fatal — coach stats are a nice-to-have
+          console.warn('[CoachResult] Save error:', e.message);
+        }
+      })();
+    }
+  }, [results]); // intentionally only react to new results
+
+  // Coach picker: user picked an action — pass it DIRECTLY to runAnalysis to avoid stale closure
   const handleCoachPick = useCallback((action) => {
-    setCoachUserPick(action);
+    setCoachUserPick(action);       // persist to state so CoachVerdict can read it post-render
     setShowCoachPicker(false);
-    runAnalysis(true); // skip coach re-check
-  }, [heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, exploitMode, bubbleFactor, coachMode]);
+    runAnalysis(true, action);      // pass action directly — doesn't rely on React state update timing
+  }, [heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, exploitMode, bubbleFactor, coachMode, equity, currentStreet]);
 
   const handleCoachSkip = useCallback(() => {
     setCoachUserPick(null);
+    coachUserPickRef.current = null;
     setShowCoachPicker(false);
-    runAnalysis(true);
-  }, [heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, exploitMode, bubbleFactor, coachMode]);
+    runAnalysis(true, null);
+  }, [heroHand, heroPosition, heroStack, gameType, villains, board, potSize, actionHistory, exploitMode, bubbleFactor, coachMode, equity, currentStreet]);
+
+  // Reset coach pick when a new scenario is loaded or hand cleared
+  useEffect(() => {
+    setCoachUserPick(null);
+    setCoachEvDelta(null);
+  }, [heroHand.card1, heroHand.card2, heroPosition, board.flop.length]);
 
   // Villain archetype change — auto-populate range from VillainArchetypeRanges
   const handleVillainArchetypeChange = useCallback((villainIdx, archetypeId) => {
     const info = getArchetypeInfo(archetypeId) || {};
     const villainPos = villains[villainIdx]?.position || 'BB';
+    // Use the imported getArchetypeRangeString from VillainArchetypeRanges directly
     const range = getArchetypeRangeString(archetypeId, villainPos);
     const vpip = getArchetypeVPIP(archetypeId, villainPos);
     setVillains(prev => prev.map((v, i) => i === villainIdx ? {
@@ -1071,12 +1186,7 @@ export default function VirtualSandbox() {
       vpip,
     } : v));
   }, [villains]);
-
-  // Get archetype range string for a villain (used in analyze call)
-  const getArchetypeRangeString = (archetypeId, position) => {
-    const range = getArchetypeRange(archetypeId, position);
-    return range.join(',');
-  };
+  // NOTE: getArchetypeRangeString is imported from VillainArchetypeRanges.js — no local shadow needed
 
   // Position comparison (Feature #11)
   const runPositionComparison = async (pos) => {
@@ -1099,6 +1209,13 @@ export default function VirtualSandbox() {
     setQuizMode(false); setUserGuess(null); setQuizRevealed(false);
     setExploitMode('gto'); setPreflopScenario('rfi');
     setBubbleFactor(1.0);
+    // Wave 2 state reset
+    setReplayIndex(null);
+    setCoachUserPick(null);
+    setCoachEvDelta(null);
+    setShowShareHand(false);
+    setShowSessionLog(false);
+    // (sessionLog intentionally preserved across resets so the study journal persists)
   };
 
   if (isGated) return GateComponent;
@@ -1121,6 +1238,8 @@ export default function VirtualSandbox() {
         results={results} scenario={{ board: communityCards.join(' ') }} />
 
       {/* ── Wave 2 Modals ── */}
+      {/* Wave 3: Keyboard shortcut legend (press ? key to toggle) */}
+      <ShortcutLegend isOpen={showShortcutLegend} onClose={() => setShowShortcutLegend(false)} />
       <SessionLogModal
         isOpen={showSessionLog}
         onClose={() => setShowSessionLog(false)}
@@ -1130,6 +1249,18 @@ export default function VirtualSandbox() {
           // Restore scenario from session log entry
           if (entry.hand?.length >= 4) setHeroHand({ card1: entry.hand.substring(0, 2), card2: entry.hand.substring(2, 4) });
           if (entry.position) setHeroPosition(entry.position);
+          // Restore board (parse flop string)
+          if (entry.board && entry.board.length > 0) {
+            const cards = entry.board.split(' ').filter(Boolean);
+            setBoard(prev => ({ ...prev, flop: cards.slice(0, 3) }));
+          } else {
+            setBoard({ flop: [], turn: null, river: null });
+          }
+          // Clear action history so it starts fresh for this loaded hand
+          setActionHistory([]);
+          setPotSize(6);
+          // Haptic
+          try { navigator.vibrate?.(20); } catch (e) { }
         }}
       />
       <CoachActionPicker
@@ -1314,11 +1445,19 @@ export default function VirtualSandbox() {
           {/* Villain Position */}
           <div>
             <div style={{ fontSize: 8, color: '#65676B', fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>Villain</div>
-            <select value={villains[0]?.position || 'BB'} onChange={e => { const u = [...villains]; u[0] = { ...u[0], position: e.target.value }; setVillains(u); }}
+            <select value={villains[0]?.position || 'BB'} onChange={e => {
+              const newPos = e.target.value;
+              const archetypeId = villains[0]?.archetype?.id || 'gto_neutral';
+              // Also re-compute range/VPIP for the new position
+              const range = getArchetypeRangeString(archetypeId, newPos);
+              const vpip = getArchetypeVPIP(archetypeId, newPos);
+              setVillains(prev => prev.map((v, i) => i === 0 ? { ...v, position: newPos, range, vpip } : v));
+            }}
               style={{ width: '100%', padding: '4px 3px', borderRadius: 5, fontSize: 11, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB' }}>
               {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
+
 
           {/* Villain Style */}
           <div>
@@ -1473,7 +1612,7 @@ export default function VirtualSandbox() {
           )}
 
           {/* Analyze Hand */}
-          <motion.button onClick={runAnalysis} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
+          <motion.button onClick={() => runAnalysis()} disabled={isAnalyzing || !heroHand.card1 || !heroHand.card2}
             whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
             style={{
               width: '100%', padding: '8px 4px', borderRadius: 8, fontSize: 10, fontWeight: 700, border: 'none',
@@ -1748,6 +1887,7 @@ export default function VirtualSandbox() {
           >
             <motion.div
               id="results-panel" className="results-panel-inner"
+              ref={exportCardRef}
               initial={{ opacity: 0, y: 30, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 30, scale: 0.95 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               style={{
@@ -1780,14 +1920,16 @@ export default function VirtualSandbox() {
               {/* Exploit Toggle -- Phase 2 */}
               <ExploitToggle mode={exploitMode} onToggle={setExploitMode} exploitTip={exploitTip} />
 
-              {/* ICM Badge -- Phase 2 */}
+              {/* ICM Badge -- shows current bubble factor value (controlled via left-column slider) */}
               {gameType === 'tournament' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '6px 10px', borderRadius: '8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)' }}>
                   <span style={{ fontSize: '10px', color: '#fde68a', fontWeight: '700' }}>ICM Bubble Factor</span>
-                  <input type="range" min="0.5" max="2.0" step="0.1" value={bubbleFactor} onChange={e => setBubbleFactor(Number(e.target.value))} style={{ flex: 1, accentColor: '#fbbf24' }} />
-                  <span style={{ fontSize: '11px', color: '#fde68a', fontWeight: '700', minWidth: '30px' }}>{bubbleFactor.toFixed(1)}</span>
+                  <span style={{ flex: 1 }} />
+                  <span style={{ fontSize: '13px', color: '#fbbf24', fontWeight: '800', fontFamily: "'Orbitron',monospace" }}>{bubbleFactor.toFixed(1)}×</span>
+                  <span style={{ fontSize: '9px', color: '#fde68a' }}>{bubbleFactor <= 1.2 ? 'Deep Stack' : bubbleFactor <= 2.0 ? 'Bubble' : 'Final Table'}</span>
                 </div>
               )}
+
 
               {/* Plain-English Summary */}
               {/* Quiz Panel -- Phase 3 */}
@@ -1804,8 +1946,14 @@ export default function VirtualSandbox() {
                 />
               )}
 
+              {/* Wave 3: Villain Intel card — shows archetype exploit tips */}
+              {results && villains?.[0] && (
+                <VillainReadCard villain={villains[0]} />
+              )}
+
               {/* Wave 2: Equity Graph — shown when multi-street history exists */}
               <EquityGraph streetHistory={streetHistory} currentEquity={equity?.heroEquity} />
+
 
 
               {getResultsSummary(results) && (
@@ -1903,7 +2051,7 @@ export default function VirtualSandbox() {
 
               {/* Multi-Street — Feature #2 */}
               {board.flop.length === 3 && !board.river && (
-                <button onClick={() => { dealNextStreet(); setTimeout(runAnalysis, 200); }}
+                <button onClick={() => { dealNextStreet(); setTimeout(() => runAnalysis(true, null), 200); }}
                   style={{
                     width: '100%', padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
                     background: 'linear-gradient(135deg, #22c55e, #16a34a)', border: 'none',

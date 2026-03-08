@@ -14,6 +14,30 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
+// ── Save-session helper (SSR-safe) ──────────────────────────────
+function getAuthToken() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return parsed?.access_token || parsed?.currentSession?.access_token || null;
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function saveSession(payload) {
+    const token = getAuthToken();
+    if (!token) return;
+    fetch('/api/training/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+    }).catch(() => {});
+}
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -198,6 +222,14 @@ export default function SpotTrainerPage() {
         } else {
             setStreak(0);
             if (bus?.emitDecisionIncorrect) bus.emitDecisionIncorrect();
+        // Persist to Supabase
+        saveSession({
+            game_id: 'spot-trainer',
+            hands_played: 1,
+            accuracy: isCorrect ? 100 : 0,
+            correct_answers: isCorrect ? 1 : 0,
+            total_questions: 1,
+        });
         }
 
         // Emit bus event for cross-page sync (session-dashboard, position-mastery)

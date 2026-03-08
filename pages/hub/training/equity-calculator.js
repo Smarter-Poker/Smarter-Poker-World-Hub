@@ -8,11 +8,18 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+
+// SSR-safe bus emitter
+function busEmit(event, data) {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(event, { detail: data }));
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -445,6 +452,7 @@ function formatHand(handStr) {
 export default function EquityCalculatorPage() {
     const router = useRouter();
     useTrainingBus('equity-calculator');
+    const calcCountRef = useRef(0);
 
     // State
     const [numPlayers, setNumPlayers] = useState(2);
@@ -536,6 +544,14 @@ export default function EquityCalculatorPage() {
             const data = await res.json();
             if (data.success) {
                 setResults(data.results);
+                calcCountRef.current += 1;
+                busEmit('training:session-complete', {
+                    game_id: 'equity-calculator',
+                    accuracy: 100,
+                    hands_played: calcCountRef.current,
+                    correct_answers: calcCountRef.current,
+                    total_questions: calcCountRef.current,
+                });
             } else {
                 setError(data.error || 'Calculation failed');
             }

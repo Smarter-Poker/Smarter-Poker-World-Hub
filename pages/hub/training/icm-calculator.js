@@ -8,11 +8,42 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+
+// SSR-safe bus emitter
+function busEmit(event, data) {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(event, { detail: data }));
+    }
+}
+
+// ── Save-session helper (SSR-safe) ──────────────────────────────
+function getAuthToken() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return parsed?.access_token || parsed?.currentSession?.access_token || null;
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function saveSession(payload) {
+    const token = getAuthToken();
+    if (!token) return;
+    fetch('/api/training/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+    }).catch(() => { });
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -83,6 +114,7 @@ function getAuthHeaders() {
 export default function ICMCalculatorPage() {
     const router = useRouter();
     useTrainingBus('icm-calculator');
+    const calcCountRef = useRef(0);
 
     const [stacks, setStacks] = useState([25000, 20000, 15000, 10000]);
     const [prizes, setPrizes] = useState([40, 30, 20, 10]);
@@ -155,12 +187,18 @@ export default function ICMCalculatorPage() {
             const data = await res.json();
             if (data.success) {
                 setResults(data);
-                // Emit bus event for cross-page sync
-                try {
-                    window.dispatchEvent(new CustomEvent('training:icm-calculated', {
-                        detail: { players: stacks.length, prizePool, bubbleFactor: data.bubbleFactor },
-                    }));
-                } catch (_) { /* SSG guard */ }
+                calcCountRef.current += 1;
+                // Standard session-complete + legacy icm-calculated events
+                busEmit('training:session-complete', {
+                    game_id: 'icm-calculator',
+                    accuracy: 100,
+                    hands_played: calcCountRef.current,
+                    correct_answers: calcCountRef.current,
+                    total_questions: calcCountRef.current,
+                });
+                busEmit('training:icm-calculated', {
+                    players: stacks.length, prizePool, bubbleFactor: data.bubbleFactor,
+                });
             } else {
                 setError(data.error || 'Calculation failed');
             }

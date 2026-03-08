@@ -16,6 +16,36 @@ import RangeGrid from '../../../src/components/training/RangeGrid';
 import PreflopChartStats from '../../../src/components/training/PreflopChartStats';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
+function busEmit(event, data) {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(event, { detail: data }));
+    }
+}
+
+// ── Save-session helper (SSR-safe) ──────────────────────────────
+function getAuthToken() {
+    if (typeof window === 'undefined') return null;
+    try {
+        const raw = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return parsed?.access_token || parsed?.currentSession?.access_token || null;
+        }
+    } catch (e) { /* ignore */ }
+    return null;
+}
+
+function saveSession(payload) {
+    const token = getAuthToken();
+    if (!token) return;
+    fetch('/api/training/save-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+    }).catch(() => {});
+}
+
+
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -135,6 +165,8 @@ export default function PreflopCharts() {
                     setCompareActions(data.range.actions);
                 } else {
                     setRangeData(data.range.gridData);
+                busEmit('training:session-complete', { game_id: 'preflop-charts', hands_played: 1 });
+                saveSession({ game_id: 'preflop-charts', hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1 });
                     setStats(data.range.stats);
                     setActions(data.range.actions);
                 }

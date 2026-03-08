@@ -963,7 +963,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                     </h3>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         {(sessionLog?.length > 0) && (
-                            <button onClick={() => { try { navigator.vibrate?.(30); } catch (e) {} onClearSession(); }}
+                            <button onClick={() => { try { navigator.vibrate?.(30); } catch (e) { } onClearSession(); }}
                                 style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
                                 Clear
                             </button>
@@ -980,7 +980,7 @@ export function SessionLogModal({ isOpen, onClose, sessionLog, onLoadEntry, onCl
                         const actionKey = (entry.optimalAction || '').toLowerCase().split(' ')[0];
                         const badgeColor = ACTION_COLORS[actionKey] || '#4599FF';
                         return (
-                            <button key={entry.id || i} onClick={() => { try { navigator.vibrate?.(10); } catch (e) {} onLoadEntry(entry); onClose(); }}
+                            <button key={entry.id || i} onClick={() => { try { navigator.vibrate?.(10); } catch (e) { } onLoadEntry(entry); onClose(); }}
                                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', marginBottom: '6px', borderRadius: '10px', background: '#242526', border: '1px solid #3A3B3C', cursor: 'pointer', textAlign: 'left', touchAction: 'manipulation' }}>
                                 <div style={{ width: 36, height: 36, borderRadius: '10px', background: `${badgeColor}22`, border: `1px solid ${badgeColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', color: badgeColor, flexShrink: 0 }}>
                                     {(entry.optimalAction || '??').substring(0, 4)}
@@ -1024,7 +1024,7 @@ export function CoachActionPicker({ isOpen, onPick, onSkip }) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
                     {ACTIONS.map(a => (
-                        <button key={a.id} onClick={() => { try { navigator.vibrate?.(15); } catch (e) {} onPick(a.label); }}
+                        <button key={a.id} onClick={() => { try { navigator.vibrate?.(15); } catch (e) { } onPick(a.label); }}
                             style={{ padding: '12px 8px', borderRadius: '12px', fontSize: '13px', fontWeight: '700', background: `${a.color}15`, border: `1px solid ${a.color}40`, color: a.color, cursor: 'pointer', touchAction: 'manipulation' }}>
                             {a.label}
                         </button>
@@ -1075,7 +1075,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
                     {replayIndex != null ? '▶ Replay Mode' : 'Action History'}
                 </h4>
                 {replayIndex != null && (
-                    <button onClick={() => { try { navigator.vibrate?.(20); } catch (e) {} onExitReplay(); }}
+                    <button onClick={() => { try { navigator.vibrate?.(20); } catch (e) { } onExitReplay(); }}
                         style={{ padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '600', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>
                         Exit
                     </button>
@@ -1091,7 +1091,7 @@ export function ActionReplayBar({ actions, replayIndex, onReplayTo, onExitReplay
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <div style={{ width: 14, height: 2, background: isPast ? color : '#3A3B3C', transition: 'background 0.2s' }} />
                             <button
-                                onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) {} onReplayTo(isActive ? null : i); }}
+                                onClick={() => { try { navigator.vibrate?.(isActive ? 30 : 10); } catch (e) { } onReplayTo(isActive ? null : i); }}
                                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '4px 6px', borderRadius: '8px', fontSize: '9px', fontWeight: '700', background: isActive ? `${color}30` : isPast ? `${color}15` : '#3A3B3C', border: `1px solid ${isActive ? color : isPast ? color + '55' : '#4E4F50'}`, color: isActive ? color : isPast ? color + 'cc' : '#B0B3B8', cursor: 'pointer', minWidth: 34, boxShadow: isActive ? `0 0 8px ${color}40` : 'none', touchAction: 'manipulation' }}>
                                 <span style={{ color: isPast ? '#4599FF' : '#65676B', fontSize: '8px' }}>{a.position}</span>
                                 <span>{a.label}</span>
@@ -1130,7 +1130,7 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     };
 
     const handleDownload = async () => {
-        try { navigator.vibrate?.(20); } catch (e) {}
+        try { navigator.vibrate?.(20); } catch (e) { }
         const url = capturedUrl || await captureCanvas();
         if (!url) return;
         const link = document.createElement('a');
@@ -1140,32 +1140,61 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
     };
 
     const handlePostToProfile = async () => {
-        try { navigator.vibrate?.(15); } catch (e) {}
+        try { navigator.vibrate?.(15); } catch (e) { }
         setIsPosting(true);
         try {
             const user = getAuthUser();
             if (!user) { alert('Log in to post'); setIsPosting(false); return; }
+            // Fetch session token for auth header
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) { alert('Session expired. Please log in again.'); setIsPosting(false); return; }
             const hand = heroHand?.card1 ? `${heroHand.card1}${heroHand.card2}` : '??';
             const boardStr = board?.flop?.join(' ') || 'Preflop';
             const content = `🃏 Just analyzed a hand in the GTO Sandbox!\n\n**Hand:** ${hand} — ${scenario?.position || 'BTN'}\n**Board:** ${boardStr}\n**GTO Line:** ${results.optimalAction?.label} (${results.optimalAction?.frequency}%)\n\nTry this hand at smarter.poker/hub/personal-assistant/sandbox`;
             const res = await fetch('/api/social/create-post', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, content, content_type: 'sandbox_hand', metadata: { hand, board: boardStr, position: scenario?.position, optimalAction: results.optimalAction?.label, challengeEnabled: true } }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    user_id: user.id,
+                    content,
+                    content_type: 'sandbox_hand',
+                    metadata: {
+                        hand,
+                        board: boardStr,
+                        position: scenario?.position,
+                        optimalAction: results.optimalAction?.label,
+                        challengeEnabled: true,
+                    },
+                }),
             });
-            if (res.ok) setTimeout(onClose, 1200);
-        } catch (err) { console.error('Post error:', err); }
+            if (res.ok) {
+                // Dispatch bus listener event so social feed pages refresh
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('social-post-created', { detail: { type: 'sandbox_hand' } }));
+                }
+                setTimeout(onClose, 1200);
+            } else {
+                const errBody = await res.json().catch(() => ({}));
+                console.error('[ShareHandModal] Post failed:', res.status, errBody);
+            }
+        } catch (err) {
+            console.error('[ShareHandModal] Post error:', err);
+        }
         setIsPosting(false);
     };
 
+
     const handleNativeShare = async () => {
-        try { navigator.vibrate?.(15); } catch (e) {}
+        try { navigator.vibrate?.(15); } catch (e) { }
         const shareUrl = `${window.location.origin}/hub/personal-assistant/sandbox`;
         const text = `I analyzed ${heroHand?.card1 || '??'}${heroHand?.card2 || '??'} on the GTO Sandbox — GTO line: ${results.optimalAction?.label}`;
         try {
             if (navigator.share) { await navigator.share({ title: 'GTO Hand Analysis — Smarter.Poker', text, url: shareUrl }); }
             else { navigator.clipboard?.writeText(`${text}\n${shareUrl}`); }
-        } catch (e) {}
+        } catch (e) { }
     };
 
     const actions = [
@@ -1203,6 +1232,75 @@ export function ShareHandModal({ isOpen, onClose, results, scenario, heroHand, b
                     ))}
                 </div>
             </motion.div>
+        </motion.div>
+    );
+}
+
+// ── Wave 3: VillainReadCard (W3-5) ──────────────────────────────────────────
+const ARCHETYPE_EXPLOITS = {
+    nit: ['Steal blinds freely vs this player', 'Fold to raises — they only 3-bet premiums', 'Bet big when they call — value bet relentlessly'],
+    tag: ['Stay balanced — they notice unbalanced lines', 'Mix your frequencies vs TAG ranges', 'Respect their raises on scary boards'],
+    lag: ['Tighten your calling range vs 3-bets', 'Let them barrel into you with top pair+', 'Float light pre-flop only in position'],
+    calling_station: ['Bet very thin for value — they call anything', 'Remove bluffs entirely from your range', 'Overbet the river with strong value hands'],
+    maniac: ['Let them hang themselves — trap with premiums', 'Call down lighter vs maniac — bluff ratio is high', 'Raise for value when they show aggression'],
+    fish: ["Max bet strong hands — they won't notice odds", "Simplify your range — fancy plays won't work", "Don't slow play big hands — they can't fold"],
+    gto_neutral: ['Play balanced GTO frequencies', 'Mixed strategies are optimal here', 'No single exploit — adapt post-flop to tendencies'],
+};
+
+export function VillainReadCard({ villain }) {
+    const [open, setOpen] = useState(true);
+    if (!villain?.archetype?.id) return null;
+    const archetypeId = villain.archetype.id;
+    const tips = ARCHETYPE_EXPLOITS[archetypeId] || ARCHETYPE_EXPLOITS.gto_neutral;
+    const color = villain.vpip > 40 ? '#f97316' : villain.vpip > 25 ? '#fbbf24' : '#4ade80';
+
+    return (
+        <div style={{ margin: '12px 0', borderRadius: 10, border: '1px solid rgba(167,139,250,0.25)', background: 'rgba(139,92,246,0.06)', overflow: 'hidden' }}>
+            <button onClick={() => { setOpen(o => !o); try { navigator.vibrate?.(8); } catch (e) { } }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 13, fontWeight: 700 }}>
+                🃏 Villain Intel — {villain.archetype.name || archetypeId}
+                <span style={{ marginLeft: 'auto', fontSize: 10, color: '#65676B' }}>{open ? '▲' : '▼'}</span>
+            </button>
+            {open && (
+                <div style={{ padding: '0 14px 12px' }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, color: '#65676B', fontWeight: 600 }}>VPIP</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color }}>{villain.vpip ?? 'N/A'}%</span>
+                    </div>
+                    <ul style={{ margin: 0, padding: '0 0 0 16px', listStyle: 'disc', color: '#B0B3B8', fontSize: 11, lineHeight: 1.6 }}>
+                        {tips.map((tip, i) => <li key={i}>{tip}</li>)}
+                    </ul>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Wave 3: ShortcutLegend (W3-6) ──────────────────────────────────────────
+export function ShortcutLegend({ isOpen, onClose }) {
+    if (!isOpen) return null;
+    const shortcuts = [
+        ['A', 'Analyze hand'],
+        ['R', 'Reset all'],
+        ['U', 'Undo last change'],
+        ['S', 'Save bookmark'],
+        ['C', 'Toggle Coach Mode'],
+        ['Esc', 'Close results panel'],
+        ['?', 'Toggle this legend'],
+    ];
+    return (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', top: 80, right: 16, zIndex: 9990, background: '#242526', border: '1px solid #4E4F50', borderRadius: 12, padding: '14px 16px', minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#E4E6EB', textTransform: 'uppercase', letterSpacing: 1 }}>Keyboard Shortcuts</span>
+                <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#65676B', cursor: 'pointer', fontSize: 16, padding: 0 }}>✕</button>
+            </div>
+            {shortcuts.map(([key, label]) => (
+                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <span style={{ fontSize: 11, color: '#B0B3B8' }}>{label}</span>
+                    <kbd style={{ fontSize: 10, fontWeight: 700, color: '#E4E6EB', background: '#3A3B3C', border: '1px solid #4E4F50', borderRadius: 4, padding: '2px 6px', fontFamily: 'monospace' }}>{key}</kbd>
+                </div>
+            ))}
         </motion.div>
     );
 }

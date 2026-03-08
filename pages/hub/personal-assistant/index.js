@@ -55,10 +55,26 @@ export default function PersonalAssistantPage() {
   }, []);
 
   // Real data hooks
-  const { sessions: recentSessions, isLoading: sessionsLoading } = useRecentSessions(5);
+  const { sessions: recentSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useRecentSessions(5);
   const isLoading = sessionsLoading;
 
   useEffect(() => { setMounted(true); }, []);
+
+  // 📢 Bus listener — refresh sessions when sandbox analyzes a hand or saves a bookmark
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleSandboxUpdate = () => {
+      try { refetchSessions?.(); } catch (e) { /* non-fatal */ }
+    };
+    window.addEventListener('pa-sandbox-updated', handleSandboxUpdate);
+    window.addEventListener('pa-data-updated', handleSandboxUpdate);
+    return () => {
+      window.removeEventListener('pa-sandbox-updated', handleSandboxUpdate);
+      window.removeEventListener('pa-data-updated', handleSandboxUpdate);
+    };
+  }, [refetchSessions]);
+
+
 
   if (!mounted) {
     return (
