@@ -212,6 +212,8 @@ export default function LobbyOverlay({
   onCitySelect,
   onVoiceClick,
   gpsError,
+  searchHistory = [],
+  onHistorySelect,
 }) {
   const searchRef = useRef(null);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -350,6 +352,53 @@ export default function LobbyOverlay({
                       <circle cx="12" cy="10" r="3" />
                     </svg>
                     {city}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Search History — shown when focused + empty query */}
+            {searchFocused && !searchQuery && searchHistory.length > 0 && !showSuggestions && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0,
+                  marginTop: 4, background: 'rgba(12,18,28,0.97)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(110,231,239,0.15)',
+                  borderRadius: 12, overflow: 'hidden', zIndex: 60,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                }}
+              >
+                <div style={{
+                  padding: '8px 16px 4px', fontSize: 10, color: 'rgba(200,214,229,0.35)',
+                  textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600,
+                }}>
+                  Recent Searches
+                </div>
+                {searchHistory.slice(0, 6).map((item, i) => (
+                  <button
+                    key={item.id || i}
+                    onClick={() => onHistorySelect?.(item.search_query)}
+                    style={{
+                      display: 'block', width: '100%', padding: '8px 16px',
+                      background: 'transparent', border: 'none',
+                      borderBottom: i < Math.min(searchHistory.length, 6) - 1 ? '1px solid rgba(110,231,239,0.04)' : 'none',
+                      color: 'rgba(200,214,229,0.7)', fontSize: 13, textAlign: 'left',
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => e.target.style.background = 'rgba(110,231,239,0.06)'}
+                    onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(200,214,229,0.3)" strokeWidth="2" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    {item.search_query}
                   </button>
                 ))}
               </motion.div>

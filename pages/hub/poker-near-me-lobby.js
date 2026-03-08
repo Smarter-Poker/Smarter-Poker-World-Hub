@@ -25,7 +25,8 @@ import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../src/config/hamburgerMenus';
 import { getVenueFavorites, addVenueFavorite, removeVenueFavorite } from '../../src/services/pokerNearMeFavorites';
-import { addSearchHistory as addSearchHistoryToDb } from '../../src/services/pokerNearMeSearchHistory';
+import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../../src/services/pokerNearMeSearchHistory';
+import { getPokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
 // Dynamic imports — Canvas lobby (client-only, no SSR)
@@ -148,6 +149,219 @@ const POD_FEATURES = {
   calculator: { title: 'Trip Calculator', tab: 'calculator' },
 };
 
+// ─── Daily Tournaments Panel with day-of-week tabs ───
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const TODAY_INDEX = new Date().getDay();
+
+function DailyTournamentsPanel({ tournaments = [], onDayChange }) {
+  const [selectedDay, setSelectedDay] = useState(DAYS[TODAY_INDEX]);
+
+  const handleDayChange = (day) => {
+    setSelectedDay(day);
+    onDayChange?.(day);
+  };
+
+  // Filter tournaments by selected day (client-side fallback)
+  const filtered = tournaments.filter(t => {
+    if (!t.day_of_week) return true;
+    return t.day_of_week.toLowerCase() === selectedDay.toLowerCase();
+  });
+
+  return (
+    <div>
+      {/* Day-of-week tabs */}
+      <div style={{
+        display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto',
+        paddingBottom: 4, scrollbarWidth: 'none', msOverflowStyle: 'none',
+      }}>
+        {DAYS.map((day) => (
+          <button
+            key={day}
+            onClick={() => handleDayChange(day)}
+            style={{
+              flexShrink: 0, padding: '6px 12px', borderRadius: 8,
+              border: selectedDay === day ? '1px solid rgba(34,197,94,0.6)' : '1px solid rgba(110,231,239,0.15)',
+              background: selectedDay === day ? 'rgba(34,197,94,0.15)' : 'rgba(110,231,239,0.04)',
+              color: selectedDay === day ? '#22c55e' : 'rgba(200,214,229,0.6)',
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.05em',
+              transition: 'all 0.2s',
+            }}
+          >
+            {day === DAYS[TODAY_INDEX] ? 'Today' : day.slice(0, 3)}
+          </button>
+        ))}
+      </div>
+
+      {/* Tournament cards */}
+      <div style={{ display: 'grid', gap: 10 }}>
+        {filtered.map((t, i) => (
+          <div key={t.id || i} style={{
+            background: 'rgba(110,231,239,0.04)', border: '1px solid rgba(110,231,239,0.1)',
+            borderRadius: 12, padding: '12px 16px',
+            transition: 'border-color 0.2s',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#e0e8f0', marginBottom: 2 }}>
+                  {t.tournament_name || t.name || `${t.game_type || 'NLH'} Tournament`}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(200,214,229,0.55)' }}>
+                  {t.venue_name || 'Unknown Venue'}
+                </div>
+              </div>
+              <div style={{
+                fontSize: 13, fontWeight: 700, color: '#22c55e',
+                background: 'rgba(34,197,94,0.1)', padding: '3px 10px', borderRadius: 6,
+                whiteSpace: 'nowrap',
+              }}>
+                {t.buy_in ? `$${t.buy_in}` : 'TBD'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11, color: 'rgba(200,214,229,0.45)' }}>
+              {t.start_time && <span>{t.start_time}</span>}
+              {t.game_type && <span style={{ color: '#6ee7ef' }}>{t.game_type}</span>}
+              {t.guaranteed && <span style={{ color: '#f59e0b' }}>GTD: ${typeof t.guaranteed === 'number' ? t.guaranteed.toLocaleString() : t.guaranteed}</span>}
+              {t.starting_stack && <span>Stack: {t.starting_stack.toLocaleString?.() || t.starting_stack}</span>}
+              {t.blind_levels && <span>Blinds: {t.blind_levels}</span>}
+              {t.rebuy_addon && <span>{t.rebuy_addon}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
+          <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No tournaments found for {selectedDay}</p>
+          <p style={{ fontSize: 13 }}>Try another day or enable GPS to see tournaments near you.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Venue Map Panel (inline Leaflet map) ───
+function VenueMapPanel({ venues = [], userLocation, onVenueSelect }) {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
+
+  useEffect(() => {
+    if (mapInstanceRef.current) return; // Already initialized
+    if (!mapRef.current) return;
+
+    // Dynamically load Leaflet CSS + JS
+    const loadLeaflet = async () => {
+      // Add CSS if not already loaded
+      if (!document.querySelector('link[href*="leaflet"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      // Import Leaflet
+      const L = (await import('leaflet')).default;
+
+      const center = userLocation
+        ? [userLocation.lat, userLocation.lng]
+        : [36.1699, -115.1398]; // Default: Las Vegas
+
+      const map = L.map(mapRef.current, {
+        center,
+        zoom: userLocation ? 10 : 5,
+        zoomControl: true,
+        attributionControl: false,
+      });
+
+      // Dark tile layer
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+
+      // Add venue markers
+      const validVenues = venues.filter(v => v.latitude && v.longitude);
+      validVenues.forEach(v => {
+        const marker = L.circleMarker([v.latitude, v.longitude], {
+          radius: 7,
+          fillColor: v.is_featured ? '#ffd700' : '#6ee7ef',
+          fillOpacity: 0.85,
+          color: 'rgba(110,231,239,0.4)',
+          weight: 1,
+        }).addTo(map);
+
+        marker.bindPopup(
+          `<div style="font-family:sans-serif;font-size:13px;min-width:160px;">
+            <strong>${v.name}</strong><br/>
+            <span style="color:#666;">${v.city || ''}, ${v.state || ''}</span>
+            ${v.games_offered ? `<br/><span style="color:#3b82f6;">${v.games_offered.slice(0, 3).join(', ')}</span>` : ''}
+          </div>`,
+          { className: 'pnm-popup' }
+        );
+
+        marker.on('click', () => onVenueSelect?.(v));
+      });
+
+      // Add user location marker
+      if (userLocation) {
+        L.circleMarker([userLocation.lat, userLocation.lng], {
+          radius: 10, fillColor: '#22c55e', fillOpacity: 0.9,
+          color: '#fff', weight: 2,
+        }).addTo(map).bindPopup('You are here');
+      }
+
+      // Fit bounds to show all markers
+      if (validVenues.length > 1) {
+        const bounds = L.latLngBounds(validVenues.map(v => [v.latitude, v.longitude]));
+        if (userLocation) bounds.extend([userLocation.lat, userLocation.lng]);
+        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+      }
+
+      setMapReady(true);
+    };
+
+    loadLeaflet().catch(err => console.error('Failed to load map:', err));
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        ref={mapRef}
+        style={{
+          width: '100%', height: 400, borderRadius: 12, overflow: 'hidden',
+          border: '1px solid rgba(110,231,239,0.15)',
+          background: '#0a1628',
+        }}
+      />
+      {!mapReady && (
+        <div style={{
+          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: 'rgba(200,214,229,0.5)',
+          fontSize: 14, borderRadius: 12,
+        }}>
+          Loading map...
+        </div>
+      )}
+      <div style={{
+        marginTop: 8, fontSize: 12, color: 'rgba(200,214,229,0.4)',
+        textAlign: 'center',
+      }}>
+        {venues.filter(v => v.latitude && v.longitude).length} venues on map
+        {userLocation && ' • GPS active'}
+      </div>
+    </div>
+  );
+}
+
 export default function PokerNearMeLobby() {
   const router = useRouter();
   const { user } = useAvatar();
@@ -169,6 +383,8 @@ export default function PokerNearMeLobby() {
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [selectedVenueForReview, setSelectedVenueForReview] = useState(null);
   const [gpsError, setGpsError] = useState(null);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
 
   // ─── Data State ───
   const [venues, setVenues] = useState([]);
@@ -323,9 +539,10 @@ export default function PokerNearMeLobby() {
   }, []);
 
   // ─── Fetch daily tournaments ───
-  const fetchDaily = useCallback(async () => {
+  const fetchDaily = useCallback(async (dayFilter = '') => {
     try {
-      let url = '/api/poker/venues?type=daily';
+      let url = '/api/poker/daily-tournaments?limit=200';
+      if (dayFilter) url += `&day=${encodeURIComponent(dayFilter)}`;
       if (userLocation) url += `&lat=${userLocation.lat}&lng=${userLocation.lng}&radius=100`;
       const data = await cachedFetch(url);
       if (data?.data) setDailyTournaments(data.data);
@@ -347,6 +564,28 @@ export default function PokerNearMeLobby() {
     }
   }, []);
 
+  // ─── Fetch search history ───
+  const fetchSearchHistory = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const history = await getSearchHistory(userId, 10);
+      setSearchHistory(history || []);
+    } catch (err) {
+      console.error('Failed to fetch search history:', err);
+    }
+  }, [userId]);
+
+  // ─── Fetch user preferences ───
+  const fetchPreferences = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const prefs = await getPokerNearMePreferences(userId);
+      setPreferences(prefs);
+    } catch (err) {
+      console.error('Failed to fetch preferences:', err);
+    }
+  }, [userId]);
+
   // ─── Initial data load — mount only ───
   const didMountRef = useRef(false);
   useEffect(() => {
@@ -358,6 +597,8 @@ export default function PokerNearMeLobby() {
     fetchDaily();
     fetchLiveGames();
     fetchFavorites();
+    fetchSearchHistory();
+    fetchPreferences();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Live games refresh ───
@@ -579,7 +820,14 @@ export default function PokerNearMeLobby() {
                   key={v.id}
                   venue={v}
                   isFavorited={!!favorites[v.id]}
-                  onToggleFavorite={() => handleToggleFavorite(v.id, v)}
+                  onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                  onNavigate={(url) => {
+                    if (url.includes('action=review')) {
+                      setSelectedVenueForReview({ id: v.id, name: v.name });
+                    } else {
+                      router.push(url);
+                    }
+                  }}
                   userLocation={userLocation}
                 />
               ))}
@@ -619,23 +867,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'mapview':
-        component = (
-          <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.5)' }}>
-            <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Interactive Map</p>
-            <p style={{ fontSize: 13 }}>Full map view with clustered venue markers.</p>
-            <button
-              onClick={() => router.push('/hub/poker-near-me?tab=map')}
-              style={{
-                marginTop: 16, padding: '10px 24px',
-                background: 'linear-gradient(135deg, #6ee7ef, #3b82f6)',
-                border: 'none', borderRadius: 10, color: '#000',
-                fontSize: 14, fontWeight: 600, cursor: 'pointer'
-              }}
-            >
-              Open Full Map
-            </button>
-          </div>
-        );
+        component = <VenueMapPanel venues={venues} userLocation={userLocation} onVenueSelect={(v) => { setSelectedVenueForReview(null); router.push(`/hub/venues/${v.id}`); }} />;
         break;
 
       case 'tours':
@@ -665,16 +897,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'daily':
-        component = (
-          <div style={{ display: 'grid', gap: 12 }}>
-            {dailyTournaments.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 40, color: 'rgba(200,214,229,0.4)' }}>
-                <p style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Daily Tournaments</p>
-                <p style={{ fontSize: 13 }}>Search a city or enable GPS to see today's tournaments.</p>
-              </div>
-            )}
-          </div>
-        );
+        component = <DailyTournamentsPanel tournaments={dailyTournaments} onDayChange={fetchDaily} />;
         break;
 
       case 'calendar':
@@ -714,7 +937,14 @@ export default function PokerNearMeLobby() {
                 key={v.id}
                 venue={v}
                 isFavorited={true}
-                onToggleFavorite={() => handleToggleFavorite(v.id, v)}
+                onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                onNavigate={(url) => {
+                  if (url.includes('action=review')) {
+                    setSelectedVenueForReview({ id: v.id, name: v.name });
+                  } else {
+                    router.push(url);
+                  }
+                }}
                 userLocation={userLocation}
               />
             ))}
@@ -804,6 +1034,8 @@ export default function PokerNearMeLobby() {
           onCitySelect={handleCitySelect}
           onVoiceClick={() => setShowVoiceSearch(true)}
           gpsError={gpsError}
+          searchHistory={searchHistory}
+          onHistorySelect={handleCitySelect}
         />
 
 
