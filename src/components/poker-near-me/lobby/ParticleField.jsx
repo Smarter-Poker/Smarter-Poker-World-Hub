@@ -63,14 +63,14 @@ const particleVertexShader = `
     // Per-particle twinkle
     float twinkle = 0.3 + 0.7 * sin(uTime * 0.6 + aPhase * 6.283);
 
-    // Sparkle flash — rare bright pops
-    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 12.0) * 5.0;
+    // Sparkle flash — rare bright pops (restrained for dark scene)
+    float flash = pow(max(0.0, sin(uTime * 1.5 + aPhase * 12.566)), 12.0) * 2.0;
 
     vAlpha = twinkle * 0.6 + flash * 0.4;
 
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     float sizeFactor = aSize * (1.0 + flash * 0.5);
-    gl_PointSize = sizeFactor * uPixelRatio * (450.0 / -mvPosition.z);
+    gl_PointSize = sizeFactor * uPixelRatio * (280.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;
@@ -85,8 +85,8 @@ const particleFragmentShader = `
     float alpha = texColor.a * vAlpha;
     if (alpha < 0.01) discard;
 
-    // Emissive glow — colors are pushed above 1.0 for bloom pickup
-    vec3 emissive = vColor * 3.0;
+    // Subtle glow — keep below bloom threshold for dark scene
+    vec3 emissive = vColor * 1.2;
     gl_FragColor = vec4(emissive * texColor.rgb, alpha);
   }
 `;

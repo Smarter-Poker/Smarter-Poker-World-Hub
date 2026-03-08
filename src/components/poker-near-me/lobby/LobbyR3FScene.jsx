@@ -36,26 +36,26 @@ const POD_Y = 0.3;
 const QUALITY = {
   high: {
     dpr: 2.0,
-    particleCount: 1800,
+    particleCount: 1200,
     shadows: true,
-    bloomThreshold: 0.7,
-    bloomIntensity: 0.8,
-    bloomRadius: 0.5,
-  },
-  medium: {
-    dpr: 1.0,
-    particleCount: 1000,
-    shadows: false,
-    bloomThreshold: 0.8,
+    bloomThreshold: 0.85,
     bloomIntensity: 0.6,
     bloomRadius: 0.4,
   },
-  low: {
-    dpr: 0.75,
-    particleCount: 500,
+  medium: {
+    dpr: 1.0,
+    particleCount: 800,
     shadows: false,
     bloomThreshold: 0.9,
     bloomIntensity: 0.4,
+    bloomRadius: 0.35,
+  },
+  low: {
+    dpr: 0.75,
+    particleCount: 400,
+    shadows: false,
+    bloomThreshold: 0.95,
+    bloomIntensity: 0.3,
     bloomRadius: 0.3,
   },
 };
@@ -286,7 +286,7 @@ function PostProcessingEffects({ quality }) {
           modulationOffset={0.5}
         />
       )}
-      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={0.85} />
+      <ToneMapping mode={ToneMappingMode.ACES_FILMIC} exposure={0.7} />
     </EffectComposer>
   );
 }
@@ -350,17 +350,17 @@ function GroundPlatform({ quality }) {
           <ReflectorMat
             blur={quality === 'high' ? [300, 100] : quality === 'medium' ? [200, 64] : [100, 32]}
             resolution={quality === 'high' ? 256 : quality === 'medium' ? 128 : 64}
-            mixBlur={0.85}
-            mixStrength={0.25}
-            roughness={0.85}
-            depthScale={0.1}
+            mixBlur={0.9}
+            mixStrength={0.15}
+            roughness={0.9}
+            depthScale={0.08}
             minDepthThreshold={0.4}
             maxDepthThreshold={1.4}
-            color="#040e1a"
-            metalness={0.95}
-            mirror={0.15}
+            color="#030a14"
+            metalness={0.9}
+            mirror={0.08}
             transparent
-            opacity={0.6}
+            opacity={0.5}
           />
         ) : (
           <meshStandardMaterial color="#061525" metalness={0.9} roughness={0.3} transparent opacity={0.7} />
@@ -766,9 +766,9 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       />
       <directionalLight position={[-5, 8, -3]} intensity={0.15} color="#6ee7ef" />
       <directionalLight position={[0, 3, -8]} intensity={0.1} color="#3b82f6" />
-      <pointLight position={[0, 4, 0]} intensity={0.6} color="#6ee7ef" distance={12} decay={2} />
+      <pointLight position={[0, 4, 0]} intensity={0.3} color="#6ee7ef" distance={10} decay={2} />
       {/* Subtle warm underlight for pod pedestals */}
-      <pointLight position={[0, -0.5, 0]} intensity={0.2} color="#ff8c00" distance={5} decay={2} />
+      <pointLight position={[0, -0.5, 0]} intensity={0.1} color="#ff8c00" distance={4} decay={2} />
 
       {/* ═══ ENVIRONMENT-BASED LIGHTING (lazy) ═══ */}
       <SceneEnvironment />

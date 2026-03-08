@@ -297,11 +297,11 @@ export function FeaturePod({ pod, radius, y, isActive, onClick }) {
           orbRadius={orbRadius}
         />
 
-        {/* Inner light source for the orb — restrained for contrast */}
+        {/* Inner light source for the orb — very restrained */}
         <pointLight
           color={pod.color}
-          intensity={hovered ? 1.2 : isActive ? 0.8 : 0.5}
-          distance={5}
+          intensity={hovered ? 0.5 : isActive ? 0.3 : 0.15}
+          distance={3}
           decay={2}
         />
       </group>
