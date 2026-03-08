@@ -1104,6 +1104,11 @@ function GodModeArena({
                                             color: config.color,
                                         }}>
                                             {classificationCounts[key] || 0}
+                                            {totalQuestions > 0 && (
+                                                <span style={{ fontSize: 9, fontWeight: 600, opacity: 0.6, marginLeft: 2 }}>
+                                                    ({Math.round(((classificationCounts[key] || 0) / totalQuestions) * 100)}%)
+                                                </span>
+                                            )}
                                         </div>
                                         <div style={{
                                             ...styles.classBadge,

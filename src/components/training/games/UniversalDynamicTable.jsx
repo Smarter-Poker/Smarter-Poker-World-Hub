@@ -865,6 +865,50 @@ function UniversalDynamicTable({
     const prevStreakRef = useRef(streak);
     const swipeTouchRef = useRef(null);
 
+    // Phase 3: RNG Mode state
+    const [rngMode, setRngMode] = React.useState(false);
+    const [rngRoll, setRngRoll] = React.useState(null);
+
+    // Phase 3: Retry Hand state
+    const lastQuestionRef = useRef(null);
+    const [retryActive, setRetryActive] = React.useState(false);
+
+    // Phase 3: Study Mode (show frequencies before answering)
+    const [studyMode, setStudyMode] = React.useState(false);
+
+    // Phase 3: Floating EV popup
+    const [evPopup, setEvPopup] = React.useState(null);
+
+    // Phase 3: Store question for retry + trigger EV popup on feedback
+    useEffect(() => {
+        if (question && !showFeedback) {
+            lastQuestionRef.current = question;
+            setRetryActive(false);
+        }
+    }, [question, showFeedback]);
+
+    // Phase 3: RNG roll on feedback
+    useEffect(() => {
+        if (showFeedback && rngMode && gtoFrequencies) {
+            setRngRoll(Math.floor(Math.random() * 100) + 1);
+        } else if (!showFeedback) {
+            setRngRoll(null);
+        }
+    }, [showFeedback, rngMode, gtoFrequencies]);
+
+    // Phase 3: EV popup on answer
+    useEffect(() => {
+        if (showFeedback && moveClassification) {
+            const isGood = moveClassification === 'best' || moveClassification === 'correct';
+            setEvPopup({
+                value: evLoss > 0 ? `-${evLoss.toFixed(1)}` : '+0.0',
+                color: isGood ? '#22c55e' : '#ef4444',
+            });
+            const timer = setTimeout(() => setEvPopup(null), 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [showFeedback, moveClassification, evLoss]);
+
     // F8: Sound effects on feedback
     useEffect(() => {
         if (!showFeedback || !moveClassification) return;
@@ -1398,6 +1442,61 @@ function UniversalDynamicTable({
                 />
             </div>
 
+            {/* Phase 3: RNG / Study Mode Toggles */}
+            <div style={{ display: 'flex', gap: 6, padding: '0 16px 4px', justifyContent: 'flex-end' }}>
+                <button
+                    onClick={() => setRngMode(v => !v)}
+                    style={{
+                        padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                        border: `1px solid ${rngMode ? 'rgba(168,85,247,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        background: rngMode ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.03)',
+                        color: rngMode ? '#a855f7' : '#64748b', cursor: 'pointer',
+                        letterSpacing: 0.5, transition: 'all 0.15s ease',
+                    }}
+                >
+                    RNG {rngMode ? 'ON' : 'OFF'}
+                </button>
+                <button
+                    onClick={() => setStudyMode(v => !v)}
+                    style={{
+                        padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                        border: `1px solid ${studyMode ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        background: studyMode ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+                        color: studyMode ? '#3b82f6' : '#64748b', cursor: 'pointer',
+                        letterSpacing: 0.5, transition: 'all 0.15s ease',
+                    }}
+                >
+                    {studyMode ? 'STUDY' : 'TRAIN'}
+                </button>
+            </div>
+
+            {/* Phase 3: Session EV Progress Bar */}
+            <div style={{
+                margin: '0 16px 6px', height: 4, borderRadius: 2,
+                background: 'rgba(255,255,255,0.05)', overflow: 'hidden',
+                position: 'relative',
+            }}>
+                <motion.div
+                    animate={{ width: `${Math.min(100, Math.max(0, 50 + (totalSessionEVLoss > 0 ? -totalSessionEVLoss * 5 : 0)))}%` }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    style={{
+                        height: '100%', borderRadius: 2,
+                        background: totalSessionEVLoss > 5
+                            ? 'linear-gradient(90deg, #ef4444, #f97316)'
+                            : totalSessionEVLoss > 1
+                                ? 'linear-gradient(90deg, #fbbf24, #f97316)'
+                                : 'linear-gradient(90deg, #22c55e, #4ade80)',
+                    }}
+                />
+                <div style={{
+                    position: 'absolute', top: -10, right: 4,
+                    fontSize: 8, fontWeight: 700,
+                    color: totalSessionEVLoss > 1 ? '#ef4444' : '#22c55e',
+                }}>
+                    {totalSessionEVLoss > 0 ? `-${totalSessionEVLoss.toFixed(1)} EV` : '0.0 EV'}
+                </div>
+            </div>
+
             {/* GAP-4: Scenario context bar (replaces verbose question text) */}
             <div style={styles.questionBar}>
                 <div style={styles.scenarioInfo}>
@@ -1444,6 +1543,32 @@ function UniversalDynamicTable({
 
             {/* TABLE AREA - Center */}
             <div style={styles.tableArea}>
+
+                {/* Phase 3: Floating EV Popup */}
+                <AnimatePresence>
+                    {evPopup && (
+                        <motion.div
+                            key="ev-popup"
+                            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                            animate={{ opacity: 1, y: -20, scale: 1.2 }}
+                            exit={{ opacity: 0, y: -40 }}
+                            transition={{ duration: 0.6 }}
+                            style={{
+                                position: 'absolute',
+                                top: '45%', left: '50%',
+                                transform: 'translateX(-50%)',
+                                zIndex: 100,
+                                fontSize: 28, fontWeight: 900,
+                                color: evPopup.color,
+                                textShadow: `0 0 20px ${evPopup.color}44, 0 2px 8px rgba(0,0,0,0.5)`,
+                                pointerEvents: 'none',
+                                fontFamily: "'Inter', -apple-system, sans-serif",
+                            }}
+                        >
+                            {evPopup.value} EV
+                        </motion.div>
+                    )}
+                </AnimatePresence>
                 {/* Table Image */}
                 <img
                     src="/images/training/table-vertical-stadium-transparent.png"
@@ -1890,13 +2015,16 @@ function UniversalDynamicTable({
                                         return null;
                                     })()}
                                 </span>
-                                {/* Show frequency label on feedback */}
-                                {showFeedback && (
+                                {/* Show frequency label on feedback OR study mode */}
+                                {(showFeedback || (studyMode && computedFrequencies)) && (
                                     <motion.span
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
-                                        transition={{ delay: 0.3 }}
-                                        style={styles.freqLabel}
+                                        transition={{ delay: showFeedback ? 0.3 : 0 }}
+                                        style={{
+                                            ...styles.freqLabel,
+                                            ...(studyMode && !showFeedback ? { opacity: 0.5, fontSize: 9 } : {}),
+                                        }}
                                     >
                                         {freq}%
                                     </motion.span>
@@ -2000,6 +2128,49 @@ function UniversalDynamicTable({
                                 {evLoss === 0 && <span style={{ fontSize: 9, marginLeft: 6, fontWeight: 'normal', opacity: 0.8 }}>(Optimal)</span>}
                             </span>
                         </div>
+
+                        {/* Phase 3: RNG Roll Indicator */}
+                        {rngMode && rngRoll !== null && computedFrequencies && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: 10,
+                                    padding: '8px 14px', borderRadius: 8,
+                                    background: 'rgba(168,85,247,0.08)',
+                                    border: '1px solid rgba(168,85,247,0.2)',
+                                    marginBottom: 8,
+                                }}
+                            >
+                                <div style={{
+                                    width: 32, height: 32, borderRadius: '50%',
+                                    background: 'rgba(168,85,247,0.2)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 14, fontWeight: 900, color: '#a855f7',
+                                }}>
+                                    {rngRoll}
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: '#a855f7', letterSpacing: 0.5 }}>
+                                        RNG ROLL
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#e2e8f0', fontWeight: 600 }}>
+                                        {(() => {
+                                            // Determine which action the RNG roll selects
+                                            let cumulative = 0;
+                                            for (const [actionId, freq] of Object.entries(computedFrequencies)) {
+                                                cumulative += freq;
+                                                if (rngRoll <= cumulative) {
+                                                    const opt = options.find(o => o.id === actionId);
+                                                    return `→ ${opt?.text || actionId}`;
+                                                }
+                                            }
+                                            return `→ ${options[0]?.text || 'Check'}`;
+                                        })()}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Per-Action EV Comparison — GTO Wizard-style */}
                         {question?.evData?.actionEVs && Object.keys(question.evData.actionEVs).length > 0 && (
@@ -2227,33 +2398,58 @@ function UniversalDynamicTable({
 
                         {/* UI-2: Next Hand / Continue Hand button */}
                         {onNextHand ? (
-                            <motion.button
-                                onClick={onNextHand}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 }}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                style={{
-                                    marginTop: 8,
-                                    padding: '10px 28px',
-                                    borderRadius: 10,
-                                    border: isMultiStreetActive
-                                        ? '1px solid rgba(251, 146, 60, 0.5)'
-                                        : '1px solid rgba(0, 212, 255, 0.4)',
-                                    background: isMultiStreetActive
-                                        ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.2) 0%, rgba(251, 146, 60, 0.05) 100%)'
-                                        : 'linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
-                                    color: isMultiStreetActive ? '#fb923c' : '#00d4ff',
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    letterSpacing: 0.5,
-                                    fontFamily: "'Inter', -apple-system, sans-serif",
-                                }}
-                            >
-                                {isMultiStreetActive ? 'Continue Hand →' : 'Next Hand →'}
-                            </motion.button>
+                            <>
+                                <motion.button
+                                    onClick={onNextHand}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.5 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    style={{
+                                        marginTop: 8,
+                                        padding: '10px 28px',
+                                        borderRadius: 10,
+                                        border: isMultiStreetActive
+                                            ? '1px solid rgba(251, 146, 60, 0.5)'
+                                            : '1px solid rgba(0, 212, 255, 0.4)',
+                                        background: isMultiStreetActive
+                                            ? 'linear-gradient(180deg, rgba(251, 146, 60, 0.2) 0%, rgba(251, 146, 60, 0.05) 100%)'
+                                            : 'linear-gradient(180deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 212, 255, 0.05) 100%)',
+                                        color: isMultiStreetActive ? '#fb923c' : '#00d4ff',
+                                        fontSize: 14,
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        letterSpacing: 0.5,
+                                        fontFamily: "'Inter', -apple-system, sans-serif",
+                                    }}
+                                >
+                                    {isMultiStreetActive ? 'Continue Hand \u2192' : 'Next Hand \u2192'}
+                                </motion.button>
+                                {/* Phase 3: Retry Hand */}
+                                {!isMultiStreetActive && lastQuestionRef.current && (
+                                    <motion.button
+                                        onClick={() => {
+                                            setRetryActive(true);
+                                            setSelectedAnswer(null);
+                                            if (onNextHand) onNextHand({ retry: true, retryQuestion: lastQuestionRef.current });
+                                        }}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: 0.7 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        style={{
+                                            marginTop: 6, padding: '8px 20px', borderRadius: 8,
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            background: 'rgba(255,255,255,0.03)',
+                                            color: '#94a3b8', fontSize: 12, fontWeight: 600,
+                                            cursor: 'pointer', letterSpacing: 0.3,
+                                        }}
+                                    >
+                                        Retry Hand
+                                    </motion.button>
+                                )}
+                            </>
                         ) : (
                             <motion.div
                                 animate={{ opacity: [0.5, 1, 0.5] }}
