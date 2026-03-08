@@ -107,12 +107,12 @@ function StarField() {
           float y = dir.y * 0.5 + 0.5;
           vec3 bottomColor = vec3(0.03, 0.05, 0.14);
           vec3 topColor = vec3(0.08, 0.04, 0.16);
-          vec3 horizonColor = vec3(0.06, 0.10, 0.22);
-          // Add bright horizon band
+          vec3 horizonColor = vec3(0.04, 0.07, 0.16);
+          // Subtle horizon band
           float horizonFactor = 1.0 - abs(dir.y);
-          horizonFactor = pow(horizonFactor, 4.0);
+          horizonFactor = pow(horizonFactor, 5.0);
           vec3 color = mix(bottomColor, topColor, y);
-          color = mix(color, horizonColor, horizonFactor * 0.6);
+          color = mix(color, horizonColor, horizonFactor * 0.4);
 
           // Nebula clouds — MORE visible
           float neb = noise(dir * 3.0 + uTime * 0.01);
@@ -407,19 +407,19 @@ function EnergyBeam() {
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime();
 
-    // Main beam pulse — very subtle
+    // Main beam pulse — whisper-thin
     if (beamRef.current) {
-      beamRef.current.material.opacity = 0.06 + 0.03 * Math.sin(t * 1.5);
+      beamRef.current.material.opacity = 0.03 + 0.015 * Math.sin(t * 1.5);
     }
 
-    // Glow beam pulse — barely visible
+    // Glow beam pulse — nearly invisible
     if (glowBeamRef.current) {
-      glowBeamRef.current.material.opacity = 0.04 + 0.02 * Math.sin(t * 1.2);
+      glowBeamRef.current.material.opacity = 0.02 + 0.01 * Math.sin(t * 1.2);
     }
 
     // Top bright spot — subtle pulse
     if (topGlowRef.current) {
-      topGlowRef.current.material.opacity = 0.15 + 0.1 * Math.sin(t * 2);
+      topGlowRef.current.material.opacity = 0.08 + 0.05 * Math.sin(t * 2);
     }
 
     // Floating rings orbit upward — subtle accents
@@ -435,26 +435,26 @@ function EnergyBeam() {
 
   return (
     <group position={[0, -0.9, 0]}>
-      {/* Main beam cylinder — thin, subtle */}
+      {/* Main beam cylinder — whisper-thin accent */}
       <mesh ref={beamRef}>
-        <cylinderGeometry args={[0.15, 0.3, 10, 16, 1, true]} />
+        <cylinderGeometry args={[0.08, 0.15, 8, 12, 1, true]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.06}
+          opacity={0.03}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
         />
       </mesh>
 
-      {/* Outer glow cylinder — barely visible haze */}
+      {/* Outer glow cylinder — barely visible */}
       <mesh ref={glowBeamRef}>
-        <cylinderGeometry args={[0.35, 0.55, 9, 16, 1, true]} />
+        <cylinderGeometry args={[0.2, 0.35, 7, 12, 1, true]} />
         <meshBasicMaterial
           color="#3b82f6"
           transparent
-          opacity={0.04}
+          opacity={0.02}
           blending={AdditiveBlending}
           depthWrite={false}
           side={DoubleSide}
@@ -462,12 +462,12 @@ function EnergyBeam() {
       </mesh>
 
       {/* Subtle spot at beam top */}
-      <mesh ref={topGlowRef} position={[0, 5, 0]}>
-        <sphereGeometry args={[0.2, 16, 16]} />
+      <mesh ref={topGlowRef} position={[0, 4, 0]}>
+        <sphereGeometry args={[0.12, 12, 12]} />
         <meshBasicMaterial
           color="#6ee7ef"
           transparent
-          opacity={0.15}
+          opacity={0.08}
           blending={AdditiveBlending}
           depthWrite={false}
         />
@@ -755,17 +755,17 @@ function SceneContent({ propsRef, quality, setQuality, setDpr }) {
       <SceneFog />
 
       {/* ═══ CINEMATIC LIGHTING — Dark & dramatic, 5 lights only ═══ */}
-      <ambientLight intensity={0.08} color="#445566" />
+      <ambientLight intensity={0.06} color="#334455" />
       <directionalLight
         position={[5, 10, 5]}
-        intensity={0.5}
+        intensity={0.35}
         color="#ffffff"
         castShadow={q.shadows}
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-5, 8, -3]} intensity={0.2} color="#6ee7ef" />
-      <directionalLight position={[0, 3, -8]} intensity={0.15} color="#3b82f6" />
+      <directionalLight position={[-5, 8, -3]} intensity={0.15} color="#6ee7ef" />
+      <directionalLight position={[0, 3, -8]} intensity={0.1} color="#3b82f6" />
       <pointLight position={[0, 4, 0]} intensity={0.6} color="#6ee7ef" distance={12} decay={2} />
       {/* Subtle warm underlight for pod pedestals */}
       <pointLight position={[0, -0.5, 0]} intensity={0.2} color="#ff8c00" distance={5} decay={2} />
