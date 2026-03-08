@@ -869,6 +869,11 @@ export default function DiamondStorePage() {
             // Notify listeners (UniversalHeader, etc.) to refresh diamond balance immediately
             window.dispatchEvent(new CustomEvent('diamond-balance-refresh'));
 
+            // Broadcast across tabs
+            try {
+                new BroadcastChannel('smarter_poker_diamond_sync').postMessage('refresh');
+            } catch { /* noop */ }
+
         } catch (error) {
             console.error('Diamond payment error:', error);
             alert(error.message || 'Failed to complete diamond payment. Please try again.');

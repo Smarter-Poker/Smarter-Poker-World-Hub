@@ -41,6 +41,7 @@
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
+import { useFeedPrefetchObserver } from '../../src/hooks/useProfilePrefetch';
 import { useRouter } from 'next/router';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePersistedState } from '../../src/hooks/usePersistedState';
@@ -3917,6 +3918,10 @@ function ClubPagesView({ C, pages, setPages, loading, setLoading, category, setC
 
 export default function SocialMediaPage() {
     const router = useRouter();
+
+    // Auto-prefetch profile data when posts scroll into view
+    useFeedPrefetchObserver();
+
     // Zustand Global State (replaces UI-related useState)
     const sidebarOpen = useSocialStore((s) => s.sidebarOpen);
     const setSidebarOpen = useSocialStore((s) => s.setSidebarOpen);
