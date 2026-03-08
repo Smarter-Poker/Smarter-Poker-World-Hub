@@ -34,7 +34,7 @@ import {
   OnboardingTour, ShareAnalysisModal, StreetTimeline, AnalysisSkeleton,
   PreflopChartOverlay, RunoutChart, ExploitToggle,
   QuizPanel, StudyReplayCard, AccuracyBadge,
-  WeeklySpotBanner, LeaderboardCard,
+  LeaderboardCard,
 } from '../../../src/components/sandbox/SandboxComponents';
 import { ExportCard } from '../../../src/components/sandbox/ExportCard';
 
@@ -94,40 +94,6 @@ function getHandStrength(hand) {
   if (gap === 1 && i1 <= 5) return { label: 'Connectors', color: '#94a3b8', strength: 2 };
   if (r1 === 'A' || r2 === 'A') return { label: 'Ace High', color: '#cbd5e1', strength: 2 };
   return { label: 'Offsuit', color: '#64748b', strength: 1 };
-}
-
-// ═══════════════════════════════════════════════════════════════
-// STEP INDICATOR (Improvement #1)
-// ═══════════════════════════════════════════════════════════════
-function StepIndicator({ hasCards, hasBoard, hasResults, isAnalyzing }) {
-  const steps = [
-    { label: 'Pick Cards', done: hasCards },
-    { label: 'Set Board', done: hasBoard },
-    { label: 'Analyze', done: hasResults, active: isAnalyzing },
-  ];
-  return (
-    <div className="sandbox-steps" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '10px 16px', background: '#242526', borderBottom: '1px solid #3A3B3C' }}>
-      {steps.map((s, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', borderRadius: 20,
-            background: s.done ? 'rgba(34,197,94,0.15)' : s.active ? 'rgba(35,116,225,0.2)' : '#3A3B3C',
-            border: `1px solid ${s.done ? 'rgba(34,197,94,0.3)' : s.active ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`,
-            transition: 'all 0.3s',
-          }}>
-            <div style={{
-              width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 700,
-              background: s.done ? '#22c55e' : s.active ? '#2374E1' : '#4E4F50',
-              color: s.done || s.active ? '#fff' : '#B0B3B8',
-            }}>{s.done ? '' : i + 1}</div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: s.done ? '#4ade80' : s.active ? '#4599FF' : '#B0B3B8' }}>{s.label}</span>
-          </div>
-          {i < 2 && <div style={{ width: 20, height: 1, background: s.done ? '#22c55e' : '#3A3B3C' }} />}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 // ═══════════════════════════════════════════════════════════════
