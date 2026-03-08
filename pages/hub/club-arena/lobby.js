@@ -17,6 +17,7 @@ import CreateGameModal from '../../../src/components/club-arena/CreateGameModal'
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 import useDebounce from '../../../src/hooks/useDebounce';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -148,6 +149,11 @@ const router = useRouter();
         }
         setShowCreateGame(null);
         showToast('Created successfully!');
+        if (table?.game_type === 'cash' || (!table?.type && !table?.game_type?.includes('tournament'))) {
+            busEmit.tableOpened(table?.name || 'New Table', table?.game_type || 'NLH');
+        } else {
+            busEmit.dataMutated('tournament_created');
+        }
     }
 
     useEffect(() => {

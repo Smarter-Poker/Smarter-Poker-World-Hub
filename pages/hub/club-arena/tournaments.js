@@ -11,6 +11,7 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -135,6 +136,7 @@ const router = useRouter();
   const handleRegister = async (tournamentId) => {
     const res = await api('register', { tournamentId });
     if (res.success) {
+      busEmit.dataMutated('tournament_registration');
       loadData();
       setSelectedTournament(null);
     } else {
@@ -260,7 +262,7 @@ const router = useRouter();
       </div>
 
       {/* Create Tournament Modal */}
-      {showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); }} onError={(msg) => showToast(msg, 'error')} />}
+      {showCreate && <CreateTournamentModal clubId={clubId} onClose={() => setShowCreate(false)} onCreated={() => { setShowCreate(false); loadData(); showToast('Tournament created!'); busEmit.dataMutated('tournament_created'); }} onError={(msg) => showToast(msg, 'error')} />}
 
       {/* Tournament Detail Modal */}
       {selectedTournament && (

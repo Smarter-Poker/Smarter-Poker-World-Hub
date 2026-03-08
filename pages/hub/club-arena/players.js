@@ -12,6 +12,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -560,7 +561,7 @@ const router = useRouter();
                                         body: JSON.stringify({ action: 'upsert', targetUserId: noteModal.userId, note: noteDraft.trim() }),
                                     });
                                     setNotes(prev => ({ ...prev, [noteModal.userId]: noteDraft.trim() }));
-                                    showToast('Note saved');
+                                    showToast('Note saved'); busEmit.dataMutated('player_note_saved');
                                     setNoteModal(null);
                                 } catch (e) { showToast('Failed to save note', 'error'); }
                                 finally { setNoteSaving(false); }

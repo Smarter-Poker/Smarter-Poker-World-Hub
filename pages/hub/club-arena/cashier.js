@@ -10,6 +10,7 @@ import { getSafeUser, getAuthUser, getAccessToken } from '../../../src/lib/authU
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -368,7 +369,7 @@ const router = useRouter();
                 amount,
             });
 
-            showToast(result.message || `Cashout request sent! ${amount.toLocaleString()} chips held.`, 'success');
+            showToast(result.message || `Cashout request sent! ${amount.toLocaleString()} chips held.`, 'success'); busEmit.dataMutated('cashout_requested');
             setShowCashOutModal(false);
             setCashOutAmount('');
             loadData();

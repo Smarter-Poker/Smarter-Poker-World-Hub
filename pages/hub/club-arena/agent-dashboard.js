@@ -14,6 +14,7 @@ import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -255,7 +256,7 @@ const router = useRouter();
                 action: 'approve',
                 note: cashoutNote || undefined,
             });
-            showToast(`Approved cashout of ${cashoutModal.amount.toLocaleString()} chips`);
+            showToast(`Approved cashout of ${cashoutModal.amount.toLocaleString()} chips`); busEmit.dataMutated('cashout_approved');
             setCashoutModal(null);
             setCashoutNote('');
             loadDashboard();

@@ -11,6 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -1261,7 +1262,7 @@ const router = useRouter();
                                                         setProcessing(true);
                                                         try {
                                                             const r = await apiCall('/api/club-arena/rakeback', { action: 'close', clubId: club.id });
-                                                            showToast(`Period closed! ${r.playersProcessed} players, ${r.totalRakebackDistributed?.toLocaleString()} chips rakeback distributed.`);
+                                                            showToast(`Period closed! ${r.playersProcessed} players, ${r.totalRakebackDistributed?.toLocaleString()} chips rakeback distributed.`); busEmit.dataMutated('rakeback_distributed'); busEmit.celebration('confetti');
                                                             const d = await apiGet(`/api/club-arena/rakeback?clubId=${club.id}&action=status`);
                                                             setRakebackStatus(d);
                                                         } catch (e) { showToast(e.message, 'error'); }
@@ -1324,7 +1325,7 @@ const router = useRouter();
                                     setProcessing(true);
                                     try {
                                         await apiCall('/api/club-arena/mint-chips', { clubId: club.id, amount: parseInt(mintAmount) });
-                                        showToast(`Minted ${parseInt(mintAmount).toLocaleString()} chips to treasury`);
+                                        showToast(`Minted ${parseInt(mintAmount).toLocaleString()} chips to treasury`); busEmit.dataMutated('chips_minted');
                                         setMintAmount('');
                                         loadData();
                                         setActiveModal(null);

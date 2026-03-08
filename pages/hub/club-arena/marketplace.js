@@ -44,6 +44,7 @@ const apiCall = async (endpoint, body) => {
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 
 
 // SmarterPoker Dark Color Scheme
@@ -236,7 +237,7 @@ const router = useRouter();
                 price: selectedItem.price,
             });
 
-            showToast(`Purchased ${selectedItem.name}!`);
+            showToast(`Purchased ${selectedItem.name}!`); busEmit.dataMutated('marketplace_purchase');
             setSelectedItem(null);
             setOwnedItems([...ownedItems, selectedItem.id]);
             setChipBalance(result.newBalance ?? (chipBalance - selectedItem.price));
