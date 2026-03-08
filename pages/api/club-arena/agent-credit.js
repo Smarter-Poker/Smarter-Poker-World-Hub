@@ -105,13 +105,13 @@ export default async function handler(req, res) {
         .update({ credit_limit: newLimit })
         .eq('id', agentRecord.id);
 
-      await supabaseAdmin.from('club_transactions').insert({
+      await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
-        user_id: user.id,
-        transaction_type: 'withdrawal',
-        amount: -amount,
-        description: notes || `Credit line issued to ${agentMember.nickname || agentUserId}: ${amount.toLocaleString()}`,
-        metadata: { agent_id: agentRecord.id, credit_type: 'credit_line', previous_limit: agentMember.credit_limit || 0, new_limit: newLimit },
+        from_user_id: user.id,
+        to_user_id: agentUserId,
+        amount,
+        transaction_type: 'credit_line_issued',
+        notes: notes || `Credit line issued to ${agentMember.nickname || agentUserId}: +${amount.toLocaleString()} (limit now ${newLimit.toLocaleString()})`,
       });
 
       result = { action: 'credit_issued', previousLimit: agentMember.credit_limit || 0, newLimit };
@@ -163,13 +163,13 @@ export default async function handler(req, res) {
         }
       }
 
-      await supabaseAdmin.from('club_transactions').insert({
+      await supabaseAdmin.from('chip_transactions').insert({
         club_id: clubId,
-        user_id: user.id,
-        transaction_type: 'withdrawal',
-        amount: -amount,
-        description: notes || `Prepaid chips to ${agentMember.nickname || agentUserId}: ${amount.toLocaleString()}`,
-        metadata: { agent_id: agentRecord.id, payment_type: 'prepaid' },
+        from_user_id: user.id,
+        to_user_id: agentUserId,
+        amount,
+        transaction_type: 'prepaid_chips_issued',
+        notes: notes || `Prepaid chips issued to ${agentMember.nickname || agentUserId}: ${amount.toLocaleString()}`,
       });
 
       result = {

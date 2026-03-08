@@ -100,6 +100,14 @@ export default function AgentDashboard() {
     const [processing, setProcessing] = useState(false);
     const [subAgents, setSubAgents] = useState([]);
     const [subAgentsLoaded, setSubAgentsLoaded] = useState(false);
+    // Sub-agent action state
+    const [subAgentCommModal, setSubAgentCommModal] = useState(null); // { sa } — edit commission
+    const [subAgentNewRate, setSubAgentNewRate] = useState('');
+    const [subAgentDistModal, setSubAgentDistModal] = useState(null); // { sa } — distribute chips
+    const [subAgentDistAmount, setSubAgentDistAmount] = useState('');
+    // Invite code state
+    const [inviteCode, setInviteCode] = useState(null);
+    const [inviteCodeLoading, setInviteCodeLoading] = useState(false);
 
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -123,6 +131,9 @@ export default function AgentDashboard() {
         try {
             const data = await apiGet(`/api/club-arena/agent-dashboard?clubId=${clubIdParam}`);
             setDashboard(data);
+            // Extract invite code from own agent record
+            const myAgentRec = (data.agents || []).find(a => a.user_id === getAuthUser()?.id);
+            if (myAgentRec?.invite_code) setInviteCode(myAgentRec.invite_code);
         } catch (err) {
             console.error('Dashboard load failed:', err);
             showToast(err.message, 'error');
@@ -399,7 +410,23 @@ export default function AgentDashboard() {
             {/* Content */}
             <div style={{ padding: '0 20px 100px' }}>
                 {activeTab === 'overview' && (
-                    <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts} />
+                    <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
+                        inviteCode={inviteCode}
+                        onRegenerateCode={async () => {
+                            setInviteCodeLoading(true);
+                            try {
+                                const r = await apiCall('/api/club-arena/manage-agent', {
+                                    action: 'regenerate_invite_code',
+                                    clubId: clubIdParam,
+                                });
+                                setInviteCode(r.invite_code);
+                                showToast('Invite code regenerated');
+                            } catch (e) { showToast(e.message, 'error'); }
+                            finally { setInviteCodeLoading(false); }
+                        }}
+                        inviteCodeLoading={inviteCodeLoading}
+                        clubCode={dashboard?.clubCode}
+                    />
                 )}
                 {activeTab === 'players' && (
                     <PlayersTab
@@ -432,20 +459,43 @@ export default function AgentDashboard() {
                             </div>
                         ) : subAgents.length === 0 ? (
                             <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
-                                <div style={{ fontSize: 32, marginBottom: 12 }}></div>
+                                <div style={{ fontSize: 32, marginBottom: 12 }}>👤</div>
                                 <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
-                                <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap  to promote a player.</div>
+                                <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap ↑ to promote a player.</div>
                             </div>
                         ) : subAgents.map(sa => (
-                            <div key={sa.id} style={{ ...cardStyle, marginBottom: 10 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <div key={sa.id} style={{ ...cardStyle, marginBottom: 10, opacity: sa.status === 'suspended' ? 0.8 : 1, borderLeft: sa.status === 'suspended' ? `3px solid ${FB.danger}` : undefined }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                                     <div>
                                         <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
                                             {sa.profile?.display_name || sa.profile?.username || 'Unknown'}
                                         </div>
                                         <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                                            {sa.status === 'active' ? '' : ''} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
+                                            {sa.status === 'active' ? '🟢' : '🔴'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
                                         </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                        {/* Edit commission */}
+                                        <button onClick={() => { setSubAgentCommModal(sa); setSubAgentNewRate(String(((sa.commission_rate || 0) * 100).toFixed(0))); }}
+                                            style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                            % Edit
+                                        </button>
+                                        {/* Distribute chips */}
+                                        <button onClick={() => { setSubAgentDistModal(sa); setSubAgentDistAmount(''); }}
+                                            style={{ background: FB.gold, color: '#000', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                            💰 Send
+                                        </button>
+                                        {/* Suspend / Reactivate */}
+                                        <button onClick={async () => {
+                                            const act = sa.status === 'suspended' ? 'reactivate' : 'suspend';
+                                            try {
+                                                await apiCall('/api/club-arena/manage-agent', { clubId: dashboard.clubId, action: act, targetUserId: sa.user_id });
+                                                showToast(`Sub-agent ${act === 'suspend' ? 'suspended' : 'reactivated'}`);
+                                                setSubAgentsLoaded(false);
+                                            } catch (e) { showToast(e.message, 'error'); }
+                                        }} style={{ background: sa.status === 'suspended' ? FB.success : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                            {sa.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                                        </button>
                                     </div>
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
@@ -632,6 +682,89 @@ export default function AgentDashboard() {
                 </ModalOverlay>
             )}
 
+            {/* ── Sub-agent: Edit Commission Modal ── */}
+            {subAgentCommModal && (
+                <ModalOverlay onClose={() => setSubAgentCommModal(null)}>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: FB.textPrimary, marginBottom: 12 }}>
+                        Update Commission — {subAgentCommModal.profile?.display_name || subAgentCommModal.profile?.username || 'Sub-Agent'}
+                    </div>
+                    <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>
+                        Current: {((subAgentCommModal.commission_rate || 0) * 100).toFixed(0)}% · Your rate: {dashboard?.agents?.find(a => a.user_id === user?.id)?.commission_rate ? ((dashboard.agents.find(a => a.user_id === user.id).commission_rate) * 100).toFixed(0) + '%' : '—'}
+                    </div>
+                    <input
+                        type="number" value={subAgentNewRate}
+                        onChange={e => setSubAgentNewRate(e.target.value)}
+                        placeholder="New rate (1–89)" min="1" max="89"
+                        style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+                    />
+                    <button onClick={async () => {
+                        const pct = parseFloat(subAgentNewRate);
+                        if (isNaN(pct) || pct < 1 || pct > 89) { showToast('Rate must be 1–89', 'error'); return; }
+                        setProcessing(true);
+                        try {
+                            await apiCall('/api/club-arena/manage-agent', {
+                                action: 'update_commission',
+                                clubId: dashboard.clubId,
+                                targetUserId: subAgentCommModal.user_id,
+                                commissionRate: pct / 100,
+                            });
+                            showToast(`Commission updated to ${pct}%`);
+                            setSubAgentCommModal(null);
+                            setSubAgentsLoaded(false);
+                        } catch (e) { showToast(e.message, 'error'); }
+                        finally { setProcessing(false); }
+                    }} disabled={processing || !subAgentNewRate}
+                        style={{ ...actionBtn, background: processing || !subAgentNewRate ? FB.border : FB.primary }}>
+                        {processing ? 'Saving...' : 'Update Commission'}
+                    </button>
+                </ModalOverlay>
+            )}
+
+            {/* ── Sub-agent: Distribute Chips Modal ── */}
+            {subAgentDistModal && (
+                <ModalOverlay onClose={() => setSubAgentDistModal(null)}>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: FB.textPrimary, marginBottom: 4 }}>
+                        Send Chips to Sub-Agent
+                    </div>
+                    <div style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 12 }}>
+                        To: <strong style={{ color: FB.textPrimary }}>{subAgentDistModal.profile?.display_name || subAgentDistModal.profile?.username || 'Sub-Agent'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                        {[1000, 5000, 10000, 50000].map(v => (
+                            <button key={v} onClick={() => setSubAgentDistAmount(String(v))}
+                                style={{ background: subAgentDistAmount === String(v) ? FB.primary : FB.cardBg, color: subAgentDistAmount === String(v) ? '#fff' : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
+                                {v.toLocaleString()}
+                            </button>
+                        ))}
+                    </div>
+                    <input
+                        type="number" value={subAgentDistAmount}
+                        onChange={e => setSubAgentDistAmount(e.target.value)}
+                        placeholder="Amount"
+                        style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+                    />
+                    <button onClick={async () => {
+                        const amt = parseInt(subAgentDistAmount);
+                        if (!amt || amt <= 0) { showToast('Enter a valid amount', 'error'); return; }
+                        setProcessing(true);
+                        try {
+                            await apiCall('/api/club-arena/distribute-chips', {
+                                clubId: dashboard.clubId,
+                                toUserId: subAgentDistModal.user_id,
+                                amount: amt,
+                                notes: 'Sub-agent chip transfer from parent agent',
+                            });
+                            showToast(`Sent ${amt.toLocaleString()} chips to sub-agent`);
+                            setSubAgentDistModal(null);
+                        } catch (e) { showToast(e.message, 'error'); }
+                        finally { setProcessing(false); }
+                    }} disabled={processing || !subAgentDistAmount}
+                        style={{ ...actionBtn, background: processing || !subAgentDistAmount ? FB.border : FB.gold, color: '#000' }}>
+                        {processing ? 'Sending...' : `Send ${subAgentDistAmount ? parseInt(subAgentDistAmount).toLocaleString() : '0'} Chips`}
+                    </button>
+                </ModalOverlay>
+            )}
+
             <ClubArenaBottomNav clubId={clubIdParam} active="admin" />
         </div>
     );
@@ -641,7 +774,14 @@ export default function AgentDashboard() {
 // TAB: OVERVIEW
 // ═══════════════════════════════════════════════════════════════
 
-function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
+function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts, inviteCode, onRegenerateCode, inviteCodeLoading, clubCode }) {
+    const [copied, setCopied] = React.useState(false);
+    const copyInviteLink = () => {
+        if (!inviteCode || !clubCode) return;
+        const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/hub/club-arena/lobby?join=${clubCode}&agent=${inviteCode}`;
+        navigator.clipboard.writeText(link).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    };
+
     const statCards = [
         { label: 'My Players', value: stats?.totalPlayers || 0, color: FB.primary },
         { label: 'Online Now', value: stats?.onlinePlayers || 0, color: FB.success },
@@ -663,6 +803,29 @@ function OverviewTab({ stats, myAgent, clawbackCount, pendingCashouts }) {
                     </div>
                 ))}
             </div>
+
+            {/* ── Invite Code Panel ── */}
+            {inviteCode && (
+                <div style={{ ...cardStyle, marginBottom: 12, border: `1px solid ${FB.gold}40` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <h4 style={{ color: FB.gold, fontSize: 13, fontWeight: 700, margin: 0 }}>🔗 Your Player Invite Code</h4>
+                        <button onClick={onRegenerateCode} disabled={inviteCodeLoading}
+                            style={{ background: 'transparent', color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 6, padding: '3px 8px', fontSize: 10, cursor: 'pointer' }}>
+                            {inviteCodeLoading ? '...' : 'Regenerate'}
+                        </button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: FB.background, borderRadius: 8, padding: '8px 12px' }}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 800, color: FB.textPrimary, letterSpacing: 3 }}>{inviteCode}</span>
+                        <button onClick={copyInviteLink}
+                            style={{ marginLeft: 'auto', background: copied ? FB.success : FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                            {copied ? '✓ Copied!' : 'Copy Link'}
+                        </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: FB.textSecondary, marginTop: 6 }}>
+                        Share this code with players. When they join using your link, they're auto-assigned to you.
+                    </div>
+                </div>
+            )}
 
             {myAgent && (
                 <div style={cardStyle}>

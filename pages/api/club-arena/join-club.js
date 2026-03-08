@@ -1,6 +1,11 @@
 /**
  * POST /api/club-arena/join-club
  * Join a club by numeric code. Prevents duplicate membership.
+ * 
+ * Optional body fields:
+ *   agentCode    - Agent's unique invite code (auto-assigns player to that agent)
+ *   agentUserId  - Agent's user_id (admin-side assignment, requires owner/admin caller)
+ * 
  * Auth: Bearer token (any authenticated user)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
@@ -21,7 +26,7 @@ export default async function handler(req, res) {
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
     if (authErr || !user) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-    const { clubCode } = req.body;
+    const { clubCode, agentCode, agentUserId: explicitAgentUserId } = req.body;
     if (!clubCode) return res.status(400).json({ success: false, error: 'Club code required' });
 
     // BUG #281: No rate limit — attacker could brute-force all numeric club codes
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
         // Find club
         const { data: club, error: findErr } = await supabaseAdmin
             .from('clubs')
-            .select('id')
+            .select('id, member_count')
             .eq('club_id', parseInt(clubCode))
             .maybeSingle();
 
@@ -62,8 +67,45 @@ export default async function handler(req, res) {
             return res.status(409).json({ success: false, error: 'You are already a member of this club' });
         }
 
-        // If club requires approval, could add pending status here
-        // For now: direct join
+        // ── Resolve agent assignment ──────────────────────────────────
+        // Priority: agentCode (player invite flow) > explicitAgentUserId (admin assign)
+        let resolvedAgentUserId = null;
+
+        if (agentCode) {
+            // Player joined via agent's invite link/code
+            const { data: agentByCode } = await supabaseAdmin
+                .from('agents')
+                .select('user_id, status')
+                .eq('club_id', club.id)
+                .eq('invite_code', agentCode.trim().toUpperCase())
+                .eq('status', 'active')
+                .maybeSingle();
+            if (agentByCode) {
+                resolvedAgentUserId = agentByCode.user_id;
+            }
+        } else if (explicitAgentUserId) {
+            // Admin-side explicit assignment — verify caller is owner/admin
+            const { data: callerMember } = await supabaseAdmin
+                .from('club_members')
+                .select('role')
+                .eq('club_id', club.id)
+                .eq('user_id', user.id)
+                .maybeSingle();
+            const isAdmin = callerMember && ['owner', 'admin'].includes(callerMember.role);
+            if (isAdmin) {
+                // Verify the target agent is active in this club
+                const { data: agentCheck } = await supabaseAdmin
+                    .from('agents')
+                    .select('user_id')
+                    .eq('club_id', club.id)
+                    .eq('user_id', explicitAgentUserId)
+                    .eq('status', 'active')
+                    .maybeSingle();
+                if (agentCheck) resolvedAgentUserId = agentCheck.user_id;
+            }
+        }
+
+        // Insert membership
         const { error: joinErr } = await supabaseAdmin
             .from('club_members')
             .insert({
@@ -72,18 +114,43 @@ export default async function handler(req, res) {
                 role: 'player',
                 status: 'active',
                 chip_balance: 0,
+                agent_id: resolvedAgentUserId,
                 joined_at: new Date().toISOString(),
             });
 
         if (joinErr) throw joinErr;
 
-        // Update member count
-        await supabaseAdmin
-            .from('clubs')
-            .update({ member_count: (club.member_count || 0) + 1 })
-            .eq('id', club.id);
+        // Increment agent's active_player_count if assigned
+        if (resolvedAgentUserId) {
+            await supabaseAdmin.rpc('fn_increment_agent_player_count', {
+                p_agent_user_id: resolvedAgentUserId,
+                p_club_id: club.id,
+            }).catch(() => {
+                // Non-fatal — count will reconcile on next settlement
+            });
+        }
 
-        return res.status(200).json({ success: true, club });
+        // Atomic member count increment — avoids race condition stale read
+        await supabaseAdmin.rpc('fn_increment_club_member_count', {
+            p_club_id: club.id,
+        }).catch(async () => {
+            // Fallback: non-atomic increment (acceptable if RPC doesn't exist yet)
+            const { count } = await supabaseAdmin
+                .from('club_members')
+                .select('*', { count: 'exact', head: true })
+                .eq('club_id', club.id);
+            await supabaseAdmin
+                .from('clubs')
+                .update({ member_count: count || 0 })
+                .eq('id', club.id);
+        });
+
+        return res.status(200).json({
+            success: true,
+            club,
+            agentAssigned: !!resolvedAgentUserId,
+            agentUserId: resolvedAgentUserId,
+        });
     } catch (err) {
         console.error('[join-club]', err);
         return res.status(500).json({ success: false, error: err.message || 'Failed to join club' });

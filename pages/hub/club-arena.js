@@ -118,8 +118,9 @@ function CreateClubModal({ onClose, onCreated, user }) {
 // ═══════════════════════════════════════════════════════════════════════════
 // JOIN CLUB MODAL
 // ═══════════════════════════════════════════════════════════════════════════
-function JoinClubModal({ onClose, onJoined, user }) {
+function JoinClubModal({ onClose, onJoined, user, initialAgentCode }) {
     const [clubCode, setClubCode] = useState('');
+    const [agentCode, setAgentCode] = useState(initialAgentCode || '');
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState('');
 
@@ -131,7 +132,10 @@ function JoinClubModal({ onClose, onJoined, user }) {
         setIsJoining(true);
         setError('');
         try {
-            const result = await apiCall('/api/club-arena/join-club', { clubCode: clubCode.trim() });
+            const result = await apiCall('/api/club-arena/join-club', {
+                clubCode: clubCode.trim(),
+                ...(agentCode.trim() ? { agentCode: agentCode.trim().toUpperCase() } : {}),
+            });
             onJoined(result.club);
             onClose();
         } catch (err) {
@@ -158,6 +162,16 @@ function JoinClubModal({ onClose, onJoined, user }) {
                         placeholder="Enter 5-digit Club Code..."
                         style={inputStyle}
                         maxLength={5}
+                    />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                    <label style={labelStyle}>Agent Invite Code <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>(optional — auto-assigns you to an agent)</span></label>
+                    <input
+                        value={agentCode}
+                        onChange={(e) => setAgentCode(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase())}
+                        placeholder="e.g. AB3X7Q"
+                        style={inputStyle}
+                        maxLength={6}
                     />
                 </div>
                 {error && <div style={{ color: '#ff4d4d', marginBottom: '16px', fontSize: '13px' }}>{error}</div>}
@@ -263,8 +277,18 @@ export default function ClubArenaPage() {
     // Modals
     const [showCreateClub, setShowCreateClub] = useState(false);
     const [showJoinClub, setShowJoinClub] = useState(false);
+    const [initialAgentCode, setInitialAgentCode] = useState('');
     const [showFindPlayer, setShowFindPlayer] = useState(false);
     const [menuOpen, setMenuOpen] = useState(false);
+
+    // Auto-open join modal if ?agent= or ?join= URL param present
+    useEffect(() => {
+        const { agent } = router.query;
+        if (agent && !showJoinClub) {
+            setInitialAgentCode(String(agent).replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase());
+            setShowJoinClub(true);
+        }
+    }, [router.query]); // eslint-disable-line
 
     // Unions the user owns or administers
     const [myUnions, setMyUnions] = useState([]);
@@ -580,7 +604,7 @@ export default function ClubArenaPage() {
 
                 {/* Modals */}
                 {showCreateClub && <CreateClubModal user={user} onClose={() => setShowCreateClub(false)} onCreated={handleClubCreated} />}
-                {showJoinClub && <JoinClubModal user={user} onClose={() => setShowJoinClub(false)} onJoined={handleClubJoined} />}
+                {showJoinClub && <JoinClubModal user={user} onClose={() => setShowJoinClub(false)} onJoined={handleClubJoined} initialAgentCode={initialAgentCode} />}
                 {showFindPlayer && <FindPlayerModal onClose={() => setShowFindPlayer(false)} />}
 
                 {/* Hamburger Menu */}

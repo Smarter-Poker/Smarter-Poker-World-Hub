@@ -112,6 +112,9 @@ export default function UnionDashboard() {
     const [confirmRemoveAdmin, setConfirmRemoveAdmin] = useState(null);
     // Commission rates controlled state — keyed by club.id
     const [commissionRates, setCommissionRates] = useState({});
+    // Agent commission rate editing state — keyed by agent.id
+    const [agentCommRates, setAgentCommRates] = useState({});
+    const [agentCommEditing, setAgentCommEditing] = useState({}); // which agents are in edit mode
 
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });
@@ -737,7 +740,44 @@ export default function UnionDashboard() {
                                     </div>
                                     <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
                                         Club: <span style={{ color: FB.textPrimary }}>{clubName}</span>
-                                        {' · '}Commission: <span style={{ color: FB.gold }}>{((agent.commission_rate || 0) * 100).toFixed(0)}%</span>
+                                        {' · '}Commission:{' '}
+                                        {agentCommEditing[agent.id] ? (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                                <input
+                                                    type="number"
+                                                    value={agentCommRates[agent.id] ?? String(((agent.commission_rate || 0) * 100).toFixed(0))}
+                                                    onChange={e => setAgentCommRates(prev => ({ ...prev, [agent.id]: e.target.value }))}
+                                                    min="1" max="90" style={{ width: 52, background: '#2C2D2E', color: FB.gold, border: `1px solid ${FB.gold}`, borderRadius: 4, padding: '2px 5px', fontSize: 12, textAlign: 'center' }}
+                                                />
+                                                <span style={{ color: FB.gold, fontSize: 12 }}>%</span>
+                                                <button onClick={async () => {
+                                                    const val = parseFloat(agentCommRates[agent.id] || String(((agent.commission_rate || 0) * 100).toFixed(0)));
+                                                    if (isNaN(val) || val < 1 || val > 90) { showToast('Rate must be 1–90%', 'error'); return; }
+                                                    try {
+                                                        await apiCall('/api/club-arena/manage-agent', {
+                                                            clubId: agent.club_id,
+                                                            action: 'update_commission',
+                                                            targetUserId: agent.user_id,
+                                                            commissionRate: val / 100,
+                                                        });
+                                                        showToast(`${agent.profile?.display_name || 'Agent'} commission → ${val}%`);
+                                                        setAgentCommEditing(prev => ({ ...prev, [agent.id]: false }));
+                                                        loadDashboard();
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                }} style={{ background: FB.success, color: '#fff', border: 'none', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                                    Save
+                                                </button>
+                                                <button onClick={() => setAgentCommEditing(prev => ({ ...prev, [agent.id]: false }))}
+                                                    style={{ background: 'transparent', color: FB.textSecondary, border: 'none', fontSize: 11, cursor: 'pointer' }}>✕</button>
+                                            </span>
+                                        ) : (
+                                            <span
+                                                onClick={() => { setAgentCommEditing(prev => ({ ...prev, [agent.id]: true })); setAgentCommRates(prev => ({ ...prev, [agent.id]: String(((agent.commission_rate || 0) * 100).toFixed(0)) })); }}
+                                                style={{ color: FB.gold, cursor: isLead ? 'pointer' : 'default', textDecoration: isLead ? 'underline dotted' : 'none' }}
+                                                title={isLead ? 'Click to edit commission rate' : undefined}>
+                                                {((agent.commission_rate || 0) * 100).toFixed(0)}%{isLead ? ' ✎' : ''}
+                                            </span>
+                                        )}
                                     </div>
                                     <div style={{ display: 'flex', gap: 14, fontSize: 12, color: FB.textSecondary, flexWrap: 'wrap' }}>
                                         <span>👤 {agent.active_player_count || 0} players</span>

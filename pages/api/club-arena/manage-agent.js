@@ -22,6 +22,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Generate a unique agent invite code (6 chars, uppercase alphanum, no ambiguous chars)
+function generateInviteCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
 
@@ -209,6 +217,7 @@ export default async function handler(req, res) {
           parent_agent_id: agentTier === 'sub_agent' ? params._parentAgentRecordId : null,
           auto_rakeback_enabled: rakebackPercentage > 0,
           rakeback_percentage: rakebackPercentage || 0,
+          invite_code: generateInviteCode(),
         })
         .select()
         .maybeSingle();
@@ -556,6 +565,7 @@ export default async function handler(req, res) {
               business_balance: 0,
               active_player_count: 0,
               total_players: 0,
+              invite_code: generateInviteCode(),
             });
         }
       }
@@ -1019,6 +1029,7 @@ export default async function handler(req, res) {
           parent_agent_id: parentAgent.id,
           is_prepaid: false,
           credit_limit: 0,
+          invite_code: generateInviteCode(),
         }, { onConflict: 'user_id,club_id' });
 
       if (agentErr) throw agentErr;
@@ -1033,6 +1044,38 @@ export default async function handler(req, res) {
         parentAgentId: user.id,
         commissionRate,
       });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // REGENERATE INVITE CODE — Agent refreshes their player invite code
+    // Callable by the agent themselves, the club owner, or union admin
+    // ═══════════════════════════════════════════════════════════════
+    if (action === 'regenerate_invite_code') {
+      const agentTarget = targetUserId || user.id; // default to self
+
+      // Verify the agent exists in this club
+      const { data: agentRec } = await supabaseAdmin
+        .from('agents')
+        .select('id, user_id')
+        .eq('user_id', agentTarget)
+        .eq('club_id', clubId)
+        .maybeSingle();
+
+      if (!agentRec) return res.status(404).json({ success: false, error: 'Agent not found' });
+
+      // Self-service: any active agent can regenerate their own code
+      // Admin-service: club owner / union admin can regenerate for any agent (already authorized above)
+      if (agentTarget !== user.id && !authorized) {
+        return res.status(403).json({ success: false, error: 'Not authorized' });
+      }
+
+      const newCode = generateInviteCode();
+      await supabaseAdmin
+        .from('agents')
+        .update({ invite_code: newCode })
+        .eq('id', agentRec.id);
+
+      return res.status(200).json({ success: true, invite_code: newCode });
     }
 
     return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
