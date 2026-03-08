@@ -63,6 +63,12 @@ export default function Players() {
     // Player detail modal
     const [selectedPlayer, setSelectedPlayer] = useState(null);
 
+    // Player notes
+    const [notes, setNotes] = useState({}); // { [targetUserId]: string }
+    const [noteModal, setNoteModal] = useState(null); // { userId, name }
+    const [noteDraft, setNoteDraft] = useState('');
+    const [noteSaving, setNoteSaving] = useState(false);
+
     // Toast
     const [toast, setToast] = useState(null);
     const showToast = (message, type = 'success') => {
@@ -109,6 +115,25 @@ export default function Players() {
                     if (authUser) {
                         const currentMember = memberData.find(m => m.user_id === authUser.id);
                         setCurrentUserRole(currentMember?.role || null);
+                    }
+
+                    // Load my notes for all members in bulk
+                    if (authUser && memberData.length > 0) {
+                        const token = localStorage.getItem('smarter-poker-auth');
+                        const accessToken = token ? JSON.parse(token)?.access_token : null;
+                        if (accessToken) {
+                            fetch('/api/club-arena/player-notes', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                                body: JSON.stringify({ action: 'get_bulk', targetUserIds: memberData.map(m => m.user_id) }),
+                            }).then(r => r.json()).then(d => {
+                                if (d.notes) {
+                                    const map = {};
+                                    d.notes.forEach(n => { map[n.target_user_id] = n.note; });
+                                    setNotes(map);
+                                }
+                            }).catch(() => {});
+                        }
                     }
                 }
             }
@@ -367,6 +392,7 @@ export default function Players() {
                                         <div style={S.playerName}>
                                             {member.profiles?.display_name || member.profiles?.username || 'Player'}
                                             {isMe && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
+                                            {notes[member.user_id] && <span style={{ marginLeft: 6, fontSize: 11, color: '#F7C52A' }} title={notes[member.user_id]}>📝</span>}
                                         </div>
                                         <div style={S.playerMeta}>
                                             <span style={{
@@ -483,9 +509,82 @@ export default function Players() {
                                         >
                                             Profile
                                         </button>
+                                        <button
+                                            style={{ ...S.modalBtn, background: notes[selectedPlayer.user_id] ? '#F7C52A22' : FB.hover, color: notes[selectedPlayer.user_id] ? '#F7C52A' : FB.textSecondary, border: notes[selectedPlayer.user_id] ? '1px solid #F7C52A44' : 'none' }}
+                                            onClick={() => {
+                                                setNoteModal({ userId: selectedPlayer.user_id, name: selectedPlayer.profiles?.display_name || selectedPlayer.profiles?.username || 'Player' });
+                                                setNoteDraft(notes[selectedPlayer.user_id] || '');
+                                                setSelectedPlayer(null);
+                                            }}
+                                        >
+                                            {notes[selectedPlayer.user_id] ? '📝 Edit Note' : '📝 Add Note'}
+                                        </button>
                                     </div>
                                 );
                             })()}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Note Modal */}
+            {noteModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+                    onClick={() => setNoteModal(null)}>
+                    <div style={{ background: FB.cardBg, borderRadius: 16, padding: 24, width: '100%', maxWidth: 400, border: `1px solid ${FB.border}` }}
+                        onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                            <h3 style={{ color: FB.textPrimary, fontSize: 16, fontWeight: 700, margin: 0 }}>📝 Note: {noteModal.name}</h3>
+                            <button onClick={() => setNoteModal(null)} style={{ background: 'none', border: 'none', color: FB.textSecondary, fontSize: 20, cursor: 'pointer' }}>×</button>
+                        </div>
+                        <textarea
+                            value={noteDraft}
+                            onChange={e => setNoteDraft(e.target.value)}
+                            placeholder="Add a private note about this player..."
+                            maxLength={500}
+                            rows={5}
+                            style={{ width: '100%', background: FB.background, border: `1px solid ${FB.border}`, borderRadius: 8, color: FB.textPrimary, fontSize: 13, padding: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                        />
+                        <div style={{ fontSize: 11, color: FB.textSecondary, textAlign: 'right', marginBottom: 14 }}>{noteDraft.length}/500</div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button disabled={noteSaving} onClick={async () => {
+                                setNoteSaving(true);
+                                try {
+                                    const token = localStorage.getItem('smarter-poker-auth');
+                                    const accessToken = token ? JSON.parse(token)?.access_token : null;
+                                    await fetch('/api/club-arena/player-notes', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                                        body: JSON.stringify({ action: 'upsert', targetUserId: noteModal.userId, note: noteDraft.trim() }),
+                                    });
+                                    setNotes(prev => ({ ...prev, [noteModal.userId]: noteDraft.trim() }));
+                                    showToast('Note saved');
+                                    setNoteModal(null);
+                                } catch (e) { showToast('Failed to save note', 'error'); }
+                                finally { setNoteSaving(false); }
+                            }} style={{ flex: 1, background: FB.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 0', fontSize: 14, fontWeight: 600, cursor: 'pointer', opacity: noteSaving ? 0.6 : 1 }}>
+                                {noteSaving ? 'Saving...' : 'Save Note'}
+                            </button>
+                            {notes[noteModal.userId] && (
+                                <button disabled={noteSaving} onClick={async () => {
+                                    setNoteSaving(true);
+                                    try {
+                                        const token = localStorage.getItem('smarter-poker-auth');
+                                        const accessToken = token ? JSON.parse(token)?.access_token : null;
+                                        await fetch('/api/club-arena/player-notes', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                                            body: JSON.stringify({ action: 'delete', targetUserId: noteModal.userId }),
+                                        });
+                                        setNotes(prev => { const n = { ...prev }; delete n[noteModal.userId]; return n; });
+                                        showToast('Note deleted');
+                                        setNoteModal(null);
+                                    } catch (e) { showToast('Failed to delete note', 'error'); }
+                                    finally { setNoteSaving(false); }
+                                }} style={{ background: FB.danger + '22', color: FB.danger, border: `1px solid ${FB.danger}44`, borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                                    Delete
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

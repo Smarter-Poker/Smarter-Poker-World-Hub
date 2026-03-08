@@ -122,6 +122,11 @@ export default function Admin() {
     // Rakeback state
     const [rakebackStatus, setRakebackStatus] = useState(null);
     const [rakebackLoading, setRakebackLoading] = useState(false);
+    // Anti-cheat state
+    const [acFlags, setAcFlags] = useState([]);
+    const [acSessions, setAcSessions] = useState([]);
+    const [acLoading, setAcLoading] = useState(false);
+    const [acTab, setAcTab] = useState('flags'); // 'flags' | 'sessions'
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -268,6 +273,16 @@ export default function Admin() {
                 .then(d => setRakebackStatus(d))
                 .catch(() => { })
                 .finally(() => setRakebackLoading(false));
+        }
+        if (activeModal === 'anticheat') {
+            setAcLoading(true);
+            Promise.all([
+                apiCall('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id }),
+                apiCall('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id }),
+            ]).then(([flagsRes, sessionsRes]) => {
+                setAcFlags(flagsRes.flags || []);
+                setAcSessions(sessionsRes.sessions || []);
+            }).catch(() => { }).finally(() => setAcLoading(false));
         }
     }, [activeModal, club]);
 
@@ -523,6 +538,7 @@ export default function Admin() {
         { id: 'shop', title: 'Shop Management', desc: 'Add, edit, and manage marketplace items', color: '#45B7D1' },
         { id: 'rakeback', title: 'Rakeback', desc: 'Manage rakeback periods for players', color: '#34C759' },
         { id: 'promo', title: 'Promo Wallet', desc: 'Mint promo chips and distribute to agents', color: '#9333ea' },
+        { id: 'anticheat', title: '🛡️ Anti-Cheat', desc: 'Review flags, sessions, and violations', color: '#FF453A' },
         { id: 'settings', title: 'Club Settings', desc: 'Edit club name and description', color: FB.textSecondary },
     ];
 
@@ -1415,18 +1431,97 @@ export default function Admin() {
                 </div>
             )}
 
-            {/* Toast */}
-            {toast && (
-                <div style={{ ...S.toast, background: toast.type === 'error' ? FB.danger : FB.success, color: '#fff' }}>
-                    {toast.message}
+            {/* ── ANTI-CHEAT MODAL ─────────────────────────────────────────────── */}
+            {activeModal === 'anticheat' && (
+                <div style={S.modalOverlay} onClick={() => setActiveModal(null)}>
+                    <div style={{ ...S.modal, maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                        <div style={S.modalHeader}>
+                            <span style={S.modalTitle}>🛡️ Anti-Cheat</span>
+                            <button style={S.modalClose} onClick={() => setActiveModal(null)}>&times;</button>
+                        </div>
+                        <div style={S.modalBody}>
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                {['flags', 'sessions'].map(tab => (
+                                    <button key={tab} onClick={() => setAcTab(tab)} style={{
+                                        flex: 1, background: acTab === tab ? '#FF453A' : FB.hover,
+                                        color: acTab === tab ? '#fff' : FB.textSecondary,
+                                        border: 'none', borderRadius: 8, padding: '8px 0',
+                                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                    }}>{tab === 'flags' ? `🚩 Flags (${acFlags.length})` : `👁️ Sessions (${acSessions.length})`}</button>
+                                ))}
+                            </div>
+                            {acLoading ? (
+                                <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 30 }}>Loading...</div>
+                            ) : acTab === 'flags' ? (
+                                acFlags.length === 0 ? (
+                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>✅ No open flags — club is clean.</div>
+                                ) : acFlags.map((flag, i) => (
+                                    <div key={flag.id || i} style={{
+                                        background: FB.background, borderRadius: 10, padding: 14, marginBottom: 10,
+                                        border: `1px solid ${flag.severity === 'high' ? '#FF453A' : flag.severity === 'medium' ? '#FF9500' : FB.border}`,
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                                            <div>
+                                                <span style={{ background: flag.severity === 'high' ? '#FF453A' : flag.severity === 'medium' ? '#FF9500' : '#636366', color: '#fff', borderRadius: 4, padding: '2px 7px', fontSize: 10, fontWeight: 700, marginRight: 8 }}>{(flag.severity || 'low').toUpperCase()}</span>
+                                                <span style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{flag.flag_type || flag.type}</span>
+                                            </div>
+                                            <span style={{ fontSize: 11, color: FB.textSecondary }}>{flag.created_at ? new Date(flag.created_at).toLocaleString() : ''}</span>
+                                        </div>
+                                        <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>
+                                            Player: <strong style={{ color: FB.textPrimary }}>{flag.player_name || flag.user_id}</strong>{flag.description && <> — {flag.description}</>}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 8 }}>
+                                            {['dismiss', 'reviewed', 'kick'].map(verdict => (
+                                                <button key={verdict} disabled={processing} onClick={async () => {
+                                                    setProcessing(true);
+                                                    try {
+                                                        if (verdict === 'kick') {
+                                                            await apiCall('/api/club-arena/anti-cheat', { action: 'kick_player', clubId: club.id, targetUserId: flag.user_id, reason: flag.flag_type });
+                                                            showToast('Player kicked');
+                                                        } else {
+                                                            await apiCall('/api/club-arena/anti-cheat', { action: 'review_flag', clubId: club.id, flagId: flag.id, verdict });
+                                                            showToast(`Flag marked ${verdict}`);
+                                                        }
+                                                        const r = await apiCall('/api/club-arena/anti-cheat', { action: 'get_flags', clubId: club.id });
+                                                        setAcFlags(r.flags || []);
+                                                    } catch (e) { showToast(e.message, 'error'); }
+                                                    finally { setProcessing(false); }
+                                                }} style={{ background: verdict === 'kick' ? '#FF453A' : FB.hover, color: verdict === 'kick' ? '#fff' : FB.textSecondary, border: 'none', borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                                                    {verdict === 'kick' ? '⛔ Kick' : verdict === 'dismiss' ? 'Dismiss' : '✓ Reviewed'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                acSessions.length === 0 ? (
+                                    <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 24 }}>No active sessions.</div>
+                                ) : acSessions.map((session, i) => (
+                                    <div key={session.id || i} style={{ background: FB.background, borderRadius: 10, padding: 14, marginBottom: 10, border: `1px solid ${FB.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>{session.player_name || session.user_id}</div>
+                                            <div style={{ fontSize: 11, color: FB.textSecondary }}>Table: {session.table_name || session.table_id} • {session.duration_minutes ? `${session.duration_minutes}m` : 'Active'}</div>
+                                        </div>
+                                        <button disabled={processing} onClick={async () => {
+                                            setProcessing(true);
+                                            try {
+                                                await apiCall('/api/club-arena/anti-cheat', { action: 'kick_player', clubId: club.id, targetUserId: session.user_id, reason: 'admin_kick' });
+                                                showToast('Player removed');
+                                                const r = await apiCall('/api/club-arena/anti-cheat', { action: 'get_sessions', clubId: club.id });
+                                                setAcSessions(r.sessions || []);
+                                            } catch (e) { showToast(e.message, 'error'); }
+                                            finally { setProcessing(false); }
+                                        }} style={{ background: '#FF453A', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>⛔ Kick</button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
-        </>
-    );
-}
 
-// ═══════════════════════════════════════════════════════════════════════════
-// PROMO WALLET MODAL — Admin/Owner promo chip management
+            {/* Toast */}
+            {toast && (
 // ═══════════════════════════════════════════════════════════════════════════
 
 function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S }) {
