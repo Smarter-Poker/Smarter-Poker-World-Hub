@@ -536,10 +536,11 @@ export default function useGTOTrainer(gameId, engineType = 'PIO', initialLevel =
                 setCurrentQuestion(nextQ);
                 setQuestionNumber(prev => prev + 1);
 
-                // ═══ START MULTI-STREET HAND if this is a postflop PIO question ═══
+                // ═══ START MULTI-STREET HAND if this is a postflop question ═══
                 const scenario = nextQ.scenario || {};
                 const street = scenario.street || '';
-                if ((street === 'flop' || street === 'turn') && nextQ.source === 'DETERMINISTIC_SOLVER') {
+                // Removed 'DETERMINISTIC_SOLVER' source restriction to enable multi-street for all 100+ games
+                if (street === 'flop' || street === 'turn') {
                     try {
                         const { MultiStreetHand } = await import('../engines/MultiStreetHandManager');
                         multiStreetHandRef.current = new MultiStreetHand(nextQ);
