@@ -2152,6 +2152,21 @@ export default function VirtualSandbox() {
                 }}>✕</button>
               </div>
 
+              <div style={{
+                border: `3px solid ${M.border}`, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative'
+              }}>
+                <EquityHeatmapOverlay
+                  isVisible={showHeatmap}
+                  board={board}
+                  heroPosition={heroPosition.id}
+                  villains={villains}
+                />
+
+                <div style={{ position: 'absolute', inset: 0, opacity: 0.1, background: 'radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%)', pointerEvents: 'none' }} />
+
+                {/* --- HERO (Bottom Center) --- */}
+              </div>
               {/* Street Timeline — Phase 1 */}
               <StreetTimeline streetHistory={streetHistory} activeStreet={activeStreet} onSelectStreet={setActiveStreet} />
 
