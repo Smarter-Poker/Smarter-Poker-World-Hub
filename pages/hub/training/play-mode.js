@@ -200,6 +200,22 @@ function usePlayMode() {
         setShowSpeedBonus(false);
     }, [config.stackDepth]);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SENSORY ENGINE (Timer, Haptics, Audio)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const [timeLeft, setTimeLeft] = useState(24);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [screenShake, setScreenShake] = useState(false);
+    const [speedBonus, setSpeedBonus] = useState(0);
+    const [showSpeedBonus, setShowSpeedBonus] = useState(false);
+
+    const timerRef = useRef(null);
+    const heartbeatIntervalRef = useRef(null);
+
+    // Audio/Vibration Settings
+    const settings = { haptics: true, audio: true, screenShake: true, intensity: 'high' };
+
     // GTO-based villain response using position-aware frequency tables
     const simulateVillainResponse = useCallback((heroAction, street, currentPot) => {
         // Advanced GTO frequency tables based on solver aggregate baselines
@@ -532,21 +548,7 @@ function usePlayMode() {
         saveSession();
     }, [gameState, handResults]);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SENSORY ENGINE (Timer, Haptics, Audio)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    const [timeLeft, setTimeLeft] = useState(24);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [screenShake, setScreenShake] = useState(false);
-    const [speedBonus, setSpeedBonus] = useState(0);
-    const [showSpeedBonus, setShowSpeedBonus] = useState(false);
-
-    const timerRef = useRef(null);
-    const heartbeatIntervalRef = useRef(null);
-
-    // Audio/Vibration Settings
-    const settings = { haptics: true, audio: true, screenShake: true, intensity: 'high' };
+    // Sensory Engine Effect (moved state above)
 
     useEffect(() => {
         if (!isTimerRunning || gameState !== 'playing') {
