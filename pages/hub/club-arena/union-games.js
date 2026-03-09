@@ -307,7 +307,7 @@ export default function UnionGames() {
   if (!user) {
     return (
       <div style={{ background: FB.bg, minHeight: '100vh' }}>
-        <SEOHead title="Union Games | Club Arena" />
+        <SEOHead title="Union Games | Club Arena" description="Manage cross-club tournament and cash game operations." canonical="/hub/club-arena/union-games" noindex />
         <UniversalHeader pageDepth={2} />
         <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px 16px' }}>
           <SkeletonDark variant="table-rows" rows={6} />
@@ -320,7 +320,7 @@ export default function UnionGames() {
   if (!unionId) {
     return (
       <div style={{ background: FB.bg, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <SEOHead title="Union Games | Club Arena" />
+        <SEOHead title="Union Games | Club Arena" description="Manage cross-club tournament and cash game operations." canonical="/hub/club-arena/union-games" noindex />
         <UniversalHeader pageDepth={2} />
         <div style={{ color: '#FA383E', fontSize: 16 }}>No union specified.</div>
         <button onClick={() => router.push('/hub/club-arena')}

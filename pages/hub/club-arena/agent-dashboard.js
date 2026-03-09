@@ -357,7 +357,7 @@ export default function AgentDashboard() {
     if (!isLoading && !clubIdParam) {
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
-                <SEOHead title="Agent Dashboard | Club Arena" />
+                <SEOHead title="Agent Dashboard | Club Arena" description="Manage player chips, cashouts, and club operations." canonical="/hub/club-arena/agent-dashboard" noindex />
                 <UniversalHeader pageDepth={2} />
                 <div style={{ textAlign: 'center', padding: '80px 20px', color: FB.textSecondary }}>
                     <div style={{ fontSize: 18, marginBottom: 12 }}>No club specified.</div>
@@ -372,7 +372,7 @@ export default function AgentDashboard() {
     if (!user || isLoading) {
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
-                <SEOHead title="Agent Dashboard | Club Arena" />
+                <SEOHead title="Agent Dashboard | Club Arena" description="Manage player chips, cashouts, and club operations." canonical="/hub/club-arena/agent-dashboard" noindex />
                 <UniversalHeader pageDepth={2} />
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
                     <div style={{ color: FB.textSecondary, fontSize: 16 }}>Loading agent dashboard...</div>
@@ -384,7 +384,7 @@ export default function AgentDashboard() {
     if (!dashboard) {
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
-                <SEOHead title="Agent Dashboard | Club Arena" />
+                <SEOHead title="Agent Dashboard | Club Arena" description="Manage player chips, cashouts, and club operations." canonical="/hub/club-arena/agent-dashboard" noindex />
                 <UniversalHeader pageDepth={2} />
                 <div style={{ textAlign: 'center', padding: '80px 20px', color: FB.textSecondary }}>
                     Failed to load dashboard. You may not be an agent in this club.
@@ -419,7 +419,7 @@ export default function AgentDashboard() {
 
     return (
         <div style={{ background: FB.background, minHeight: '100vh' }}>
-            <SEOHead title="Agent Dashboard | Club Arena" />
+            <SEOHead title="Agent Dashboard | Club Arena" description="Manage player chips, cashouts, and club operations." canonical="/hub/club-arena/agent-dashboard" noindex />
             <UniversalHeader pageDepth={2} />
             <Toast message={toast.message} type={toast.type} />
 

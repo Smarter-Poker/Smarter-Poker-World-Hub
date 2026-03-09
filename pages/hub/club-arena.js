@@ -536,6 +536,25 @@ export default function ClubArenaPage() {
                 title="Club Arena — Private Online Poker Clubs"
                 description="Create And Join Private Online Poker Clubs. Real-time Gameplay, Tournaments, Hand Histories, Player Stats, And Club Management."
                 canonical="/hub/club-arena"
+                jsonLd={{
+                    '@type': 'WebApplication',
+                    name: 'Club Arena',
+                    applicationCategory: 'GameApplication',
+                    description: 'Private online poker clubs with real-time cash games, tournaments, hand histories, player stats, and full club management.',
+                    operatingSystem: 'Web',
+                    url: 'https://smarter.poker/hub/club-arena',
+                    provider: {
+                        '@type': 'Organization',
+                        name: 'Smarter.Poker',
+                        url: 'https://smarter.poker',
+                    },
+                    offers: {
+                        '@type': 'Offer',
+                        price: '0',
+                        priceCurrency: 'USD',
+                    },
+                    featureList: 'Cash Games, Tournaments, SNG, Hand Histories, Player Stats, Leaderboards, Club Management, Agent System',
+                }}
             >
 
             </SEOHead>

@@ -550,7 +550,7 @@ export default function UnionDashboard() {
     if (isLoading || !user) {
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
-                <SEOHead title="Union Dashboard | Club Arena" />
+                <SEOHead title="Union Dashboard | Club Arena" description="Manage your poker union — clubs, agents, wallets, and BBJ." canonical="/hub/club-arena/union-dashboard" noindex />
                 <UniversalHeader pageDepth={2} />
                 <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
                     <SkeletonDark variant="stat-cards" count={4} />
@@ -567,7 +567,7 @@ export default function UnionDashboard() {
         if (!unionIdParam) {
             return (
                 <div style={{ background: FB.background, minHeight: '100vh' }}>
-                    <SEOHead title="Create Union | Club Arena" />
+                    <SEOHead title="Create Union | Club Arena" description="Create a new poker union on Smarter Poker." canonical="/hub/club-arena/union-dashboard" noindex />
                     <UniversalHeader pageDepth={2} />
                     <div style={{ maxWidth: 500, margin: '0 auto', padding: '60px 16px' }}>
                         <h1 style={{ fontFamily: 'Inter, sans-serif', fontSize: 24, fontWeight: 800, color: FB.gold, margin: '0 0 8px', textAlign: 'center' }}>
@@ -634,7 +634,7 @@ export default function UnionDashboard() {
         }
         return (
             <div style={{ background: FB.background, minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-                <SEOHead title="Union Dashboard | Club Arena" />
+                <SEOHead title="Union Dashboard | Club Arena" description="Manage your poker union — clubs, agents, wallets, and BBJ." canonical="/hub/club-arena/union-dashboard" noindex />
                 <UniversalHeader pageDepth={2} />
                 <div style={{ color: FB.danger, fontSize: 18 }}>Failed to load union dashboard</div>
                 <button onClick={() => router.push('/hub/club-arena')}

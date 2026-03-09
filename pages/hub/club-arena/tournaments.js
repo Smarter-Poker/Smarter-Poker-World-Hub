@@ -199,7 +199,7 @@ const router = useRouter();
           </div>
         </div>
       )}
-      <SEOHead title={`Tournaments | ${clubInfo?.name || 'Club Arena'}`} />
+      <SEOHead title={`Tournaments | ${clubInfo?.name || 'Club Arena'}`} description="Browse and register for poker tournaments." canonical="/hub/club-arena/tournaments" noindex />
 
       {/* Global Header */}
       <UniversalHeader pageDepth={2} />

@@ -344,7 +344,8 @@ class LobbyManager {
     if (clubId) {
       for (const seat of entry.table.seats) {
         if (seat.player && seat.player.id) {
-          seatedPlayers.push({ playerId: seat.player.id, stack: seat.stack || 0 });
+          const pendingAdd = entry.table._pendingChipAdds?.get(String(seat.player.id)) || 0;
+          seatedPlayers.push({ playerId: seat.player.id, stack: (seat.stack || 0) + pendingAdd });
         }
       }
     }

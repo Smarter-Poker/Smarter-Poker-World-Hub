@@ -917,6 +917,7 @@ export default function ClubMessages() {
         return (
             <>
                 <SEOHead
+                    noindex
                     title="Club Arena — Messages"
                     description="View Your Club Arena Messages."
                     canonical="/hub/club-arena/messages"

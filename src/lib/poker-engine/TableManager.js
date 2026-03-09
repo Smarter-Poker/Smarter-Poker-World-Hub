@@ -173,6 +173,9 @@ class TableManager {
     // When set to a number: top up to that specific amount
     this._autoTopUpPrefs = new Map();
 
+    // Pending chip adds — queued during active hand, applied between hands
+    this._pendingChipAdds = new Map();
+
     // Auto-rebuy callback — set by LobbyManager for club chip locking
     this.onAutoRebuy = null;
 
@@ -419,22 +422,27 @@ class TableManager {
 
     const cashout = seat.stack;
 
+    // Include any pending chip adds (queued during active hand)
+    const pendingAdd = this._pendingChipAdds?.get(String(playerId)) || 0;
+    const totalCashout = cashout + pendingAdd;
+    if (pendingAdd > 0) this._pendingChipAdds.delete(String(playerId));
+
     // No-rathole: record departing stack so returning player must buy in at this level
-    if (this.noRathole && cashout > this.minBuyIn) {
+    if (this.noRathole && totalCashout > this.minBuyIn) {
       this._departedStacks.set(String(playerId), {
-        stack: cashout,
+        stack: totalCashout,
         leftAt: Date.now(),
       });
     }
 
     this._vacateSeat(seat);
 
-    this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout });
+    this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: totalCashout });
 
     // Seat next waitlist player
     this._seatFromWaitlist(seat.seatIndex);
 
-    return { success: true, cashout };
+    return { success: true, cashout: totalCashout };
   }
 
   /**
@@ -457,14 +465,18 @@ class TableManager {
     }
 
     const cashout = seat.stack;
+    const pendingKickAdd = this._pendingChipAdds?.get(String(playerId)) || 0;
+    const totalKickCashout = cashout + pendingKickAdd;
+    if (pendingKickAdd > 0) this._pendingChipAdds.delete(String(playerId));
+
     this._vacateSeat(seat);
 
-    this.emit('player_kicked', { playerId, seatIndex: seat.seatIndex, cashout, reason });
-    this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout, kicked: true });
+    this.emit('player_kicked', { playerId, seatIndex: seat.seatIndex, cashout: totalKickCashout, reason });
+    this.emit('player_left', { playerId, seatIndex: seat.seatIndex, cashout: totalKickCashout, kicked: true });
 
     this._seatFromWaitlist(seat.seatIndex);
 
-    return { success: true, cashout };
+    return { success: true, cashout: totalKickCashout };
   }
 
   /**
@@ -570,6 +582,16 @@ class TableManager {
     const newStack = seat.stack + amount;
     if (newStack > this.maxBuyIn) {
       return { success: false, error: `Stack would exceed max buy-in of ${this.maxBuyIn}` };
+    }
+
+    // If a hand is in progress, queue the chips for between-hand application
+    // Adding to seat.stack mid-hand would be overwritten by _syncStacks
+    if (this.game.phase !== GAME_PHASE.IDLE) {
+      if (!this._pendingChipAdds) this._pendingChipAdds = new Map();
+      const current = this._pendingChipAdds.get(String(playerId)) || 0;
+      this._pendingChipAdds.set(String(playerId), current + amount);
+      this.emit('chips_added', { playerId, amount, newStack: seat.stack + current + amount, seatIndex: seat.seatIndex, pending: true });
+      return { success: true, newStack: seat.stack + current + amount, pending: true };
     }
 
     seat.stack += amount;
@@ -927,6 +949,22 @@ class TableManager {
   _onHandComplete(data) {
     // Sync final stacks
     this._syncStacks();
+
+    // ── Apply queued chip adds (requested during the hand) ──
+    if (this._pendingChipAdds && this._pendingChipAdds.size > 0) {
+      for (const [playerId, amount] of this._pendingChipAdds) {
+        const seat = this._findPlayerSeat(playerId);
+        if (seat && amount > 0) {
+          const newStack = Math.min(seat.stack + amount, this.maxBuyIn);
+          const actualAdded = newStack - seat.stack;
+          if (actualAdded > 0) {
+            seat.stack = newStack;
+            this.emit('chips_added', { playerId, amount: actualAdded, newStack: seat.stack, seatIndex: seat.seatIndex, pending: false });
+          }
+        }
+      }
+      this._pendingChipAdds.clear();
+    }
 
     this.status = TABLE_STATUS.BETWEEN_HANDS;
 
