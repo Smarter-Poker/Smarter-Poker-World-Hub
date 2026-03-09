@@ -33,8 +33,9 @@ const PAYOUT_STRUCTURES = {
 
 // Generate simulated ICM scenarios
 function generateFTScenarios(structure, payoutType) {
-    const players = structure.players;
-    const payouts = PAYOUT_STRUCTURES[payoutType].payouts.slice(0, players);
+    const players = (structure && structure.players) || 9;
+    const payoutDef = PAYOUT_STRUCTURES[payoutType] || PAYOUT_STRUCTURES.standard;
+    const payouts = (payoutDef.payouts || []).slice(0, players);
     const scenarios = [];
     const positions = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'].slice(0, players);
 
@@ -61,8 +62,11 @@ function generateFTScenarios(structure, payoutType) {
                 scenarios.push({
                     id: `${di}-${hi}-${pi}`,
                     stackLabel: dist.label,
-                    stacks: stacks.map(s => s.toFixed(1)),
-                    heroStack: stacks[pi].toFixed(1),
+                    stacks: stacks.map(s => {
+                        const n = Number(s);
+                        return Number.isFinite(n) ? n.toFixed(1) : '0.0';
+                    }),
+                    heroStack: (() => { const n = Number(stacks[pi]); return Number.isFinite(n) ? n.toFixed(1) : '0.0'; })(),
                     heroPos: pos,
                     hand: hand.label,
                     action: hand.action,
@@ -107,7 +111,8 @@ export default function ICMFinalTableLibrary() {
     }, [scenarios, filterPos, filterAction]);
 
     const displayed = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
 
     return (
         <>
@@ -164,7 +169,7 @@ export default function ICMFinalTableLibrary() {
 
                     {/* Payout Display */}
                     <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-                        {PAYOUT_STRUCTURES[payoutType].payouts.slice(0, structure.players).map((p, i) => (
+                        {(PAYOUT_STRUCTURES[payoutType] || PAYOUT_STRUCTURES.standard).payouts.slice(0, structure.players).map((p, i) => (
                             <div key={i} style={{
                                 padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
                                 background: i === 0 ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.04)',
