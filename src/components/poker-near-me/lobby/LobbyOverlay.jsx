@@ -33,12 +33,16 @@ const ALL_CARD_ITEMS = [
   { id: 'alerts',     label: 'Alerts',       color: '#ff6b6b', icon: '/images/lobby-dock/alerts.png' },
 ];
 
-// ─── Card Item — Standalone icon, no frame, transparent background ───
+// Icons that need a metallic frame (they don't have their own built-in frame)
+const NEEDS_FRAME = new Set(['nearme', 'social']);
+
+// ─── Card Item — Uniform icon sizing with optional metallic frame ───
 function CardItem({ card, isActive, badge, onSelect }) {
   const [hovered, setHovered] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const active = isActive || hovered;
+  const needsFrame = NEEDS_FRAME.has(card.id);
 
   return (
     <button
@@ -62,7 +66,7 @@ function CardItem({ card, isActive, badge, onSelect }) {
         transition: 'transform 0.25s ease, filter 0.25s ease',
       }}
     >
-      {/* Icon — standalone, no frame, no background */}
+      {/* Icon container — forced square, uniform size */}
       <div
         className="lobby-card-frame"
         style={{
@@ -71,7 +75,17 @@ function CardItem({ card, isActive, badge, onSelect }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          overflow: 'visible',
+          overflow: 'hidden',
+          borderRadius: needsFrame ? 16 : 0,
+          background: needsFrame
+            ? 'linear-gradient(145deg, rgba(30,40,60,0.85), rgba(12,18,28,0.95))'
+            : 'none',
+          border: needsFrame
+            ? '2px solid rgba(110, 200, 230, 0.25)'
+            : 'none',
+          boxShadow: needsFrame
+            ? 'inset 0 1px 0 rgba(200,220,255,0.12), 0 4px 20px rgba(0,0,0,0.4), 0 0 1px rgba(110,200,230,0.3)'
+            : 'none',
         }}
       >
         {!imgError ? (
@@ -82,8 +96,8 @@ function CardItem({ card, isActive, badge, onSelect }) {
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
             style={{
-              width: '100%',
-              height: '100%',
+              width: needsFrame ? '82%' : '100%',
+              height: needsFrame ? '82%' : '100%',
               objectFit: 'contain',
               opacity: imgLoaded ? 1 : 0,
               transition: 'opacity 0.4s ease-in',
@@ -94,7 +108,7 @@ function CardItem({ card, isActive, badge, onSelect }) {
         )}
       </div>
 
-      {/* Label below icon */}
+      {/* Label below icon — fixed height for consistent spacing */}
       <span
         className="lobby-card-label"
         style={{
@@ -110,7 +124,11 @@ function CardItem({ card, isActive, badge, onSelect }) {
             : '0 1px 4px rgba(0,0,0,0.8)',
           transition: 'color 0.25s',
           lineHeight: 1.2,
-          marginTop: 8,
+          height: 'clamp(16px, 2.2vw, 24px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginTop: 'clamp(4px, 0.8vw, 10px)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -361,14 +379,14 @@ export default function LobbyOverlay({
         </div>
       )}
 
-      {/* ═══ CARD GRID — Full-page spread, 3× icon size ═══ */}
+      {/* ═══ CARD GRID — Full-page spread, uniform sizing ═══ */}
       <div className="lobby-card-scroll" style={{
         flex: 1,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         pointerEvents: 'auto',
-        padding: '8px clamp(16px, 4vw, 48px)',
+        padding: 'clamp(12px, 2vw, 24px) clamp(16px, 4vw, 48px)',
         overflowY: 'auto',
         overflowX: 'hidden',
         WebkitOverflowScrolling: 'touch',
@@ -378,10 +396,10 @@ export default function LobbyOverlay({
         <div className="lobby-card-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: 'clamp(12px, 3vw, 28px)',
+          gap: 'clamp(10px, 2.5vw, 24px)',
           maxWidth: 1200,
           width: '100%',
-          paddingTop: 8,
+          paddingTop: 'clamp(8px, 1.5vw, 16px)',
           paddingBottom: 32,
         }}>
           {ALL_CARD_ITEMS.map((card) => (

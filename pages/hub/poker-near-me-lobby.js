@@ -774,8 +774,8 @@ export default function PokerNearMeLobby() {
           setHasMore(newVenues.length >= PAGE_SIZE);
           setPage(0);
         }).catch(err => console.error('GPS venue fetch failed:', err));
-        // Auto-open the Near Me panel to show nearby venues
-        setActivePod('nearme');
+        // Auto-open the Search panel to show nearby venue listings sorted by distance
+        setActivePod('search');
         setShowPanel(true);
       },
       (err) => {
@@ -937,7 +937,65 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'nearme':
-        component = <NearMeNowFeed userLocation={userLocation} venues={venues} />;
+        component = (
+          <div>
+            {/* Venue listings — show nearby venues sorted by distance */}
+            {venues.length > 0 && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                    {userLocation ? 'Nearby Venues' : 'All Venues'}
+                  </span>
+                  <span style={{ color: 'rgba(200,214,229,0.4)', fontSize: 12 }}>
+                    {venues.length} venue{venues.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
+                  {venues.slice(0, 20).map(v => (
+                    <VenueCard
+                      key={v.id}
+                      venue={v}
+                      isFavorited={!!favorites[v.id]}
+                      onFavorite={(e) => { e?.stopPropagation(); handleToggleFavorite(v.id, v); }}
+                      onNavigate={(url) => {
+                        if (url.includes('action=review')) {
+                          setSelectedVenueForReview({ id: v.id, name: v.name });
+                        } else {
+                          router.push(url);
+                        }
+                      }}
+                      userLocation={userLocation}
+                    />
+                  ))}
+                </div>
+                {hasMore && venues.length > 20 && (
+                  <button
+                    onClick={loadMore}
+                    disabled={loading}
+                    style={{
+                      display: 'block', width: '100%', marginBottom: 24, padding: '12px 24px',
+                      background: 'rgba(110, 231, 239, 0.08)', border: '1px solid rgba(110, 231, 239, 0.2)',
+                      borderRadius: 12, color: '#6ee7ef', fontSize: 14, fontWeight: 600,
+                      cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    {loading ? 'Loading...' : 'Load More Venues'}
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Activity feed below venue listings */}
+            <NearMeNowFeed userLocation={userLocation} venues={venues} />
+
+            {!userLocation && venues.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 30, color: 'rgba(200,214,229,0.4)' }}>
+                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Tap the GPS button to find venues near you</p>
+                <p style={{ fontSize: 12 }}>Or search for a city above</p>
+              </div>
+            )}
+          </div>
+        );
         break;
 
       case 'livegames':
