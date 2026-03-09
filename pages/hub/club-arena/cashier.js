@@ -500,14 +500,12 @@ const router = useRouter();
                             {/* Dynamic Wallet */}
                             <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
                                 <DynamicWallet
+                                    {...walletData}
                                     diamondBalance={walletData.diamondBalance || diamondBalance}
-                                    bbjAmount={walletData.bbjAmount}
                                     chipBalance={walletData.chipBalance || chipBalance}
-                                    agentBalance={walletData.agentBalance}
-                                    promoBalance={walletData.promoBalance}
-                                    bbjAnimating={walletData.bbjAnimating}
                                     onTapSlot={(slot) => {
                                         if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${club?.club_id || clubIdParam}`);
+                                        if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${club?.club_id || clubIdParam}`);
                                     }}
                                 />
                             </div>

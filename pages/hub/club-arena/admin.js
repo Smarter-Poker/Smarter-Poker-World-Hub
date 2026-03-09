@@ -12,6 +12,9 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import dynamic from 'next/dynamic';
+import useWalletData from '../../../src/hooks/useWalletData';
+const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -91,6 +94,9 @@ const router = useRouter();
     const [stats, setStats] = useState({ totalMembers: 0, totalRake: 0, handsPlayed: 0, activeTables: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
+
+    // Real-time wallet data (owner view — shows Club Bank)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
     // Modal states
     const [activeModal, setActiveModal] = useState(null); // 'members' | 'chips' | 'reports' | 'settings' | 'danger'
@@ -671,6 +677,11 @@ const router = useRouter();
                         </div>
                     ) : (
                         <>
+                            {/* Owner/Admin Wallet — shows Club Bank */}
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 12px' }}>
+                                <DynamicWallet {...walletData} compact />
+                            </div>
+
                             <h2 style={S.sectionTitle}>Administration</h2>
                             {adminOptions.map(opt => (
                                 <div

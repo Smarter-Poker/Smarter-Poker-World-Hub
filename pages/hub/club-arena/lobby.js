@@ -508,14 +508,11 @@ const router = useRouter();
                                     animation: 'fadeInDown 0.3s ease-out',
                                 }}>
                                     <DynamicWallet
-                                        diamondBalance={walletData.diamondBalance}
-                                        bbjAmount={walletData.bbjAmount}
+                                        {...walletData}
                                         chipBalance={walletData.chipBalance || chipBalance}
-                                        agentBalance={walletData.agentBalance}
-                                        promoBalance={walletData.promoBalance}
-                                        bbjAnimating={walletData.bbjAnimating}
                                         onTapSlot={(slot) => {
                                             if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${club.club_id}`);
+                                            if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${club.club_id}`);
                                             if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${club.club_id}`);
                                             if (slot === 'bbj') { /* BBJ modal handled by BBJBanner */ }
                                         }}

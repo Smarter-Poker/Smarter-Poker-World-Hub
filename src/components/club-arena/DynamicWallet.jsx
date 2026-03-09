@@ -4,14 +4,19 @@
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * Overlays live balance data on the metallic wallet background image.
- * Role-aware: hides Agent Wallet row for non-agent players.
+ * Two variants:
+ *   'player' — Chip Wallet (personal chip_balance), hides Agent if non-agent
+ *   'owner'  — Club Bank (club treasury/chip_treasury), always shows Agent
  *
  * Props:
+ *   variant         — 'player' | 'owner' (auto-detected from role if omitted)
+ *   role            — 'player' | 'agent' | 'admin' | 'owner' (for auto-detect)
  *   diamondBalance  — global diamond balance (from profiles table)
- *   bbjAmount       — club BBJ pool (from bbj_pools or club settings)
- *   chipBalance     — club_members.chip_balance
+ *   bbjAmount       — club BBJ pool (from bbj_pools)
+ *   chipBalance     — club_members.chip_balance (player view)
+ *   clubBankBalance — clubs.chip_treasury (owner view — the club's main bank)
  *   agentBalance    — agents.business_balance (null hides the row)
- *   promoBalance    — club_members.promo_balance (0 if none)
+ *   promoBalance    — club_members.promo_balance
  *   bbjAnimating    — triggers pulse animation on BBJ when new chips added
  *   compact         — smaller version for sidebars/modals (default false)
  *   onTapSlot       — callback(slotName) when user taps a wallet row
@@ -35,7 +40,6 @@ function AnimatedCounter({ value, duration = 800, prefix = '', suffix = '' }) {
     const step = (now) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setDisplay(Math.round(from + (to - from) * eased));
       if (progress < 1) animRef.current = requestAnimationFrame(step);
@@ -47,19 +51,36 @@ function AnimatedCounter({ value, duration = 800, prefix = '', suffix = '' }) {
   return <>{prefix}{(display || 0).toLocaleString()}{suffix}</>;
 }
 
+// ─── Background image paths ────────────────────────────────────────────
+const BG_IMAGES = {
+  player: '/assets/club-arena/wallet_bg.png',
+  owner:  '/assets/club-arena/wallet_owner_bg_web.png',
+};
+
 export default function DynamicWallet({
+  variant,                    // 'player' | 'owner' — explicit override
+  role = 'player',            // used for auto-detect when variant not set
   diamondBalance = 0,
   bbjAmount = 0,
-  chipBalance = 0,
-  agentBalance = null,    // null = hide agent row (player view)
+  chipBalance = 0,            // player's personal chip balance
+  clubBankBalance = null,     // club treasury (owner view) — null = use chipBalance
+  agentBalance = null,        // null = hide agent row
   promoBalance = 0,
   bbjAnimating = false,
   compact = false,
   onTapSlot = null,
 }) {
+  // Auto-detect variant from role if not explicitly set
+  const resolvedVariant = variant || (['owner', 'admin'].includes(role) ? 'owner' : 'player');
+  const isOwner = resolvedVariant === 'owner';
   const showAgent = agentBalance !== null && agentBalance !== undefined;
+
+  // Owner shows Club Bank (treasury); player shows Chip Wallet (personal balance)
+  const topRowValue = isOwner && clubBankBalance !== null ? clubBankBalance : chipBalance;
+
   const scale = compact ? 0.7 : 1;
   const containerW = Math.round(286 * scale);
+  const bgImage = BG_IMAGES[resolvedVariant] || BG_IMAGES.player;
 
   return (
     <div
@@ -67,7 +88,7 @@ export default function DynamicWallet({
         position: 'relative',
         width: containerW,
         aspectRatio: '572 / 600',
-        backgroundImage: 'url(/assets/club-arena/wallet_bg.png)',
+        backgroundImage: `url(${bgImage})`,
         backgroundSize: 'contain',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center',
@@ -130,12 +151,12 @@ export default function DynamicWallet({
         </span>
       </div>
 
-      {/* ═══ CHIP WALLET — first row ═══ */}
+      {/* ═══ ROW 1: Club Bank (owner) / Chip Wallet (player) ═══ */}
       <div
-        onClick={() => onTapSlot?.('chips')}
+        onClick={() => onTapSlot?.(isOwner ? 'clubBank' : 'chips')}
         style={{
           position: 'absolute',
-          top: showAgent ? '59.5%' : '60%',
+          top: '59.5%',
           left: '35%',
           width: '55%',
           height: '7.5%',
@@ -148,18 +169,20 @@ export default function DynamicWallet({
         }}
       >
         <span style={{
-          color: '#E4E6EB',
+          color: isOwner ? '#FFD700' : '#E4E6EB',
           fontSize: `${Math.round(14 * scale)}px`,
           fontWeight: 700,
           fontFamily: "'Rajdhani', monospace",
-          textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+          textShadow: isOwner
+            ? '0 0 6px rgba(255,215,0,0.4), 0 1px 3px rgba(0,0,0,0.8)'
+            : '0 1px 3px rgba(0,0,0,0.8)',
         }}>
-          <AnimatedCounter value={chipBalance} />
+          <AnimatedCounter value={topRowValue} />
         </span>
       </div>
 
-      {/* ═══ AGENT WALLET — second row (hidden for players) ═══ */}
-      {showAgent && (
+      {/* ═══ ROW 2: Agent Wallet ═══ */}
+      {(showAgent || isOwner) && (
         <div
           onClick={() => onTapSlot?.('agent')}
           style={{
@@ -183,17 +206,17 @@ export default function DynamicWallet({
             fontFamily: "'Rajdhani', monospace",
             textShadow: '0 1px 3px rgba(0,0,0,0.8)',
           }}>
-            <AnimatedCounter value={agentBalance} />
+            <AnimatedCounter value={agentBalance || 0} />
           </span>
         </div>
       )}
 
-      {/* ═══ PROMO WALLET — third row ═══ */}
+      {/* ═══ ROW 3: Promo Wallet ═══ */}
       <div
         onClick={() => onTapSlot?.('promo')}
         style={{
           position: 'absolute',
-          top: showAgent ? '82.5%' : '82.5%',
+          top: '82.5%',
           left: '35%',
           width: '55%',
           height: '7.5%',
