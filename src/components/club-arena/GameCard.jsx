@@ -43,7 +43,7 @@ const VC = {
 };
 const DV = { label: '?', color: '#888', bg: 'linear-gradient(145deg,#111,#1e1e1e)', accent: '#555' };
 
-const STATUS_DOT = { active: '#00E676', waiting: '#FFA726', full: '#EF5350', paused: '#78909C', completed: '#546E7A' };
+const STATUS_DOT = { active: '#00E676', running: '#00E676', waiting: '#FFA726', full: '#EF5350', paused: '#78909C', completed: '#546E7A' };
 
 // ─────────────────────────────────────────────────────────────────────
 // FORMAT HELPERS
@@ -167,6 +167,22 @@ function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
 // ─────────────────────────────────────────────────────────────────────
 // CASH GAME CARD
 // ─────────────────────────────────────────────────────────────────────
+
+// Mini seat map — visual dots showing filled/empty seats
+function MiniSeatMap({ current, max, accentColor }) {
+  const seats = [];
+  for (let i = 0; i < max; i++) {
+    seats.push(
+      <div key={i} style={{
+        width: 5, height: 5, borderRadius: '50%',
+        background: i < current ? accentColor : 'rgba(255,255,255,0.1)',
+        border: i < current ? 'none' : '1px solid rgba(255,255,255,0.08)',
+      }} />
+    );
+  }
+  return <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>{seats}</div>;
+}
+
 function CashCard({ table: t, assetMap, onPress, avgVpip }) {
   const vc       = VC[t.game_variant] || DV;
   const sb       = t.small_blind     ?? 0;
@@ -176,14 +192,33 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
   const isFull   = cur >= max;
   const isEmpty  = cur === 0;
   const status   = t.status || 'waiting';
+  const isLive   = (status === 'running' || status === 'active') && cur > 0;
   const stickers = getGameStickers(t, avgVpip ?? t.avg_vpip ?? null);
   const clubName = t.club_name || t.club?.name || '';
   const buyRange = fmtBuyRange(t.min_buy_in, t.max_buy_in);
   const tableName = t.name || '';
   const ago      = timeAgo(t.created_at);
+  const actionSec = t.action_time_seconds || t.settings?.action_time || 30;
 
   return (
     <button onClick={() => onPress?.(t)} style={{ ...S.card, background: vc.bg, borderColor: vc.accent + '44' }}>
+
+      {/* LIVE badge — pulsing indicator for active tables */}
+      {isLive && (
+        <div style={{
+          position: 'absolute', top: 5, right: 6,
+          display: 'flex', alignItems: 'center', gap: 3,
+          background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)',
+          borderRadius: 10, padding: '1px 6px', zIndex: 2,
+        }}>
+          <div style={{
+            width: 5, height: 5, borderRadius: '50%', background: '#00E676',
+            boxShadow: '0 0 4px #00E676',
+            animation: 'livePulse 1.5s ease-in-out infinite',
+          }} />
+          <span style={{ fontSize: 8, fontWeight: 800, color: '#00E676', letterSpacing: 0.5 }}>LIVE</span>
+        </div>
+      )}
 
       {/* ROW 1 — Variant badge | Seats + dot */}
       <div style={S.row}>
@@ -193,7 +228,7 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
         <div style={S.seatsBox}>
           <span style={{ color: isFull ? '#EF5350' : isEmpty ? '#78909C' : '#00E676', fontWeight: 700, fontSize: 12 }}>{cur}</span>
           <span style={{ color: '#555', fontSize: 11 }}>/{max}</span>
-          <div style={{ ...S.dot, background: STATUS_DOT[status] || '#555' }} />
+          <div style={{ ...S.dot, background: STATUS_DOT[isFull ? 'full' : status] || '#555' }} />
         </div>
       </div>
 
@@ -206,26 +241,38 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
         <span style={{ ...S.blindsVal, color: vc.color }}>{fmtBlind(sb)}/{fmtBlind(bb)}</span>
       </div>
 
-      {/* ROW 4 — Buy-in range */}
-      {buyRange && (
-        <div style={S.row}>
-          <span style={S.metaLabel}>Buy-in</span>
-          <span style={S.buyRangeVal}>{buyRange}</span>
+      {/* ROW 4 — Buy-in range + Action time */}
+      <div style={S.row}>
+        {buyRange ? (
+          <div>
+            <span style={S.metaLabel}>Buy-in</span>
+            <span style={S.buyRangeVal}>{buyRange}</span>
+          </div>
+        ) : <div />}
+        <div style={{ textAlign: 'right' }}>
+          <span style={S.metaLabel}>Action</span>
+          <span style={S.dimText}>{actionSec}s</span>
         </div>
-      )}
+      </div>
 
-      {/* ROW 5 — Sticker icons */}
+      {/* ROW 5 — Mini seat map */}
+      <MiniSeatMap current={cur} max={max} accentColor={vc.accent} />
+
+      {/* ROW 6 — Sticker icons */}
       {stickers.length > 0 && (
         <div style={S.stickerRow}>
           {stickers.map(k => <StickerBadge key={k} stickerKey={k} assetMap={assetMap} />)}
         </div>
       )}
 
-      {/* ROW 6 — Club | Created ago */}
+      {/* ROW 7 — Club | Created ago */}
       <div style={{ ...S.row, marginTop: 'auto', paddingTop: 3 }}>
         <span style={S.clubText}>{clubName.length > 13 ? clubName.slice(0, 13) + '…' : clubName}</span>
         <span style={S.dimText}>{ago}</span>
       </div>
+
+      {/* LIVE pulse animation */}
+      {isLive && <style>{`@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>}
     </button>
   );
 }

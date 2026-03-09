@@ -4,6 +4,7 @@
  * Auth: Bearer token (owner or admin only)
  */
 import { createClient } from '../../../src/lib/supabaseServerClient';
+import { notifyClubMembers } from '../../../src/lib/club-arena/notify';
 
 const { applyRateLimit } = require('../../../src/lib/poker-engine/RateLimiter');
 
@@ -198,6 +199,17 @@ export default async function handler(req, res) {
                 }
             }
         }
+
+        // Notify club members of new table (fire-and-forget)
+        const tableName = table?.name || `${gv.toUpperCase()} ${sb}/${bb}`;
+        notifyClubMembers(supabaseAdmin, {
+          clubId, type: 'table_created',
+          title: `🎲 New Table: ${tableName}`,
+          message: `A new ${gv.toUpperCase()} ${sb}/${bb} cash game is now open!`,
+          data: { tableId: table?.id, variant: gv, stakes: `${sb}/${bb}` },
+          pushUrl: `/hub/club-arena/lobby?club=${clubId}`,
+          excludeUserId: user.id,
+        }).catch(() => {});
 
         return res.status(200).json({ success: true, table });
     } catch (err) {

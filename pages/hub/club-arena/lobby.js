@@ -594,6 +594,22 @@ const router = useRouter();
                                 />
                             )}
 
+                            {/* Game Summary Bar */}
+                            {tables.length > 0 && (
+                                <div style={{
+                                    display: 'flex', gap: 16, padding: '8px 0 4px',
+                                    fontSize: 11, color: '#B0B3B8', fontWeight: 600,
+                                }}>
+                                    <span>{filteredTables.length} Table{filteredTables.length !== 1 ? 's' : ''}</span>
+                                    <span>{filteredTables.reduce((s, t) => s + (t.current_players || 0), 0)} Player{filteredTables.reduce((s, t) => s + (t.current_players || 0), 0) !== 1 ? 's' : ''}</span>
+                                    {filteredTables.some(t => t.status === 'running' || t.status === 'active') && (
+                                        <span style={{ color: '#00E676' }}>
+                                            {filteredTables.filter(t => t.status === 'running' || t.status === 'active').length} Live
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Game Type Filters */}
                             <div style={styles.filterTabs}>
                                 {[
@@ -757,8 +773,30 @@ const router = useRouter();
 
                             {filteredTables.length === 0 && !(membership?.role === 'owner' || membership?.role === 'admin') && (
                                 <div style={styles.emptyState}>
-                                    <p>No Active Tables</p>
-                                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Check Back Later Or Start A New Table!</p>
+                                    <div style={{ fontSize: 32, marginBottom: 8, opacity: 0.6 }}>🃏</div>
+                                    <p style={{ fontSize: 15, fontWeight: 700, color: '#E4E6EB', marginBottom: 4 }}>No Active Tables</p>
+                                    {(membership?.role === 'owner' || membership?.role === 'admin') ? (
+                                        <div style={{ textAlign: 'center' }}>
+                                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
+                                                Create a cash game or tournament to get started!
+                                            </p>
+                                            <button
+                                                onClick={() => setShowCreateGame({})}
+                                                style={{
+                                                    background: 'linear-gradient(135deg, #2374E1, #1a5bb8)',
+                                                    color: '#fff', border: 'none', borderRadius: 10,
+                                                    padding: '10px 24px', fontSize: 13, fontWeight: 700,
+                                                    cursor: 'pointer', boxShadow: '0 4px 15px rgba(35,116,225,0.3)',
+                                                }}
+                                            >
+                                                + Create Table
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                                            Check back later — the club owner hasn&apos;t started any games yet.
+                                        </p>
+                                    )}
                                 </div>
                             )}
 

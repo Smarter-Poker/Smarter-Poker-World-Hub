@@ -192,6 +192,23 @@ export default function ClubArenaTable() {
     setUser(u => ({ ...u }));
   }, []);
 
+  // Auto-retry for transient errors (not observer-blocked)
+  const [autoRetryCountdown, setAutoRetryCountdown] = useState(0);
+  useEffect(() => {
+    if (!error) { setAutoRetryCountdown(0); return; }
+    // Don't auto-retry permanent errors
+    const permanent = error.includes('Observer') || error.includes('LOCKED') || error.includes('TIME');
+    if (permanent) return;
+    setAutoRetryCountdown(8);
+    const interval = setInterval(() => {
+      setAutoRetryCountdown(prev => {
+        if (prev <= 1) { clearInterval(interval); handleRetry(); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [error, handleRetry]);
+
   // ── Loading screen ──
   if (loading || !user) return (
     <div style={{
@@ -239,7 +256,7 @@ export default function ClubArenaTable() {
               fontWeight: 600, fontSize: 14,
             }}
           >
-            Retry
+            {autoRetryCountdown > 0 ? `Retrying in ${autoRetryCountdown}s…` : 'Retry'}
           </button>
           <button
             onClick={() => router.back()}
