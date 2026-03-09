@@ -1,6 +1,6 @@
-require('dotenv').config({ path: '.env.local' });
-const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -9,7 +9,7 @@ const supabase = createClient(
 
 async function injectRPC() {
     const fn_name = "add_diamonds_to_balance";
-    const sql = fs.readFileSync('supabase/migrations/20260309112613_hotfix_rpc_diamond_column.sql', 'utf-8');
+    const sql = fs.readFileSync('supabase/migrations/20260309162811_hotfix_rpc_diamond_column.sql', 'utf-8');
 
     console.log("Checking if this project has the 'exec_sql' or 'run_sql' generic backdoor installed...");
 

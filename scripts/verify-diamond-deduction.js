@@ -70,7 +70,7 @@ async function testDiamondDeduction() {
         .from('profiles')
         .select('diamonds')
         .eq('id', targetUser.id)
-        .single();
+        .maybeSingle();
 
     console.log(`New Balance: ${verifyData.diamonds} 💎`);
 
