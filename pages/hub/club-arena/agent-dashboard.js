@@ -95,8 +95,9 @@ const router = useRouter();
     const [toast, setToast] = useState({ message: '', type: '' });
 
     // Modal states
-    const [distributeModal, setDistributeModal] = useState(null); // { playerId, playerName }
+    const [distributeModal, setDistributeModal] = useState(null); // { playerId, playerName, currentBalance }
     const [distributeAmount, setDistributeAmount] = useState('');
+    const [distributeNote, setDistributeNote] = useState('');
     const [cashoutModal, setCashoutModal] = useState(null); // cashout request object
     const [cashoutNote, setCashoutNote] = useState('');
     const [clawbackModal, setClawbackModal] = useState(null); // transaction object
@@ -105,6 +106,10 @@ const router = useRouter();
     const [processing, setProcessing] = useState(false);
     const [subAgents, setSubAgents] = useState([]);
     const [subAgentsLoaded, setSubAgentsLoaded] = useState(false);
+
+    // Phase 17: chip flow data + player sort
+    const [chipFlow, setChipFlow] = useState({}); // { [userId]: { in, out, net } }
+    const [playerSort, setPlayerSort] = useState('balance'); // 'balance' | 'name' | 'activity'
     // Sub-agent action state
     const [subAgentCommModal, setSubAgentCommModal] = useState(null); // { sa } — edit commission
     const [subAgentNewRate, setSubAgentNewRate] = useState('');
@@ -222,6 +227,14 @@ const router = useRouter();
             .catch(() => setSubAgentsLoaded(true));
     }, [activeTab, subAgentsLoaded, dashboard?.clubId, user?.id]);
 
+    // ─── Phase 17: Load 7-day chip flow when players tab opens ──
+    useEffect(() => {
+        if (activeTab !== 'players' || !dashboard?.clubId) return;
+        apiCall('/api/club-arena/player-chip-flow', { clubId: dashboard.clubId })
+            .then(r => { if (r.flow) setChipFlow(r.flow); })
+            .catch(() => { /* non-critical — flow indicators just won't show */ });
+    }, [activeTab, dashboard?.clubId]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // ─── Distribute Chips ───────────────────────────────────────
     const handleDistribute = async () => {
         if (!distributeModal || !distributeAmount || processing) return;
@@ -234,10 +247,27 @@ const router = useRouter();
                 clubId: clubIdParam,
                 toUserId: distributeModal.playerId,
                 amount,
+                notes: distributeNote || undefined,
             });
             showToast(`Sent ${amount.toLocaleString()} chips to ${distributeModal.playerName}`);
+            busEmit.dataMutated('chips_distributed');
+
+            // Optimistic: update chip flow for this player
+            setChipFlow(prev => {
+                const existing = prev[distributeModal.playerId] || { in: 0, out: 0, net: 0 };
+                return {
+                    ...prev,
+                    [distributeModal.playerId]: {
+                        in: existing.in + amount,
+                        out: existing.out,
+                        net: existing.net + amount,
+                    },
+                };
+            });
+
             setDistributeModal(null);
             setDistributeAmount('');
+            setDistributeNote('');
             loadDashboard();
         } catch (err) {
             showToast(err.message, 'error');
@@ -425,7 +455,10 @@ const router = useRouter();
                 {activeTab === 'players' && (
                     <PlayersTab
                         players={players}
-                        onDistribute={(p) => setDistributeModal({ playerId: p.user_id, playerName: p.profile?.display_name || p.nickname || 'Player' })}
+                        chipFlow={chipFlow}
+                        playerSort={playerSort}
+                        onSortChange={setPlayerSort}
+                        onDistribute={(p) => setDistributeModal({ playerId: p.user_id, playerName: p.profile?.display_name || p.nickname || 'Player', currentBalance: p.chip_balance || 0 })}
                         onPromote={(p) => { setPromoteModal({ player: p }); setPromoteRate(''); }}
                     />
                 )}
@@ -524,28 +557,62 @@ const router = useRouter();
 
             {/* ═══ DISTRIBUTE MODAL ═══ */}
             {distributeModal && (
-                <ModalOverlay onClose={() => setDistributeModal(null)}>
+                <ModalOverlay onClose={() => { setDistributeModal(null); setDistributeAmount(''); setDistributeNote(''); }}>
                     <h3 style={modalTitle}>Send Chips</h3>
-                    <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>
-                        To: <strong style={{ color: FB.textPrimary }}>{distributeModal.playerName}</strong>
-                    </p>
+
+                    {/* Player info + current balance */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: FB.hover, borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                        <div>
+                            <div style={{ color: FB.textSecondary, fontSize: 11, marginBottom: 2 }}>Recipient</div>
+                            <div style={{ color: FB.textPrimary, fontWeight: 700, fontSize: 15 }}>{distributeModal.playerName}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ color: FB.textSecondary, fontSize: 11, marginBottom: 2 }}>Current Balance</div>
+                            <div style={{ color: '#F7C52A', fontWeight: 700, fontSize: 15 }}>{(distributeModal.currentBalance || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+
+                    {/* Amount input */}
                     <input
                         type="number" value={distributeAmount}
                         onChange={(e) => setDistributeAmount(e.target.value)}
-                        placeholder="Amount..." style={inputStyle}
+                        placeholder="Amount to send..." style={inputStyle}
+                        autoFocus
                     />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                        {[100, 500, 1000, 5000].map(v => (
+
+                    {/* Quick-pick buttons */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 10 }}>
+                        {[500, 1000, 5000, 10000].map(v => (
                             <button key={v} onClick={() => setDistributeAmount(String(v))} style={{
-                                ...btnStyle, flex: 1, padding: '6px 0', fontSize: 12,
+                                ...btnStyle, padding: '8px 0', fontSize: 12,
                                 background: distributeAmount === String(v) ? FB.primary : FB.cardBg,
                                 color: distributeAmount === String(v) ? '#fff' : FB.textSecondary,
+                                border: `1px solid ${distributeAmount === String(v) ? FB.primary : FB.border}`,
                             }}>
-                                {v.toLocaleString()}
+                                {v >= 1000 ? `${v / 1000}K` : v}
                             </button>
                         ))}
                     </div>
-                    <button onClick={handleDistribute} disabled={processing} style={{ ...actionBtn, marginTop: 16, background: FB.success }}>
+
+                    {/* After-send balance preview */}
+                    {distributeAmount && parseInt(distributeAmount) > 0 && (
+                        <div style={{ marginTop: 10, fontSize: 12, color: FB.textSecondary, textAlign: 'right' }}>
+                            Balance after: <span style={{ color: FB.success, fontWeight: 600 }}>
+                                {((distributeModal.currentBalance || 0) + parseInt(distributeAmount)).toLocaleString()}
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Optional note */}
+                    <input
+                        value={distributeNote}
+                        onChange={(e) => setDistributeNote(e.target.value)}
+                        placeholder="Note (optional)..." style={{ ...inputStyle, marginTop: 10 }}
+                        maxLength={120}
+                    />
+
+                    <button onClick={handleDistribute} disabled={processing || !distributeAmount || parseInt(distributeAmount) <= 0}
+                        style={{ ...actionBtn, marginTop: 16, background: FB.success, opacity: (!distributeAmount || parseInt(distributeAmount) <= 0) ? 0.5 : 1 }}>
                         {processing ? 'Sending...' : `Send ${distributeAmount ? parseInt(distributeAmount).toLocaleString() : '0'} Chips`}
                     </button>
                 </ModalOverlay>
@@ -863,78 +930,131 @@ function StatLine({ label, value }) {
 // TAB: PLAYERS (Downline)
 // ═══════════════════════════════════════════════════════════════
 
-function PlayersTab({ players, onDistribute, onPromote }) {
+function PlayersTab({ players, onDistribute, onPromote, chipFlow = {}, playerSort = 'balance', onSortChange }) {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 300);
+
     const filtered = (players || []).filter(p => {
         const name = (p.profile?.display_name || p.nickname || '').toLowerCase();
         return name.includes(debouncedSearch.toLowerCase());
     });
 
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
+        if (playerSort === 'balance') return (b.chip_balance || 0) - (a.chip_balance || 0);
+        if (playerSort === 'activity') {
+            const ta = a.profile?.last_seen ? new Date(a.profile.last_seen).getTime() : 0;
+            const tb = b.profile?.last_seen ? new Date(b.profile.last_seen).getTime() : 0;
+            return tb - ta;
+        }
+        // name
+        return (a.profile?.display_name || a.nickname || '').localeCompare(b.profile?.display_name || b.nickname || '');
+    });
+
+    const totalChips = filtered.reduce((s, p) => s + (p.chip_balance || 0), 0);
+    const onlineCount = filtered.filter(p => p.profile?.is_online).length;
+
     return (
         <div>
-            <input
-                value={search} onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search players..." style={{ ...inputStyle, marginBottom: 12 }}
-            />
-            {filtered.length === 0 ? (
+            {/* Summary bar */}
+            <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                <div style={{ flex: 1, background: FB.cardBg, borderRadius: 8, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 10, color: FB.textSecondary }}>Total Chips Out</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#F7C52A' }}>{totalChips.toLocaleString()}</div>
+                </div>
+                <div style={{ flex: 1, background: FB.cardBg, borderRadius: 8, padding: '8px 12px' }}>
+                    <div style={{ fontSize: 10, color: FB.textSecondary }}>Online Now</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: FB.success }}>{onlineCount} / {filtered.length}</div>
+                </div>
+            </div>
+
+            {/* Search + sort */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <input
+                    value={search} onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search players..." style={{ ...inputStyle, flex: 1, marginBottom: 0 }}
+                />
+                <select
+                    value={playerSort}
+                    onChange={(e) => onSortChange && onSortChange(e.target.value)}
+                    style={{ background: FB.cardBg, color: FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '8px 10px', fontSize: 12, cursor: 'pointer' }}
+                >
+                    <option value="balance">By Balance</option>
+                    <option value="name">By Name</option>
+                    <option value="activity">By Activity</option>
+                </select>
+            </div>
+
+            {sorted.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
                     {debouncedSearch ? 'No players match search' : 'No players in your downline yet'}
                 </div>
-            ) : filtered.map((p, i) => (
-                <div key={i} style={{ ...cardStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
-                    {/* Avatar */}
-                    <div style={{
-                        width: 40, height: 40, borderRadius: '50%', background: FB.hover,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 16, color: FB.textSecondary, flexShrink: 0,
-                        border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
-                    }}>
-                        {p.profile?.avatar_url
-                            ? <Image src={p.profile.avatar_url} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
-                            : ''}
-                    </div>
+            ) : sorted.map((p, i) => {
+                const flow = chipFlow[p.user_id];
+                const flowNet = flow?.net || 0;
+                const hasFlow = flowNet !== 0;
 
-                    {/* Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {p.profile?.display_name || p.nickname || 'Unknown'}
+                return (
+                    <div key={i} style={{ ...cardStyle, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {/* Avatar */}
+                        <div style={{
+                            width: 40, height: 40, borderRadius: '50%', background: FB.hover,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 16, color: FB.textSecondary, flexShrink: 0,
+                            border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
+                        }}>
+                            {p.profile?.avatar_url
+                                ? <Image src={p.profile.avatar_url} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                                : ''}
                         </div>
-                        <div style={{ fontSize: 11, color: FB.textSecondary }}>
-                            {p.profile?.is_online ? ' Online' : `Last seen ${timeAgo(p.profile?.last_seen)}`}
-                            {p.tier && p.tier !== 'bronze' ? ` • ${p.tier}` : ''}
+
+                        {/* Info */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: FB.textPrimary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {p.profile?.display_name || p.nickname || 'Unknown'}
+                            </div>
+                            <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                {p.profile?.is_online ? '🟢 Online' : `Last seen ${timeAgo(p.profile?.last_seen)}`}
+                                {p.tier && p.tier !== 'bronze' ? ` • ${p.tier}` : ''}
+                            </div>
+                            {/* 7-day chip flow indicator */}
+                            {hasFlow && (
+                                <div style={{ fontSize: 10, color: flowNet > 0 ? FB.success : '#FF6B6B', marginTop: 2 }}>
+                                    {flowNet > 0 ? '▲' : '▼'} {Math.abs(flowNet).toLocaleString()} chips (7d)
+                                </div>
+                            )}
                         </div>
-                    </div>
 
-                    {/* Balance */}
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: FB.gold, fontVariantNumeric: 'tabular-nums' }}>
-                            {(p.chip_balance || 0).toLocaleString()}
+                        {/* Balance */}
+                        <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: '#F7C52A', fontVariantNumeric: 'tabular-nums' }}>
+                                {(p.chip_balance || 0).toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: 10, color: FB.textSecondary }}>chips</div>
                         </div>
-                        <div style={{ fontSize: 10, color: FB.textSecondary }}>chips</div>
-                    </div>
 
-                    {/* Send button */}
-                    <button onClick={() => onDistribute(p)} style={{
-                        background: FB.primary, color: '#fff', border: 'none', borderRadius: 8,
-                        padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                        flexShrink: 0,
-                    }}>
-                        Send
-                    </button>
-
-                    {/* Promote to Sub-Agent */}
-                    {onPromote && p.role !== 'sub_agent' && p.role !== 'agent' && (
-                        <button onClick={() => onPromote(p)} style={{
-                            background: '#4ECDC4', color: '#000', border: 'none', borderRadius: 8,
-                            padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        {/* Send button */}
+                        <button onClick={() => onDistribute(p)} style={{
+                            background: FB.primary, color: '#fff', border: 'none', borderRadius: 8,
+                            padding: '8px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                             flexShrink: 0,
                         }}>
-
+                            ⚡ Send
                         </button>
-                    )}
-                </div>
-            ))}
+
+                        {/* Promote to Sub-Agent */}
+                        {onPromote && p.role !== 'sub_agent' && p.role !== 'agent' && (
+                            <button onClick={() => onPromote(p)} style={{
+                                background: '#4ECDC4', color: '#000', border: 'none', borderRadius: 8,
+                                padding: '8px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                flexShrink: 0,
+                            }}>
+                                ↑
+                            </button>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 }

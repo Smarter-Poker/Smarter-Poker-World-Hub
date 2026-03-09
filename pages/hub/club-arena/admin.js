@@ -138,6 +138,9 @@ const router = useRouter();
     // Rakeback state
     const [rakebackStatus, setRakebackStatus] = useState(null);
     const [rakebackLoading, setRakebackLoading] = useState(false);
+
+    // Phase 17: Mint audit
+    const [recentMints, setRecentMints] = useState([]);
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -292,6 +295,18 @@ const router = useRouter();
         if (activeModal === 'shop') {
             apiGet(`/api/club-arena/manage-shop?clubId=${club.id}`)
                 .then(d => setShopItems(d.items || []))
+                .catch(() => { });
+        }
+        if (activeModal === 'reports') {
+            // Phase 17: Load last 10 mint transactions for audit micro-section
+            supabase
+                .from('chip_transactions')
+                .select('id, amount, notes, created_at, from_user_id')
+                .eq('club_id', club.id)
+                .eq('transaction_type', 'mint')
+                .order('created_at', { ascending: false })
+                .limit(10)
+                .then(({ data }) => setRecentMints(data || []))
                 .catch(() => { });
         }
         if (activeModal === 'rakeback') {
@@ -849,6 +864,38 @@ const router = useRouter();
                                     <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
                                     <div style={S.statLabel}>Hands Played</div>
                                 </div>
+                            </div>
+
+                            {/* ─── Phase 17: Mint Audit ─── */}
+                            <div style={{ marginTop: 20 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#F7C52A', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    🪙 Recent Mints
+                                    <span style={{ fontSize: 11, fontWeight: 400, color: FB.textSecondary }}>(last 10)</span>
+                                </div>
+                                {recentMints.length === 0 ? (
+                                    <div style={{ color: FB.textSecondary, fontSize: 12, textAlign: 'center', padding: '16px 0' }}>No mints recorded yet</div>
+                                ) : recentMints.map((tx, i) => (
+                                    <div key={tx.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: i % 2 === 0 ? FB.hover : 'transparent', borderRadius: 6 }}>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 700, color: '#F7C52A' }}>
+                                                +{Number(tx.amount).toLocaleString()} chips
+                                            </span>
+                                            {tx.notes && (
+                                                <span style={{ fontSize: 11, color: FB.textSecondary, marginLeft: 8 }}>
+                                                    "{tx.notes}"
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                            {tx.created_at ? new Date(tx.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                                        </div>
+                                    </div>
+                                ))}
+                                {recentMints.length > 0 && (
+                                    <div style={{ textAlign: 'right', marginTop: 8, fontSize: 11, color: FB.textSecondary }}>
+                                        Total minted (shown): <strong style={{ color: '#F7C52A' }}>{recentMints.reduce((s, t) => s + Number(t.amount), 0).toLocaleString()}</strong>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
