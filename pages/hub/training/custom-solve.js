@@ -769,7 +769,7 @@ export default function CustomSolvePage() {
                             ))}
                         </div>
                         <div style={{ fontSize: 9, color: '#475569', marginTop: 4, padding: '0 4px' }}>
-                            {RAKE_PRESETS[rakePreset].rake}% / ${RAKE_PRESETS[rakePreset].cap.toFixed(2)} cap
+                            {(RAKE_PRESETS[rakePreset] || {}).rake || 0}% / ${(Number.isFinite(RAKE_PRESETS[rakePreset]?.cap) ? RAKE_PRESETS[rakePreset].cap : 0).toFixed(2)} cap
                         </div>
                     </div>
 

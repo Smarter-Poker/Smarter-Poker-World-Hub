@@ -251,7 +251,7 @@ export default function BankrollCoachPage() {
                                         letterSpacing: -1,
                                     }}
                                 >
-                                    ${Math.abs(impact.dollarLossPerHour).toFixed(2)}
+                                    ${(Number.isFinite(impact.dollarLossPerHour) ? Math.abs(impact.dollarLossPerHour) : 0).toFixed(2)}
                                     <span style={{ fontSize: 16, fontWeight: 600, color: '#94a3b8' }}>/hr</span>
                                 </motion.div>
                                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
@@ -270,7 +270,7 @@ export default function BankrollCoachPage() {
                                     textAlign: 'center',
                                 }}>
                                     <div style={{ fontSize: 20, fontWeight: 800, color: '#ef4444' }}>
-                                        ${Math.abs(impact.dollarLossPer100).toFixed(0)}
+                                        ${(Number.isFinite(impact.dollarLossPer100) ? Math.abs(impact.dollarLossPer100) : 0).toFixed(0)}
                                     </div>
                                     <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                         PER 100 HANDS
@@ -282,7 +282,7 @@ export default function BankrollCoachPage() {
                                     textAlign: 'center',
                                 }}>
                                     <div style={{ fontSize: 20, fontWeight: 800, color: '#fbbf24' }}>
-                                        {impact.evLossPerHand.toFixed(2)}
+                                        {(Number.isFinite(impact.evLossPerHand) ? impact.evLossPerHand : 0).toFixed(2)}
                                     </div>
                                     <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                                         BB LOST/HAND
@@ -323,11 +323,11 @@ export default function BankrollCoachPage() {
                                     </span>
                                     {' accuracy would save you ~'}
                                     <span style={{ fontWeight: 800, color: '#4ade80' }}>
-                                        ${(Math.abs(impact.dollarLossPerHour) * 0.3).toFixed(2)}/hr
+                                        ${(Number.isFinite(impact.dollarLossPerHour) ? Math.abs(impact.dollarLossPerHour) * 0.3 : 0).toFixed(2)}/hr
                                     </span>
                                     {', or '}
                                     <span style={{ fontWeight: 800, color: '#4ade80' }}>
-                                        ${(Math.abs(impact.dollarLossPerHour) * 0.3 * 160).toFixed(0)}/month
+                                        ${(Number.isFinite(impact.dollarLossPerHour) ? Math.abs(impact.dollarLossPerHour) * 0.3 * 160 : 0).toFixed(0)}/month
                                     </span>
                                     {' (20hr/week).'}
                                 </div>
@@ -375,7 +375,7 @@ export default function BankrollCoachPage() {
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <div style={{ fontSize: 15, fontWeight: 800, color: '#ef4444' }}>
-                                                -${leak.dollarImpact.toFixed(2)}
+                                                -${(Number.isFinite(leak.dollarImpact) ? leak.dollarImpact : 0).toFixed(2)}
                                             </div>
                                             <div style={{ fontSize: 9, color: '#64748b' }}>per hour</div>
                                         </div>
