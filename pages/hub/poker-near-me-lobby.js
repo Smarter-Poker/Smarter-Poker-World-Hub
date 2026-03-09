@@ -1,19 +1,15 @@
 /**
- * POKER NEAR ME — CINEMATIC 3D LOBBY
- *
- * This is the immersive, game-inspired lobby version of Poker Near Me.
- * It replaces the flat tab layout with a full 3D interactive command lobby
- * built on React Three Fiber, GSAP, and Framer Motion.
+ * POKER NEAR ME — LOBBY
  *
  * Architecture:
- *   Layer 1 — 3D Scene (LobbyScene: radar, pods, particles, camera)
+ *   Layer 1 — Background (LobbyCanvas: cinematic background image, radar, sonar pulses)
  *   Layer 2 — UI Overlay (LobbyOverlay: search, dock, panels)
  *   Layer 3 — Feature Modules (existing components loaded into panels)
  *
- * Data layer is identical to the original poker-near-me.js:
- *   - Same API endpoints (/api/poker/venues, etc.)
- *   - Same Supabase services (favorites, preferences, search history)
- *   - Same caching, retry, and analytics logic
+ * Data layer:
+ *   - API endpoints (/api/poker/venues, etc.)
+ *   - Supabase services (favorites, preferences, search history)
+ *   - Caching, retry, and analytics logic
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -29,30 +25,7 @@ import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../.
 import { getPokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
-// Dynamic imports — 3D R3F lobby scene (client-only, no SSR)
-// Falls back to 2D LobbyCanvas if WebGL/R3F fails to load
-const LobbyScene = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyScene').catch(err => {
-    console.error('[PokerNearMeLobby] LobbyScene (3D) failed to load:', err);
-    // Fallback: load 2D canvas instead
-    return import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(() => ({
-      default: () => (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 16, flexDirection: 'column', gap: 12 }}>
-          <div>Lobby — Reloading...</div>
-          <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer' }}>Refresh</button>
-        </div>
-      )
-    }));
-  }),
-  {
-    ssr: false,
-    loading: () => (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030818', color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 16 }}>
-        Loading Lobby...
-      </div>
-    ),
-  }
-);
+// Dynamic import — 2D lobby background (client-only, no SSR)
 const LobbyCanvas = dynamic(
   () => import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
     console.error('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
@@ -1173,8 +1146,8 @@ export default function PokerNearMeLobby() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Layer 1 — 3D R3F Scene (cinematic pods, particles, post-processing) */}
-        <LobbyScene onPodClick={handlePodClick} activePod={activePod} liveData={liveData} />
+        {/* Layer 1 — Background */}
+        <LobbyCanvas />
 
         {/* Layer 2 — UI Overlay */}
         <LobbyOverlay
