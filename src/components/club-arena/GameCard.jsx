@@ -125,14 +125,16 @@ function useCountdown(dateStr) {
 function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
   const asset = assetMap?.[stickerKey];
   const isGtd = stickerKey === 'gtd';
+  const [imgFailed, setImgFailed] = React.useState(false);
 
-  if (asset && asset.path) {
+  if (asset && asset.path && !imgFailed) {
     return (
       <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <img
           src={asset.path}
           alt={asset.label || stickerKey}
           title={asset.label || stickerKey}
+          onError={() => setImgFailed(true)}
           style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }}
         />
         {isGtd && gtdAmount > 0 && (

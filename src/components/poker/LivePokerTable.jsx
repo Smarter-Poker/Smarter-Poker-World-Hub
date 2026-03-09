@@ -725,6 +725,17 @@ function ActionPanel({ actions, onAction, stack, currentBet, bigBlind, potTotal 
   const [betAmount, setBetAmount] = useState(0);
   const [showSlider, setShowSlider] = useState(false);
 
+  // Parse legal actions
+  const canFold = actions?.find(a => a.type === 'fold');
+  const canCheck = actions?.find(a => a.type === 'check');
+  const canCall = actions?.find(a => a.type === 'call');
+  const canRaise = actions?.find(a => a.type === 'raise');
+  const canBet = actions?.find(a => a.type === 'bet');
+  const canAllIn = actions?.find(a => a.type === 'all_in');
+  const betOrRaise = canRaise || canBet;
+  const minBet = betOrRaise?.minAmount || betOrRaise?.amount || bigBlind || 2;
+  const maxBet = betOrRaise?.maxAmount || stack || 0;
+
   // Reset bet when actions change
   useEffect(() => {
     setBetAmount(minBet);

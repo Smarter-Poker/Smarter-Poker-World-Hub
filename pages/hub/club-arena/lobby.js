@@ -247,7 +247,7 @@ const router = useRouter();
             // of table counts by re-querying only id+current_players+status (cheap).
             supabase
                 .from('tables')
-                .select('id, current_players, status, name, game_variant, big_blind, small_blind, max_players, settings')
+                .select('*')
                 .eq('club_id', club.id)
                 .neq('status', 'deleted')
                 .neq('status', 'closed')
