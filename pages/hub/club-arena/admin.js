@@ -2,7 +2,7 @@
  CLUB ARENA — Admin | FULLY WIRED
  SmarterPoker Dark Theme | Member Management, Chip Distribution, Settings
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -83,6 +83,61 @@ const apiGet = async (url) => {
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
+
+const MemoizedMemberRow = React.memo(({ member, agents, downlineCount, assignedAgent, processing, assignAgent, updateMemberRole, removeMember, resolveAvatarDisplay, rList, S, FB }) => (
+    <div key={member.user_id} style={S.memberRow}>
+        <div style={S.memberAvatar}>
+            <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+        </div>
+        <div style={S.memberInfo}>
+            <div style={S.memberName}>{member.profiles?.display_name || member.profiles?.username || 'Unknown'}</div>
+            <div style={S.memberRole}>{member.role}{member.role === 'agent' && downlineCount > 0 ? ` (${downlineCount} player${downlineCount !== 1 ? 's' : ''})` : ''} • {(member.chip_balance || 0).toLocaleString()} chips</div>
+            {member.role === 'player' && agents.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                    <select
+                        style={{ ...S.roleSelect, fontSize: '11px', padding: '3px 6px' }}
+                        value={member.agent_id || ''}
+                        onChange={e => assignAgent(member.user_id, e.target.value)}
+                        disabled={processing}
+                    >
+                        <option value="">No Agent</option>
+                        {agents.map(a => (
+                            <option key={a.user_id} value={a.user_id}>
+                                {a.profiles?.display_name || a.profiles?.username}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+            {member.role === 'player' && assignedAgent && (
+                <div style={{ fontSize: '11px', color: '#1877F2', marginTop: 2 }}>
+                    Agent: {assignedAgent.profiles?.display_name || assignedAgent.profiles?.username}
+                </div>
+            )}
+        </div>
+        {member.role !== 'owner' && (
+            <>
+                <select
+                    style={S.roleSelect}
+                    value={member.role}
+                    onChange={e => updateMemberRole(member.user_id, e.target.value)}
+                    disabled={processing}
+                >
+                    {rList.map(r => (
+                        <option key={r} value={r}>{r}</option>
+                    ))}
+                </select>
+                <button
+                    style={S.removeBtn}
+                    onClick={() => removeMember(member.user_id, member.profiles?.display_name || member.profiles?.username)}
+                    disabled={processing}
+                >
+                    Remove
+                </button>
+            </>
+        )}
+    </div>
+));
 
 export default function Admin() {
     useTrainingBus('club-arena-admin');
@@ -786,58 +841,20 @@ export default function Admin() {
                                     const assignedAgent = agents.find(a => a.user_id === member.agent_id);
                                     const downlineCount = member.role === 'agent' ? members.filter(m => m.agent_id === member.user_id).length : 0;
                                     return (
-                                        <div key={member.user_id} style={S.memberRow}>
-                                            <div style={S.memberAvatar}>
-                                                <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                                            </div>
-                                            <div style={S.memberInfo}>
-                                                <div style={S.memberName}>{member.profiles?.display_name || member.profiles?.username || 'Unknown'}</div>
-                                                <div style={S.memberRole}>{member.role}{member.role === 'agent' && downlineCount > 0 ? ` (${downlineCount} player${downlineCount !== 1 ? 's' : ''})` : ''} • {(member.chip_balance || 0).toLocaleString()} chips</div>
-                                                {member.role === 'player' && agents.length > 0 && (
-                                                    <div style={{ marginTop: 4 }}>
-                                                        <select
-                                                            style={{ ...S.roleSelect, fontSize: '11px', padding: '3px 6px' }}
-                                                            value={member.agent_id || ''}
-                                                            onChange={e => assignAgent(member.user_id, e.target.value)}
-                                                            disabled={processing}
-                                                        >
-                                                            <option value="">No Agent</option>
-                                                            {agents.map(a => (
-                                                                <option key={a.user_id} value={a.user_id}>
-                                                                    {a.profiles?.display_name || a.profiles?.username}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                )}
-                                                {member.role === 'player' && assignedAgent && (
-                                                    <div style={{ fontSize: '11px', color: '#1877F2', marginTop: 2 }}>
-                                                        Agent: {assignedAgent.profiles?.display_name || assignedAgent.profiles?.username}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {member.role !== 'owner' && (
-                                                <>
-                                                    <select
-                                                        style={S.roleSelect}
-                                                        value={member.role}
-                                                        onChange={e => updateMemberRole(member.user_id, e.target.value)}
-                                                        disabled={processing}
-                                                    >
-                                                        {ROLES.filter(r => r !== 'owner').map(r => (
-                                                            <option key={r} value={r}>{r}</option>
-                                                        ))}
-                                                    </select>
-                                                    <button
-                                                        style={S.removeBtn}
-                                                        onClick={() => removeMember(member.user_id, member.profiles?.display_name || member.profiles?.username)}
-                                                        disabled={processing}
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
+                                        <MemoizedMemberRow
+                                            key={member.user_id}
+                                            member={member}
+                                            agents={agents}
+                                            downlineCount={downlineCount}
+                                            assignedAgent={assignedAgent}
+                                            processing={processing}
+                                            assignAgent={assignAgent}
+                                            updateMemberRole={updateMemberRole}
+                                            removeMember={removeMember}
+                                            resolveAvatarDisplay={resolveAvatarDisplay}
+                                            rList={ROLES.filter(r => r !== 'owner')}
+                                            S={S} FB={FB}
+                                        />
                                     );
                                 })
                             })()}

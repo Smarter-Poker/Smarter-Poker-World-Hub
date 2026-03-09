@@ -2,7 +2,7 @@
  CLUB ARENA — Players | FULLY WIRED
  SmarterPoker Dark Theme | Member List with Search, Roles & Actions
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -15,6 +15,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import useWalletData from '../../../src/hooks/useWalletData';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),

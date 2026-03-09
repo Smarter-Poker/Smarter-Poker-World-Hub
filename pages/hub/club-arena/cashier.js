@@ -400,15 +400,20 @@ export default function Cashier() {
         }
 
         setProcessing(true);
+        // Optimistic State Update
+        const previousBalance = chipBalance;
+        setChipBalance(prev => prev - amount);
+        setShowCashOutModal(false);
+        setCashOutAmount('');
+
         try {
             const result = await apiCall('/api/club-arena/request-cashout', {
                 clubId: club.id,
                 amount,
             });
 
-            showToast(result.message || `Cashout request sent! ${amount.toLocaleString()} chips held.`, 'success'); busEmit.dataMutated('cashout_requested');
-            setShowCashOutModal(false);
-            setCashOutAmount('');
+            showToast(result.message || `Cashout request sent! ${amount.toLocaleString()} chips held.`, 'success');
+            busEmit.dataMutated('cashout_requested');
             loadData();
 
             // Broadcast chip balance change to other tabs
@@ -416,6 +421,8 @@ export default function Cashier() {
                 new BroadcastChannel('smarter_poker_chips_sync').postMessage('refresh');
             } catch (e) { }
         } catch (e) {
+            // Rollback
+            setChipBalance(previousBalance);
             showToast(e.message || 'Cash-out failed. Try again.', 'error');
         } finally {
             setProcessing(false);
@@ -430,17 +437,24 @@ export default function Cashier() {
         if (amount > (chipBalance || 0)) { showToast('Insufficient chips', 'error'); return; }
 
         setProcessing(true);
+        // Optimistic State Update
+        const previousBalance = chipBalance;
+        setChipBalance(prev => prev - amount);
+        setShowTransferModal(false);
+        const modalState = { recipient: transferRecipient, amount, note: transferNote };
+        setTransferRecipient(''); setTransferAmount(''); setTransferNote('');
+
         try {
-            const result = await apiCall('/api/club-arena/transfer-chips', {
-                clubId: club.id, toUserId: transferRecipient, amount,
-                note: transferNote.trim() || undefined,
+            await apiCall('/api/club-arena/transfer-chips', {
+                clubId: club.id, toUserId: modalState.recipient, amount: modalState.amount,
+                note: modalState.note.trim() || undefined,
             });
-            showToast(`${amount.toLocaleString()} chips sent!`, 'success');
+            showToast(`${modalState.amount.toLocaleString()} chips sent!`, 'success');
             busEmit.dataMutated('chips_distributed');
-            setShowTransferModal(false);
-            setTransferRecipient(''); setTransferAmount(''); setTransferNote('');
             loadData();
         } catch (e) {
+            // Rollback
+            setChipBalance(previousBalance);
             showToast(e.message || 'Transfer failed', 'error');
         } finally { setProcessing(false); }
     };

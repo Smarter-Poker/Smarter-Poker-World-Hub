@@ -10,7 +10,6 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useWalletData from '../../../src/hooks/useWalletData';
-import ModalLight from '../../../src/components/ui/ModalLight';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
@@ -254,19 +253,34 @@ export default function Marketplace() {
         }
 
         setProcessing(true);
+        // Optimistic State Update
+        const previousOwned = [...ownedItems];
+        const previousBalance = chipBalance;
+        const itemToPurchase = { ...selectedItem };
+
+        setOwnedItems(prev => [...prev, itemToPurchase.id]);
+        setChipBalance(prev => prev - itemToPurchase.price);
+        setSelectedItem(null);
+
         try {
             const result = await apiCall('/api/club-arena/marketplace-purchase', {
                 clubId: club.id,
-                itemId: selectedItem.id,
-                itemName: selectedItem.name,
-                price: selectedItem.price,
+                itemId: itemToPurchase.id,
+                itemName: itemToPurchase.name,
+                price: itemToPurchase.price,
             });
 
-            showToast(`Purchased ${selectedItem.name}!`); busEmit.dataMutated('marketplace_purchase');
-            setSelectedItem(null);
-            setOwnedItems([...ownedItems, selectedItem.id]);
-            setChipBalance(result.newBalance ?? (chipBalance - selectedItem.price));
+            showToast(`Purchased ${itemToPurchase.name}!`);
+            busEmit.dataMutated('marketplace_purchase');
+
+            // Sync with server if balance returned
+            if (result.newBalance !== undefined) {
+                setChipBalance(result.newBalance);
+            }
         } catch (e) {
+            // Rollback
+            setOwnedItems(previousOwned);
+            setChipBalance(previousBalance);
             console.error('[Marketplace] Purchase error:', e);
             showToast(e.message || 'Purchase failed. Try again.', 'error');
         } finally {

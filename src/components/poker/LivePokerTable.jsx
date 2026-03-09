@@ -1889,6 +1889,22 @@ function TournamentHUD({ tournamentId, userId }) {
   const [prevRemaining, setPrevRemaining] = useState(null);
   const [elimFlash, setElimFlash] = useState(false);
 
+  // [HARDENING: PRO PHASE 10] Master Audit Trail for Mystery Bounties
+  const [remainingEnvelopes, setRemainingEnvelopes] = useState(null);
+
+  // Listen to the EventBus for mystery bounty announcements
+  useEffect(() => {
+    if (!eventBus) return;
+    const handleReveal = (e) => {
+      // The reveal payload includes { amount, label, remainingEnvelopes }
+      if (e.payload?.remainingEnvelopes) {
+        setRemainingEnvelopes(e.payload.remainingEnvelopes);
+      }
+    };
+    const unsub = eventBus.on(EventType.MYSTERY_BOUNTY_REVEALED, handleReveal);
+    return () => unsub();
+  }, []);
+
   // Poll tournament state every 5s
   useEffect(() => {
     if (!tournamentId) return;
@@ -1958,6 +1974,43 @@ function TournamentHUD({ tournamentId, userId }) {
 
   return (
     <div style={{ position: 'fixed', top: 8, left: 8, zIndex: 200 }}>
+      {/* ── [HARDENING: PRO PHASE 10] THE BOUNTY BOARD ── */}
+      {/* Displays glowing envelope summary alongside the blind structure */}
+      <AnimatePresence>
+        {remainingEnvelopes && remainingEnvelopes.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            style={{
+              position: 'absolute', right: '105%', top: 0,
+              background: 'linear-gradient(135deg, rgba(20,20,20,0.95), rgba(40,30,0,0.95))',
+              border: '1px solid #FFD700', borderRadius: 10, padding: '8px 12px',
+              minWidth: 160, backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 20px rgba(255,215,0,0.2)',
+            }}
+          >
+            <div style={{ color: '#FFD700', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginBottom: 6, letterSpacing: 1, borderBottom: '1px solid rgba(255,215,0,0.4)', paddingBottom: 4 }}>
+              Mystery Bounties Left
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {remainingEnvelopes.map((env, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#E4E6EB', fontSize: 12, fontWeight: 700 }}>{env.label}</span>
+                  <span style={{
+                    background: env.exampleAmount >= 1000 ? '#FFD700' : 'rgba(255,255,255,0.1)',
+                    color: env.exampleAmount >= 1000 ? '#000' : '#fff',
+                    padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 900
+                  }}>
+                    {env.count}x
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Compact bar */}
       <div
         onClick={() => setExpanded(!expanded)}
@@ -2691,14 +2744,14 @@ function LivePokerTable({
   useEffect(() => {
     if (!eventBus) return;
     const handleBountyWon = (e) => {
-      // e.detail format: { tableId, playerId, amount, eliminatorName }
-      if (e.detail?.tableId === tableId && e.detail?.playerId === userId) {
-        setBountyReveal({ amount: e.detail.amount });
+      // e.payload format: { tableId, playerId, amount, eliminatorName }
+      if (e.payload?.tableId === tableId && String(e.payload?.playerId) === String(userId)) {
+        setBountyReveal({ amount: e.payload.amount });
       }
     };
 
-    eventBus.addEventListener('tournament_bounty_won', handleBountyWon);
-    return () => eventBus.removeEventListener('tournament_bounty_won', handleBountyWon);
+    const unsub = eventBus.on('tournament_bounty_won', handleBountyWon);
+    return () => unsub();
   }, [tableId, userId]);
 
   // Auto-open buy-in when waitlist seat is offered

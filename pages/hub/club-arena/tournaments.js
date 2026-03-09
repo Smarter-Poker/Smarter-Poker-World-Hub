@@ -169,13 +169,34 @@ export default function TournamentsPage() {
 
   // Register
   const handleRegister = async (tournamentId) => {
-    const res = await api('register', { tournamentId });
-    if (res.success) {
-      busEmit.dataMutated('tournament_registration');
-      loadData();
-      setSelectedTournament(null);
-    } else {
-      showToast(res.error || 'Registration failed', 'error');
+    // Optimistic State Update
+    const previousData = { ...data };
+    setData(prev => {
+      if (!prev || !prev.items) return prev;
+      return {
+        ...prev,
+        items: prev.items.map(t =>
+          t.id === tournamentId
+            ? { ...t, registered_count: (t.registered_count || 0) + 1, is_registered: true }
+            : t
+        )
+      };
+    });
+    setSelectedTournament(null);
+
+    try {
+      const res = await api('register', { tournamentId });
+      if (res.success) {
+        busEmit.dataMutated('tournament_registration');
+        loadData();
+      } else {
+        // Rollback
+        setData(previousData);
+        showToast(res.error || 'Registration failed', 'error');
+      }
+    } catch (err) {
+      setData(previousData);
+      showToast(err.message || 'Registration failed', 'error');
     }
   };
 
@@ -185,9 +206,35 @@ export default function TournamentsPage() {
       msg: 'Unregister from this tournament? Your buy-in will be refunded.',
       onConfirm: async () => {
         setConfirmModal(null);
-        const res = await api('unregister', { tournamentId });
-        if (res.success) { loadData(); showToast('Unregistered. Buy-in refunded.'); busEmit.dataMutated('tournament_registration'); }
-        else showToast(res.error || 'Failed to unregister', 'error');
+        // Optimistic State Update
+        const previousData = { ...data };
+        setData(prev => {
+          if (!prev || !prev.items) return prev;
+          return {
+            ...prev,
+            items: prev.items.map(t =>
+              t.id === tournamentId
+                ? { ...t, registered_count: Math.max(0, (t.registered_count || 0) - 1), is_registered: false }
+                : t
+            )
+          };
+        });
+        setSelectedTournament(null);
+
+        try {
+          const res = await api('unregister', { tournamentId });
+          if (res.success) {
+            loadData();
+            showToast('Unregistered. Buy-in refunded.');
+            busEmit.dataMutated('tournament_registration');
+          } else {
+            setData(previousData);
+            showToast(res.error || 'Failed to unregister', 'error');
+          }
+        } catch (err) {
+          setData(previousData);
+          showToast(err.message || 'Failed to unregister', 'error');
+        }
       },
     });
   };

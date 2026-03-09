@@ -2,7 +2,7 @@
    CLUB ARENA — Leaderboard | FULLY WIRED
    SmarterPoker Dark Theme | Time Filters, Multiple Board Types, Member Rankings
    ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -15,7 +15,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import useWalletData from '../../../src/hooks/useWalletData';
-import ModalLight from '../../../src/components/ui/ModalLight';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
@@ -53,6 +52,22 @@ const TIME_PERIODS = [
     { id: 'month', label: 'This Month' },
     { id: 'all', label: 'All Time' },
 ];
+
+const MemoizedLeaderboardRow = React.memo(({ member, rank, isCurrentUser, S, FB, getRankColor, getRankEmoji, getDisplayValue, resolveAvatarDisplay }) => (
+    <div style={{ ...S.playerRow, ...(isCurrentUser ? S.playerRowHighlight : {}) }}>
+        <div style={{ ...S.playerRank, color: getRankColor(rank) }}>{getRankEmoji(rank) || rank}</div>
+        <div style={{ ...S.playerAvatar, background: FB.primary }}>
+            <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
+        </div>
+        <div style={S.playerInfo}>
+            <div style={S.playerName}>
+                {member.profiles?.display_name || member.profiles?.username || 'Player'}
+                {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
+            </div>
+        </div>
+        <div style={{ ...S.playerValue, color: getRankColor(rank) }}>{getDisplayValue(member)}</div>
+    </div>
+));
 
 export default function Leaderboard() {
     useTrainingBus('club-arena-leaderboard');
@@ -511,35 +526,17 @@ export default function Leaderboard() {
                             {top3.length < 3 && (
                                 <>
                                     <div style={S.listHeader}>Rankings</div>
-                                    {members.map((member, i) => {
-                                        const rank = i + 1;
-                                        const isCurrentUser = user && member.user_id === user.id;
-                                        return (
-                                            <div
-                                                key={member.user_id}
-                                                style={{
-                                                    ...S.playerRow,
-                                                    ...(isCurrentUser ? S.playerRowHighlight : {}),
-                                                }}
-                                            >
-                                                <div style={{ ...S.playerRank, color: getRankColor(rank) }}>
-                                                    {getRankEmoji(rank) || rank}
-                                                </div>
-                                                <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
-                                                </div>
-                                                <div style={S.playerInfo}>
-                                                    <div style={S.playerName}>
-                                                        {member.profiles?.display_name || member.profiles?.username || 'Player'}
-                                                        {isCurrentUser && <span style={{ color: FB.primary, marginLeft: '6px' }}>(You)</span>}
-                                                    </div>
-                                                </div>
-                                                <div style={{ ...S.playerValue, color: getRankColor(rank) }}>
-                                                    {getDisplayValue(member)}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    {members.map((member, i) => (
+                                        <MemoizedLeaderboardRow
+                                            key={member.user_id}
+                                            member={member}
+                                            rank={i + 1}
+                                            isCurrentUser={user && member.user_id === user.id}
+                                            S={S} FB={FB}
+                                            getRankColor={getRankColor} getRankEmoji={getRankEmoji}
+                                            getDisplayValue={() => getDisplayValue(member)} resolveAvatarDisplay={resolveAvatarDisplay}
+                                        />
+                                    ))}
                                 </>
                             )}
                         </>

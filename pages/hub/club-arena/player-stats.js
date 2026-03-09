@@ -14,7 +14,6 @@ import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useWalletData from '../../../src/hooks/useWalletData';
-import ModalLight from '../../../src/components/ui/ModalLight';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
@@ -555,131 +554,133 @@ export default function PlayerStats() {
                     ) : !user ? (
                         <div style={S.emptyState}><p>Sign In To View Your Stats</p></div>
                     ) : (
-                        <>
-                            {/* Net Winnings Card */}
-                            <div style={{
-                                ...S.bigStatCard,
-                                background: stats.totalWinnings >= 0
-                                    ? `linear-gradient(135deg, ${FB.success} 0%, #259A3E 100%)`
-                                    : `linear-gradient(135deg, ${FB.danger} 0%, #D32F2F 100%)`
-                            }}>
-                                <div style={S.bigStatValue}>
-                                    {stats.totalWinnings >= 0 ? '+' : ''}{stats.totalWinnings.toLocaleString()}
-                                </div>
-                                <div style={S.bigStatLabel}>Net Profit/Loss ({period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All Time'})</div>
-                            </div>
-
-                            {/* Stats Grid */}
-                            <div style={S.statsGrid}>
-                                <div style={S.statCard}>
-                                    <div style={S.statIcon}></div>
-                                    <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
-                                    <div style={S.statLabel}>Hands Played</div>
-                                </div>
-                                <div style={S.statCard}>
-                                    <div style={S.statIcon}></div>
-                                    <div style={{ ...S.statValue, color: FB.success }}>{stats.winRate}%</div>
-                                    <div style={S.statLabel}>Win Rate</div>
-                                </div>
-                                <div style={S.statCard}>
-                                    <div style={S.statIcon}></div>
-                                    <div style={{ ...S.statValue, color: FB.gold }}>{stats.biggestPot.toLocaleString()}</div>
-                                    <div style={S.statLabel}>Biggest Pot</div>
-                                </div>
-                                <div style={S.statCard}>
-                                    <div style={S.statIcon}></div>
-                                    <div style={S.statValue}>{stats.handsWon.toLocaleString()}</div>
-                                    <div style={S.statLabel}>Hands Won</div>
-                                </div>
-                            </div>
-
-                            {/* Profit Trend Sparkline */}
-                            {recentActivity.length >= 2 && (
-                                <ProfitSparkline activities={recentActivity} />
-                            )}
-
-                            {/* Best Hand */}
-                            {stats.bestHand && (
-                                <>
-                                    <h2 style={S.sectionTitle}>Best Hand</h2>
-                                    <div style={{ ...S.statCard, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                                        <span style={{ fontSize: '32px' }}></span>
-                                        <span style={{ fontSize: '18px', fontWeight: 700, color: FB.gold }}>
-                                            {formatHandRank(stats.bestHand)}
-                                        </span>
+                        <HubErrorBoundary name="PlayerStatsGrid">
+                            <>
+                                {/* Net Winnings Card */}
+                                <div style={{
+                                    ...S.bigStatCard,
+                                    background: stats.totalWinnings >= 0
+                                        ? `linear-gradient(135deg, ${FB.success} 0%, #259A3E 100%)`
+                                        : `linear-gradient(135deg, ${FB.danger} 0%, #D32F2F 100%)`
+                                }}>
+                                    <div style={S.bigStatValue}>
+                                        {stats.totalWinnings >= 0 ? '+' : ''}{stats.totalWinnings.toLocaleString()}
                                     </div>
-                                </>
-                            )}
+                                    <div style={S.bigStatLabel}>Net Profit/Loss ({period === 'week' ? 'Week' : period === 'month' ? 'Month' : 'All Time'})</div>
+                                </div>
 
-                            {/* Bounty Stats */}
-                            {bountyStats.totalBountyEarnings > 0 && (
-                                <>
-                                    <h2 style={S.sectionTitle}>Bounty Stats</h2>
-                                    <div style={S.statsGrid}>
-                                        <div style={S.statCard}>
-                                            <div style={S.statIcon}>💰</div>
-                                            <div style={{ ...S.statValue, color: FB.gold }}>{bountyStats.totalBountyEarnings.toLocaleString()}</div>
-                                            <div style={S.statLabel}>Bounty Earnings</div>
+                                {/* Stats Grid */}
+                                <div style={S.statsGrid}>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={S.statValue}>{stats.handsPlayed.toLocaleString()}</div>
+                                        <div style={S.statLabel}>Hands Played</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={{ ...S.statValue, color: FB.success }}>{stats.winRate}%</div>
+                                        <div style={S.statLabel}>Win Rate</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={{ ...S.statValue, color: FB.gold }}>{stats.biggestPot.toLocaleString()}</div>
+                                        <div style={S.statLabel}>Biggest Pot</div>
+                                    </div>
+                                    <div style={S.statCard}>
+                                        <div style={S.statIcon}></div>
+                                        <div style={S.statValue}>{stats.handsWon.toLocaleString()}</div>
+                                        <div style={S.statLabel}>Hands Won</div>
+                                    </div>
+                                </div>
+
+                                {/* Profit Trend Sparkline */}
+                                {recentActivity.length >= 2 && (
+                                    <ProfitSparkline activities={recentActivity} />
+                                )}
+
+                                {/* Best Hand */}
+                                {stats.bestHand && (
+                                    <>
+                                        <h2 style={S.sectionTitle}>Best Hand</h2>
+                                        <div style={{ ...S.statCard, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                                            <span style={{ fontSize: '32px' }}></span>
+                                            <span style={{ fontSize: '18px', fontWeight: 700, color: FB.gold }}>
+                                                {formatHandRank(stats.bestHand)}
+                                            </span>
                                         </div>
-                                        <div style={S.statCard}>
-                                            <div style={S.statIcon}>🎯</div>
-                                            <div style={S.statValue}>{bountyStats.bountiesCollected}</div>
-                                            <div style={S.statLabel}>Bounties Collected</div>
-                                        </div>
-                                        <div style={S.statCard}>
-                                            <div style={S.statIcon}>🏆</div>
-                                            <div style={{ ...S.statValue, color: FB.gold }}>{bountyStats.biggestBounty.toLocaleString()}</div>
-                                            <div style={S.statLabel}>Biggest Bounty</div>
-                                        </div>
-                                        {bountyStats.mysteryBountiesWon > 0 && (
+                                    </>
+                                )}
+
+                                {/* Bounty Stats */}
+                                {bountyStats.totalBountyEarnings > 0 && (
+                                    <>
+                                        <h2 style={S.sectionTitle}>Bounty Stats</h2>
+                                        <div style={S.statsGrid}>
                                             <div style={S.statCard}>
-                                                <div style={S.statIcon}>🎁</div>
-                                                <div style={{ ...S.statValue, color: '#9333EA' }}>{bountyStats.mysteryBountiesWon}</div>
-                                                <div style={S.statLabel}>Mystery Bounties</div>
+                                                <div style={S.statIcon}>💰</div>
+                                                <div style={{ ...S.statValue, color: FB.gold }}>{bountyStats.totalBountyEarnings.toLocaleString()}</div>
+                                                <div style={S.statLabel}>Bounty Earnings</div>
                                             </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
+                                            <div style={S.statCard}>
+                                                <div style={S.statIcon}>🎯</div>
+                                                <div style={S.statValue}>{bountyStats.bountiesCollected}</div>
+                                                <div style={S.statLabel}>Bounties Collected</div>
+                                            </div>
+                                            <div style={S.statCard}>
+                                                <div style={S.statIcon}>🏆</div>
+                                                <div style={{ ...S.statValue, color: FB.gold }}>{bountyStats.biggestBounty.toLocaleString()}</div>
+                                                <div style={S.statLabel}>Biggest Bounty</div>
+                                            </div>
+                                            {bountyStats.mysteryBountiesWon > 0 && (
+                                                <div style={S.statCard}>
+                                                    <div style={S.statIcon}>🎁</div>
+                                                    <div style={{ ...S.statValue, color: '#9333EA' }}>{bountyStats.mysteryBountiesWon}</div>
+                                                    <div style={S.statLabel}>Mystery Bounties</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
 
-                            {/* Recent Activity */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                <h2 style={{ ...S.sectionTitle, marginBottom: 0 }}>Recent Activity</h2>
-                                <button
-                                    onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club?.club_id || clubIdParam}`)}
-                                    style={{ background: 'none', border: 'none', color: FB.primary, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                                >
-                                    View Full History →
-                                </button>
-                            </div>
-                            {recentActivity.length > 0 ? recentActivity.map(activity => (
-                                <div key={activity.id} style={S.activityRow}>
-                                    <div style={{
-                                        ...S.activityIcon,
-                                        background: activity.type === 'win' ? FB.success : FB.danger
-                                    }}>
-                                        {activity.type === 'win' ? '' : ''}
-                                    </div>
-                                    <div style={S.activityInfo}>
-                                        <div style={S.activityTitle}>{activity.hand}</div>
-                                        <div style={S.activityMeta}>
-                                            {activity.tableName} • {formatDate(activity.date)}
+                                {/* Recent Activity */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <h2 style={{ ...S.sectionTitle, marginBottom: 0 }}>Recent Activity</h2>
+                                    <button
+                                        onClick={() => router.push(`/hub/club-arena/hand-histories?club=${club?.club_id || clubIdParam}`)}
+                                        style={{ background: 'none', border: 'none', color: FB.primary, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                                    >
+                                        View Full History →
+                                    </button>
+                                </div>
+                                {recentActivity.length > 0 ? recentActivity.map(activity => (
+                                    <div key={activity.id} style={S.activityRow}>
+                                        <div style={{
+                                            ...S.activityIcon,
+                                            background: activity.type === 'win' ? FB.success : FB.danger
+                                        }}>
+                                            {activity.type === 'win' ? '' : ''}
+                                        </div>
+                                        <div style={S.activityInfo}>
+                                            <div style={S.activityTitle}>{activity.hand}</div>
+                                            <div style={S.activityMeta}>
+                                                {activity.tableName} • {formatDate(activity.date)}
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            ...S.activityAmount,
+                                            color: activity.type === 'win' ? FB.success : FB.danger
+                                        }}>
+                                            {activity.type === 'win' ? '+' : '-'}{activity.amount.toLocaleString()}
                                         </div>
                                     </div>
-                                    <div style={{
-                                        ...S.activityAmount,
-                                        color: activity.type === 'win' ? FB.success : FB.danger
-                                    }}>
-                                        {activity.type === 'win' ? '+' : '-'}{activity.amount.toLocaleString()}
+                                )) : (
+                                    <div style={S.emptyState}>
+                                        <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}></span>
+                                        <p>No Activity Yet. Play Some Hands To See Your Stats!</p>
                                     </div>
-                                </div>
-                            )) : (
-                                <div style={S.emptyState}>
-                                    <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}></span>
-                                    <p>No Activity Yet. Play Some Hands To See Your Stats!</p>
-                                </div>
-                            )}
-                        </>
+                                )}
+                            </>
+                        </HubErrorBoundary>
                     )}
                 </div>
 

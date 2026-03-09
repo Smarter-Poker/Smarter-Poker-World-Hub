@@ -43,30 +43,63 @@ export default function MysteryBountyReveal({ reveal, onDismiss }) {
     const [phase, setPhase] = useState('idle'); // idle | envelope | reveal | done
     const timerRef = useRef(null);
 
+    // Calculate isJackpot here, as it's used in the useEffect
+    const tier = reveal?.tierLabel
+        ? { label: reveal.tierLabel, color: TIER_COLORS[reveal.tierLabel.toLowerCase()] || '#60a5fa' }
+        : getTierFromAmount(reveal?.amount, reveal?.avgBounty || reveal?.amount);
+    const isJackpot = reveal?.isJackpot || tier.label === 'JACKPOT';
+
+
     useEffect(() => {
-        if (!reveal) { setPhase('idle'); return; }
+        if (!reveal) {
+            setPhase('idle');
+            // Clear any existing timers when reveal is null
+            if (timerRef.current) {
+                timerRef.current.forEach(clearTimeout);
+                timerRef.current = null;
+            }
+            return;
+        }
 
-        setPhase('envelope');
+        // Phase 1: Envelope (initial state when reveal is present)
+        if (phase === 'idle') { // Only set to envelope if currently idle
+            setPhase('envelope');
+        }
 
-        // After 1.2s: flip to reveal
-        const t1 = setTimeout(() => setPhase('reveal'), 1200);
-        // After 5s: auto-dismiss
-        const t2 = setTimeout(() => {
-            setPhase('done');
-            onDismiss?.();
-        }, 5000);
+        if (phase === 'envelope') {
+            eventBus.emit(EventType.SOUND_PLAY, { id: 'mystery_drumroll' });
+            // After 1.2s: flip to reveal (original timing)
+            const t1 = setTimeout(() => setPhase('reveal'), 1200);
+            timerRef.current = [t1]; // Store only t1 for now
+            return () => { t1 && clearTimeout(t1); };
+        }
 
-        timerRef.current = [t1, t2];
-        return () => { t1 && clearTimeout(t1); t2 && clearTimeout(t2); };
-    }, [reveal]);
+        // Phase 2: Reveal
+        if (phase === 'reveal') {
+            eventBus.emit(EventType.SOUND_PLAY, { id: 'mystery_reveal_whoosh' });
+            if (isJackpot) {
+                setTimeout(() => eventBus.emit(EventType.SOUND_PLAY, { id: 'jackpot_coins_massive' }), 400); // Slight delay for pop sync
+            }
+            // After 5s: auto-dismiss (original timing)
+            const t2 = setTimeout(() => {
+                setPhase('done');
+                onDismiss?.();
+            }, 5000);
+            timerRef.current = [...(timerRef.current || []), t2]; // Add t2 to existing timers
+            return () => { t2 && clearTimeout(t2); };
+        }
+
+        // Cleanup for when component unmounts or reveal changes
+        return () => {
+            if (timerRef.current) {
+                timerRef.current.forEach(clearTimeout);
+                timerRef.current = null;
+            }
+        };
+    }, [reveal, phase, isJackpot, onDismiss]); // Added phase, isJackpot, onDismiss to dependencies
 
     if (!reveal || phase === 'idle' || phase === 'done') return null;
 
-    const tier = reveal.tierLabel
-        ? { label: reveal.tierLabel, color: TIER_COLORS[reveal.tierLabel.toLowerCase()] || '#60a5fa' }
-        : getTierFromAmount(reveal.amount, reveal.avgBounty || reveal.amount);
-
-    const isJackpot = reveal.isJackpot || tier.label === 'JACKPOT';
     const isBig = isJackpot || ['Grand Prize', 'Mega Prize', 'Huge Prize'].includes(tier.label);
 
     return (

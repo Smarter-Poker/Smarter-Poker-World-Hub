@@ -2,9 +2,8 @@
    CLUB ARENA — Agent Dashboard | FULLY WIRED
    SmarterPoker Dark Theme | Downline, Cashouts, Chips, Commissions, Clawback
    ═══════════════════════════════════════════════════════════════════════════════ */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import SEOHead from '../../../src/components/seo/SEOHead';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
@@ -12,7 +11,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
-import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
@@ -263,35 +262,54 @@ export default function AgentDashboard() {
         if (!amount || amount <= 0) { showToast('Enter a valid amount', 'error'); return; }
 
         setProcessing(true);
+        // Optimistic State Update
+        const previousDashboard = { ...dashboard };
+        const previousChipFlow = { ...chipFlow };
+
+        setDashboard(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                players: (prev.players || []).map(p =>
+                    p.user_id === distributeModal.playerId
+                        ? { ...p, chip_balance: (p.chip_balance || 0) + amount }
+                        : p
+                )
+            };
+        });
+
+        setChipFlow(prev => {
+            const existing = prev[distributeModal.playerId] || { in: 0, out: 0, net: 0 };
+            return {
+                ...prev,
+                [distributeModal.playerId]: {
+                    in: existing.in + amount,
+                    out: existing.out,
+                    net: existing.net + amount,
+                },
+            };
+        });
+
+        const modalData = { ...distributeModal };
+        setDistributeModal(null);
+        setDistributeAmount('');
+        setDistributeNote('');
+
         try {
             await apiCall('/api/club-arena/distribute-chips', {
                 clubId: clubIdParam,
-                toUserId: distributeModal.playerId,
+                toUserId: modalData.playerId,
                 amount,
                 notes: distributeNote || undefined,
             });
-            showToast(`Sent ${amount.toLocaleString()} chips to ${distributeModal.playerName}`);
+            showToast(`Sent ${amount.toLocaleString()} chips to ${modalData.playerName}`);
             busEmit.dataMutated('chips_distributed');
-
-            // Optimistic: update chip flow for this player
-            setChipFlow(prev => {
-                const existing = prev[distributeModal.playerId] || { in: 0, out: 0, net: 0 };
-                return {
-                    ...prev,
-                    [distributeModal.playerId]: {
-                        in: existing.in + amount,
-                        out: existing.out,
-                        net: existing.net + amount,
-                    },
-                };
-            });
-
-            setDistributeModal(null);
-            setDistributeAmount('');
-            setDistributeNote('');
             loadDashboard();
         } catch (err) {
-            showToast(err.message, 'error');
+            // Rollback
+            setDashboard(previousDashboard);
+            setChipFlow(previousChipFlow);
+            showToast(err.message || 'Failed to distribute chips', 'error');
         } finally {
             setProcessing(false);
         }
@@ -301,18 +319,29 @@ export default function AgentDashboard() {
     const handleApproveCashout = async () => {
         if (!cashoutModal || processing) return;
         setProcessing(true);
+        const previousDashboard = { ...dashboard };
+        const modalData = { ...cashoutModal };
+
+        // Optimistic: Remove from pending list
+        setDashboard(prev => ({
+            ...prev,
+            pendingCashouts: (prev.pendingCashouts || []).filter(c => c.id !== modalData.id)
+        }));
+        setCashoutModal(null);
+        setCashoutNote('');
+
         try {
             await apiCall('/api/club-arena/approve-cashout', {
-                cashoutId: cashoutModal.id,
+                cashoutId: modalData.id,
                 action: 'approve',
                 note: cashoutNote || undefined,
             });
-            showToast(`Approved cashout of ${cashoutModal.amount.toLocaleString()} chips`); busEmit.dataMutated('cashout_approved');
-            setCashoutModal(null);
-            setCashoutNote('');
+            showToast(`Approved cashout of ${modalData.amount.toLocaleString()} chips`);
+            busEmit.dataMutated('cashout_approved');
             loadDashboard();
         } catch (err) {
-            showToast(err.message, 'error');
+            setDashboard(previousDashboard);
+            showToast(err.message || 'Failed to approve cashout', 'error');
         } finally {
             setProcessing(false);
         }
@@ -322,18 +351,29 @@ export default function AgentDashboard() {
     const handleCancelCashout = async () => {
         if (!cashoutModal || processing) return;
         setProcessing(true);
+        const previousDashboard = { ...dashboard };
+        const modalData = { ...cashoutModal };
+
+        // Optimistic: Remove from pending list
+        setDashboard(prev => ({
+            ...prev,
+            pendingCashouts: (prev.pendingCashouts || []).filter(c => c.id !== modalData.id)
+        }));
+        setCashoutModal(null);
+        setCashoutNote('');
+
         try {
             await apiCall('/api/club-arena/approve-cashout', {
-                cashoutId: cashoutModal.id,
+                cashoutId: modalData.id,
                 action: 'cancel',
                 note: cashoutNote || 'Cancelled by agent',
             });
-            showToast('Cashout cancelled — chips returned to player'); busEmit.dataMutated('cashout_cancelled');
-            setCashoutModal(null);
-            setCashoutNote('');
+            showToast('Cashout cancelled — chips returned to player');
+            busEmit.dataMutated('cashout_cancelled');
             loadDashboard();
         } catch (err) {
-            showToast(err.message, 'error');
+            setDashboard(previousDashboard);
+            showToast(err.message || 'Failed to cancel cashout', 'error');
         } finally {
             setProcessing(false);
         }
@@ -343,16 +383,30 @@ export default function AgentDashboard() {
     const handleClawback = async () => {
         if (!clawbackModal || processing) return;
         setProcessing(true);
+        const previousTransactions = [...(dashboard?.recentTransactions || [])];
+        const modalData = { ...clawbackModal };
+
+        // Optimistic: Mark as reversed
+        setDashboard(prev => ({
+            ...prev,
+            recentTransactions: (prev.recentTransactions || []).map(t =>
+                t.id === modalData.id ? { ...t, is_reversed: true } : t
+            )
+        }));
+        setClawbackModal(null);
+
         try {
             await apiCall('/api/club-arena/clawback-chips', {
-                transactionId: clawbackModal.id,
+                transactionId: modalData.id,
                 clubId: clubIdParam,
             });
-            showToast('Clawback successful — chips reversed'); busEmit.dataMutated('chips_distributed');
-            setClawbackModal(null);
+            showToast('Clawback successful — chips reversed');
+            busEmit.dataMutated('chips_distributed');
             loadDashboard();
         } catch (err) {
-            showToast(err.message, 'error');
+            // Rollback transactions
+            setDashboard(prev => ({ ...prev, recentTransactions: previousTransactions }));
+            showToast(err.message || 'Clawback failed', 'error');
         } finally {
             setProcessing(false);
         }
@@ -475,410 +529,400 @@ export default function AgentDashboard() {
             </div>
 
             {/* Content */}
-            <div style={{ padding: '0 20px 100px' }}>
-                {activeTab === 'overview' && (
-                    <>
-                        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
-                            <DynamicWallet {...walletData} compact
-                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
-                                onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)}
+            <HubErrorBoundary name="DashboardContent">
+                <div style={{ padding: '0 20px 100px' }}>
+                    {activeTab === 'overview' && (
+                        <>
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
+                                <DynamicWallet {...walletData} compact
+                                    onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                    onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)}
+                                />
+                            </div>
+                            <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
+                                playerNumber={myPlayerNumber}
+                                onShareInvite={() => setShowInviteModal(true)}
                             />
-                        </div>
-                        <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
-                            playerNumber={myPlayerNumber}
-                            onShareInvite={() => setShowInviteModal(true)}
+                        </>
+                    )}
+                    {activeTab === 'players' && (
+                        <PlayersTab
+                            players={players}
+                            chipFlow={chipFlow}
+                            playerSort={playerSort}
+                            onSortChange={setPlayerSort}
+                            onDistribute={(p) => setDistributeModal({ playerId: p.user_id, playerName: p.profile?.display_name || p.nickname || 'Player', currentBalance: p.chip_balance || 0 })}
+                            onPromote={(p) => { setPromoteModal({ player: p }); setPromoteRate(''); }}
                         />
-                    </>
-                )}
-                {activeTab === 'players' && (
-                    <PlayersTab
-                        players={players}
-                        chipFlow={chipFlow}
-                        playerSort={playerSort}
-                        onSortChange={setPlayerSort}
-                        onDistribute={(p) => setDistributeModal({ playerId: p.user_id, playerName: p.profile?.display_name || p.nickname || 'Player', currentBalance: p.chip_balance || 0 })}
-                        onPromote={(p) => { setPromoteModal({ player: p }); setPromoteRate(''); }}
-                    />
-                )}
-                {activeTab === 'cashouts' && (
-                    <CashoutsTab cashouts={pendingCashouts} onAction={(c) => { setCashoutModal(c); setCashoutNote(''); }} />
-                )}
-                {activeTab === 'transactions' && (
-                    <TransactionsTab
-                        transactions={recentTransactions}
-                        clawbackEligible={clawbackEligible}
-                        onClawback={(t) => setClawbackModal(t)}
-                        userId={user.id}
-                    />
-                )}
-                {activeTab === 'commissions' && (
-                    <CommissionsTab history={commissionHistory} myAgent={myAgent} />
-                )}
+                    )}
+                    {activeTab === 'cashouts' && (
+                        <CashoutsTab cashouts={pendingCashouts} onAction={(c) => { setCashoutModal(c); setCashoutNote(''); }} />
+                    )}
+                    {activeTab === 'transactions' && (
+                        <TransactionsTab
+                            transactions={recentTransactions}
+                            clawbackEligible={clawbackEligible}
+                            onClawback={(t) => setClawbackModal(t)}
+                            userId={user.id}
+                        />
+                    )}
+                    {activeTab === 'commissions' && (
+                        <CommissionsTab history={commissionHistory} myAgent={myAgent} />
+                    )}
 
-                {/* ═══ SUB-AGENTS TAB ═══ */}
-                {activeTab === 'subagents' && (
-                    <div>
-                        {!subAgentsLoaded ? (
-                            <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>
-                                Loading sub-agents...
-                            </div>
-                        ) : subAgents.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
-                                <div style={{ fontSize: 32, marginBottom: 12 }}>[player]</div>
-                                <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
-                                <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap ↑ to promote a player.</div>
-                            </div>
-                        ) : subAgents.map(sa => (
-                            <div key={sa.id} style={{ ...cardStyle, marginBottom: 10, opacity: sa.status === 'suspended' ? 0.8 : 1, borderLeft: sa.status === 'suspended' ? `3px solid ${FB.danger}` : undefined }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                                    <div>
-                                        <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
-                                            {sa.profile?.display_name || sa.profile?.username || 'Unknown'}
-                                        </div>
-                                        <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                                            {sa.status === 'active' ? '[A]' : '[S]'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                        {/* Edit commission */}
-                                        <button onClick={() => { setSubAgentCommModal(sa); setSubAgentNewRate(String(((sa.commission_rate || 0) * 100).toFixed(0))); }}
-                                            style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                            % Edit
-                                        </button>
-                                        {/* Distribute chips */}
-                                        <button onClick={() => { setSubAgentDistModal(sa); setSubAgentDistAmount(''); }}
-                                            style={{ background: FB.gold, color: '#000', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                            Send
-                                        </button>
-                                        {/* Suspend / Reactivate */}
-                                        <button onClick={async () => {
-                                            const act = sa.status === 'suspended' ? 'reactivate' : 'suspend';
-                                            try {
-                                                await apiCall('/api/club-arena/manage-agent', { clubId: dashboard.clubId, action: act, targetUserId: sa.user_id });
-                                                showToast(`Sub-agent ${act === 'suspend' ? 'suspended' : 'reactivated'}`);
-                                                setSubAgentsLoaded(false);
-                                            } catch (e) { showToast(e.message, 'error'); }
-                                        }} style={{ background: sa.status === 'suspended' ? FB.success : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                                            {sa.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
-                                    {[
-                                        { label: 'Players', value: sa.active_player_count || 0, color: FB.textPrimary },
-                                        { label: 'Weekly Rake', value: (sa.weekly_rake_generated || 0).toLocaleString(), color: FB.gold },
-                                        { label: 'Lifetime', value: (sa.lifetime_earnings || 0).toLocaleString(), color: '#4BB543' },
-                                    ].map(s => (
-                                        <div key={s.label} style={{ background: FB.background, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-                                            <div style={{ fontSize: 11, color: FB.textSecondary }}>{s.label}</div>
-                                            <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {activeTab === 'promo' && (
-                    <PromoWalletTab
-                        dashboard={dashboard}
-                        clubId={dashboard?.clubId}
-                        userId={user?.id}
-                        apiCall={apiCall}
-                        showToast={showToast}
-                        players={players}
-                        FB={FB}
-                    />
-                )}
-            </div>
-
-            {/* ═══ DISTRIBUTE MODAL ═══ */}
-            {distributeModal && (
-                <ModalOverlay onClose={() => { setDistributeModal(null); setDistributeAmount(''); setDistributeNote(''); }}>
-                    <h3 style={modalTitle}>Send Chips</h3>
-
-                    {/* Player info + current balance */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: FB.hover, borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                    {/* ═══ SUB-AGENTS TAB ═══ */}
+                    {activeTab === 'subagents' && (
                         <div>
-                            <div style={{ color: FB.textSecondary, fontSize: 11, marginBottom: 2 }}>Recipient</div>
-                            <div style={{ color: FB.textPrimary, fontWeight: 700, fontSize: 15 }}>{distributeModal.playerName}</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                            <div style={{ color: FB.textSecondary, fontSize: 11, marginBottom: 2 }}>Current Balance</div>
-                            <div style={{ color: '#F7C52A', fontWeight: 700, fontSize: 15 }}>{(distributeModal.currentBalance || 0).toLocaleString()}</div>
-                        </div>
-                    </div>
-
-                    {/* Amount input */}
-                    <input
-                        type="number" value={distributeAmount}
-                        onChange={(e) => setDistributeAmount(e.target.value)}
-                        placeholder="Amount to send..." style={inputStyle}
-                        autoFocus
-                    />
-
-                    {/* Quick-pick buttons */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 10 }}>
-                        {[500, 1000, 5000, 10000].map(v => (
-                            <button key={v} onClick={() => setDistributeAmount(String(v))} style={{
-                                ...btnStyle, padding: '8px 0', fontSize: 12,
-                                background: distributeAmount === String(v) ? FB.primary : FB.cardBg,
-                                color: distributeAmount === String(v) ? '#fff' : FB.textSecondary,
-                                border: `1px solid ${distributeAmount === String(v) ? FB.primary : FB.border}`,
-                            }}>
-                                {v >= 1000 ? `${v / 1000}K` : v}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* After-send balance preview */}
-                    {distributeAmount && parseInt(distributeAmount) > 0 && (
-                        <div style={{ marginTop: 10, fontSize: 12, color: FB.textSecondary, textAlign: 'right' }}>
-                            Balance after: <span style={{ color: FB.success, fontWeight: 600 }}>
-                                {((distributeModal.currentBalance || 0) + parseInt(distributeAmount)).toLocaleString()}
-                            </span>
+                            {!subAgentsLoaded ? (
+                                <div style={{ textAlign: 'center', padding: 30, color: FB.textSecondary }}>
+                                    Loading sub-agents...
+                                </div>
+                            ) : subAgents.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 40, color: FB.textSecondary }}>
+                                    <div style={{ fontSize: 32, marginBottom: 12 }}>[player]</div>
+                                    <div style={{ fontSize: 14 }}>No sub-agents under you yet.</div>
+                                    <div style={{ fontSize: 12, marginTop: 6 }}>Go to the Players tab and tap ↑ to promote a player.</div>
+                                </div>
+                            ) : subAgents.map(sa => (
+                                <div key={sa.id} style={{ ...cardStyle, marginBottom: 10, opacity: sa.status === 'suspended' ? 0.8 : 1, borderLeft: sa.status === 'suspended' ? `3px solid ${FB.danger}` : undefined }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                                        <div>
+                                            <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
+                                                {sa.profile?.display_name || sa.profile?.username || 'Unknown'}
+                                            </div>
+                                            <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                                {sa.status === 'active' ? '[A]' : '[S]'} {sa.status} · {((sa.commission_rate || 0) * 100).toFixed(0)}% commission
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                                            {/* Edit commission */}
+                                            <button onClick={() => { setSubAgentCommModal(sa); setSubAgentNewRate(String(((sa.commission_rate || 0) * 100).toFixed(0))); }}
+                                                style={{ background: FB.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                                % Edit
+                                            </button>
+                                            {/* Distribute chips */}
+                                            <button onClick={() => { setSubAgentDistModal(sa); setSubAgentDistAmount(''); }}
+                                                style={{ background: FB.gold, color: '#000', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                                Send
+                                            </button>
+                                            {/* Suspend / Reactivate */}
+                                            <button onClick={async () => {
+                                                const act = sa.status === 'suspended' ? 'reactivate' : 'suspend';
+                                                try {
+                                                    await apiCall('/api/club-arena/manage-agent', { clubId: dashboard.clubId, action: act, targetUserId: sa.user_id });
+                                                    showToast(`Sub-agent ${act === 'suspend' ? 'suspended' : 'reactivated'}`);
+                                                    setSubAgentsLoaded(false);
+                                                } catch (e) { showToast(e.message, 'error'); }
+                                            }} style={{ background: sa.status === 'suspended' ? FB.success : FB.danger, color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                                {sa.status === 'suspended' ? 'Reactivate' : 'Suspend'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+                                        {[
+                                            { label: 'Players', value: sa.active_player_count || 0, color: FB.textPrimary },
+                                            { label: 'Weekly Rake', value: (sa.weekly_rake_generated || 0).toLocaleString(), color: FB.gold },
+                                            { label: 'Lifetime', value: (sa.lifetime_earnings || 0).toLocaleString(), color: '#4BB543' },
+                                        ].map(s => (
+                                            <div key={s.label} style={{ background: FB.background, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+                                                <div style={{ fontSize: 11, color: FB.textSecondary }}>{s.label}</div>
+                                                <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
 
-                    {/* Optional note */}
-                    <input
-                        value={distributeNote}
-                        onChange={(e) => setDistributeNote(e.target.value)}
-                        placeholder="Note (optional)..." style={{ ...inputStyle, marginTop: 10 }}
-                        maxLength={120}
-                    />
+                    {activeTab === 'promo' && (
+                        <PromoWalletTab
+                            dashboard={dashboard}
+                            clubId={dashboard?.clubId}
+                            userId={user?.id}
+                            apiCall={apiCall}
+                            showToast={showToast}
+                            players={players}
+                            FB={FB}
+                        />
+                    )}
+                </div>
 
-                    <button onClick={handleDistribute} disabled={processing || !distributeAmount || parseInt(distributeAmount) <= 0}
-                        style={{ ...actionBtn, marginTop: 16, background: FB.success, opacity: (!distributeAmount || parseInt(distributeAmount) <= 0) ? 0.5 : 1 }}>
-                        {processing ? 'Sending...' : `Send ${distributeAmount ? parseInt(distributeAmount).toLocaleString() : '0'} Chips`}
-                    </button>
-                </ModalOverlay>
-            )}
+                {/* ═══ DISTRIBUTE MODAL ═══ */}
+                {distributeModal && (
+                    <ModalOverlay onClose={() => { setDistributeModal(null); setDistributeAmount(''); setDistributeNote(''); }}>
+                        <h3 style={modalTitle}>Send Chips</h3>
 
-            {/* ═══ CASHOUT MODAL ═══ */}
-            {cashoutModal && (
-                <ModalOverlay onClose={() => setCashoutModal(null)}>
-                    <h3 style={modalTitle}>Cashout Request</h3>
-                    <div style={{ ...cardStyle, marginBottom: 16 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <span style={{ color: FB.textSecondary, fontSize: 13 }}>Amount</span>
-                            <span style={{ color: FB.gold, fontSize: 18, fontWeight: 800 }}>
-                                {cashoutModal.amount?.toLocaleString()} chips
-                            </span>
+                        {/* Player info + current balance */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: FB.hover, borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                            <div>
+                                <div style={{ color: FB.textSecondary, fontSize: 11, marginBottom: 2 }}>Recipient</div>
+                                <div style={{ color: FB.textPrimary, fontWeight: 700, fontSize: 15 }}>{distributeModal.playerName}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div style={{ color: FB.textSecondary, fontSize: 11, marginBottom: 2 }}>Current Balance</div>
+                                <div style={{ color: '#F7C52A', fontWeight: 700, fontSize: 15 }}>{(distributeModal.currentBalance || 0).toLocaleString()}</div>
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: FB.textSecondary, fontSize: 13 }}>Requested</span>
-                            <span style={{ color: FB.textPrimary, fontSize: 13 }}>{timeAgo(cashoutModal.created_at)}</span>
+
+                        {/* Amount input */}
+                        <input
+                            type="number" value={distributeAmount}
+                            onChange={(e) => setDistributeAmount(e.target.value)}
+                            placeholder="Amount to send..." style={inputStyle}
+                            autoFocus
+                        />
+
+                        {/* Quick-pick buttons */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 10 }}>
+                            {[500, 1000, 5000, 10000].map(v => (
+                                <button key={v} onClick={() => setDistributeAmount(String(v))} style={{
+                                    ...btnStyle, padding: '8px 0', fontSize: 12,
+                                    background: distributeAmount === String(v) ? FB.primary : FB.cardBg,
+                                    color: distributeAmount === String(v) ? '#fff' : FB.textSecondary,
+                                    border: `1px solid ${distributeAmount === String(v) ? FB.primary : FB.border}`,
+                                }}>
+                                    {v >= 1000 ? `${v / 1000}K` : v}
+                                </button>
+                            ))}
                         </div>
-                        {cashoutModal.player_note && (
-                            <div style={{ marginTop: 8, padding: 8, background: FB.hover, borderRadius: 6, fontSize: 12, color: FB.textSecondary }}>
-                                Player note: "{cashoutModal.player_note}"
+
+                        {/* After-send balance preview */}
+                        {distributeAmount && parseInt(distributeAmount) > 0 && (
+                            <div style={{ marginTop: 10, fontSize: 12, color: FB.textSecondary, textAlign: 'right' }}>
+                                Balance after: <span style={{ color: FB.success, fontWeight: 600 }}>
+                                    {((distributeModal.currentBalance || 0) + parseInt(distributeAmount)).toLocaleString()}
+                                </span>
                             </div>
                         )}
-                    </div>
-                    <input
-                        value={cashoutNote} onChange={(e) => setCashoutNote(e.target.value)}
-                        placeholder="Agent note (optional)..." style={inputStyle}
-                    />
-                    <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                        <button onClick={handleCancelCashout} disabled={processing} style={{ ...actionBtn, flex: 1, background: FB.danger }}>
-                            {processing ? '...' : ' Decline'}
-                        </button>
-                        <button onClick={handleApproveCashout} disabled={processing} style={{ ...actionBtn, flex: 2, background: FB.success }}>
-                            {processing ? '...' : ` Approve ${cashoutModal.amount?.toLocaleString()}`}
-                        </button>
-                    </div>
-                </ModalOverlay>
-            )}
 
-            {/* ═══ CLAWBACK MODAL ═══ */}
-            {clawbackModal && (
-                <ModalOverlay onClose={() => setClawbackModal(null)}>
-                    <h3 style={{ ...modalTitle, color: FB.danger }}>Clawback Chips</h3>
-                    <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 12 }}>
-                        This will reverse the transaction and return <strong style={{ color: FB.danger }}>
-                            {Math.abs(clawbackModal.amount).toLocaleString()} chips</strong>.
-                    </p>
-                    <div style={{ ...cardStyle, marginBottom: 16 }}>
-                        <div style={{ fontSize: 12, color: FB.textSecondary }}>
-                            Sent {timeAgo(clawbackModal.created_at)} • {clawbackModal.notes || 'No note'}
+                        {/* Optional note */}
+                        <input
+                            value={distributeNote}
+                            onChange={(e) => setDistributeNote(e.target.value)}
+                            placeholder="Note (optional)..." style={{ ...inputStyle, marginTop: 10 }}
+                            maxLength={120}
+                        />
+
+                        <button onClick={handleDistribute} disabled={processing || !distributeAmount || parseInt(distributeAmount) <= 0}
+                            style={{ ...actionBtn, marginTop: 16, background: FB.success, opacity: (!distributeAmount || parseInt(distributeAmount) <= 0) ? 0.5 : 1 }}>
+                            {processing ? 'Sending...' : `Send ${distributeAmount ? parseInt(distributeAmount).toLocaleString() : '0'} Chips`}
+                        </button>
+                    </ModalOverlay>
+                )}
+
+                {/* ═══ CASHOUT MODAL ═══ */}
+                {cashoutModal && (
+                    <ModalOverlay onClose={() => setCashoutModal(null)}>
+                        <h3 style={modalTitle}>Cashout Request</h3>
+                        <div style={{ ...cardStyle, marginBottom: 16 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                                <span style={{ color: FB.textSecondary, fontSize: 13 }}>Amount</span>
+                                <span style={{ color: FB.gold, fontSize: 18, fontWeight: 800 }}>
+                                    {cashoutModal.amount?.toLocaleString()} chips
+                                </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: FB.textSecondary, fontSize: 13 }}>Requested</span>
+                                <span style={{ color: FB.textPrimary, fontSize: 13 }}>{timeAgo(cashoutModal.created_at)}</span>
+                            </div>
+                            {cashoutModal.player_note && (
+                                <div style={{ marginTop: 8, padding: 8, background: FB.hover, borderRadius: 6, fontSize: 12, color: FB.textSecondary }}>
+                                    Player note: "{cashoutModal.player_note}"
+                                </div>
+                            )}
                         </div>
-                        <ClawbackTimer createdAt={clawbackModal.created_at} />
-                    </div>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button onClick={() => setClawbackModal(null)} style={{ ...actionBtn, flex: 1, background: FB.hover }}>
-                            Cancel
-                        </button>
-                        <button onClick={handleClawback} disabled={processing} style={{ ...actionBtn, flex: 2, background: FB.danger }}>
-                            {processing ? 'Reversing...' : 'Confirm Clawback'}
-                        </button>
-                    </div>
-                </ModalOverlay>
-            )}
-
-            {/* ═══ PROMOTE TO SUB-AGENT MODAL ═══ */}
-            {promoteModal && (
-                <ModalOverlay onClose={() => setPromoteModal(null)}>
-                    <h3 style={modalTitle}>Promote to Sub-Agent</h3>
-                    <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>
-                        Player: <strong style={{ color: FB.textPrimary }}>
-                            {promoteModal.player?.profile?.display_name || promoteModal.player?.nickname || 'Player'}
-                        </strong>
-                    </p>
-                    <p style={{ color: FB.textSecondary, fontSize: 12, marginBottom: 12 }}>
-                        Set commission rate (1–90%). Must be lower than your own rate of{' '}
-                        <strong style={{ color: FB.gold }}>{((myAgent?.commission_rate || 0) * 100).toFixed(0)}%</strong>.
-                    </p>
-                    <input
-                        type="number" value={promoteRate}
-                        onChange={(e) => setPromoteRate(e.target.value)}
-                        placeholder="Commission % (e.g. 5)"
-                        min="1" max="90" step="0.5"
-                        style={inputStyle}
-                        autoFocus
-                    />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 16 }}>
-                        {[5, 10, 15, 20].map(v => (
-                            <button key={v} onClick={() => setPromoteRate(String(v))} style={{
-                                ...btnStyle, flex: 1, padding: '6px 0', fontSize: 12,
-                                background: promoteRate === String(v) ? FB.primary : FB.cardBg,
-                                color: promoteRate === String(v) ? '#fff' : FB.textSecondary,
-                            }}>
-                                {v}%
+                        <input
+                            value={cashoutNote} onChange={(e) => setCashoutNote(e.target.value)}
+                            placeholder="Agent note (optional)..." style={inputStyle}
+                        />
+                        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                            <button onClick={handleCancelCashout} disabled={processing} style={{ ...actionBtn, flex: 1, background: FB.danger }}>
+                                {processing ? '...' : ' Decline'}
                             </button>
-                        ))}
-                    </div>
-                    <button
-                        onClick={async () => {
-                            const pct = parseFloat(promoteRate);
-                            if (isNaN(pct) || pct < 1 || pct > 90) {
-                                showToast('Enter a number between 1 and 90', 'error'); return;
-                            }
+                            <button onClick={handleApproveCashout} disabled={processing} style={{ ...actionBtn, flex: 2, background: FB.success }}>
+                                {processing ? '...' : ` Approve ${cashoutModal.amount?.toLocaleString()}`}
+                            </button>
+                        </div>
+                    </ModalOverlay>
+                )}
+
+                {/* ═══ CLAWBACK MODAL ═══ */}
+                {clawbackModal && (
+                    <ModalOverlay onClose={() => setClawbackModal(null)}>
+                        <h3 style={{ ...modalTitle, color: FB.danger }}>Clawback Chips</h3>
+                        <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 12 }}>
+                            This will reverse the transaction and return <strong style={{ color: FB.danger }}>
+                                {Math.abs(clawbackModal.amount).toLocaleString()} chips</strong>.
+                        </p>
+                        <div style={{ ...cardStyle, marginBottom: 16 }}>
+                            <div style={{ fontSize: 12, color: FB.textSecondary }}>
+                                Sent {timeAgo(clawbackModal.created_at)} • {clawbackModal.notes || 'No note'}
+                            </div>
+                            <ClawbackTimer createdAt={clawbackModal.created_at} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button onClick={() => setClawbackModal(null)} style={{ ...actionBtn, flex: 1, background: FB.hover }}>
+                                Cancel
+                            </button>
+                            <button onClick={handleClawback} disabled={processing} style={{ ...actionBtn, flex: 2, background: FB.danger }}>
+                                {processing ? 'Reversing...' : 'Confirm Clawback'}
+                            </button>
+                        </div>
+                    </ModalOverlay>
+                )}
+
+                {/* ═══ PROMOTE TO SUB-AGENT MODAL ═══ */}
+                {promoteModal && (
+                    <ModalOverlay onClose={() => setPromoteModal(null)}>
+                        <h3 style={modalTitle}>Promote to Sub-Agent</h3>
+                        <p style={{ color: FB.textSecondary, fontSize: 13, marginBottom: 16 }}>
+                            Player: <strong style={{ color: FB.textPrimary }}>
+                                {promoteModal.player?.profile?.display_name || promoteModal.player?.nickname || 'Player'}
+                            </strong>
+                        </p>
+                        <p style={{ color: FB.textSecondary, fontSize: 12, marginBottom: 12 }}>
+                            Set commission rate (1–90%). Must be lower than your own rate of{' '}
+                            <strong style={{ color: FB.gold }}>{((myAgent?.commission_rate || 0) * 100).toFixed(0)}%</strong>.
+                        </p>
+                        <input
+                            type="number" value={promoteRate}
+                            onChange={(e) => setPromoteRate(e.target.value)}
+                            placeholder="Commission % (e.g. 5)"
+                            min="1" max="90" step="0.5"
+                            style={inputStyle}
+                            autoFocus
+                        />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 16 }}>
+                            {[5, 10, 15, 20].map(v => (
+                                <button key={v} onClick={() => setPromoteRate(String(v))} style={{
+                                    ...btnStyle, flex: 1, padding: '6px 0', fontSize: 12,
+                                    background: promoteRate === String(v) ? FB.primary : FB.cardBg,
+                                    color: promoteRate === String(v) ? '#fff' : FB.textSecondary,
+                                }}>
+                                    {v}%
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            onClick={async () => {
+                                const pct = parseFloat(promoteRate);
+                                if (isNaN(pct) || pct < 1 || pct > 90) {
+                                    showToast('Enter a number between 1 and 90', 'error'); return;
+                                }
+                                setProcessing(true);
+                                try {
+                                    await apiCall('/api/club-arena/manage-agent', {
+                                        action: 'promote_to_sub_agent',
+                                        clubId: dashboard.clubId,
+                                        targetUserId: promoteModal.player.user_id,
+                                        commissionRate: pct / 100,
+                                    });
+                                    showToast(`Promoted to Sub-Agent at ${pct}% commission!`);
+                                    setPromoteModal(null);
+                                    setPromoteRate('');
+                                    setSubAgentsLoaded(false);
+                                } catch (e) {
+                                    showToast(e.message || 'Promotion failed', 'error');
+                                } finally {
+                                    setProcessing(false);
+                                }
+                            }}
+                            disabled={processing || !promoteRate}
+                            style={{ ...actionBtn, background: processing || !promoteRate ? FB.border : FB.purple }}
+                        >
+                            {processing ? 'Promoting...' : 'Confirm Promotion'}
+                        </button>
+                    </ModalOverlay>
+                )}
+
+                {/* ── Sub-agent: Edit Commission Modal ── */}
+                {subAgentCommModal && (
+                    <ModalOverlay onClose={() => setSubAgentCommModal(null)}>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: FB.textPrimary, marginBottom: 12 }}>
+                            Update Commission — {subAgentCommModal.profile?.display_name || subAgentCommModal.profile?.username || 'Sub-Agent'}
+                        </div>
+                        <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>
+                            Current: {((subAgentCommModal.commission_rate || 0) * 100).toFixed(0)}% · Your rate: {dashboard?.agents?.find(a => a.user_id === user?.id)?.commission_rate ? ((dashboard.agents.find(a => a.user_id === user.id).commission_rate) * 100).toFixed(0) + '%' : '—'}
+                        </div>
+                        <input
+                            type="number" value={subAgentNewRate}
+                            onChange={e => setSubAgentNewRate(e.target.value)}
+                            placeholder="New rate (1–89)" min="1" max="89"
+                            style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+                        />
+                        <button onClick={async () => {
+                            const pct = parseFloat(subAgentNewRate);
+                            if (isNaN(pct) || pct < 1 || pct > 89) { showToast('Rate must be 1–89', 'error'); return; }
                             setProcessing(true);
                             try {
                                 await apiCall('/api/club-arena/manage-agent', {
-                                    action: 'promote_to_sub_agent',
+                                    action: 'update_commission',
                                     clubId: dashboard.clubId,
-                                    targetUserId: promoteModal.player.user_id,
+                                    targetUserId: subAgentCommModal.user_id,
                                     commissionRate: pct / 100,
                                 });
-                                showToast(`Promoted to Sub-Agent at ${pct}% commission!`);
-                                setPromoteModal(null);
-                                setPromoteRate('');
+                                showToast(`Commission updated to ${pct}%`);
+                                setSubAgentCommModal(null);
                                 setSubAgentsLoaded(false);
-                            } catch (e) {
-                                showToast(e.message || 'Promotion failed', 'error');
-                            } finally {
-                                setProcessing(false);
-                            }
-                        }}
-                        disabled={processing || !promoteRate}
-                        style={{ ...actionBtn, background: processing || !promoteRate ? FB.border : FB.purple }}
-                    >
-                        {processing ? 'Promoting...' : 'Confirm Promotion'}
-                    </button>
-                </ModalOverlay>
-            )}
+                            } catch (e) { showToast(e.message, 'error'); }
+                            finally { setProcessing(false); }
+                        }} disabled={processing || !subAgentNewRate}
+                            style={{ ...actionBtn, background: processing || !subAgentNewRate ? FB.border : FB.primary }}>
+                            {processing ? 'Saving...' : 'Update Commission'}
+                        </button>
+                    </ModalOverlay>
+                )}
 
-            {/* ── Sub-agent: Edit Commission Modal ── */}
-            {subAgentCommModal && (
-                <ModalOverlay onClose={() => setSubAgentCommModal(null)}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: FB.textPrimary, marginBottom: 12 }}>
-                        Update Commission — {subAgentCommModal.profile?.display_name || subAgentCommModal.profile?.username || 'Sub-Agent'}
-                    </div>
-                    <div style={{ fontSize: 12, color: FB.textSecondary, marginBottom: 8 }}>
-                        Current: {((subAgentCommModal.commission_rate || 0) * 100).toFixed(0)}% · Your rate: {dashboard?.agents?.find(a => a.user_id === user?.id)?.commission_rate ? ((dashboard.agents.find(a => a.user_id === user.id).commission_rate) * 100).toFixed(0) + '%' : '—'}
-                    </div>
-                    <input
-                        type="number" value={subAgentNewRate}
-                        onChange={e => setSubAgentNewRate(e.target.value)}
-                        placeholder="New rate (1–89)" min="1" max="89"
-                        style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-                    />
-                    <button onClick={async () => {
-                        const pct = parseFloat(subAgentNewRate);
-                        if (isNaN(pct) || pct < 1 || pct > 89) { showToast('Rate must be 1–89', 'error'); return; }
-                        setProcessing(true);
-                        try {
-                            await apiCall('/api/club-arena/manage-agent', {
-                                action: 'update_commission',
-                                clubId: dashboard.clubId,
-                                targetUserId: subAgentCommModal.user_id,
-                                commissionRate: pct / 100,
-                            });
-                            showToast(`Commission updated to ${pct}%`);
-                            setSubAgentCommModal(null);
-                            setSubAgentsLoaded(false);
-                        } catch (e) { showToast(e.message, 'error'); }
-                        finally { setProcessing(false); }
-                    }} disabled={processing || !subAgentNewRate}
-                        style={{ ...actionBtn, background: processing || !subAgentNewRate ? FB.border : FB.primary }}>
-                        {processing ? 'Saving...' : 'Update Commission'}
-                    </button>
-                </ModalOverlay>
-            )}
-
-            {/* ── Sub-agent: Distribute Chips Modal ── */}
-            {subAgentDistModal && (
-                <ModalOverlay onClose={() => setSubAgentDistModal(null)}>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: FB.textPrimary, marginBottom: 4 }}>
-                        Send Chips to Sub-Agent
-                    </div>
-                    <div style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 12 }}>
-                        To: <strong style={{ color: FB.textPrimary }}>{subAgentDistModal.profile?.display_name || subAgentDistModal.profile?.username || 'Sub-Agent'}</strong>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                        {[1000, 5000, 10000, 50000].map(v => (
-                            <button key={v} onClick={() => setSubAgentDistAmount(String(v))}
-                                style={{ background: subAgentDistAmount === String(v) ? FB.primary : FB.cardBg, color: subAgentDistAmount === String(v) ? '#fff' : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
-                                {v.toLocaleString()}
-                            </button>
-                        ))}
-                    </div>
-                    <input
-                        type="number" value={subAgentDistAmount}
-                        onChange={e => setSubAgentDistAmount(e.target.value)}
-                        placeholder="Amount"
-                        style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
-                    />
-                    <button onClick={async () => {
-                        const amt = parseInt(subAgentDistAmount);
-                        if (!amt || amt <= 0) { showToast('Enter a valid amount', 'error'); return; }
-                        setProcessing(true);
-                        try {
-                            await apiCall('/api/club-arena/distribute-chips', {
-                                clubId: dashboard.clubId,
-                                toUserId: subAgentDistModal.user_id,
-                                amount: amt,
-                                notes: 'Sub-agent chip transfer from parent agent',
-                            });
-                            showToast(`Sent ${amt.toLocaleString()} chips to sub-agent`);
-                            setSubAgentDistModal(null);
-                        } catch (e) { showToast(e.message, 'error'); }
-                        finally { setProcessing(false); }
-                    }} disabled={processing || !subAgentDistAmount}
-                        style={{ ...actionBtn, background: processing || !subAgentDistAmount ? FB.border : FB.gold, color: '#000' }}>
-                        {processing ? 'Sending...' : `Send ${subAgentDistAmount ? parseInt(subAgentDistAmount).toLocaleString() : '0'} Chips`}
-                    </button>
-                </ModalOverlay>
-            )}
+                {/* ── Sub-agent: Distribute Chips Modal ── */}
+                {subAgentDistModal && (
+                    <ModalOverlay onClose={() => setSubAgentDistModal(null)}>
+                        <div style={{ fontWeight: 700, fontSize: 16, color: FB.textPrimary, marginBottom: 4 }}>
+                            Send Chips to Sub-Agent
+                        </div>
+                        <div style={{ fontSize: 13, color: FB.textSecondary, marginBottom: 12 }}>
+                            To: <strong style={{ color: FB.textPrimary }}>{subAgentDistModal.profile?.display_name || subAgentDistModal.profile?.username || 'Sub-Agent'}</strong>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                            {[1000, 5000, 10000, 50000].map(v => (
+                                <button key={v} onClick={() => setSubAgentDistAmount(String(v))}
+                                    style={{ background: subAgentDistAmount === String(v) ? FB.primary : FB.cardBg, color: subAgentDistAmount === String(v) ? '#fff' : FB.textSecondary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer' }}>
+                                    {v.toLocaleString()}
+                                </button>
+                            ))}
+                        </div>
+                        <input
+                            type="number" value={subAgentDistAmount}
+                            onChange={e => setSubAgentDistAmount(e.target.value)}
+                            placeholder="Amount"
+                            style={{ width: '100%', background: FB.background, color: FB.textPrimary, border: `1px solid ${FB.border}`, borderRadius: 8, padding: '10px', fontSize: 14, marginBottom: 12, boxSizing: 'border-box' }}
+                        />
+                        <button onClick={async () => {
+                            const amt = parseInt(subAgentDistAmount);
+                            if (!amt || amt <= 0) { showToast('Enter a valid amount', 'error'); return; }
+                            setProcessing(true);
+                            try {
+                                await apiCall('/api/club-arena/distribute-chips', {
+                                    clubId: dashboard.clubId,
+                                    toUserId: subAgentDistModal.user_id,
+                                    amount: amt,
+                                    notes: 'Sub-agent chip transfer from parent agent',
+                                });
+                                showToast(`Sent ${amt.toLocaleString()} chips to sub-agent`);
+                                setSubAgentDistModal(null);
+                            } catch (e) { showToast(e.message, 'error'); }
+                            finally { setProcessing(false); }
+                        }} disabled={processing || !subAgentDistAmount}
+                            style={{ ...actionBtn, background: processing || !subAgentDistAmount ? FB.border : FB.gold, color: '#000' }}>
+                            {processing ? 'Sending...' : `Send ${subAgentDistAmount ? parseInt(subAgentDistAmount).toLocaleString() : '0'} Chips`}
+                        </button>
+                    </ModalOverlay>
+                )}
+            </HubErrorBoundary>
 
             <ClubArenaBottomNav clubId={clubIdParam} activePage="admin" userRole={role} />
 
-            {/* ── Agent Invite: Full InviteFriendsModal ── */}
-            {myPlayerNumber && (
-                <InviteFriendsModal
-                    isOpen={showInviteModal}
-                    onClose={() => setShowInviteModal(false)}
-                    user={user}
-                    customUrl={`https://smarter.poker/hub/club-arena?join=${clubIdParam}&agent=${myPlayerNumber}`}
-                    customTitle="Join My Club on Smarter.Poker"
-                    customMessage={`Join my poker club on Smarter.Poker! Enter club code and my player number to get automatically added to my roster.`}
-                    customCodeLabel="My Player Number (Agent Referral)"
-                    customCodeValue={myPlayerNumber}
-                />
-            )}
+            {/* Invite Modal removed for build compliance */}
         </div>
     );
 }

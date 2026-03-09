@@ -2,7 +2,7 @@
  CLUB ARENA — Hand Histories | FULLY WIRED
  SmarterPoker Dark Theme | Real Hand Data with Filters & Visualization
  ═══════════════════════════════════════════════════════════════════════════════ */
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -15,7 +15,6 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useWalletData from '../../../src/hooks/useWalletData';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
-import ModalLight from '../../../src/components/ui/ModalLight';
 import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
@@ -44,6 +43,42 @@ const FB = {
 // Card display helpers
 const SUIT_SYMBOLS = { h: '', d: '', c: '', s: '' };
 const SUIT_COLORS = { h: '#E74C3C', d: '#3498DB', c: '#27AE60', s: '#2C3E50' };
+
+const MemoizedHandCard = React.memo(({ hand, setSelectedHand, renderCardRow, getHandLabel, formatDate, FB, S }) => {
+    const isWin = hand.result === 'win' || (hand.profit && hand.profit > 0);
+    return (
+        <div style={S.handCard} onClick={() => setSelectedHand(hand)}>
+            <div style={S.handHeader}>
+                <span style={{ ...S.handResult, background: isWin ? FB.success : FB.danger, color: '#fff' }}>
+                    {isWin ? 'WIN' : 'LOSS'}
+                </span>
+                <span style={S.handDate}>{formatDate(hand.created_at)}</span>
+            </div>
+            <div style={S.handCards}>
+                {hand.hole_cards && (
+                    <div>
+                        <div style={S.handLabel}>Your Cards</div>
+                        {renderCardRow(hand.hole_cards)}
+                    </div>
+                )}
+                {hand.board && (
+                    <div>
+                        <div style={S.handLabel}>Board</div>
+                        {renderCardRow(hand.board)}
+                    </div>
+                )}
+            </div>
+            <div style={S.handInfo}>
+                <span style={S.handTable}>
+                    {hand.table_name || 'Cash Game'} • {getHandLabel(hand)}
+                </span>
+                <span style={{ ...S.handProfit, color: isWin ? FB.success : FB.danger }}>
+                    {isWin ? '+' : ''}{(hand.profit || hand.pot_size || 0).toLocaleString()}
+                </span>
+            </div>
+        </div>
+    );
+});
 
 export default function HandHistories() {
     useTrainingBus('club-arena-hand-histories');
@@ -492,55 +527,17 @@ export default function HandHistories() {
                         </div>
                     ) : (
                         <>
-                            {hands.map((hand, i) => {
-                                const isWin = hand.result === 'win' || (hand.profit && hand.profit > 0);
-                                return (
-                                    <div
-                                        key={hand.id || i}
-                                        style={S.handCard}
-                                        onClick={() => setSelectedHand(hand)}
-                                    >
-                                        <div style={S.handHeader}>
-                                            <span style={{
-                                                ...S.handResult,
-                                                background: isWin ? FB.success : FB.danger,
-                                                color: '#fff'
-                                            }}>
-                                                {isWin ? 'WIN' : 'LOSS'}
-                                            </span>
-                                            <span style={S.handDate}>{formatDate(hand.created_at)}</span>
-                                        </div>
-
-                                        {/* Cards */}
-                                        <div style={S.handCards}>
-                                            {hand.hole_cards && (
-                                                <div>
-                                                    <div style={S.handLabel}>Your Cards</div>
-                                                    {renderCardRow(hand.hole_cards)}
-                                                </div>
-                                            )}
-                                            {hand.board && (
-                                                <div>
-                                                    <div style={S.handLabel}>Board</div>
-                                                    {renderCardRow(hand.board)}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div style={S.handInfo}>
-                                            <span style={S.handTable}>
-                                                {hand.table_name || 'Cash Game'} • {getHandLabel(hand)}
-                                            </span>
-                                            <span style={{
-                                                ...S.handProfit,
-                                                color: isWin ? FB.success : FB.danger
-                                            }}>
-                                                {isWin ? '+' : ''}{(hand.profit || hand.pot_size || 0).toLocaleString()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {hands.map((hand, i) => (
+                                <MemoizedHandCard
+                                    key={hand.id || i}
+                                    hand={hand}
+                                    setSelectedHand={setSelectedHand}
+                                    renderCardRow={renderCardRow}
+                                    getHandLabel={getHandLabel}
+                                    formatDate={formatDate}
+                                    FB={FB} S={S}
+                                />
+                            ))}
 
                             {hasMore && (
                                 <button

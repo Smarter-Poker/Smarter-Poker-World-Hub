@@ -197,7 +197,7 @@ export default function ClubLobby() {
     // Handler: game/table/tournament created callback
     function handleGameCreated(result) {
         // Hoist table extraction so it's available throughout the function
-        const table = result?.table || result;
+        const table = result?.table || result?.tournament || result;
         const isCash = table?.game_type === 'cash' || (!table?.type && !table?.game_type?.includes('tournament'));
         const isTournament = table?.game_type === 'tournament' || table?.game_type === 'mtt'
             || table?.game_type === 'sng' || table?.type === 'tournament';
