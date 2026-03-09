@@ -467,16 +467,78 @@ function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => { }
 }
 
 // ═══════════════════════════════════════════════════════
+// PAYOUT STRUCTURE CALCULATOR (frontend)
+// Standard flat structure: top ~15% paid
+// ═══════════════════════════════════════════════════════
+function calcPayouts(prizePool, playerCount) {
+  if (!prizePool || !playerCount || playerCount < 2) return [];
+  const structures = {
+    2:  [100],
+    3:  [70, 30],
+    4:  [65, 35],
+    5:  [55, 30, 15],
+    6:  [50, 30, 20],
+    7:  [45, 27, 18, 10],
+    8:  [43, 26, 17, 9, 5],
+    9:  [42, 25, 16, 9, 5, 3],
+    10: [40, 24, 15, 9, 5, 4, 3],
+    18: [34, 20, 14, 10, 7, 5, 4, 3, 3],
+    27: [30, 18, 13, 9, 6, 5, 4, 3, 3, 2, 2, 2, 2, 1],
+    45: [27, 17, 12, 8, 6, 5, 4, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1],
+  };
+  const brackets = Object.keys(structures).map(Number).sort((a, b) => a - b);
+  let key = brackets[0];
+  for (const b of brackets) { if (playerCount >= b) key = b; }
+  const pcts = structures[key];
+  return pcts.map((pct, i) => ({
+    position: i + 1,
+    pct,
+    amount: Math.floor(prizePool * pct / 100),
+  }));
+}
+
+function playerName(userId, profileMap) {
+  const p = profileMap[userId];
+  if (!p) return userId.slice(0, 8) + '…';
+  return p.display_name || p.username || userId.slice(0, 8) + '…';
+}
+
+// ═══════════════════════════════════════════════════════
 // TOURNAMENT DETAIL MODAL
 // ═══════════════════════════════════════════════════════
 function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, onRegister, onUnregister, onClose, onStart }) {
   const router = useRouter();
   const [isRegistered, setIsRegistered] = useState(false);
   const [registrations, setRegistrations] = useState([]);
+  const [profiles, setProfiles] = useState({});
+  const [detailStats, setDetailStats] = useState({ totalRebuys: 0, totalAddons: 0 });
   const [tourneyState, setTourneyState] = useState(null);
+  const [detailTab, setDetailTab] = useState('players'); // players | payouts | results
 
+  // Load detailed player + profile data
   useEffect(() => {
-    // Check if user is registered
+    (async () => {
+      try {
+        const token = getAccessToken();
+        const r = await fetch(`/api/club-arena/tournament-detail?tournamentId=${t.id}&clubId=${t.club_id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const d = await r.json();
+        if (d.success) {
+          setRegistrations(d.registrations || []);
+          setProfiles(d.profiles || {});
+          setDetailStats(d.stats || { totalRebuys: 0, totalAddons: 0 });
+        }
+      } catch (_) {
+        const { data } = await supabase
+          .from('tournament_registrations')
+          .select('user_id, status, registered_at, finish_position, payout_amount, rebuys_used, addon_used')
+          .eq('tournament_id', t.id)
+          .in('status', ['registered', 'playing', 'eliminated'])
+          .order('registered_at');
+        setRegistrations(data || []);
+      }
+    })();
     (async () => {
       const { data } = await supabase
         .from('tournament_registrations')
@@ -486,16 +548,6 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         .eq('status', 'registered')
         .maybeSingle();
       setIsRegistered(!!data);
-    })();
-    // Load registrations
-    (async () => {
-      const { data } = await supabase
-        .from('tournament_registrations')
-        .select('user_id, status, registered_at, finish_position, payout_amount')
-        .eq('tournament_id', t.id)
-        .in('status', ['registered', 'playing', 'eliminated'])
-        .order('registered_at');
-      setRegistrations(data || []);
     })();
 
     // ── Realtime: subscribe to tournament channel for live engine events ──
@@ -609,10 +661,10 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
             ['Buy-in', Number(t.buy_in).toLocaleString()],
             ['Starting Chips', Number(t.starting_chips).toLocaleString()],
             ['Players', `${t.registered_count}/${t.max_players}`],
-            ['Prize Pool', Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()],
+            ['Prize Pool', `${Math.max(Number(t.prize_pool), Number(t.guaranteed_prize)).toLocaleString()}${Number(t.guaranteed_prize) > Number(t.prize_pool) ? ' GTD' : ''}`],
             ['Late Reg', t.late_reg_levels ? `${t.late_reg_levels} levels` : 'No'],
-            ['Rebuys', t.rebuy_enabled ? 'Yes' : 'No'],
-            ['Add-on', t.addon_enabled ? 'Yes' : 'No'],
+            ['Rebuys', t.rebuy_enabled ? (detailStats.totalRebuys > 0 ? `Yes (${detailStats.totalRebuys} used)` : 'Yes') : 'No'],
+            ['Add-on', t.addon_enabled ? (detailStats.totalAddons > 0 ? `Yes (${detailStats.totalAddons} used)` : 'Yes') : 'No'],
           ].map(([label, value]) => (
             <div key={label}>
               <div style={{ fontSize: 11, color: FB.dim }}>{label}</div>
@@ -648,19 +700,150 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           </details>
         )}
 
-        {/* Registered Players */}
+        {/* ── Phase 18: Tabbed section — Players | Payouts | Results ── */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: FB.dim, marginBottom: 4 }}>Registered Players ({registrations.length})</div>
-          {registrations.length === 0 && <div style={{ fontSize: 12, color: FB.dim }}>No players registered yet</div>}
-          {registrations.slice(0, 20).map((r, i) => (
-            <div key={i} style={{ fontSize: 12, color: FB.text, padding: '2px 0' }}>
-              {r.user_id.slice(0, 8)}... — {r.status}
-              {r.finish_position && ` — #${r.finish_position}`}
+          {/* Tab bar */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+            {[
+              { id: 'players', label: `Players (${registrations.length})` },
+              { id: 'payouts', label: 'Payouts' },
+              ...(t.status === 'complete' ? [{ id: 'results', label: '🏆 Results' }] : []),
+            ].map(tab => (
+              <button key={tab.id} onClick={() => setDetailTab(tab.id)} style={{
+                padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none',
+                borderRadius: 20, cursor: 'pointer',
+                background: detailTab === tab.id ? FB.primary : FB.hover,
+                color: detailTab === tab.id ? '#fff' : FB.dim,
+              }}>{tab.label}</button>
+            ))}
+            {detailStats.totalRebuys > 0 && (
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: FB.dim, alignSelf: 'center' }}>
+                {detailStats.totalRebuys} rebuy{detailStats.totalRebuys !== 1 ? 's' : ''}
+                {detailStats.totalAddons > 0 ? ` · ${detailStats.totalAddons} add-on${detailStats.totalAddons !== 1 ? 's' : ''}` : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Players tab */}
+          {detailTab === 'players' && (
+            <div>
+              {registrations.length === 0 && (
+                <div style={{ fontSize: 12, color: FB.dim, textAlign: 'center', padding: '16px 0' }}>No players registered yet</div>
+              )}
+              {registrations.map((r, i) => {
+                const name = playerName(r.user_id, profiles);
+                const isMe = r.user_id === userId;
+                const statusColor = r.status === 'playing' ? FB.green : r.status === 'eliminated' ? FB.danger : FB.dim;
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
+                    borderRadius: 6, background: isMe ? FB.primary + '15' : 'transparent',
+                    border: isMe ? `1px solid ${FB.primary}40` : '1px solid transparent',
+                    marginBottom: 2,
+                  }}>
+                    <span style={{ width: 22, fontSize: 11, color: FB.dim, textAlign: 'right', flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ flex: 1, fontSize: 13, color: FB.text, fontWeight: isMe ? 700 : 400 }}>
+                      {name}{isMe ? ' (you)' : ''}
+                    </span>
+                    <span style={{ fontSize: 11, color: statusColor }}>{r.status}</span>
+                    {(r.rebuys_used > 0) && (
+                      <span style={{ fontSize: 10, color: '#ea580c', background: '#ea580c20', padding: '1px 5px', borderRadius: 3 }}>
+                        {r.rebuys_used}R
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-          {registrations.length > 20 && (
-            <div style={{ fontSize: 11, color: FB.dim }}>+{registrations.length - 20} more</div>
           )}
+
+          {/* Payouts tab */}
+          {detailTab === 'payouts' && (() => {
+            const prizePool = Math.max(Number(t.prize_pool || 0), Number(t.guaranteed_prize || 0));
+            const playerCount = Math.max(registrations.length, t.registered_count || 0);
+            const payouts = calcPayouts(prizePool, playerCount);
+            return (
+              <div>
+                {payouts.length === 0 ? (
+                  <div style={{ fontSize: 12, color: FB.dim, textAlign: 'center', padding: '16px 0' }}>
+                    Payout structure available once players register
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, padding: '0 8px' }}>
+                      <span style={{ fontSize: 11, color: FB.dim }}>Position</span>
+                      <span style={{ fontSize: 11, color: FB.dim }}>Prize</span>
+                    </div>
+                    {payouts.map((p) => (
+                      <div key={p.position} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '7px 8px', borderRadius: 6, marginBottom: 2,
+                        background: p.position === 1 ? '#F7C52A15' : p.position <= 3 ? FB.hover : 'transparent',
+                      }}>
+                        <span style={{ fontSize: 13, color: p.position === 1 ? FB.gold : p.position <= 3 ? FB.text : FB.dim, fontWeight: p.position <= 3 ? 700 : 400 }}>
+                          {p.position === 1 ? '🥇' : p.position === 2 ? '🥈' : p.position === 3 ? '🥉' : `#${p.position}`}
+                        </span>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: p.position === 1 ? FB.gold : FB.text }}>
+                            {p.amount.toLocaleString()} chips
+                          </div>
+                          <div style={{ fontSize: 10, color: FB.dim }}>{p.pct}%</div>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ marginTop: 10, fontSize: 11, color: FB.dim, textAlign: 'center' }}>
+                      Top {payouts.length} of {playerCount} paid · Prize pool: {prizePool.toLocaleString()}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Results tab (complete tournaments) */}
+          {detailTab === 'results' && (() => {
+            const finished = registrations
+              .filter(r => r.finish_position)
+              .sort((a, b) => a.finish_position - b.finish_position);
+            const unplaced = registrations.filter(r => !r.finish_position);
+            return (
+              <div>
+                {finished.length === 0 ? (
+                  <div style={{ fontSize: 12, color: FB.dim, textAlign: 'center', padding: '16px 0' }}>Final results not yet recorded</div>
+                ) : (
+                  <>
+                    {finished.map((r) => {
+                      const name = playerName(r.user_id, profiles);
+                      const isPaid = r.payout_amount > 0;
+                      return (
+                        <div key={r.user_id} style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                          borderRadius: 8, marginBottom: 4,
+                          background: r.finish_position === 1 ? '#F7C52A12' : r.finish_position <= 3 ? FB.hover : 'transparent',
+                          border: r.finish_position === 1 ? `1px solid ${FB.gold}40` : '1px solid transparent',
+                        }}>
+                          <span style={{ width: 28, fontSize: 16, textAlign: 'center', flexShrink: 0 }}>
+                            {r.finish_position === 1 ? '🥇' : r.finish_position === 2 ? '🥈' : r.finish_position === 3 ? '🥉' : `#${r.finish_position}`}
+                          </span>
+                          <span style={{ flex: 1, fontSize: 13, color: FB.text, fontWeight: r.finish_position <= 3 ? 700 : 400 }}>{name}</span>
+                          {isPaid ? (
+                            <span style={{ fontSize: 13, fontWeight: 700, color: FB.gold }}>{Number(r.payout_amount).toLocaleString()}</span>
+                          ) : (
+                            <span style={{ fontSize: 11, color: FB.dim }}>—</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {unplaced.length > 0 && (
+                      <div style={{ fontSize: 11, color: FB.dim, marginTop: 8, textAlign: 'center' }}>
+                        +{unplaced.length} player{unplaced.length !== 1 ? 's' : ''} without recorded finish
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Live Tournament Stats (when running) */}
