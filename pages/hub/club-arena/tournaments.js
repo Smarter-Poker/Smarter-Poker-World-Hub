@@ -14,6 +14,9 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
+import useWalletData from '../../../src/hooks/useWalletData';
+import dynamic from 'next/dynamic';
+const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -58,6 +61,8 @@ const router = useRouter();
   const [chipBalance, setChipBalance] = useState(0);
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm }
+  const [showWallet, setShowWallet] = useState(false);
+  const walletData = useWalletData({ supabase, userId: user?.id, clubId: clubId });
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
@@ -202,8 +207,9 @@ const router = useRouter();
           style={{ background: 'none', border: 'none', color: FB.dim, cursor: 'pointer', fontSize: 20 }}>←</button>
         <div>
           <h1 style={{ margin: 0, fontSize: 20 }}>Tournaments</h1>
-          <span style={{ color: FB.dim, fontSize: 13 }}>{clubInfo?.name} — Balance: {chipBalance.toLocaleString()} chips</span>
+          <span style={{ color: FB.dim, fontSize: 13 }}>{clubInfo?.name} — Balance: {(walletData.chipBalance || chipBalance).toLocaleString()} chips</span>
         </div>
+        <button onClick={() => setShowWallet(p => !p)} style={{ background: 'none', border: '1px solid #3E4042', borderRadius: 8, padding: '6px 12px', color: '#FFD700', fontSize: 16, cursor: 'pointer' }} title="Wallet">💰</button>
         <div style={{ flex: 1 }} />
         {isAdmin && (
           <button onClick={() => setShowCreate(true)} style={{
@@ -212,6 +218,21 @@ const router = useRouter();
           }}>+ Create Tournament</button>
         )}
       </div>
+
+      {/* Wallet Panel */}
+      {showWallet && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', background: FB.bg }}>
+          <DynamicWallet
+            diamondBalance={walletData.diamondBalance}
+            bbjAmount={walletData.bbjAmount}
+            chipBalance={walletData.chipBalance || chipBalance}
+            agentBalance={walletData.agentBalance}
+            promoBalance={walletData.promoBalance}
+            bbjAnimating={walletData.bbjAnimating}
+            compact
+          />
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${FB.border}`, background: FB.card }}>

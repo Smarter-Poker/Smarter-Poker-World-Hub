@@ -19,10 +19,15 @@ import useDebounce from '../../../src/hooks/useDebounce';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
+import useWalletData from '../../../src/hooks/useWalletData';
 
-// Dynamic import — GameCard uses @/ aliases + browser APIs, must be client-only
+// Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(
     () => import('../../../src/components/club-arena/GameCard'),
+    { ssr: false, loading: () => null }
+);
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
 
@@ -89,6 +94,10 @@ const router = useRouter();
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [newDescription, setNewDescription] = useState('');
     const [announcements, setAnnouncements] = useState([]);
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Real-time wallet data (diamonds, BBJ, chips, agent, promo)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
     const [sortBy, setSortBy] = useState(_lobbyFilters.sortBy); // players | stakes | name
@@ -485,11 +494,34 @@ const router = useRouter();
                                 </div>
                                 <div style={styles.clubBalance}>
                                     <div style={styles.balanceRow}>
-                                        <span style={styles.balanceAmount}>{chipBalance.toLocaleString()}</span>
+                                        <span style={styles.balanceAmount}>{(walletData.chipBalance || chipBalance).toLocaleString()}</span>
+                                        <button style={{ ...styles.addBtn, background: '#2374E1' }} onClick={() => setShowWallet(prev => !prev)} title="Open Wallet">💰</button>
                                         <button style={styles.addBtn} onClick={() => router.push(`/hub/club-arena/cashier?club=${club.club_id}`)}>+</button>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* ═══ DYNAMIC WALLET PANEL ═══ */}
+                            {showWallet && (
+                                <div style={{
+                                    display: 'flex', justifyContent: 'center', padding: '8px 0 4px',
+                                    animation: 'fadeInDown 0.3s ease-out',
+                                }}>
+                                    <DynamicWallet
+                                        diamondBalance={walletData.diamondBalance}
+                                        bbjAmount={walletData.bbjAmount}
+                                        chipBalance={walletData.chipBalance || chipBalance}
+                                        agentBalance={walletData.agentBalance}
+                                        promoBalance={walletData.promoBalance}
+                                        bbjAnimating={walletData.bbjAnimating}
+                                        onTapSlot={(slot) => {
+                                            if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${club.club_id}`);
+                                            if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${club.club_id}`);
+                                            if (slot === 'bbj') { /* BBJ modal handled by BBJBanner */ }
+                                        }}
+                                    />
+                                </div>
+                            )}
 
                             {/* Club Description */}
                             <div

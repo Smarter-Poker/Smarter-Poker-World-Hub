@@ -15,6 +15,9 @@ import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import dynamic from 'next/dynamic';
+import useWalletData from '../../../src/hooks/useWalletData';
+const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -93,6 +96,9 @@ const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-ca-agent-tab', 'overview');
     const [toast, setToast] = useState({ message: '', type: '' });
+
+    // Real-time wallet data
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: dashboard?.clubId || clubIdParam });
 
     // Modal states
     const [distributeModal, setDistributeModal] = useState(null); // { playerId, playerName, currentBalance }
@@ -456,10 +462,23 @@ const router = useRouter();
             {/* Content */}
             <div style={{ padding: '0 20px 100px' }}>
                 {activeTab === 'overview' && (
+                    <>
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
+                        <DynamicWallet
+                            diamondBalance={walletData.diamondBalance}
+                            bbjAmount={walletData.bbjAmount}
+                            chipBalance={walletData.chipBalance}
+                            agentBalance={walletData.agentBalance}
+                            promoBalance={walletData.promoBalance}
+                            bbjAnimating={walletData.bbjAnimating}
+                            compact
+                        />
+                    </div>
                     <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
                         playerNumber={myPlayerNumber}
                         onShareInvite={() => setShowInviteModal(true)}
                     />
+                    </>
                 )}
                 {activeTab === 'players' && (
                     <PlayersTab

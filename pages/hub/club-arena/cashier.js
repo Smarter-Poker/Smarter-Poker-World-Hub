@@ -11,6 +11,9 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import dynamic from 'next/dynamic';
+import useWalletData from '../../../src/hooks/useWalletData';
+const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -92,6 +95,10 @@ const router = useRouter();
     const [pendingCashouts, setPendingCashouts] = useState([]);
     const [cashoutHistory, setCashoutHistory] = useState([]);
     const [rakebackInfo, setRakebackInfo] = useState(null); // { pendingRakeback, rakebackRate }
+
+    // Real-time wallet data
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
+
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
@@ -490,22 +497,19 @@ const router = useRouter();
                         <div style={S.emptyState}><p>You're Not A Member Of This Club</p></div>
                     ) : (
                         <>
-                            {/* Balance Cards */}
-                            <div style={S.balanceRow}>
-                                <div style={S.balanceCard}>
-                                    <div style={S.balanceLabel}>Club Chips</div>
-                                    <div style={{ ...S.balanceAmount, color: FB.primary }}>
-                                        {chipBalance.toLocaleString()}
-                                    </div>
-                                    <div style={S.balanceNote}>Play Money</div>
-                                </div>
-                                <div style={S.balanceCard}>
-                                    <div style={S.balanceLabel}>Diamonds</div>
-                                    <div style={{ ...S.balanceAmount, color: '#00D4FF' }}>
-                                        {diamondBalance.toLocaleString()}
-                                    </div>
-                                    <div style={S.balanceNote}>38 = 100 Chips</div>
-                                </div>
+                            {/* Dynamic Wallet */}
+                            <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0' }}>
+                                <DynamicWallet
+                                    diamondBalance={walletData.diamondBalance || diamondBalance}
+                                    bbjAmount={walletData.bbjAmount}
+                                    chipBalance={walletData.chipBalance || chipBalance}
+                                    agentBalance={walletData.agentBalance}
+                                    promoBalance={walletData.promoBalance}
+                                    bbjAnimating={walletData.bbjAnimating}
+                                    onTapSlot={(slot) => {
+                                        if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${club?.club_id || clubIdParam}`);
+                                    }}
+                                />
                             </div>
 
                             {/* Action Buttons */}
