@@ -6,10 +6,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 const M = {
-    bg: '#1a1d21', card: '#242526', border: '#3a3b3c',
-    cyan: '#4599FF', green: '#00E676', red: '#EF5350',
-    gold: '#F5A623', text: '#E4E6EB', sub: '#B0B3B8',
-    dim: 'rgba(255,255,255,0.4)',
+    bg: '#18191A',
+    card: '#242526',
+    border: '#3E4042',
+    text: '#E4E6EB',
+    sub: '#B0B3B8',
+    green: '#00E676',
+    red: '#FF1744',
+    gold: '#FFD700',
 };
 
 function pctColor(pct) {
@@ -18,7 +22,7 @@ function pctColor(pct) {
     return M.red;
 }
 
-export default function QuickSpotDrill({ onClose }) {
+export default function QuickSpotDrill({ onClose, customParams }) {
     const [questions, setQuestions] = useState([]);
     const [currentIdx, setCurrentIdx] = useState(0);
     const [answer, setAnswer] = useState(null);       // user's pick
@@ -41,8 +45,16 @@ export default function QuickSpotDrill({ onClose }) {
                 const startLevel = savedLevel ? parseInt(savedLevel, 10) : 1;
                 setLevel(startLevel);
 
-                // In a real scenario, you'd pass ?level=startLevel to the API
-                const res = await fetch('/api/training/hand-of-the-day');
+                let fetchUrl = '/api/training/hand-of-the-day';
+                if (customParams) {
+                    const query = new URLSearchParams(customParams).toString();
+                    fetchUrl = `/api/sandbox/custom-drill?${query}`;
+                } else if (startLevel > 1) {
+                    // Inject level param for advanced scenarios
+                    fetchUrl = `/api/training/hand-of-the-day?level=${startLevel}`;
+                }
+
+                const res = await fetch(fetchUrl);
                 const json = await res.json();
                 // If we get pool data, use it — otherwise generate mock scenarios
                 if (json.pool && json.pool.length > 0) {

@@ -54,6 +54,11 @@ import TiltMonitor from '../../../src/components/sandbox/TiltMonitor';
 import VillainPresetPicker from '../../../src/components/sandbox/VillainPresetPicker';
 import CoachLeaderboard from '../../../src/components/sandbox/CoachLeaderboard';
 import HandReplay from '../../../src/components/sandbox/HandReplay';
+// Wave 6 imports
+import StudyFolders from '../../../src/components/sandbox/StudyFolders';
+import SaveHandModal from '../../../src/components/sandbox/SaveHandModal';
+import ShareScenarioModal from '../../../src/components/sandbox/ShareScenarioModal';
+import CustomDrillBuilder from '../../../src/components/sandbox/CustomDrillBuilder';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -686,6 +691,12 @@ export default function VirtualSandbox() {
   // ── Wave 5: additional state ────────────────────────────────────────
   const [showVillainPresets, setShowVillainPresets] = useState(false);
   const [showHandReplay, setShowHandReplay] = useState(false);
+  // ── Wave 6: Customization & Expert Mode ─────────────────────────────
+  const [showStudyFolders, setShowStudyFolders] = useState(false);
+  const [showSaveHand, setShowSaveHand] = useState(false);
+  const [showShareScenario, setShowShareScenario] = useState(false);
+  const [showCustomDrill, setShowCustomDrill] = useState(false);
+  const [drillParams, setDrillParams] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
@@ -822,7 +833,37 @@ export default function VirtualSandbox() {
     else if (text.includes('cash')) setGameType('cash');
   }, []);
 
-  // Hand history import
+  // ── Wave 6: Shared Scenario Hydration ─────────────────────────────────────
+  useEffect(() => {
+    if (typeof window !== 'undefined' && router.query.loadShared === 'true') {
+      try {
+        const payload = sessionStorage.getItem('shared-sandbox-state');
+        if (payload) {
+          const state = JSON.parse(payload);
+          // Hydrate the sandbox
+          // Note: In a true implementation, you'd map every field (board, heroCards, villains, etc)
+          // For now, we will just parse the board specifically as a demonstration proof
+          if (state.board) {
+            setBoard(state.board);
+          }
+          if (state.villains) {
+            setVillains(state.villains);
+          }
+          if (state.heroHand) {
+            setHeroHand(state.heroHand);
+          }
+          if (state.heroPosition) {
+            setHeroPosition(state.heroPosition);
+          }
+          sessionStorage.removeItem('shared-sandbox-state');
+        }
+      } catch (err) {
+        console.error('Failed to parse shared state payload', err);
+      }
+    }
+  }, [router.query.loadShared]);
+
+  // Handle board card pickmport
   const importHandHistory = useCallback(() => {
     const result = parseHandHistory(hhText);
     if (!result) { alert('Could not parse hand history. Supported: PokerStars, GGPoker, 888poker'); return; }
@@ -1429,10 +1470,17 @@ export default function VirtualSandbox() {
               <button onClick={() => { toggleSound(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>Sound {soundEnabled ? 'ON' : 'OFF'}</button>
               <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Templates</button>
               <button onClick={() => { setShowRangeExplorer(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎯 Ranges</button>
-              <button onClick={() => { setShowQuickDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>⚡ Drill</button>
+              <button onClick={() => { setDrillParams(null); setShowQuickDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>⚡ Drill</button>
+              <button onClick={() => { setShowCustomDrill(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.15)', border: '1px solid rgba(0,230,118,0.4)', color: '#00cc6a', cursor: 'pointer' }}>⚙️ Custom Spot</button>
               <button onClick={() => { setShowSessionReport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📋 Report</button>
+              {/* Wave 5 Menu Items */}
               <button onClick={() => { setShowVillainPresets(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.3)', color: '#a78bfa', cursor: 'pointer' }}>👤 Villains</button>
               <button onClick={() => { setShowHandReplay(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.3)', color: '#F5A623', cursor: 'pointer' }}>🎬 Replay</button>
+              {/* Wave 6 Menu Items */}
+              <button onClick={() => { setShowStudyFolders(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(69,153,255,0.12)', border: '1px solid rgba(69,153,255,0.3)', color: '#4599FF', cursor: 'pointer' }}>📁 Folders</button>
+              <button onClick={() => { setShowSaveHand(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)', color: '#00E676', cursor: 'pointer' }}>💾 Save Spot</button>
+              <button onClick={() => { setShowShareScenario(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)', color: '#ec4899', cursor: 'pointer' }}>🔗 Share</button>
+
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1823,9 +1871,23 @@ export default function VirtualSandbox() {
         />
       )}
 
-      {/* ═══ QUICK-SPOT DRILL MODAL (W4-4) ═══ */}
+      {/* ═══ QUICK-SPOT DRILL MODAL (W4-4 / W6-3) ═══ */}
+      {showCustomDrill && (
+        <CustomDrillBuilder
+          onClose={() => setShowCustomDrill(false)}
+          onStartDrill={(params) => {
+            setDrillParams(params);
+            setShowCustomDrill(false);
+            setShowQuickDrill(true);
+          }}
+        />
+      )}
+
       {showQuickDrill && (
-        <QuickSpotDrill onClose={() => setShowQuickDrill(false)} />
+        <QuickSpotDrill
+          customParams={drillParams}
+          onClose={() => { setShowQuickDrill(false); setDrillParams(null); }}
+        />
       )}
 
       {/* ═══ SESSION REPORT MODAL (W4-6) ═══ */}
@@ -1864,6 +1926,33 @@ export default function VirtualSandbox() {
           onClose={() => setShowHandReplay(false)}
         />
       )}
+
+      {/* ═══ WAVE 6 MODALS ═══ */}
+      {showStudyFolders && (
+        <StudyFolders
+          onLoadTarget={(state) => {
+            // Rehydrate logic wrapper
+            if (state.board) setBoard(state.board);
+            if (state.villains) setVillains(state.villains);
+            if (state.heroHand) setHeroHand(state.heroHand);
+            if (state.heroPosition) setHeroPosition(state.heroPosition);
+          }}
+          onClose={() => setShowStudyFolders(false)} />
+      )}
+
+      {showSaveHand && (
+        <SaveHandModal
+          sandboxState={{ board, heroHand, heroPosition, villains, potSize, effStack }}
+          onSaveComplete={() => setShowSaveHand(false)}
+          onClose={() => setShowSaveHand(false)} />
+      )}
+
+      {showShareScenario && (
+        <ShareScenarioModal
+          sandboxState={{ board, heroHand, heroPosition, villains, potSize, effStack }}
+          onClose={() => setShowShareScenario(false)} />
+      )}
+
       {showSessionReport && (
         <SessionReport
           sessionLog={sessionLog}
