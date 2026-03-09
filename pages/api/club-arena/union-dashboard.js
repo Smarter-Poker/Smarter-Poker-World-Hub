@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     // 2. Get union info
     const { data: union } = await supabaseAdmin
       .from('unions')
-      .select('id, name, code, description, owner_id, settings, chip_balance, rake_wallet, bbj_wallet, promo_wallet, created_at')
+      .select('id, name, code, description, owner_id, settings, chip_balance, rake_wallet, bbj_wallet, promo_wallet, backup_bbj_balance, created_at')
       .eq('id', unionId)
       .maybeSingle();
 
@@ -242,6 +242,7 @@ export default async function handler(req, res) {
         rake_wallet: Number(union.rake_wallet || 0),
         bbj_wallet: Number(union.bbj_wallet || 0),
         promo_wallet: Number(union.promo_wallet || 0),
+        backup_bbj_balance: Number(union.backup_bbj_balance || 0),
       },
       stats: {
         totalClubs: clubs.length,

@@ -14,6 +14,7 @@ import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
+const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
 const FB = {
     primary: '#2374E1', background: '#18191A', cardBg: '#242526',
@@ -80,6 +81,7 @@ const router = useRouter();
 
     const [user, setUser] = useState(null);
     const [dashboard, setDashboard] = useState(null);
+    const [unionDiamondBalance, setUnionDiamondBalance] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-ca-union-tab', 'overview');
     const [clubSearch, setClubSearch] = useState('');
@@ -223,6 +225,13 @@ const router = useRouter();
             setIsLoading(false);
         }
     }, [unionIdParam, user, router]);
+
+    // Fetch diamond balance for wallet display
+    useEffect(() => {
+        if (!user?.id) return;
+        supabase.from('profiles').select('diamond_balance').eq('id', user.id).maybeSingle()
+            .then(({ data }) => { if (data) setUnionDiamondBalance(data.diamond_balance || 0); });
+    }, [user?.id]);
 
     useEffect(() => {
         const _c = new AbortController();
@@ -688,6 +697,26 @@ const router = useRouter();
                 {/* ═══ OVERVIEW TAB ═══ */}
                 {activeTab === 'overview' && (
                     <div>
+                        {/* Union Owner Wallet — real-time balances */}
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 16px' }}>
+                            <DynamicWallet
+                                variant="union"
+                                diamondBalance={unionDiamondBalance}
+                                bbjAmount={dashboard?.wallets?.bbj_wallet || 0}
+                                unionBankBalance={dashboard?.wallets?.chip_balance || 0}
+                                clubsWalletBalance={dashboard?.stats?.totalTreasury || 0}
+                                promoBalance={dashboard?.wallets?.promo_wallet || 0}
+                                backupBbjBalance={dashboard?.wallets?.backup_bbj_balance || 0}
+                                onOpenBBJ={() => setActiveTab('bbj')}
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onMintChips={() => setActiveTab('mint')}
+                                onTapSlot={(slot) => {
+                                    if (slot === 'unionBank' || slot === 'clubsWallet') setActiveTab('wallets');
+                                    if (slot === 'promo') setActiveTab('wallets');
+                                }}
+                            />
+                        </div>
+
                         {/* Pending applications / leave alerts */}
                         {(dashboard.pendingApplications > 0 || dashboard.pendingLeaveRequests > 0) && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>

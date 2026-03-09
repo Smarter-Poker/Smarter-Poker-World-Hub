@@ -510,11 +510,12 @@ const router = useRouter();
                                     <DynamicWallet
                                         {...walletData}
                                         chipBalance={walletData.chipBalance || chipBalance}
+                                        onOpenBBJ={() => setShowBBJ(true)}
+                                        onBuyDiamonds={() => router.push('/hub/diamond-store')}
                                         onTapSlot={(slot) => {
                                             if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${club.club_id}`);
                                             if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${club.club_id}`);
                                             if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${club.club_id}`);
-                                            if (slot === 'bbj') { /* BBJ modal handled by BBJBanner */ }
                                         }}
                                     />
                                 </div>
