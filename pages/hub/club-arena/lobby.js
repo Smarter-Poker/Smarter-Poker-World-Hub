@@ -882,7 +882,7 @@ const router = useRouter();
 
                 {/* Bottom Navigation */}
                 {club && (
-                    <ClubArenaBottomNav clubId={club.club_id} activePage="lobby" userRole={membership?.role} />
+                    <ClubArenaBottomNav clubId={club.id} activePage="lobby" userRole={membership?.role} />
                 )}
             </div>
         </>

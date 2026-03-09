@@ -75,10 +75,23 @@ export function useTableConnection({ supabase, tableId, userId }) {
   // ── Keep auth token fresh ──
   useEffect(() => {
     if (!supabase) return;
-    // Get initial token
-    Promise.resolve({ access_token: JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}').access_token }).then((session) => {
-      tokenRef.current = session?.access_token || null;
-    });
+    // Get initial token SYNCHRONOUSLY — no .then() delay
+    try {
+      const stored = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}');
+      tokenRef.current = stored?.access_token || null;
+    } catch (_) {
+      tokenRef.current = null;
+    }
+    // Also try Supabase session as fallback
+    if (!tokenRef.current) {
+      try {
+        const sbKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+        for (const key of sbKeys) {
+          const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+          if (parsed?.access_token) { tokenRef.current = parsed.access_token; break; }
+        }
+      } catch (_) {}
+    }
     // Listen for refreshes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       tokenRef.current = session?.access_token || null;
