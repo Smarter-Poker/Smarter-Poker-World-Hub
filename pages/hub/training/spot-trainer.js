@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import Card from '../../../src/components/training/Card';
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 function getAuthToken() {
@@ -43,13 +44,6 @@ function saveSession(payload) {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-const SUITS = {
-    h: { symbol: '\u2665', color: '#ef4444' },
-    d: { symbol: '\u2666', color: '#3b82f6' },
-    c: { symbol: '\u2663', color: '#22c55e' },
-    s: { symbol: '\u2660', color: '#94a3b8' },
-};
-
 const FORMAT_OPTIONS = [
     { value: '', label: 'All' },
     { value: 'cash', label: 'Cash' },
@@ -78,44 +72,6 @@ function getAuthHeaders() {
         }
     } catch (e) { /* ignore */ }
     return {};
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// CARD DISPLAY COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-function CardDisplay({ card, size = 'large' }) {
-    if (!card || card.length < 2) return null;
-    const rank = card[0].toUpperCase();
-    const suitChar = card[1].toLowerCase();
-    const suit = SUITS[suitChar] || { symbol: suitChar, color: '#fff' };
-    const isLarge = size === 'large';
-
-    return (
-        <div style={{
-            width: isLarge ? 48 : 36,
-            height: isLarge ? 68 : 50,
-            borderRadius: 6,
-            background: 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))',
-            border: '1px solid rgba(255,255,255,0.15)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        }}>
-            <span style={{
-                fontSize: isLarge ? 18 : 14, fontWeight: 900,
-                color: suit.color, fontFamily: "'Inter', sans-serif",
-                lineHeight: 1,
-            }}>
-                {rank}
-            </span>
-            <span style={{
-                fontSize: isLarge ? 16 : 12, color: suit.color, lineHeight: 1,
-            }}>
-                {suit.symbol}
-            </span>
-        </div>
-    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -163,6 +119,8 @@ export default function SpotTrainerPage() {
     const [sessionStart] = useState(Date.now());
 
     const autoNextTimer = useRef(null);
+    const questionStartRef = useRef(Date.now());
+    const sessionHandHistory = useRef([]);
 
     // Fetch a random spot
     const fetchSpot = useCallback(async () => {
@@ -206,41 +164,72 @@ export default function SpotTrainerPage() {
     const handleAnswer = useCallback((action) => {
         if (showResult || !spot) return;
 
+        const responseTimeMs = Date.now() - questionStartRef.current;
         setSelected(action);
         setShowResult(true);
         setTotalDrills(prev => prev + 1);
 
         const isCorrect = action === spot.gtoAction;
 
+        // Record per-question detail for session granularity
+        sessionHandHistory.current.push({
+            hand: spot.heroHand,
+            board: spot.board,
+            position: spot.heroPosition,
+            correct_action: spot.gtoAction,
+            selected_action: action,
+            is_correct: isCorrect,
+            response_time_ms: responseTimeMs,
+            street: spot.street,
+            stack_depth: spot.stackDepth,
+        });
+
         if (isCorrect) {
             setCorrectDrills(prev => prev + 1);
             setStreak(prev => {
                 const newStreak = prev + 1;
                 setBestStreak(best => Math.max(best, newStreak));
+                if (bus?.emitStreakUpdate) bus.emitStreakUpdate(newStreak);
                 return newStreak;
             });
             if (bus?.emitDecisionCorrect) bus.emitDecisionCorrect();
         } else {
             setStreak(0);
             if (bus?.emitDecisionIncorrect) bus.emitDecisionIncorrect();
-            // Persist to Supabase
-            saveSession({
-                game_id: 'spot-trainer',
-                hands_played: 1,
-                accuracy: isCorrect ? 100 : 0,
-                correct_answers: isCorrect ? 1 : 0,
-                total_questions: 1,
-            });
+            if (bus?.emitStreakUpdate) bus.emitStreakUpdate(0);
         }
+
+        // Emit answer speed for Leak Detection analysis
+        if (bus?.emitAnswerSpeed) bus.emitAnswerSpeed(responseTimeMs, {
+            is_correct: isCorrect,
+            position: spot?.heroPosition,
+            street: spot?.street,
+        });
+
+        // Emit card viewed for card exposure tracking
+        if (bus?.emitCardViewed) bus.emitCardViewed(spot.board);
+
+        // Save session with per-question detail
+        saveSession({
+            game_id: 'spot-trainer',
+            hands_played: 1,
+            accuracy: isCorrect ? 100 : 0,
+            correct_answers: isCorrect ? 1 : 0,
+            total_questions: 1,
+            handHistory: sessionHandHistory.current.slice(-100),
+        });
 
         // Emit bus event for cross-page sync (session-dashboard, position-mastery)
         try {
-            eventBus.emit('training:spot-drilled', { action, isCorrect, position: spot?.heroPosition, format: spot?.gameType }, 'SpotTrainer');
+            eventBus.emit('training:spot-drilled', { action, isCorrect, position: spot?.heroPosition, format: spot?.gameType, responseTimeMs }, 'SpotTrainer');
             eventBus.emit('training:drill-complete', {}, 'SpotTrainer');
         } catch (_) { /* SSG guard */ }
 
-        // Auto-next after 2 seconds
-        autoNextTimer.current = setTimeout(fetchSpot, 2000);
+        // Reset question timer and auto-next after 2 seconds
+        autoNextTimer.current = setTimeout(() => {
+            questionStartRef.current = Date.now();
+            fetchSpot();
+        }, 2000);
     }, [showResult, spot, bus, fetchSpot]);
 
     // Clean up timer
@@ -476,7 +465,7 @@ export default function SpotTrainerPage() {
                                         marginBottom: 16,
                                     }}>
                                         {spot.board.map((card, i) => (
-                                            <CardDisplay key={i} card={card} size="large" />
+                                            <Card key={i} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="small" />
                                         ))}
                                     </div>
 
@@ -531,6 +520,7 @@ export default function SpotTrainerPage() {
                                                 whileTap={!showResult ? { scale: 0.96 } : {}}
                                                 onClick={() => handleAnswer(action)}
                                                 disabled={showResult}
+                                                aria-label={`Choose ${action}`}
                                                 style={{
                                                     padding: '14px 12px', borderRadius: 10,
                                                     fontSize: 13, fontWeight: 800, cursor: showResult ? 'default' : 'pointer',
@@ -649,7 +639,7 @@ export default function SpotTrainerPage() {
                         </p>
                     </div>
                 </div>
-            </div>
+            </div >
         </>
     );
 }

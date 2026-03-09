@@ -67,11 +67,37 @@ export default function useTrainingBus(pageName, context = {}) {
         busEmit.celebration(type);
     }, []);
 
+    // Enhanced emitters for session granularity
+    const emitAnswerSpeed = useCallback((responseTimeMs, data = {}) => {
+        eventBus.emit('training:answer-speed', {
+            page: pageName,
+            response_time_ms: responseTimeMs,
+            ...data,
+        }, pageName);
+    }, [pageName]);
+
+    const emitStreakUpdate = useCallback((streakCount) => {
+        eventBus.emit('training:streak-update', {
+            page: pageName,
+            streak: streakCount,
+        }, pageName);
+    }, [pageName]);
+
+    const emitCardViewed = useCallback((cards) => {
+        eventBus.emit('training:card-viewed', {
+            page: pageName,
+            cards: Array.isArray(cards) ? cards : [cards],
+        }, pageName);
+    }, [pageName]);
+
     return {
         emitDecisionCorrect,
         emitDecisionIncorrect,
         emitHandComplete,
         emitDiamondsEarned,
         emitCelebration,
+        emitAnswerSpeed,
+        emitStreakUpdate,
+        emitCardViewed,
     };
 }

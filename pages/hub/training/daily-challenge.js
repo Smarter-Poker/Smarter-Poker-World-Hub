@@ -14,6 +14,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import Card from '../../../src/components/training/Card';
 
 
 
@@ -34,38 +35,7 @@ function getAuthHeaders() {
     return {};
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// SUIT CONFIG
-// ═══════════════════════════════════════════════════════════════════════════
 
-const SUITS = {
-    h: { symbol: '\u2665', color: '#ef4444' },
-    d: { symbol: '\u2666', color: '#3b82f6' },
-    c: { symbol: '\u2663', color: '#22c55e' },
-    s: { symbol: '\u2660', color: '#94a3b8' },
-};
-
-function CardDisplay({ card, size = 'large' }) {
-    if (!card || card.length < 2) return null;
-    const rank = card[0].toUpperCase();
-    const suitChar = card[1].toLowerCase();
-    const suit = SUITS[suitChar] || { symbol: suitChar, color: '#fff' };
-    const isLarge = size === 'large';
-    return (
-        <div style={{
-            width: isLarge ? 48 : 36, height: isLarge ? 68 : 50,
-            borderRadius: 6,
-            background: 'linear-gradient(145deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))',
-            border: '1px solid rgba(255,255,255,0.15)',
-            display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        }}>
-            <span style={{ fontSize: isLarge ? 18 : 14, fontWeight: 900, color: suit.color, lineHeight: 1 }}>{rank}</span>
-            <span style={{ fontSize: isLarge ? 16 : 12, color: suit.color, lineHeight: 1 }}>{suit.symbol}</span>
-        </div>
-    );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // COUNTDOWN TIMER
@@ -270,7 +240,7 @@ export default function DailyChallengePage() {
 
         // Emit bus events
         try {
-            eventBus.emit('training:daily-challenge-completed', { accuracy: data.accuracy }, 'DailyChallenge');
+            eventBus.emit('training:daily-challenge-completed', { accuracy: isCorrect ? 100 : 0 }, 'DailyChallenge');
             busEmit.sessionEnd('DailyChallenge');
         } catch (_) { /* SSG guard */ }
     }, [challenge]);
@@ -495,7 +465,7 @@ export default function DailyChallengePage() {
                                             display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 16,
                                         }}>
                                             {board.map((card, i) => (
-                                                <CardDisplay key={i} card={card} size="large" />
+                                                <Card key={i} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="small" />
                                             ))}
                                         </div>
                                     </>
@@ -561,6 +531,7 @@ export default function DailyChallengePage() {
                                             whileTap={!showResult ? { scale: 0.96 } : {}}
                                             onClick={() => handleAnswer(action)}
                                             disabled={showResult}
+                                            aria-label={`Choose ${action}`}
                                             style={{
                                                 padding: '14px 12px', borderRadius: 10,
                                                 fontSize: 13, fontWeight: 800,

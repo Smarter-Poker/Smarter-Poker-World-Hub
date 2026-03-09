@@ -32,7 +32,7 @@ interface CardProps {
     rank?: Rank | string;
     suit?: Suit | string;
     faceDown?: boolean;
-    size?: 'tiny' | 'small' | 'medium' | 'large' | 'xlarge';
+    size?: 'tiny' | 'small' | 'medium' | 'large' | 'xlarge' | 'responsive';
     animate?: 'none' | 'flip' | 'slide' | 'deal';
     delay?: number;
     highlighted?: boolean;
@@ -80,11 +80,12 @@ const RANK_TO_FILENAME: Record<string, string> = {
 
 /** Card sizes — maintain 150:210 aspect ratio (5:7) */
 const SIZES = {
-    tiny:   { width: 36,  height: 50  },
-    small:  { width: 50,  height: 70  },
-    medium: { width: 75,  height: 105 },
-    large:  { width: 100, height: 140 },
+    tiny: { width: 36, height: 50 },
+    small: { width: 50, height: 70 },
+    medium: { width: 75, height: 105 },
+    large: { width: 100, height: 140 },
     xlarge: { width: 150, height: 210 },
+    responsive: { width: 75, height: 105 }, // base size, CSS max-width:100% handles scaling
 };
 
 // ============================================================================
@@ -209,6 +210,8 @@ const Card: React.FC<CardProps> = ({
             style={containerStyle}
             className={className}
             onClick={onClick}
+            role="img"
+            aria-label={faceDown ? 'Card (face down)' : `${rank} of ${SUIT_TO_FILENAME[suit] || suit}`}
             initial={anim.initial}
             animate={anim.animate}
             transition={{ ...anim.transition, delay }}
