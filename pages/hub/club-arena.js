@@ -484,7 +484,7 @@ export default function ClubArenaPage() {
 
     const handleAcceptTOS = async () => {
         try {
-            const token = JSON.parse(localStorage.getItem('smarter-poker-auth') || '{}')?.access_token;
+            const token = getAccessToken();
             const res = await fetch('/api/club-arena/accept-tos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },

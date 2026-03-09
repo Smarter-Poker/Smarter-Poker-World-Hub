@@ -220,7 +220,7 @@ const router = useRouter();
 
         // Refresh tournament list when a tournament is created/started elsewhere
         const unsubMutated = eventBus.on(EventType.DATA_MUTATED, async (event) => {
-            const triggerEntities = ['tournament_created', 'tournament_started', 'tournament_cancelled'];
+            const triggerEntities = ['tournament_created', 'tournament_started', 'tournament_cancelled', 'tournament_registration'];
             if (!triggerEntities.includes(event?.entity)) return;
             try {
                 const token = await getAuthToken().catch(() => null);
