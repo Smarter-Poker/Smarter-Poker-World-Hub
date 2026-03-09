@@ -13,6 +13,12 @@ export default function HandLabV2() {
     const router = useRouter();
     useTrainingBus('hand-lab');
 
+    useEffect(() => {
+        const h = () => { };
+        window.addEventListener('training:session-complete', h);
+        return () => window.removeEventListener('training:session-complete', h);
+    }, []);
+
     // UI States
     const [selectedSlot, setSelectedSlot] = useState(null); // 'hero1', 'hero2', 'board1', etc
 
@@ -24,6 +30,7 @@ export default function HandLabV2() {
     // Analysis State
     const [analyzing, setAnalyzing] = useState(false);
     const [equity, setEquity] = useState(null);
+    const [results, setResults] = useState(null);
 
     const handleCardSelect = (rank, suit) => {
         const card = `${rank}${suit}`;
