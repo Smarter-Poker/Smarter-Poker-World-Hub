@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import useRadarStore from '@/stores/radarStore';
+import useRadarStore from '../../stores/radarStore';
 
 export default function CommandBar() {
     const {

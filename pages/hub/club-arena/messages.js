@@ -18,6 +18,7 @@ import { createRingTone } from '../../../src/utils/ringTone';
 import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { busEmit } from '../../../src/engine/EventBus';
 // Local helper — reads token from localStorage (same pattern as other club-arena pages)
 const getAccessToken = () => {
     try {
@@ -885,6 +886,7 @@ export default function ClubMessages() {
 
             if (error) throw error;
             setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: msgId, status: 'sent' } : m));
+            busEmit.dataMutated('message_sent');
         } catch (e) {
             console.error('Send failed:', e);
             setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'failed' } : m));

@@ -5,7 +5,7 @@
 
 import React, { useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
-import useRadarStore from '@/stores/radarStore';
+import useRadarStore from '../../stores/radarStore';
 
 export default function ResultsMatrix() {
     const {

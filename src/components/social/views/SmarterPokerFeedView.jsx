@@ -11,8 +11,8 @@ import { SPPostCard, FBStoriesRow, SP_COLORS, SPAvatar } from '../SmarterPokerSt
 import { EnhancedPostCreator } from '../EnhancedPostCreator';
 import { ReelsCarousel } from '../SmarterPokerReels';
 import { FriendsList } from '../SmarterPokerFriends';
-import { useSupabase } from '@/providers/SupabaseProvider';
-import { SocialService } from '@/services/SocialService';
+import { useSupabase } from '../../providers/SupabaseProvider';
+import { SocialService } from '../../services/SocialService';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 📱 LEFT SIDEBAR (Shortcuts)

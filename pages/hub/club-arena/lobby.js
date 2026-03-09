@@ -17,7 +17,7 @@ import CreateGameModal from '../../../src/components/club-arena/CreateGameModal'
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 import useDebounce from '../../../src/hooks/useDebounce';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 
 // Dynamic import — GameCard uses @/ aliases + browser APIs, must be client-only
@@ -166,24 +166,94 @@ const router = useRouter();
 
     // Handler: game/table/tournament created callback
     function handleGameCreated(result) {
-        if (result?.id || result?.table) {
-            const table = result?.table || result;
-            if (table.game_type === 'cash' || (!table.type && !table.game_type?.includes('tournament'))) {
+        // Hoist table extraction so it's available throughout the function
+        const table = result?.table || result;
+        const isCash = table?.game_type === 'cash' || (!table?.type && !table?.game_type?.includes('tournament'));
+        const isTournament = table?.game_type === 'tournament' || table?.game_type === 'mtt'
+            || table?.game_type === 'sng' || table?.type === 'tournament';
+
+        if (table?.id) {
+            if (isCash) {
                 setTables(prev => [...prev, table]);
+            } else if (isTournament) {
+                // Optimistically add new tournament to the lobby section
+                setTournaments(prev => [{ ...table, game_type: table.game_type || 'mtt' }, ...prev]);
             }
         }
+
         setShowCreateGame(null);
         showToast('Created successfully!');
-        if (table?.game_type === 'cash' || (!table?.type && !table?.game_type?.includes('tournament'))) {
+
+        if (isCash) {
             busEmit.tableOpened(table?.name || 'New Table', table?.game_type || 'NLH');
         } else {
             busEmit.dataMutated('tournament_created');
         }
     }
 
+    // ─── Bus Listeners ──────────────────────────────────────────────────────
+    // Listen for mutations from OTHER club-arena pages (tournaments.js, agent-dashboard, etc.)
+    // and keep lobby state in sync without full page reload.
+    useEffect(() => {
+        if (!club?.id) return;
+
+        // Refresh tournament list when a tournament is created/started elsewhere
+        const unsubMutated = eventBus.on(EventType.DATA_MUTATED, async (event) => {
+            const triggerEntities = ['tournament_created', 'tournament_started', 'tournament_cancelled'];
+            if (!triggerEntities.includes(event?.entity)) return;
+            try {
+                const token = await getAuthToken().catch(() => null);
+                if (!token) return;
+                const res = await fetch('/api/club-arena/tournaments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({
+                        action: 'list',
+                        clubId: club.id,
+                        status: ['scheduled', 'registering', 'running'],
+                    }),
+                });
+                if (res.ok) {
+                    const d = await res.json();
+                    setTournaments(d.tournaments || d.data || []);
+                }
+            } catch (_) { /* silent — realtime subscription is primary */ }
+        });
+
+        // When a new table is announced via bus (e.g. from admin creating one),
+        // append it if it's for this club and not already in state.
+        const unsubTableOpened = eventBus.on(EventType.TABLE_OPENED, () => {
+            // Realtime postgres_changes already handles this — bus signal triggers a soft refresh
+            // of table counts by re-querying only id+current_players+status (cheap).
+            supabase
+                .from('tables')
+                .select('id, current_players, status, name, game_variant, big_blind, small_blind, max_players, settings')
+                .eq('club_id', club.id)
+                .neq('status', 'deleted')
+                .limit(100)
+                .then(({ data }) => {
+                    if (data?.length) setTables(data);
+                });
+        });
+
+        // When tournament starts, move it to running state in lobby display
+        const unsubTournStart = eventBus.on(EventType.TOURNAMENT_STARTED, () => {
+            setTournaments(prev =>
+                prev.map(t => t.status === 'registering' ? { ...t, status: 'running' } : t)
+            );
+        });
+
+        return () => {
+            unsubMutated();
+            unsubTableOpened();
+            unsubTournStart();
+        };
+    }, [club?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Trigger initial data load when club param is available
     useEffect(() => {
         if (clubIdParam) loadClubData();
-    }, [clubIdParam]);
+    }, [clubIdParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Realtime subscription for table updates (player counts, status changes)
     useEffect(() => {

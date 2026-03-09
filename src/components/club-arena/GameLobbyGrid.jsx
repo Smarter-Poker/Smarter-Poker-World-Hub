@@ -17,8 +17,8 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import GameCard from '@/components/club-arena/GameCard';
-import { buildStickerAssetMap } from '@/lib/stickerOrchestrator';
+import GameCard from './GameCard';
+import { buildStickerAssetMap } from '../../lib/stickerOrchestrator';
 
 // ─────────────────────────────────────────────────────────────
 // FILTER TABS

@@ -12,7 +12,7 @@
  * the `sticker_assets` Supabase table `key` column.
  *
  * Usage:
- *   import { getGameStickers } from '@/lib/stickerOrchestrator';
+ *   import { getGameStickers } from '../../lib/stickerOrchestrator';
  *   const stickers = getGameStickers(table);   // or getGameStickers(tournament)
  */
 
