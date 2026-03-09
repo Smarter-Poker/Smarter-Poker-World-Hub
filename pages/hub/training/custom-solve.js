@@ -8,7 +8,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -163,6 +163,13 @@ function SolveResult({ heroPos, villainPos, config, result }) {
 export default function CustomSolvePage() {
     const router = useRouter();
     useTrainingBus('custom-solve');
+
+    // Bus listener — refresh when other training completes
+    useEffect(() => {
+        const onSessionComplete = () => setResult(null);
+        window.addEventListener('training:session-complete', onSessionComplete);
+        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+    }, []);
 
     // Configuration state
     const [heroPos, setHeroPos] = useState('BTN');

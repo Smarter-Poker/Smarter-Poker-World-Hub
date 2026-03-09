@@ -222,7 +222,9 @@ export default function NodelockingPage() {
         setSelectedProfile(key);
         setCustomTendencies(null);
         try { localStorage.setItem('sp_nodelock_profile', key); } catch (e) { }
-        eventBus.emit(EventType.SETTINGS_CHANGE, { tool: 'nodelocking', profile: key }, 'Nodelocking');
+        if (typeof eventBus !== 'undefined' && eventBus.emit) {
+            eventBus.emit(EventType?.SETTINGS_CHANGE || 'settings:change', { tool: 'nodelocking', profile: key }, 'Nodelocking');
+        }
     }, []);
 
     const activeProfile = customTendencies

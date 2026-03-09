@@ -53,18 +53,16 @@ export default function MultiTablePage() {
 
     // Listen for session-complete events from each table
     useEffect(() => {
-        const handler = (e) => {
-            const detail = e.detail || {};
-            setCompletedTables(prev => new Set([...prev, detail.gameId]));
+        const unsub = eventBus.on(EventType.SESSION_END, (detail) => {
+            setCompletedTables(prev => new Set([...prev, detail?.gameId]));
             setCombinedStats(prev => ({
-                totalHands: prev.totalHands + (detail.totalQuestions || 0),
-                totalCorrect: prev.totalCorrect + (detail.correctCount || 0),
-                totalEVLoss: prev.totalEVLoss + (detail.totalEVLoss || 0),
+                totalHands: prev.totalHands + (detail?.totalQuestions || detail?.handsPlayed || 0),
+                totalCorrect: prev.totalCorrect + (detail?.correctCount || 0),
+                totalEVLoss: prev.totalEVLoss + (detail?.totalEVLoss || 0),
                 tablesCompleted: prev.tablesCompleted + 1,
             }));
-        };
-        window.addEventListener('training:session-complete', handler);
-        return () => window.removeEventListener('training:session-complete', handler);
+        });
+        return unsub;
     }, []);
 
     // Auto-save combined session when all tables complete
