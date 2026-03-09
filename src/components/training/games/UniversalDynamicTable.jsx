@@ -20,6 +20,7 @@ import {
     simulateGTOFrequencies,
     classifyMove,
 } from '../../../hooks/useGTOWScore';
+import { busEmit } from '../../../engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SVG ICON RENDERER — Maps string icon IDs to professional SVG elements
@@ -450,8 +451,13 @@ function getCardPath(card) {
 // ═══════════════════════════════════════════════════════════════════════════
 function evaluateHandStrength(hCards, bCards) {
     if (!hCards || hCards.length < 2 || !bCards || bCards.length === 0) return null;
+    // HARDENED: Validate card format (must be 2-3 chars like 'Ah', 'Td', '10s')
+    const VALID_CARD = /^[AKQJT2-9][0]?[hdcs]$/i;
+    const validHero = hCards.every(c => typeof c === 'string' && VALID_CARD.test(c));
+    const validBoard = bCards.every(c => typeof c === 'string' && VALID_CARD.test(c));
+    if (!validHero || !validBoard) return null;
     const getRank = c => (c || '').charAt(0).toUpperCase();
-    const getSuit = c => (c || '').charAt(1)?.toLowerCase();
+    const getSuit = c => (c || '').slice(-1).toLowerCase();
     const allCards = [...hCards, ...bCards];
     const suits = allCards.map(getSuit);
     const heroRanks = hCards.map(getRank);
@@ -940,9 +946,14 @@ function UniversalDynamicTable({
         return evaluateHandStrength(heroCards, boardCards);
     }, [heroCards, boardCards, showFeedback]);
 
-    // PHASE 6: Bookmark System (localStorage-backed)
+    // PHASE 6: Bookmark System (localStorage-backed, HARDENED)
     const [bookmarkedHands, setBookmarkedHands] = React.useState(() => {
-        try { return JSON.parse(localStorage.getItem('sp_bookmarked_hands') || '[]'); } catch { return []; }
+        try {
+            const raw = JSON.parse(localStorage.getItem('sp_bookmarked_hands') || '[]');
+            // HARDENED: Validate shape — must be array of objects with questionId
+            if (!Array.isArray(raw)) { localStorage.removeItem('sp_bookmarked_hands'); return []; }
+            return raw.filter(b => b && typeof b === 'object' && b.questionId);
+        } catch { localStorage.removeItem('sp_bookmarked_hands'); return []; }
     });
     const isCurrentBookmarked = useMemo(() => {
         if (!question) return false;
@@ -953,9 +964,11 @@ function UniversalDynamicTable({
         const qId = question.id || question.scenario?.id || `q-${questionNumber}`;
         setBookmarkedHands(prev => {
             const exists = prev.some(b => b.questionId === qId);
-            const next = exists
-                ? prev.filter(b => b.questionId !== qId)
-                : [...prev, {
+            let next;
+            if (exists) {
+                next = prev.filter(b => b.questionId !== qId);
+            } else {
+                const entry = {
                     questionId: qId,
                     heroCards,
                     boardCards,
@@ -967,36 +980,49 @@ function UniversalDynamicTable({
                     evLoss,
                     timestamp: Date.now(),
                     gameTitle,
-                }];
+                };
+                // HARDENED: Cap at 500 bookmarks to prevent localStorage overflow
+                next = [...prev, entry].slice(-500);
+            }
             try { localStorage.setItem('sp_bookmarked_hands', JSON.stringify(next)); } catch { }
+            // HARDENED: EventBus emission for cross-page sync
+            try { busEmit('BOOKMARK_TOGGLED', { questionId: qId, action: exists ? 'removed' : 'added', count: next.length }); } catch { }
             return next;
         });
     }, [question, questionNumber, heroCards, boardCards, heroPosition, villainPosition, selectedAnswer, moveClassification, evLoss, gameTitle]);
 
-    // PHASE 6: Session Mistakes Tracker
+    // PHASE 6: Session Mistakes Tracker (HARDENED with dedup + EventBus)
     const sessionMistakesListRef = useRef([]);
     useEffect(() => {
         if (showFeedback && moveClassification && question) {
             const isMistake = moveClassification === 'wrong' || moveClassification === 'blunder' || moveClassification === 'inaccuracy';
             if (isMistake) {
-                sessionMistakesListRef.current = [...sessionMistakesListRef.current, {
-                    questionId: question.id || question.scenario?.id,
-                    heroCards,
-                    boardCards,
-                    heroPosition,
-                    selectedAnswer,
-                    correctAnswer: question?.correctAnswer,
-                    classification: moveClassification,
-                    evLoss,
-                    explanation: explanation || null,
-                }];
+                const qId = question.id || question.scenario?.id || `q-${questionNumber}`;
+                // HARDENED: Dedup — prevent same question from being tracked twice
+                const alreadyTracked = sessionMistakesListRef.current.some(m => m.questionId === qId);
+                if (!alreadyTracked) {
+                    const entry = {
+                        questionId: qId,
+                        heroCards,
+                        boardCards,
+                        heroPosition,
+                        selectedAnswer,
+                        correctAnswer: question?.correctAnswer,
+                        classification: moveClassification,
+                        evLoss,
+                        explanation: explanation || null,
+                    };
+                    sessionMistakesListRef.current = [...sessionMistakesListRef.current, entry];
+                    // HARDENED: EventBus emission for mistake tracking
+                    try { busEmit('MISTAKE_TRACKED', { questionId: qId, classification: moveClassification, total: sessionMistakesListRef.current.length }); } catch { }
+                }
             }
         }
-    }, [showFeedback, moveClassification, question, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, explanation]);
+    }, [showFeedback, moveClassification, question, questionNumber, heroCards, boardCards, heroPosition, selectedAnswer, evLoss, explanation]);
     const [showMistakeReview, setShowMistakeReview] = React.useState(false);
     const [mistakeReviewIndex, setMistakeReviewIndex] = React.useState(0);
 
-    // PHASE 9: Simplified Mode — collapses low-frequency actions for scoring
+    // PHASE 9: Simplified Mode — collapses low-frequency actions for scoring (HARDENED)
     const [simplifiedMode, setSimplifiedMode] = React.useState(() => {
         try { return localStorage.getItem('sp_simplified_mode') === 'true'; } catch { return false; }
     });
@@ -1004,6 +1030,8 @@ function UniversalDynamicTable({
         setSimplifiedMode(prev => {
             const next = !prev;
             try { localStorage.setItem('sp_simplified_mode', String(next)); } catch { }
+            // HARDENED: EventBus emission for cross-page awareness
+            try { busEmit('SIMPLIFIED_MODE_CHANGED', { enabled: next }); } catch { }
             return next;
         });
     }, []);
@@ -1745,7 +1773,7 @@ function UniversalDynamicTable({
                     )}
                 </AnimatePresence>
 
-                {/* PHASE 5: Position Awareness HUD */}
+                {/* PHASE 5: Position Awareness HUD (HARDENED) */}
                 <div style={{
                     position: 'absolute', top: 8, left: 8, zIndex: 20,
                     display: 'flex', flexDirection: 'column', gap: 3,
@@ -1762,6 +1790,8 @@ function UniversalDynamicTable({
                         color: (() => {
                             const pos = (heroPosition || '').toUpperCase();
                             const vPos = (villainPosition || '').toUpperCase();
+                            // HARDENED: Handle same-position edge case
+                            if (pos === vPos) return '#fbbf24';
                             const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN'];
                             const heroIdx = ORDER.indexOf(pos);
                             const villainIdx = ORDER.indexOf(vPos);
@@ -1772,6 +1802,8 @@ function UniversalDynamicTable({
                         {(() => {
                             const pos = (heroPosition || '').toUpperCase();
                             const vPos = (villainPosition || '').toUpperCase();
+                            // HARDENED: Handle same-position edge case
+                            if (pos === vPos) return 'HEADS UP';
                             const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN'];
                             return ORDER.indexOf(pos) > ORDER.indexOf(vPos) ? 'IN POSITION' : 'OUT OF POSITION';
                         })()}
