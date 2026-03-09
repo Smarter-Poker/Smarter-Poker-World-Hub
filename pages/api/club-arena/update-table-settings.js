@@ -101,10 +101,39 @@ export default async function handler(req, res) {
         if (updates.settings) {
           entry.config.clubSettings = { ...entry.config.clubSettings, ...updates.settings };
         }
-        if (updates.small_blind) entry.config.smallBlind = updates.small_blind;
-        if (updates.big_blind) entry.config.bigBlind = updates.big_blind;
-        if (updates.max_players) entry.config.maxSeats = updates.max_players;
-        if (updates.action_time_seconds) entry.config.actionTime = updates.action_time_seconds;
+        if (updates.small_blind) {
+          entry.config.smallBlind = updates.small_blind;
+          entry.table.smallBlind = updates.small_blind;
+          entry.table.game.config.smallBlind = updates.small_blind;
+        }
+        if (updates.big_blind) {
+          entry.config.bigBlind = updates.big_blind;
+          entry.table.bigBlind = updates.big_blind;
+          entry.table.game.config.bigBlind = updates.big_blind;
+        }
+        if (updates.max_players) {
+          entry.config.maxSeats = updates.max_players;
+          entry.table.maxSeats = updates.max_players;
+        }
+        if (updates.min_buy_in) {
+          entry.config.minBuyIn = updates.min_buy_in;
+          entry.table.minBuyIn = updates.min_buy_in;
+        }
+        if (updates.max_buy_in) {
+          entry.config.maxBuyIn = updates.max_buy_in;
+          entry.table.maxBuyIn = updates.max_buy_in;
+        }
+        if (updates.ante !== undefined) {
+          entry.config.ante = updates.ante;
+          entry.table.game.config.ante = updates.ante;
+        }
+        if (updates.action_time_seconds) {
+          entry.config.actionTime = updates.action_time_seconds;
+          if (entry.timer) entry.timer.turnTime = updates.action_time_seconds;
+        }
+        if (updates.name) {
+          entry.table.tableName = updates.name;
+        }
 
         // Broadcast config update to clients
         entry.table.emit('config_updated', {

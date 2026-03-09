@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'flo', 'mixed', 'ofc'];
+const VALID_VARIANTS = ['nlh', 'flh', 'plo4', 'plo5', 'plo6', 'plo8', 'short_deck', 'flo', 'mixed', 'ofc', 'pineapple'];
 const VALID_GAME_TYPES = ['cash', 'tournament', 'sng'];
 
 export default async function handler(req, res) {

@@ -2725,31 +2725,19 @@ function LivePokerTable({
 
   const handleRebuyConfirm = useCallback(async (amount) => {
     setRebuyError(null);
-    const token = getAccessToken();
     try {
-      const res = await fetch('/api/club-arena/table-chips', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          clubId: tableState?.clubId,
-          tableId: tableState?.tableId,
-          userId,
-          action: 'rebuy',
-          amount,
-        }),
-      });
-      const d = await res.json();
-      if (!d.success) {
-        setRebuyError(d.error || 'Rebuy failed');
+      // seat.js add_chips handler locks chips via ChipBridge.rebuyChips()
+      // and adds to engine stack — returns { success, error }
+      const result = await send('add_chips', { amount });
+      if (result && !result.success) {
+        setRebuyError(result.error || 'Rebuy failed');
         return;
       }
-      // Chips locked — now tell the engine
-      send('add_chips', { amount });
       setShowRebuy(false);
     } catch (e) {
       setRebuyError('Network error. Please try again.');
     }
-  }, [send, tableState?.clubId, tableState?.tableId, userId]);
+  }, [send]);
   const handleDiscard = useCallback((cardIndex) => {
     send('discard', { cardIndex });
   }, [send]);
