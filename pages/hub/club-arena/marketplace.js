@@ -10,15 +10,14 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useWalletData from '../../../src/hooks/useWalletData';
+import ModalLight from '../../../src/components/ui/ModalLight';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
-const ClubAnnouncementBanner = dynamic(
-    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
-    { ssr: false }
-);
+const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -379,7 +378,9 @@ export default function Marketplace() {
                         </div>
                     )}
 
-                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                    <HubErrorBoundary name="AnnouncementsBanner">
+                        <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                    </HubErrorBoundary>
 
                     {isLoading ? (
                         <div style={S.loading}>Loading Shop...</div>

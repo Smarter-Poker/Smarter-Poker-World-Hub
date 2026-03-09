@@ -15,6 +15,8 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useWalletData from '../../../src/hooks/useWalletData';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import ModalLight from '../../../src/components/ui/ModalLight';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
@@ -425,7 +427,9 @@ export default function HandHistories() {
                         </div>
                     )}
 
-                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={userRole} />
+                    <HubErrorBoundary name="AnnouncementsBanner">
+                        <ClubAnnouncementBanner clubId={clubIdParam} userRole={userRole} />
+                    </HubErrorBoundary>
 
                     {/* Period Filter */}
                     <div style={S.filterRow}>

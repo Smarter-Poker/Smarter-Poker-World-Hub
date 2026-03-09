@@ -15,15 +15,14 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import useWalletData from '../../../src/hooks/useWalletData';
+import ModalLight from '../../../src/components/ui/ModalLight';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
-const ClubAnnouncementBanner = dynamic(
-    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
-    { ssr: false, loading: () => null }
-);
+const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -375,7 +374,9 @@ export default function Leaderboard() {
                         </div>
                     )}
 
-                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserRole} />
+                    <HubErrorBoundary name="AnnouncementsBanner">
+                        <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserRole} />
+                    </HubErrorBoundary>
 
                     {/* Board Type Selector */}
                     <div style={S.boardSelector}>

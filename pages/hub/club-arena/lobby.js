@@ -18,6 +18,7 @@ import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/
 import useDebounce from '../../../src/hooks/useDebounce';
 import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonDark from '../../../src/components/ui/SkeletonDark';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 import useWalletData from '../../../src/hooks/useWalletData';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
@@ -552,7 +553,9 @@ export default function ClubLobby() {
                             )}
 
                             {/* ═══ CLUB ANNOUNCEMENTS ═══ */}
-                            <ClubAnnouncementBanner clubId={club?.club_id || club?.id} userRole={membership?.role} />
+                            <HubErrorBoundary name="AnnouncementsBanner">
+                                <ClubAnnouncementBanner clubId={club?.club_id || club?.id} userRole={membership?.role} />
+                            </HubErrorBoundary>
 
                             {/* Club Description */}
                             <div

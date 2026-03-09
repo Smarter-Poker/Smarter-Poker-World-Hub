@@ -14,6 +14,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonDark from '../../../src/components/ui/SkeletonDark';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
@@ -718,7 +719,9 @@ export default function Admin() {
                                 <DynamicWallet {...walletData} compact onBuyDiamonds={() => router.push('/hub/diamond-store')} onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)} />
                             </div>
 
-                            <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                            <HubErrorBoundary name="AnnouncementsBanner">
+                                <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                            </HubErrorBoundary>
 
                             <h2 style={S.sectionTitle}>Administration</h2>
                             {adminOptions.map(opt => (

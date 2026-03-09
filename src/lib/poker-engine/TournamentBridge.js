@@ -719,7 +719,6 @@ class TournamentBridge {
             .eq('tournament_id', this.tournament.tournamentId)
             .eq('user_id', data.playerId)
             .maybeSingle();
-
           if (reg) {
             await this.supabase
               .from('tournament_registrations')
@@ -730,6 +729,20 @@ class TournamentBridge {
               .eq('user_id', data.playerId);
           }
         }
+      }
+
+      // [HARDENING: PRO PHASE 10] Master Audit Trail for Mystery Bounties
+      // If this is a mystery bounty, save the exact envelope draw to the database.
+      if (data.type === 'mystery_bounty' && data.reveal && data.eliminatedId) {
+        await this.supabase.from('tournament_mystery_draws').insert({
+          tournament_id: this.tournament.tournamentId,
+          eliminator_id: data.playerId,
+          eliminated_id: data.eliminatedId,
+          amount: data.amount,
+          tier_label: data.reveal.tierLabel || 'Prize',
+          multiplier: data.reveal.multiplier || 1,
+          remaining_envelopes: data.reveal.remainingEnvelopes || []
+        });
       }
     } catch (err) {
       console.error('[TournamentBridge] Bounty award persist error:', err.message);

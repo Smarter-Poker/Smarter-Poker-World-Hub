@@ -15,6 +15,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
@@ -573,7 +574,9 @@ export default function Cashier() {
                                 />
                             </div>
 
-                            <ClubAnnouncementBanner clubId={club?.id || clubIdParam} userRole={membership?.role} />
+                            <HubErrorBoundary name="AnnouncementsBanner">
+                                <ClubAnnouncementBanner clubId={club?.id || clubIdParam} userRole={membership?.role} />
+                            </HubErrorBoundary>
 
                             {/* Action Buttons */}
                             <div style={S.actionGrid}>

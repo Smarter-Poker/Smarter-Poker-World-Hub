@@ -48,14 +48,14 @@ const BOUNTY_TYPE = {
 // ═══════════════════════════════════════════════════════
 
 const DEFAULT_MYSTERY_TIERS = [
-  { label: 'Min Prize',     multiplier: 1,    weight: 500 },
-  { label: 'Small Prize',   multiplier: 1.5,  weight: 200 },
-  { label: 'Medium Prize',  multiplier: 3,    weight: 150 },
-  { label: 'Large Prize',   multiplier: 5,    weight: 80 },
-  { label: 'Huge Prize',    multiplier: 10,   weight: 40 },
-  { label: 'Mega Prize',    multiplier: 25,   weight: 20 },
-  { label: 'Grand Prize',   multiplier: 50,   weight: 8 },
-  { label: 'JACKPOT',       multiplier: 100,  weight: 2 },
+  { label: 'Min Prize', multiplier: 1, weight: 500 },
+  { label: 'Small Prize', multiplier: 1.5, weight: 200 },
+  { label: 'Medium Prize', multiplier: 3, weight: 150 },
+  { label: 'Large Prize', multiplier: 5, weight: 80 },
+  { label: 'Huge Prize', multiplier: 10, weight: 40 },
+  { label: 'Mega Prize', multiplier: 25, weight: 20 },
+  { label: 'Grand Prize', multiplier: 50, weight: 8 },
+  { label: 'JACKPOT', multiplier: 100, weight: 2 },
 ];
 
 // ═══════════════════════════════════════════════════════
@@ -291,6 +291,7 @@ class BountyManager {
         multiplier: envelope.multiplier,
         eliminatorName: eliminator.playerName,
         eliminatedName: eliminated.playerName,
+        remainingEnvelopes: this.getRemainingEnvelopesSummary(),
       },
     };
   }
@@ -417,6 +418,25 @@ class BountyManager {
   getLeaderboard() {
     return [...this.playerBounties.values()]
       .sort((a, b) => b.bountyEarnings - a.bountyEarnings);
+  }
+
+  /**
+   * Group remaining envelopes by tier to show on the UI Bounty Board
+   * @returns {Array<{label: string, count: number, exampleAmount: number}>}
+   */
+  getRemainingEnvelopesSummary() {
+    if (!this.mysteryPhaseActive || this._mysteryEnvelopes.length === 0) return [];
+
+    const summary = {};
+    for (const env of this._mysteryEnvelopes) {
+      if (!summary[env.label]) {
+        summary[env.label] = { count: 0, exampleAmount: env.amount, label: env.label };
+      }
+      summary[env.label].count++;
+    }
+
+    // Sort by largest example amount first
+    return Object.values(summary).sort((a, b) => b.exampleAmount - a.exampleAmount);
   }
 }
 

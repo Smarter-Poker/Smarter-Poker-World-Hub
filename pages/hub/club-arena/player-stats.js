@@ -14,6 +14,8 @@ import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useWalletData from '../../../src/hooks/useWalletData';
+import ModalLight from '../../../src/components/ui/ModalLight';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 
 const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
@@ -523,7 +525,9 @@ export default function PlayerStats() {
                         </div>
                     )}
 
-                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                    <HubErrorBoundary name="AnnouncementsBanner">
+                        <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+                    </HubErrorBoundary>
 
                     {/* Period Tabs */}
                     <div style={S.periodTabs}>

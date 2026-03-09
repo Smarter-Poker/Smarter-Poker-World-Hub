@@ -12,6 +12,7 @@ import usePersistedState from '../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import SkeletonDark from '../../../src/components/ui/SkeletonDark';
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -258,7 +259,9 @@ export default function TournamentsPage() {
       )}
 
       <div style={{ padding: '8px 16px 0' }}>
-        <ClubAnnouncementBanner clubId={clubId} userRole={isAdmin ? 'admin' : 'player'} />
+        <HubErrorBoundary name="AnnouncementsBanner">
+          <ClubAnnouncementBanner clubId={clubId} userRole={isAdmin ? 'admin' : 'player'} />
+        </HubErrorBoundary>
       </div>
 
       {/* Tabs */}
