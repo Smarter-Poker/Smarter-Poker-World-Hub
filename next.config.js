@@ -111,8 +111,7 @@ const nextConfig = {
     minimumCacheTTL: 3600, // Cache optimized images for 1 hour
   },
 
-  // Club Arena static assets are proxied from the Club Arena Vercel deployment
-  // The pages/hub/club-arena.js pages render the UI, but images/videos come from club-arena.vercel.app
+  // Club Arena pages are served directly from this deployment (no external proxy)
   async redirects() {
     return [
       // Short-form auth URLs → canonical auth routes
@@ -132,38 +131,8 @@ const nextConfig = {
 
   async rewrites() {
     return {
-      // Rewrites that run BEFORE pages — these take priority over Next.js file routes
-      beforeFiles: [
-        // Club Arena table page — proxy the full React SPA from same domain
-        // This ensures Supabase auth (localStorage) is shared between lobby and table
-        {
-          source: '/hub/club-arena/table/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/table/:path*',
-        },
-      ],
-      // Rewrites that run AFTER pages (fallback)
-      afterFiles: [
-        // Club Arena JS/CSS/font assets
-        {
-          source: '/hub/club-arena/assets/:path*',
-          destination: 'https://club-arena.vercel.app/hub/club-arena/assets/:path*',
-        },
-        // Club Arena images (action bar, tiles, cards, etc.)
-        {
-          source: '/hub/club-arena/images/:path*',
-          destination: 'https://club-arena.vercel.app/images/:path*',
-        },
-        // Club Arena videos
-        {
-          source: '/hub/club-arena/videos/:path*',
-          destination: 'https://club-arena.vercel.app/videos/:path*',
-        },
-        // Club Arena manifest and other static files
-        {
-          source: '/hub/club-arena/manifest.json',
-          destination: 'https://club-arena.vercel.app/manifest.json',
-        },
-      ],
+      beforeFiles: [],
+      afterFiles: [],
     };
   },
 };
