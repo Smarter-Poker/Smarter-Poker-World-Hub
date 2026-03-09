@@ -6,11 +6,12 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VILLAIN PROFILES
@@ -205,8 +206,24 @@ function NodeTree({ profile }) {
 export default function NodelockingPage() {
     const router = useRouter();
     useTrainingBus('nodelocking');
+
+    // Persist last-used profile in localStorage
     const [selectedProfile, setSelectedProfile] = useState('nit');
     const [customTendencies, setCustomTendencies] = useState(null);
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('sp_nodelock_profile');
+            if (saved && VILLAIN_PROFILES[saved]) setSelectedProfile(saved);
+        } catch (e) { /* SSG safety */ }
+    }, []);
+
+    const handleProfileChange = useCallback((key) => {
+        setSelectedProfile(key);
+        setCustomTendencies(null);
+        try { localStorage.setItem('sp_nodelock_profile', key); } catch (e) { }
+        eventBus.emit(EventType.SETTINGS_CHANGE, { tool: 'nodelocking', profile: key }, 'Nodelocking');
+    }, []);
 
     const activeProfile = customTendencies
         ? { ...VILLAIN_PROFILES[selectedProfile], tendencies: customTendencies }
@@ -261,7 +278,7 @@ export default function NodelockingPage() {
                         {Object.entries(VILLAIN_PROFILES).filter(([k]) => k !== 'gto').map(([key, profile]) => (
                             <motion.button
                                 key={key}
-                                onClick={() => { setSelectedProfile(key); setCustomTendencies(null); }}
+                                onClick={() => handleProfileChange(key)}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 style={{

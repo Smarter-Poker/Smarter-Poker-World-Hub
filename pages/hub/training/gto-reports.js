@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -187,6 +188,7 @@ export default function GTOReportsPage() {
     // Fetch user's training sessions from Supabase
     const fetchSessions = useCallback(async () => {
         try {
+            if (typeof window === 'undefined') { setLoading(false); return; }
             const user = getAuthUser();
             if (!user?.session?.access_token) { setLoading(false); return; }
 
@@ -368,7 +370,7 @@ export default function GTOReportsPage() {
 
                             {/* Stat Cards Grid */}
                             <div style={{
-                                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220, 1fr))',
+                                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
                                 gap: 10, marginBottom: 20,
                             }}>
                                 {Object.entries(GTO_BASELINES.overall).map(([key, gtoVal], i) => (

@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';

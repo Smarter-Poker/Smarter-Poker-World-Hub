@@ -42,7 +42,7 @@ const MULTI_TABLE_GAMES = [
 
 export default function MultiTablePage() {
     const router = useRouter();
-    const bus = useTrainingBus('multi-table');
+    useTrainingBus('multi-table');
     const [tableCount, setTableCount] = useState(2);
     const [isStarted, setIsStarted] = useState(false);
     const [selectedGames, setSelectedGames] = useState(['cash-002', 'cash-003', 'cash-004', 'cash-005']);
