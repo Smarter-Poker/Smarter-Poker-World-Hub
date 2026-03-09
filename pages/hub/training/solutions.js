@@ -867,7 +867,7 @@ export default function SolutionsBrowser() {
                                 }}>
                                     <div style={{ display: 'flex', gap: 4 }}>
                                         {(spotDetail.board || []).map((card, i) => (
-                                            <CardDisplay key={i} card={card} size={32} />
+                                            <Card key={i} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="tiny" />
                                         ))}
                                     </div>
                                     <div>
