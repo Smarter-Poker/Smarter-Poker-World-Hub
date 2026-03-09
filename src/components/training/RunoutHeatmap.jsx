@@ -178,7 +178,7 @@ export default function RunoutHeatmap({ runoutData = {}, deadCards = [], loading
                                         {rank === 'T' ? '10' : rank}
                                     </span>
                                     {/* EV delta indicator */}
-                                    {hasData && evDelta !== null && (
+                                    {hasData && Number.isFinite(evDelta) && (
                                         <div style={{
                                             position: 'absolute', bottom: -1, left: '50%', transform: 'translateX(-50%)',
                                             fontSize: 6, fontWeight: 600,

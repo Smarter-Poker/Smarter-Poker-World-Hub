@@ -20,7 +20,13 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method not allowed' });
 
     try {
-        const supabase = getSupabase();
+        let supabase;
+        try {
+            supabase = getSupabase();
+        } catch (err) {
+            console.error('[create-share] Intialization error:', err);
+            return res.status(500).json({ success: false, error: 'Database initialization failed' });
+        }
 
         // Optional auth
         let userId = null;
@@ -34,7 +40,9 @@ export default async function handler(req, res) {
         }
 
         const { state_json } = req.body;
-        if (!state_json) return res.status(400).json({ success: false, error: 'state_json required' });
+        if (!state_json || typeof state_json !== 'object') {
+            return res.status(400).json({ success: false, error: 'Valid state_json object required' });
+        }
 
         const shortId = generateShortId();
 
@@ -73,6 +81,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, shareId: data.id });
     } catch (err) {
         console.error('[create-share] Error:', err);
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Internal Server Error' });
     }
 }

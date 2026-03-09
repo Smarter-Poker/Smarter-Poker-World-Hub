@@ -44,10 +44,11 @@ export default function ExternalSolverImport({ onClose, onImport }) {
 
             if (!parsedState) throw new Error("Failed to parse solver data");
 
-            onImport(parsedState);
-            onClose();
+            onImport?.(parsedState);
+            onClose?.();
         } catch (err) {
-            setError(err.message);
+            console.error('[ExternalSolverImport] Parsing error:', err);
+            setError(err.message || 'An unknown error occurred while parsing');
         }
     };
 
@@ -55,7 +56,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
         <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100004, padding: 16 }}
-            onClick={onClose}
+            onClick={() => onClose?.()}
         >
             <motion.div
                 initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }}
@@ -67,7 +68,7 @@ export default function ExternalSolverImport({ onClose, onImport }) {
                         📥 Import Solver Data
                         <span style={{ fontSize: 10, background: M.purple, color: '#fff', padding: '2px 6px', borderRadius: 4 }}>WAVE 7 PRO</span>
                     </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 18, cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => onClose?.()} style={{ background: 'none', border: 'none', color: M.sub, fontSize: 18, cursor: 'pointer' }}>✕</button>
                 </div>
 
                 <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>

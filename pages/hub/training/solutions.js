@@ -338,6 +338,23 @@ function NodeBreadcrumb({ treePath, onNavigateBack }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default function SolutionsBrowser() {
+  // Wrap main component in an error boundary pattern since it's a top-level page
+  const [renderError, setRenderError] = useState(null);
+
+  if (renderError) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: '#ff4444' }}>
+        <h2>Error Loading Solutions Browser</h2>
+        <p>{renderError.message}</p>
+        <button onClick={() => setRenderError(null)} style={{ padding: '8px 16px', background: '#333', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 10 }}>Retry</button>
+      </div>
+    );
+  }
+
+  return <SolutionsBrowserInner setError={setRenderError} />;
+}
+
+function SolutionsBrowserInner({ setError }) {
   useTrainingBus('solutions-browser');
   const router = useRouter();
 
@@ -418,6 +435,7 @@ export default function SolutionsBrowser() {
         const res = await fetch('/api/training/bookmark-solution', {
           headers: getAuthHeaders(),
         });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         if (data.success && data.bookmarks) {
           setBookmarkedHashes(new Set(data.bookmarks.map((b) => b.scenario_hash)));
@@ -429,8 +447,8 @@ export default function SolutionsBrowser() {
     loadBookmarks();
 
     // Listen for external bookmark updates (e.g. from Sandbox)
-    eventBus.on('pa-data-updated', loadBookmarks);
-    return () => eventBus.off('pa-data-updated', loadBookmarks);
+    eventBus?.on?.('pa-data-updated', loadBookmarks);
+    return () => eventBus?.off?.('pa-data-updated', loadBookmarks);
   }, []);
 
   // Toggle bookmark
@@ -441,11 +459,12 @@ export default function SolutionsBrowser() {
       const isBookmarked = bookmarkedHashes.has(hash);
       const action = isBookmarked ? 'delete' : 'save';
       try {
-        await fetch('/api/training/bookmark-solution', {
+        const res = await fetch('/api/training/bookmark-solution', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
           body: JSON.stringify({ scenarioHash: hash, spotId: spot.id, action }),
         });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         setBookmarkedHashes((prev) => {
           const next = new Set(prev);
           if (isBookmarked) next.delete(hash);
@@ -486,7 +505,8 @@ export default function SolutionsBrowser() {
         setClassificationGroups(groups);
       } catch (e) {
         console.error('[Solutions] Classification error:', e);
-        setClassificationData(null);
+        // Do not crash the app, just fallback to empty classification
+        setClassificationData({});
         setClassificationGroups([]);
       }
     } else {
@@ -510,12 +530,17 @@ export default function SolutionsBrowser() {
       const res = await fetch(`/api/training/browse-solutions?${params}`, {
         headers: getAuthHeaders(),
       });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
 
       if (data.success) {
         setSpots(data.spots || []);
         setTotalSpots(data.total || 0);
         setTotalPages(data.totalPages || 0);
+      } else {
+        setSpots([]);
+        setTotalSpots(0);
+        setTotalPages(0);
       }
     } catch (err) {
       console.error('[Solutions] Fetch error:', err);
@@ -538,6 +563,7 @@ export default function SolutionsBrowser() {
       const res = await fetch(`/api/training/browse-solutions?spotId=${spotId}`, {
         headers: getAuthHeaders(),
       });
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       if (data.success && data.spot) {
         setSpotDetail(data.spot);
@@ -572,6 +598,7 @@ export default function SolutionsBrowser() {
         const res = await fetch(`/api/training/tree-navigate?${params}`, {
           headers: getAuthHeaders(),
         });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
         if (data.success && data.childSpot) {
@@ -625,6 +652,7 @@ export default function SolutionsBrowser() {
           headers: getAuthHeaders(),
         }
       );
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       if (data.success) {
         setRunoutData(data.runouts || {});

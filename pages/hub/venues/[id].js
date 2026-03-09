@@ -14,6 +14,7 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import { claimReward } from '../../../src/lib/claimReward';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import { supabase } from '../../../src/lib/supabase';
+import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const VENUE_TYPE_LABELS = {
   casino: 'Casino',
@@ -177,6 +178,7 @@ function StarRating({ rating, size, interactive, onRate }) {
 export default function VenueDetailPage() {
   const router = useRouter();
   const { id, action } = router.query;
+  const bus = useTrainingBus();
 
   // Fast-load follow state from localStorage (instant, before API round-trip)
   const [isFollowed, setIsFollowed] = useState(false);
@@ -281,7 +283,7 @@ export default function VenueDetailPage() {
     fetch('/api/poker/follow?page_type=venue&page_id=' + id + '&check_user=1')
       .then(function (r) { return r.json(); })
       .then(function (d) { if (d.is_following !== undefined) setIsFollowed(d.is_following); })
-      .catch(function () {});
+      .catch(function () { });
   }, [id]);
 
   // SWR — parallel fetch venue + follow count + social page
@@ -654,6 +656,7 @@ export default function VenueDetailPage() {
         setCheckinMessage('');
         setCheckinName('');
         await fetchCheckins();
+        try { bus?.emit?.('venue:checkin', { venueId: id, userName: checkinName.trim() || 'Anonymous' }); } catch { }
         setTimeout(function () { setCheckinConfirm(false); }, 3000);
       }
     } catch (err) { /* silent */ }
@@ -681,6 +684,7 @@ export default function VenueDetailPage() {
         setShowReviewForm(false);
         setReviewForm({ rating: 0, reviewer_name: '', review_text: '' });
         await fetchReviews();
+        try { bus?.emit?.('venue:review', { venueId: id, rating: reviewForm.rating }); } catch { }
 
         // Award venue review diamonds (geo-fenced, fire-and-forget)
         // Only for authenticated users — anonymous reviews still save but don't earn diamonds

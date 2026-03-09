@@ -53,10 +53,10 @@ export default function TournamentManager({
   const isRegistrationOpen = tournament?.status === 'registering' ||
     (tournament?.status === 'running' && tournament?.current_level <= (tournament?.late_reg_levels || 0));
 
-  const activeEntries = entries.filter(e => ['seated', 'active'].includes(e.status));
-  const eliminatedEntries = entries.filter(e => e.status === 'eliminated');
+  const activeEntries = (entries || []).filter(e => ['seated', 'active'].includes(e.status));
+  const eliminatedEntries = (entries || []).filter(e => e.status === 'eliminated');
   const prizePool = tournament?.actual_prizepool || tournament?.prize_pool ||
-    (entries.length * (tournament?.buyin_amount || 0));
+    ((entries || []).length * (tournament?.buyin_amount || 0));
 
   const handleClockAction = useCallback(async (action) => {
     setActionLoading(true);
@@ -110,11 +110,11 @@ export default function TournamentManager({
             <div className="flex items-center gap-4 mt-2 text-sm text-[#64748B]">
               <span className="flex items-center gap-1">
                 <Users size={14} />
-                {activeEntries.length} / {entries.length} players
+                {activeEntries.length} / {(entries || []).length} players
               </span>
               <span className="flex items-center gap-1">
                 <DollarSign size={14} />
-                ${prizePool.toLocaleString()} prize pool
+                ${(Number(prizePool) || 0).toLocaleString()} prize pool
               </span>
               <span className="flex items-center gap-1">
                 <Clock size={14} />
@@ -145,7 +145,7 @@ export default function TournamentManager({
         {/* Quick Stats */}
         <div className="grid grid-cols-4 gap-3 mt-4">
           <div className="bg-[#0B1426] rounded-lg p-3 text-center">
-            <p className="text-lg font-bold text-[#22D3EE]">{entries.length}</p>
+            <p className="text-lg font-bold text-[#22D3EE]">{(entries || []).length}</p>
             <p className="text-xs text-[#64748B]">Entries</p>
           </div>
           <div className="bg-[#0B1426] rounded-lg p-3 text-center">
@@ -209,11 +209,10 @@ export default function TournamentManager({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === tab.key
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.key
                   ? 'bg-[#132240] text-[#22D3EE]'
                   : 'text-[#64748B] hover:text-white'
-              }`}
+                }`}
             >
               <Icon size={16} />
               {tab.label}
@@ -268,7 +267,7 @@ export default function TournamentManager({
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Starting Chips</span>
-                <span className="text-white font-medium">{(tournament.starting_chips || 0).toLocaleString()}</span>
+                <span className="text-white font-medium">{(Number(tournament?.starting_chips) || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Buy-in</span>
@@ -301,7 +300,7 @@ export default function TournamentManager({
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Average Stack</span>
                 <span className="text-white font-medium">
-                  {tournament.average_stack ? tournament.average_stack.toLocaleString() : '-'}
+                  {Number.isFinite(tournament?.average_stack) ? Number(tournament.average_stack).toLocaleString() : '-'}
                 </span>
               </div>
             </div>
@@ -373,7 +372,7 @@ export default function TournamentManager({
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-white">Payout Structure</h3>
             <span className="text-sm text-[#64748B]">
-              Prize Pool: <span className="text-[#10B981] font-medium">${prizePool.toLocaleString()}</span>
+              Prize Pool: <span className="text-[#10B981] font-medium">${(Number(prizePool) || 0).toLocaleString()}</span>
             </span>
           </div>
 
@@ -393,7 +392,7 @@ export default function TournamentManager({
                       style={{
                         backgroundColor: index === 0 ? '#F59E0B' :
                           index === 1 ? '#9CA3AF' :
-                          index === 2 ? '#B45309' : '#6B7280'
+                            index === 2 ? '#B45309' : '#6B7280'
                       }}
                     >
                       {index + 1}
@@ -408,7 +407,7 @@ export default function TournamentManager({
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="text-[#10B981] font-medium">${amount.toLocaleString()}</span>
+                      <span className="text-[#10B981] font-medium">${(Number(amount) || 0).toLocaleString()}</span>
                       <span className="text-xs text-[#4A5E78] ml-2">({payout.percentage}%)</span>
                     </div>
                   </div>

@@ -777,7 +777,7 @@ export default function PokerNearMeLobby() {
     setActivePod(podId);
     setShowPanel(true);
     // Emit TrainingBus event for pod interaction tracking
-    try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch {}
+    try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch { }
   }, [activePod, bus]);
 
   const handlePanelClose = useCallback(() => {
@@ -800,8 +800,10 @@ export default function PokerNearMeLobby() {
     try {
       if (wasFavorited) {
         await removeVenueFavorite(userId, venueId);
+        try { bus?.emit?.('venue:unfavorite', { venueId }); } catch { }
       } else {
         await addVenueFavorite(userId, venueId, venueData);
+        try { bus?.emit?.('venue:favorite', { venueId, name: venueData?.name }); } catch { }
       }
       // Emit event for cross-page sync after successful DB write
       if (typeof window !== 'undefined') {
@@ -1283,8 +1285,8 @@ export default function PokerNearMeLobby() {
         )}
       </div>
 
-    {/* Global keyframes for inline spinners used in panel loading states */}
-    <style jsx global>{`
+      {/* Global keyframes for inline spinners used in panel loading states */}
+      <style jsx global>{`
       @keyframes spin { to { transform: rotate(360deg); } }
       @keyframes lobby-panelSlideUp {
         from { transform: translateY(100%); opacity: 0.5; }
