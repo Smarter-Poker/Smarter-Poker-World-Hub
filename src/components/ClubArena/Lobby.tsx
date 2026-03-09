@@ -5,6 +5,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🏛️ SOFTWARE NEUTRALITY DISCLAIMER — NON-DISMISSIBLE POPUP
@@ -228,7 +229,7 @@ export const ClubArenaLobby: React.FC<ClubArenaLobbyProps> = ({ userId, onEnterC
                         <p style={lobbyStyles.footerText}>
                             Remember: Club Arena is for entertainment only.
                             Play money has no cash value.
-                            <a href="/terms" style={lobbyStyles.footerLink}> View Terms</a>
+                            <Link href="/terms" style={lobbyStyles.footerLink}> View Terms</Link>
                         </p>
                     </footer>
                 </div>

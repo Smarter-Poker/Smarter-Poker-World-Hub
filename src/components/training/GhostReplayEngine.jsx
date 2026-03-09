@@ -70,7 +70,7 @@ export default function GhostReplayEngine({ sessionName, handHistory = [], onClo
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={styles.recordingDot} />
                         <div>
-                            <div style={styles.title}>GHOST REPLAY <span style={{ color: '#64748b' }}>//</span> {sessionName}</div>
+                            <div style={styles.title}>GHOST REPLAY <span style={{ color: '#64748b' }}>{'//'}</span> {sessionName}</div>
                             <div style={styles.subtitle}>Hand {currentIndex + 1} of {handHistory.length}</div>
                         </div>
                     </div>

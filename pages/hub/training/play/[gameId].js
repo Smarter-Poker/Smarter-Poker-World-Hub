@@ -15,7 +15,6 @@ import useTrainingBus from '../../../../src/hooks/useTrainingBus';
 export default function TrainingPlayPage() {
     const bus = useTrainingBus('training-play');
     const router = useRouter();
-    if (!router.isReady) return null;
     const { gameId } = router.query;
 
     const [userId, setUserId] = useState(null);

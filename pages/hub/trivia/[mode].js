@@ -100,9 +100,6 @@ export default function TriviaModePage() {
     // Using existing supabase instance from lib
     const modeConfig = mode ? TRIVIA_MODES[mode] : null;
 
-    // Wait for router to be ready before rendering content
-    if (!router.isReady) return null;
-
     // Load questions and user data
     useEffect(() => {
         if (!mode || !modeConfig) return;

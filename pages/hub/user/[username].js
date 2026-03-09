@@ -436,7 +436,6 @@ function PostCard({ post, author, isOwnProfile = false, onDelete, currentUserId 
 
 export default function UserProfilePage() {
     const router = useRouter();
-    if (!router.isReady) return null;
     const { username } = router.query;
 
     // Core state

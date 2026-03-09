@@ -1,16 +1,45 @@
-require('dotenv').config({ path: '.env.local' });
 const fs = require('fs');
 const { Client } = require('pg');
+const { execSync } = require('child_process');
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const projectRef = SUPABASE_URL.replace('https://', '').replace('.supabase.co', '');
-const DB_PASSWORD = process.env.SUPABASE_DB_PASSWORD || process.env.SUPABASE_SERVICE_ROLE_KEY;
+console.log('Extracting DATABASE_URL explicitly from Vercel production environment...');
 
-// Direct connection string to Supabase postgres
-const connStr = `postgresql://postgres.${projectRef}:${DB_PASSWORD}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`;
-console.log(`Trying connection to project: ${projectRef}...`);
+let connStr = "";
+try {
+    // Pull just the DATABASE_URL value from Vercel. 
+    // Warning: Must have vercel linked.
+    const vercelOut = execSync('npx vercel env ls DATABASE_URL production', { encoding: 'utf-8' });
 
-const sql = fs.readFileSync('supabase/migrations/hotfix_rpc_diamond_column.sql', 'utf-8');
+    // Vercel env ls outputs a table. The value is usually masked or not easily parsable. 
+    // We can pull it direct using `vercel env pull` to a temp file, or it prints it to stdout.
+    console.log("Vercel env ls output:", vercelOut);
+
+    // Safer approach: use `vercel env pull` to a custom file and parse it.
+    execSync('npx vercel env pull .env.vercel-db --environment production');
+
+    const envFile = fs.readFileSync('.env.vercel-db', 'utf-8');
+    const match = envFile.match(/DATABASE_URL="(.*?)"/);
+    if (match) {
+        connStr = match[1];
+    } else {
+        // Try unquoted
+        const match2 = envFile.match(/DATABASE_URL=(.*)/);
+        if (match2) connStr = match2[1];
+    }
+
+} catch (e) {
+    console.error("Vercel extraction failed", e.message);
+    process.exit(1);
+}
+
+
+if (!connStr) {
+    console.error("No DATABASE_URL found! We are locked out.");
+    process.exit(1);
+}
+
+console.log(`Trying connection to ${connStr.split('@')[1]}...`);
+const sql = fs.readFileSync('supabase/migrations/20260309162811_hotfix_rpc_diamond_column.sql', 'utf-8');
 
 async function run() {
     const client = new Client({

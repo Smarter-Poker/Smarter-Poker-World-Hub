@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { SPAvatar, SP_COLORS } from './SmarterPokerStyleCard';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -439,7 +440,7 @@ export const ConversationList = ({
 
             {/* Footer */}
             <div className="conv-footer">
-                <a href="/hub/messenger" className="see-all-link">See All In Messenger</a>
+                <Link href="/hub/messenger" className="see-all-link">See All In Messenger</Link>
             </div>
 
             <style>{`
