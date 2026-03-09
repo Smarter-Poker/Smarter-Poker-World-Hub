@@ -8,13 +8,17 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
+const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -87,6 +91,7 @@ export default function Admin() {
 
     // Core state
     const [user, setUser] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [club, setClub] = useState(null);
     const [confirmModal, setConfirmModal] = useState(null); // { msg, onConfirm, danger }
     const [deleteClubModal, setDeleteClubModal] = useState(false);
@@ -681,7 +686,16 @@ export default function Admin() {
             />
 
             <div style={S.page}>
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
 
                 <div style={S.container}>
                     <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>
@@ -703,6 +717,8 @@ export default function Admin() {
                             <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 12px' }}>
                                 <DynamicWallet {...walletData} compact onBuyDiamonds={() => router.push('/hub/diamond-store')} onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)} />
                             </div>
+
+                            <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
 
                             <h2 style={S.sectionTitle}>Administration</h2>
                             {adminOptions.map(opt => (
@@ -769,9 +785,7 @@ export default function Admin() {
                                     return (
                                         <div key={member.user_id} style={S.memberRow}>
                                             <div style={S.memberAvatar}>
-                                                {member.profiles?.avatar_url ? (
-                                                    <img src={member.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                                                ) : ''}
+                                                <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                             </div>
                                             <div style={S.memberInfo}>
                                                 <div style={S.memberName}>{member.profiles?.display_name || member.profiles?.username || 'Unknown'}</div>
