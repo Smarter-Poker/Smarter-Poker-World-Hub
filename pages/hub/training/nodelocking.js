@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { DiamondEngine } from '../../../src/services/DiamondEngine';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 
@@ -265,7 +265,7 @@ export default function NodelockingPage() {
 
     // Total EV from exploits
     const totalEV = useMemo(() => {
-        return exploits.reduce((sum, e) => sum + parseFloat(e.ev) || 0, 0).toFixed(2);
+        return exploits.reduce((sum, e) => sum + (parseFloat(e.ev) || 0), 0).toFixed(2);
     }, [exploits]);
 
     // Save profile analysis to Supabase
@@ -286,6 +286,7 @@ export default function NodelockingPage() {
                 });
             }
             eventBus.emit(EventType.SESSION_END, { accuracy: 100, questionsAnswered: exploits.length, questionsCorrect: exploits.length }, 'nodelocking');
+            busEmit('training:session-complete', { game_id: 'nodelocking', accuracy: 100, correct_answers: exploits.length, total_questions: exploits.length, hands_played: exploits.length });
         } catch (e) { console.error('[Nodelocking] Save error:', e); }
     }, [selectedProfile, activeProfile, exploits, totalEV]);
 
