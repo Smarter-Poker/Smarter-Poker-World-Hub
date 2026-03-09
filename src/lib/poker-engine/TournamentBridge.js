@@ -703,22 +703,32 @@ class TournamentBridge {
     try {
       // Update the eliminator's bounty earnings in tournament_registrations
       if (data.playerId && data.amount > 0) {
-        // Use raw SQL increment via RPC for atomicity, or fetch-then-update
-        const { data: reg } = await this.supabase
-          .from('tournament_registrations')
-          .select('payout_amount')
-          .eq('tournament_id', this.tournament.tournamentId)
-          .eq('user_id', data.playerId)
-          .maybeSingle();
+        // Use raw SQL increment via RPC for atomicity to prevent double-knockout race conditions
+        const { error } = await this.supabase
+          .rpc('increment_tournament_bounty', {
+            p_tournament_id: this.tournament.tournamentId,
+            p_user_id: data.playerId,
+            p_amount: data.amount
+          });
 
-        if (reg) {
-          await this.supabase
+        if (error) {
+          // Fallback if RPC doesn't exist yet
+          const { data: reg } = await this.supabase
             .from('tournament_registrations')
-            .update({
-              payout_amount: (reg.payout_amount || 0) + data.amount,
-            })
+            .select('payout_amount')
             .eq('tournament_id', this.tournament.tournamentId)
-            .eq('user_id', data.playerId);
+            .eq('user_id', data.playerId)
+            .maybeSingle();
+
+          if (reg) {
+            await this.supabase
+              .from('tournament_registrations')
+              .update({
+                payout_amount: (reg.payout_amount || 0) + data.amount,
+              })
+              .eq('tournament_id', this.tournament.tournamentId)
+              .eq('user_id', data.playerId);
+          }
         }
       }
     } catch (err) {

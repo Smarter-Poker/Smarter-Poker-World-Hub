@@ -2145,9 +2145,9 @@ export default function UnionDashboard() {
                                     }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                             <span style={{ color: entry.entry_type === 'contribution' ? '#4BB543' : '#FA383E', fontWeight: 600 }}>
-                                                {entry.entry_type === 'contribution' ? '+' : ''}{(entry.main_amount || 0).toFixed(2)} main
-                                                {entry.backup_amount ? ` / ${(entry.backup_amount).toFixed(2)} backup` : ''}
-                                                {entry.promo_amount ? ` / ${(entry.promo_amount).toFixed(2)} promo` : ''}
+                                                {entry.entry_type === 'contribution' ? '+' : ''}{Number(entry.main_amount || 0).toFixed(2)} main
+                                                {entry.backup_amount ? ` / ${Number(entry.backup_amount).toFixed(2)} backup` : ''}
+                                                {entry.promo_amount ? ` / ${Number(entry.promo_amount).toFixed(2)} promo` : ''}
                                             </span>
                                             <span style={{ color: FB.textSecondary }}>
                                                 {entry.created_at ? new Date(entry.created_at).toLocaleString() : ''}
