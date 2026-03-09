@@ -689,11 +689,6 @@ const loadingStyles = {
         justifyContent: 'center',
         position: 'relative',
     },
-    tableImage: {
-        opacity: 0.3,
-        height: '60%',
-        objectFit: 'contain',
-    },
     loadingText: {
         position: 'absolute',
         color: '#00d4ff',

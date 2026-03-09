@@ -145,9 +145,34 @@ echo "TOTAL_DURATION:$(( TOTAL_END - TOTAL_START ))s"
 echo "═══════════════════════════════════════════════════════════════"
 
 if [ "$GIT_OK" = "true" ]; then
+    # ── Deploy log ──
+    node "${SCRIPT_DIR}/deploy-log.js" \
+      --action deploy \
+      --sha "${COMMIT_SHA}" \
+      --branch "main" \
+      --duration "$(( TOTAL_END - TOTAL_START ))" \
+      --sql-ok "${SQL_OK}" \
+      --vercel-ok "${VERCEL_OK}" \
+      --msg "${COMMIT_MSG}" 2>/dev/null || true
+
+    # ── Post-deploy verification (if Vercel deployed) ──
+    if [ "$VERCEL_OK" = "true" ]; then
+        echo ""
+        echo "🔍 Running post-deploy verification..."
+        node "${SCRIPT_DIR}/verify-deploy.js" --wait 30 2>&1 || echo "   ⚠️  Post-deploy verification skipped or failed"
+    fi
+
     echo "🟢 ANTI-GRAVITY DEPLOYMENT COMPLETE"
     exit 0
 else
+    # Log failed deploys too
+    node "${SCRIPT_DIR}/deploy-log.js" \
+      --action deploy_failed \
+      --sha "${COMMIT_SHA}" \
+      --duration "$(( TOTAL_END - TOTAL_START ))" \
+      --sql-ok "${SQL_OK}" \
+      --msg "${COMMIT_MSG}" 2>/dev/null || true
+
     echo "🔴 DEPLOYMENT HAD ERRORS — review output above"
     exit 1
 fi
