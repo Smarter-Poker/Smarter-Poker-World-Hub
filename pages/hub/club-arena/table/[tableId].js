@@ -194,11 +194,15 @@ export default function ClubArenaTable() {
 
   // Auto-retry for transient errors (not observer-blocked)
   const [autoRetryCountdown, setAutoRetryCountdown] = useState(0);
+  const autoRetryCountRef = useRef(0);
   useEffect(() => {
-    if (!error) { setAutoRetryCountdown(0); return; }
+    if (!error) { setAutoRetryCountdown(0); autoRetryCountRef.current = 0; return; }
     // Don't auto-retry permanent errors
     const permanent = error.includes('Observer') || error.includes('LOCKED') || error.includes('TIME');
     if (permanent) return;
+    // Cap at 2 auto-retries to prevent infinite loop
+    if (autoRetryCountRef.current >= 2) return;
+    autoRetryCountRef.current += 1;
     setAutoRetryCountdown(8);
     const interval = setInterval(() => {
       setAutoRetryCountdown(prev => {
