@@ -44,6 +44,119 @@ import {
 } from './TableThemes';
 import ThemePicker from './ThemePicker';
 import PlayerNoteModal, { COLOR_LABELS } from './PlayerNoteModal';
+import { eventBus, EventType } from '../../engine/EventBus';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MYSTERY BOUNTY ENVELOPE OVERLAY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function MysteryBountyOverlay({ amount, onComplete }) {
+  useEffect(() => {
+    // Auto-dismiss after 6 seconds
+    const timer = setTimeout(() => onComplete(), 6000);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{
+        position: 'absolute', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(5px)',
+      }}
+    >
+      <motion.div
+        initial={{ y: -500, rotate: -20, scale: 0.5 }}
+        animate={{ y: 0, rotate: 0, scale: 1 }}
+        transition={{ type: 'spring', damping: 12, stiffness: 100 }}
+        style={{
+          width: 320, height: 200,
+          background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+          borderRadius: 16,
+          position: 'relative',
+          boxShadow: '0 20px 50px rgba(0,0,0,0.8), 0 0 40px rgba(255,215,0,0.4)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden',
+          border: '2px solid #FFF8DC',
+        }}
+      >
+        {/* Envelope Flap Opening Animation */}
+        <motion.div
+          initial={{ rotateX: 0 }}
+          animate={{ rotateX: 180 }}
+          transition={{ delay: 1.5, duration: 0.8, ease: 'easeIn' }}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: '50%',
+            background: 'linear-gradient(180deg, #FFE4B5 0%, #FFD700 100%)',
+            clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+            transformOrigin: 'top',
+            zIndex: 10,
+            borderBottom: '1px solid rgba(0,0,0,0.2)',
+          }}
+        />
+
+        {/* Revealed Bounty Amount */}
+        <motion.div
+          initial={{ opacity: 0, y: 50, scale: 0.5 }}
+          animate={{ opacity: 1, y: 0, scale: 1.2 }}
+          transition={{ delay: 2.3, type: 'spring', bounce: 0.6 }}
+          style={{
+            background: '#fff',
+            padding: '20px 40px',
+            borderRadius: 12,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            zIndex: 5,
+            textAlign: 'center',
+            border: '2px dashed #FFD700',
+          }}
+        >
+          <div style={{ color: '#8B6508', fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 8 }}>
+            Mystery Bounty
+          </div>
+          <div style={{ color: '#22C55E', fontSize: 42, fontWeight: 900, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            +${(amount || 0).toLocaleString()}
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Confetti particles */}
+      {Array.from({ length: 30 }).map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{
+            x: 0, y: 0, opacity: 0, scale: 0
+          }}
+          animate={{
+            x: (Math.random() - 0.5) * window.innerWidth,
+            y: (Math.random() - 0.5) * window.innerHeight,
+            opacity: [0, 1, 1, 0],
+            scale: [0, Math.random() + 0.5, 0],
+            rotate: Math.random() * 360 * 5,
+          }}
+          transition={{
+            delay: 2.3,
+            duration: 2 + Math.random() * 2,
+            ease: "easeOut"
+          }}
+          style={{
+            position: 'absolute',
+            width: 10 + Math.random() * 10,
+            height: 10 + Math.random() * 10,
+            background: ['#FFD700', '#FF3366', '#00FFCC', '#FF9933'][Math.floor(Math.random() * 4)],
+            borderRadius: Math.random() > 0.5 ? '50%' : '0%',
+            zIndex: 9998,
+          }}
+        />
+      ))}
+    </motion.div>
+  );
+}
 
 // Dynamic theme — updated when user changes theme, read by all sub-components
 let T = getActiveTheme();
@@ -2571,6 +2684,23 @@ function LivePokerTable({
   const [rebuyError, setRebuyError] = useState(null);
   const [clubChipBalance, setClubChipBalance] = useState(null);
 
+  // Mystery Bounty Reveal State
+  const [bountyReveal, setBountyReveal] = useState(null);
+
+  // EventBus Listener for Mystery Bounty Knockouts
+  useEffect(() => {
+    if (!eventBus) return;
+    const handleBountyWon = (e) => {
+      // e.detail format: { tableId, playerId, amount, eliminatorName }
+      if (e.detail?.tableId === tableId && e.detail?.playerId === userId) {
+        setBountyReveal({ amount: e.detail.amount });
+      }
+    };
+
+    eventBus.addEventListener('tournament_bounty_won', handleBountyWon);
+    return () => eventBus.removeEventListener('tournament_bounty_won', handleBountyWon);
+  }, [tableId, userId]);
+
   // Auto-open buy-in when waitlist seat is offered
   useEffect(() => {
     if (seatOffer && !isSitting && buyInSeat === null) {
@@ -3729,6 +3859,16 @@ function LivePokerTable({
         targetPlayer={noteTarget}
         supabase={supabase}
       />
+
+      {/* MYSTERY BOUNTY OVERLAY */}
+      <AnimatePresence>
+        {bountyReveal && (
+          <MysteryBountyOverlay
+            amount={bountyReveal.amount}
+            onComplete={() => setBountyReveal(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Global keyframes for table animations */}
       <style>{`

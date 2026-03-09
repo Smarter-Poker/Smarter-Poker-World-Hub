@@ -303,6 +303,65 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
     markActionNeeded, clearActionNeeded,
   } = useMultiTable({ supabase, userId });
 
+  // Algorithmic Grid Scaling State
+  const containerRef = useRef(null);
+  const [gridDimensions, setGridDimensions] = useState({ rows: 1, cols: 1 });
+
+  useEffect(() => {
+    if (!containerRef.current || viewMode !== 'tile' || tables.length === 0) return;
+
+    const calculateGrid = (width, height) => {
+      let maxTileSize = 0;
+      let optRows = 1;
+      let optCols = 1;
+
+      // Poker tables are generally 16:9 widescreen or somewhat similar
+      const aspectRatio = 16 / 9;
+
+      for (let cols = 1; cols <= tables.length; cols++) {
+        const rows = Math.ceil(tables.length / cols);
+
+        // Size if width is the bottleneck
+        const cellWidth = width / cols;
+        const cellHeightFromWidth = cellWidth / aspectRatio;
+
+        // Size if height is the bottleneck
+        const cellHeight = height / rows;
+        const cellWidthFromHeight = cellHeight * aspectRatio;
+
+        // Realized cell size
+        const w = Math.min(cellWidth, cellWidthFromHeight);
+        const h = Math.min(cellHeight, cellHeightFromWidth);
+        const area = w * h;
+
+        // If this layout gives us bigger tables, keep it
+        if (area > maxTileSize) {
+          maxTileSize = area;
+          optRows = rows;
+          optCols = cols;
+        }
+      }
+      return { rows: optRows, cols: optCols };
+    };
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setGridDimensions(calculateGrid(width, height));
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    // Initial run
+    const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      setGridDimensions(calculateGrid(rect.width, rect.height));
+    }
+
+    return () => resizeObserver.disconnect();
+  }, [tables.length, viewMode]);
+
   const soundManagerRef = useRef(null);
   const [showBBJModal, setShowBBJModal] = useState(false);
 
@@ -371,14 +430,18 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
       )}
 
       {/* Table area */}
-      <div style={{
-        flex: 1,
-        position: 'relative',
-        display: viewMode === 'tile' && tables.length > 1 ? 'grid' : 'block',
-        gridTemplateColumns: tables.length > 2 ? '1fr 1fr' : tables.length === 2 ? '1fr 1fr' : '1fr',
-        gridTemplateRows: tables.length > 2 ? '1fr 1fr' : '1fr',
-        gap: 2,
-      }}>
+      <div
+        ref={containerRef}
+        style={{
+          flex: 1,
+          position: 'relative',
+          display: viewMode === 'tile' && tables.length > 1 ? 'grid' : 'block',
+          gridTemplateColumns: `repeat(${gridDimensions.cols}, 1fr)`,
+          gridTemplateRows: `repeat(${gridDimensions.rows}, 1fr)`,
+          gap: 2,
+          alignContent: 'center',
+          justifyContent: 'center',
+        }}>
         {/* BBJ Ticker — top center, always visible */}
         {bbjData && bbjData.pool?.amount > 0 && (
           <div style={{

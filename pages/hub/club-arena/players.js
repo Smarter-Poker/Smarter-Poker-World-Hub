@@ -374,7 +374,9 @@ export default function Players() {
                         </div>
                     )}
 
-                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserRole} />
+                    <HubErrorBoundary name="AnnouncementsBanner">
+                        <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserRole} />
+                    </HubErrorBoundary>
 
                     {/* Search */}
                     <div style={S.searchBox}>

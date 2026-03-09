@@ -10,8 +10,8 @@ import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import { getAccessToken } from '../../../src/lib/authUtils';
-import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
@@ -275,7 +275,7 @@ export default function TournamentsPage() {
 
       {/* Tournament List — Poker Table Cards (2-col grid) */}
       <div style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
-        {loading && <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>Loading...</div>}
+        {loading && <div style={{ paddingTop: 20 }}><SkeletonDark variant="tournament" /></div>}
 
         {!loading && tournaments.length === 0 && (
           <div style={{ color: FB.dim, textAlign: 'center', padding: 40 }}>

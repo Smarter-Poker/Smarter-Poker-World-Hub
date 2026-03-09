@@ -39,6 +39,8 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const EmojiPicker = dynamic(() => import('emoji-picker-react'), { ssr: false });
+import HubErrorBoundary from '../../../src/components/ui/HubErrorBoundary';
 const ClubAnnouncementBanner = dynamic(
     () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
     { ssr: false }
@@ -1091,7 +1093,9 @@ export default function ClubMessages() {
                     </div>
                 )}
 
-                <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserMembership?.role} />
+                <HubErrorBoundary name="AnnouncementsBanner">
+                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserMembership?.role} />
+                </HubErrorBoundary>
 
                 <div style={S.searchBar}>
                     <input type="text" placeholder="  Search Club Members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />

@@ -12,8 +12,8 @@ import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
 import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import { getAccessToken } from '../../../src/lib/authUtils';
-import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
@@ -705,7 +705,7 @@ export default function Admin() {
                     <h1 style={S.pageTitle}>Club Admin</h1>
 
                     {isLoading ? (
-                        <div style={S.loading}>Loading...</div>
+                        <div style={{ marginTop: 20 }}><SkeletonDark variant="stat-cards" count={3} /><div style={{ marginTop: 20 }}><SkeletonDark variant="table-rows" rows={4} /></div></div>
                     ) : !isAdmin ? (
                         <div style={S.noAccess}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}></span>
@@ -1896,173 +1896,172 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                     <span style={S.modalTitle}>Promo Wallet</span>
                     <button style={S.modalClose} onClick={onClose}>&times;</button>
                 </div>
-                <div style={S.modalBody}>
-                    {loading ? (
-                        <div style={{ textAlign: 'center', color: FB.textSecondary, padding: 30 }}>Loading...</div>
-                    ) : (
-                        <>
-                            {/* Club Promo Balance Card */}
-                            <div style={{
-                                background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
-                                borderRadius: 12, padding: 20, marginBottom: 16,
-                                border: '1px solid rgba(147,51,234,0.3)',
-                            }}>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                                    Club Promo Balance
-                                </div>
-                                <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', margin: '4px 0' }}>
-                                    {clubPromo.toLocaleString()}
-                                </div>
-                                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
-                                    <span>Distributed to agents: {totalAgentPromo.toLocaleString()}</span>
-                                </div>
+                <div style={S.modalBody}>                    {loading ? (
+                    <div style={{ marginTop: 20 }}><SkeletonDark variant="table-rows" rows={3} /></div>
+                ) : (
+                    <>
+                        {/* Club Promo Balance Card */}
+                        <div style={{
+                            background: 'linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)',
+                            borderRadius: 12, padding: 20, marginBottom: 16,
+                            border: '1px solid rgba(147,51,234,0.3)',
+                        }}>
+                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 1 }}>
+                                Club Promo Balance
                             </div>
+                            <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', margin: '4px 0' }}>
+                                {clubPromo.toLocaleString()}
+                            </div>
+                            <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
+                                <span>Distributed to agents: {totalAgentPromo.toLocaleString()}</span>
+                            </div>
+                        </div>
 
-                            {/* Mint Promo (owner only) */}
-                            {userRole === 'owner' && (
-                                <div style={{
-                                    background: FB.cardBg, borderRadius: 10, padding: 16,
-                                    border: `1px solid ${FB.border}`, marginBottom: 16,
-                                }}>
-                                    <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                        Mint Promo Chips
-                                    </h4>
-                                    <p style={{ fontSize: 12, color: FB.textSecondary, margin: '0 0 10px' }}>
-                                        Add promo chips to the club balance. These can then be distributed to agents.
-                                    </p>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <input
-                                            type="number"
-                                            value={mintAmount}
-                                            onChange={e => setMintAmount(e.target.value)}
-                                            placeholder="Amount to mint"
-                                            style={{ ...inputStyle, flex: 1 }}
-                                        />
-                                        <button
-                                            onClick={handleMint}
-                                            disabled={minting}
-                                            style={{
-                                                background: '#7c3aed', color: '#fff', border: 'none',
-                                                borderRadius: 8, padding: '10px 20px', fontWeight: 700,
-                                                cursor: minting ? 'not-allowed' : 'pointer',
-                                                opacity: minting ? 0.5 : 1, whiteSpace: 'nowrap',
-                                            }}
-                                        >
-                                            {minting ? '...' : 'Mint'}
-                                        </button>
-                                    </div>
-                                    {/* Quick mint buttons */}
-                                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                                        {[1000, 5000, 10000, 50000].map(amt => (
-                                            <button key={amt} onClick={() => setMintAmount(String(amt))} style={{
-                                                background: FB.hover, color: FB.textSecondary, border: 'none',
-                                                borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
-                                            }}>{amt >= 1000 ? `${amt / 1000}K` : amt}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Grant to Agent */}
+                        {/* Mint Promo (owner only) */}
+                        {userRole === 'owner' && (
                             <div style={{
                                 background: FB.cardBg, borderRadius: 10, padding: 16,
                                 border: `1px solid ${FB.border}`, marginBottom: 16,
                             }}>
                                 <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                    Grant Promo to Agent
+                                    Mint Promo Chips
                                 </h4>
-                                {agents.length === 0 ? (
-                                    <p style={{ fontSize: 12, color: FB.textSecondary }}>
-                                        No agents in this club. Promote a member to agent first.
-                                    </p>
-                                ) : (
-                                    <>
-                                        <div style={{ marginBottom: 10 }}>
-                                            <label style={{ display: 'block', fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
-                                                Select Agent
-                                            </label>
-                                            <select
-                                                value={grantTarget}
-                                                onChange={e => setGrantTarget(e.target.value)}
-                                                style={inputStyle}
-                                            >
-                                                <option value="">Choose agent...</option>
-                                                {agents.filter(a => a.status !== 'suspended').map(a => (
-                                                    <option key={a.userId} value={a.userId}>
-                                                        {a.displayName} — Promo: {a.promoBalance.toLocaleString()}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 8 }}>
-                                            <input
-                                                type="number"
-                                                value={grantAmount}
-                                                onChange={e => setGrantAmount(e.target.value)}
-                                                placeholder="Amount"
-                                                style={{ ...inputStyle, flex: 1 }}
-                                            />
-                                            <button
-                                                onClick={handleGrant}
-                                                disabled={granting}
-                                                style={{
-                                                    background: '#31A24C', color: '#fff', border: 'none',
-                                                    borderRadius: 8, padding: '10px 20px', fontWeight: 700,
-                                                    cursor: granting ? 'not-allowed' : 'pointer',
-                                                    opacity: granting ? 0.5 : 1, whiteSpace: 'nowrap',
-                                                }}
-                                            >
-                                                {granting ? '...' : 'Grant'}
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Agent Promo Balances */}
-                            {agents.length > 0 && (
-                                <div style={{
-                                    background: FB.cardBg, borderRadius: 10, padding: 16,
-                                    border: `1px solid ${FB.border}`,
-                                }}>
-                                    <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
-                                        Agent Promo Balances
-                                    </h4>
-                                    {agents.map(a => (
-                                        <div key={a.userId} style={{
-                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                            padding: '8px 0', borderBottom: `1px solid ${FB.border}`,
-                                        }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{
-                                                    width: 32, height: 32, borderRadius: '50%',
-                                                    background: a.avatarUrl ? `url(${a.avatarUrl}) center/cover` : '#F5A623',
-                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    fontSize: 14, color: '#fff', overflow: 'hidden',
-                                                }}>
-                                                    {!a.avatarUrl && (a.displayName?.[0] || '?')}
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>
-                                                        {a.displayName}
-                                                    </div>
-                                                    <div style={{ fontSize: 11, color: FB.textSecondary }}>
-                                                        {a.status === 'suspended' ? ' Suspended' : `Commission: ${((a.commissionRate || 0) * 100).toFixed(0)}%`}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div style={{
-                                                fontSize: 15, fontWeight: 700,
-                                                color: a.promoBalance > 0 ? '#9333ea' : FB.textSecondary,
-                                            }}>
-                                                {a.promoBalance.toLocaleString()}
-                                            </div>
-                                        </div>
+                                <p style={{ fontSize: 12, color: FB.textSecondary, margin: '0 0 10px' }}>
+                                    Add promo chips to the club balance. These can then be distributed to agents.
+                                </p>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <input
+                                        type="number"
+                                        value={mintAmount}
+                                        onChange={e => setMintAmount(e.target.value)}
+                                        placeholder="Amount to mint"
+                                        style={{ ...inputStyle, flex: 1 }}
+                                    />
+                                    <button
+                                        onClick={handleMint}
+                                        disabled={minting}
+                                        style={{
+                                            background: '#7c3aed', color: '#fff', border: 'none',
+                                            borderRadius: 8, padding: '10px 20px', fontWeight: 700,
+                                            cursor: minting ? 'not-allowed' : 'pointer',
+                                            opacity: minting ? 0.5 : 1, whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {minting ? '...' : 'Mint'}
+                                    </button>
+                                </div>
+                                {/* Quick mint buttons */}
+                                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                                    {[1000, 5000, 10000, 50000].map(amt => (
+                                        <button key={amt} onClick={() => setMintAmount(String(amt))} style={{
+                                            background: FB.hover, color: FB.textSecondary, border: 'none',
+                                            borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer',
+                                        }}>{amt >= 1000 ? `${amt / 1000}K` : amt}</button>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Grant to Agent */}
+                        <div style={{
+                            background: FB.cardBg, borderRadius: 10, padding: 16,
+                            border: `1px solid ${FB.border}`, marginBottom: 16,
+                        }}>
+                            <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
+                                Grant Promo to Agent
+                            </h4>
+                            {agents.length === 0 ? (
+                                <p style={{ fontSize: 12, color: FB.textSecondary }}>
+                                    No agents in this club. Promote a member to agent first.
+                                </p>
+                            ) : (
+                                <>
+                                    <div style={{ marginBottom: 10 }}>
+                                        <label style={{ display: 'block', fontSize: 12, color: FB.textSecondary, marginBottom: 4 }}>
+                                            Select Agent
+                                        </label>
+                                        <select
+                                            value={grantTarget}
+                                            onChange={e => setGrantTarget(e.target.value)}
+                                            style={inputStyle}
+                                        >
+                                            <option value="">Choose agent...</option>
+                                            {agents.filter(a => a.status !== 'suspended').map(a => (
+                                                <option key={a.userId} value={a.userId}>
+                                                    {a.displayName} — Promo: {a.promoBalance.toLocaleString()}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="number"
+                                            value={grantAmount}
+                                            onChange={e => setGrantAmount(e.target.value)}
+                                            placeholder="Amount"
+                                            style={{ ...inputStyle, flex: 1 }}
+                                        />
+                                        <button
+                                            onClick={handleGrant}
+                                            disabled={granting}
+                                            style={{
+                                                background: '#31A24C', color: '#fff', border: 'none',
+                                                borderRadius: 8, padding: '10px 20px', fontWeight: 700,
+                                                cursor: granting ? 'not-allowed' : 'pointer',
+                                                opacity: granting ? 0.5 : 1, whiteSpace: 'nowrap',
+                                            }}
+                                        >
+                                            {granting ? '...' : 'Grant'}
+                                        </button>
+                                    </div>
+                                </>
                             )}
-                        </>
-                    )}
+                        </div>
+
+                        {/* Agent Promo Balances */}
+                        {agents.length > 0 && (
+                            <div style={{
+                                background: FB.cardBg, borderRadius: 10, padding: 16,
+                                border: `1px solid ${FB.border}`,
+                            }}>
+                                <h4 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: FB.textPrimary }}>
+                                    Agent Promo Balances
+                                </h4>
+                                {agents.map(a => (
+                                    <div key={a.userId} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '8px 0', borderBottom: `1px solid ${FB.border}`,
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{
+                                                width: 32, height: 32, borderRadius: '50%',
+                                                background: a.avatarUrl ? `url(${a.avatarUrl}) center/cover` : '#F5A623',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: 14, color: '#fff', overflow: 'hidden',
+                                            }}>
+                                                {!a.avatarUrl && (a.displayName?.[0] || '?')}
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: 13, fontWeight: 600, color: FB.textPrimary }}>
+                                                    {a.displayName}
+                                                </div>
+                                                <div style={{ fontSize: 11, color: FB.textSecondary }}>
+                                                    {a.status === 'suspended' ? ' Suspended' : `Commission: ${((a.commissionRate || 0) * 100).toFixed(0)}%`}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: 15, fontWeight: 700,
+                                            color: a.promoBalance > 0 ? '#9333ea' : FB.textSecondary,
+                                        }}>
+                                            {a.promoBalance.toLocaleString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
                 </div>
             </div>
 

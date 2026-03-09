@@ -16,8 +16,8 @@ import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import CreateGameModal from '../../../src/components/club-arena/CreateGameModal';
 import { BBJBanner, BBJModal, useBBJ } from '../../../src/components/club-arena/BBJDisplay';
 import useDebounce from '../../../src/hooks/useDebounce';
-import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import useTrainingBus from '../../../src/hooks/useTrainingBus'; import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import SkeletonDark from '../../../src/components/ui/SkeletonDark';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 import useWalletData from '../../../src/hooks/useWalletData';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
@@ -488,7 +488,12 @@ export default function ClubLobby() {
                     </button>
 
                     {isLoading ? (
-                        <div style={styles.loading}>Loading Club...</div>
+                        <div style={{ marginTop: 24 }}>
+                            <SkeletonDark variant="poker-room" />
+                            <div style={{ marginTop: 20 }}>
+                                <SkeletonDark variant="table-rows" rows={4} />
+                            </div>
+                        </div>
                     ) : !club ? (
                         <div style={styles.error}>
                             <h2 style={{ color: '#ff4d4d', marginBottom: '16px' }}>Club Not Found</h2>
