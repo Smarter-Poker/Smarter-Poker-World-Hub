@@ -15,9 +15,11 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import Card from '../../../src/components/training/Card';
 
 const SUITS = ['♠', '♥', '♦', '♣'];
 const SUIT_COLORS = { '♠': '#e2e8f0', '♥': '#ef4444', '♦': '#3b82f6', '♣': '#22c55e' };
+const UNICODE_TO_SUIT = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' };
 const SHORT_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6'];
 
 // Short Deck Rule Differences
@@ -239,10 +241,8 @@ export default function ShortDeckTrainerPage() {
                             {/* Hero Cards */}
                             <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 24 }}>
                                 {heroCards.map((card, i) => (
-                                    <motion.div key={i} whileHover={{ y: -4 }}
-                                        style={{ width: 88, height: 124, background: '#fff', borderRadius: 8, border: '1px solid #cbd5e1', boxShadow: '0 8px 24px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', padding: 8 }}>
-                                        <div style={{ fontSize: 28, fontWeight: 900, color: '#000', lineHeight: 1 }}>{card[0]}</div>
-                                        <div style={{ fontSize: 28, color: SUIT_COLORS[card[1]] || '#000', lineHeight: 1, marginTop: 2 }}>{card[1]}</div>
+                                    <motion.div key={i} whileHover={{ y: -4 }}>
+                                        <Card rank={card[0]} suit={UNICODE_TO_SUIT[card[1]] || card[1]} size="large" />
                                     </motion.div>
                                 ))}
                             </div>
@@ -301,9 +301,8 @@ export default function ShortDeckTrainerPage() {
                                     {/* Hero Cards Display */}
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
                                         {quiz.hero.map((card, i) => (
-                                            <div key={i} style={{ width: 60, height: 84, background: '#fff', borderRadius: 6, display: 'flex', flexDirection: 'column', padding: 6 }}>
-                                                <div style={{ fontSize: 20, fontWeight: 900, color: '#000' }}>{card[0]}</div>
-                                                <div style={{ fontSize: 18, color: SUIT_COLORS[card[1]] || '#000' }}>{card[1]}</div>
+                                            <div key={i}>
+                                                <Card rank={card[0]} suit={UNICODE_TO_SUIT[card[1]] || card[1]} size="medium" />
                                             </div>
                                         ))}
                                     </div>

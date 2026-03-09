@@ -27,6 +27,7 @@ import { classifyAllHands, groupByClassification } from '../../../src/utils/poke
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
+import Card from '../../../src/components/training/Card';
 
 // Dynamic imports for new Phase 34 components (avoid SSR issues)
 const BlockerScorePanel = dynamic(() => import('../../../src/components/training/BlockerScorePanel'), { ssr: false });
@@ -77,31 +78,7 @@ const ACTION_COLORS = {
     'f': '#64748b', 'F': '#64748b',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// BOARD CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-function CardDisplay({ card, size = 36 }) {
-    if (!card) return null;
-    const rank = card[0] === 'T' ? '10' : card[0].toUpperCase();
-    const suit = card[1];
-    const suitSymbol = { s: '♠', h: '♥', d: '♦', c: '♣' }[suit] || '?';
-    const suitColor = { s: '#e2e8f0', h: '#ef4444', d: '#3b82f6', c: '#22c55e' }[suit] || '#fff';
-
-    return (
-        <div style={{
-            width: size, height: size * 1.4,
-            background: 'linear-gradient(145deg, #fff 0%, #e2e8f0 100%)',
-            borderRadius: 4, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            fontWeight: 800, lineHeight: 1,
-        }}>
-            <span style={{ fontSize: size * 0.4, color: suitColor }}>{rank}</span>
-            <span style={{ fontSize: size * 0.35, color: suitColor }}>{suitSymbol}</span>
-        </div>
-    );
-}
+// Card rendering uses shared Card.tsx custom PNG deck
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SPOT LIST ITEM
@@ -128,7 +105,7 @@ function SpotCard({ spot, isSelected, onClick, isBookmarked, onToggleBookmark })
         >
             <div style={{ display: 'flex', gap: 2 }}>
                 {(spot.board || []).map((card, i) => (
-                    <CardDisplay key={i} card={card} size={22} />
+                    <Card key={i} rank={card[0]?.toUpperCase()} suit={card[1]?.toLowerCase()} size="tiny" />
                 ))}
             </div>
             <div style={{ flex: 1 }}>
@@ -1103,7 +1080,7 @@ export default function SolutionsBrowser() {
                                             marginTop: 10, padding: '8px 12px', borderRadius: 8,
                                             background: 'rgba(255,255,255,0.02)', fontSize: 10, color: '#64748b',
                                         }}>
-                                            Green = positive EV, Red = negative. Values in big blinds.
+                                            Green = positive EV, Red = negative. Values in Big-Blinds.
                                         </div>
                                     </div>
                                 ) : activeTab === 'equity' ? (

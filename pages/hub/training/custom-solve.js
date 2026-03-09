@@ -37,7 +37,7 @@ const FORMAT_OPTIONS = [
     { id: 'sng', label: 'Sit & Go', icon: '🎯' },
 ];
 
-const ANTE_OPTIONS = ['None', '10% Ante', '12.5% Ante', 'BB Ante (1bb)', 'Straddle (2bb)'];
+const ANTE_OPTIONS = ['None', '10% Ante', '12.5% Ante', 'BB Ante (1BB)', 'Straddle (2BB)'];
 
 const BOARD_TEXTURES = [
     { id: 'any', label: 'Any Board' },

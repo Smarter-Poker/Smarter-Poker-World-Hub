@@ -19,15 +19,13 @@ import HandReplayViewer from '../../../src/components/training/HandReplayViewer'
 import PositionStatsPanel from '../../../src/components/training/PositionStatsPanel';
 import EVGraph from '../../../src/components/training/EVGraph';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import DeckCard from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════════════════
 
-const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
-const SUITS = ['s', 'h', 'd', 'c'];
-const SUIT_SYMBOLS = { s: '♠', h: '♥', d: '♦', c: '♣' };
-const SUIT_COLORS = { s: '#e2e8f0', h: '#ef4444', d: '#3b82f6', c: '#22c55e' };
+// Deck constants are now local to createDeck; card rendering uses shared Card.tsx
 const POSITIONS_6MAX = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];
 
 const STREET_NAMES = { preflop: 'Preflop', flop: 'Flop', turn: 'Turn', river: 'River' };
@@ -35,6 +33,8 @@ const STREET_COLORS = { preflop: '#7c3aed', flop: '#22c55e', turn: '#3b82f6', ri
 
 // Simple deck for dealing
 function createDeck() {
+    const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    const SUITS = ['s', 'h', 'd', 'c'];
     const deck = [];
     for (const r of RANKS) {
         for (const s of SUITS) {
@@ -53,27 +53,16 @@ function shuffleDeck(deck) {
     return d;
 }
 
-function Card({ card, size = 40, delay = 0 }) {
+// Card rendering uses shared Card.tsx custom PNG deck
+function CardRenderer({ card, size = 40, delay = 0 }) {
     if (!card) return null;
-    const rank = card[0] === 'T' ? '10' : card[0].toUpperCase();
-    const suit = card[card.length - 1];
     return (
         <motion.div
             initial={{ opacity: 0, y: -40, rotateY: 180, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, rotateY: 0, scale: 1 }}
             transition={{ delay, type: 'spring', stiffness: 200, damping: 20 }}
-            style={{
-                width: size, height: size * 1.4,
-                background: 'linear-gradient(145deg, #fff 0%, #e8e8e8 100%)',
-                borderRadius: Math.max(3, size * 0.08),
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                fontWeight: 800, lineHeight: 1,
-                zIndex: 10, position: 'relative'
-            }}>
-            <span style={{ fontSize: size * 0.38, color: SUIT_COLORS[suit] }}>{rank}</span>
-            <span style={{ fontSize: size * 0.3, color: SUIT_COLORS[suit] }}>{SUIT_SYMBOLS[suit]}</span>
+        >
+            <DeckCard rank={card[0]} suit={card[card.length - 1]} size={size <= 30 ? 'tiny' : size <= 55 ? 'small' : 'medium'} />
         </motion.div>
     );
 }
@@ -84,18 +73,8 @@ function FaceDownCard({ size = 40, delay = 0 }) {
             initial={{ opacity: 0, y: -40, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ delay, type: 'spring', stiffness: 200, damping: 20 }}
-            style={{
-                width: size, height: size * 1.4, borderRadius: Math.max(3, size * 0.08),
-                background: 'linear-gradient(145deg, #1e3a5f, #0f2744)',
-                border: '1px solid #2d5a8b',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            }}>
-            <div style={{
-                width: size * 0.6, height: size * 0.9,
-                borderRadius: Math.max(2, size * 0.05),
-                background: 'repeating-linear-gradient(45deg, #1e3a5f, #1e3a5f 2px, #2d5a8b 2px, #2d5a8b 4px)',
-            }} />
+        >
+            <DeckCard faceDown={true} size={size <= 30 ? 'tiny' : size <= 55 ? 'small' : 'medium'} />
         </motion.div>
     );
 }
@@ -781,7 +760,7 @@ function SessionSummary({ handResults, onPlayAgain, onExit }) {
                                     #{h.handNumber}
                                 </span>
                                 <div style={{ display: 'flex', gap: 2 }}>
-                                    {(h.cards || []).map((c, ci) => <Card key={ci} card={c} size={18} />)}
+                                    {(h.cards || []).map((c, ci) => <CardRenderer key={ci} card={c} size={18} />)}
                                 </div>
                                 <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>{h.position}</span>
                                 <span style={{
@@ -1054,7 +1033,7 @@ export default function PlayModePage() {
                                 }}>
                                     {game.board.length > 0 ? (
                                         game.board.map((c, i) => (
-                                            <Card key={i} card={c} size={44} delay={i * 0.1} />
+                                            <CardRenderer key={i} card={c} size={44} delay={i * 0.1} />
                                         ))
                                     ) : (
                                         <div style={{ display: 'flex', gap: 4 }}>
@@ -1075,7 +1054,7 @@ export default function PlayModePage() {
                                         display: 'flex', justifyContent: 'center', gap: 4, position: 'relative'
                                     }}>
                                         {game.heroCards.map((c, i) => (
-                                            <Card key={i} card={c} size={52} delay={0.3 + i * 0.15} />
+                                            <CardRenderer key={i} card={c} size={52} delay={0.3 + i * 0.15} />
                                         ))}
 
                                         {/* Speed Bonus Animation */}
@@ -1258,14 +1237,14 @@ export default function PlayModePage() {
                                 <div>
                                     <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Your Hand</div>
                                     <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
-                                        {game.heroCards.map((c, i) => <Card key={i} card={c} size={36} />)}
+                                        {game.heroCards.map((c, i) => <CardRenderer key={i} card={c} size={36} />)}
                                     </div>
                                 </div>
                                 {game.board.length > 0 && (
                                     <div>
                                         <div style={{ fontSize: 9, color: '#64748b', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>Board</div>
                                         <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
-                                            {game.board.map((c, i) => <Card key={i} card={c} size={36} />)}
+                                            {game.board.map((c, i) => <CardRenderer key={i} card={c} size={36} />)}
                                         </div>
                                     </div>
                                 )}

@@ -55,7 +55,7 @@ const GAME_TYPES = [
 const SCENARIOS = [
     { value: 'rfi', label: 'RFI (Raise First In)', desc: 'Open-raising range' },
     { value: 'vs3bet', label: 'Vs 3-Bet', desc: 'Facing a 3-bet after opening' },
-    { value: 'bb_defense', label: 'BB Defense', desc: 'Defending big blind vs open' },
+    { value: 'bb_defense', label: 'BB Defense', desc: 'Defending Big-Blind vs open' },
     { value: 'push_fold', label: 'Push / Fold', desc: 'Short-stack all-in or fold' },
 ];
 

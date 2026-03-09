@@ -105,7 +105,7 @@ td:last-child{text-align:right;font-weight:bold}
 <table>
 <tr><td>⏱️ Time Sales (${cashierData.time.count})</td><td>$${cashierData.time.total.toLocaleString()}</td></tr>
 <tr><td>🎫 Membership Sales (${cashierData.membership.count})</td><td>$${cashierData.membership.total.toLocaleString()}</td></tr>
-<tr><td>🎰 Buy-In Receipts (${cashierData.buyIn.count})</td><td>$${cashierData.buyIn.total.toLocaleString()}</td></tr>
+<tr><td>🎲 Buy-In Receipts (${cashierData.buyIn.count})</td><td>$${cashierData.buyIn.total.toLocaleString()}</td></tr>
 </table>
 <h2>Transactions (${cashierData.transactions.length} total)</h2>
 <table>${cashierData.transactions.slice(0, 50).map(tx => `<tr${(tx.notes || '').includes('VOID') || (tx.notes || '').includes('REFUND') ? ' class="void"' : ''}><td>${tx.player_name} — ${tx.notes || 'Buy-In'}</td><td>$${parseFloat(tx.amount).toLocaleString()}</td></tr>`).join('')}</table>

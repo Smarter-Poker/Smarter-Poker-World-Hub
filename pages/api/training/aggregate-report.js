@@ -87,7 +87,7 @@ function extractPositionFromHash(hash) {
 // Texture display names and colors
 const TEXTURE_META = {
     monotone: { label: 'Monotone', color: '#8b5cf6', icon: '♠♠♠', desc: 'All same suit — flush draws dominate' },
-    trips: { label: 'Trips', color: '#ef4444', icon: '🎰', desc: 'Three of a kind on board — rare' },
+    trips: { label: 'Trips', color: '#ef4444', icon: '🃏', desc: 'Three of a kind on board — rare' },
     paired_two_tone: { label: 'Paired Two-Tone', color: '#f97316', icon: '♦♦♠', desc: 'One pair + flush draw possible' },
     paired_rainbow: { label: 'Paired Rainbow', color: '#f59e0b', icon: '🌈♦♦', desc: 'One pair, no flush draws' },
     connected_two_tone: { label: 'Connected Two-Tone', color: '#3b82f6', icon: '↗♠♦', desc: 'Straight + flush draws — wet' },

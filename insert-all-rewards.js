@@ -97,7 +97,7 @@ const ALL_REWARDS = [
     { id: 'pillar4_return', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'The Return', description: 'Log in after a 48-hour break', base_amount: 10, is_repeatable: false, rarity: 'common', icon: '👋' },
     { id: 'pillar4_marathon_man', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'Marathon Man', description: 'Complete 10 levels in 24 hours', base_amount: 150, is_repeatable: false, rarity: 'epic', icon: '🏃' },
     { id: 'pillar4_speed_runner', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'Speed Runner', description: 'Complete level under 60 seconds', base_amount: 25, is_repeatable: false, rarity: 'uncommon', icon: '⚡' },
-    { id: 'pillar4_dedicated', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'The Dedicated', description: 'Reach 500 total hands played', base_amount: 200, is_repeatable: false, rarity: 'epic', icon: '🎰' },
+    { id: 'pillar4_dedicated', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'The Dedicated', description: 'Reach 500 total hands played', base_amount: 200, is_repeatable: false, rarity: 'epic', icon: '🏆' },
     { id: 'pillar4_silver_member', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'Silver Member', description: 'Lifetime diamonds reaches 5,000', base_amount: 250, is_repeatable: false, rarity: 'rare', icon: '🥈' },
     { id: 'pillar4_gold_member', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'Gold Member', description: 'Lifetime diamonds reaches 25,000', base_amount: 1000, is_repeatable: false, rarity: 'legendary', icon: '🥇' },
     { id: 'pillar4_diamond_hands', category: 'easter_egg', subcategory: 'streak_loyalty', name: 'Diamond Hands', description: 'Hold 1,000+ diamonds for a week', base_amount: 50, is_repeatable: false, rarity: 'rare', icon: '💎' },
@@ -106,7 +106,7 @@ const ALL_REWARDS = [
     // ═══════════════════════════════════════════════════════════════════════════
     // PILLAR 5: ARENA CHALLENGES & EASTER EGGS (81-100)
     // ═══════════════════════════════════════════════════════════════════════════
-    { id: 'pillar5_jackpot', category: 'easter_egg', subcategory: 'arena_challenges', name: 'The Jackpot', description: 'Random 0.1% chance on any answer', base_amount: 777, is_repeatable: true, rarity: 'legendary', icon: '🎰' },
+    { id: 'pillar5_jackpot', category: 'easter_egg', subcategory: 'arena_challenges', name: 'The Jackpot', description: 'Random 0.1% chance on any answer', base_amount: 777, is_repeatable: true, rarity: 'legendary', icon: '🏆' },
     { id: 'pillar5_binary_king', category: 'easter_egg', subcategory: 'arena_challenges', name: 'Binary King', description: 'Finish level with exactly 101 XP', base_amount: 20, is_repeatable: false, rarity: 'uncommon', icon: '👑' },
     { id: 'pillar5_comeback', category: 'easter_egg', subcategory: 'arena_challenges', name: 'The Comeback', description: 'Pass after failing first 3 questions', base_amount: 50, is_repeatable: false, rarity: 'rare', icon: '💪' },
     { id: 'pillar5_lucky_seven', category: 'easter_egg', subcategory: 'arena_challenges', name: 'Lucky Seven', description: 'Earn exactly 77 diamonds in session', base_amount: 7, is_repeatable: false, rarity: 'uncommon', icon: '7️⃣' },

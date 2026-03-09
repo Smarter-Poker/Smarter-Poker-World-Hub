@@ -32,7 +32,7 @@ const PRESETS = [
     {
         id: 'bb-defense',
         name: 'BB Defense',
-        desc: 'Practice defending your big blind vs opens',
+        desc: 'Practice defending your Big-Blind vs opens',
         config: { format: 'cash', positions: ['BB'], streets: ['preflop'], stackMin: 80, stackMax: 200, scenarios: ['vs_raise'] },
         color: '#3b82f6',
     },

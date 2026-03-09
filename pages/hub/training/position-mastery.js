@@ -43,8 +43,8 @@ const POSITIONS = [
     { id: 'HJ', name: 'Hijack', short: 'HJ', desc: 'Middle-late position, moderate opens' },
     { id: 'MP', name: 'Middle', short: 'MP', desc: 'Middle position, tighter range' },
     { id: 'UTG', name: 'Under The Gun', short: 'UTG', desc: 'First to act, tightest range' },
-    { id: 'SB', name: 'Small Blind', short: 'SB', desc: 'Forced bet, worst postflop position' },
-    { id: 'BB', name: 'Big Blind', short: 'BB', desc: 'Forced bet, defends vs opens' },
+    { id: 'SB', name: 'Small-Blind', short: 'SB', desc: 'Forced bet, worst postflop position' },
+    { id: 'BB', name: 'Big-Blind', short: 'BB', desc: 'Forced bet, defends vs opens' },
 ];
 
 const POSITION_COLORS = {

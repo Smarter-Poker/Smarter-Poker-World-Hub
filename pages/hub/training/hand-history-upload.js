@@ -13,6 +13,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND HISTORY PARSERS — Multi-Site Support (PokerStars, GGPoker, 888, WPN)
@@ -232,29 +233,7 @@ function parseHandHistory(text) {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════════════
-// HAND CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-const SUIT_MAP = { h: { s: '\u2665', c: '#ef4444' }, d: { s: '\u2666', c: '#3b82f6' }, c: { s: '\u2663', c: '#22c55e' }, s: { s: '\u2660', c: '#94a3b8' } };
-
-function MiniCard({ card }) {
-    if (!card || card.length < 2) return null;
-    const rank = card[0].toUpperCase();
-    const suit = SUIT_MAP[card[1].toLowerCase()] || { s: '?', c: '#64748b' };
-    return (
-        <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 1,
-            padding: '2px 5px', borderRadius: 4,
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            fontSize: 12, fontWeight: 700,
-        }}>
-            <span style={{ color: '#e2e8f0' }}>{rank}</span>
-            <span style={{ color: suit.c, fontSize: 10 }}>{suit.s}</span>
-        </span>
-    );
-}
+// Card rendering uses shared Card.tsx custom PNG deck
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GTO COACHING ENGINE — 5-Tier Grading (Best → Blunder) + EV Loss
@@ -510,11 +489,11 @@ function AnalyzedHandRow({ hand, index }) {
                 </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
-                        {hand.heroCards.map((c, i) => <MiniCard key={i} card={c} />)}
+                        {hand.heroCards.map((c, i) => <Card key={i} rank={c[0]?.toUpperCase()} suit={c[1]?.toLowerCase()} size="tiny" />)}
                         {hand.board.length > 0 && (
                             <>
                                 <span style={{ color: '#475569', margin: '0 2px' }}>|</span>
-                                {hand.board.map((c, i) => <MiniCard key={`b${i}`} card={c} />)}
+                                {hand.board.map((c, i) => <Card key={`b${i}`} rank={c[0]?.toUpperCase()} suit={c[1]?.toLowerCase()} size="tiny" />)}
                             </>
                         )}
                     </div>

@@ -18,10 +18,10 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import { idbSet, idbDelete, idbGet } from '../../../src/lib/idbCacheStore';
 
 const TREES = [
-    { id: '100bb-6max', label: '100bb 6-Max Cash', size: '1.2 GB', desc: 'Core solver paths for standard online 6-max.', time: 'Complete' },
-    { id: '20bb-mtt', label: '20bb MTT Push/Fold', size: '450 MB', desc: 'Short stack tournament ranges and reshoves.', time: 'Complete' },
-    { id: 'hu-40bb', label: 'Head-Up 40bb', size: '800 MB', desc: 'Deep HU SNGs and late stage tournament HU.', time: 'Complete' },
-    { id: 'live-200bb', label: 'Live 200bb Deep', size: '2.4 GB', desc: 'Exploitative deep stack mapping for live $2/$5.', time: 'Complete' }
+    { id: '100bb-6max', label: '100BB 6-Max Cash', size: '1.2 GB', desc: 'Core solver paths for standard online 6-max.', time: 'Complete' },
+    { id: '20bb-mtt', label: '20BB MTT Push/Fold', size: '450 MB', desc: 'Short stack tournament ranges and reshoves.', time: 'Complete' },
+    { id: 'hu-40bb', label: 'Head-Up 40BB', size: '800 MB', desc: 'Deep HU SNGs and late stage tournament HU.', time: 'Complete' },
+    { id: 'live-200bb', label: 'Live 200BB Deep', size: '2.4 GB', desc: 'Exploitative deep stack mapping for live $2/$5.', time: 'Complete' }
 ];
 
 // Offline Cache TTL (10 years to simulate permanent pinning)

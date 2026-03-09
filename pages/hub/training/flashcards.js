@@ -15,7 +15,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 const CARDS = [
     // Original 30
-    { id: 1, cat: 'Preflop', q: 'What is the standard open raise size from any position?', a: '2.5x the big blind (2.5BB). Larger sizes from EP are outdated.' },
+    { id: 1, cat: 'Preflop', q: 'What is the standard open raise size from any position?', a: '2.5x the Big-Blind (2.5BB). Larger sizes from EP are outdated.' },
     { id: 2, cat: 'Preflop', q: 'What does "RFI" stand for?', a: 'Raise First In — you are the first player to voluntarily enter the pot with a raise.' },
     { id: 3, cat: 'Preflop', q: 'Which position has the tightest opening range?', a: 'UTG (Under The Gun). Typically opens ~15% of hands in 6-max.' },
     { id: 4, cat: 'Preflop', q: 'What is a 3-bet?', a: 'A re-raise over an initial raise. The blinds count as the first "bet", the open raise is the second.' },
@@ -65,7 +65,7 @@ const CARDS = [
     { id: 46, cat: 'Postflop', q: 'What is "floating"?', a: 'Calling a bet with a weak hand/draw with the intention of taking the pot away on a later street.' },
     { id: 47, cat: 'Theory', q: 'Why is A-K offsuit less valuable than A-K suited?', a: 'Suitedness adds about 2-3% raw equity but significantly increases EQR and playability postflop due to flush potential.' },
     { id: 48, cat: 'Math', q: 'What is the required success frequency for a 1/2 pot bluff to break even?', a: '33.3% (0.5 / 1.5).' },
-    { id: 49, cat: 'Preflop', q: 'What is a typical defense frequency from the Big Blind facing a BTN 2.5x open?', a: 'Very wide, typically 40-50%+ due to closing the action and getting good pot odds.' },
+    { id: 49, cat: 'Preflop', q: 'What is a typical defense frequency from the Big-Blind facing a BTN 2.5x open?', a: 'Very wide, typically 40-50%+ due to closing the action and getting good pot odds.' },
     { id: 50, cat: 'Postflop', q: 'What is a "delayed c-bet"?', a: 'Checking the flop as the preflop aggressor and then betting the turn when checked to.' }
 ];
 

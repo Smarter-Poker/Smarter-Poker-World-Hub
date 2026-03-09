@@ -20,7 +20,7 @@ const LESSONS = [
         desc: 'Open ranges, positions, and sizing fundamentals',
         concepts: [
             'In 6-max poker, there are 6 positions: UTG, HJ, CO, BTN, SB, BB. Each has a different opening range — tighter from early position, wider from late.',
-            'The standard open raise is 2.5x the big blind from any position. Do NOT vary your sizing based on hand strength — this gives away information.',
+            'The standard open raise is 2.5x the Big-Blind from any position. Do NOT vary your sizing based on hand strength — this gives away information.',
             'Your BTN opening range should be ~45% of hands. Your UTG range should be ~15%. This asymmetry exists because of positional advantage.',
         ],
         quiz: [
@@ -90,7 +90,7 @@ const LESSONS = [
         quiz: [
             { q: 'When should you double barrel the turn?', opts: ['Always', 'When the card improves your range', 'Only with the nuts', 'Never, always check'], answer: 1 },
             { q: 'What should you do with top pair weak kicker on the turn?', opts: ['Bet big', 'Check back', 'Go all-in', 'Fold'], answer: 1 },
-            { q: 'An overcard on the turn generally favors:', opts: ['The caller', 'The preflop raiser', 'Neither player', 'The big blind'], answer: 1 },
+            { q: 'An overcard on the turn generally favors:', opts: ['The caller', 'The preflop raiser', 'Neither player', 'The Big-Blind'], answer: 1 },
             { q: 'Why does the pot grow fast on the turn?', opts: ['Blinds increase', 'Geometric betting compounds', 'Antes kick in', 'More players'], answer: 1 },
             { q: 'A turn card that pairs the board favors:', opts: ['The caller', 'Both equally', 'The preflop aggressor', 'Neither'], answer: 2 },
         ],

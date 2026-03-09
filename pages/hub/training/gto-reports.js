@@ -15,7 +15,7 @@ import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GTO BASELINE FREQUENCIES (6-Max Cash 100bb)
+// GTO BASELINE FREQUENCIES (6-Max Cash 100BB)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const GTO_BASELINES = {

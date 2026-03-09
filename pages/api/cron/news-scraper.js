@@ -126,7 +126,7 @@ const NEWS_SOURCES = [
         type: 'scrape',
         url: 'https://msptpoker.com/pages/Magazine.aspx',
         baseUrl: 'https://msptpoker.com',
-        icon: '🎰',
+        icon: '🃏',
         category: 'tournament'
     },
     {

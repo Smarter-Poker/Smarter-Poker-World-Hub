@@ -14,6 +14,7 @@ import { parseHandHistories, getHeroDecisions, cardsToNotation } from '../../../
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { classifyMove, CLASSIFICATION_CONFIG, MOVE_CLASSIFICATIONS } from '../../../src/hooks/useGTOWScore';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION HELPERS
@@ -34,24 +35,7 @@ const STREET_COLORS = {
     river: '#ef4444',
 };
 
-function CardDisplay({ card, size = 28 }) {
-    if (!card) return null;
-    const rank = card[0] === 'T' ? '10' : card[0].toUpperCase();
-    const suit = card[card.length - 1];
-    const suitSymbol = { s: '♠', h: '♥', d: '♦', c: '♣' }[suit] || '?';
-    const suitColor = { s: '#e2e8f0', h: '#ef4444', d: '#3b82f6', c: '#22c55e' }[suit] || '#fff';
-
-    return (
-        <span style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: size, height: size * 1.3, background: '#fff', borderRadius: 3,
-            fontSize: size * 0.35, fontWeight: 800, color: suitColor,
-            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-        }}>
-            {rank}{suitSymbol}
-        </span>
-    );
-}
+// Card rendering uses shared Card.tsx custom PNG deck
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HAND CARD
@@ -97,7 +81,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
 
                 {/* Hero Cards */}
                 <div style={{ display: 'flex', gap: 2 }}>
-                    {hand.heroCards.map((c, i) => <CardDisplay key={i} card={c} size={22} />)}
+                    {hand.heroCards.map((c, i) => <Card key={i} rank={c[0]?.toUpperCase()} suit={c[c.length - 1]?.toLowerCase()} size="tiny" />)}
                 </div>
 
                 <span style={{
@@ -118,7 +102,7 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                 {/* Board preview */}
                 {allBoard.length > 0 && (
                     <div style={{ display: 'flex', gap: 2, marginLeft: 'auto' }}>
-                        {allBoard.map((c, i) => <CardDisplay key={i} card={c} size={18} />)}
+                        {allBoard.map((c, i) => <Card key={i} rank={c[0]?.toUpperCase()} suit={c[c.length - 1]?.toLowerCase()} size="tiny" />)}
                     </div>
                 )}
 
@@ -151,9 +135,9 @@ function HandCard({ hand, index, isExpanded, onToggle }) {
                                     {streetEntry.street}
                                     {streetEntry.street !== 'preflop' && (
                                         <div style={{ display: 'flex', gap: 2, marginLeft: 8 }}>
-                                            {streetEntry.street === 'flop' && hand.board.flop.map((c, i) => <CardDisplay key={i} card={c} size={16} />)}
-                                            {streetEntry.street === 'turn' && hand.board.turn && <CardDisplay card={hand.board.turn} size={16} />}
-                                            {streetEntry.street === 'river' && hand.board.river && <CardDisplay card={hand.board.river} size={16} />}
+                                            {streetEntry.street === 'flop' && hand.board.flop.map((c, i) => <Card key={i} rank={c[0]?.toUpperCase()} suit={c[c.length - 1]?.toLowerCase()} size="tiny" />)}
+                                            {streetEntry.street === 'turn' && hand.board.turn && <Card rank={hand.board.turn[0]?.toUpperCase()} suit={hand.board.turn[hand.board.turn.length - 1]?.toLowerCase()} size="tiny" />}
+                                            {streetEntry.street === 'river' && hand.board.river && <Card rank={hand.board.river[0]?.toUpperCase()} suit={hand.board.river[hand.board.river.length - 1]?.toLowerCase()} size="tiny" />}
                                         </div>
                                     )}
                                 </div>

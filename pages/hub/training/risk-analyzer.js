@@ -136,7 +136,7 @@ export default function RiskAnalyzerPage() {
                                 <span style={{ color: '#00d4ff', fontWeight: 800 }}>{bankroll} BBs</span>
                             </div>
                             <input type="range" min="500" max="10000" step="100" value={bankroll} onChange={e => setBankroll(e.target.value)} style={{ width: '100%', accentColor: '#00d4ff' }} />
-                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>E.g. 25 Buy-ins at 100bb = 2500 BBs</div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>E.g. 25 Buy-ins at 100BB = 2500 BBs</div>
                         </div>
 
                         <motion.button

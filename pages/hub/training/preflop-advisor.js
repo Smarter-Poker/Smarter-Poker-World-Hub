@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import Card from '../../../src/components/training/Card';
 
 function getAuthToken() {
     if (typeof window === 'undefined') return null;
@@ -35,8 +36,6 @@ const RANGES = {
 const POSITIONS = ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const SUITS = ['h', 'd', 'c', 's'];
-const SUIT_COLORS = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
-const SUIT_SYMBOLS = { h: '♥', d: '♦', c: '♣', s: '♠' };
 
 function canonicalHand(c1, c2) {
     const r1 = RANKS.indexOf(c1[0]), r2 = RANKS.indexOf(c2[0]);
@@ -67,16 +66,7 @@ function dealHand() {
     return { c1, c2, pos };
 }
 
-// ── Mini Card component ───────────────────────────────────────────
-function MiniCard({ card }) {
-    const r = card[0], s = card[1];
-    return (
-        <div style={{ width: 64, height: 90, borderRadius: 8, background: '#f8fafc', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-            <span style={{ fontSize: 24, fontWeight: 900, color: SUIT_COLORS[s], lineHeight: 1 }}>{r}</span>
-            <span style={{ fontSize: 20, color: SUIT_COLORS[s] }}>{SUIT_SYMBOLS[s]}</span>
-        </div>
-    );
-}
+// Card rendering uses shared Card.tsx custom PNG deck
 
 export default function PreflopAdvisor() {
     useTrainingBus('preflop-advisor');
@@ -203,8 +193,8 @@ export default function PreflopAdvisor() {
 
                                     {/* Cards */}
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 20 }}>
-                                        <MiniCard card={hand.c1} />
-                                        <MiniCard card={hand.c2} />
+                                        <Card rank={hand.c1[0]} suit={hand.c1[1]} size="small" />
+                                        <Card rank={hand.c2[0]} suit={hand.c2[1]} size="small" />
                                     </div>
 
                                     <p style={{ margin: 0, textAlign: 'center', fontSize: 14, fontWeight: 600, color: '#94a3b8' }}>

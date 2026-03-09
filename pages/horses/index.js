@@ -1197,7 +1197,7 @@ export default function HorsesAdmin() {
             className={activeTab === 'grinder' ? styles.active : ''}
             onClick={() => setActiveTab('grinder')}
           >
-            🎰 Grinder Horses
+            🎲 Grinder Horses
           </button>
           <button
             className={activeTab === 'pipeline' ? styles.active : ''}
@@ -1378,7 +1378,7 @@ export default function HorsesAdmin() {
           {activeTab === 'grinder' && (
             <div className={styles.grinderView}>
               <div className={styles.grinderHeader}>
-                <h2>🎰 Grinder Horses - Poker AI</h2>
+                <h2>🎲 Grinder Horses - Poker AI</h2>
                 <p className={styles.grinderSubtitle}>
                   Same Horses, Second Job: Playing Poker 16hrs/day Across 4 Tables Max in Shark Club
                   & Club JAQK

@@ -129,7 +129,7 @@ export default function BlindDefensePage() {
                         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
                             {scenario.vPos} Opens <span style={{ color: '#fbbf24' }}>{scenario.size}</span>
                         </div>
-                        <div style={{ fontSize: 14, color: '#cbd5e1' }}>You are in the Big Blind</div>
+                        <div style={{ fontSize: 14, color: '#cbd5e1' }}>You are in the Big-Blind</div>
                     </div>
 
                     {/* Hero Cards */}

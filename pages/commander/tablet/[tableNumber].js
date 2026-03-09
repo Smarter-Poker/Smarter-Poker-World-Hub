@@ -81,7 +81,7 @@ function computeSeatPositions(maxSeats) {
 /* ─── Page Component ─────────────────────────────────────────── */
 
 export default function TabletDisplay() {
-  useEffect(() => { busEmit.sessionStart('commander-tablet-tableNumber'); }, []);
+    useEffect(() => { busEmit.sessionStart('commander-tablet-tableNumber'); }, []);
     const router = useRouter();
     const { tableNumber, venue } = router.query;
 
@@ -260,7 +260,7 @@ export default function TabletDisplay() {
 
     // Ticker items
     const tickerItems = [
-        ...promotions.map(p => `🎰 ${p.title || p.name || 'Promotion'}`),
+        ...promotions.map(p => `🎲 ${p.title || p.name || 'Promotion'}`),
         ...announcements.map(a => `📢 ${a.title || a.message || 'Announcement'}`),
     ];
     if (tickerItems.length === 0) tickerItems.push(`Welcome to ${venueName || 'the Poker Room'}`);

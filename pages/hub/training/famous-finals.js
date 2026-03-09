@@ -16,6 +16,7 @@ import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 import { getAccessToken } from '../../../src/lib/authUtils';
+import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HISTORIC FINAL TABLE DATABASE
@@ -204,30 +205,7 @@ const FINAL_TABLES = [
 
 const SERIES_FILTERS = ['All', 'WSOP', 'EPT', 'WPT', 'SHRB'];
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CARD COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════
-
-const SUIT_SYMBOLS = { h: '♥', d: '♦', c: '♣', s: '♠' };
-const SUIT_COLORS = { h: '#ef4444', d: '#3b82f6', c: '#22c55e', s: '#e2e8f0' };
-
-function MiniCard({ card, size = 32 }) {
-    if (!card || card.length < 2) return null;
-    const rank = card[0]?.toUpperCase() || '';
-    const suit = card[1]?.toLowerCase() || '';
-    return (
-        <div style={{
-            width: size, height: size * 1.35, borderRadius: 4,
-            background: '#fff', color: SUIT_COLORS[suit] || '#000',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            fontSize: size * 0.38, fontWeight: 900, lineHeight: 1,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.3)', border: '1px solid rgba(0,0,0,0.1)',
-        }}>
-            <span>{rank}</span>
-            <span style={{ fontSize: size * 0.32 }}>{SUIT_SYMBOLS[suit] || ''}</span>
-        </div>
-    );
-}
+// Card rendering uses shared Card.tsx custom PNG deck
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
@@ -407,7 +385,7 @@ export default function FamousFinalsPage() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                                     <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>YOUR HAND</span>
                                     <div style={{ display: 'flex', gap: 4 }}>
-                                        {currentSpot.hand.map((c, i) => <MiniCard key={i} card={c} size={36} />)}
+                                        {currentSpot.hand.map((c, i) => <Card key={i} rank={c[0]?.toUpperCase()} suit={c[1]?.toLowerCase()} size="tiny" />)}
                                     </div>
                                 </div>
 
@@ -416,7 +394,7 @@ export default function FamousFinalsPage() {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                                         <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>BOARD</span>
                                         <div style={{ display: 'flex', gap: 4 }}>
-                                            {currentSpot.board.map((c, i) => <MiniCard key={i} card={c} size={36} />)}
+                                            {currentSpot.board.map((c, i) => <Card key={i} rank={c[0]?.toUpperCase()} suit={c[1]?.toLowerCase()} size="tiny" />)}
                                         </div>
                                     </div>
                                 )}

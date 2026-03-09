@@ -17,7 +17,7 @@ import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GTO BASELINES — Optimal frequencies by position (6-max Cash, 100bb)
+// GTO BASELINES — Optimal frequencies by position (6-max Cash, 100BB)
 // ═══════════════════════════════════════════════════════════════════════════
 
 const POSITIONS = ['UTG', 'MP', 'CO', 'BTN', 'SB', 'BB'];

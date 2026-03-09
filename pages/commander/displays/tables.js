@@ -530,10 +530,10 @@ export default function TablesDisplay() {
     return (
       <CommanderLayout title="Table Status Display" backHref="/commander/dashboard?card=displays">
         <SEOHead
-                title="Commander — Tables Display"
-                description="Club Commander Poker Room Management Tool."
-                noindex={true}
-              />
+          title="Commander — Tables Display"
+          description="Club Commander Poker Room Management Tool."
+          noindex={true}
+        />
         <div style={{
           position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column',
           background: 'radial-gradient(ellipse at 50% 45%, #0f1a12 0%, #0c1210 25%, #080d0b 50%, #050808 75%, #020303 100%)',
@@ -849,7 +849,7 @@ export default function TablesDisplay() {
             }}>
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
                 <div style={{ fontSize: 36, marginBottom: 8 }}>
-                  {showScanner.type === 'dealer' ? '🎰' : '📸'}
+                  {showScanner.type === 'dealer' ? '🃏' : '📸'}
                 </div>
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: 0 }}>
                   {showScanner.type === 'dealer' ? 'Scan Dealer QR Code' : `Scan Player for Seat ${showScanner.seatNumber}`}

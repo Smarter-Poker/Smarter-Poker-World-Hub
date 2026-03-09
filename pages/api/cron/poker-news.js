@@ -49,7 +49,7 @@ const NEWS_SOURCES = [
     {
         name: 'PokerListings',
         rss: 'https://www.pokerlistings.com/feed',
-        icon: '🎰',
+        icon: '🃏',
         priority: 3
     },
     {

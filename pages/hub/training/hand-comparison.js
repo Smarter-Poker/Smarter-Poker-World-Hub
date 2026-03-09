@@ -21,6 +21,7 @@ import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
+import Card from '../../../src/components/training/Card';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // BUS EMITTER (SSR-safe)
@@ -46,7 +47,7 @@ function saveSession(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -229,8 +230,7 @@ function CardPicker({ value, onChange, onClear, label, color, allSelected }) {
             >
                 {value ? (
                     <>
-                        <span style={{ fontSize: 22, fontWeight: 900, color: suitColors[suit] }}>{rank}</span>
-                        <span style={{ fontSize: 18, color: suitColors[suit] }}>{suitSymbols[suit]}</span>
+                        <Card rank={rank} suit={suit} size="medium" />
                         <span style={{ position: 'absolute', top: 2, right: 5, fontSize: 10, color: '#64748b' }}>✕</span>
                     </>
                 ) : (
