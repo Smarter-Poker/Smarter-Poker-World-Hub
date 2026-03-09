@@ -26,7 +26,8 @@ function getVenueUrl(venue) {
 }
 
 export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, onFavorite, onNavigate }) {
-    const trust = getTrustLevel(venue.trust_score);
+    if (!venue) return null;
+    const trust = getTrustLevel(venue.trust_score || 0);
     const detailUrl = getVenueUrl(venue);
 
     return (
@@ -37,7 +38,7 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
                 </svg>
             </button>
             <div className="card-header">
-                <h4>{venue.name}</h4>
+                <h4>{venue.name || 'Unknown Venue'}</h4>
                 <span className="badge venue-type">{VENUE_TYPE_LABELS[venue.venue_type] || venue.venue_type}</span>
             </div>
             <p className="card-location">
@@ -54,11 +55,11 @@ export default function VenueCard({ venue, isFavorited, isNewcomer, hasPromo, on
             )}
             <div className="card-tags">
                 {venue.distance_mi && <span className="tag distance">{venue.distance_mi} mi</span>}
-                {venue.games_offered && venue.games_offered.slice(0, 4).map(g => (
-                    <span key={g} className="tag game">{g}</span>
+                {Array.isArray(venue.games_offered) && venue.games_offered.slice(0, 4).map((g, idx) => (
+                    <span key={g || idx} className="tag game">{g}</span>
                 ))}
             </div>
-            {venue.stakes_cash && venue.stakes_cash.length > 0 && (
+            {Array.isArray(venue.stakes_cash) && venue.stakes_cash.length > 0 && (
                 <p className="card-detail">Stakes: {venue.stakes_cash.slice(0, 3).join(', ')}</p>
             )}
             <div className="card-footer">

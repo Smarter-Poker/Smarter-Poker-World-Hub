@@ -7,7 +7,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 const FEED_REFRESH_MS = 60000; // 1 minute
 
 function timeAgo(dateStr) {
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (!dateStr) return 'Recently';
+    const ts = new Date(dateStr).getTime();
+    if (isNaN(ts)) return 'Recently';
+    const diff = Math.floor((Date.now() - ts) / 1000);
+    if (diff < 0) return 'Just now';
     if (diff < 30) return 'Just now';
     if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
@@ -83,7 +87,8 @@ export default function NearMeNowFeed({ userLocation, venues = [] }) {
 
         try {
             // Live games
-            const liveRes = await fetch('/api/poker/live-games?limit=50');
+            const liveRes = await fetch('/api/poker/live-games?limit=50&active=true');
+            if (!liveRes.ok) throw new Error(`Live games: HTTP ${liveRes.status}`);
             const liveData = await liveRes.json();
             (liveData.games || liveData.data || []).forEach(g => {
                 const venue = venues.find(v => String(v.id) === String(g.venue_id));

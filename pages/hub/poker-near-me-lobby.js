@@ -109,12 +109,19 @@ const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
 ];
 
-// API cache
+// API cache with TTL expiry to prevent memory leaks
 const apiCache = {};
+const API_CACHE_MAX_ENTRIES = 50;
 function cachedFetch(url, ttl = API_CACHE_TTL) {
   const now = Date.now();
   if (apiCache[url] && (now - apiCache[url].time) < ttl) {
     return Promise.resolve(apiCache[url].data);
+  }
+  // Evict stale entries to prevent unbounded growth
+  const keys = Object.keys(apiCache);
+  if (keys.length > API_CACHE_MAX_ENTRIES) {
+    keys.sort((a, b) => apiCache[a].time - apiCache[b].time);
+    keys.slice(0, keys.length - API_CACHE_MAX_ENTRIES + 10).forEach(k => delete apiCache[k]);
   }
   return fetch(url).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -385,7 +392,7 @@ export default function PokerNearMeLobby() {
   const userId = user?.id;
 
   // 🚌 Bus — emit SESSION_START on mount, SESSION_END on unmount
-  useTrainingBus('poker-near-me-lobby');
+  const bus = useTrainingBus('poker-near-me-lobby');
 
   // ─── Core State ───
   const [activePod, setActivePod] = useState(null);
@@ -399,6 +406,7 @@ export default function PokerNearMeLobby() {
   const [showVoiceSearch, setShowVoiceSearch] = useState(false);
   const [selectedVenueForReview, setSelectedVenueForReview] = useState(null);
   const [gpsError, setGpsError] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
   const [searchHistory, setSearchHistory] = useState([]);
   const [preferences, setPreferences] = useState({ geofenceAlerts: true, locationEnabled: true, showNewcomerFriendly: true });
 
@@ -484,6 +492,7 @@ export default function PokerNearMeLobby() {
   // ─── Fetch venues ───
   const fetchVenues = useCallback(async (query = '', pageNum = 0, append = false) => {
     setLoading(true);
+    setFetchError(null);
     try {
       let url = `/api/poker/venues?limit=${PAGE_SIZE}&offset=${pageNum * PAGE_SIZE}`;
       if (query) url += `&search=${encodeURIComponent(query)}`;
@@ -508,6 +517,7 @@ export default function PokerNearMeLobby() {
       setPage(pageNum);
     } catch (err) {
       console.error('Failed to fetch venues:', err);
+      setFetchError('Unable to load venues. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -793,7 +803,9 @@ export default function PokerNearMeLobby() {
     }
     setActivePod(podId);
     setShowPanel(true);
-  }, [activePod]);
+    // Emit TrainingBus event for pod interaction tracking
+    try { bus?.emitHandComplete?.({ action: 'pod_click', pod: podId }); } catch {}
+  }, [activePod, bus]);
 
   const handlePanelClose = useCallback(() => {
     setShowPanel(false);
@@ -888,7 +900,16 @@ export default function PokerNearMeLobby() {
               </div>
             )}
 
-            {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>Loading venues...</div>}
+            {loading && <div style={{ textAlign: 'center', padding: 20, color: 'rgba(200,214,229,0.5)' }}>
+              <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#6ee7ef', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+              Loading venues...
+            </div>}
+            {fetchError && !loading && (
+              <div style={{ textAlign: 'center', padding: 20, marginBottom: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 12, color: '#ef4444' }}>
+                <p style={{ fontSize: 14, marginBottom: 8 }}>{fetchError}</p>
+                <button onClick={() => fetchVenues(searchQuery)} style={{ padding: '6px 16px', borderRadius: 8, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Retry</button>
+              </div>
+            )}
             <div style={{ display: 'grid', gap: 12 }}>
               {venues.map(v => (
                 <VenueCard
@@ -1099,7 +1120,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'alerts':
-        component = <TournamentAlerts userId={userId} userLocation={userLocation} />;
+        component = <TournamentAlerts dailyTournaments={dailyTournaments} userId={userId} userLocation={userLocation} />;
         break;
 
       default:
@@ -1112,7 +1133,7 @@ export default function PokerNearMeLobby() {
     }
 
     return { title: feature.title, component };
-  }, [activePod, venues, tours, series, dailyTournaments, liveGames, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page, fetchDaily, loadMore, handleSortChange, handleFilterChange, favoritedVenues]);
+  }, [activePod, venues, tours, series, dailyTournaments, liveGames, favorites, loading, userLocation, userId, router, handleToggleFavorite, sortBy, showFilters, filters, hasMore, page, fetchDaily, loadMore, handleSortChange, handleFilterChange, favoritedVenues, fetchError, fetchVenues, searchQuery, toursLoaded, seriesLoaded]);
 
   // ─── Live data for the 3D scene (drives visual behavior) ───
   const liveData = useMemo(() => ({
@@ -1288,6 +1309,15 @@ export default function PokerNearMeLobby() {
           </div>
         )}
       </div>
+
+    {/* Global keyframes for inline spinners used in panel loading states */}
+    <style jsx global>{`
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes lobby-panelSlideUp {
+        from { transform: translateY(100%); opacity: 0.5; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+    `}</style>
     </>
   );
 }

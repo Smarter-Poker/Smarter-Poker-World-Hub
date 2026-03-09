@@ -27,14 +27,17 @@ const TOUR_TYPE_LABELS = {
 function formatDate(dateStr) {
     if (!dateStr) return '';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatMoney(amount) {
-    if (!amount) return '';
-    if (amount >= 1000000) return '$' + (amount / 1000000).toFixed(0) + 'M';
-    if (amount >= 1000) return '$' + (amount / 1000).toFixed(0) + 'K';
-    return '$' + amount.toLocaleString();
+    if (amount === null || amount === undefined || amount === '') return '';
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(num)) return '';
+    if (num >= 1000000) return '$' + (num / 1000000).toFixed(0) + 'M';
+    if (num >= 1000) return '$' + (num / 1000).toFixed(0) + 'K';
+    return '$' + num.toLocaleString();
 }
 
 function TourBadge({ tourCode, size = 'normal' }) {
@@ -79,9 +82,9 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
             </div>
             <h4 className="tour-name">{displayName}</h4>
             {displayLocation && <p className="card-location">{displayLocation}</p>}
-            {tour.typical_buyins && (
+            {tour.typical_buyins && (tour.typical_buyins.min || tour.typical_buyins.max) && (
                 <p className="card-detail">
-                    Buy-ins: {formatMoney(tour.typical_buyins.min)} - {formatMoney(tour.typical_buyins.max)}
+                    Buy-ins: {formatMoney(tour.typical_buyins.min)}{tour.typical_buyins.min && tour.typical_buyins.max ? ' - ' : ''}{formatMoney(tour.typical_buyins.max)}
                 </p>
             )}
             {tour.regions && tour.regions.length > 0 && (

@@ -69,7 +69,7 @@ function LiveGameCard({ game, onConfirm, onReport, user }) {
                         {game.venue?.name || game.venue_name || 'Unknown Venue'}
                     </div>
                     <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                        {game.venue?.city || game.venue_city}, {game.venue?.state || game.venue_state}
+                        {game.venue?.city || game.venue_city || ''}{(game.venue?.city || game.venue_city) && (game.venue?.state || game.venue_state) ? ', ' : ''}{game.venue?.state || game.venue_state || ''}
                         {game.distance_miles && (
                             <span style={{ marginLeft: '8px', color: '#00D4FF' }}>
                                 {game.distance_miles.toFixed(1)} mi
@@ -81,13 +81,13 @@ function LiveGameCard({ game, onConfirm, onReport, user }) {
                     <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
                         {formatTimeAgo(game.reported_at)}
                     </div>
-                    {game.confirmation_count > 1 && (
+                    {(game.confirmation_count || 0) > 1 && (
                         <div style={{
                             fontSize: '11px',
                             color: '#22c55e',
                             marginTop: '2px'
                         }}>
-                            {game.confirmation_count} confirmations
+                            {game.confirmation_count} confirmation{game.confirmation_count !== 2 ? 's' : ''}
                         </div>
                     )}
                 </div>

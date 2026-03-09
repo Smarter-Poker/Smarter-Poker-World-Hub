@@ -571,7 +571,12 @@ export default async function handler(req, res) {
         if (hasGps) {
             const userLat = parseFloat(lat);
             const userLng = parseFloat(lng);
-            const maxRadius = parseFloat(radius);
+            const maxRadius = Math.max(0, parseFloat(radius) || 100);
+
+            // Validate GPS coordinates
+            if (isNaN(userLat) || isNaN(userLng) || userLat < -90 || userLat > 90 || userLng < -180 || userLng > 180) {
+                return res.status(400).json({ success: false, error: 'Invalid GPS coordinates. lat must be -90 to 90, lng must be -180 to 180.' });
+            }
 
             venues = venues.map(venue => {
                 const venueLat = venue.latitude ?? venue.lat;

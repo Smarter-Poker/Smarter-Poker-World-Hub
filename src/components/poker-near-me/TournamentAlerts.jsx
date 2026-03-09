@@ -15,11 +15,19 @@ function loadPrefs() {
     } catch { return null; }
 }
 
-function savePrefs(prefs) {
+function savePrefs(prefs, userId) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
         window.dispatchEvent(new CustomEvent('tournament-alerts-sync', { detail: prefs }));
     } catch { /* ignore */ }
+    // Sync to Supabase if userId available (fire-and-forget)
+    if (userId) {
+        fetch('/api/poker/preferences', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, key: 'tournament_alerts', value: prefs }),
+        }).catch(() => { /* silent - localStorage is primary */ });
+    }
 }
 
 function matchesTournament(prefs, tournament) {
@@ -59,10 +67,10 @@ export default function TournamentAlerts({ dailyTournaments = [], userId, authTo
     const [showSetup, setShowSetup] = useState(false);
     const [notificationSent, setNotificationSent] = useState(false);
 
-    // Sync prefs
+    // Sync prefs to localStorage + Supabase
     useEffect(() => {
-        if (typeof window !== 'undefined') savePrefs(prefs);
-    }, [prefs]);
+        if (typeof window !== 'undefined') savePrefs(prefs, userId);
+    }, [prefs, userId]);
 
     // Cross-tab sync
     useEffect(() => {

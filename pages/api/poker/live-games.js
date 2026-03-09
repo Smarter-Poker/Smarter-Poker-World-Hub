@@ -163,17 +163,23 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const { game_id, user_id } = req.query;
+      // Require JWT for deletes — use authenticated user ID, not query param
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) return res.status(401).json({ success: false, error: 'Auth required for deleting games' });
+      const { data: { user: delUser }, error: delAuthErr } = await supabase.auth.getUser(token);
+      if (delAuthErr || !delUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
-      if (!game_id || !user_id) {
-        return res.status(400).json({ success: false, error: 'game_id and user_id are required' });
+      const { game_id } = req.query;
+
+      if (!game_id) {
+        return res.status(400).json({ success: false, error: 'game_id is required' });
       }
 
       const { data, error } = await supabase
         .from('live_games')
         .delete()
         .eq('id', game_id)
-        .eq('user_id', user_id)
+        .eq('user_id', delUser.id)
         .select();
 
       if (error) {
