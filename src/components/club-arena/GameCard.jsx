@@ -33,6 +33,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getGameStickers } from '../../lib/stickerOrchestrator';
+import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
 
 // ─────────────────────────────────────────────────────────────────────
 // VARIANT CONFIG
@@ -172,20 +173,32 @@ function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
   return <span style={S.pill}>{label}</span>;
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// MINI SEAT MAP — dots showing filled/empty seats around table edge
-// ─────────────────────────────────────────────────────────────────────
-function MiniSeatMap({ current, max, accentColor }) {
+function MiniSeatMap({ current, max, accentColor, tableId }) {
   const seats = [];
   for (let i = 0; i < max; i++) {
-    seats.push(
-      <div key={i} style={{
-        width: 5, height: 5, borderRadius: '50%',
-        background: i < current ? accentColor : 'rgba(255,255,255,0.15)',
-        border: i < current ? 'none' : '1px solid rgba(255,255,255,0.1)',
-        boxShadow: i < current ? `0 0 4px ${accentColor}` : 'none',
-      }} />
-    );
+    const filled = i < current;
+    if (filled) {
+      const avatarSrc = resolveAvatarDisplay(null, (tableId || 'table') + '-seat-' + i);
+      seats.push(
+        <div key={i} style={{
+          width: 14, height: 14, borderRadius: '50%', overflow: 'hidden',
+          border: `1.5px solid ${accentColor}`,
+          boxShadow: `0 0 4px ${accentColor}60`,
+          flexShrink: 0,
+        }}>
+          <img src={avatarSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+        </div>
+      );
+    } else {
+      seats.push(
+        <div key={i} style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          flexShrink: 0,
+        }} />
+      );
+    }
   }
   return <div style={{ display: 'flex', gap: 3, alignItems: 'center', justifyContent: 'center' }}>{seats}</div>;
 }
@@ -267,9 +280,9 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
           )}
         </div>
 
-        {/* Mini seat dots below the table */}
+        {/* Mini avatar seats below the table */}
         <div style={S.seatMapRow}>
-          <MiniSeatMap current={cur} max={max} accentColor={vc.accent} />
+          <MiniSeatMap current={cur} max={max} accentColor={vc.accent} tableId={t.id} />
         </div>
       </div>
 

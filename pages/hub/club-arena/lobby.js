@@ -31,6 +31,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -41,7 +45,7 @@ const getAuthToken = async () => {
                 const parsed = JSON.parse(cached);
                 if (parsed?.access_token) return parsed.access_token;
             }
-        } catch(e) { /* corrupted auth cache */ }
+        } catch (e) { /* corrupted auth cache */ }
     } catch (_) { /* localStorage unavailable */ }
 
     // 2. Slow path: ask Supabase (handles token refresh)
@@ -62,7 +66,7 @@ const apiCall = async (endpoint, body) => {
         body: JSON.stringify(body),
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -72,15 +76,15 @@ const apiGet = async (url) => {
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
 
 export default function ClubLobby() {
-        useTrainingBus('club-arena-lobby');
+    useTrainingBus('club-arena-lobby');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);
@@ -184,7 +188,7 @@ const router = useRouter();
             setClub({ ...club, description: newDescription });
             setIsEditingDescription(false);
         } catch (err) {
-            
+
             showToast('Failed to update description.', 'error');
         }
     }
@@ -325,7 +329,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -386,7 +390,7 @@ const router = useRouter();
             chipBc = new BroadcastChannel('smarter_poker_chips_sync');
             chipBc.onmessage = (event) => {
                 if (event.data === 'refresh') {
-                    
+
                     loadClubData();
                 }
             };
@@ -553,6 +557,9 @@ const router = useRouter();
                                     />
                                 </div>
                             )}
+
+                            {/* ═══ CLUB ANNOUNCEMENTS ═══ */}
+                            <ClubAnnouncementBanner clubId={club?.club_id || club?.id} userRole={membership?.role} />
 
                             {/* Club Description */}
                             <div

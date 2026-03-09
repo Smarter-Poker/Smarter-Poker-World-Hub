@@ -4,7 +4,7 @@
    Theme: Futuristic Metal — deep ocean tech aesthetic
    ═══════════════════════════════════════════════════════════════════════════ */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import SEOHead from '../../src/components/seo/SEOHead';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -551,8 +551,8 @@ export default function ClubArenaPage() {
     // ═══════════════════════════════════════════════════════════════════════
     const clubParam = activeClub?.club_id || '';
 
-    // Build carousel items: Shark Club featured + user clubs
-    const carouselItems = (() => {
+    // Build carousel items: Shark Club featured + user clubs (memoized)
+    const carouselItems = useMemo(() => {
         const items = [];
         // Shark Club is ALWAYS the featured card (index 0)
         items.push({
@@ -576,14 +576,20 @@ export default function ClubArenaPage() {
             });
         });
         return items;
-    })();
+    }, [clubs, sharkClubStats, isSharkMember]);
 
     // Carousel scroll state
     const [carouselIndex, setCarouselIndex] = useState(0);
-    const carouselRef = { current: null };
-    const touchStart = { current: 0 };
-    const touchDelta = { current: 0 };
-    const isDragging = { current: false };
+    const touchStartRef = useRef(0);
+    const touchDeltaRef = useRef(0);
+    const isDraggingRef = useRef(false);
+
+    // Reset carousel index when clubs change (e.g. user joins a new club)
+    useEffect(() => {
+        if (carouselIndex >= carouselItems.length) {
+            setCarouselIndex(0);
+        }
+    }, [carouselItems.length, carouselIndex]);
 
     if (isLoading) {
         return (
@@ -639,24 +645,51 @@ export default function ClubArenaPage() {
                     ═══════════════════════════════════════════════════════════════════ */}
                     <div
                         style={S.carouselViewport}
+                        /* ── Touch events (mobile) ── */
                         onTouchStart={(e) => {
-                            touchStart.current = e.touches[0].clientX;
-                            isDragging.current = true;
+                            touchStartRef.current = e.touches[0].clientX;
+                            isDraggingRef.current = true;
                         }}
                         onTouchMove={(e) => {
-                            if (!isDragging.current) return;
-                            touchDelta.current = e.touches[0].clientX - touchStart.current;
+                            if (!isDraggingRef.current) return;
+                            touchDeltaRef.current = e.touches[0].clientX - touchStartRef.current;
                         }}
                         onTouchEnd={() => {
-                            isDragging.current = false;
-                            if (Math.abs(touchDelta.current) > 50) {
-                                if (touchDelta.current < 0 && carouselIndex < carouselItems.length - 1) {
+                            isDraggingRef.current = false;
+                            if (Math.abs(touchDeltaRef.current) > 50) {
+                                if (touchDeltaRef.current < 0 && carouselIndex < carouselItems.length - 1) {
                                     setCarouselIndex(prev => prev + 1);
-                                } else if (touchDelta.current > 0 && carouselIndex > 0) {
+                                } else if (touchDeltaRef.current > 0 && carouselIndex > 0) {
                                     setCarouselIndex(prev => prev - 1);
                                 }
                             }
-                            touchDelta.current = 0;
+                            touchDeltaRef.current = 0;
+                        }}
+                        /* ── Mouse events (desktop) ── */
+                        onMouseDown={(e) => {
+                            touchStartRef.current = e.clientX;
+                            isDraggingRef.current = true;
+                            e.preventDefault(); // Prevent text selection during drag
+                        }}
+                        onMouseMove={(e) => {
+                            if (!isDraggingRef.current) return;
+                            touchDeltaRef.current = e.clientX - touchStartRef.current;
+                        }}
+                        onMouseUp={() => {
+                            if (!isDraggingRef.current) return;
+                            isDraggingRef.current = false;
+                            if (Math.abs(touchDeltaRef.current) > 50) {
+                                if (touchDeltaRef.current < 0 && carouselIndex < carouselItems.length - 1) {
+                                    setCarouselIndex(prev => prev + 1);
+                                } else if (touchDeltaRef.current > 0 && carouselIndex > 0) {
+                                    setCarouselIndex(prev => prev - 1);
+                                }
+                            }
+                            touchDeltaRef.current = 0;
+                        }}
+                        onMouseLeave={() => {
+                            isDraggingRef.current = false;
+                            touchDeltaRef.current = 0;
                         }}
                     >
                         <div style={S.carouselTrack}>
@@ -946,6 +979,11 @@ export default function ClubArenaPage() {
                             </Link>
                         ))}
                     </div>
+
+                    {/* Hide scrollbar CSS for carousel and quick-links */}
+                    <style>{`
+                        .ca-container div::-webkit-scrollbar { display: none; }
+                    `}</style>
 
                 </div>
 

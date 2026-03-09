@@ -398,20 +398,66 @@ class TournamentBridge {
     if (!this.supabase) return;
     try {
       const t = this.tournament;
+
+      // ── Build bounty summary for completed tournaments ──
+      let bountyResults = null;
+      if (status === 'complete' && t.bountyManager) {
+        try {
+          const bm = t.bountyManager;
+          bountyResults = {
+            bountyType: bm.bountyType || t.bountyType || null,
+            totalBountyPool: bm.totalBountyPool || 0,
+            mysteryPhaseActive: bm.mysteryPhaseActive || false,
+            mysteryEnvelopesRemaining: bm.mysteryEnvelopes?.length || 0,
+            awards: (bm.bountyLog || []).map(a => ({
+              playerId: a.playerId,
+              playerName: a.playerName || null,
+              eliminatedId: a.eliminatedId || null,
+              amount: a.amount,
+              type: a.type,
+              timestamp: a.timestamp || null,
+            })),
+            leaderboard: Object.entries(bm.bountyEarnings || {}).map(([pid, amt]) => ({
+              playerId: pid,
+              totalBounties: amt,
+            })).sort((a, b) => b.totalBounties - a.totalBounties),
+          };
+        } catch (bErr) {
+          console.error('[TournamentBridge] Bounty results capture error:', bErr.message);
+        }
+      }
+
+      const updatePayload = {
+        status,
+        current_level: t.currentLevel,
+        players_remaining: t._getActivePlayers?.().length || 0,
+        tables_active: t.tables.size,
+        hands_played: t.handsPlayed || 0,
+        prize_pool: t.prizePool || 0,
+        spin_multiplier: t.spinMultiplier || null,
+        updated_at: new Date().toISOString(),
+        ...(status === 'complete' ? { completed_at: new Date().toISOString() } : {}),
+        ...(status === 'cancelled' ? { cancelled_at: new Date().toISOString() } : {}),
+      };
+
+      // Merge bounty results into the settings JSONB for completed tournaments
+      if (bountyResults) {
+        // Read current settings to merge
+        const { data: existing } = await this.supabase
+          .from('club_tournaments')
+          .select('settings')
+          .eq('id', t.tournamentId)
+          .maybeSingle();
+        const currentSettings = existing?.settings || {};
+        updatePayload.settings = {
+          ...currentSettings,
+          bounty_results: bountyResults,
+        };
+      }
+
       await this.supabase
         .from('club_tournaments')
-        .update({
-          status,
-          current_level: t.currentLevel,
-          players_remaining: t._getActivePlayers?.().length || 0,
-          tables_active: t.tables.size,
-          hands_played: t.handsPlayed || 0,
-          prize_pool: t.prizePool || 0,
-          spin_multiplier: t.spinMultiplier || null,
-          updated_at: new Date().toISOString(),
-          ...(status === 'complete' ? { completed_at: new Date().toISOString() } : {}),
-          ...(status === 'cancelled' ? { cancelled_at: new Date().toISOString() } : {}),
-        })
+        .update(updatePayload)
         .eq('id', t.tournamentId);
     } catch (err) {
       console.error('[TournamentBridge] Persist state error:', err.message);

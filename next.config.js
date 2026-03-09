@@ -53,9 +53,12 @@ const nextConfig = {
   // With 950+ pages, the build needs memory-efficient compilation.
   // workerThreads offloads page compilation to separate workers (lower per-worker memory).
   // cpus limits parallel compilation to prevent 8-core machines from OOMing.
+  // CRITICAL: Only enable in production — in dev mode, workerThreads causes a race
+  // condition where vendor chunks get deleted mid-request, triggering
+  // "Cannot find module './chunks/vendor-chunks/next.js'" 500 errors.
   experimental: {
-    workerThreads: true,
-    cpus: 4,
+    workerThreads: process.env.NODE_ENV === 'production',
+    cpus: process.env.NODE_ENV === 'production' ? 4 : undefined,
   },
   // ─── Dev Server Memory Management ──────────────────────────────────────────
   // With 952 pages, the dev server compiles pages on-demand and keeps them in memory.

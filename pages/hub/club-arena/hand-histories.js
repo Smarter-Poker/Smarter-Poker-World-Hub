@@ -12,8 +12,9 @@ import { getAuthUser } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import useWalletData from '../../../src/hooks/useWalletData';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 
 const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
@@ -684,7 +685,8 @@ export default function HandHistories() {
                                                     {sd.actions.map((a, ai) => {
                                                         const { name, type, amt } = aLabel(a);
                                                         return (
-                                                            <div key={ai} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', fontSize: 12 }}>
+                                                            <div key={ai} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', fontSize: 12 }}>
+                                                                <img src={resolveAvatarDisplay(null, a.playerId)} alt="" style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
                                                                 <span style={{ color: FB.textSecondary, minWidth: 60 }}>{name}</span>
                                                                 <span style={{ color: actionColor(type), fontWeight: 700 }}>{type}</span>
                                                                 {amt && <span style={{ color: FB.gold, fontWeight: 600 }}>{amt}</span>}
@@ -701,8 +703,11 @@ export default function HandHistories() {
                                         <div style={{ marginTop: 12, padding: '8px 10px', background: FB.background, borderRadius: 6 }}>
                                             <div style={{ fontSize: 11, color: FB.textSecondary, marginBottom: 6, fontWeight: 600 }}>Results</div>
                                             {selectedHand.players.filter(p => p.netResult !== 0 && p.netResult !== undefined).sort((a, b) => (b.netResult || 0) - (a.netResult || 0)).map((p, i) => (
-                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '2px 0' }}>
-                                                    <span style={{ color: FB.textPrimary }}>{String(p.id) === String(user?.id) ? 'You' : p.displayName}</span>
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, padding: '3px 0' }}>
+                                                    <span style={{ color: FB.textPrimary, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                        <img src={resolveAvatarDisplay(null, p.id)} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
+                                                        {String(p.id) === String(user?.id) ? 'You' : p.displayName}
+                                                    </span>
                                                     <span style={{ color: (p.netResult || 0) >= 0 ? FB.success : FB.danger, fontWeight: 700 }}>
                                                         {(p.netResult || 0) >= 0 ? '+' : ''}{(p.netResult || 0).toLocaleString()}
                                                     </span>

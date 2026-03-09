@@ -425,12 +425,17 @@ function PlayerSeat({
               alt={player?.displayName || 'Player'}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => {
-                // If table-optimized version fails, try original path
-                if (player?.avatarUrl && e.target.src !== player.avatarUrl) {
+                const errors = parseInt(e.target.dataset.errorCount || '0', 10);
+                e.target.dataset.errorCount = errors + 1;
+                if (errors === 0 && player?.avatarUrl && e.target.src !== player.avatarUrl) {
+                  // Step 1: try original avatar path
                   e.target.src = player.avatarUrl;
-                } else {
-                  // Ultimate fallback: deterministic avatar
+                } else if (errors <= 1) {
+                  // Step 2: deterministic seat fallback
                   e.target.src = FALLBACK_TABLE_AVATARS[(seat.seatIndex || 0) % FALLBACK_TABLE_AVATARS.length];
+                } else {
+                  // Step 3: inline SVG — cannot fail
+                  e.target.src = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="%23374151"/><text x="40" y="52" text-anchor="middle" fill="white" font-size="32" font-family="sans-serif">' + ((player?.displayName || '?')[0] || '?').toUpperCase() + '</text></svg>')}`;
                 }
               }}
             />

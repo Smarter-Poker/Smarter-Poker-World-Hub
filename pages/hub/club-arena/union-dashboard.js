@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
 
@@ -34,7 +35,7 @@ const apiCall = async (endpoint, body) => {
         body: JSON.stringify(body),
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -44,7 +45,7 @@ const apiGet = async (url) => {
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -925,6 +926,7 @@ export default function UnionDashboard() {
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                            <img src={resolveAvatarDisplay(agent.profile?.avatar_url, agent.user_id)} alt="" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
                                             <span style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
                                                 {agent.profile?.display_name || agent.profile?.username || agent.user_id.slice(0, 8)}
                                             </span>
@@ -1847,7 +1849,8 @@ export default function UnionDashboard() {
                                 marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             }}>
                                 <div>
-                                    <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14 }}>
+                                    <div style={{ fontWeight: 700, color: FB.textPrimary, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <img src={resolveAvatarDisplay(admin.profile?.avatar_url, admin.user_id)} alt="" style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
                                         {admin.profile?.display_name || admin.profile?.username || admin.user_id.slice(0, 8)}
                                     </div>
                                     <div style={{ fontSize: 12, color: FB.textSecondary }}>
