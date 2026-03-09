@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 const SkeletonDark = dynamic(() => import('../../../src/components/ui/SkeletonDark'), { ssr: false });
 
 const DynamicWallet = dynamic(
@@ -1155,8 +1156,11 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
               const clubMap = {};
               (clubs || []).forEach(c => { clubMap[c.id] = c.name; });
               return regs.slice(0, 30).map((r, i) => (
-                <div key={i} style={{ fontSize: 12, color: FB.text, padding: '3px 0', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>{r.display_name || r.user_id.slice(0, 8)}{r.club_id && clubMap[r.club_id] ? ` (${clubMap[r.club_id]})` : ''}</span>
+                <div key={i} style={{ fontSize: 12, color: FB.text, padding: '3px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <img src={resolveAvatarDisplay(null, r.user_id)} alt="" style={{ width: 16, height: 16, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
+                    {r.display_name || r.user_id.slice(0, 8)}{r.club_id && clubMap[r.club_id] ? ` (${clubMap[r.club_id]})` : ''}
+                  </span>
                   <span style={{ color: FB.dim }}>{r.status}{r.finish_position ? ` — #${r.finish_position}` : ''}</span>
                 </div>
               ));

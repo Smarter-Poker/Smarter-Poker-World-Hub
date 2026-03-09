@@ -20,6 +20,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -420,6 +424,8 @@ export default function HandHistories() {
                             />
                         </div>
                     )}
+
+                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={userRole} />
 
                     {/* Period Filter */}
                     <div style={S.filterRow}>
