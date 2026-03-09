@@ -7,10 +7,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
-function busEmit(event, data) {
-    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(event, { detail: data }));
-}
 
 const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 

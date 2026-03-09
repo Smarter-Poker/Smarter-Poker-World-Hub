@@ -406,7 +406,7 @@ export default function SolutionsBrowser() {
                 return next;
             });
             // Broadcast so other pages (like Sandbox) can sync
-            window.dispatchEvent(new CustomEvent('pa-data-updated'));
+            eventBus.emit('pa-data-updated', {}, 'SolutionsBrowser');
         } catch (e) {
             console.warn('[Solutions] Bookmark toggle failed:', e);
         }

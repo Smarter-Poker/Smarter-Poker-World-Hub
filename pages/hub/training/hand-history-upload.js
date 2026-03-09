@@ -433,9 +433,7 @@ export default function HandHistoryUploadPage() {
             eventBus.emit(EventType?.TRAINING_SESSION_COMPLETE || 'training:session-complete', sessionData);
         }
         if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('training:hand-history-uploaded', {
-                detail: sessionData,
-            }));
+            eventBus.emit('training:hand-history-uploaded', sessionData, 'HandHistoryUpload');
         }
     }, []);
 

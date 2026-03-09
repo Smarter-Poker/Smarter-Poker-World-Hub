@@ -13,13 +13,9 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
 // SSR-safe bus emitter
-function busEmit(event, data) {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(event, { detail: data }));
-    }
-}
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 function getAuthToken() {

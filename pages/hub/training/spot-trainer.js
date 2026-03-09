@@ -235,10 +235,8 @@ export default function SpotTrainerPage() {
 
         // Emit bus event for cross-page sync (session-dashboard, position-mastery)
         try {
-            window.dispatchEvent(new CustomEvent('training:spot-drilled', {
-                detail: { action, isCorrect, position: spot?.heroPosition, format: spot?.gameType },
-            }));
-            window.dispatchEvent(new CustomEvent('training:drill-complete'));
+            eventBus.emit('training:spot-drilled', { action, isCorrect, position: spot?.heroPosition, format: spot?.gameType }, 'SpotTrainer');
+            eventBus.emit('training:drill-complete', {}, 'SpotTrainer');
         } catch (_) { /* SSG guard */ }
 
         // Auto-next after 2 seconds

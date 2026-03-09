@@ -15,12 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import RangeGrid from '../../../src/components/training/RangeGrid';
 import PreflopChartStats from '../../../src/components/training/PreflopChartStats';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
-function busEmit(event, data) {
-    if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(event, { detail: data }));
-    }
-}
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 function getAuthToken() {

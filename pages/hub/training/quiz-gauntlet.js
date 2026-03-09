@@ -9,8 +9,8 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType, busEmit } from '../../../src/engine/EventBus';
 
-function busEmit(e, d) { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent(e, { detail: d })); }
 function getAuthToken() {
     if (typeof window === 'undefined') return null;
     try { const r = localStorage.getItem('sb-auth-token') || localStorage.getItem('supabase.auth.token'); if (r) { const p = JSON.parse(r); return p?.access_token || p?.currentSession?.access_token || null; } } catch { }
