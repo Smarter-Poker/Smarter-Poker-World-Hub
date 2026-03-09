@@ -388,7 +388,7 @@ export default function Leaderboard() {
                                     background: boardType === board.id ? FB.primary : FB.hover,
                                     color: boardType === board.id ? '#fff' : FB.textSecondary,
                                 }}
-                                onClick={() => setBoardType(board.id)}
+                                onClick={() => { setBoardType(board.id); try { busEmit.dataMutated('filter_changed'); } catch (e) { } }}
                             >
                                 {board.label}
                             </button>
@@ -406,7 +406,7 @@ export default function Leaderboard() {
                                     color: period === p.id ? FB.textPrimary : FB.textSecondary,
                                     border: period === p.id ? `1px solid ${FB.border}` : '1px solid transparent',
                                 }}
-                                onClick={() => setPeriod(p.id)}
+                                onClick={() => { setPeriod(p.id); try { busEmit.dataMutated('filter_changed'); } catch (e) { } }}
                             >
                                 {p.label}
                             </button>

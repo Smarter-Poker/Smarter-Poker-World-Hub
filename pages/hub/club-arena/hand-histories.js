@@ -442,7 +442,7 @@ export default function HandHistories() {
                                     background: period === p.id ? FB.primary : FB.hover,
                                     color: period === p.id ? '#fff' : FB.textSecondary,
                                 }}
-                                onClick={() => setPeriod(p.id)}
+                                onClick={() => { setPeriod(p.id); try { busEmit.dataMutated('filter_changed'); } catch (e) { } }}
                             >
                                 {p.label}
                             </button>
