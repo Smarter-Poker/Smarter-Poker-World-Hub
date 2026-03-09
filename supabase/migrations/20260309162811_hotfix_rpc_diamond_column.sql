@@ -49,12 +49,11 @@ BEGIN
     -- Update balance (corrected from diamond_balance to diamonds)
     UPDATE profiles SET diamonds = v_new_balance WHERE id = p_user_id;
 
-    -- Record transaction with reference_id in both column and metadata
     INSERT INTO diamond_transactions (
-        user_id, amount, transaction_type, description, 
+        user_id, amount, transaction_type, type, description, 
         balance_after, reference_id, metadata
     ) VALUES (
-        p_user_id, p_amount, p_type, p_description,
+        p_user_id, p_amount, p_type, p_type, p_description,
         v_new_balance, p_reference_id,
         CASE WHEN p_reference_id IS NOT NULL 
             THEN jsonb_build_object('reference_id', p_reference_id)
