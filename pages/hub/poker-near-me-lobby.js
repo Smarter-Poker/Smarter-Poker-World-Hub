@@ -937,7 +937,7 @@ export default function PokerNearMeLobby() {
         break;
 
       case 'nearme':
-        component = <NearMeNowFeed userLocation={userLocation} />;
+        component = <NearMeNowFeed userLocation={userLocation} venues={venues} />;
         break;
 
       case 'livegames':
