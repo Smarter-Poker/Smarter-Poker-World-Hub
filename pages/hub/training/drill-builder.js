@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 function busEmitSession(gameId, stats = {}) {
     if (typeof window !== 'undefined') {
@@ -27,8 +28,8 @@ function busEmitSession(gameId, stats = {}) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ game_id: gameId, hands_played: 1, accuracy: 100, correct_answers: 1, total_questions: 1, ...stats }),
-        }).catch(() => {});
-    } catch {}
+        }).catch(() => { });
+    } catch { }
 }
 
 
@@ -166,16 +167,10 @@ export default function DrillBuilderPage() {
         loadDrills();
     }, []);
 
-    // Bus Listeners — refresh drills when session completes or drill saved elsewhere
+    // Bus Listeners — refresh drills when session completes
     useEffect(() => {
-        const onSessionComplete = () => loadDrills();
-        const onDrillSaved = () => loadDrills();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        window.addEventListener('training:drill-saved', onDrillSaved);
-        return () => {
-            window.removeEventListener('training:session-complete', onSessionComplete);
-            window.removeEventListener('training:drill-saved', onDrillSaved);
-        };
+        const unsub = eventBus.on(EventType.SESSION_END, () => loadDrills());
+        return unsub;
     }, []);
 
     const togglePosition = (pos) => {

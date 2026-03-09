@@ -381,11 +381,10 @@ export default function HandHistoryUploadPage() {
 
     // Bus Listener
     useEffect(() => {
-        const onSessionComplete = () => {
+        const unsub = eventBus.on(EventType.SESSION_END, () => {
             console.log('[HandHistoryUpload] Session complete event received');
-        };
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        });
+        return unsub;
     }, []);
 
     // Save session to Supabase and localStorage
