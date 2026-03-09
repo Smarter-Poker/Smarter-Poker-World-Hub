@@ -56,6 +56,11 @@ import SessionHandReview from '../../src/components/bankroll/SessionHandReview';
 import TripTracker from '../../src/components/bankroll/TripTracker';
 import TokeTracker from '../../src/components/bankroll/TokeTracker';
 import CategoryOverview from '../../src/components/bankroll/CategoryOverview';
+// Phase 8: Institutional Integrity Components
+import BankBalanceWidget from '../../src/components/bankroll/BankBalanceWidget';
+import AdvancedTaxReport from '../../src/components/bankroll/AdvancedTaxReport';
+import SocialStakingProfile from '../../src/components/bankroll/SocialStakingProfile';
+import TournamentCalendar from '../../src/components/bankroll/TournamentCalendar';
 import ManageVenuesModal from '../../src/components/bankroll/ManageVenuesModal';
 import AdjustBankrollModal from '../../src/components/bankroll/AdjustBankrollModal';
 import { hasStartingBankroll } from '../../src/lib/bankroll/bankrollSelectors';
@@ -77,6 +82,9 @@ const SIDEBAR_SECTIONS = [
   { id: 'staking', label: 'Staking Tracker', icon: '' },
   { id: 'toke-tracker', label: 'Toke Tracker', icon: '' },
   { id: 'tax', label: 'Tax Reports', icon: '' },
+  { id: 'bank-sync', label: 'Bank Sync', icon: '' },
+  { id: 'staking-profile', label: 'Staking Profile', icon: '' },
+  { id: 'tournament-calendar', label: 'Tournament Calendar', icon: '' },
   { id: 'reports', label: 'Reports', icon: '' },
 ];
 
@@ -692,6 +700,12 @@ export default function BankrollManagerPage() {
       setActiveSection('tax');
     } else if (sectionId === 'receipts') {
       setActiveSection('receipts');
+    } else if (sectionId === 'bank-sync') {
+      setActiveSection('bank-sync');
+    } else if (sectionId === 'staking-profile') {
+      setActiveSection('staking-profile');
+    } else if (sectionId === 'tournament-calendar') {
+      setActiveSection('tournament-calendar');
     } else {
       setActiveSection(sectionId);
       // Reset category filter when going back to Dashboard
@@ -893,6 +907,9 @@ export default function BankrollManagerPage() {
                   {activeSection === 'rules' && 'Bankroll Rules'}
                   {activeSection === 'staking' && 'Staking Tracker'}
                   {activeSection === 'toke-tracker' && 'Toke Tracker'}
+                  {activeSection === 'bank-sync' && 'Bank Sync'}
+                  {activeSection === 'staking-profile' && 'Staking Profile'}
+                  {activeSection === 'tournament-calendar' && 'Tournament Calendar'}
                 </h1>
                 <div style={styles.headerActions}>
                   {/* Countdown Timer for day passes (only if NOT VIP but has active pass) */}
@@ -1089,6 +1106,13 @@ export default function BankrollManagerPage() {
 
                     {/* Bankroll Trend Chart — filtered by gameTypeFilter, always include expenses */}
                     <BankrollTrendChart entries={chartEntries} isLoading={isLoading} chartType={chartType} timeFilter={timeFilter} />
+
+                    {/* Phase 8: Bank Balance Widget */}
+                    <div style={{ marginBottom: 16 }}>
+                      <HubErrorBoundary name="Bank Balance Widget">
+                        <BankBalanceWidget bankrollTotal={stats?.totalBankroll || 0} />
+                      </HubErrorBoundary>
+                    </div>
 
                     {/* Filters Row */}
                     <div className="bankroll-filters-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
@@ -1700,9 +1724,14 @@ export default function BankrollManagerPage() {
                   </div>
                   <BankrollProGate userId={userId}>
                     <div style={{ padding: 16 }}>
-                      <HubErrorBoundary name="Tax Reports">
-                        <TaxReportPanel userId={userId} />
+                      <HubErrorBoundary name="Advanced Tax Report">
+                        <AdvancedTaxReport entries={entries} userId={userId} />
                       </HubErrorBoundary>
+                      <div style={{ marginTop: 24, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 24 }}>
+                        <HubErrorBoundary name="Tax Reports">
+                          <TaxReportPanel userId={userId} />
+                        </HubErrorBoundary>
+                      </div>
                     </div>
                   </BankrollProGate>
                 </div>
@@ -1723,6 +1752,48 @@ export default function BankrollManagerPage() {
               {activeSection === 'toke-tracker' && (
                 <div style={styles.activitySection}>
                   <TokeTracker userId={userId} refreshTrigger={refreshTrigger} />
+                </div>
+              )}
+
+              {/* Phase 8: Bank Sync — Mocked Plaid Account Linking */}
+              {activeSection === 'bank-sync' && (
+                <div style={styles.activitySection}>
+                  <BankrollProGate userId={userId}>
+                    <HubErrorBoundary name="Bank Sync">
+                      <BankBalanceWidget bankrollTotal={stats?.totalBankroll || 0} />
+                    </HubErrorBoundary>
+                  </BankrollProGate>
+                </div>
+              )}
+
+              {/* Phase 8: Advanced Tax Report — State-Level */}
+              {activeSection === 'advanced-tax' && (
+                <div style={styles.activitySection}>
+                  <BankrollProGate userId={userId}>
+                    <HubErrorBoundary name="Advanced Tax Report">
+                      <AdvancedTaxReport entries={entries} userId={userId} />
+                    </HubErrorBoundary>
+                  </BankrollProGate>
+                </div>
+              )}
+
+              {/* Phase 8: Staking Profile — Public Performance Card */}
+              {activeSection === 'staking-profile' && (
+                <div style={styles.activitySection}>
+                  <BankrollProGate userId={userId}>
+                    <HubErrorBoundary name="Staking Profile">
+                      <SocialStakingProfile entries={entries} stats={stats} user={user} />
+                    </HubErrorBoundary>
+                  </BankrollProGate>
+                </div>
+              )}
+
+              {/* Phase 8: Tournament Calendar — Series Event Planner */}
+              {activeSection === 'tournament-calendar' && (
+                <div style={styles.activitySection}>
+                  <HubErrorBoundary name="Tournament Calendar">
+                    <TournamentCalendar bankrollTotal={stats?.totalBankroll || 0} />
+                  </HubErrorBoundary>
                 </div>
               )}
 

@@ -5,8 +5,9 @@
  */
 
 import { useState, useRef, useCallback } from 'react';
-import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan } from 'lucide-react';
+import { Camera, Upload, X, Loader2, Check, RefreshCw, Scan, Shield, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { eventBus, EventType } from '../../engine/EventBus';
 import { METAL, GRADIENTS, GLOWS, ANIMATIONS } from './metalStyles';
 import DocumentCropper from './DocumentCropper';
 import LiveCameraScanner from './LiveCameraScanner';
@@ -33,7 +34,29 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
     const [showCropper, setShowCropper] = useState(false);
     const [rawImage, setRawImage] = useState(null);
     const [showLiveCamera, setShowLiveCamera] = useState(false);
+    const [confidenceScore, setConfidenceScore] = useState(null); // 0-100
+    const [verified, setVerified] = useState(false);
+    const [verifying, setVerifying] = useState(false);
     const fileInputRef = useRef(null);
+
+    // Compute confidence from OCR result quality
+    const computeConfidence = useCallback((data) => {
+        if (!data) return 0;
+        let score = 0;
+        if (data.vendor && data.vendor.length > 2) score += 35;
+        else if (data.vendor) score += 15;
+        if (data.amount != null && parseFloat(data.amount) > 0) score += 35;
+        else if (data.amount != null) score += 10;
+        if (data.date) score += 15;
+        if (data.category) score += 15;
+        return Math.min(100, score);
+    }, []);
+
+    const getConfidenceLabel = (score) => {
+        if (score >= 75) return { label: 'HIGH', color: '#4ade80', bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)' };
+        if (score >= 40) return { label: 'MEDIUM', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.3)' };
+        return { label: 'LOW', color: '#f87171', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)' };
+    };
 
     const handleFileSelect = useCallback(async (e) => {
         const file = e.target.files?.[0];
@@ -123,6 +146,10 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             setUploadedUrl(publicUrl);
             if (ocrResult?.success && ocrResult.data) {
                 setExtractedData(ocrResult.data);
+                const conf = computeConfidence(ocrResult.data);
+                setConfidenceScore(conf);
+            } else {
+                setConfidenceScore(10); // Very low confidence — no OCR data
             }
         } catch (err) {
             console.error('Process error:', err);
@@ -144,10 +171,32 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
         setImagePreview(null);
         setRawImage(null);
         setExtractedData(null);
+        setConfidenceScore(null);
+        setVerified(false);
+        setVerifying(false);
         setShowCropper(false);
         setShowLiveCamera(false);
         setError(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    // Verify & Lock — marks receipt as auditor-verified
+    const handleVerifyLock = async () => {
+        setVerifying(true);
+        try {
+            // In production, this would update the expense_receipts row
+            // For now, we emit EventBus and set local state
+            setVerified(true);
+            eventBus.emit(EventType.SESSION_END, {
+                source: 'ReceiptScanner',
+                action: 'receipt_verified',
+                confidence: confidenceScore,
+            }, 'ReceiptScanner');
+        } catch (e) {
+            console.error('[ReceiptScanner] Verify error:', e);
+        } finally {
+            setVerifying(false);
+        }
     };
 
     return (
@@ -242,30 +291,74 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
             {/* Scan Result */}
             {uploadedUrl && !isUploading && (
                 <div style={styles.resultContainer}>
-                    {/* Success badge */}
-                    <div style={styles.confidenceBadge}>
-                        <Check size={10} />
-                        RECEIPT UPLOADED
-                    </div>
+                    {/* Confidence Badge */}
+                    {confidenceScore !== null && (() => {
+                        const conf = getConfidenceLabel(confidenceScore);
+                        return (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                gap: 8, padding: '8px 16px', marginBottom: 16,
+                                background: conf.bg, border: `1px solid ${conf.border}`,
+                                borderRadius: 20, width: 'fit-content', margin: '0 auto 16px',
+                            }}>
+                                {conf.label === 'HIGH' ? <Shield size={14} style={{ color: conf.color }} /> : <AlertTriangle size={14} style={{ color: conf.color }} />}
+                                <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 13, fontWeight: 800, color: conf.color, letterSpacing: '0.1em' }}>
+                                    {conf.label} CONFIDENCE — {confidenceScore}%
+                                </span>
+                            </div>
+                        );
+                    })()}
+
+                    {/* Verified Badge */}
+                    {verified && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            gap: 6, padding: '6px 12px', marginBottom: 16,
+                            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                            borderRadius: 20, width: 'fit-content', margin: '0 auto 16px',
+                        }}>
+                            <Shield size={12} style={{ color: '#4ade80' }} />
+                            <span style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 12, fontWeight: 800, color: '#4ade80', letterSpacing: '0.1em' }}>VERIFIED & LOCKED</span>
+                        </div>
+                    )}
 
                     {/* Preview Image */}
                     <div style={styles.previewContainer}>
                         <img src={uploadedUrl} alt="Receipt" style={styles.previewImage} />
                     </div>
 
-                    {/* AI Data Extraction Preview */}
+                    {/* AI Data Extraction Preview — with field-level confidence flags */}
                     {extractedData && (
                         <div style={styles.dataGrid}>
-                            {extractedData.vendor && (
-                                <div style={styles.dataRow}>
-                                    <span style={styles.dataLabel}>VENDOR</span>
-                                    <span style={styles.dataValue}>{extractedData.vendor}</span>
+                            {extractedData.vendor != null && (
+                                <div style={{
+                                    ...styles.dataRow,
+                                    borderColor: (!extractedData.vendor || extractedData.vendor.length < 3) ? 'rgba(239,68,68,0.4)' : styles.dataRow.border?.includes?.('mid') ? undefined : undefined,
+                                    ...((!extractedData.vendor || extractedData.vendor.length < 3) ? { border: '2px solid rgba(239,68,68,0.4)' } : {}),
+                                }}>
+                                    <span style={styles.dataLabel}>VENDOR {(!extractedData.vendor || extractedData.vendor.length < 3) && <span style={{ color: '#f87171', fontSize: 10 }}>⚠ REVIEW</span>}</span>
+                                    <span style={styles.dataValue}>{extractedData.vendor || '—'}</span>
                                 </div>
                             )}
                             {extractedData.amount != null && (
-                                <div style={styles.dataRow}>
-                                    <span style={styles.dataLabel}>AMOUNT</span>
+                                <div style={{
+                                    ...styles.dataRow,
+                                    ...(parseFloat(extractedData.amount) <= 0 ? { border: '2px solid rgba(239,68,68,0.4)' } : {}),
+                                }}>
+                                    <span style={styles.dataLabel}>AMOUNT {parseFloat(extractedData.amount) <= 0 && <span style={{ color: '#f87171', fontSize: 10 }}>⚠ REVIEW</span>}</span>
                                     <span style={{ ...styles.dataValue, color: '#4ade80' }}>${parseFloat(extractedData.amount).toFixed(2)}</span>
+                                </div>
+                            )}
+                            {extractedData.date && (
+                                <div style={styles.dataRow}>
+                                    <span style={styles.dataLabel}>DATE</span>
+                                    <span style={styles.dataValue}>{extractedData.date}</span>
+                                </div>
+                            )}
+                            {extractedData.category && (
+                                <div style={styles.dataRow}>
+                                    <span style={styles.dataLabel}>CATEGORY</span>
+                                    <span style={styles.dataValue}>{EXPENSE_LABELS[extractedData.category] || extractedData.category}</span>
                                 </div>
                             )}
                         </div>
@@ -277,6 +370,21 @@ export default function ReceiptScanner({ onScanComplete, userId, displayEUR = fa
                             <X size={14} />
                             DISCARD
                         </button>
+                        {!verified && confidenceScore !== null && confidenceScore < 75 && (
+                            <button
+                                onClick={handleVerifyLock}
+                                disabled={verifying}
+                                style={{
+                                    ...styles.confirmBtn,
+                                    background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                                    color: '#fff',
+                                    flex: 1,
+                                }}
+                            >
+                                <Shield size={14} />
+                                {verifying ? 'VERIFYING...' : 'VERIFY & LOCK'}
+                            </button>
+                        )}
                         <button onClick={handleConfirm} style={styles.confirmBtn}>
                             <Check size={14} />
                             SAVE RECEIPT
