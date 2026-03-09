@@ -73,18 +73,19 @@ function computeThreeWayActions(pos, texture, potType) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function ActionBar({ label, pct, color }) {
+    const safePct = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
     return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
             <span style={{ fontSize: 11, color: '#b0b3b8', width: 55, fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }}>{label}</span>
             <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, position: 'relative' }}>
                 <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
+                    animate={{ width: `${safePct}%` }}
                     transition={{ duration: 0.5 }}
                     style={{ position: 'absolute', height: '100%', background: color, borderRadius: 4 }}
                 />
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color, width: 36, textAlign: 'right' }}>{pct}%</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color, width: 36, textAlign: 'right' }}>{safePct}%</span>
         </div>
     );
 }
@@ -113,8 +114,10 @@ export default function ThreeWayPostflopPage() {
         try { setUser(getAuthUser()); } catch (_) { }
     }, []);
 
+    const safePlayerIdx = Math.max(0, Math.min(selectedPlayer, players.length - 1));
     const actions = useMemo(() => {
-        const result = computeThreeWayActions(players[selectedPlayer].pos, selectedTexture, potType);
+        const playerPos = players[safePlayerIdx]?.pos || 'CO';
+        const result = computeThreeWayActions(playerPos, selectedTexture, potType);
         setSolvesRun(prev => {
             const next = prev + 1;
             if (next > 1 && next % 3 === 0) {
@@ -123,9 +126,9 @@ export default function ThreeWayPostflopPage() {
             return next;
         });
         return result;
-    }, [selectedPlayer, selectedTexture, potType, players]);
+    }, [safePlayerIdx, selectedTexture, potType, players]);
 
-    const texture = BOARD_TEXTURES.find(t => t.id === selectedTexture);
+    const texture = BOARD_TEXTURES.find(t => t.id === selectedTexture) || BOARD_TEXTURES[0];
 
     return (
         <>
@@ -178,7 +181,7 @@ export default function ThreeWayPostflopPage() {
                                     {POSITIONS.map(pos => (<option key={pos} value={pos}>{pos}</option>))}
                                 </select>
                                 <div style={{ fontSize: 11, color: '#b0b3b8', marginTop: 6 }}>
-                                    Range: {DEFAULT_RANGES[p.pos].pct}%
+                                    Range: {(DEFAULT_RANGES[p.pos] || { pct: 0 }).pct}%
                                 </div>
                             </div>
                         ))}
@@ -250,7 +253,7 @@ export default function ThreeWayPostflopPage() {
                                 padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700,
                                 background: 'rgba(99,102,241,0.15)', color: '#818cf8', letterSpacing: '0.08em',
                             }}>
-                                {texture?.label.toUpperCase()} BOARD
+                                {(texture?.label || 'UNKNOWN').toUpperCase()} BOARD
                             </div>
                         </div>
 
@@ -286,10 +289,10 @@ export default function ThreeWayPostflopPage() {
                                         <span style={{ fontSize: 12, fontWeight: 700, color: selectedPlayer === i ? '#818cf8' : '#b0b3b8' }}>
                                             Player {i + 1}: {p.pos}
                                         </span>
-                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#e4e6eb' }}>{DEFAULT_RANGES[p.pos].pct}%</span>
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#e4e6eb' }}>{(DEFAULT_RANGES[p.pos] || { pct: 0 }).pct}%</span>
                                     </div>
                                     <div style={{ fontSize: 11, color: '#b0b3b8', fontFamily: "'Courier New', monospace" }}>
-                                        {DEFAULT_RANGES[p.pos].range}
+                                        {(DEFAULT_RANGES[p.pos] || { range: '—' }).range}
                                     </div>
                                 </div>
                             ))}

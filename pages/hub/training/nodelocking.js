@@ -259,8 +259,11 @@ export default function NodelockingPage() {
     const exploits = useMemo(() => calculateExploits(activeProfile), [activeProfile]);
 
     const handleTendencyChange = useCallback((key, value) => {
-        const base = VILLAIN_PROFILES[selectedProfile].tendencies;
-        setCustomTendencies(prev => ({ ...(prev || base), [key]: Math.max(0, Math.min(100, parseFloat(value) || 0)) }));
+        const base = VILLAIN_PROFILES[selectedProfile]?.tendencies || {};
+        const parsed = parseFloat(value);
+        // HARDENED: NaN guard + strict clamping
+        const clamped = (isNaN(parsed) || !isFinite(parsed)) ? 0 : Math.max(0, Math.min(100, parsed));
+        setCustomTendencies(prev => ({ ...(prev || base), [key]: clamped }));
     }, [selectedProfile]);
 
     // Total EV from exploits
@@ -269,11 +272,13 @@ export default function NodelockingPage() {
     }, [exploits]);
 
     // Save profile analysis to Supabase
+    const [saveStatus, setSaveStatus] = useState(null); // null | 'saving' | 'saved' | 'error'
     const saveAnalysis = useCallback(async () => {
+        setSaveStatus('saving');
         try {
             const token = getAccessToken();
             if (token) {
-                await fetch('/api/training/save-session', {
+                const res = await fetch('/api/training/save-session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({
@@ -281,13 +286,29 @@ export default function NodelockingPage() {
                         questionsAnswered: exploits.length,
                         questionsCorrect: exploits.filter(e => e.priority === 'HIGH').length,
                         accuracy: Math.round((exploits.filter(e => e.priority === 'HIGH').length / Math.max(exploits.length, 1)) * 100),
-                        trainerConfig: { profile: selectedProfile, tendencies: activeProfile.tendencies, exploits: exploits.map(e => e.action), totalEV },
+                        trainerConfig: { profile: selectedProfile, tendencies: activeProfile?.tendencies || {}, exploits: exploits.map(e => e.action), totalEV },
                     }),
                 });
+                // HARDENED: validate response status
+                if (!res.ok) {
+                    console.warn('[Nodelocking] Save response not OK:', res.status);
+                    setSaveStatus('error');
+                    setTimeout(() => setSaveStatus(null), 3000);
+                    return;
+                }
             }
-            eventBus.emit(EventType.SESSION_END, { accuracy: 100, questionsAnswered: exploits.length, questionsCorrect: exploits.length }, 'nodelocking');
-            eventBus.emit('training:session-complete', { game_id: 'nodelocking', accuracy: 100, correct_answers: exploits.length, total_questions: exploits.length, hands_played: exploits.length });
-        } catch (e) { console.error('[Nodelocking] Save error:', e); }
+            // HARDENED: safe eventBus access
+            if (typeof eventBus !== 'undefined' && eventBus?.emit) {
+                eventBus.emit(EventType?.SESSION_END || 'session:end', { accuracy: 100, questionsAnswered: exploits.length, questionsCorrect: exploits.length }, 'nodelocking');
+                eventBus.emit('training:session-complete', { game_id: 'nodelocking', accuracy: 100, correct_answers: exploits.length, total_questions: exploits.length, hands_played: exploits.length });
+            }
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus(null), 3000);
+        } catch (e) {
+            console.error('[Nodelocking] Save error:', e);
+            setSaveStatus('error');
+            setTimeout(() => setSaveStatus(null), 3000);
+        }
     }, [selectedProfile, activeProfile, exploits, totalEV]);
 
     if (isCheckingVIP) {
@@ -468,8 +489,14 @@ export default function NodelockingPage() {
                                 boxShadow: '0 4px 20px rgba(239,68,68,0.2)',
                             }}
                         >
-                            💾 Save Analysis to Database
+                            💾 {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✅ Saved!' : saveStatus === 'error' ? '❌ Save Failed' : 'Save Analysis to Database'}
                         </motion.button>
+                        {saveStatus === 'saved' && (
+                            <div style={{ textAlign: 'center', fontSize: 10, color: '#22c55e', marginTop: 6, fontWeight: 600 }}>Analysis saved to your account</div>
+                        )}
+                        {saveStatus === 'error' && (
+                            <div style={{ textAlign: 'center', fontSize: 10, color: '#ef4444', marginTop: 6, fontWeight: 600 }}>Save failed — try again</div>
+                        )}
                     </div>
                 </div>
             </div>
