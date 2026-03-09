@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Step 1: Check if profile exists
+        // Step 1: Check if profile exists by user_id
         const { data: existingProfile, error: checkError } = await supabase
             .from('profiles')
             .select('id, username, full_name, email, created_at')
@@ -74,7 +74,46 @@ export default async function handler(req, res) {
             });
         }
 
-        // Step 2: Profile doesn't exist - CREATE IT NOW
+        // ═══════════════════════════════════════════════════════════════════
+        // 🔗 DUPLICATE PREVENTION: Check if a profile with same email exists
+        // This catches the case where a user signed up with email/password
+        // and then signs in with Google OAuth (or vice versa), which creates
+        // a new auth.users entry but should NOT create a new profile.
+        // ═══════════════════════════════════════════════════════════════════
+        if (email) {
+            const { data: emailMatch, error: emailCheckError } = await supabase
+                .from('profiles')
+                .select('id, username, full_name, email, created_at')
+                .ilike('email', email.trim())
+                .maybeSingle();
+
+            if (emailMatch && !emailCheckError) {
+                console.log(`[ANTIGRAVITY] 🔗 DUPLICATE PREVENTED: Found existing profile for ${email} (profile.id=${emailMatch.id}, new auth.id=${user_id}). Linking instead of creating duplicate.`);
+
+                // Update the existing profile to reflect the latest login
+                // but DO NOT change the profile's id — it stays linked to the ORIGINAL auth user
+                await supabase
+                    .from('profiles')
+                    .update({
+                        last_login: new Date().toISOString(),
+                        last_active: new Date().toISOString(),
+                        is_online: true,
+                        // Optionally update metadata from the new auth provider
+                        ...(full_name && !emailMatch.full_name ? { full_name } : {}),
+                        ...(metadata?.avatar_url && !emailMatch.avatar_url ? { avatar_url: metadata.avatar_url } : {}),
+                    })
+                    .eq('id', emailMatch.id);
+
+                return res.json({
+                    status: 'LINKED',
+                    profile: emailMatch,
+                    created: false,
+                    message: `Account linked — existing profile found for ${email}. Sign in with your original credentials or use the same email.`
+                });
+            }
+        }
+
+        // Step 2: Profile doesn't exist by id OR email - CREATE IT NOW
         console.log(`[ANTIGRAVITY] Creating profile for orphaned user: ${user_id}`);
 
         // Get next player number
