@@ -60,6 +60,8 @@ import SaveHandModal from '../../../src/components/sandbox/SaveHandModal';
 import ShareScenarioModal from '../../../src/components/sandbox/ShareScenarioModal';
 import CustomDrillBuilder from '../../../src/components/sandbox/CustomDrillBuilder';
 import GodModePanel from '../../../src/components/sandbox/GodModePanel';
+import ExternalSolverImport from '../../../src/components/sandbox/ExternalSolverImport';
+import EquityHeatmapOverlay from '../../../src/components/sandbox/EquityHeatmapOverlay';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -700,6 +702,10 @@ export default function VirtualSandbox() {
   const [showGodMode, setShowGodMode] = useState(false);
   const [drillParams, setDrillParams] = useState(null);
   const [recentResults, setRecentResults] = useState([]);
+
+  // ── Wave 7: Professional Integration (W7-1 & W7-2) ─────────────────────────────
+  const [showSolverImport, setShowSolverImport] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(false);
 
   // ─── WAVE 2: Socratic Coach Mode (Feature 6) ─────────────────────────────
   const [coachMode, setCoachMode] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('sandbox-coach-mode') === 'true' : false);
@@ -1484,6 +1490,8 @@ export default function VirtualSandbox() {
               <button onClick={() => { setShowShareScenario(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(236,72,153,0.12)', border: '1px solid rgba(236,72,153,0.3)', color: '#ec4899', cursor: 'pointer' }}>🔗 Share</button>
 
               <button onClick={() => { setShowGodMode(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.4)', color: '#c4b5fd', cursor: 'pointer' }}>⚡ God Mode</button>
+              <button onClick={() => { setShowSolverImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(245,166,35,0.15)', border: '1px solid rgba(245,166,35,0.4)', color: '#F5A623', cursor: 'pointer' }}>📥 Pro Import</button>
+              <button onClick={() => { setShowHeatmap(!showHeatmap); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: showHeatmap ? 'rgba(34,197,94,0.2)' : '#3A3B3C', border: `1px solid ${showHeatmap ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: showHeatmap ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>🌡️ Heatmap {showHeatmap ? 'ON' : 'OFF'}</button>
               <button onClick={() => { setShowHHImport(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Import HH</button>
               {/* Felt color dots row */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
@@ -1961,6 +1969,29 @@ export default function VirtualSandbox() {
           onClose={() => setShowGodMode(false)}
           setResults={setResults}
           sandboxState={{ board, heroHand, heroPosition, villains, potSize, effStack }}
+        />
+      )}
+
+      {showSolverImport && (
+        <ExternalSolverImport
+          onClose={() => setShowSolverImport(false)}
+          onImport={(state) => {
+            // Directly hydrate board and positions from parsed import
+            if (state.board) setBoard(state.board);
+            if (state.heroPosition) {
+              const newPos = Object.values(heroPositions).find(p => p.id === state.heroPosition) || heroPositions.BTN;
+              setHeroPosition(newPos);
+            }
+            if (state.villains) setVillains(state.villains);
+            if (state.potSize) setPotSize(state.potSize);
+            if (state.effStack) setEffStack(state.effStack);
+            // Assume postflop load means we are active
+            setPhase(state.board && state.board.length >= 3 ? 'postflop' : 'action');
+
+            // Flash success check
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus('idle'), 2000);
+          }}
         />
       )}
 

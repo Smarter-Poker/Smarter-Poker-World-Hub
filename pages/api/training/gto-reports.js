@@ -136,6 +136,19 @@ export default async function handler(req, res) {
         const overallAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
         const bestRate = totalQuestions > 0 ? Math.round((totalBest / totalQuestions) * 100) : 0;
 
+        // Calculate global GTO Proximity Score (0-100)
+        let totalDeviation = 0;
+        let positionsWithData = 0;
+        Object.values(positionReport).forEach(data => {
+            if (data.deviation !== null) {
+                totalDeviation += data.deviation;
+                positionsWithData++;
+            }
+        });
+
+        const avgDeviation = positionsWithData > 0 ? (totalDeviation / positionsWithData) : 0;
+        const gtoProximityScore = positionsWithData > 0 ? Math.max(0, Math.round(100 - avgDeviation)) : 0;
+
         return res.status(200).json({
             success: true,
             report: {
@@ -146,6 +159,7 @@ export default async function handler(req, res) {
                 totalBest,
                 overallAccuracy,
                 bestRate,
+                gtoProximityScore,
                 positionReport,
                 classifications: classAgg,
                 gtoBaselines: GTO_BASELINES,

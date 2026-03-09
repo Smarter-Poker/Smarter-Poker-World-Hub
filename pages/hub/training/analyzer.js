@@ -422,14 +422,26 @@ export default function HandAnalyzer() {
         }
     }, [rawText]);
 
-    const handleFileUpload = useCallback((e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            setRawText(e.target.result);
-        };
-        reader.readAsText(file);
+    const handleFileUpload = useCallback(async (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        let aggregatedText = '';
+
+        // Read all selected files concurrently
+        const filePromises = files.map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result + '\n\n');
+                reader.onerror = () => resolve(''); // graceful failure for unreadable files
+                reader.readAsText(file);
+            });
+        });
+
+        const results = await Promise.all(filePromises);
+        aggregatedText = results.join('');
+
+        setRawText(aggregatedText);
     }, []);
 
     const handleClear = useCallback(() => {
@@ -501,6 +513,8 @@ export default function HandAnalyzer() {
                                 <input
                                     type="file"
                                     accept=".txt,.log,.hh"
+                                    multiple
+                                    webkitdirectory="true"
                                     onChange={handleFileUpload}
                                     style={{ display: 'none' }}
                                     id="file-upload"
@@ -508,10 +522,10 @@ export default function HandAnalyzer() {
                                 <label htmlFor="file-upload" style={{ cursor: 'pointer' }}>
                                     <div style={{ fontSize: 36, marginBottom: 8 }}>📂</div>
                                     <div style={{ fontSize: 14, fontWeight: 700, color: '#00d4ff' }}>
-                                        Drop a file or click to upload
+                                        Drop a file, multiple files, or a folder
                                     </div>
                                     <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                                        .txt, .log, .hh files supported
+                                        .txt, .log, .hh files supported (Batch capable)
                                     </div>
                                 </label>
                             </div>

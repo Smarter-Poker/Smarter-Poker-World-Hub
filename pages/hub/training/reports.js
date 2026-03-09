@@ -285,14 +285,19 @@ export default function GTOReports() {
                         >
                             {/* Top Stats */}
                             <div style={{
-                                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
+                                display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10,
                                 marginBottom: 20,
                             }}>
                                 {[
                                     { label: 'Sessions', value: report.totalSessions, color: '#7c3aed' },
                                     { label: 'Questions', value: report.totalQuestions, color: '#3b82f6' },
                                     { label: 'Accuracy', value: `${report.overallAccuracy}%`, color: report.overallAccuracy >= 70 ? '#22c55e' : report.overallAccuracy >= 50 ? '#fbbf24' : '#ef4444' },
-                                    { label: 'Best Rate', value: `${report.bestRate}%`, color: '#00d4ff' },
+                                    { label: 'Best Rate', value: `${report.bestRate}%`, color: '#a855f7' },
+                                    {
+                                        label: 'GTO Proximity',
+                                        value: report.gtoProximityScore !== undefined ? `${report.gtoProximityScore}%` : 'N/A',
+                                        color: (report.gtoProximityScore || 0) >= 85 ? '#00d4ff' : (report.gtoProximityScore || 0) >= 70 ? '#4ade80' : '#fbbf24'
+                                    },
                                 ].map(stat => (
                                     <div key={stat.label} style={{
                                         padding: '14px 12px', borderRadius: 10, textAlign: 'center',
