@@ -1,7 +1,8 @@
 /**
  * FOCUS TIMER — Pomodoro Training
  * ═══════════════════════════════════════════════════════════════════════════
- * 25-minute focus blocks with break timers.
+ * 25-minute focus blocks with break timers, session logging,
+ * and Supabase persistence.
  *
  * Route: /hub/training/focus-timer
  * ═══════════════════════════════════════════════════════════════════════════
@@ -13,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { getAccessToken } from '../../../src/lib/authUtils';
 
 const PHASES = {
     FOCUS: { id: 'focus', label: 'Focus Block', mins: 25, color: '#3b82f6' },
@@ -27,16 +29,25 @@ export default function FocusTimerPage() {
     const [timeLeft, setTimeLeft] = useState(PHASES.FOCUS.mins * 60);
     const [isActive, setIsActive] = useState(false);
     const [completedBlocks, setCompletedBlocks] = useState(0);
+    const [sessionLog, setSessionLog] = useState([]);
+    const [notify, setNotify] = useState(true);
     const timerRef = useRef(null);
+    const savedRef = useRef(false);
 
     useEffect(() => {
-        try { const c = localStorage.getItem('focus-timer-completed'); if (c) setCompletedBlocks(parseInt(c, 10)); } catch { }
+        try {
+            const c = localStorage.getItem('focus-timer-completed');
+            if (c) setCompletedBlocks(parseInt(c, 10));
+            const log = localStorage.getItem('focus-timer-log');
+            if (log) setSessionLog(JSON.parse(log));
+        } catch { }
     }, []);
 
     useEffect(() => {
-        const h = () => { };
-        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+        const unsub = eventBus.on(EventType.SESSION_END, (e) => {
+            if (e?.source === 'FocusTimer') return;
+        });
+        return unsub;
     }, []);
 
     useEffect(() => {
@@ -45,17 +56,39 @@ export default function FocusTimerPage() {
         } else if (timeLeft === 0) {
             clearInterval(timerRef.current);
             setIsActive(false);
-            if (phase.id === 'focus') {
+            if (phase.id === 'focus' && !savedRef.current) {
+                savedRef.current = true;
                 const next = completedBlocks + 1;
                 setCompletedBlocks(next);
                 try { localStorage.setItem('focus-timer-completed', next.toString()); } catch { }
+                // Log the session
+                const entry = { id: Date.now(), time: new Date().toLocaleTimeString(), duration: phase.mins };
+                const newLog = [entry, ...sessionLog].slice(0, 20);
+                setSessionLog(newLog);
+                try { localStorage.setItem('focus-timer-log', JSON.stringify(newLog)); } catch { }
+                // Save to Supabase
+                const token = typeof getAccessToken === 'function' ? getAccessToken() : null;
+                if (token) {
+                    fetch('/api/training/save-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                            gameId: 'focus-timer', gameName: `Focus Block #${next} (${phase.mins}min)`,
+                            gtowScore: 100, totalEVLoss: 0, handsPlayed: next,
+                            mistakeCount: 0, accuracy: 100, correctCount: next,
+                            bestStreak: next, levelPassed: true, level: 1, handHistory: [],
+                        }),
+                    }).catch(() => { });
+                    eventBus.emit(EventType.SESSION_END, { gameId: 'focus-timer', blocks: next, totalMinutes: next * phase.mins }, 'FocusTimer');
+                }
+                setTimeout(() => { savedRef.current = false; }, 1000);
                 // Suggest break
                 if (next % 4 === 0) changePhase(PHASES.LONG_BREAK);
                 else changePhase(PHASES.SHORT_BREAK);
             }
         }
         return () => clearInterval(timerRef.current);
-    }, [isActive, timeLeft, phase, completedBlocks]);
+    }, [isActive, timeLeft, phase, completedBlocks, sessionLog]);
 
     const changePhase = (newPhase) => {
         clearInterval(timerRef.current);
@@ -127,11 +160,33 @@ export default function FocusTimerPage() {
                     </div>
 
                     {/* Stats */}
-                    <div style={{ padding: '20px', borderRadius: 16, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                        <div style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Today's Focus</div>
-                        <div style={{ fontSize: 32, fontWeight: 900, color: '#e2e8f0' }}>{completedBlocks} <span style={{ fontSize: 14, color: '#64748b', fontWeight: 600 }}>blocks</span></div>
-                        <div style={{ fontSize: 12, color: '#4ade80', marginTop: 4 }}>~{Math.round((completedBlocks * 25) / 60 * 10) / 10} hours of deep work</div>
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                        <div style={{ flex: 1, padding: '16px', borderRadius: 12, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 28, fontWeight: 900, color: '#e2e8f0' }}>{completedBlocks}</div>
+                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>blocks</div>
+                        </div>
+                        <div style={{ flex: 1, padding: '16px', borderRadius: 12, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                            <div style={{ fontSize: 28, fontWeight: 900, color: '#4ade80' }}>{Math.round((completedBlocks * 25) / 60 * 10) / 10}</div>
+                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>hours</div>
+                        </div>
+                        <div style={{ flex: 1, padding: '16px', borderRadius: 12, background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
+                            <button onClick={() => setNotify(!notify)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>{notify ? '🔔' : '🔕'}</button>
+                            <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>{notify ? 'on' : 'off'}</div>
+                        </div>
                     </div>
+
+                    {/* Session Log */}
+                    {sessionLog.length > 0 && (
+                        <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Recent Sessions</div>
+                            {sessionLog.slice(0, 5).map(s => (
+                                <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{s.time}</span>
+                                    <span style={{ fontSize: 11, color: '#4ade80', fontWeight: 600 }}>{s.duration}min focus ✓</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </>

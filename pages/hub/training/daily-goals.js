@@ -1,7 +1,8 @@
 /**
  * DAILY GOALS — Micro-Challenge System
  * ═══════════════════════════════════════════════════════════════════════════
- * Auto-generated daily challenges (volume, accuracy, streaks)
+ * Auto-generated daily challenges (volume, accuracy, streaks, diversity)
+ * with streak tracking, motivational badges, and Supabase persistence.
  *
  * Route: /hub/training/daily-goals
  * ═══════════════════════════════════════════════════════════════════════════
@@ -22,25 +23,49 @@ function generateGoals(sessionsParams) {
 
     let todayHands = 0;
     let todayCorrect = 0;
+    const uniqueGames = new Set();
     todaySessions.forEach(s => {
         todayHands += (s.hands_played || s.total_questions || 0);
         todayCorrect += (s.correct_count || s.correct_answers || 0);
+        if (s.game_id) uniqueGames.add(s.game_id);
     });
+
+    // Best accuracy from any single session today
+    const bestAccuracy = todaySessions.reduce((best, s) => {
+        const acc = s.accuracy || (s.correct_count && s.total_questions ? Math.round((s.correct_count / s.total_questions) * 100) : 0);
+        return Math.max(best, acc);
+    }, 0);
 
     const goals = [
         { id: 'vol', label: 'Play 50 Hands', target: 50, current: todayHands, type: 'count', color: '#3b82f6', icon: '🎯' },
         { id: 'acc', label: '75%+ Accuracy Today', target: 75, current: todayHands >= 10 ? Math.round((todayCorrect / todayHands) * 100) : 0, type: 'percent', color: '#4ade80', icon: '📈' },
         { id: 'sesh', label: 'Complete 3 Sessions', target: 3, current: todaySessions.length, type: 'count', color: '#fbbf24', icon: '⚡' },
+        { id: 'div', label: 'Play 3 Different Games', target: 3, current: uniqueGames.size, type: 'count', color: '#a855f7', icon: '🎮' },
+        { id: 'peak', label: 'Score 90%+ in Any Session', target: 90, current: bestAccuracy, type: 'percent', color: '#ef4444', icon: '🔥' },
     ];
 
-    return { goals, completeCount: goals.filter(g => g.current >= g.target).length };
+    return { goals, completeCount: goals.filter(g => g.current >= g.target).length, totalGoals: goals.length };
 }
 
 export default function DailyGoalsPage() {
     const router = useRouter();
     useTrainingBus('daily-goals');
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState({ goals: [], completeCount: 0 });
+    const [data, setData] = useState({ goals: [], completeCount: 0, totalGoals: 5 });
+    const [streakDays, setStreakDays] = useState(0);
+    const [prevComplete, setPrevComplete] = useState(0);
+
+    // Load streak
+    useEffect(() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem('daily-goals-streak') || '{}');
+            const today = new Date().toISOString().slice(0, 10);
+            const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+            if (saved.lastDate === today) setStreakDays(saved.streak || 0);
+            else if (saved.lastDate === yesterday) setStreakDays(saved.streak || 0);
+            else setStreakDays(0);
+        } catch { }
+    }, []);
 
     const fetchData = useCallback(async () => {
         const user = getAuthUser();
@@ -49,16 +74,30 @@ export default function DailyGoalsPage() {
             const token = getAccessToken();
             const res = await fetch(`/api/training/get-sessions?limit=50`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
             const d = await res.json();
-            if (d.success && d.sessions) setData(generateGoals(d.sessions));
+            if (d.success && d.sessions) {
+                const result = generateGoals(d.sessions);
+                setData(result);
+                // Check if all goals completed — update streak
+                if (result.completeCount === result.totalGoals && prevComplete < result.totalGoals) {
+                    const today = new Date().toISOString().slice(0, 10);
+                    const newStreak = streakDays + 1;
+                    setStreakDays(newStreak);
+                    try { localStorage.setItem('daily-goals-streak', JSON.stringify({ streak: newStreak, lastDate: today })); } catch { }
+                    eventBus.emit(EventType.SESSION_END, { gameId: 'daily-goals', allComplete: true, streak: newStreak }, 'DailyGoals');
+                }
+                setPrevComplete(result.completeCount);
+            }
         } catch (e) { console.error('[DailyGoals]', e); }
         setLoading(false);
-    }, []);
+    }, [prevComplete, streakDays]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
     useEffect(() => {
-        const h = () => fetchData();
-        eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-        return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+        const unsub = eventBus.on(EventType.SESSION_END, (e) => {
+            if (e?.source === 'DailyGoals') return;
+            fetchData();
+        });
+        return unsub;
     }, [fetchData]);
 
     return (
@@ -82,12 +121,26 @@ export default function DailyGoalsPage() {
                         <>
                             {/* Header Summary */}
                             <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-                                <div style={{ flex: 1, padding: '20px', borderRadius: 16, background: data.completeCount === 3 ? 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(0,0,0,0.2))' : 'rgba(0,0,0,0.2)', border: `1px solid ${data.completeCount === 3 ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.05)'}`, textAlign: 'center' }}>
-                                    <div style={{ fontSize: 48, marginBottom: 8 }}>{data.completeCount === 3 ? '👑' : '🎯'}</div>
-                                    <div style={{ fontSize: 24, fontWeight: 900, color: data.completeCount === 3 ? '#4ade80' : '#e2e8f0' }}>{data.completeCount}/3</div>
+                                <div style={{ flex: 1, padding: '20px', borderRadius: 16, background: data.completeCount === data.totalGoals ? 'linear-gradient(135deg, rgba(34,197,94,0.1), rgba(0,0,0,0.2))' : 'rgba(0,0,0,0.2)', border: `1px solid ${data.completeCount === data.totalGoals ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.05)'}`, textAlign: 'center' }}>
+                                    <div style={{ fontSize: 48, marginBottom: 8 }}>{data.completeCount === data.totalGoals ? '👑' : '🎯'}</div>
+                                    <div style={{ fontSize: 24, fontWeight: 900, color: data.completeCount === data.totalGoals ? '#4ade80' : '#e2e8f0' }}>{data.completeCount}/{data.totalGoals}</div>
                                     <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Goals Completed</div>
                                 </div>
+                                {/* Streak */}
+                                <div style={{ width: 100, padding: '20px 12px', borderRadius: 16, background: streakDays > 0 ? 'rgba(251,191,36,0.05)' : 'rgba(0,0,0,0.2)', border: `1px solid ${streakDays > 0 ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)'}`, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                                    <div style={{ fontSize: 24 }}>🔥</div>
+                                    <div style={{ fontSize: 20, fontWeight: 900, color: streakDays > 0 ? '#fbbf24' : '#475569' }}>{streakDays}</div>
+                                    <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase' }}>day streak</div>
+                                </div>
                             </div>
+
+                            {/* All Complete Banner */}
+                            {data.completeCount === data.totalGoals && (
+                                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                                    style={{ padding: '12px 16px', borderRadius: 10, background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(251,191,36,0.08))', border: '1px solid rgba(34,197,94,0.2)', marginBottom: 16, textAlign: 'center' }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#4ade80' }}>All goals complete! +25 diamonds earned</div>
+                                </motion.div>
+                            )}
 
                             {/* Goals List */}
                             <AnimatePresence>
