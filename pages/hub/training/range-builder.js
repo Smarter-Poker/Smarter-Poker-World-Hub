@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 function getAuthToken() {
@@ -34,7 +35,7 @@ function saveSession(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 
@@ -264,14 +265,14 @@ export default function RangeBuilder() {
                     bus.emitDecisionCorrect();
                 } else {
                     bus.emitDecisionIncorrect();
-                // Persist to Supabase
-                saveSession({
-                    game_id: 'range-builder',
-                    hands_played: 1,
-                    accuracy: data.score || 0,
-                    correct_answers: data.correctCount || 0,
-                    total_questions: data.totalCount || 1,
-                });
+                    // Persist to Supabase
+                    saveSession({
+                        game_id: 'range-builder',
+                        hands_played: 1,
+                        accuracy: data.score || 0,
+                        correct_answers: data.correctCount || 0,
+                        total_questions: data.totalCount || 1,
+                    });
                 }
             }
         } catch (err) {

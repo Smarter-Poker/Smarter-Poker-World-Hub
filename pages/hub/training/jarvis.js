@@ -11,8 +11,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import PageTransition from '../../../src/components/transitions/PageTransition';
-import { getAuthUser } from '../../../src/lib/authUtils';
+import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 export default function JarvisDashboard() {
     useTrainingBus('jarvis-dashboard');

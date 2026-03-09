@@ -25,6 +25,7 @@ import RangeReport from '../../../src/components/training/RangeReport';
 import SolverLineSummary from '../../../src/components/training/SolverLineSummary';
 import { classifyAllHands, groupByClassification } from '../../../src/utils/pokerHandEvaluator';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 
 // Dynamic imports for new Phase 34 components (avoid SSR issues)

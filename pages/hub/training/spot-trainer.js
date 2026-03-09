@@ -13,6 +13,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion, AnimatePresence } from 'framer-motion';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ── Save-session helper (SSR-safe) ──────────────────────────────
 function getAuthToken() {
@@ -34,7 +35,7 @@ function saveSession(payload) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
-    }).catch(() => {});
+    }).catch(() => { });
 }
 
 
@@ -222,14 +223,14 @@ export default function SpotTrainerPage() {
         } else {
             setStreak(0);
             if (bus?.emitDecisionIncorrect) bus.emitDecisionIncorrect();
-        // Persist to Supabase
-        saveSession({
-            game_id: 'spot-trainer',
-            hands_played: 1,
-            accuracy: isCorrect ? 100 : 0,
-            correct_answers: isCorrect ? 1 : 0,
-            total_questions: 1,
-        });
+            // Persist to Supabase
+            saveSession({
+                game_id: 'spot-trainer',
+                hands_played: 1,
+                accuracy: isCorrect ? 100 : 0,
+                correct_answers: isCorrect ? 1 : 0,
+                total_questions: 1,
+            });
         }
 
         // Emit bus event for cross-page sync (session-dashboard, position-mastery)
