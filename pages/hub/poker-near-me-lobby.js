@@ -29,27 +29,36 @@ import { addSearchHistory as addSearchHistoryToDb, getSearchHistory } from '../.
 import { getPokerNearMePreferences } from '../../src/services/pokerNearMePreferences';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
 
-// Dynamic imports — Canvas lobby (client-only, no SSR)
-const LobbyCanvas = dynamic(
-  () => import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
-    console.error('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
-    return {
+// Dynamic imports — 3D R3F lobby scene (client-only, no SSR)
+// Falls back to 2D LobbyCanvas if WebGL/R3F fails to load
+const LobbyScene = dynamic(
+  () => import('../../src/components/poker-near-me/lobby/LobbyScene').catch(err => {
+    console.error('[PokerNearMeLobby] LobbyScene (3D) failed to load:', err);
+    // Fallback: load 2D canvas instead
+    return import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(() => ({
       default: () => (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#00d4ff', fontFamily: 'Orbitron, sans-serif', fontSize: 16, flexDirection: 'column', gap: 12 }}>
           <div>Lobby — Reloading...</div>
           <button onClick={() => window.location.reload()} style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', cursor: 'pointer' }}>Refresh</button>
         </div>
       )
-    };
+    }));
   }),
   {
     ssr: false,
     loading: () => (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 16 }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#030818', color: '#6ee7ef', fontFamily: 'Orbitron, sans-serif', fontSize: 16 }}>
         Loading Lobby...
       </div>
     ),
   }
+);
+const LobbyCanvas = dynamic(
+  () => import('../../src/components/poker-near-me/lobby/LobbyCanvas').catch(err => {
+    console.error('[PokerNearMeLobby] LobbyCanvas module failed to load:', err);
+    return { default: () => null };
+  }),
+  { ssr: false }
 );
 const LobbyOverlay = dynamic(
   () => import('../../src/components/poker-near-me/lobby/LobbyOverlay').catch(err => {
@@ -1143,8 +1152,8 @@ export default function PokerNearMeLobby() {
           bottomLinks={menuConfig.bottomLinks}
         />
 
-        {/* Layer 1 — Canvas Background (galaxy + radar effects) */}
-        <LobbyCanvas />
+        {/* Layer 1 — 3D R3F Scene (cinematic pods, particles, post-processing) */}
+        <LobbyScene onPodClick={handlePodClick} activePod={activePod} liveData={liveData} />
 
         {/* Layer 2 — UI Overlay */}
         <LobbyOverlay
