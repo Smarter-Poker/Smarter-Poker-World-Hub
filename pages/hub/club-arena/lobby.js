@@ -20,6 +20,7 @@ import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { buildStickerAssetMap } from '../../../src/lib/stickerOrchestrator';
 import useWalletData from '../../../src/hooks/useWalletData';
+import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 
 // Dynamic imports — GameCard + DynamicWallet use browser APIs, must be client-only
 const GameCard = dynamic(
@@ -866,6 +867,11 @@ const router = useRouter();
                     showProfile={true}
                     {...getMenuConfig('club-arena', user, {}, {})}
                 />
+
+                {/* Bottom Navigation */}
+                {club && (
+                    <ClubArenaBottomNav clubId={club.club_id} activePage="lobby" userRole={membership?.role} />
+                )}
             </div>
         </>
     );

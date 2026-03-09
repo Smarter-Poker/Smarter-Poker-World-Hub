@@ -48,6 +48,12 @@ const S = {
 };
 
 // SVG Icons as inline components for cleaner JSX
+const LobbyIcon = () => (
+    <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+    </svg>
+);
+
 const MessagesIcon = () => (
     <svg style={S.bottomNavIcon} viewBox="0 0 24 24" fill="currentColor">
         <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4V4c0-1.1-.9-2-2-2z" />
@@ -89,6 +95,7 @@ export default function ClubArenaBottomNav({ clubId, activePage, userRole }) {
     if (!clubId) return null;
 
     const navItems = [
+        { key: 'lobby', label: 'Lobby', href: `/hub/club-arena/lobby?club=${clubId}`, Icon: LobbyIcon },
         { key: 'messages', label: 'Messages', href: `/hub/club-arena/messages?club=${clubId}`, Icon: MessagesIcon },
         { key: 'players', label: 'Players', href: `/hub/club-arena/players?club=${clubId}`, Icon: PlayersIcon },
         { key: 'cashier', label: 'Cashier', href: `/hub/club-arena/cashier?club=${clubId}`, Icon: CashierIcon },
