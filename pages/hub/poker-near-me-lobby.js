@@ -618,15 +618,7 @@ export default function PokerNearMeLobby() {
     fetchPreferences();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Live games refresh ───
-  const fetchLiveGamesRef = useRef(fetchLiveGames);
-  fetchLiveGamesRef.current = fetchLiveGames;
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchLiveGamesRef.current();
-    }, LIVE_REFRESH_MS);
-    return () => clearInterval(interval);
-  }, []);
+  // ─── Live games refresh handled by <LiveGamesFeed> component ───
 
   // ─── Search handler ───
   const searchTimeoutRef = useRef(null);

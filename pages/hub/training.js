@@ -1265,6 +1265,12 @@ export default function TrainingPage() {
                                         { label: 'Tilt Guard', path: '/hub/training/tilt-guard', icon: 'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z' },
                                         { label: 'Rankings', path: '/hub/training/community-leaderboard', icon: 'M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z' },
                                         { label: 'Warmup', path: '/hub/training/quick-warmup', icon: 'M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.73-2.56 6.86-6 7.75v2.05c5.05-.93 8.82-5.19 8.82-10.31S18.05 2.98 13 2.05zM11 2.05C5.95 2.98 2.18 7.24 2.18 12.36S5.95 21.74 11 22.67v-2.05c-3.44-.89-6-4.02-6-7.75 0-4.08 3.05-7.44 7-7.93V2.95z' },
+                                        { label: 'Milestones', path: '/hub/training/milestones', icon: 'M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z' },
+                                        { label: 'Flashcards', path: '/hub/training/flashcards', icon: 'M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z' },
+                                        { label: 'Notes', path: '/hub/training/session-notes', icon: 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z' },
+                                        { label: 'Calendar', path: '/hub/training/training-calendar', icon: 'M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z' },
+                                        { label: 'Coach', path: '/hub/training/coach-mode', icon: 'M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z' },
+                                        { label: 'Glossary', path: '/hub/training/glossary', icon: 'M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1z' },
                                     ].map(item => (
 
                                         <motion.div
