@@ -147,7 +147,11 @@ export default async function handler(req, res) {
               custom_add_on: settings?.custom_add_on || false,
               add_on_break_length: settings?.add_on_break_length || 1,
               // ── Special MTT Modes (Image 11) ──
-              ko_bounty: settings?.ko_bounty || false,
+              // ── Bounty System ──
+              bounty_type: settings?.bounty_type || 'none',
+              bounty_amount: parseFloat(settings?.bounty_amount || 0),
+              bounty_percent: parseFloat(settings?.bounty_percent || 0),
+              mystery_threshold: parseInt(settings?.mystery_threshold || 0),
               gtd_prize_pool: settings?.gtd_prize_pool || false,
               gtd_amount: settings?.gtd_amount || 0,
               final_table_deal: settings?.final_table_deal || false,
@@ -316,7 +320,7 @@ export default async function handler(req, res) {
               .select('user_id, display_name')
               .eq('tournament_id', tournamentId)
               .eq('status', 'registered')
-                  .limit(100);
+              .limit(100);
 
             const feePercent = tourn.settings?.fee_percent || 10;
             const buyinFee = Math.round(tourn.buy_in * feePercent / 100);
@@ -331,6 +335,9 @@ export default async function handler(req, res) {
               buyinFee,
               maxEntries: tourn.max_players || 9,
               clubId: tourn.club_id,
+              // ── Bounty System ──
+              bountyType: tourn.settings?.bounty_type || 'none',
+              bountyAmount: parseFloat(tourn.settings?.bounty_amount || 0),
             });
 
             if (sngCreate.success) {
@@ -358,7 +365,7 @@ export default async function handler(req, res) {
           message: `You're registered for ${tourn.name}. ${currentCount}/${tourn.max_players} players.`,
           data: { tournamentId, clubId: tourn.club_id, tournamentName: tourn.name },
           pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
-        }).catch(() => {});
+        }).catch(() => { });
 
         return res.json({ success: true, registeredCount: currentCount });
       }
@@ -450,7 +457,7 @@ export default async function handler(req, res) {
             .select('user_id, display_name')
             .eq('tournament_id', tournamentId)
             .eq('status', 'registered')
-                .limit(100);
+            .limit(100);
 
           const mttFeePercent = tourn.settings?.fee_percent || 10;
           const mttBuyinFee = Math.round((tourn.buy_in || 100) * mttFeePercent / 100);
@@ -470,6 +477,12 @@ export default async function handler(req, res) {
             allowsAddon: tourn.settings?.addonEnabled || false,
             clubId: tourn.club_id,
             clubIds: tourn.settings?.clubIds || [tourn.club_id],
+            // ── Bounty System ──
+            bountyType: tourn.settings?.bounty_type || 'none',
+            bountyAmount: parseFloat(tourn.settings?.bounty_amount || 0),
+            mysteryThreshold: tourn.settings?.mystery_threshold
+              ? Math.ceil(tourn.settings.mystery_threshold / 100 * tourn.registered_count)
+              : 0,
           });
 
           if (!createResult.success) {
@@ -508,7 +521,7 @@ export default async function handler(req, res) {
           message: `${tourn.name} is now live with ${tourn.registered_count} players!`,
           data: { tournamentId, tournamentName: tourn.name },
           pushUrl: `/hub/club-arena/tournaments?club=${tourn.club_id}`,
-        }).catch(() => {});
+        }).catch(() => { });
 
         return res.json({ success: true });
       }

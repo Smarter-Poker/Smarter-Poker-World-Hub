@@ -147,7 +147,21 @@ export default function SandboxPokerTable({
         })),
     ];
 
-    const avatarSize = 38;
+    const avatarSize = 44;
+
+    // Deterministic avatar assignment for sandbox seats
+    const SANDBOX_AVATARS = [
+        '/avatars/table/free_fox.png',       // Hero
+        '/avatars/table/free_shark.png',
+        '/avatars/table/free_ninja.png',
+        '/avatars/table/free_viking.png',
+        '/avatars/table/free_lion.png',
+        '/avatars/table/free_owl.png',
+        '/avatars/table/free_samurai.png',
+        '/avatars/table/free_pirate.png',
+        '/avatars/table/free_cowboy.png',
+        '/avatars/table/free_knight.png',
+    ];
 
     // Swipe gesture tracking for street navigation
     const touchStartRef = useRef({ x: 0, y: 0 });
@@ -328,18 +342,20 @@ export default function SandboxPokerTable({
                             backdropFilter: 'blur(6px)',
                             minWidth: 50,
                         }}>
-                        {/* Avatar circle */}
+                        {/* Avatar image */}
                         <div style={{
                             width: avatarSize, height: avatarSize, borderRadius: '50%', flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: seat.isHero
-                                ? 'linear-gradient(135deg, #2374E1 0%, #1a5db8 100%)'
-                                : 'linear-gradient(135deg, #1877F2 0%, #1565c0 100%)',
-                            border: `2px solid ${seat.isHero ? '#2374E1' : '#1877F2'}`,
+                            overflow: 'hidden',
+                            border: `2px solid ${seat.isHero ? '#2374E1' : 'rgba(255,255,255,0.15)'}`,
                             boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-                            fontSize: 16, fontWeight: 800, color: '#fff',
+                            background: 'rgba(0,0,0,0.3)',
                         }}>
-                            {seat.isHero ? 'H' : seat.name.charAt(0).toUpperCase()}
+                            <img
+                                src={SANDBOX_AVATARS[idx % SANDBOX_AVATARS.length]}
+                                alt={seat.name}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                            />
                         </div>
                         {/* Name + Stack */}
                         <div style={{ overflow: 'hidden' }}>

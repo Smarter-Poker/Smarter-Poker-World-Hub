@@ -32,9 +32,9 @@ const SUIT_SYMBOLS = { h: '', d: '', c: '', s: '' };
 const SUIT_COLORS = { h: '#E74C3C', d: '#3498DB', c: '#27AE60', s: '#2C3E50' };
 
 export default function HandHistories() {
-        useTrainingBus('club-arena-hand-histories');
+    useTrainingBus('club-arena-hand-histories');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
@@ -42,6 +42,7 @@ const router = useRouter();
     const [club, setClub] = useState(null);
     const [hands, setHands] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [userRole, setUserRole] = useState(null);
 
     // Filters (persisted to localStorage)
     const { filters: _hhFilters, setFilter: _setHHFilter } = usePersistedFilters('club-arena-hand-histories', { period: 'all', resultFilter: 'all', gameType: 'all' });
@@ -95,6 +96,17 @@ const router = useRouter();
 
             if (clubData) {
                 setClub(clubData);
+
+                // Fetch user's membership role for bottom nav visibility
+                if (authUser) {
+                    const { data: memberRow } = await supabase
+                        .from('club_members')
+                        .select('role')
+                        .eq('club_id', clubData.id)
+                        .eq('user_id', authUser.id)
+                        .maybeSingle();
+                    setUserRole(memberRow?.role || null);
+                }
 
                 // Query hand_histories — schema: player_ids, winner_ids, hand_data (JSONB), pot_total, variant, completed_at
                 // Per-player profit/cards are inside hand_data.players[]
@@ -189,7 +201,7 @@ const router = useRouter();
                 }
             }
         } catch (e) {
-            
+
         } finally {
             setIsLoading(false);
         }
@@ -209,14 +221,16 @@ const router = useRouter();
         if (!clubIdParam) return;
         const ch = supabase
             .channel(`hands-live:${clubIdParam}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
-                filter: `club_id=eq.${clubIdParam}` }, () => {
-                    setPage(0);
-                    loadData(true);
-                })
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'hand_histories',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => {
+                setPage(0);
+                loadData(true);
+            })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
         return () => { supabase.removeChannel(ch); };
@@ -426,12 +440,12 @@ const router = useRouter();
                         <div style={S.emptyState}>
                             <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}></span>
                             <p>
-                                    {resultFilter !== 'all'
-                                        ? `No ${resultFilter === 'wins' ? 'winning' : 'losing'} hands in this period.`
-                                        : gameType !== 'all'
+                                {resultFilter !== 'all'
+                                    ? `No ${resultFilter === 'wins' ? 'winning' : 'losing'} hands in this period.`
+                                    : gameType !== 'all'
                                         ? `No ${gameType.toUpperCase()} hands found.`
                                         : 'No hands yet. Play some hands to see your history!'}
-                                </p>
+                            </p>
                             <p style={{ fontSize: '13px', marginTop: '8px' }}>Play Some Poker To See Your History!</p>
                         </div>
                     ) : (
@@ -498,7 +512,7 @@ const router = useRouter();
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={null} />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={userRole} />
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

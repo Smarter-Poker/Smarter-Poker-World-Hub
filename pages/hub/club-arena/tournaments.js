@@ -17,6 +17,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import useWalletData from '../../../src/hooks/useWalletData';
 import dynamic from 'next/dynamic';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
+const MysteryBountyReveal = dynamic(() => import('../../../src/components/club-arena/MysteryBountyReveal'), { ssr: false });
 
 const FB = {
   bg: '#18191A', card: '#242526', text: '#E4E6EB', dim: '#B0B3B8',
@@ -44,18 +45,18 @@ async function api(action, params) {
       body: JSON.stringify({ action, ...params }),
     });
     let data;
-    try { data = await res.json(); } catch(e) { return { success: false, error: 'Server returned invalid response' }; }
+    try { data = await res.json(); } catch (e) { return { success: false, error: 'Server returned invalid response' }; }
     if (!res.ok && !data.error) data.error = `Request failed (${res.status})`;
     return data;
-  } catch(e) {
+  } catch (e) {
     return { success: false, error: e.message || 'Network error' };
   }
 }
 
 export default function TournamentsPage() {
-      useTrainingBus('club-arena-tournaments');
+  useTrainingBus('club-arena-tournaments');
 
-const router = useRouter();
+  const router = useRouter();
   const { club: clubId } = router.query;
 
   const [user, setUser] = useState(null);
@@ -279,6 +280,15 @@ const router = useRouter();
                 fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
               }}>{TYPE_LABELS[t.type] || t.type}</span>
               <span style={{ color: FB.dim, fontSize: 12 }}>{t.variant?.toUpperCase()}</span>
+              {t.settings?.bounty_type && t.settings.bounty_type !== 'none' && (
+                <span style={{
+                  background: t.settings.bounty_type === 'mystery' ? '#9333ea30' : t.settings.bounty_type === 'pko' ? '#ea580c30' : '#dc262630',
+                  color: t.settings.bounty_type === 'mystery' ? '#c084fc' : t.settings.bounty_type === 'pko' ? '#fb923c' : '#fca5a5',
+                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+                }}>
+                  {t.settings.bounty_type === 'mystery' ? '🎭 Mystery' : t.settings.bounty_type === 'pko' ? '📈 PKO' : '🎯 KO'}
+                </span>
+              )}
             </div>
 
             <h3 style={{ margin: '0 0 4px', fontSize: 16 }}>{t.name}</h3>
@@ -323,7 +333,7 @@ const router = useRouter();
       )}
 
       {/* Bottom Navigation */}
-      <ClubArenaBottomNav clubId={clubId} activePage="tournaments" />
+      <ClubArenaBottomNav clubId={clubId} activePage="tournaments" userRole={isAdmin ? 'admin' : 'player'} />
     </div>
   );
 }
@@ -516,14 +526,14 @@ function CreateTournamentModal({ clubId, onClose, onCreated, onError = () => { }
 function calcPayouts(prizePool, playerCount) {
   if (!prizePool || !playerCount || playerCount < 2) return [];
   const structures = {
-    2:  [100],
-    3:  [70, 30],
-    4:  [65, 35],
-    5:  [55, 30, 15],
-    6:  [50, 30, 20],
-    7:  [45, 27, 18, 10],
-    8:  [43, 26, 17, 9, 5],
-    9:  [42, 25, 16, 9, 5, 3],
+    2: [100],
+    3: [70, 30],
+    4: [65, 35],
+    5: [55, 30, 15],
+    6: [50, 30, 20],
+    7: [45, 27, 18, 10],
+    8: [43, 26, 17, 9, 5],
+    9: [42, 25, 16, 9, 5, 3],
     10: [40, 24, 15, 9, 5, 4, 3],
     18: [34, 20, 14, 10, 7, 5, 4, 3, 3],
     27: [30, 18, 13, 9, 6, 5, 4, 3, 3, 2, 2, 2, 2, 1],
@@ -556,7 +566,8 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
   const [profiles, setProfiles] = useState({});
   const [detailStats, setDetailStats] = useState({ totalRebuys: 0, totalAddons: 0 });
   const [tourneyState, setTourneyState] = useState(null);
-  const [detailTab, setDetailTab] = useState('players'); // players | payouts | results
+  const [detailTab, setDetailTab] = useState('players'); // players | payouts | results | bounties
+  const [bountyReveal, setBountyReveal] = useState(null);
 
   // Load detailed player + profile data
   useEffect(() => {
@@ -571,6 +582,9 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           setRegistrations(d.registrations || []);
           setProfiles(d.profiles || {});
           setDetailStats(d.stats || { totalRebuys: 0, totalAddons: 0 });
+          if (d.bountyState) {
+            setTourneyState(prev => ({ ...prev, bountyState: d.bountyState }));
+          }
         }
       } catch (_) {
         const { data } = await supabase
@@ -602,6 +616,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
       'player_rebuy', 'player_addon',
       'tournament_started', 'level_change', 'break_started', 'break_ended',
       'tournament_complete', 'victory',
+      'mystery_bounty_awarded', 'bounty_awarded',
     ];
     const tCh = supabase.channel(`tournament:${t.id}`);
     for (const evt of liveEvents) {
@@ -616,6 +631,10 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
             .in('status', ['registered', 'playing', 'eliminated'])
             .order('registered_at')
             .then(({ data }) => { if (data) setRegistrations(data); });
+        }
+        // Trigger mystery bounty reveal animation
+        if (evt === 'mystery_bounty_awarded' && payload.payload?.reveal) {
+          setBountyReveal(payload.payload.reveal);
         }
       });
     }
@@ -685,6 +704,10 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
 
   const canRegister = ['scheduled', 'registering'].includes(t.status) && !isRegistered && chipBalance >= t.buy_in;
 
+  // Bounty badge for detail modal header
+  const bountyType = t.settings?.bounty_type;
+  const hasBounty = bountyType && bountyType !== 'none';
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{
@@ -694,6 +717,15 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <span style={{ background: STATUS_COLORS[t.status], color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>{t.status}</span>
           <span style={{ background: FB.primary + '30', color: FB.primary, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4 }}>{TYPE_LABELS[t.type]}</span>
+          {hasBounty && (
+            <span style={{
+              background: bountyType === 'mystery' ? '#9333ea30' : bountyType === 'pko' ? '#ea580c30' : '#dc262630',
+              color: bountyType === 'mystery' ? '#c084fc' : bountyType === 'pko' ? '#fb923c' : '#fca5a5',
+              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
+            }}>
+              {bountyType === 'mystery' ? '🎭 Mystery' : bountyType === 'pko' ? '📈 PKO' : '🎯 KO'}
+            </span>
+          )}
         </div>
 
         <h2 style={{ margin: '0 0 16px' }}>{t.name}</h2>
@@ -708,6 +740,13 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
             ['Late Reg', t.late_reg_levels ? `${t.late_reg_levels} levels` : 'No'],
             ['Rebuys', t.rebuy_enabled ? (detailStats.totalRebuys > 0 ? `Yes (${detailStats.totalRebuys} used)` : 'Yes') : 'No'],
             ['Add-on', t.addon_enabled ? (detailStats.totalAddons > 0 ? `Yes (${detailStats.totalAddons} used)` : 'Yes') : 'No'],
+            ...(t.settings?.bounty_type && t.settings.bounty_type !== 'none' ? [
+              ['Bounty Type', t.settings.bounty_type === 'mystery' ? '🎭 Mystery Bounty' : t.settings.bounty_type === 'pko' ? '📈 Progressive KO' : '🎯 Knockout'],
+              ['Bounty/Player', `${Number(t.settings.bounty_amount || 0).toLocaleString()} (${t.settings.bounty_percent || 0}%)`],
+              ...(t.settings.bounty_type === 'mystery' ? [
+                ['Mystery Phase', t.settings.mystery_threshold ? `Top ${t.settings.mystery_threshold}%` : 'Immediate'],
+              ] : []),
+            ] : []),
           ].map(([label, value]) => (
             <div key={label}>
               <div style={{ fontSize: 11, color: FB.dim }}>{label}</div>
@@ -750,6 +789,7 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
             {[
               { id: 'players', label: `Players (${registrations.length})` },
               { id: 'payouts', label: 'Payouts' },
+              ...(t.settings?.bounty_type && t.settings.bounty_type !== 'none' ? [{ id: 'bounties', label: t.settings.bounty_type === 'mystery' ? '🎭 Bounties' : '🎯 Bounties' }] : []),
               ...(t.status === 'complete' ? [{ id: 'results', label: '🏆 Results' }] : []),
             ].map(tab => (
               <button key={tab.id} onClick={() => setDetailTab(tab.id)} style={{
@@ -887,6 +927,124 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
               </div>
             );
           })()}
+
+          {/* Bounties tab */}
+          {detailTab === 'bounties' && (() => {
+            const bountyState = tourneyState?.bountyState;
+            const bountyType = t.settings?.bounty_type || 'none';
+            const bountyAmount = Number(t.settings?.bounty_amount || 0);
+            const totalBountyPool = bountyAmount * (t.registered_count || 0);
+            const avgBounty = t.registered_count > 1 ? Math.floor(totalBountyPool / (t.registered_count - 1)) : 0;
+            return (
+              <div>
+                {/* Pool & Phase Status */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12,
+                  background: FB.bg, padding: 10, borderRadius: 8, border: `1px solid ${FB.border}`,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Bounty Pool</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#FFD700' }}>{totalBountyPool.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>
+                      {bountyType === 'mystery' ? 'Avg Envelope' : 'Per Bounty'}
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: FB.text }}>
+                      {(bountyType === 'mystery' ? avgBounty : bountyAmount).toLocaleString()}
+                    </div>
+                  </div>
+                  {bountyType === 'mystery' && (
+                    <>
+                      <div>
+                        <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Mystery Phase</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: bountyState?.mysteryPhaseActive ? '#31A24C' : '#ea580c' }}>
+                          {bountyState?.mysteryPhaseActive ? '🟢 ACTIVE' : `🔴 Pending (Top ${t.settings?.mystery_threshold || 0}%)`}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: FB.dim, textTransform: 'uppercase' }}>Envelopes Left</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: FB.text }}>
+                          {bountyState?.mysteryEnvelopesRemaining ?? '—'}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* How it works */}
+                <div style={{
+                  background: `${bountyType === 'mystery' ? '#9333ea' : bountyType === 'pko' ? '#ea580c' : '#dc2626'}15`,
+                  borderRadius: 8, padding: '8px 12px', marginBottom: 12,
+                  border: `1px solid ${bountyType === 'mystery' ? '#9333ea' : bountyType === 'pko' ? '#ea580c' : '#dc2626'}30`,
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: bountyType === 'mystery' ? '#c084fc' : bountyType === 'pko' ? '#fb923c' : '#fca5a5', marginBottom: 4 }}>
+                    {bountyType === 'mystery' ? '🎭 Mystery Bounty' : bountyType === 'pko' ? '📈 Progressive KO' : '🎯 Knockout'}
+                  </div>
+                  <div style={{ fontSize: 11, color: FB.dim, lineHeight: 1.5 }}>
+                    {bountyType === 'mystery'
+                      ? 'Each elimination after the mystery phase activates reveals a random bounty envelope. Prizes range from Min to JACKPOT — you never know what you\'ll get!'
+                      : bountyType === 'pko'
+                        ? 'Eliminate a player to win 50% of their bounty. The other 50% is added to YOUR bounty. The winner collects their own accumulated bounty at the end.'
+                        : 'Each player has a fixed bounty on their head. Eliminate them to collect it — simple and direct!'}
+                  </div>
+                </div>
+
+                {/* Leaderboard */}
+                {bountyState?.leaderboard && bountyState.leaderboard.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: FB.dim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Bounty Leaderboard</div>
+                    {bountyState.leaderboard.slice(0, 10).map((entry, i) => (
+                      <div key={entry.playerId} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                        borderRadius: 6, marginBottom: 2,
+                        background: i === 0 ? '#F7C52A12' : 'transparent',
+                      }}>
+                        <span style={{ width: 20, fontSize: 11, color: FB.dim, textAlign: 'right' }}>
+                          {i === 0 ? '👑' : `#${i + 1}`}
+                        </span>
+                        <span style={{ flex: 1, fontSize: 12, color: FB.text, fontWeight: i < 3 ? 600 : 400 }}>
+                          {entry.playerName}
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#FFD700' }}>
+                          {entry.bountyEarnings.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: 10, color: FB.dim }}>
+                          {entry.eliminationCount} KO{entry.eliminationCount !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recent Awards */}
+                {bountyState?.recentAwards && bountyState.recentAwards.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: FB.dim, fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Recent Bounties</div>
+                    {bountyState.recentAwards.slice(-5).reverse().map((award, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px',
+                        fontSize: 11, color: FB.dim, borderBottom: `1px solid ${FB.border}22`,
+                      }}>
+                        <span style={{ color: '#FFD700', fontWeight: 700, fontSize: 13 }}>
+                          {award.amount.toLocaleString()}
+                        </span>
+                        <span style={{ flex: 1 }}>{award.type === 'mystery_bounty' ? '🎭' : '🎯'} {award.type?.replace(/_/g, ' ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!bountyState?.leaderboard?.length && !bountyState?.recentAwards?.length && (
+                  <div style={{ fontSize: 12, color: FB.dim, textAlign: 'center', padding: '16px 0' }}>
+                    {['running', 'late_reg'].includes(t.status)
+                      ? 'No bounties awarded yet. Eliminations will appear here.'
+                      : 'Bounty data will be available once the tournament starts.'}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Live Tournament Stats (when running) */}
@@ -941,6 +1099,14 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
           )}
         </div>
       </div>
+
+      {/* Mystery Bounty Reveal Overlay */}
+      {bountyReveal && (
+        <MysteryBountyReveal
+          reveal={bountyReveal}
+          onDismiss={() => setBountyReveal(null)}
+        />
+      )}
     </div>
   );
 }

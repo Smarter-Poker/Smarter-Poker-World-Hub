@@ -13,6 +13,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -44,9 +45,9 @@ const TIME_PERIODS = [
 ];
 
 export default function Leaderboard() {
-        useTrainingBus('club-arena-leaderboard');
+    useTrainingBus('club-arena-leaderboard');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
@@ -191,7 +192,7 @@ const router = useRouter();
                 }
             }
         } catch (e) {
-            
+
         } finally {
             setIsLoading(false);
         }
@@ -204,11 +205,13 @@ const router = useRouter();
         if (!clubIdParam) return;
         const ch = supabase
             .channel(`leaderboard-live:${clubIdParam}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
-                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'hand_histories',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
         return () => { supabase.removeChannel(ch); };
@@ -251,7 +254,7 @@ const router = useRouter();
         // Top 3 podium
         podium: { display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '8px', marginBottom: '24px', padding: '20px 0' },
         podiumPlace: { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px', borderRadius: '10px', background: FB.cardBg, border: `1px solid ${FB.border}` },
-        podiumAvatar: { width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '8px', overflow: 'hidden' },
+        podiumAvatar: { width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '8px', overflow: 'hidden', position: 'relative' },
         podiumName: { fontSize: '12px', color: FB.textPrimary, fontWeight: 600, textAlign: 'center', maxWidth: '80px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
         podiumValue: { fontSize: '14px', fontWeight: 700, marginTop: '4px' },
         podiumRank: { fontSize: '18px', marginTop: '8px' },
@@ -261,7 +264,7 @@ const router = useRouter();
         playerRow: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, marginBottom: '8px' },
         playerRowHighlight: { border: `2px solid ${FB.primary}`, background: '#1a2a40' },
         playerRank: { width: '28px', fontSize: '14px', fontWeight: 700, color: FB.textSecondary, textAlign: 'center', flexShrink: 0 },
-        playerAvatar: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0, overflow: 'hidden' },
+        playerAvatar: { width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0, overflow: 'hidden', position: 'relative' },
         playerInfo: { flex: 1, minWidth: 0 },
         playerName: { fontSize: '14px', fontWeight: 600, color: FB.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
         playerSub: { fontSize: '12px', color: FB.textSecondary },
@@ -293,6 +296,7 @@ const router = useRouter();
 
     const top3 = members.slice(0, 3);
     const rest = members.slice(3);
+    const currentUserRole = user ? (members.find(m => m.user_id === user.id)?.role || null) : null;
 
     return (
         <>
@@ -376,9 +380,7 @@ const router = useRouter();
                                     {/* 2nd Place */}
                                     <div style={{ ...S.podiumPlace, width: '90px', minHeight: '140px' }}>
                                         <div style={{ ...S.podiumAvatar, background: FB.silver }}>
-                                            {top3[1]?.profiles?.avatar_url ? (
-                                                <Image src={top3[1].profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                            ) : ''}
+                                            <Image src={resolveAvatarDisplay(top3[1]?.profiles?.avatar_url, top3[1]?.user_id || 1)} alt="" fill style={{ objectFit: 'cover' }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[1]?.profiles?.display_name || top3[1]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[1])}</div>
@@ -388,9 +390,7 @@ const router = useRouter();
                                     {/* 1st Place */}
                                     <div style={{ ...S.podiumPlace, width: '100px', minHeight: '160px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '60px', height: '60px', background: FB.gold }}>
-                                            {top3[0]?.profiles?.avatar_url ? (
-                                                <Image src={top3[0].profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                            ) : ''}
+                                            <Image src={resolveAvatarDisplay(top3[0]?.profiles?.avatar_url, top3[0]?.user_id || 0)} alt="" fill style={{ objectFit: 'cover' }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[0]?.profiles?.display_name || top3[0]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.gold, fontSize: '18px' }}>{getDisplayValue(top3[0])}</div>
@@ -400,9 +400,7 @@ const router = useRouter();
                                     {/* 3rd Place */}
                                     <div style={{ ...S.podiumPlace, width: '85px', minHeight: '130px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '45px', height: '45px', background: FB.bronze }}>
-                                            {top3[2]?.profiles?.avatar_url ? (
-                                                <Image src={top3[2].profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                            ) : ''}
+                                            <Image src={resolveAvatarDisplay(top3[2]?.profiles?.avatar_url, top3[2]?.user_id || 2)} alt="" fill style={{ objectFit: 'cover' }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[2]?.profiles?.display_name || top3[2]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[2])}</div>
@@ -430,9 +428,7 @@ const router = useRouter();
                                                     {rank}
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    {member.profiles?.avatar_url ? (
-                                                        <Image src={member.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                                    ) : ''}
+                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
@@ -469,9 +465,7 @@ const router = useRouter();
                                                     {getRankEmoji(rank) || rank}
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    {member.profiles?.avatar_url ? (
-                                                        <Image src={member.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                                    ) : ''}
+                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
@@ -491,7 +485,7 @@ const router = useRouter();
                     )}
                 </div>
 
-                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={null} />
+                <ClubArenaBottomNav clubId={clubIdParam} activePage="data" userRole={currentUserRole} />
             </div>
         </>
     );

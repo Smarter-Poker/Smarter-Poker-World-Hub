@@ -92,11 +92,44 @@ export default async function handler(req, res) {
     const totalRebuys = registrations.reduce((s, r) => s + (r.rebuys_used || 0), 0);
     const totalAddons = registrations.filter(r => r.addon_used).length;
 
+    // ── Bounty State: query engine for live bounty data ──
+    let bountyState = null;
+    try {
+      const { data: tourn } = await supabaseAdmin
+        .from('club_tournaments')
+        .select('status, settings')
+        .eq('id', tournamentId)
+        .maybeSingle();
+
+      if (tourn && ['running', 'late_reg', 'final_table'].includes(tourn?.status) &&
+        tourn.settings?.bounty_type && tourn.settings.bounty_type !== 'none') {
+        const { getController } = require('../../../src/lib/poker-engine/GameController');
+        const controller = await getController();
+        const state = controller.getTournamentState?.(tournamentId);
+        if (state?.bountyState) {
+          bountyState = {
+            bountyType: state.bountyState.bountyType,
+            totalBountyPool: state.bountyState.totalBountyPool,
+            totalBountiesAwarded: state.bountyState.totalBountiesAwarded,
+            mysteryPhaseActive: state.bountyState.mysteryPhaseActive || false,
+            mysteryPool: state.bountyState.mysteryPool || 0,
+            mysteryEnvelopesRemaining: state.bountyState.mysteryEnvelopesRemaining ?? null,
+            leaderboard: (state.bountyState.leaderboard || []).slice(0, 10),
+            recentAwards: (state.bountyState.recentAwards || []).slice(-10),
+          };
+        }
+      }
+    } catch (bountyErr) {
+      console.error('[tournament-detail] bounty state error (non-fatal):', bountyErr.message);
+      // Non-fatal — respond without bounty state
+    }
+
     return res.status(200).json({
       success: true,
       registrations,
       profiles,
       stats: { totalRebuys, totalAddons },
+      bountyState,
     });
   } catch (err) {
     console.error('[tournament-detail] error:', err);

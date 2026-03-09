@@ -49,81 +49,114 @@ import PlayerNoteModal, { COLOR_LABELS } from './PlayerNoteModal';
 let T = getActiveTheme();
 
 // ═══════════════════════════════════════════════════════════════════════════
+// AVATAR RESOLUTION — Maps user avatars to table-optimized images
+// ═══════════════════════════════════════════════════════════════════════════
+
+const FALLBACK_TABLE_AVATARS = [
+  '/avatars/table/free_shark.png',
+  '/avatars/table/free_lion.png',
+  '/avatars/table/free_owl.png',
+  '/avatars/table/free_fox.png',
+  '/avatars/table/free_ninja.png',
+  '/avatars/table/free_pirate.png',
+  '/avatars/table/free_samurai.png',
+  '/avatars/table/free_viking.png',
+  '/avatars/table/free_knight.png',
+  '/avatars/table/free_cowboy.png',
+];
+
+function resolveTableAvatar(avatarUrl, seatIndex = 0) {
+  // Custom avatar (Supabase upload or external URL) — use directly
+  if (avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:'))) {
+    return avatarUrl;
+  }
+  // Library avatar path — map to table-optimized version
+  if (avatarUrl && avatarUrl.startsWith('/avatars/')) {
+    const filename = avatarUrl.split('/').pop().replace('.png', '');
+    const tier = avatarUrl.includes('/vip/') ? 'vip' : 'free';
+    return `/avatars/table/${tier}_${filename}.png`;
+  }
+  // Fallback: deterministic avatar based on seat index
+  return FALLBACK_TABLE_AVATARS[seatIndex % FALLBACK_TABLE_AVATARS.length];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // SEAT POSITIONS — 2 to 10 seats (percentages of table container)
+// Positions are OUTSIDE the table felt so avatars don't overlap the surface
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEAT_LAYOUTS = {
   2: [
-    { x: 50, y: 88 },  // Hero (bottom)
-    { x: 50, y: 8 },   // Opponent (top)
+    { x: 50, y: 96 },  // Hero (bottom — off table)
+    { x: 50, y: -2 },  // Opponent (top — off table)
   ],
   3: [
-    { x: 50, y: 88 },
-    { x: 18, y: 30 },
-    { x: 82, y: 30 },
+    { x: 50, y: 96 },
+    { x: 4, y: 28 },
+    { x: 96, y: 28 },
   ],
   4: [
-    { x: 50, y: 88 },
-    { x: 12, y: 50 },
-    { x: 50, y: 8 },
-    { x: 88, y: 50 },
+    { x: 50, y: 96 },
+    { x: 2, y: 50 },
+    { x: 50, y: -2 },
+    { x: 98, y: 50 },
   ],
   5: [
-    { x: 50, y: 88 },
-    { x: 14, y: 60 },
-    { x: 28, y: 12 },
-    { x: 72, y: 12 },
-    { x: 86, y: 60 },
+    { x: 50, y: 96 },
+    { x: 2, y: 62 },
+    { x: 16, y: -2 },
+    { x: 84, y: -2 },
+    { x: 98, y: 62 },
   ],
   6: [
-    { x: 50, y: 88 },  // Bottom center (hero default)
-    { x: 14, y: 65 },  // Left lower
-    { x: 12, y: 32 },  // Left upper
-    { x: 40, y: 6 },   // Top left
-    { x: 60, y: 6 },   // Top right
-    { x: 86, y: 32 },  // Right upper
+    { x: 50, y: 96 },   // Bottom center (hero)
+    { x: 2, y: 68 },    // Left lower
+    { x: 0, y: 28 },    // Left upper
+    { x: 34, y: -4 },   // Top left
+    { x: 66, y: -4 },   // Top right
+    { x: 98, y: 28 },   // Right upper
   ],
   7: [
-    { x: 50, y: 88 },
-    { x: 16, y: 72 },
-    { x: 10, y: 42 },
-    { x: 28, y: 8 },
-    { x: 72, y: 8 },
-    { x: 90, y: 42 },
-    { x: 84, y: 72 },
+    { x: 50, y: 96 },
+    { x: 4, y: 74 },
+    { x: -2, y: 40 },
+    { x: 18, y: -4 },
+    { x: 82, y: -4 },
+    { x: 102, y: 40 },
+    { x: 96, y: 74 },
   ],
   8: [
-    { x: 50, y: 88 },
-    { x: 20, y: 76 },
-    { x: 10, y: 48 },
-    { x: 20, y: 18 },
-    { x: 50, y: 6 },
-    { x: 80, y: 18 },
-    { x: 90, y: 48 },
-    { x: 80, y: 76 },
+    { x: 50, y: 96 },
+    { x: 10, y: 82 },
+    { x: -2, y: 48 },
+    { x: 10, y: 10 },
+    { x: 50, y: -4 },
+    { x: 90, y: 10 },
+    { x: 102, y: 48 },
+    { x: 90, y: 82 },
   ],
   9: [
-    { x: 50, y: 88 },  // Seat 1 — Hero (bottom center)
-    { x: 22, y: 76 },  // Seat 2 — Lower left
-    { x: 10, y: 50 },  // Seat 3 — Middle left
-    { x: 20, y: 22 },  // Seat 4 — Upper left
-    { x: 40, y: 6 },   // Seat 5 — Top left
-    { x: 60, y: 6 },   // Seat 6 — Top right
-    { x: 80, y: 22 },  // Seat 7 — Upper right
-    { x: 90, y: 50 },  // Seat 8 — Middle right
-    { x: 78, y: 76 },  // Seat 9 — Lower right
+    { x: 50, y: 96 },   // Seat 1 — Hero (bottom center)
+    { x: 12, y: 82 },   // Seat 2 — Lower left
+    { x: -2, y: 50 },   // Seat 3 — Middle left
+    { x: 8, y: 14 },    // Seat 4 — Upper left
+    { x: 34, y: -4 },   // Seat 5 — Top left
+    { x: 66, y: -4 },   // Seat 6 — Top right
+    { x: 92, y: 14 },   // Seat 7 — Upper right
+    { x: 102, y: 50 },  // Seat 8 — Middle right
+    { x: 88, y: 82 },   // Seat 9 — Lower right
   ],
   10: [
-    { x: 50, y: 88 },
-    { x: 24, y: 78 },
-    { x: 10, y: 55 },
-    { x: 14, y: 28 },
-    { x: 32, y: 6 },
-    { x: 50, y: 3 },
-    { x: 68, y: 6 },
-    { x: 86, y: 28 },
-    { x: 90, y: 55 },
-    { x: 76, y: 78 },
+    { x: 50, y: 96 },
+    { x: 14, y: 84 },
+    { x: -2, y: 58 },
+    { x: 2, y: 24 },
+    { x: 24, y: -4 },
+    { x: 50, y: -6 },
+    { x: 76, y: -4 },
+    { x: 98, y: 24 },
+    { x: 102, y: 58 },
+    { x: 86, y: 84 },
   ],
 };
 
@@ -244,7 +277,10 @@ function PlayerSeat({
   const posBadge = !isEmpty && gamePosition ? POSITION_BADGES[gamePosition] : null;
   const isSittingOut = status === 'sitting_out';
   const isDisconnected = status === 'disconnected';
-  const avatarSize = isHero ? 80 : 65;
+  const avatarSize = isHero ? 90 : 72;
+
+  // Resolve avatar — uses pre-made library avatars with table-optimized versions
+  const resolvedAvatar = !isEmpty ? resolveTableAvatar(player?.avatarUrl, seat.seatIndex || 0) : null;
 
   // Dynamic card width: scale down for Omaha variants
   const cardWidth = isHero
@@ -272,7 +308,7 @@ function PlayerSeat({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 3,
+        gap: 2,
         cursor: isEmpty ? 'pointer' : onNote ? 'pointer' : 'default',
         zIndex: isCurrentActor ? 20 : 10,
         opacity: isFolded ? 0.4 : 1,
@@ -286,30 +322,31 @@ function PlayerSeat({
         if (!isEmpty && onNote) onNote();
       }}
     >
-      {/* Invested chips */}
+      {/* Invested chips — floats near avatar */}
       {invested > 0 && !isFolded && (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           style={{
             position: 'absolute',
-            top: isHero ? -30 : 'auto',
-            bottom: isHero ? 'auto' : -26,
-            background: 'rgba(0,0,0,0.7)',
+            top: isHero ? -24 : 'auto',
+            bottom: isHero ? 'auto' : -20,
+            background: 'rgba(0,0,0,0.8)',
             color: T.accent,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 700,
             padding: '2px 8px',
             borderRadius: 10,
             border: `1px solid ${T.accentDim}`,
             whiteSpace: 'nowrap',
+            zIndex: 6,
           }}
         >
           {invested}
         </motion.div>
       )}
 
-      {/* Avatar + Timer ring */}
+      {/* Avatar image + Timer ring */}
       <div style={{ position: 'relative' }}>
         {showTimer && (
           <>
@@ -360,32 +397,45 @@ function PlayerSeat({
             borderRadius: '50%',
             background: isEmpty
               ? 'rgba(255,255,255,0.05)'
-              : `linear-gradient(135deg, ${T.railColor}, ${T.railColorDark})`,
+              : 'rgba(0,0,0,0.3)',
             border: isEmpty
               ? '2px dashed rgba(255,255,255,0.2)'
               : isWinner
                 ? '3px solid #FFD700'
                 : isCurrentActor
                   ? `3px solid ${T.accent}`
-                  : `2px solid ${T.railColorDark}`,
+                  : '2px solid rgba(255,255,255,0.15)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
-            boxShadow: isWinner ? '0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.2)' : isCurrentActor ? `0 0 20px ${T.accent}40` : 'none',
+            boxShadow: isWinner
+              ? '0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.2)'
+              : isCurrentActor
+                ? `0 0 20px ${T.accent}40`
+                : '0 4px 12px rgba(0,0,0,0.5)',
             filter: isDisconnected ? 'grayscale(1)' : isSittingOut ? 'brightness(0.5)' : 'none',
           }}
         >
           {isEmpty ? (
-            <span style={{ fontSize: 24, color: 'rgba(255,255,255,0.3)' }}>+</span>
-          ) : player?.avatarUrl ? (
+            <span style={{ fontSize: 28, color: 'rgba(255,255,255,0.3)' }}>+</span>
+          ) : resolvedAvatar ? (
             <img
-              src={player.avatarUrl}
-              alt={player.displayName}
+              src={resolvedAvatar}
+              alt={player?.displayName || 'Player'}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                // If table-optimized version fails, try original path
+                if (player?.avatarUrl && e.target.src !== player.avatarUrl) {
+                  e.target.src = player.avatarUrl;
+                } else {
+                  // Ultimate fallback: deterministic avatar
+                  e.target.src = FALLBACK_TABLE_AVATARS[(seat.seatIndex || 0) % FALLBACK_TABLE_AVATARS.length];
+                }
+              }}
             />
           ) : (
-            <span style={{ fontSize: 20, fontWeight: 700, color: T.bgDark }}>
+            <span style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>
               {(player?.displayName || '?')[0].toUpperCase()}
             </span>
           )}
@@ -394,8 +444,8 @@ function PlayerSeat({
         {/* Note color dot indicator */}
         {noteColor && (
           <div style={{
-            position: 'absolute', top: 0, left: 0, width: 10, height: 10,
-            borderRadius: '50%', background: noteColor, border: '1px solid rgba(0,0,0,0.3)',
+            position: 'absolute', top: 0, left: 0, width: 12, height: 12,
+            borderRadius: '50%', background: noteColor, border: '2px solid rgba(0,0,0,0.4)',
             zIndex: 5,
           }} />
         )}
@@ -403,9 +453,9 @@ function PlayerSeat({
         {/* Position badge (D / SB / BB / UTG) */}
         {posBadge && (
           <div style={{
-            position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
+            position: 'absolute', bottom: -2, left: '50%', transform: 'translateX(-50%)',
             background: posBadge.bg, color: posBadge.color,
-            fontSize: 8, fontWeight: 900, padding: '1px 5px', borderRadius: 6,
+            fontSize: 9, fontWeight: 900, padding: '1px 6px', borderRadius: 6,
             lineHeight: 1.3, zIndex: 5, border: '1px solid rgba(0,0,0,0.2)',
             boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
           }}>{posBadge.label}</div>
@@ -443,30 +493,38 @@ function PlayerSeat({
         </motion.div>
       )}
 
-      {/* Name + Stack badge */}
+      {/* Player Name — displayed below avatar */}
       {!isEmpty && (
-        <div
-          style={{
-            background: isCurrentActor
-              ? `linear-gradient(135deg, ${T.railColor}, ${T.railColorDark})`
-              : 'rgba(0,0,0,0.75)',
-            color: isCurrentActor ? T.bgDark : T.textPrimary,
-            padding: '2px 10px',
-            borderRadius: 12,
-            fontSize: 11,
-            fontWeight: 700,
-            textAlign: 'center',
-            minWidth: 60,
-            border: `1px solid ${isCurrentActor ? T.railColor : 'rgba(255,255,255,0.1)'}`,
-            lineHeight: 1.4,
-          }}
-        >
-          <div style={{ fontSize: 10, opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 80, whiteSpace: 'nowrap' }}>
-            {player?.displayName || 'Player'}
-            {isSittingOut && ' 💤'}
-            {isDisconnected && ' 📡'}
-          </div>
-          <div style={{ fontSize: 13 }}>{stack.toLocaleString()}</div>
+        <div style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: isCurrentActor ? T.accent : '#fff',
+          textAlign: 'center',
+          maxWidth: 90,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+          lineHeight: 1.2,
+        }}>
+          {player?.displayName || 'Player'}
+          {isSittingOut && ' 💤'}
+          {isDisconnected && ' 📡'}
+        </div>
+      )}
+
+      {/* Chip Count — displayed below name */}
+      {!isEmpty && (
+        <div style={{
+          fontSize: 13,
+          fontWeight: 800,
+          color: isCurrentActor ? T.accent : '#FFD700',
+          textAlign: 'center',
+          textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+          fontVariantNumeric: 'tabular-nums',
+          lineHeight: 1.1,
+        }}>
+          {typeof stack === 'number' ? stack.toLocaleString() : '0'}
         </div>
       )}
 
@@ -2547,19 +2605,34 @@ function LivePokerTable({
     })();
   }, [buyInSeat, tableState?.clubId, userId, supabase]);
 
-  // Derived state
+  // Derived state — use String() coercion to match engine convention
   const isSitting = tableState?.seats.some(
-    s => s.player?.id === userId && s.status !== 'empty'
+    s => s.player?.id != null && String(s.player.id) === String(userId) && s.status !== 'empty'
   );
   const isSittingOut = tableState?.seats.some(
-    s => s.player?.id === userId && s.status === 'sitting_out'
+    s => s.player?.id != null && String(s.player.id) === String(userId) && s.status === 'sitting_out'
   );
-  const mySeat = tableState?.seats.find(s => s.player?.id === userId);
-  const isMyTurn = tableState?.game?.currentPlayerId === userId;
+  const mySeat = tableState?.seats.find(s => s.player?.id != null && String(s.player.id) === String(userId));
+  const isMyTurn = tableState?.game?.currentPlayerId != null
+    && String(tableState.game.currentPlayerId) === String(userId);
   const maxSeats = tableState?.maxSeats || 9;
   const positions = useMemo(() => getSeatPositions(maxSeats), [maxSeats]);
   const [preAction, setPreAction] = useState(null); // 'fold' | 'check_fold' | 'check' | 'call_any' | null
   const [showLastHand, setShowLastHand] = useState(false);
+
+  // ═══ HERO SEAT ROTATION — Always place hero at bottom center (position 0) ═══
+  const heroSeatIndex = mySeat?.seatIndex ?? -1;
+  const rotatedPositionMap = useMemo(() => {
+    // Map each seat's array index to a visual position index
+    // Hero's seat index should map to position 0 (bottom center)
+    if (heroSeatIndex < 0) return null; // not seated, no rotation
+    const map = new Array(maxSeats);
+    for (let i = 0; i < maxSeats; i++) {
+      // Rotate so heroSeatIndex -> 0, heroSeatIndex+1 -> 1, etc.
+      map[i] = (i - heroSeatIndex + maxSeats) % maxSeats;
+    }
+    return map;
+  }, [heroSeatIndex, maxSeats]);
 
   // Auto-execute pre-action when it's our turn
   useEffect(() => {
@@ -2756,7 +2829,7 @@ function LivePokerTable({
 
     return tableState.seats.slice(0, maxSeats).map((seat) => ({
       ...seat,
-      holeCards: seat.player?.id === userId ? myCards : seat.holeCards,
+      holeCards: (seat.player?.id != null && String(seat.player.id) === String(userId)) ? myCards : seat.holeCards,
     }));
   }, [tableState, myCards, userId, maxSeats, positions]);
 
@@ -2862,7 +2935,7 @@ function LivePokerTable({
           )}
         </div>
 
-        {/* Seats */}
+        {/* Seats — rotated so hero is always at bottom center */}
         {seats.map((seat, i) => {
           const pid = seat.player?.id;
           const noteData = pid && String(pid) !== String(userId) ? playerNotes[pid] : null;
@@ -2874,12 +2947,14 @@ function LivePokerTable({
           const gamePosition = gamePlayer?.position || null;
           // Button seat fallback
           const isButton = tableState?.game?.buttonSeat === i;
+          // Use rotated visual position if hero is seated, otherwise raw index
+          const visualIndex = rotatedPositionMap ? rotatedPositionMap[i] : i;
           return (
             <PlayerSeat
               key={i}
               seat={seat}
-              position={positions[i] || positions[0]}
-              isHero={seat.player?.id === userId}
+              position={positions[visualIndex] || positions[0]}
+              isHero={pid != null && String(pid) === String(userId)}
               isCurrentActor={seat.isCurrentActor}
               timerState={seat.isCurrentActor ? timerState : null}
               onClick={() => setBuyInSeat(i)}
@@ -3010,7 +3085,37 @@ function LivePokerTable({
         );
       })()}
 
-      {/* Action panel (when it's hero's turn) */}
+      {/* ═══ YOUR TURN INDICATOR — Pulsing banner when action is on hero ═══ */}
+      <AnimatePresence>
+        {isMyTurn && legalActions && legalActions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            style={{
+              position: 'fixed',
+              top: 10,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 210,
+              background: 'linear-gradient(135deg, rgba(35,116,225,0.95), rgba(99,102,241,0.95))',
+              color: '#fff',
+              padding: '6px 24px',
+              borderRadius: 20,
+              fontSize: 14,
+              fontWeight: 800,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              boxShadow: '0 4px 20px rgba(35,116,225,0.6)',
+              animation: 'yourTurnPulse 1.2s ease-in-out infinite alternate',
+            }}
+          >
+            YOUR TURN
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action panel (when it's hero's turn) — includes Raise/Bet + Slider */}
       <AnimatePresence>
         {isMyTurn && legalActions && (
           <ActionPanel
@@ -3608,6 +3713,7 @@ function LivePokerTable({
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
         @keyframes winGlow { 0% { filter: drop-shadow(0 0 8px #FFD700); } 100% { filter: drop-shadow(0 0 20px #FFD700) drop-shadow(0 0 40px rgba(255,215,0,0.4)); } }
+        @keyframes yourTurnPulse { 0% { box-shadow: 0 4px 20px rgba(35,116,225,0.6); transform: translateX(-50%) scale(1); } 100% { box-shadow: 0 4px 30px rgba(99,102,241,0.9); transform: translateX(-50%) scale(1.05); } }
       `}</style>
     </div>
   );

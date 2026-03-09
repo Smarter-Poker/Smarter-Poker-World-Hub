@@ -76,7 +76,10 @@ const DEFAULT_TOURNAMENT = {
   customAddOn: false,
   addOnBreakLength: 1, // minutes
   // Special modes
-  koBounty: false,
+  // ── Bounty System ──
+  bountyType: 'none', // 'none' | 'ko' | 'pko' | 'mystery'
+  bountyPercent: 25,  // % of buy-in allocated to bounties
+  mysteryThreshold: 25, // % of field remaining to activate mystery phase
   gtdPrizePool: false,
   gtdAmount: 0,
   finalTableDeal: false,
@@ -241,7 +244,11 @@ export default function CreateTournamentModal({ club, onClose, onCreated, apiCal
           add_on_multiplier: t.addOnMultiplier,
           custom_add_on: t.customAddOn,
           add_on_break_length: t.addOnBreakLength,
-          ko_bounty: t.koBounty,
+          // ── Bounty System ──
+          bounty_type: t.bountyType,
+          bounty_percent: t.bountyPercent,
+          bounty_amount: Math.floor(t.buyIn * t.bountyPercent / 100),
+          mystery_threshold: t.mysteryThreshold,
           gtd_prize_pool: t.gtdPrizePool,
           gtd_amount: t.gtdAmount,
           final_table_deal: t.finalTableDeal,
@@ -406,8 +413,73 @@ export default function CreateTournamentModal({ club, onClose, onCreated, apiCal
           {/* ════ MTT: SPECIAL MODES (Image 11) ════ */}
           {isMTT && (
             <>
+              <Section label="Bounty Format" />
+              <Radio4 label="Bounty Type" value={t.bountyType} onChange={v => set('bountyType', v)}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'ko', label: 'KO' },
+                  { value: 'pko', label: 'PKO' },
+                  { value: 'mystery', label: 'Mystery' },
+                ]}
+              />
+              {t.bountyType !== 'none' && (
+                <Slider label="Bounty %" value={t.bountyPercent} onChange={v => set('bountyPercent', v)}
+                  min={10} max={50} step={5} suffix="%"
+                />
+              )}
+              {t.bountyType !== 'none' && (
+                <div style={{ padding: '4px 0 8px', borderBottom: `1px solid ${FB.border}22` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                    <span style={{ color: FB.textSecondary }}>Bounty per player</span>
+                    <span style={{ color: FB.warning, fontWeight: 700 }}>
+                      {Math.floor(t.buyIn * t.bountyPercent / 100).toLocaleString()} chips
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 2 }}>
+                    <span style={{ color: FB.textSecondary }}>Prize pool per player</span>
+                    <span style={{ color: FB.textPrimary, fontWeight: 600 }}>
+                      {(t.buyIn - Math.floor(t.buyIn * t.bountyPercent / 100)).toLocaleString()} chips
+                    </span>
+                  </div>
+                </div>
+              )}
+              {t.bountyType === 'mystery' && (
+                <>
+                  <Slider label="Mystery Phase Activation" value={t.mysteryThreshold}
+                    onChange={v => set('mysteryThreshold', v)}
+                    min={0} max={50} step={5}
+                    format={v => v === 0 ? 'Immediate' : `Top ${v}%`}
+                  />
+                  <div style={{
+                    background: `${FB.elevated}88`, borderRadius: 8, padding: '8px 12px',
+                    marginTop: 4, marginBottom: 8, border: `1px solid ${FB.border}`,
+                  }}>
+                    <div style={{ fontSize: 11, color: FB.warning, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>
+                      Mystery Prize Tiers
+                    </div>
+                    {[
+                      { label: 'Min Prize', pct: '50%', color: '#6b7280' },
+                      { label: 'Small Prize', pct: '20%', color: '#60a5fa' },
+                      { label: 'Medium Prize', pct: '15%', color: '#34d399' },
+                      { label: 'Large Prize', pct: '8%', color: '#fbbf24' },
+                      { label: 'Huge Prize', pct: '4%', color: '#f97316' },
+                      { label: 'Mega Prize', pct: '2%', color: '#ef4444' },
+                      { label: 'Grand Prize', pct: '0.8%', color: '#a855f7' },
+                      { label: 'JACKPOT', pct: '0.2%', color: '#FFD700' },
+                    ].map(tier => (
+                      <div key={tier.label} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '2px 0', fontSize: 11,
+                      }}>
+                        <span style={{ color: tier.color, fontWeight: 600 }}>{tier.label}</span>
+                        <span style={{ color: FB.textDim }}>{tier.pct}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
               <Section label="Special Modes" />
-              <Toggle label="KO Bounty" value={t.koBounty} onChange={v => set('koBounty', v)} />
               <Toggle label="GTD Prize Pool" value={t.gtdPrizePool} onChange={v => set('gtdPrizePool', v)} />
               {t.gtdPrizePool && (
                 <Slider label="GTD Amount" value={t.gtdAmount} onChange={v => set('gtdAmount', v)} min={0} max={100000} step={100} />

@@ -18,11 +18,12 @@ import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 // Local helper — reads token from localStorage (same pattern as other club-arena pages)
 const getAccessToken = () => {
     try {
         const cached = localStorage.getItem('smarter-poker-auth');
-        if (cached) { try { const p = JSON.parse(cached); if (p?.access_token) return p.access_token; } catch(e) { /* */ } }
+        if (cached) { try { const p = JSON.parse(cached); if (p?.access_token) return p.access_token; } catch (e) { /* */ } }
     } catch (_) { }
     return null;
 };
@@ -115,19 +116,15 @@ function formatMessageTime(timestamp) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function Avatar({ src, name, size = 40, online, showOnline = true }) {
-    const initials = name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?';
-    const colors = ['#1877F2', '#42B72A', '#F02849', '#8B5CF6', '#F59E0B', '#EC4899'];
-    const bgColor = colors[name?.charCodeAt(0) % colors.length || 0];
+    const resolved = resolveAvatarDisplay(src, name || '');
 
     return (
         <div style={{ position: 'relative', flexShrink: 0 }}>
-            {src ? (
-                <img src={src} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" />
-            ) : (
-                <div style={{ width: size, height: size, borderRadius: '50%', background: bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 600, fontSize: size * 0.4 }}>
-                    {initials}
-                </div>
-            )}
+            <img src={resolved} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} loading="lazy"
+                onError={(e) => {
+                    e.target.src = resolveAvatarDisplay(null, name || '');
+                }}
+            />
             {showOnline && online && (
                 <div style={{ position: 'absolute', bottom: 0, right: 0, width: size * 0.3, height: size * 0.3, borderRadius: '50%', background: C.green, border: `2px solid ${C.card}` }} />
             )}
@@ -169,9 +166,9 @@ function MessageInput({ onSend, onMediaUpload, disabled }) {
     const [text, setText] = useState('');
     const [showEmoji, setShowEmoji] = useState(false);
     const [uploading, setUploading] = useState(false);
-        useTrainingBus('club-arena-messages');
+    useTrainingBus('club-arena-messages');
 
-const inputRef = useRef(null);
+    const inputRef = useRef(null);
     const fileInputRef = useRef(null);
 
     const emojis = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];

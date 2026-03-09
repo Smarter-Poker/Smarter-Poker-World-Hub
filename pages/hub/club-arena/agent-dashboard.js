@@ -41,7 +41,7 @@ const apiCall = async (endpoint, body) => {
         body: JSON.stringify(body),
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -53,7 +53,7 @@ const apiGet = async (url) => {
         headers: { Authorization: `Bearer ${token}` },
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -851,7 +851,7 @@ export default function AgentDashboard() {
                 </ModalOverlay>
             )}
 
-            <ClubArenaBottomNav clubId={clubIdParam} active="admin" />
+            <ClubArenaBottomNav clubId={clubIdParam} activePage="admin" userRole={role} />
 
             {/* ── Agent Invite: Full InviteFriendsModal ── */}
             {myPlayerNumber && (

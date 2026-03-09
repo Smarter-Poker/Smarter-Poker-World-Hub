@@ -11,6 +11,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import UniversalHeader from '../../src/components/ui/UniversalHeader';
 import useTrainingBus from '../../src/hooks/useTrainingBus';
+import { resolveAvatarDisplay } from '../../src/lib/resolveAvatarDisplay';
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -282,9 +283,9 @@ function FindPlayerModal({ onClose }) {
                                     overflow: 'hidden',
                                 }}>
                                     {p.avatar_url ? (
-                                        <img src={p.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                                        <img src={resolveAvatarDisplay(p.avatar_url, p.id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                     ) : (
-                                        (p.display_name || p.username)?.[0]?.toUpperCase() || '?'
+                                        <img src={resolveAvatarDisplay(null, p.id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                     )}
                                 </div>
                                 <span style={{ color: '#fff', fontWeight: 500 }}>{p.display_name || p.username || 'Unknown'}</span>

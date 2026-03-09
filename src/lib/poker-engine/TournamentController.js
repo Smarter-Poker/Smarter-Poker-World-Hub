@@ -540,7 +540,7 @@ class TournamentController extends EventEmitter {
 
     // SNG/Spin: auto-start when full
     if ((this.tournamentType === TOURNAMENT_TYPE.SNG || this.tournamentType === TOURNAMENT_TYPE.SPIN) &&
-        this.status === TOURNAMENT_STATUS.REGISTERING) {
+      this.status === TOURNAMENT_STATUS.REGISTERING) {
       const ready = [...this.entries.values()].filter(e => e.status !== ENTRY_STATUS.CANCELLED).length;
       if (ready >= this.maxEntries) {
         this.start();
@@ -659,7 +659,7 @@ class TournamentController extends EventEmitter {
 
     // Close late reg if past window
     if (this.currentLevel > this.lateRegLevels &&
-        (this.status === TOURNAMENT_STATUS.LATE_REG || this.status === TOURNAMENT_STATUS.RUNNING)) {
+      (this.status === TOURNAMENT_STATUS.LATE_REG || this.status === TOURNAMENT_STATUS.RUNNING)) {
       this.status = TOURNAMENT_STATUS.RUNNING;
     }
 
@@ -886,6 +886,27 @@ class TournamentController extends EventEmitter {
                 .catch(err => console.error('[Tournament] Bounty credit failed:', award.playerId, err.message));
             }
           }
+
+          // ── Emit bounty event for realtime broadcasting ──
+          const eventName = award.type === 'mystery_bounty' ? 'mystery_bounty_awarded' : 'bounty_awarded';
+          const eliminatorEntry = this.entries.get(award.playerId);
+          this.emit(eventName, {
+            playerId: award.playerId,
+            playerName: eliminatorEntry?.playerName || 'Unknown',
+            eliminatedId: playerId,
+            eliminatedName: entry.playerName,
+            amount: award.amount,
+            type: award.type,
+            reveal: bountyResult.mysteryReveal ? {
+              playerName: eliminatorEntry?.playerName || 'Unknown',
+              amount: award.amount,
+              tierLabel: bountyResult.mysteryReveal.tierLabel || null,
+              isJackpot: bountyResult.mysteryReveal.isJackpot || false,
+              avgBounty: this.bountyManager.totalBountyPool > 0
+                ? Math.floor(this.bountyManager.totalBountyPool / Math.max(this.entries.size, 1))
+                : award.amount,
+            } : undefined,
+          });
         }
       }
     }
@@ -988,7 +1009,7 @@ class TournamentController extends EventEmitter {
     if (this._balanceTimer) clearInterval(this._balanceTimer);
     this._balanceTimer = setInterval(() => {
       if (this.status === TOURNAMENT_STATUS.RUNNING || this.status === TOURNAMENT_STATUS.LATE_REG ||
-          this.status === TOURNAMENT_STATUS.FINAL_TABLE) {
+        this.status === TOURNAMENT_STATUS.FINAL_TABLE) {
         this._checkTableBalance();
       }
     }, 5000);
@@ -1130,6 +1151,14 @@ class TournamentController extends EventEmitter {
       if (winnerBountyAward && this.ledger && winner.clubId) {
         await this.ledger.creditWinnings(winner.clubId, winner.playerId, winnerBountyAward.amount,
           { tournamentId: this.tournamentId, type: 'pko_self_bounty' });
+      }
+      if (winnerBountyAward) {
+        this.emit('bounty_awarded', {
+          playerId: winner.playerId,
+          playerName: winner.playerName,
+          amount: winnerBountyAward.amount,
+          type: 'pko_self_bounty',
+        });
       }
     }
 

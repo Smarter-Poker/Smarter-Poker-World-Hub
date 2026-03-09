@@ -43,7 +43,7 @@ const getAuthToken = async () => {
                 const parsed = JSON.parse(cached);
                 if (parsed?.access_token) return parsed.access_token;
             }
-        } catch(e) { /* corrupted auth cache */ }
+        } catch (e) { /* corrupted auth cache */ }
     } catch (_) { /* localStorage unavailable (incognito, quota) */ }
 
     // 2. Slow path: ask Supabase (handles token refresh, also writes back to localStorage)
@@ -64,7 +64,7 @@ const apiCall = async (endpoint, body) => {
         body: JSON.stringify(body),
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -74,15 +74,15 @@ const apiGet = async (url) => {
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
 
 export default function Admin() {
-        useTrainingBus('club-arena-admin');
+    useTrainingBus('club-arena-admin');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // Core state
@@ -238,7 +238,7 @@ const router = useRouter();
                 });
             }
         } catch (e) {
-            
+
         } finally {
             setIsLoading(false);
         }
@@ -261,6 +261,11 @@ const router = useRouter();
             setTablesLoading(false);
         }
     }, [clubIdParam]);
+
+    // ── Initial data load — fire when clubIdParam becomes available ─────────
+    useEffect(() => {
+        if (clubIdParam) loadData();
+    }, [clubIdParam, loadData]);
 
     // ── Realtime: live table + member + cashout + agent updates ─────────────
     useEffect(() => {
@@ -292,7 +297,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
         return () => { supabase.removeChannel(ch); };
@@ -371,6 +376,7 @@ const router = useRouter();
                 newRole,
             });
             showToast(`Role updated to ${newRole}`);
+            busEmit.dataMutated('member_role_changed');
             loadData();
         } catch (e) {
             showToast(e.message || 'Failed to update role', 'error');
@@ -399,6 +405,7 @@ const router = useRouter();
                 toAgentId: agentUserId || null,
             });
             showToast(agentUserId ? 'Agent assigned' : 'Agent removed');
+            busEmit.dataMutated('agent_assigned');
             loadData();
         } catch (e) {
             showToast(e.message || 'Failed to assign agent', 'error');
@@ -431,6 +438,7 @@ const router = useRouter();
                     targetUserId: memberUserId,
                 });
                 showToast('Member removed');
+                busEmit.dataMutated('member_removed');
                 loadData();
             } catch (e) {
                 showToast(e.message || 'Failed to remove member', 'error');
@@ -480,6 +488,7 @@ const router = useRouter();
         try {
             await apiCall('/api/club-arena/manage-table', { tableId, clubId: club.id, action });
             showToast(`Table ${action}d`);
+            busEmit.dataMutated('table_action');
             loadTables();
             if (action === 'delete') {
                 setStats(prev => ({ ...prev, activeTables: Math.max(0, prev.activeTables - 1) }));
@@ -507,6 +516,7 @@ const router = useRouter();
                 actionTime: editTableForm.action_time ? parseInt(editTableForm.action_time) : undefined,
             });
             showToast('Table settings saved');
+            busEmit.dataMutated('table_settings_updated');
             setEditTableModal(null);
             loadTables();
         } catch (e) {
@@ -535,6 +545,7 @@ const router = useRouter();
                 requiresApproval,
             });
             showToast('Settings saved');
+            busEmit.dataMutated('club_settings_updated');
             loadData();
             setActiveModal(null);
         } catch (e) {
@@ -1168,6 +1179,7 @@ const router = useRouter();
                                     try {
                                         await apiCall('/api/club-arena/agent-credit', { clubId: club.id, agentUserId: agentActionModal.agent.user_id, action: 'issue_credit', amount: parseInt(agentActionValue) });
                                         showToast('Credit issued');
+                                        busEmit.dataMutated('agent_credit_issued');
                                         loadData();
                                     } catch (e) { showToast(e.message, 'error'); }
                                     finally { setProcessing(false); setAgentActionModal(null); setAgentActionValue(''); }
@@ -1191,6 +1203,7 @@ const router = useRouter();
                                     try {
                                         await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agentActionModal.agent.user_id, action: 'update', commissionRate: parseFloat(agentActionValue) / 100 });
                                         showToast(`Commission set to ${agentActionValue}%`);
+                                        busEmit.dataMutated('agent_commission_updated');
                                         loadData();
                                     } catch (e) { showToast(e.message, 'error'); }
                                     finally { setProcessing(false); setAgentActionModal(null); setAgentActionValue(''); }
@@ -1216,6 +1229,7 @@ const router = useRouter();
                                     try {
                                         await apiCall('/api/club-arena/manage-agent', { clubId: club.id, targetUserId: agentActionModal.agent.user_id, action: 'set_parent_agent', parentAgentUserId: agentActionValue || null });
                                         showToast(agentActionValue ? 'Parent agent assigned' : 'Agent set as independent');
+                                        busEmit.dataMutated('agent_hierarchy_updated');
                                         loadData();
                                     } catch (e) { showToast(e.message, 'error'); }
                                     finally { setProcessing(false); setAgentActionModal(null); setAgentActionValue(''); }
@@ -1808,7 +1822,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                 setAgents(r.agents || []);
                 setTotalAgentPromo(r.totalAgentPromo);
             }
-        } catch (e) {  }
+        } catch (e) { }
         finally { setLoading(false); }
     };
 
@@ -2049,10 +2063,10 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                             body: JSON.stringify({ action: 'get_config', clubId: clubIdParam }),
                         })
-                        .then(r => r.json())
-                        .then(d => { if (d.success) setBbjConfig(d); })
-                        .catch(() => {})
-                        .finally(() => setBbjLoading(false));
+                            .then(r => r.json())
+                            .then(d => { if (d.success) setBbjConfig(d); })
+                            .catch(() => { })
+                            .finally(() => setBbjLoading(false));
                     });
                 }
                 return (
@@ -2114,7 +2128,7 @@ function PromoWalletModal({ clubId, userRole, apiCall, showToast, onClose, FB, S
                                                         if (d.success) {
                                                             setBbjConfig(prev => ({ ...prev, bbjEnabled: newVal }));
                                                         }
-                                                    } catch (_) {}
+                                                    } catch (_) { }
                                                     finally { setBbjSaving(false); }
                                                 }}>
                                                     <div style={{

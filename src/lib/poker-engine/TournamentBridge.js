@@ -229,6 +229,17 @@ class TournamentBridge {
     t.on('victory', async (data) => {
       this._broadcastTournament('victory', data);
     });
+
+    // ── BOUNTY EVENTS ────────────────────────────────────────
+    t.on('bounty_awarded', (data) => {
+      this._broadcastTournament('bounty_awarded', data);
+      this._persistBountyAward(data);
+    });
+
+    t.on('mystery_bounty_awarded', (data) => {
+      this._broadcastTournament('mystery_bounty_awarded', data);
+      this._persistBountyAward(data);
+    });
   }
 
   /**
@@ -363,7 +374,7 @@ class TournamentBridge {
         type: 'broadcast',
         event,
         payload,
-      }).catch(() => {}); // Non-blocking, non-critical
+      }).catch(() => { }); // Non-blocking, non-critical
     }
 
     // 2. Also broadcast to each active table channel (players in-game see it too)
@@ -374,7 +385,7 @@ class TournamentBridge {
           type: 'broadcast',
           event: `tournament:${event}`,
           payload,
-        }).catch(() => {});
+        }).catch(() => { });
       }
     }
   }
@@ -543,6 +554,38 @@ class TournamentBridge {
   }
 
   /**
+   * Persist a bounty award to the database.
+   * @private
+   */
+  async _persistBountyAward(data) {
+    if (!this.supabase) return;
+    try {
+      // Update the eliminator's bounty earnings in tournament_registrations
+      if (data.playerId && data.amount > 0) {
+        // Use raw SQL increment via RPC for atomicity, or fetch-then-update
+        const { data: reg } = await this.supabase
+          .from('tournament_registrations')
+          .select('payout_amount')
+          .eq('tournament_id', this.tournament.tournamentId)
+          .eq('user_id', data.playerId)
+          .maybeSingle();
+
+        if (reg) {
+          await this.supabase
+            .from('tournament_registrations')
+            .update({
+              payout_amount: (reg.payout_amount || 0) + data.amount,
+            })
+            .eq('tournament_id', this.tournament.tournamentId)
+            .eq('user_id', data.playerId);
+        }
+      }
+    } catch (err) {
+      console.error('[TournamentBridge] Bounty award persist error:', err.message);
+    }
+  }
+
+  /**
    * Clean up all tournament tables.
    * @private
    */
@@ -602,6 +645,9 @@ class TournamentBridge {
         finishPosition: e.finishPosition,
         rebuyCount: e.rebuyCount,
       })),
+      // ── Bounty State ──
+      bountyType: t.bountyType !== 'none' ? t.bountyType : undefined,
+      bountyState: t.bountyManager ? t.bountyManager.getState() : undefined,
     };
   }
 
@@ -612,7 +658,7 @@ class TournamentBridge {
     this._cleanupAll();
     // Clean up persistent broadcast channel
     if (this._tournamentChannel && this.supabase) {
-      this.supabase.removeChannel(this._tournamentChannel).catch(() => {});
+      this.supabase.removeChannel(this._tournamentChannel).catch(() => { });
       this._tournamentChannel = null;
     }
     this._wired = false;

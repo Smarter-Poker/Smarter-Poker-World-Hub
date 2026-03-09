@@ -1,25 +1,34 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- * GAME CARD — Club Arena Lobby  (v2 — full dynamic data)
+ * GAME CARD — Club Arena Lobby  (v3 — Vertical Poker Table Visual)
  * ═══════════════════════════════════════════════════════════════════
  *
+ * Uses the EXACT SAME poker table image from the Table Tablet screen,
+ * positioned VERTICALLY inside the Club Arena card.
+ *
+ * Image: /images/poker-table-vertical-nobg.png
+ * (Same table as /images/poker-table-black-gold.png rotated to portrait)
+ *
  * Cash Game card shows:
- *   • Variant badge + seats (6/9) + status dot
- *   • Table name
- *   • Blinds (0.1/0.2) — large
- *   • Buy-in range (min–max chips)
- *   • Sticker icons (VPIP / Bomb Pot / Straddle / etc.)
- *   • Club name + created-ago
+ *   • Vertical poker table image as visual background
+ *   • Variant badge overlaid top-left
+ *   • Seat count top-right
+ *   • Game type + blinds centered on table
+ *   • Buy-in range below table center
+ *   • Mini seat dots around table perimeter
+ *   • Sticker icons below table
+ *   • Club name + created-ago footer
  *
- * Tournament / SNG / Spin card shows:
- *   • Type badge (XMTTNLH / Spin-PLO6 / SNG) + max seats
- *   • Buy-in amount + action time
- *   • Trophy icon + tournament name
- *   • Live countdown / start date-time
- *   • Stickers — GTD sticker overlays the actual prize pool amount
- *   • Club name + registered count
+ * Tournament card shows:
+ *   • Vertical poker table image as visual background
+ *   • Type badge top-left
+ *   • Player count top-right
+ *   • Trophy + tournament name centered
+ *   • Buy-in + countdown overlaid
+ *   • Sticker icons
+ *   • Club name + registered count footer
  *
- * Layout: 2-col grid, 8 cards per 375px mobile screen.
+ * Layout: 2-col grid, fits 375px mobile screens.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -29,20 +38,20 @@ import { getGameStickers } from '../../lib/stickerOrchestrator';
 // VARIANT CONFIG
 // ─────────────────────────────────────────────────────────────────────
 const VC = {
-  nlh: { label: 'NLH', color: '#E74C3C', bg: 'linear-gradient(145deg,#1f0808,#2d0c0c)', accent: '#E74C3C' },
-  flh: { label: 'FLH', color: '#2ECC71', bg: 'linear-gradient(145deg,#071a0c,#0a2d14)', accent: '#2ECC71' },
-  short_deck: { label: '6+', color: '#3498DB', bg: 'linear-gradient(145deg,#071018,#0a1e2d)', accent: '#3498DB' },
-  plo4: { label: 'PLO', color: '#A855F7', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#A855F7' },
-  plo5: { label: 'PLO5', color: '#8B5CF6', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#8B5CF6' },
-  plo6: { label: 'PLO6', color: '#7C3AED', bg: 'linear-gradient(145deg,#13071a,#1e0a2d)', accent: '#7C3AED' },
-  plo8: { label: 'Hi/Lo', color: '#F97316', bg: 'linear-gradient(145deg,#1a0d05,#2d1a08)', accent: '#F97316' },
-  flo: { label: 'FLO', color: '#14B8A6', bg: 'linear-gradient(145deg,#051514,#0a2422)', accent: '#14B8A6' },
-  mixed: { label: 'MIX', color: '#EAB308', bg: 'linear-gradient(145deg,#1a1505,#2d2008)', accent: '#EAB308' },
-  ofc: { label: 'OFC', color: '#EC4899', bg: 'linear-gradient(145deg,#1a0510,#2d0a1e)', accent: '#EC4899' },
-  pineapple: { label: '🍍', color: '#F1C40F', bg: 'linear-gradient(145deg,#1a1505,#2d2408)', accent: '#F1C40F' },
-  spin: { label: 'SPIN', color: '#F1C40F', bg: 'linear-gradient(145deg,#1a1505,#2d2408)', accent: '#F1C40F' },
+  nlh: { label: 'NLH', color: '#E74C3C', accent: '#E74C3C' },
+  flh: { label: 'FLH', color: '#2ECC71', accent: '#2ECC71' },
+  short_deck: { label: '6+', color: '#3498DB', accent: '#3498DB' },
+  plo4: { label: 'PLO', color: '#A855F7', accent: '#A855F7' },
+  plo5: { label: 'PLO5', color: '#8B5CF6', accent: '#8B5CF6' },
+  plo6: { label: 'PLO6', color: '#7C3AED', accent: '#7C3AED' },
+  plo8: { label: 'Hi/Lo', color: '#F97316', accent: '#F97316' },
+  flo: { label: 'FLO', color: '#14B8A6', accent: '#14B8A6' },
+  mixed: { label: 'MIX', color: '#EAB308', accent: '#EAB308' },
+  ofc: { label: 'OFC', color: '#EC4899', accent: '#EC4899' },
+  pineapple: { label: '🍍', color: '#F1C40F', accent: '#F1C40F' },
+  spin: { label: 'SPIN', color: '#F1C40F', accent: '#F1C40F' },
 };
-const DV = { label: '?', color: '#888', bg: 'linear-gradient(145deg,#111,#1e1e1e)', accent: '#555' };
+const DV = { label: '?', color: '#888', accent: '#555' };
 
 const STATUS_DOT = { active: '#00E676', running: '#00E676', waiting: '#FFA726', full: '#EF5350', paused: '#78909C', completed: '#546E7A' };
 
@@ -121,7 +130,6 @@ function useCountdown(dateStr) {
 
 // ─────────────────────────────────────────────────────────────────────
 // STICKER BADGE
-// GTD sticker: overlays the live prize pool / guarantee amount.
 // ─────────────────────────────────────────────────────────────────────
 function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
   const asset = assetMap?.[stickerKey];
@@ -136,15 +144,15 @@ function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
           alt={asset.label || stickerKey}
           title={asset.label || stickerKey}
           onError={() => setImgFailed(true)}
-          style={{ width: 30, height: 30, objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }}
+          style={{ width: 26, height: 26, objectFit: 'contain', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }}
         />
         {isGtd && gtdAmount > 0 && (
           <span style={{
             position: 'absolute',
-            bottom: 1,
+            bottom: 0,
             left: '50%',
             transform: 'translateX(-50%)',
-            fontSize: 7,
+            fontSize: 6,
             fontWeight: 800,
             fontFamily: '"Orbitron", monospace',
             color: '#FFD700',
@@ -160,30 +168,31 @@ function StickerBadge({ stickerKey, assetMap, gtdAmount }) {
     );
   }
 
-  // Text fallback (no path in DB yet, or unknown key)
   const label = asset?.label || stickerKey.replace(/_/g, ' ').toUpperCase();
   return <span style={S.pill}>{label}</span>;
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// CASH GAME CARD
+// MINI SEAT MAP — dots showing filled/empty seats around table edge
 // ─────────────────────────────────────────────────────────────────────
-
-// Mini seat map — visual dots showing filled/empty seats
 function MiniSeatMap({ current, max, accentColor }) {
   const seats = [];
   for (let i = 0; i < max; i++) {
     seats.push(
       <div key={i} style={{
         width: 5, height: 5, borderRadius: '50%',
-        background: i < current ? accentColor : 'rgba(255,255,255,0.1)',
-        border: i < current ? 'none' : '1px solid rgba(255,255,255,0.08)',
+        background: i < current ? accentColor : 'rgba(255,255,255,0.15)',
+        border: i < current ? 'none' : '1px solid rgba(255,255,255,0.1)',
+        boxShadow: i < current ? `0 0 4px ${accentColor}` : 'none',
       }} />
     );
   }
-  return <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>{seats}</div>;
+  return <div style={{ display: 'flex', gap: 3, alignItems: 'center', justifyContent: 'center' }}>{seats}</div>;
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// CASH GAME CARD — Vertical Poker Table
+// ─────────────────────────────────────────────────────────────────────
 function CashCard({ table: t, assetMap, onPress, avgVpip }) {
   const vc = VC[t.game_variant] || DV;
   const sb = t.small_blind ?? 0;
@@ -199,87 +208,91 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
   const buyRange = fmtBuyRange(t.min_buy_in, t.max_buy_in);
   const tableName = t.name || '';
   const ago = timeAgo(t.created_at);
-  const actionSec = t.action_time_seconds || t.settings?.action_time || 30;
 
   return (
-    <button onClick={() => onPress?.(t)} style={{ ...S.card, background: vc.bg, borderColor: vc.accent + '44' }}>
+    <button onClick={() => onPress?.(t)} style={S.card}>
 
-      {/* LIVE badge — pulsing indicator for active tables */}
+      {/* LIVE badge */}
       {isLive && (
-        <div style={{
-          position: 'absolute', top: 5, right: 6,
-          display: 'flex', alignItems: 'center', gap: 3,
-          background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)',
-          borderRadius: 10, padding: '1px 6px', zIndex: 2,
-        }}>
-          <div style={{
-            width: 5, height: 5, borderRadius: '50%', background: '#00E676',
-            boxShadow: '0 0 4px #00E676',
-            animation: 'livePulse 1.5s ease-in-out infinite',
-          }} />
-          <span style={{ fontSize: 8, fontWeight: 800, color: '#00E676', letterSpacing: 0.5 }}>LIVE</span>
+        <div style={S.liveBadge}>
+          <div style={S.liveDot} />
+          <span style={S.liveText}>LIVE</span>
         </div>
       )}
 
-      {/* ROW 1 — Variant badge | Seats + dot */}
-      <div style={S.row}>
-        <span style={{ ...S.varBadge, color: vc.color, background: vc.accent + '20', borderColor: vc.accent + '55' }}>
+      {/* Top row — Variant badge | Seats */}
+      <div style={S.topRow}>
+        <span style={{ ...S.varBadge, color: vc.color, background: vc.accent + '25', borderColor: vc.accent + '60' }}>
           {vc.label}
         </span>
         <div style={S.seatsBox}>
-          <span style={{ color: isFull ? '#EF5350' : isEmpty ? '#78909C' : '#00E676', fontWeight: 700, fontSize: 12 }}>{cur}</span>
-          <span style={{ color: '#555', fontSize: 11 }}>/{max}</span>
-          <div style={{ ...S.dot, background: STATUS_DOT[isFull ? 'full' : status] || '#555' }} />
+          <span style={{ color: isFull ? '#EF5350' : isEmpty ? '#78909C' : '#00E676', fontWeight: 700, fontSize: 11 }}>{cur}</span>
+          <span style={{ color: '#555', fontSize: 10 }}>/{max}</span>
+          <div style={{ ...S.statusDot, background: STATUS_DOT[isFull ? 'full' : status] || '#555' }} />
         </div>
       </div>
 
-      {/* ROW 2 — Table name */}
-      {!!tableName && <div style={S.tableName}>{tableName}</div>}
+      {/* ── POKER TABLE IMAGE (vertical) ── */}
+      <div style={S.tableContainer}>
+        <img
+          src="/images/poker-table-vertical-nobg.png"
+          alt="Poker Table"
+          style={S.tableImage}
+        />
 
-      {/* ROW 3 — Blinds (big) */}
-      <div style={S.blindsBlock}>
-        <span style={S.metaLabel}>Blinds</span>
-        <span style={{ ...S.blindsVal, color: vc.color }}>{fmtBlind(sb)}/{fmtBlind(bb)}</span>
-      </div>
+        {/* Overlay: Game info centered on the table */}
+        <div style={S.tableOverlay}>
+          {/* Table name (subtle, at top of table area) */}
+          {!!tableName && (
+            <div style={S.overlayTableName}>
+              {tableName.length > 14 ? tableName.slice(0, 14) + '…' : tableName}
+            </div>
+          )}
 
-      {/* ROW 4 — Buy-in range + Action time */}
-      <div style={S.row}>
-        {buyRange ? (
-          <div>
-            <span style={S.metaLabel}>Buy-in</span>
-            <span style={S.buyRangeVal}>{buyRange}</span>
+          {/* Game type */}
+          <div style={{ ...S.overlayGameType, color: vc.color }}>
+            {vc.label}
           </div>
-        ) : <div />}
-        <div style={{ textAlign: 'right' }}>
-          <span style={S.metaLabel}>Action</span>
-          <span style={S.dimText}>{actionSec}s</span>
+
+          {/* Blinds — the hero value */}
+          <div style={{ ...S.overlayBlinds, color: vc.color }}>
+            {fmtBlind(sb)}/{fmtBlind(bb)}
+          </div>
+
+          {/* Buy-in range */}
+          {buyRange && (
+            <div style={S.overlayBuyRange}>
+              {buyRange}
+            </div>
+          )}
+        </div>
+
+        {/* Mini seat dots below the table */}
+        <div style={S.seatMapRow}>
+          <MiniSeatMap current={cur} max={max} accentColor={vc.accent} />
         </div>
       </div>
 
-      {/* ROW 5 — Mini seat map */}
-      <MiniSeatMap current={cur} max={max} accentColor={vc.accent} />
-
-      {/* ROW 6 — Sticker icons */}
+      {/* Sticker icons */}
       {stickers.length > 0 && (
         <div style={S.stickerRow}>
           {stickers.map(k => <StickerBadge key={k} stickerKey={k} assetMap={assetMap} />)}
         </div>
       )}
 
-      {/* ROW 7 — Club | Created ago */}
-      <div style={{ ...S.row, marginTop: 'auto', paddingTop: 3 }}>
+      {/* Footer — Club | Created ago */}
+      <div style={S.footerRow}>
         <span style={S.clubText}>{clubName.length > 13 ? clubName.slice(0, 13) + '…' : clubName}</span>
         <span style={S.dimText}>{ago}</span>
       </div>
 
-      {/* LIVE pulse animation */}
       {isLive && <style>{`@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>}
     </button>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// TOURNAMENT / SNG / SPIN CARD
+// TOURNAMENT / SNG / SPIN CARD — Vertical Poker Table
 // ─────────────────────────────────────────────────────────────────────
 function TournamentCard({ tournament: t, assetMap, onPress }) {
   const variant = t.game_variant || t.variant || 'nlh';
@@ -299,9 +312,6 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
   const clubName = t.club_name || t.club?.name || '';
   const startDate = t.scheduled_start || t.settings?.start_time || t.start_time || null;
 
-  const actionSec = t.settings?.action_time ?? 15;
-  const actionDisplay = actionSec >= 60 ? Math.round(actionSec / 60) + 'min' : actionSec + 's';
-
   // GTD prize
   const gtdAmount = t.prize_pool > (t.guaranteed_prize || 0)
     ? t.prize_pool
@@ -315,52 +325,71 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
   const trophyGlow = isSpin ? '#F1C40F' : isMTT ? '#FFD700' : '#C0C0C0';
 
   return (
-    <button onClick={() => onPress?.(t)} style={{ ...S.card, background: vc.bg, borderColor: vc.accent + '44' }}>
+    <button onClick={() => onPress?.(t)} style={S.card}>
 
-      {/* ROW 1 — Type badge | Max seats */}
-      <div style={S.row}>
-        <span style={{ ...S.varBadge, color: vc.color, background: vc.accent + '20', borderColor: vc.accent + '55', fontSize: 9 }}>
+      {/* LIVE badge */}
+      {isLive && (
+        <div style={S.liveBadge}>
+          <div style={S.liveDot} />
+          <span style={S.liveText}>LIVE</span>
+        </div>
+      )}
+
+      {/* Top row — Type badge | Player count */}
+      <div style={S.topRow}>
+        <span style={{ ...S.varBadge, color: vc.color, background: vc.accent + '25', borderColor: vc.accent + '60', fontSize: 8 }}>
           {typeLabel}
         </span>
-        <span style={S.dimText}>{maxP} Max</span>
-      </div>
-
-      {/* ROW 2 — Buy-in | Action time */}
-      <div style={S.row}>
-        <div>
-          <span style={S.metaLabel}>Buy-in</span>
-          <span style={S.buyInVal}>{fmtChips(buyIn)}</span>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={S.metaLabel}>Action</span>
-          <span style={S.dimText}>{actionDisplay}</span>
+        <div style={S.seatsBox}>
+          <span style={{ color: isFull ? '#EF5350' : '#00E676', fontWeight: 700, fontSize: 11 }}>{reg}</span>
+          <span style={{ color: '#555', fontSize: 10 }}>/{maxP}</span>
+          <div style={{ ...S.statusDot, background: STATUS_DOT[status] || '#555' }} />
         </div>
       </div>
 
-      {/* ROW 3 — Trophy + Name + countdown */}
-      <div style={S.trophyRow}>
-        <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, filter: 'drop-shadow(0 0 5px ' + trophyGlow + '99)' }}>
-          {isSpin ? '♠️' : isMTT ? '🏆' : '🥇'}
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* ── POKER TABLE IMAGE (vertical) ── */}
+      <div style={S.tableContainer}>
+        <img
+          src="/images/poker-table-vertical-nobg.png"
+          alt="Poker Table"
+          style={S.tableImage}
+        />
+
+        {/* Overlay: Tournament info centered on the table */}
+        <div style={S.tableOverlay}>
+          {/* Trophy icon */}
+          <div style={{ fontSize: 22, lineHeight: 1, filter: 'drop-shadow(0 0 6px ' + trophyGlow + '99)', marginBottom: 2 }}>
+            {isSpin ? '♠️' : isMTT ? '🏆' : '🥇'}
+          </div>
+
+          {/* Tournament name */}
           {!!name && (
-            <div style={S.tournName}>{name.length > 20 ? name.slice(0, 20) + '…' : name}</div>
+            <div style={S.overlayTournName}>
+              {name.length > 16 ? name.slice(0, 16) + '…' : name}
+            </div>
           )}
+
+          {/* Buy-in */}
+          <div style={S.overlayBuyIn}>
+            {fmtChips(buyIn)}
+          </div>
+
+          {/* Countdown / LIVE / Start date */}
           {isLive ? (
-            <span style={{ ...S.cdBadge, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
+            <span style={{ ...S.overlayCountdown, color: '#00E676', background: '#00E67620', borderColor: '#00E67640' }}>
               🔴 LIVE
             </span>
           ) : countdown ? (
-            <span style={{ ...S.cdBadge, color: countdown.color, background: countdown.color + '18', borderColor: countdown.color + '44' }}>
+            <span style={{ ...S.overlayCountdown, color: countdown.color, background: countdown.color + '18', borderColor: countdown.color + '44' }}>
               ⏱ {countdown.label}
             </span>
           ) : startDate ? (
-            <span style={S.startDate}>{fmtStartDate(startDate)}</span>
+            <span style={S.overlayStartDate}>{fmtStartDate(startDate)}</span>
           ) : null}
         </div>
       </div>
 
-      {/* ROW 4 — Sticker icons (GTD gets prize amount overlay) */}
+      {/* Sticker icons */}
       {stickers.length > 0 && (
         <div style={S.stickerRow}>
           {stickers.map(k => (
@@ -369,15 +398,13 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
         </div>
       )}
 
-      {/* ROW 5 — Club | Registered */}
-      <div style={{ ...S.row, marginTop: 'auto', paddingTop: 3 }}>
+      {/* Footer — Club | Registered */}
+      <div style={S.footerRow}>
         <span style={S.clubText}>{clubName.length > 13 ? clubName.slice(0, 13) + '…' : clubName}</span>
-        <div style={S.seatsBox}>
-          <span style={{ color: isFull ? '#EF5350' : '#00E676', fontWeight: 700, fontSize: 11 }}>{reg}</span>
-          <span style={{ color: '#555', fontSize: 10 }}>/{maxP}</span>
-          <div style={{ ...S.dot, background: STATUS_DOT[status] || '#555' }} />
-        </div>
+        <span style={S.dimText}>{maxP} Max</span>
       </div>
+
+      {isLive && <style>{`@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>}
     </button>
   );
 }
@@ -397,87 +424,171 @@ export default function GameCard({ game, assetMap = {}, onPress, avgVpip }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// STYLES  (175px wide × ~158px tall = 8 cards on 375px screen)
+// STYLES — Vertical poker table card
 // ─────────────────────────────────────────────────────────────────────
 const S = {
   card: {
     width: '100%',
-    minHeight: 155,
-    borderRadius: 10,
-    padding: '7px 8px',
+    minHeight: 200,
+    borderRadius: 12,
+    padding: '8px 8px 6px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 3,
+    gap: 4,
     cursor: 'pointer',
-    border: '1px solid',
+    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'linear-gradient(160deg, #0c0c14 0%, #111118 50%, #0a0a12 100%)',
     textAlign: 'left',
-    boxShadow: '0 3px 10px rgba(0,0,0,0.6)',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.04)',
     WebkitTapHighlightColor: 'transparent',
     position: 'relative',
     overflow: 'hidden',
-    transition: 'transform 0.08s',
+    transition: 'transform 0.08s, box-shadow 0.15s',
   },
-  row: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  seatsBox: { display: 'flex', alignItems: 'center', gap: 2 },
-  dot: { width: 5, height: 5, borderRadius: '50%', marginLeft: 3, flexShrink: 0 },
 
+  // LIVE badge
+  liveBadge: {
+    position: 'absolute', top: 6, right: 6,
+    display: 'flex', alignItems: 'center', gap: 3,
+    background: 'rgba(0,230,118,0.12)', border: '1px solid rgba(0,230,118,0.3)',
+    borderRadius: 10, padding: '1px 6px', zIndex: 5,
+  },
+  liveDot: {
+    width: 5, height: 5, borderRadius: '50%', background: '#00E676',
+    boxShadow: '0 0 4px #00E676',
+    animation: 'livePulse 1.5s ease-in-out infinite',
+  },
+  liveText: { fontSize: 8, fontWeight: 800, color: '#00E676', letterSpacing: 0.5 },
+
+  // Top row
+  topRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    paddingBottom: 2,
+  },
   varBadge: {
     fontSize: 10, fontWeight: 800,
     fontFamily: '"Orbitron","Rajdhani",monospace',
-    padding: '2px 5px', borderRadius: 4, border: '1px solid',
+    padding: '2px 6px', borderRadius: 4, border: '1px solid',
     letterSpacing: 0.4, textTransform: 'uppercase', lineHeight: 1.3, whiteSpace: 'nowrap',
   },
+  seatsBox: { display: 'flex', alignItems: 'center', gap: 2 },
+  statusDot: { width: 5, height: 5, borderRadius: '50%', marginLeft: 3, flexShrink: 0 },
 
-  tableName: {
-    fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.55)',
+  // Table container — holds the vertical poker table image
+  tableContainer: {
+    position: 'relative',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    flex: 1,
+    minHeight: 120,
+  },
+  tableImage: {
+    width: '75%',
+    maxWidth: 110,
+    height: 'auto',
+    objectFit: 'contain',
+    pointerEvents: 'none',
+    filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.6))',
+  },
+
+  // Overlay — centered on top of the table image
+  tableOverlay: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+    gap: 1,
+    zIndex: 2,
+    pointerEvents: 'none',
+    width: '70%',
+  },
+
+  // Cash game overlay elements
+  overlayTableName: {
+    fontSize: 7, fontWeight: 600, color: 'rgba(255,255,255,0.4)',
     textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2,
     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+    maxWidth: '100%',
   },
-
-  blindsBlock: { display: 'flex', flexDirection: 'column', lineHeight: 1, marginTop: 1 },
-  blindsVal: {
-    fontSize: 18, fontWeight: 800, fontFamily: '"Orbitron",monospace',
+  overlayGameType: {
+    fontSize: 10, fontWeight: 800,
+    fontFamily: '"Orbitron","Rajdhani",monospace',
+    letterSpacing: 1, textTransform: 'uppercase',
+    textShadow: '0 1px 6px rgba(0,0,0,0.8)',
+    lineHeight: 1.2,
+  },
+  overlayBlinds: {
+    fontSize: 17, fontWeight: 900,
+    fontFamily: '"Orbitron",monospace',
     letterSpacing: -0.5, lineHeight: 1,
+    textShadow: '0 1px 8px rgba(0,0,0,0.9), 0 0 20px rgba(0,0,0,0.5)',
+  },
+  overlayBuyRange: {
+    fontSize: 8, fontWeight: 600, color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.2, lineHeight: 1.3,
+    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
   },
 
-  metaLabel: {
-    fontSize: 8, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase',
-    letterSpacing: 0.5, display: 'block', marginBottom: 1,
-  },
-  buyRangeVal: { fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.65)' },
-  buyInVal: {
-    fontSize: 15, fontWeight: 800, fontFamily: '"Orbitron",monospace',
-    color: '#fff', lineHeight: 1, display: 'block',
-  },
-
-  trophyRow: { display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 1 },
-  tournName: {
-    fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.85)',
-    textTransform: 'uppercase', letterSpacing: 0.3, lineHeight: 1.25, marginBottom: 2,
+  // Tournament overlay elements
+  overlayTournName: {
+    fontSize: 8, fontWeight: 700, color: 'rgba(255,255,255,0.8)',
+    textTransform: 'uppercase', letterSpacing: 0.3, lineHeight: 1.2,
     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+    maxWidth: '100%', marginBottom: 1,
+    textShadow: '0 1px 4px rgba(0,0,0,0.9)',
   },
-  cdBadge: {
+  overlayBuyIn: {
+    fontSize: 14, fontWeight: 800,
+    fontFamily: '"Orbitron",monospace',
+    color: '#fff', lineHeight: 1,
+    textShadow: '0 1px 6px rgba(0,0,0,0.9)',
+  },
+  overlayCountdown: {
     display: 'inline-block', fontSize: 8, fontWeight: 700,
     padding: '1px 5px', borderRadius: 4, border: '1px solid',
     letterSpacing: 0.2, whiteSpace: 'nowrap', lineHeight: 1.5,
+    marginTop: 2,
   },
-  startDate: { fontSize: 8, color: 'rgba(255,255,255,0.35)', display: 'block' },
+  overlayStartDate: {
+    fontSize: 7, color: 'rgba(255,255,255,0.35)', display: 'block',
+    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+  },
 
+  // Seat map row (below table image)
+  seatMapRow: {
+    marginTop: 2,
+    marginBottom: 2,
+  },
+
+  // Sticker row
   stickerRow: {
-    display: 'flex', alignItems: 'center', gap: 5,
-    minHeight: 30, flexWrap: 'nowrap', overflow: 'hidden',
+    display: 'flex', alignItems: 'center', gap: 4,
+    minHeight: 26, flexWrap: 'nowrap', overflow: 'hidden',
+    justifyContent: 'center',
   },
   pill: {
-    fontSize: 7, fontWeight: 700, color: '#fff',
+    fontSize: 6, fontWeight: 700, color: '#fff',
     background: 'rgba(255,255,255,0.12)', borderRadius: 3,
     padding: '1px 4px', textTransform: 'uppercase', letterSpacing: 0.4,
     whiteSpace: 'nowrap', border: '1px solid rgba(255,255,255,0.12)',
   },
 
+  // Footer
+  footerRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 'auto', paddingTop: 2,
+  },
   clubText: {
     fontSize: 8, color: 'rgba(255,255,255,0.35)', fontWeight: 500,
     textTransform: 'uppercase', letterSpacing: 0.3,
     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '65%',
   },
-  dimText: { fontSize: 9, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' },
+  dimText: { fontSize: 8, color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap' },
 };

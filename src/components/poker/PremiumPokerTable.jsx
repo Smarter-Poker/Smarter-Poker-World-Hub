@@ -50,17 +50,43 @@ const TOKENS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SEAT_LAYOUT = {
-    hero: { x: 50, y: 88, isHero: true },
-    seat1: { x: 15, y: 72 },
-    seat2: { x: 8, y: 50 },
-    seat3: { x: 12, y: 28 },
-    seat4: { x: 30, y: 12 },
-    seat5: { x: 50, y: 8 },
-    seat6: { x: 70, y: 12 },
-    seat7: { x: 88, y: 28 },
-    seat8: { x: 92, y: 50 },
-    seat9: { x: 85, y: 72 },
+    hero: { x: 50, y: 96, isHero: true },
+    seat1: { x: 2, y: 74 },
+    seat2: { x: -2, y: 48 },
+    seat3: { x: 2, y: 24 },
+    seat4: { x: 22, y: -2 },
+    seat5: { x: 50, y: -4 },
+    seat6: { x: 78, y: -2 },
+    seat7: { x: 98, y: 24 },
+    seat8: { x: 102, y: 48 },
+    seat9: { x: 98, y: 74 },
 };
+
+// Avatar resolution — maps user avatars to table-optimized images
+const FALLBACK_TABLE_AVATARS = [
+    '/avatars/table/free_shark.png',
+    '/avatars/table/free_lion.png',
+    '/avatars/table/free_owl.png',
+    '/avatars/table/free_fox.png',
+    '/avatars/table/free_ninja.png',
+    '/avatars/table/free_pirate.png',
+    '/avatars/table/free_samurai.png',
+    '/avatars/table/free_viking.png',
+    '/avatars/table/free_knight.png',
+    '/avatars/table/free_cowboy.png',
+];
+
+function resolveTableAvatar(avatarUrl, seatIndex = 0) {
+    if (avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('data:'))) {
+        return avatarUrl;
+    }
+    if (avatarUrl && avatarUrl.startsWith('/avatars/')) {
+        const filename = avatarUrl.split('/').pop().replace('.png', '');
+        const tier = avatarUrl.includes('/vip/') ? 'vip' : 'free';
+        return `/avatars/table/${tier}_${filename}.png`;
+    }
+    return FALLBACK_TABLE_AVATARS[seatIndex % FALLBACK_TABLE_AVATARS.length];
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CARD COMPONENT — Cinematic Design
@@ -279,7 +305,11 @@ function PlayerSeat({
     isDealer = false,
     cards = [],
     timerProgress = 1,
+    seatIndex = 0,
 }) {
+    const avatarSize = isHero ? 90 : 72;
+    const resolvedAvatar = resolveTableAvatar(player.avatarUrl, seatIndex);
+
     const activeRingVariants = {
         inactive: {
             boxShadow: 'none',
@@ -312,7 +342,7 @@ function PlayerSeat({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 4,
+                gap: 2,
             }}
         >
             {/* Cards (for hero) */}
@@ -320,7 +350,7 @@ function PlayerSeat({
                 <div style={{
                     display: 'flex',
                     gap: -10,
-                    marginBottom: 8,
+                    marginBottom: 4,
                     transform: 'perspective(500px) rotateX(10deg)'
                 }}>
                     {cards.map((card, i) => (
@@ -344,13 +374,16 @@ function PlayerSeat({
                 variants={activeRingVariants}
                 animate={isActive ? 'active' : 'inactive'}
                 style={{
-                    width: isHero ? 80 : 64,
-                    height: isHero ? 80 : 64,
+                    width: avatarSize,
+                    height: avatarSize,
                     borderRadius: '50%',
-                    border: `3px solid ${isActive ? TOKENS.neonCyan : TOKENS.gold}`,
+                    border: `3px solid ${isActive ? TOKENS.neonCyan : 'rgba(255,255,255,0.15)'}`,
                     overflow: 'hidden',
                     position: 'relative',
-                    background: TOKENS.bgAbyss,
+                    background: 'rgba(0,0,0,0.3)',
+                    boxShadow: isActive
+                        ? `0 0 20px ${TOKENS.neonCyan}40`
+                        : '0 4px 12px rgba(0,0,0,0.5)',
                 }}
             >
                 {/* Timer Ring */}
@@ -360,21 +393,21 @@ function PlayerSeat({
                             position: 'absolute',
                             top: -3,
                             left: -3,
-                            width: isHero ? 86 : 70,
-                            height: isHero ? 86 : 70,
+                            width: avatarSize + 6,
+                            height: avatarSize + 6,
                             transform: 'rotate(-90deg)',
                             zIndex: 10,
                         }}
                     >
                         <circle
-                            cx={isHero ? 43 : 35}
-                            cy={isHero ? 43 : 35}
-                            r={isHero ? 40 : 32}
+                            cx={(avatarSize + 6) / 2}
+                            cy={(avatarSize + 6) / 2}
+                            r={(avatarSize + 2) / 2}
                             fill="none"
                             stroke={timerProgress > 0.5 ? TOKENS.neonGreen : timerProgress > 0.2 ? TOKENS.neonGold : TOKENS.neonRed}
                             strokeWidth="3"
-                            strokeDasharray={`${2 * Math.PI * (isHero ? 40 : 32)}`}
-                            strokeDashoffset={`${2 * Math.PI * (isHero ? 40 : 32) * (1 - timerProgress)}`}
+                            strokeDasharray={`${2 * Math.PI * ((avatarSize + 2) / 2)}`}
+                            strokeDashoffset={`${2 * Math.PI * ((avatarSize + 2) / 2) * (1 - timerProgress)}`}
                             strokeLinecap="round"
                             style={{ transition: 'stroke-dashoffset 0.3s linear' }}
                         />
@@ -383,13 +416,20 @@ function PlayerSeat({
 
                 {/* Avatar Image */}
                 <img
-                    src={player.avatarUrl || '/avatars/default.png'}
+                    src={resolvedAvatar}
                     alt={player.name}
                     style={{
                         width: '100%',
                         height: '100%',
                         objectFit: 'cover',
                         filter: isFolded ? 'grayscale(100%) brightness(0.5)' : 'none',
+                    }}
+                    onError={(e) => {
+                        if (player.avatarUrl && e.target.src !== player.avatarUrl) {
+                            e.target.src = player.avatarUrl;
+                        } else {
+                            e.target.src = FALLBACK_TABLE_AVATARS[seatIndex % FALLBACK_TABLE_AVATARS.length];
+                        }
                     }}
                 />
 
@@ -400,20 +440,18 @@ function PlayerSeat({
                         animate={{ scale: 1 }}
                         style={{
                             position: 'absolute',
-                            bottom: -8,
-                            right: -8,
-                            width: 24,
-                            height: 24,
-                            borderRadius: '50%',
-                            background: 'white',
-                            border: '2px solid #333',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 12,
-                            fontWeight: 'bold',
-                            color: '#333',
+                            bottom: -2,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            background: '#FFD700',
+                            color: '#000',
+                            fontSize: 9,
+                            fontWeight: 900,
+                            padding: '1px 6px',
+                            borderRadius: 6,
                             zIndex: 20,
+                            border: '1px solid rgba(0,0,0,0.2)',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
                         }}
                     >
                         D
@@ -421,35 +459,34 @@ function PlayerSeat({
                 )}
             </motion.div>
 
-            {/* Name Badge */}
-            <motion.div
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                style={{
-                    background: `linear-gradient(135deg, ${TOKENS.gold} 0%, ${TOKENS.goldLight} 100%)`,
-                    borderRadius: 6,
-                    padding: '4px 12px',
-                    minWidth: 80,
-                    textAlign: 'center',
-                }}
-            >
-                <div style={{
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                    color: '#000',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {player.name}
-                </div>
-                <div style={{
-                    fontSize: 12,
-                    fontWeight: 'bold',
-                    color: '#000'
-                }}>
-                    {player.stack} BB
-                </div>
-            </motion.div>
+            {/* Player Name — below avatar */}
+            <div style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: isActive ? TOKENS.neonCyan : '#fff',
+                textAlign: 'center',
+                maxWidth: 90,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                lineHeight: 1.2,
+            }}>
+                {player.name}
+            </div>
+
+            {/* Chip Count — below name */}
+            <div style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: isActive ? TOKENS.neonCyan : '#FFD700',
+                textAlign: 'center',
+                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 1.1,
+            }}>
+                {player.stack} BB
+            </div>
         </motion.div>
     );
 }
@@ -716,6 +753,7 @@ export default function PremiumPokerTable({
                         isDealer={dealerPosition === i}
                         cards={i === 0 ? heroCards : []}
                         timerProgress={activePlayer === player.id ? timerProgress : 1}
+                        seatIndex={i}
                     />
                 ))}
             </div>

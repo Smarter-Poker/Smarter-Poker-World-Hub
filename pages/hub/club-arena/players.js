@@ -13,6 +13,7 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -43,9 +44,9 @@ const ROLE_BADGES = {
 };
 
 export default function Players() {
-        useTrainingBus('club-arena-players');
+    useTrainingBus('club-arena-players');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
@@ -124,7 +125,7 @@ const router = useRouter();
                     // Load my notes for all members in bulk
                     if (authUser && memberData.length > 0) {
                         const token = localStorage.getItem('smarter-poker-auth');
-                        let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch(e) { /* */ }
+                        let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch (e) { /* */ }
                         if (accessToken) {
                             fetch('/api/club-arena/player-notes', {
                                 method: 'POST',
@@ -136,7 +137,7 @@ const router = useRouter();
                                     d.notes.forEach(n => { map[n.target_user_id] = n.note; });
                                     setNotes(map);
                                 }
-                            }).catch(() => {});
+                            }).catch(() => { });
                         }
                     }
                 }
@@ -155,8 +156,10 @@ const router = useRouter();
         if (!clubIdParam) return;
         const ch = supabase
             .channel(`players-live:${clubIdParam}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'club_members',
-                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'club_members',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => loadData())
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' },
                 () => loadData())
             .subscribe((status) => {
@@ -283,7 +286,7 @@ const router = useRouter();
         // Player card
         playerCard: { display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '8px', background: FB.cardBg, border: `1px solid ${FB.border}`, marginBottom: '10px', cursor: 'pointer', transition: 'border-color 0.2s' },
         avatarWrapper: { position: 'relative', flexShrink: 0 },
-        avatar: { width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', overflow: 'hidden' },
+        avatar: { width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', overflow: 'hidden', position: 'relative' },
         onlineIndicator: { position: 'absolute', bottom: '2px', right: '2px', width: '12px', height: '12px', borderRadius: '50%', border: `2px solid ${FB.cardBg}` },
         playerInfo: { flex: 1, minWidth: 0 },
         playerName: { fontSize: '15px', fontWeight: 600, color: FB.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -299,7 +302,7 @@ const router = useRouter();
         modalTitle: { fontSize: '18px', fontWeight: 700, color: FB.textPrimary },
         modalClose: { background: 'none', border: 'none', color: FB.textSecondary, fontSize: '24px', cursor: 'pointer', lineHeight: 1 },
         modalBody: { padding: '24px', textAlign: 'center' },
-        modalAvatar: { width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 16px', overflow: 'hidden' },
+        modalAvatar: { width: '80px', height: '80px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 16px', overflow: 'hidden', position: 'relative' },
         modalName: { fontSize: '22px', fontWeight: 700, color: FB.textPrimary, marginBottom: '4px' },
         modalRole: { fontSize: '14px', padding: '4px 12px', borderRadius: '4px', display: 'inline-block', marginBottom: '16px' },
         modalStats: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '20px' },
@@ -394,9 +397,7 @@ const router = useRouter();
                                 >
                                     <div style={S.avatarWrapper}>
                                         <div style={{ ...S.avatar, background: ROLE_COLORS[member.role] || FB.primary }}>
-                                            {member.profiles?.avatar_url ? (
-                                                <Image src={member.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                            ) : ROLE_BADGES[member.role] || ''}
+                                            <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
                                         </div>
                                         <div style={{ ...S.onlineIndicator, background: online ? FB.success : FB.textSecondary }} />
                                     </div>
@@ -449,9 +450,7 @@ const router = useRouter();
                         </div>
                         <div style={S.modalBody}>
                             <div style={{ ...S.modalAvatar, background: ROLE_COLORS[selectedPlayer.role] || FB.primary }}>
-                                {selectedPlayer.profiles?.avatar_url ? (
-                                    <Image src={selectedPlayer.profiles.avatar_url} alt="" fill style={{ objectFit: 'cover' }} />
-                                ) : ROLE_BADGES[selectedPlayer.role] || ''}
+                                <Image src={resolveAvatarDisplay(selectedPlayer.profiles?.avatar_url, selectedPlayer.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
                             </div>
                             <div style={S.modalName}>
                                 {selectedPlayer.profiles?.display_name || selectedPlayer.profiles?.username || 'Player'}
@@ -563,7 +562,7 @@ const router = useRouter();
                                 setNoteSaving(true);
                                 try {
                                     const token = localStorage.getItem('smarter-poker-auth');
-                                    let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch(e) { /* */ }
+                                    let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch (e) { /* */ }
                                     await fetch('/api/club-arena/player-notes', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
@@ -582,7 +581,7 @@ const router = useRouter();
                                     setNoteSaving(true);
                                     try {
                                         const token = localStorage.getItem('smarter-poker-auth');
-                                        let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch(e) { /* */ }
+                                        let accessToken = null; try { accessToken = token ? JSON.parse(token)?.access_token : null; } catch (e) { /* */ }
                                         await fetch('/api/club-arena/player-notes', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
