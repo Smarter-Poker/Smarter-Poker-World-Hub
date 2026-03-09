@@ -14,6 +14,7 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
+import { eventBus, EventType } from '../../../src/engine/EventBus';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TRAINING LIBRARY REFERENCE
@@ -52,7 +53,7 @@ function generateStudyPlan(sessions) {
         if (isRestDay) {
             // Light review day
             dayAreas.push({
-                ...FOCUS_AREAS[Math.floor(Math.random() * FOCUS_AREAS.length)],
+                ...FOCUS_AREAS[i % FOCUS_AREAS.length],
                 difficulty: 'easy',
                 goal: 85,
                 questionCount: 15,
@@ -142,7 +143,7 @@ function analyzeWeaknesses(sessions) {
     const weakFocusAreas = ranked.slice(0, 5).map(r => {
         const matchedArea = FOCUS_AREAS.find(f =>
             f.id.includes(r.category) || r.category.includes(f.id.split('-')[0])
-        ) || FOCUS_AREAS[Math.floor(Math.random() * FOCUS_AREAS.length)];
+        ) || FOCUS_AREAS[idx % FOCUS_AREAS.length];
 
         return {
             ...matchedArea,
@@ -334,9 +335,8 @@ export default function StudyPlanPage() {
 
     // Bus listener — refresh when session completes
     useEffect(() => {
-        const onSessionComplete = () => fetchSessions();
-        window.addEventListener('training:session-complete', onSessionComplete);
-        return () => window.removeEventListener('training:session-complete', onSessionComplete);
+        const unsub = eventBus.on(EventType.SESSION_END, () => fetchSessions());
+        return unsub;
     }, [fetchSessions]);
 
     const handleStartArea = (area, areaKey) => {
