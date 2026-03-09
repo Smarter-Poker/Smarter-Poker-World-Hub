@@ -9,6 +9,15 @@
 import { createClient } from '../../../src/lib/supabaseServerClient';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+// ── Deterministic hash for seeded fallback data (avoids Math.random in data gen) ──
+function hashSeed(str) {
+    let h = 0;
+    for (let i = 0; i < (str || '').length; i++) {
+        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h);
+}
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -28,13 +37,13 @@ export default async function handler(req, res) {
     if (_authErr || !_authUser) return res.status(401).json({ success: false, error: 'Invalid token' });
 
     if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
     }
 
     const { gameId, level = '1', count = '25' } = req.query;
 
     if (!gameId) {
-        return res.status(400).json({ error: 'gameId is required' });
+        return res.status(400).json({ success: false, error: 'gameId is required' });
     }
 
     try {
@@ -52,11 +61,11 @@ export default async function handler(req, res) {
 
         if (error) {
             console.error('[BatchPreload] Supabase error:', error);
-            return res.status(500).json({ error: 'Failed to fetch questions' });
+            return res.status(500).json({ success: false, error: 'Failed to fetch questions' });
         }
 
         if (!questions || questions.length === 0) {
-            return res.status(404).json({ error: 'No questions available for this game/level' });
+            return res.status(404).json({ success: false, error: 'No questions available for this game/level' });
         }
 
         // BUG-03 FIX: Use Fisher-Yates shuffle (sort-based shuffle is biased in V8 TimSort)
@@ -87,12 +96,13 @@ export default async function handler(req, res) {
                 if (heroHand && heroHand.length >= 4) {
                     qData.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
                 } else {
-                    // BUG-C FIX: Tag fabricated cards
+                    // Deterministic fallback cards based on question hash
                     const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6'];
                     const suits = ['h', 'd', 'c', 's'];
+                    const seed = hashSeed(q.id || q.game_id || `q${i}`);
                     qData.heroCards = [
-                        ranks[Math.floor(Math.random() * 6)] + suits[Math.floor(Math.random() * 4)],
-                        ranks[Math.floor(Math.random() * 8)] + suits[Math.floor(Math.random() * 4)]
+                        ranks[seed % 6] + suits[(seed >> 3) % 4],
+                        ranks[(seed >> 6) % 8] + suits[(seed >> 9) % 4]
                     ];
                     dataQuality = 'SIMULATED';
                 }
@@ -125,19 +135,24 @@ export default async function handler(req, res) {
                         }
                     });
                 }
-                // If still empty, simulate
+                // If still empty, generate deterministic defaults based on action type
                 if (!qData.gtoFrequencies || Object.keys(qData.gtoFrequencies).length === 0) {
                     qData.gtoFrequencies = {};
-                    options.forEach((opt, i) => {
-                        const optId = opt.id || String.fromCharCode(97 + i);
+                    const numOpts = options.length || 3;
+                    options.forEach((opt, idx) => {
+                        const optId = opt.id || String.fromCharCode(97 + idx);
+                        // Correct answer gets 55-70%, others split remaining
                         qData.gtoFrequencies[optId] = optId === correctAnswer
-                            ? 50 + Math.floor(Math.random() * 30)
-                            : 2 + Math.floor(Math.random() * 15);
+                            ? Math.round(55 + (hashSeed(optId + (q.id || '')) % 16))
+                            : Math.round((100 - 62) / Math.max(numOpts - 1, 1));
                     });
+                    // Normalize to 100%
                     const total = Object.values(qData.gtoFrequencies).reduce((s, v) => s + v, 0);
-                    Object.keys(qData.gtoFrequencies).forEach(k => {
-                        qData.gtoFrequencies[k] = Math.round((qData.gtoFrequencies[k] / total) * 100);
-                    });
+                    if (total > 0) {
+                        Object.keys(qData.gtoFrequencies).forEach(k => {
+                            qData.gtoFrequencies[k] = Math.round((qData.gtoFrequencies[k] / total) * 100);
+                        });
+                    }
                     const sum = Object.values(qData.gtoFrequencies).reduce((s, v) => s + v, 0);
                     if (sum !== 100 && correctAnswer) {
                         qData.gtoFrequencies[correctAnswer] = (qData.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
@@ -146,12 +161,14 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 4. Ensure evData
+            // 4. Ensure evData — deterministic estimates based on position + pot
             if (!qData.evData) {
                 const pot = scenario.pot || 10;
+                const positionBonus = { 'BTN': 0.65, 'CO': 0.58, 'MP': 0.50, 'UTG': 0.45, 'SB': 0.42, 'BB': 0.48 };
+                const posMult = positionBonus[scenario.heroPosition] || 0.52;
                 qData.evData = {
-                    heroHandEV: +(pot * (0.3 + Math.random() * 0.5)).toFixed(2),
-                    optimalEV: +(pot * (0.5 + Math.random() * 0.4)).toFixed(2),
+                    heroHandEV: +(pot * posMult).toFixed(2),
+                    optimalEV: +(pot * (posMult + 0.15)).toFixed(2),
                     handEVs: {},
                     heroHand: qData.heroCards?.join('') || 'AhKs',
                 };
@@ -190,7 +207,7 @@ export default async function handler(req, res) {
 
     } catch (err) {
         console.error('[BatchPreload] Unexpected error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ success: false, error: 'Internal server error' });
     }
 }
 

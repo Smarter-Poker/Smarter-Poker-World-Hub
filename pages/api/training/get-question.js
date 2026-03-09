@@ -17,6 +17,15 @@ import { pioQueryService } from '../../../src/services/PIOQueryService';
 import { deterministicEngine } from '../../../src/engines/DeterministicGTOEngine';
 import { applyRateLimit, LIMITS } from '../../../src/lib/apiRateLimit';
 
+// ── Deterministic hash for seeded fallback data ──
+function hashSeed(str) {
+    let h = 0;
+    for (let i = 0; i < (str || '').length; i++) {
+        h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h);
+}
+
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -641,13 +650,14 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
         if (heroHand && heroHand.length >= 4) {
             q.heroCards = [heroHand.substring(0, 2), heroHand.substring(2, 4)];
         } else {
-            // Generate realistic random cards
+            // Deterministic fallback cards based on question id hash
             const ranks = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
             const suits = ['h', 'd', 'c', 's'];
-            const r1 = ranks[Math.floor(Math.random() * 6)]; // premium range
-            const s1 = suits[Math.floor(Math.random() * 4)];
-            const r2 = ranks[Math.floor(Math.random() * 8)];
-            const s2 = suits[Math.floor(Math.random() * 4)];
+            const seed = hashSeed(q.id || q.questionId || 'fallback');
+            const r1 = ranks[seed % 6]; // premium range
+            const s1 = suits[(seed >> 3) % 4];
+            const r2 = ranks[(seed >> 6) % 8];
+            const s2 = suits[(seed >> 9) % 4];
             q.heroCards = [r1 + s1, r2 + s2];
         }
     }
@@ -681,32 +691,36 @@ function enrichGrokQuestion(q, gameConfig, level, gameType) {
             if (isCorrect) {
                 // Correct answer gets dominant frequency
                 // Higher levels = more mixed strategy (lower dominance)
-                const dominance = Math.max(35, 80 - (level * 4)) + Math.floor(Math.random() * 10);
+                const dominance = Math.max(35, 80 - (level * 4)) + (hashSeed(optId + (q.id || '')) % 10);
                 q.gtoFrequencies[optId] = Math.min(dominance, remaining);
             } else {
                 // Distribute remaining among incorrect options
-                const share = Math.floor(Math.random() * 20) + 2;
+                const share = 5 + (hashSeed(optId + i) % 18);
                 q.gtoFrequencies[optId] = share;
             }
         });
 
         // Normalize to 100%
         const total = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
-        Object.keys(q.gtoFrequencies).forEach(k => {
-            q.gtoFrequencies[k] = Math.round((q.gtoFrequencies[k] / total) * 100);
-        });
+        if (total > 0) {
+            Object.keys(q.gtoFrequencies).forEach(k => {
+                q.gtoFrequencies[k] = Math.round((q.gtoFrequencies[k] / total) * 100);
+            });
+        }
         const sum = Object.values(q.gtoFrequencies).reduce((s, v) => s + v, 0);
         if (sum !== 100 && correctAnswer) {
             q.gtoFrequencies[correctAnswer] = (q.gtoFrequencies[correctAnswer] || 0) + (100 - sum);
         }
     }
 
-    // 4. Ensure evData exists
+    // 4. Ensure evData exists — deterministic position-aware estimates
     if (!q.evData) {
         const pot = scenario.pot || 10;
+        const positionBonus = { 'BTN': 0.65, 'CO': 0.58, 'MP': 0.50, 'UTG': 0.45, 'SB': 0.42, 'BB': 0.48 };
+        const posMult = positionBonus[scenario.heroPosition] || 0.52;
         q.evData = {
-            heroHandEV: +(pot * (0.3 + Math.random() * 0.5)).toFixed(2),
-            optimalEV: +(pot * (0.5 + Math.random() * 0.4)).toFixed(2),
+            heroHandEV: +(pot * posMult).toFixed(2),
+            optimalEV: +(pot * (posMult + 0.15)).toFixed(2),
             handEVs: {},
             heroHand: q.heroCards ? q.heroCards.join('') : 'AhKs',
         };

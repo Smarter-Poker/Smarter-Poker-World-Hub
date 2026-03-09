@@ -677,6 +677,9 @@ export default function VirtualSandbox() {
   const [showCoachPicker, setShowCoachPicker] = useState(false);
   const [coachUserPick, setCoachUserPick] = useState(null); // the action user picked
   const [coachEvDelta, setCoachEvDelta] = useState(null);
+  // ── Wave 4: Coach Streak System (W4-5) ─────────────────────────────────
+  const [coachStreak, setCoachStreak] = useState(0);
+  const coachStreakRef = useRef(0);
   const toggleCoachMode = useCallback(() => {
     setCoachMode(prev => {
       const next = !prev;
@@ -1143,6 +1146,26 @@ export default function VirtualSandbox() {
       const delta = isCorrect ? 0 : -(Math.abs(gtoEV) * 0.2);
       setCoachEvDelta(delta);
 
+      // ── Wave 4: Coach Streak Tracking ──────────────────────────────────────
+      if (isCorrect) {
+        const newStreak = coachStreakRef.current + 1;
+        coachStreakRef.current = newStreak;
+        setCoachStreak(newStreak);
+        // Haptic milestones at 5, 10, 25
+        const MILESTONES = [5, 10, 25];
+        if (MILESTONES.includes(newStreak)) {
+          try { navigator.vibrate?.([50, 30, 50, 30, 100]); } catch (e) { }
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('sandbox-coach-streak-milestone', {
+              detail: { streak: newStreak }
+            }));
+          }
+        }
+      } else {
+        coachStreakRef.current = 0;
+        setCoachStreak(0);
+      }
+
       // ── Wave 3: Persist coach result to Supabase ──────────────────────────
       (async () => {
         try {
@@ -1382,7 +1405,7 @@ export default function VirtualSandbox() {
               {results && <button onClick={() => { setShowShare(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(35,116,225,0.1)', border: '1px solid rgba(35,116,225,0.2)', color: '#4599FF', cursor: 'pointer' }}>Share</button>}
               <button onClick={() => { popUndo(); setShowMenu(false); }} disabled={undoStackRef.current.length === 0} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: undoStackRef.current.length === 0 ? '#65676B' : '#E4E6EB', cursor: 'pointer' }}>Undo</button>
               <button onClick={() => { resetAll(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5', cursor: 'pointer' }}>Reset</button>
-              <button onClick={() => { toggleCoachMode(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: coachMode ? 'rgba(167,139,250,0.15)' : '#3A3B3C', border: `1px solid ${coachMode ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: coachMode ? '#a78bfa' : '#E4E6EB', cursor: 'pointer' }}>Coach {coachMode ? 'ON' : 'OFF'}</button>
+              <button onClick={() => { toggleCoachMode(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: coachMode ? 'rgba(167,139,250,0.15)' : '#3A3B3C', border: `1px solid ${coachMode ? 'rgba(167,139,250,0.3)' : '#4E4F50'}`, color: coachMode ? '#a78bfa' : '#E4E6EB', cursor: 'pointer' }}>Coach {coachMode ? 'ON' : 'OFF'}{coachMode && coachStreak > 0 ? ` 🔥${coachStreak}` : ''}</button>
               <button onClick={() => { setShowSessionLog(true); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: sessionLog.length > 0 ? 'rgba(35,116,225,0.12)' : '#3A3B3C', border: `1px solid ${sessionLog.length > 0 ? 'rgba(35,116,225,0.3)' : '#4E4F50'}`, color: sessionLog.length > 0 ? '#4599FF' : '#E4E6EB', cursor: 'pointer' }}>Log ({sessionLog.length})</button>
               <button onClick={() => { toggleSound(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: soundEnabled ? 'rgba(34,197,94,0.15)' : '#3A3B3C', border: `1px solid ${soundEnabled ? 'rgba(34,197,94,0.3)' : '#4E4F50'}`, color: soundEnabled ? '#4ade80' : '#E4E6EB', cursor: 'pointer' }}>Sound {soundEnabled ? 'ON' : 'OFF'}</button>
               <button onClick={() => { setShowTemplates(true); loadTemplates(); setShowMenu(false); }} style={{ padding: '10px 6px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#3A3B3C', border: '1px solid #4E4F50', color: '#E4E6EB', cursor: 'pointer' }}>Templates</button>

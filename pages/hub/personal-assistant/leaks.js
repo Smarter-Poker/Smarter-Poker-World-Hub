@@ -17,6 +17,7 @@ import { useLeaks, useAssistantStats } from '../../../src/hooks/useAssistant';
 import FeatureGate from '../../../src/components/gates/FeatureGate';
 import { useFeatureGate } from '../../../src/components/gates/FeatureGatePopup';
 import { getAuthUser } from '../../../src/lib/authUtils';
+import SessionAnalytics from '../../../src/components/sandbox/SessionAnalytics';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCK DATA
@@ -689,6 +690,9 @@ export default function LeakFinderPage() {
               </>
             )}
           </div>
+
+          {/* ── Wave 4: Session Analytics Dashboard ───────────────── */}
+          <SessionAnalytics userId={userId} />
 
           {/* Main Layout */}
           <div style={styles.mainLayout}>
