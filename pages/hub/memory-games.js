@@ -182,7 +182,6 @@ function SpeedDrillGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, userI
                 if (diamondReward > 0 && DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
-                    busEmit.diamondsEarned(diamondReward, 'Speed Drill');
                 }
 
                 // ═══════════════════════════════════════════════════════════════════════════
@@ -479,7 +478,6 @@ function PressureCookerGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, u
                 if (DiamondEngine) {
                     const newBalance = DiamondEngine.award(diamondReward);
                     onScoreUpdate?.(newBalance);
-                    busEmit.diamondsEarned(diamondReward, 'Pressure Cooker');
                 }
 
                 // ═══════════════════════════════════════════════════════════════════════════
@@ -783,7 +781,6 @@ function PatternRecognitionGame({ level = 1, onExit, onScoreUpdate, DiamondEngin
             if (DiamondEngine && diamondReward > 0) {
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
-                busEmit.diamondsEarned(diamondReward, 'Pattern Recognition');
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
@@ -1072,7 +1069,6 @@ function MixedStrategyGame({ level = 1, onExit, onScoreUpdate, DiamondEngine, us
             if (DiamondEngine && diamondReward > 0) {
                 const newBalance = DiamondEngine.award(diamondReward);
                 onScoreUpdate?.(newBalance);
-                busEmit.diamondsEarned(diamondReward, 'Mixed Strategy');
             }
 
             // ═══════════════════════════════════════════════════════════════════════════
@@ -1891,7 +1887,6 @@ export default function MemoryGamesPage() {
             return false;
         }
         if (result.balance !== undefined) setDiamondBalance(result.balance);
-        busEmit.diamondsSpent(GAME_COST, 'Memory Games Entry');
         return true;
     };
 
