@@ -61,19 +61,24 @@ function TourBadge({ tourCode, size = 'normal' }) {
 }
 
 export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) {
+    // Support both tour objects and venue objects (venues with has_tournaments)
+    const displayName = tour.tour_name || tour.name || 'Unknown Tour';
+    const displayLocation = tour.headquarters || ((tour.city || '') + (tour.city && tour.state ? ', ' : '') + (tour.state || ''));
+    const detailUrl = tour.tour_code ? '/hub/tours/' + tour.tour_code : '/hub/venues/' + tour.id;
+
     return (
-        <div className="entity-card tour-card" onClick={() => onNavigate('/hub/tours/' + tour.tour_code)} style={{ cursor: 'pointer' }}>
-            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => onFavorite(e)}>
+        <div className="entity-card tour-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
+            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
             </button>
             <div className="card-header">
                 <TourBadge tourCode={tour.tour_code} />
-                <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.tour_type}</span>
+                <span className="badge tour-type">{TOUR_TYPE_LABELS[tour.tour_type] || tour.venue_type || tour.tour_type}</span>
             </div>
-            <h4 className="tour-name">{tour.tour_name}</h4>
-            <p className="card-location">{tour.headquarters}</p>
+            <h4 className="tour-name">{displayName}</h4>
+            {displayLocation && <p className="card-location">{displayLocation}</p>}
             {tour.typical_buyins && (
                 <p className="card-detail">
                     Buy-ins: {formatMoney(tour.typical_buyins.min)} - {formatMoney(tour.typical_buyins.max)}
@@ -91,11 +96,11 @@ export default function TourCard({ tour, isFavorited, onFavorite, onNavigate }) 
                 </div>
             )}
             <div className="card-footer">
-                <span className="established">Est. {tour.established}</span>
+                {tour.established && <span className="established">Est. {tour.established}</span>}
                 <div className="card-actions">
                     <span className="action-btn primary">Details</span>
-                    {tour.official_website && (
-                        <a href={tour.official_website} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>
+                    {(tour.official_website || tour.website) && (
+                        <a href={(() => { const w = tour.official_website || tour.website; return w.startsWith('http') ? w : 'https://' + w; })()} target="_blank" rel="noopener noreferrer" className="action-btn" onClick={e => e.stopPropagation()}>Website</a>
                     )}
                 </div>
             </div>

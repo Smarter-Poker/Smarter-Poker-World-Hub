@@ -4,9 +4,10 @@
 import { TourBadge, formatDate, formatMoney } from './TourCard';
 
 export default function SeriesCard({ series: s, index, isFavorited, onFavorite, onNavigate }) {
+    const detailUrl = s.series_code ? '/hub/series/' + s.series_code : '/hub/venues/' + (s.id || (index + 1));
     return (
-        <div className="entity-card series-card" onClick={() => onNavigate('/hub/series/' + (s.id || (index + 1)))} style={{ cursor: 'pointer' }}>
-            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => onFavorite(e)}>
+        <div className="entity-card series-card" onClick={() => onNavigate && onNavigate(detailUrl)} style={{ cursor: 'pointer' }}>
+            <button className={'fav-btn' + (isFavorited ? ' active' : '')} onClick={(e) => { e.stopPropagation(); onFavorite && onFavorite(e); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={isFavorited ? '#ef4444' : 'none'} stroke={isFavorited ? '#ef4444' : 'rgba(255,255,255,0.4)'} strokeWidth="2">
                     <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
                 </svg>
