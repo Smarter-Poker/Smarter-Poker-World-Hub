@@ -1857,6 +1857,10 @@ class GameController {
 
       for (const row of tables) {
         try {
+          const variant = row.game_variant || 'nlh';
+          const { getRakeConfig } = require('./RakeConfig');
+          const tierConfig = getRakeConfig(row.big_blind || 2, variant, row.small_blind);
+
           const config = {
             tableId: row.id,
             clubId: row.club_id,
@@ -1870,8 +1874,10 @@ class GameController {
             minBuyIn: row.min_buy_in || (row.big_blind || 2) * 20,
             maxBuyIn: row.max_buy_in || (row.big_blind || 2) * 100,
             ante: row.ante || 0,
-            rakePercent: row.rake_percent || 0,
-            rakeCap: row.rake_cap_bb || 0,
+            rakePercent: row.rake_percent || tierConfig.rakePercent,
+            rakeCap: row.rake_cap_bb || tierConfig.rakeCapBB,
+            bbjPercent: row.bbj_percent || tierConfig.bbjFeeBB,
+            bbjEnabled: tierConfig.bbjEnabled && (row.bbj_percent || tierConfig.bbjFeeBB) > 0,
             actionTime: row.action_time_seconds || 30,
             // Club settings (same as connectToClubTable)
             straddleEnabled: row.settings?.straddle_enabled || false,
