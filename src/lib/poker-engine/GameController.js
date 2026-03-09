@@ -1584,11 +1584,13 @@ class GameController {
   async createTournament(config) {
     await this._ensureInit();
     const {
+      tournamentId: existingId, // Accept pre-created tournament ID from API
       name, clubId, unionId, type = 'mtt', variant = 'nlh',
-      buyIn = 100, startingChips = 10000, maxPlayers = 100,
+      buyIn = 100, buyinAmount, buyinFee = 0,
+      startingChips = 10000, maxPlayers = 100,
       maxTableSize = 9, blindStructure, lateRegLevels = 6,
-      rebuyEnabled = false, rebuyLevels = 4, maxRebuys = 1,
-      rebuyCost, rebuyChips, addonEnabled = false, addonCost, addonChips,
+      rebuyEnabled = false, allowsRebuys, rebuyLevels = 4, maxRebuys = 1,
+      rebuyCost, rebuyChips, addonEnabled = false, allowsAddon, addonCost, addonChips,
       guaranteedPrize = 0, payoutStructure, sngSize = 6,
       levelDuration = 15, actionTime = 30, timeBankSeconds = 30,
       autoStartDelay = 3000, breakSchedule,
@@ -1597,18 +1599,25 @@ class GameController {
       mysteryThreshold = 0, mysteryTiers,
     } = config;
 
-    let tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    if (this.supabase) {
+    const resolvedBuyIn = buyinAmount || buyIn;
+
+    // If tournamentId was passed (API already created the DB record), use it
+    let tournamentId = existingId || null;
+
+    // Only create DB record if not already created by the API
+    if (!tournamentId && this.supabase) {
       try {
         const { data, error } = await this.supabase
           .from('club_tournaments')
           .insert({
             name, club_id: clubId, union_id: unionId, type, variant,
-            buy_in: buyIn, starting_chips: startingChips, max_players: maxPlayers,
+            buy_in: resolvedBuyIn, starting_chips: startingChips, max_players: maxPlayers,
             status: 'registering',
             settings: {
-              maxTableSize, blindStructure, lateRegLevels, rebuyEnabled, rebuyLevels, maxRebuys,
-              rebuyCost, rebuyChips, addonEnabled, addonCost, addonChips,
+              maxTableSize, blindStructure, lateRegLevels,
+              rebuyEnabled: allowsRebuys || rebuyEnabled, rebuyLevels, maxRebuys,
+              rebuyCost, rebuyChips,
+              addonEnabled: allowsAddon || addonEnabled, addonCost, addonChips,
               guaranteedPrize, payoutStructure, sngSize, levelDuration, actionTime, timeBankSeconds, autoStartDelay, breakSchedule,
               bountyType, bountyAmount, mysteryThreshold, mysteryTiers
             },
@@ -1618,14 +1627,18 @@ class GameController {
       } catch (err) { console.error('[GameController] Tournament DB insert:', err.message); }
     }
 
+    if (!tournamentId) {
+      tournamentId = `tournament_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
     const controller = new TournamentController({
       tournamentId, name, clubId, unionId,
       tournamentType: TOURNAMENT_TYPE[type?.toUpperCase()] || TOURNAMENT_TYPE.MTT,
       variant: VARIANT_MAP[variant] || 'holdem',
-      buyIn, startingChips, maxPlayers, maxTableSize, blindStructure, lateRegLevels,
-      allowsRebuys: rebuyEnabled, rebuyEndLevel: rebuyLevels, maxRebuys,
-      rebuyCost: rebuyCost || buyIn, rebuyChips: rebuyChips || startingChips,
-      allowsAddon: addonEnabled, addonCost, addonChips: addonChips || startingChips,
+      buyIn: resolvedBuyIn, buyinFee, startingChips, maxPlayers, maxTableSize, blindStructure, lateRegLevels,
+      allowsRebuys: allowsRebuys || rebuyEnabled, rebuyEndLevel: rebuyLevels, maxRebuys,
+      rebuyCost: rebuyCost || resolvedBuyIn, rebuyChips: rebuyChips || startingChips,
+      allowsAddon: allowsAddon || addonEnabled, addonCost, addonChips: addonChips || startingChips,
       guaranteedPrize, payoutStructure, sngSize,
       levelDuration: (levelDuration || 15) * 60000, actionTime: (actionTime || 30) * 1000,
       timeBankSeconds: (timeBankSeconds || 30) * 1000, autoStartDelay: autoStartDelay || 3000,

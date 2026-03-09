@@ -17,6 +17,7 @@ const supabaseAdmin = createClient(
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' });
+  if (!applyRateLimit(req, res, 'club-arena/tournaments')) return;
 
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -296,42 +297,13 @@ export default async function handler(req, res) {
           return res.status(500).json({ success: false, error: regErr.message });
         }
 
-        // Update count + prize pool (optimistic lock prevents concurrent over-admission)
-        const { data: countUpd } = await supabaseAdmin
-          .from('club_tournaments')
-          .update({
-            registered_count: tourn.registered_count + 1,
-            prize_pool: (tourn.prize_pool || 0) + tourn.buy_in,
-          })
-          .eq('id', tournamentId)
-          .eq('registered_count', tourn.registered_count) // fails if concurrent registration changed it
-          .select('registered_count');
+        // Update count + prize pool atomically
+        const { data: counterResult } = await supabaseAdmin.rpc('fn_tournament_register_counter', {
+          p_tournament_id: tournamentId,
+          p_buy_in: tourn.buy_in,
+        });
 
-        if (!countUpd?.length) {
-          // Race detected — count was changed by concurrent request.
-          // Registration itself succeeded (DB row inserted), so just re-read fresh values.
-          const { data: freshData } = await supabaseAdmin
-            .from('club_tournaments')
-            .select('registered_count, prize_pool')
-            .eq('id', tournamentId)
-            .maybeSingle();
-          // Retry the increment with fresh values
-          await supabaseAdmin
-            .from('club_tournaments')
-            .update({
-              registered_count: (freshData?.registered_count || 0) + 1,
-              prize_pool: (freshData?.prize_pool || 0) + tourn.buy_in,
-            })
-            .eq('id', tournamentId);
-        }
-
-        // Re-read count for SNG auto-start check (authoritative)
-        const { data: freshTourn } = await supabaseAdmin
-          .from('club_tournaments')
-          .select('registered_count')
-          .eq('id', tournamentId)
-          .maybeSingle();
-        const currentCount = freshTourn?.registered_count || tourn.registered_count + 1;
+        const currentCount = counterResult?.registered_count || tourn.registered_count + 1;
 
         // Auto-start SNG when full — init engine THEN mark running
         if (tourn.type === 'sng' && currentCount >= tourn.max_players) {
@@ -346,6 +318,9 @@ export default async function handler(req, res) {
               .eq('status', 'registered')
                   .limit(100);
 
+            const feePercent = tourn.settings?.fee_percent || 10;
+            const buyinFee = Math.round(tourn.buy_in * feePercent / 100);
+
             const sngCreate = await controller.createTournament({
               tournamentId,
               tournamentType: 'sng',
@@ -353,6 +328,7 @@ export default async function handler(req, res) {
               variant: tourn.variant || 'holdem',
               startingChips: tourn.starting_chips || 5000,
               buyinAmount: tourn.buy_in || 100,
+              buyinFee,
               maxEntries: tourn.max_players || 9,
               clubId: tourn.club_id,
             });
@@ -423,14 +399,11 @@ export default async function handler(req, res) {
           .update({ status: 'unregistered' })
           .eq('id', reg.id);
 
-        // Update count
-        await supabaseAdmin
-          .from('club_tournaments')
-          .update({
-            registered_count: Math.max(0, tourn.registered_count - 1),
-            prize_pool: Math.max(0, (tourn.prize_pool || 0) - reg.buy_in_amount),
-          })
-          .eq('id', tournamentId);
+        // Update count atomically
+        await supabaseAdmin.rpc('fn_tournament_unregister_counter', {
+          p_tournament_id: tournamentId,
+          p_buy_in: reg.buy_in_amount,
+        });
 
         return res.json({ success: true });
       }
@@ -479,6 +452,9 @@ export default async function handler(req, res) {
             .eq('status', 'registered')
                 .limit(100);
 
+          const mttFeePercent = tourn.settings?.fee_percent || 10;
+          const mttBuyinFee = Math.round((tourn.buy_in || 100) * mttFeePercent / 100);
+
           // Create tournament in engine
           const createResult = await controller.createTournament({
             tournamentId,
@@ -487,6 +463,7 @@ export default async function handler(req, res) {
             variant: tourn.variant || 'holdem',
             startingChips: tourn.starting_chips || 10000,
             buyinAmount: tourn.buy_in || 100,
+            buyinFee: mttBuyinFee,
             maxEntries: tourn.max_players || 100,
             lateRegLevels: tourn.settings?.lateRegLevels || 6,
             allowsRebuys: tourn.settings?.rebuyEnabled || false,

@@ -169,7 +169,7 @@ const router = useRouter();
       onConfirm: async () => {
         setConfirmModal(null);
         const res = await api('unregister', { tournamentId });
-        if (res.success) { loadData(); showToast('Unregistered. Buy-in refunded.'); }
+        if (res.success) { loadData(); showToast('Unregistered. Buy-in refunded.'); busEmit.dataMutated('tournament_registration'); }
         else showToast(res.error || 'Failed to unregister', 'error');
       },
     });
