@@ -105,6 +105,15 @@ const router = useRouter();
     useEffect(() => { _setLobbyFilter('activeFilter', activeFilter); }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
     useEffect(() => { _setLobbyFilter('sortBy', sortBy); }, [sortBy]); // eslint-disable-line react-hooks/exhaustive-deps
     const [showBBJ, setShowBBJ] = useState(false);
+
+    // Auto-open BBJ modal when navigated with #bbj hash
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.hash === '#bbj') {
+            setShowBBJ(true);
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    }, []);
+
     const [toast, setToast] = useState(null); // { msg, type }
     const showToast = (msg, type = 'success') => {
         setToast({ msg, type });

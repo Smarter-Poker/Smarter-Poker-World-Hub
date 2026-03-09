@@ -154,7 +154,7 @@ export default function DynamicWallet({
       <BBJSlot top="80%" left="12%" width="76%" height="7%" value={backupBbjBalance || 0}
         animating={false} fontSize={fs(15)} onClick={onOpenBBJ} />
 
-      <style jsx>{`@keyframes walletBbjPulse {
+      <style>{`@keyframes walletBbjPulse {
         0% { transform: scale(1); filter: brightness(1); }
         30% { transform: scale(1.08); filter: brightness(1.4); }
         100% { transform: scale(1); filter: brightness(1); }
@@ -201,7 +201,7 @@ export default function DynamicWallet({
       <Slot top="82.5%" value={promoBalance} color={promoBalance > 0 ? '#4ECDC4' : '#65676B'}
         glow={promoBalance > 0} fontSize={fs(14)} onClick={() => onTapSlot?.('promo')} />
 
-      <style jsx>{`@keyframes walletBbjPulse {
+      <style>{`@keyframes walletBbjPulse {
         0% { transform: scale(1); filter: brightness(1); }
         30% { transform: scale(1.08); filter: brightness(1.4); }
         100% { transform: scale(1); filter: brightness(1); }

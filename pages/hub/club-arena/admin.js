@@ -679,7 +679,7 @@ const router = useRouter();
                         <>
                             {/* Owner/Admin Wallet — shows Club Bank */}
                             <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 12px' }}>
-                                <DynamicWallet {...walletData} compact onBuyDiamonds={() => router.push('/hub/diamond-store')} />
+                                <DynamicWallet {...walletData} compact onBuyDiamonds={() => router.push('/hub/diamond-store')} onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)} />
                             </div>
 
                             <h2 style={S.sectionTitle}>Administration</h2>

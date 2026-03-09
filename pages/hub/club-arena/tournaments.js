@@ -222,7 +222,10 @@ const router = useRouter();
       {/* Wallet Panel */}
       {showWallet && (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0', background: FB.bg }}>
-          <DynamicWallet {...walletData} chipBalance={walletData.chipBalance || chipBalance} compact />
+          <DynamicWallet {...walletData} chipBalance={walletData.chipBalance || chipBalance} compact
+            onBuyDiamonds={() => router.push('/hub/diamond-store')}
+            onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubId}#bbj`)}
+          />
         </div>
       )}
 

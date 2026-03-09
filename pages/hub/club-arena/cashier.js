@@ -504,6 +504,7 @@ const router = useRouter();
                                     diamondBalance={walletData.diamondBalance || diamondBalance}
                                     chipBalance={walletData.chipBalance || chipBalance}
                                     onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                    onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${club?.club_id || clubIdParam}#bbj`)}
                                     onTapSlot={(slot) => {
                                         if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${club?.club_id || clubIdParam}`);
                                         if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${club?.club_id || clubIdParam}`);

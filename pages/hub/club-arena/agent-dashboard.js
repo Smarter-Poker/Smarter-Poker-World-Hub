@@ -464,7 +464,10 @@ const router = useRouter();
                 {activeTab === 'overview' && (
                     <>
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 12px' }}>
-                        <DynamicWallet {...walletData} compact />
+                        <DynamicWallet {...walletData} compact
+                            onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                            onOpenBBJ={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}#bbj`)}
+                        />
                     </div>
                     <OverviewTab stats={stats} myAgent={myAgent} clawbackCount={clawbackEligible.length} pendingCashouts={pendingCashouts}
                         playerNumber={myPlayerNumber}
