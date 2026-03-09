@@ -166,14 +166,18 @@ const LEAK_PATTERNS = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function getPlayerStats(supabase, userId) {
-  // Try to get aggregated stats from hand history
+  let finalStats = null;
+
+  // 1. Try to get aggregated stats from live hand history
   const { data: stats, error } = await supabase
     .from('player_stats')
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (error || !stats) {
+  if (!error && stats) {
+    finalStats = normalizeStats(stats);
+  } else {
     // Try alternative stats table
     const { data: altStats } = await supabase
       .from('user_poker_stats')
@@ -182,25 +186,128 @@ async function getPlayerStats(supabase, userId) {
       .maybeSingle();
 
     if (altStats) {
-      return normalizeStats(altStats);
+      finalStats = normalizeStats(altStats);
+    } else {
+      // Try to compute from live hand history
+      const { data: hands } = await supabase
+        .from('hand_histories')
+        .select('*')
+        .eq('user_id', userId)
+        .order('played_at', { ascending: false })
+        .limit(5000);
+
+      if (hands && hands.length > 0) {
+        finalStats = computeStatsFromHands(hands);
+      }
     }
-
-    // Try to compute from hand history
-    const { data: hands } = await supabase
-      .from('hand_histories')
-      .select('*')
-      .eq('user_id', userId)
-      .order('played_at', { ascending: false })
-      .limit(5000);
-
-    if (hands && hands.length > 0) {
-      return computeStatsFromHands(hands);
-    }
-
-    return null;
   }
 
-  return normalizeStats(stats);
+  // 2. FETCH OVERLAY: Fetch training arena / play mode sessions
+  const trainingStats = await getTrainingStats(supabase, userId);
+
+  // If we have both, combine them (Training metrics augment live tendencies)
+  if (finalStats && trainingStats) {
+    return combineLiveAndTrainingStats(finalStats, trainingStats);
+  }
+
+  // If only one exists, return it
+  return finalStats || trainingStats || null;
+}
+
+// ─── NEW: DATA BRIDGE FOR TRAINING SESSIONS ────────────────────────────────
+async function getTrainingStats(supabase, userId) {
+  const { data: sessions } = await supabase
+    .from('training_sessions')
+    .select('classification_counts, mistake_count, hands_played, total_ev_loss')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  if (!sessions || sessions.length === 0) return null;
+
+  let totalTrainingHands = 0;
+  let combinedClassifications = {};
+
+  sessions.forEach(session => {
+    totalTrainingHands += (session.hands_played || 0);
+
+    const cc = session.classification_counts || {};
+    Object.keys(cc).forEach(key => {
+      combinedClassifications[key] = (combinedClassifications[key] || 0) + cc[key];
+    });
+  });
+
+  // Translate Training Classifications into Detect.js expected variables
+  // Note: Since training records absolute mistake counts, we approximate frequencies based on total hands played
+  // A mistake counts as deviating from optimal.
+  const getMistakeFreq = (keyName) => {
+    if (totalTrainingHands === 0) return 0;
+    const count = combinedClassifications[keyName] || 0;
+    // Frequency of this mistake occurring across ALL training hands
+    return (count / totalTrainingHands) * 100;
+  };
+
+  return {
+    handsPlayed: totalTrainingHands,
+    vpip: 25, // Neutral placeholder, purely live stat
+    pfr: 18,  // Neutral placeholder
+    limpFreq: getMistakeFreq('limp'), // E.g., if they limp often in training
+    coldCallFreq: getMistakeFreq('cold_call_wide'),
+    threeBetFreq: getMistakeFreq('three_bet_tight') ? 2 : 8, // Reverse mapped
+    foldToCbet: 50 + getMistakeFreq('fold_to_cbet_over'), // Adding mistake rate to baseline optimal
+    cbetsFaced: totalTrainingHands / 2,
+    cbetFreq: 60 - getMistakeFreq('missed_cbet_value'),
+    cbetOpps: totalTrainingHands / 2,
+    checkRaiseFreq: 10 - getMistakeFreq('missed_check_raise'),
+    checkRaiseOpps: totalTrainingHands / 3,
+    turnBarrelFreq: 60 - getMistakeFreq('missed_turn_barrel'),
+    turnBarrelOpps: totalTrainingHands / 3,
+    turnFoldFreq: 40 + getMistakeFreq('turn_overfold'),
+    turnFaced: totalTrainingHands / 4,
+    riverBluffFreq: 15 - getMistakeFreq('missed_river_bluff'),
+    riverBluffOpps: totalTrainingHands / 5,
+    riverFoldFreq: 45 + getMistakeFreq('river_overfold'),
+    riverFaced: totalTrainingHands / 5,
+    riverValueBetFreq: 55 - getMistakeFreq('missed_thin_value'),
+    riverBetOpps: totalTrainingHands / 5,
+    aggFactor: 2.5,
+    wtsd: 30,
+  };
+}
+
+function combineLiveAndTrainingStats(live, train) {
+  // Weighted average based on hand volume
+  const liveWt = live.handsPlayed / (live.handsPlayed + train.handsPlayed);
+  const trainWt = train.handsPlayed / (live.handsPlayed + train.handsPlayed);
+
+  const weighted = (key) => (live[key] || 0) * liveWt + (train[key] || 0) * trainWt;
+
+  return {
+    handsPlayed: live.handsPlayed + train.handsPlayed,
+    vpip: live.vpip || train.vpip, // Mostly rely on live for foundational
+    pfr: live.pfr || train.pfr,
+    limpFreq: weighted('limpFreq'),
+    coldCallFreq: weighted('coldCallFreq'),
+    threeBetFreq: weighted('threeBetFreq'),
+    foldToCbet: weighted('foldToCbet'),
+    cbetsFaced: (live.cbetsFaced || 0) + (train.cbetsFaced || 0),
+    cbetFreq: weighted('cbetFreq'),
+    cbetOpps: (live.cbetOpps || 0) + (train.cbetOpps || 0),
+    checkRaiseFreq: weighted('checkRaiseFreq'),
+    checkRaiseOpps: (live.checkRaiseOpps || 0) + (train.checkRaiseOpps || 0),
+    turnBarrelFreq: weighted('turnBarrelFreq'),
+    turnBarrelOpps: (live.turnBarrelOpps || 0) + (train.turnBarrelOpps || 0),
+    turnFoldFreq: weighted('turnFoldFreq'),
+    turnFaced: (live.turnFaced || 0) + (train.turnFaced || 0),
+    riverBluffFreq: weighted('riverBluffFreq'),
+    riverBluffOpps: (live.riverBluffOpps || 0) + (train.riverBluffOpps || 0),
+    riverFoldFreq: weighted('riverFoldFreq'),
+    riverFaced: (live.riverFaced || 0) + (train.riverFaced || 0),
+    riverValueBetFreq: weighted('riverValueBetFreq'),
+    riverBetOpps: (live.riverBetOpps || 0) + (train.riverBetOpps || 0),
+    aggFactor: weighted('aggFactor'),
+    wtsd: weighted('wtsd'),
+  };
 }
 
 function normalizeStats(stats) {
@@ -381,7 +488,7 @@ export default async function handler(req, res) {
       .from('user_leaks')
       .select('*')
       .eq('user_id', userId)
-          .limit(100);
+      .limit(100);
 
     const existingLeakMap = {};
     (existingLeaks || []).forEach(leak => {
@@ -463,7 +570,7 @@ export default async function handler(req, res) {
       .from('user_leaks')
       .select('status')
       .eq('user_id', userId)
-          .limit(100);
+      .limit(100);
 
     const activeLeaks = updatedLeaks?.filter(l => l.status !== 'resolved').length || 0;
     const resolvedLeaksCount = updatedLeaks?.filter(l => l.status === 'resolved').length || 0;
