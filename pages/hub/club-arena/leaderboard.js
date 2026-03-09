@@ -3,7 +3,6 @@
    SmarterPoker Dark Theme | Time Filters, Multiple Board Types, Member Rankings
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
@@ -441,7 +440,7 @@ export default function Leaderboard() {
                                     {/* 2nd Place */}
                                     <div style={{ ...S.podiumPlace, width: '90px', minHeight: '140px' }}>
                                         <div style={{ ...S.podiumAvatar, background: FB.silver }}>
-                                            <Image src={resolveAvatarDisplay(top3[1]?.profiles?.avatar_url, top3[1]?.user_id || 1)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_lion.png'; }} />
+                                            <img src={resolveAvatarDisplay(top3[1]?.profiles?.avatar_url, top3[1]?.user_id || 1)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_lion.png'; }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[1]?.profiles?.display_name || top3[1]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[1])}</div>
@@ -451,7 +450,7 @@ export default function Leaderboard() {
                                     {/* 1st Place */}
                                     <div style={{ ...S.podiumPlace, width: '100px', minHeight: '160px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '60px', height: '60px', background: FB.gold }}>
-                                            <Image src={resolveAvatarDisplay(top3[0]?.profiles?.avatar_url, top3[0]?.user_id || 0)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
+                                            <img src={resolveAvatarDisplay(top3[0]?.profiles?.avatar_url, top3[0]?.user_id || 0)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[0]?.profiles?.display_name || top3[0]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.gold, fontSize: '18px' }}>{getDisplayValue(top3[0])}</div>
@@ -461,7 +460,7 @@ export default function Leaderboard() {
                                     {/* 3rd Place */}
                                     <div style={{ ...S.podiumPlace, width: '85px', minHeight: '130px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '45px', height: '45px', background: FB.bronze }}>
-                                            <Image src={resolveAvatarDisplay(top3[2]?.profiles?.avatar_url, top3[2]?.user_id || 2)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_owl.png'; }} />
+                                            <img src={resolveAvatarDisplay(top3[2]?.profiles?.avatar_url, top3[2]?.user_id || 2)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_owl.png'; }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[2]?.profiles?.display_name || top3[2]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[2])}</div>
@@ -489,7 +488,7 @@ export default function Leaderboard() {
                                                     {rank}
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
+                                                    <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
@@ -526,7 +525,7 @@ export default function Leaderboard() {
                                                     {getRankEmoji(rank) || rank}
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
+                                                    <img src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
