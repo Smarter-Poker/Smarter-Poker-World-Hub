@@ -445,6 +445,39 @@ function getCardPath(card) {
     return `/cards/${suitName}_${rank}.png`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 5: HAND STRENGTH EVALUATOR
+// ═══════════════════════════════════════════════════════════════════════════
+function evaluateHandStrength(hCards, bCards) {
+    if (!hCards || hCards.length < 2 || !bCards || bCards.length === 0) return null;
+    const getRank = c => (c || '').charAt(0).toUpperCase();
+    const getSuit = c => (c || '').charAt(1)?.toLowerCase();
+    const allCards = [...hCards, ...bCards];
+    const suits = allCards.map(getSuit);
+    const heroRanks = hCards.map(getRank);
+    const boardRanks = bCards.map(getRank);
+    const RANK_ORDER = 'AKQJT98765432';
+    const heroHigh = Math.min(...heroRanks.map(r => RANK_ORDER.indexOf(r)));
+    const suitCounts = {};
+    suits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+    const maxSuit = Math.max(...Object.values(suitCounts));
+    const heroSuits = hCards.map(getSuit);
+    const hasFlushDraw = maxSuit === 4 && heroSuits.some(s => suitCounts[s] >= 4);
+    const hasFlush = maxSuit >= 5 && heroSuits.some(s => suitCounts[s] >= 5);
+    const pairWithBoard = heroRanks.filter(r => boardRanks.includes(r));
+    const hasPocketPair = heroRanks[0] === heroRanks[1];
+    const isOverpair = hasPocketPair && heroHigh < Math.min(...boardRanks.map(r => RANK_ORDER.indexOf(r)));
+    const isTopPair = pairWithBoard.length > 0 && RANK_ORDER.indexOf(pairWithBoard[0]) <= Math.min(...boardRanks.map(r => RANK_ORDER.indexOf(r)));
+    if (hasFlush) return { label: 'Flush', color: '#22c55e', tier: 'strong' };
+    if (isOverpair) return { label: 'Overpair', color: '#22c55e', tier: 'strong' };
+    if (isTopPair) return { label: 'Top Pair', color: '#4ade80', tier: 'strong' };
+    if (pairWithBoard.length > 0) return { label: 'Pair', color: '#fbbf24', tier: 'medium' };
+    if (hasFlushDraw) return { label: 'Flush Draw', color: '#3b82f6', tier: 'draw' };
+    if (hasPocketPair) return { label: 'Pocket Pair', color: '#fbbf24', tier: 'medium' };
+    if (heroHigh <= 4) return { label: 'High Card', color: '#94a3b8', tier: 'weak' };
+    return { label: 'Air', color: '#ef4444', tier: 'weak' };
+}
+
 // Render miniature inline card images for question text
 function renderInlineCards(text) {
     if (!text) return text;
@@ -897,6 +930,21 @@ function UniversalDynamicTable({
 
     // Phase 3: Floating EV popup
     const [evPopup, setEvPopup] = React.useState(null);
+
+    // PHASE 5: Hand Strength evaluation
+    const handStrength = useMemo(() => {
+        if (showFeedback) return null;
+        return evaluateHandStrength(heroCards, boardCards);
+    }, [heroCards, boardCards, showFeedback]);
+
+    // PHASE 5: Adaptive Difficulty Level (computed from session accuracy)
+    const computedDifficulty = useMemo(() => {
+        const accuracy = questionNumber > 0 ? ((questionNumber - sessionMistakes) / questionNumber) * 100 : 100;
+        if (accuracy >= 85) return { label: 'EXPERT', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' };
+        if (accuracy >= 70) return { label: 'HARD', color: '#f97316', bg: 'rgba(249,115,22,0.15)' };
+        if (accuracy >= 50) return { label: 'MEDIUM', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' };
+        return { label: 'EASY', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' };
+    }, [questionNumber, sessionMistakes]);
 
     // Phase 3: Store question for retry + trigger EV popup on feedback
     useEffect(() => {
@@ -1386,6 +1434,21 @@ function UniversalDynamicTable({
                     <div style={styles.contextString}>{contextString}</div>
                 </div>
                 <div style={styles.topBarRight}>
+                    {/* PHASE 5: Adaptive Difficulty Badge */}
+                    {questionNumber > 1 && (
+                        <div style={{
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            fontSize: 9,
+                            fontWeight: 'bold',
+                            letterSpacing: 1,
+                            background: computedDifficulty.bg,
+                            color: computedDifficulty.color,
+                            border: `1px solid ${computedDifficulty.color}44`,
+                        }}>
+                            {computedDifficulty.label}
+                        </div>
+                    )}
                     {/* Data source badge */}
                     {question?.source && (
                         <div style={{
@@ -1583,6 +1646,40 @@ function UniversalDynamicTable({
                         </motion.div>
                     )}
                 </AnimatePresence>
+
+                {/* PHASE 5: Position Awareness HUD */}
+                <div style={{
+                    position: 'absolute', top: 8, left: 8, zIndex: 20,
+                    display: 'flex', flexDirection: 'column', gap: 3,
+                    padding: '4px 8px', borderRadius: 8,
+                    background: 'rgba(0,0,0,0.5)',
+                    border: '1px solid rgba(0,212,255,0.2)',
+                    backdropFilter: 'blur(4px)',
+                }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: '#00d4ff', letterSpacing: 1 }}>
+                        {heroPosition || 'BTN'}
+                    </div>
+                    <div style={{
+                        fontSize: 7, fontWeight: 600, letterSpacing: 0.5,
+                        color: (() => {
+                            const pos = (heroPosition || '').toUpperCase();
+                            const vPos = (villainPosition || '').toUpperCase();
+                            const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN'];
+                            const heroIdx = ORDER.indexOf(pos);
+                            const villainIdx = ORDER.indexOf(vPos);
+                            if (heroIdx < 0 || villainIdx < 0) return '#64748b';
+                            return heroIdx > villainIdx ? '#22c55e' : '#ef4444';
+                        })(),
+                    }}>
+                        {(() => {
+                            const pos = (heroPosition || '').toUpperCase();
+                            const vPos = (villainPosition || '').toUpperCase();
+                            const ORDER = ['SB', 'BB', 'UTG', 'UTG+1', 'MP', 'MP+1', 'HJ', 'CO', 'BTN'];
+                            return ORDER.indexOf(pos) > ORDER.indexOf(vPos) ? 'IN POSITION' : 'OUT OF POSITION';
+                        })()}
+                    </div>
+                </div>
+
                 {/* CSS Poker Felt Table */}
                 <div style={styles.feltOuter}>
                     <div style={styles.feltRail} />
@@ -1755,6 +1852,25 @@ function UniversalDynamicTable({
                                                 opacity: 0.7,
                                             }} />
                                         </div>
+                                    )}
+
+                                    {/* PHASE 5: Hand Strength Indicator (hero only, during decision) */}
+                                    {isHero && handStrength && !showFeedback && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            style={{
+                                                fontSize: 8, fontWeight: 'bold',
+                                                color: handStrength.color,
+                                                background: `${handStrength.color}15`,
+                                                border: `1px solid ${handStrength.color}33`,
+                                                padding: '1px 6px', borderRadius: 4,
+                                                marginTop: 2, letterSpacing: 0.5,
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            {handStrength.label}
+                                        </motion.div>
                                     )}
                                 </div>
                             </motion.div>
@@ -2555,12 +2671,38 @@ function UniversalDynamicTable({
                                 )}
                             </>
                         ) : (
+                            /* PHASE 5: Post-Session Summary Dashboard */
                             <motion.div
-                                animate={{ opacity: [0.5, 1, 0.5] }}
-                                transition={{ repeat: Infinity, duration: 1.5 }}
-                                style={{ fontSize: 12, color: '#475569' }}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                style={{
+                                    display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                    gap: 12, padding: '12px 20px',
+                                    background: 'rgba(0,0,0,0.3)', borderRadius: 12,
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    width: '100%', maxWidth: 360,
+                                }}
                             >
-                                Next hand in 2s...
+                                <div style={{ fontSize: 14, fontWeight: 800, color: '#00d4ff', letterSpacing: 1 }}>SESSION COMPLETE</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
+                                    {[
+                                        { label: 'Hands', value: questionNumber || 0, color: '#e2e8f0' },
+                                        { label: 'Accuracy', value: `${questionNumber > 0 ? Math.round(((questionNumber - sessionMistakes) / questionNumber) * 100) : 0}%`, color: '#22c55e' },
+                                        { label: 'EV Loss', value: `-${(totalSessionEVLoss || 0).toFixed(1)}`, color: totalSessionEVLoss > 3 ? '#ef4444' : '#fbbf24' },
+                                        { label: 'Streak', value: streak, color: '#fbbf24' },
+                                    ].map((stat, i) => (
+                                        <div key={i} style={{
+                                            textAlign: 'center', padding: '8px 0',
+                                            background: 'rgba(255,255,255,0.03)', borderRadius: 8,
+                                        }}>
+                                            <div style={{ fontSize: 18, fontWeight: 800, color: stat.color }}>{stat.value}</div>
+                                            <div style={{ fontSize: 9, color: '#64748b', fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>{stat.label}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div style={{ fontSize: 10, color: '#475569', fontWeight: 600 }}>
+                                    {computedDifficulty.label} difficulty • Next hand in 2s...
+                                </div>
                             </motion.div>
                         )}
                     </div>
