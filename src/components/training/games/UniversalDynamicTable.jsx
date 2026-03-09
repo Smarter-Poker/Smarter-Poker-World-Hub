@@ -2355,6 +2355,30 @@ function UniversalDynamicTable({
                                         {freq}%
                                     </motion.span>
                                 )}
+                                {/* PHASE 7: Per-Action EV Value */}
+                                {showFeedback && question?.evData?.actionEVs && (() => {
+                                    const ev = question.evData.actionEVs[optionId] ?? question.evData.actionEVs[optionId?.toLowerCase()];
+                                    if (typeof ev !== 'number') return null;
+                                    return (
+                                        <motion.span
+                                            initial={{ opacity: 0, x: -5 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: 0.5 }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: 3,
+                                                right: 6,
+                                                fontSize: 8,
+                                                fontWeight: 800,
+                                                fontFamily: "'Inter', monospace",
+                                                color: ev >= 0 ? '#22c55e' : '#ef4444',
+                                                letterSpacing: 0.3,
+                                            }}
+                                        >
+                                            {ev >= 0 ? '+' : ''}{ev.toFixed(2)}
+                                        </motion.span>
+                                    );
+                                })()}
                             </motion.button>
                             {/* Frequency bar under button */}
                             <FrequencyBar
