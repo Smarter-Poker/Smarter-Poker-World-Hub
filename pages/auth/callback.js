@@ -138,6 +138,82 @@ export default function AuthCallback() {
 
                 // Try to initialize profile via RPC
                 try {
+                    // ═══════════════════════════════════════════════════════════════════
+                    // 🔗 DUPLICATE PREVENTION: Check if a profile with same email exists
+                    // ═══════════════════════════════════════════════════════════════════
+                    if (user.email) {
+                        const { data: emailMatch, error: emailCheckError } = await supabase
+                            .from('profiles')
+                            .select('id, player_number')
+                            .ilike('email', user.email.trim())
+                            .maybeSingle();
+
+                        if (emailMatch && !emailCheckError) {
+                            console.log(`🔐 [AUTH CALLBACK] DUPLICATE PREVENTED: Linking auth.id=${user.id} to existing profile id=${emailMatch.id}`);
+
+                            // Update existing profile's last login
+                            await supabase
+                                .from('profiles')
+                                .update({
+                                    last_login: new Date().toISOString(),
+                                    is_online: true
+                                })
+                                .eq('id', emailMatch.id);
+
+                            // Emulate existing profile logic to redirect to Commander or Hub
+                            const isCommanderOrigin = localStorage.getItem('commander_login_origin') === 'true';
+                            if (isCommanderOrigin) {
+                                localStorage.removeItem('commander_login_origin');
+                                // Initialize commander_staff logic for the existing user
+                                const accessToken = session?.access_token;
+                                try {
+                                    const subRes = await fetch('/api/commander/check-subscription', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+                                        },
+                                        body: JSON.stringify({ userId: emailMatch.id }), // check sub against existing profile ID
+                                    });
+                                    const subData = await subRes.json();
+                                    if (subRes.ok && subData.subscription) {
+                                        const subscription = subData.subscription;
+                                        localStorage.setItem('commander_venue', JSON.stringify(subscription.venue));
+                                        localStorage.setItem('commander_subscription', JSON.stringify(subscription));
+
+                                        const staffSession = {
+                                            user_id: emailMatch.id, // linked ID
+                                            email: user.email,
+                                            display_name: subscription.billing_name || fullName || user.email,
+                                            role: 'owner',
+                                            venue_id: subscription.venue_id,
+                                            venue_name: subscription.venue?.name || 'My Venue',
+                                            permissions: {
+                                                manage_games: true, manage_waitlist: true, manage_staff: true,
+                                                manage_tables: true, manage_tournaments: true, manage_settings: true,
+                                                view_analytics: true, view_reports: true, send_announcements: true,
+                                            }
+                                        };
+                                        localStorage.setItem('commander_staff', JSON.stringify(staffSession));
+                                        localStorage.setItem('commander_remember', 'true');
+                                        setStatus('Account linked! Redirecting to Club Commander...');
+                                        setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                                        return;
+                                    }
+                                } catch (e) { console.error('Commander sub check failed after merge', e); }
+
+                                setStatus('Account linked! Redirecting to Club Commander...');
+                                setTimeout(() => router.replace('/commander/dashboard'), 1000);
+                                return;
+                            } else {
+                                setStatus('Account linked! Redirecting...');
+                                sessionStorage.setItem('just_authenticated', 'true');
+                                setTimeout(() => router.replace('/hub'), 1000);
+                                return;
+                            }
+                        }
+                    }
+
                     const { data: profileData, error: rpcError } = await supabase
                         .rpc('initialize_player_profile', {
                             p_user_id: user.id,
