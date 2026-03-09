@@ -877,11 +877,12 @@ class TournamentController extends EventEmitter {
       bountyResult = this.bountyManager.onElimination(playerId, eliminatorId, remaining.length - 1);
       if (bountyResult?.awards) {
         for (const award of bountyResult.awards) {
+          const elimEntry = this.entries.get(award.playerId);
+
           // Credit bounty earnings via ledger
           if (this.ledger) {
-            const eliminatorEntry = this.entries.get(award.playerId);
-            if (eliminatorEntry?.clubId) {
-              this.ledger.creditWinnings(eliminatorEntry.clubId, award.playerId, award.amount,
+            if (elimEntry?.clubId) {
+              this.ledger.creditWinnings(elimEntry.clubId, award.playerId, award.amount,
                 { tournamentId: this.tournamentId, type: award.type })
                 .catch(err => console.error('[Tournament] Bounty credit failed:', award.playerId, err.message));
             }
@@ -889,16 +890,15 @@ class TournamentController extends EventEmitter {
 
           // ── Emit bounty event for realtime broadcasting ──
           const eventName = award.type === 'mystery_bounty' ? 'mystery_bounty_awarded' : 'bounty_awarded';
-          const eliminatorEntry = this.entries.get(award.playerId);
           this.emit(eventName, {
             playerId: award.playerId,
-            playerName: eliminatorEntry?.playerName || 'Unknown',
+            playerName: elimEntry?.playerName || 'Unknown',
             eliminatedId: playerId,
             eliminatedName: entry.playerName,
             amount: award.amount,
             type: award.type,
             reveal: bountyResult.mysteryReveal ? {
-              playerName: eliminatorEntry?.playerName || 'Unknown',
+              playerName: elimEntry?.playerName || 'Unknown',
               amount: award.amount,
               tierLabel: bountyResult.mysteryReveal.tierLabel || null,
               isJackpot: bountyResult.mysteryReveal.isJackpot || false,

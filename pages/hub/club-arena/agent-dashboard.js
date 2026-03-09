@@ -15,6 +15,7 @@ import useDebounce from '../../../src/hooks/useDebounce';
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
+import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
@@ -1029,8 +1030,8 @@ function PlayersTab({ players, onDistribute, onPromote, chipFlow = {}, playerSor
                             border: p.profile?.is_online ? `2px solid ${FB.success}` : `2px solid ${FB.border}`,
                         }}>
                             {p.profile?.avatar_url
-                                ? <Image src={p.profile.avatar_url} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
-                                : ''}
+                                ? <Image src={resolveAvatarDisplay(p.profile.avatar_url, p.user_id)} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />
+                                : <Image src={resolveAvatarDisplay(null, p.user_id)} alt="User avatar" width={40} height={40} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} loading="lazy" unoptimized />}
                         </div>
 
                         {/* Info */}

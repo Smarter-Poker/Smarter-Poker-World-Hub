@@ -3,6 +3,7 @@
  SmarterPoker Dark Theme | Real Stats from Hand History & Gameplay
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -12,6 +13,12 @@ import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBott
 import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import useWalletData from '../../../src/hooks/useWalletData';
+
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -103,15 +110,19 @@ function ProfitSparkline({ activities }) {
 }
 
 export default function PlayerStats() {
-        useTrainingBus('club-arena-player-stats');
+    useTrainingBus('club-arena-player-stats');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
     const [user, setUser] = useState(null);
     const [club, setClub] = useState(null);
     const [membership, setMembership] = useState(null);
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Wallet data (real-time balances)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
     const [stats, setStats] = useState({
         handsPlayed: 0,
         handsWon: 0,
@@ -323,10 +334,14 @@ const router = useRouter();
         if (!clubIdParam) return;
         const ch = supabase
             .channel(`stats-live:${clubIdParam}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'hand_histories',
-                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chip_transactions',
-                filter: `club_id=eq.${clubIdParam}` }, () => loadData())
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'hand_histories',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => loadData())
+            .on('postgres_changes', {
+                event: 'INSERT', schema: 'public', table: 'chip_transactions',
+                filter: `club_id=eq.${clubIdParam}`
+            }, () => loadData())
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
                 }
@@ -431,7 +446,27 @@ const router = useRouter();
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>My Stats</h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '20px' }}>
+                        <h1 style={{ ...S.pageTitle, marginBottom: 0 }}>My Stats</h1>
+                        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                        </button>
+                    </div>
+
+                    {showWallet && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                            <DynamicWallet
+                                {...walletData}
+                                onOpenBBJ={() => { }}
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onTapSlot={(slot) => {
+                                    if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${clubIdParam}`);
+                                    if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${clubIdParam}`);
+                                    if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${clubIdParam}`);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Period Tabs */}
                     <div style={S.periodTabs}>

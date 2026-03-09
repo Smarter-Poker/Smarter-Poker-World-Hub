@@ -3289,7 +3289,7 @@ function LivePokerTable({
 
       {/* ═══════════ INSURANCE OFFER OVERLAY ═══════════ */}
       <AnimatePresence>
-        {result?.insuranceOffer && result.insuranceOffer.leaderId === userId && (
+        {result?.insuranceOffer && String(result.insuranceOffer.leaderId) === String(userId) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

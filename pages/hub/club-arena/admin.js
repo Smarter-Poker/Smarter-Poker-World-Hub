@@ -246,13 +246,13 @@ export default function Admin() {
 
     // Load all tables for this club (lazy — only when Tables modal opens)
     const loadTables = useCallback(async () => {
-        if (!clubIdParam) return;
+        if (!club?.id) return;
         setTablesLoading(true);
         try {
             const { data } = await supabase
                 .from('tables')
                 .select('id, name, status, game_variant, small_blind, big_blind, max_players, current_players, min_buyin, max_buyin, ante, action_time, created_at')
-                .eq('club_id', clubIdParam)
+                .eq('club_id', club.id)
                 .order('created_at', { ascending: false })
                 .limit(100);
             setTables(data || []);
@@ -260,7 +260,7 @@ export default function Admin() {
         } finally {
             setTablesLoading(false);
         }
-    }, [clubIdParam]);
+    }, [club?.id]);
 
     // ── Initial data load — fire when clubIdParam becomes available ─────────
     useEffect(() => {
@@ -462,7 +462,7 @@ export default function Admin() {
         try {
             const result = await apiCall('/api/club-arena/distribute-chips', {
                 clubId: club.id,
-                playerId: selectedMember.user_id,
+                toUserId: selectedMember.user_id,
                 amount,
                 notes: `Admin distribution by ${user?.email || 'admin'}`,
             });

@@ -3,6 +3,7 @@
  SmarterPoker Dark Theme | Real Hand Data with Filters & Visualization
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -12,6 +13,12 @@ import UniversalHeader from '../../../src/components/ui/UniversalHeader';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
+import useWalletData from '../../../src/hooks/useWalletData';
+
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -43,6 +50,10 @@ export default function HandHistories() {
     const [hands, setHands] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [userRole, setUserRole] = useState(null);
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Wallet data (real-time balances)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
     // Filters (persisted to localStorage)
     const { filters: _hhFilters, setFilter: _setHHFilter } = usePersistedFilters('club-arena-hand-histories', { period: 'all', resultFilter: 'all', gameType: 'all' });
@@ -387,7 +398,27 @@ export default function HandHistories() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Hand Histories</h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '20px' }}>
+                        <h1 style={{ ...S.pageTitle, marginBottom: 0 }}>Hand Histories</h1>
+                        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                        </button>
+                    </div>
+
+                    {showWallet && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                            <DynamicWallet
+                                {...walletData}
+                                onOpenBBJ={() => { }}
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onTapSlot={(slot) => {
+                                    if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${clubIdParam}`);
+                                    if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${clubIdParam}`);
+                                    if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${clubIdParam}`);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Period Filter */}
                     <div style={S.filterRow}>

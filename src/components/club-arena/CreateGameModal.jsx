@@ -38,17 +38,17 @@ const FB = {
 // GAME VARIANTS — Image 2
 // ═══════════════════════════════════════════════════════════════
 const GAME_VARIANTS = [
-  { value: 'nlh',        label: 'NLH',    full: 'No Limit Hold\'em',          color: '#E74C3C', icon: '♠' },
-  { value: 'flh',        label: 'FLH',    full: 'Fixed Limit Hold\'em',       color: '#2ECC71', icon: '♥' },
-  { value: 'short_deck', label: '6+',     full: '6+ Hold\'em',                color: '#3498DB', icon: '🃏' },
-  { value: 'pineapple', label: '🍍',     full: 'Crazy Pineapple',            color: '#F1C40F', icon: '🍍' },
-  { value: 'plo4',       label: 'OMAHA',  full: 'Pot Limit Omaha',            color: '#9B59B6', icon: '♦' },
-  { value: 'plo5',       label: 'PLO5',   full: 'Pot Limit Omaha 5',          color: '#8E44AD', icon: '♦' },
-  { value: 'plo6',       label: 'PLO6',   full: 'Pot Limit Omaha 6',          color: '#7D3C98', icon: '♦' },
-  { value: 'plo8',       label: 'Hi/Lo',  full: 'PLO Hi/Lo (8-or-Better)',    color: '#E67E22', icon: '♦' },
-  { value: 'flo',        label: 'FLO',    full: 'Fixed Limit Omaha',          color: '#1ABC9C', icon: '♣' },
-  { value: 'mixed',      label: 'MIXED',  full: 'Hold\'em/Omaha',             color: '#F39C12', icon: '🔀' },
-  { value: 'ofc',        label: 'OFC',    full: 'Open Face Chinese Poker',    color: '#E91E63', icon: '🀄' },
+  { value: 'nlh', label: 'NLH', full: 'No Limit Hold\'em', color: '#E74C3C', icon: '♠' },
+  { value: 'flh', label: 'FLH', full: 'Fixed Limit Hold\'em', color: '#2ECC71', icon: '♥' },
+  { value: 'short_deck', label: '6+', full: '6+ Hold\'em', color: '#3498DB', icon: '🃏' },
+  { value: 'pineapple', label: '🍍', full: 'Crazy Pineapple', color: '#F1C40F', icon: '🍍' },
+  { value: 'plo4', label: 'OMAHA', full: 'Pot Limit Omaha', color: '#9B59B6', icon: '♦' },
+  { value: 'plo5', label: 'PLO5', full: 'Pot Limit Omaha 5', color: '#8E44AD', icon: '♦' },
+  { value: 'plo6', label: 'PLO6', full: 'Pot Limit Omaha 6', color: '#7D3C98', icon: '♦' },
+  { value: 'plo8', label: 'Hi/Lo', full: 'PLO Hi/Lo (8-or-Better)', color: '#E67E22', icon: '♦' },
+  { value: 'flo', label: 'FLO', full: 'Fixed Limit Omaha', color: '#1ABC9C', icon: '♣' },
+  { value: 'mixed', label: 'MIXED', full: 'Hold\'em/Omaha', color: '#F39C12', icon: '🔀' },
+  { value: 'ofc', label: 'OFC', full: 'Open Face Chinese Poker', color: '#E91E63', icon: '🀄' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -104,7 +104,11 @@ const DEFAULT_TOURNAMENT = {
   acceleratedMTT: false, allInOrFold: false,
   customRebuyCost: false, numberOfRebuys: 3,
   addOnMultiplier: 1.0, customAddOn: false, addOnBreakLength: 1,
-  koBounty: false, gtdPrizePool: false, gtdAmount: 0,
+  // ── Bounty System ──
+  bountyType: 'none', // 'none' | 'ko' | 'pko' | 'mystery'
+  bountyPercent: 25,  // % of buy-in allocated to bounties
+  mysteryThreshold: 25, // % of field remaining to activate mystery phase
+  gtdPrizePool: false, gtdAmount: 0,
   finalTableDeal: false, bigBlindAnte: false, authorizedToRegister: false,
   lateRegistrationLevel: 6, earlyBirdRegistration: false,
   bubbleProtection: false, featuredTournament: false,
@@ -273,8 +277,8 @@ function GameTypeSelector({ onSelect, onClose }) {
               background: `linear-gradient(135deg, ${v.color}44, ${v.color}11)`,
               transition: 'transform 0.15s, box-shadow 0.15s',
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = `0 4px 20px ${v.color}33`; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.02)'; e.currentTarget.style.boxShadow = `0 4px 20px ${v.color}33`; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
@@ -568,9 +572,40 @@ function MttTab({ t, set }) {
       <Toggle label="Custom Add-on" value={t.customAddOn} onChange={v => set('customAddOn', v)} />
       <Slider label="Add-on Break Length" value={t.addOnBreakLength} onChange={v => set('addOnBreakLength', v)} min={0} max={10} suffix=" min" />
 
+      {/* ── Bounty Format ── */}
+      <SectionHeader label="Bounty Format" />
+      <RadioGroup label="Bounty Type" value={t.bountyType} onChange={v => set('bountyType', v)}
+        options={[
+          { value: 'none', label: 'None' },
+          { value: 'ko', label: 'KO' },
+          { value: 'pko', label: 'PKO' },
+          { value: 'mystery', label: 'Mystery' },
+        ]}
+      />
+      {t.bountyType !== 'none' && (
+        <Slider label="Bounty %" value={t.bountyPercent} onChange={v => set('bountyPercent', v)}
+          min={10} max={50} step={5} suffix="%" />
+      )}
+      {t.bountyType !== 'none' && (
+        <div style={{ padding: '4px 0 8px', borderBottom: `1px solid ${FB.border}22` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+            <span style={{ color: FB.textSecondary }}>Bounty per player</span>
+            <span style={{ color: FB.warning, fontWeight: 700 }}>
+              {Math.floor(t.buyIn * t.bountyPercent / 100).toLocaleString()} chips
+            </span>
+          </div>
+        </div>
+      )}
+      {t.bountyType === 'mystery' && (
+        <Slider label="Mystery Phase" value={t.mysteryThreshold}
+          onChange={v => set('mysteryThreshold', v)}
+          min={0} max={50} step={5}
+          format={v => v === 0 ? 'Immediate' : `Top ${v}%`}
+        />
+      )}
+
       {/* ── Special Modes (Image 11 top) ── */}
       <SectionHeader label="Special Modes" />
-      <Toggle label="KOBounty" value={t.koBounty} onChange={v => set('koBounty', v)} />
       <Toggle label="GTD Prize Pool" value={t.gtdPrizePool} onChange={v => set('gtdPrizePool', v)} />
       {t.gtdPrizePool && (
         <Slider label="GTD Amount" value={t.gtdAmount} onChange={v => set('gtdAmount', v)} min={0} max={100000} step={100} />
@@ -753,7 +788,12 @@ function ConfigModal({ variant, onClose, onCreated, club, apiCall, initialTab })
             accelerated_mtt: t.acceleratedMTT, all_in_or_fold: t.allInOrFold,
             custom_rebuy_cost: t.customRebuyCost, number_of_rebuys: t.numberOfRebuys,
             add_on_multiplier: t.addOnMultiplier, custom_add_on: t.customAddOn,
-            add_on_break_length: t.addOnBreakLength, ko_bounty: t.koBounty,
+            add_on_break_length: t.addOnBreakLength,
+            // ── Bounty System ──
+            bounty_type: t.bountyType,
+            bounty_percent: t.bountyPercent,
+            bounty_amount: Math.floor(t.buyIn * t.bountyPercent / 100),
+            mystery_threshold: t.mysteryThreshold,
             gtd_prize_pool: t.gtdPrizePool, gtd_amount: t.gtdAmount,
             final_table_deal: t.finalTableDeal, big_blind_ante: t.bigBlindAnte,
             authorized_to_register: t.authorizedToRegister,

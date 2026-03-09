@@ -48,6 +48,9 @@ export const EventType = {
     INCIDENT_REPORTED: 'INCIDENT_REPORTED',
     TOURNAMENT_STARTED: 'TOURNAMENT_STARTED',
     TOURNAMENT_LEVEL_CHANGE: 'TOURNAMENT_LEVEL_CHANGE',
+    BOUNTY_AWARDED: 'BOUNTY_AWARDED',
+    MYSTERY_BOUNTY_REVEALED: 'MYSTERY_BOUNTY_REVEALED',
+    TOURNAMENT_COMPLETE: 'TOURNAMENT_COMPLETE',
     DATA_MUTATED: 'DATA_MUTATED',
 
     // ── Geeves AI Help Bot ──
@@ -210,6 +213,15 @@ const _busEmitMethods = {
 
     tournamentLevelChange: (level, blinds) =>
         eventBus.emit(EventType.TOURNAMENT_LEVEL_CHANGE, { level, blinds, ..._getStaffCtx() }, 'TournamentDirector'),
+
+    bountyAwarded: (playerName, amount, bountyType) =>
+        eventBus.emit(EventType.BOUNTY_AWARDED, { playerName, amount, bountyType }, 'TournamentDirector'),
+
+    mysteryBountyRevealed: (playerName, amount, tierLabel) =>
+        eventBus.emit(EventType.MYSTERY_BOUNTY_REVEALED, { playerName, amount, tierLabel }, 'TournamentDirector'),
+
+    tournamentComplete: (tournamentName, winner) =>
+        eventBus.emit(EventType.TOURNAMENT_COMPLETE, { tournamentName, winner }, 'TournamentDirector'),
 
     dataMutated: (entity) =>
         eventBus.emit(EventType.DATA_MUTATED, { entity, ..._getStaffCtx() }, 'DataSync'),

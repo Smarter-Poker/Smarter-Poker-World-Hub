@@ -4,6 +4,7 @@
    ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -14,6 +15,12 @@ import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import useWalletData from '../../../src/hooks/useWalletData';
+
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -55,6 +62,10 @@ export default function Leaderboard() {
     const [club, setClub] = useState(null);
     const [members, setMembers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Wallet data (real-time balances)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
     // Filters
     const { filters, setFilter } = usePersistedFilters('club-arena-leaderboard', { boardType: 'chips', period: 'all' });
@@ -315,7 +326,27 @@ export default function Leaderboard() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Leaderboard</h1>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '20px' }}>
+                        <h1 style={{ ...S.pageTitle, marginBottom: 0 }}>Leaderboard</h1>
+                        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                        </button>
+                    </div>
+
+                    {showWallet && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                            <DynamicWallet
+                                {...walletData}
+                                onOpenBBJ={() => { }}
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onTapSlot={(slot) => {
+                                    if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${clubIdParam}`);
+                                    if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${clubIdParam}`);
+                                    if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${clubIdParam}`);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Board Type Selector */}
                     <div style={S.boardSelector}>
@@ -380,7 +411,7 @@ export default function Leaderboard() {
                                     {/* 2nd Place */}
                                     <div style={{ ...S.podiumPlace, width: '90px', minHeight: '140px' }}>
                                         <div style={{ ...S.podiumAvatar, background: FB.silver }}>
-                                            <Image src={resolveAvatarDisplay(top3[1]?.profiles?.avatar_url, top3[1]?.user_id || 1)} alt="" fill style={{ objectFit: 'cover' }} />
+                                            <Image src={resolveAvatarDisplay(top3[1]?.profiles?.avatar_url, top3[1]?.user_id || 1)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_lion.png'; }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[1]?.profiles?.display_name || top3[1]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[1])}</div>
@@ -390,7 +421,7 @@ export default function Leaderboard() {
                                     {/* 1st Place */}
                                     <div style={{ ...S.podiumPlace, width: '100px', minHeight: '160px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '60px', height: '60px', background: FB.gold }}>
-                                            <Image src={resolveAvatarDisplay(top3[0]?.profiles?.avatar_url, top3[0]?.user_id || 0)} alt="" fill style={{ objectFit: 'cover' }} />
+                                            <Image src={resolveAvatarDisplay(top3[0]?.profiles?.avatar_url, top3[0]?.user_id || 0)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[0]?.profiles?.display_name || top3[0]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.gold, fontSize: '18px' }}>{getDisplayValue(top3[0])}</div>
@@ -400,7 +431,7 @@ export default function Leaderboard() {
                                     {/* 3rd Place */}
                                     <div style={{ ...S.podiumPlace, width: '85px', minHeight: '130px' }}>
                                         <div style={{ ...S.podiumAvatar, width: '45px', height: '45px', background: FB.bronze }}>
-                                            <Image src={resolveAvatarDisplay(top3[2]?.profiles?.avatar_url, top3[2]?.user_id || 2)} alt="" fill style={{ objectFit: 'cover' }} />
+                                            <Image src={resolveAvatarDisplay(top3[2]?.profiles?.avatar_url, top3[2]?.user_id || 2)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_owl.png'; }} />
                                         </div>
                                         <div style={S.podiumName}>{top3[2]?.profiles?.display_name || top3[2]?.profiles?.username || 'Player'}</div>
                                         <div style={{ ...S.podiumValue, color: FB.primary }}>{getDisplayValue(top3[2])}</div>
@@ -428,7 +459,7 @@ export default function Leaderboard() {
                                                     {rank}
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
+                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>
@@ -465,7 +496,7 @@ export default function Leaderboard() {
                                                     {getRankEmoji(rank) || rank}
                                                 </div>
                                                 <div style={{ ...S.playerAvatar, background: FB.primary }}>
-                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} />
+                                                    <Image src={resolveAvatarDisplay(member.profiles?.avatar_url, member.user_id)} alt="" fill style={{ objectFit: 'cover' }} unoptimized onError={(e) => { e.target.src = '/avatars/table/free_shark.png'; }} />
                                                 </div>
                                                 <div style={S.playerInfo}>
                                                     <div style={S.playerName}>

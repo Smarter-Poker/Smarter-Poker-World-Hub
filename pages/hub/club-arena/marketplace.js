@@ -3,11 +3,18 @@
  SmarterPoker Dark Theme | Club Shop with Real Items & Purchases
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser } from '../../../src/lib/authUtils';
 import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
+import useWalletData from '../../../src/hooks/useWalletData';
+
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
+    { ssr: false, loading: () => null }
+);
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -19,7 +26,7 @@ const getAuthToken = async () => {
                 const parsed = JSON.parse(cached);
                 if (parsed?.access_token) return parsed.access_token;
             }
-        } catch(e) { /* corrupted auth cache */ }
+        } catch (e) { /* corrupted auth cache */ }
     } catch (_) { /* localStorage unavailable (incognito, quota) */ }
 
     // 2. Slow path: ask Supabase (handles token refresh)
@@ -40,7 +47,7 @@ const apiCall = async (endpoint, body) => {
         body: JSON.stringify(body),
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
@@ -83,9 +90,9 @@ const CATEGORIES = [
 ];
 
 export default function Marketplace() {
-        useTrainingBus('club-arena-marketplace');
+    useTrainingBus('club-arena-marketplace');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
@@ -96,6 +103,10 @@ const router = useRouter();
     const [items, setItems] = useState([]);
     const [ownedItems, setOwnedItems] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Wallet data (real-time balances)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
     // Filters
     const { filters, setFilter } = usePersistedFilters('club-arena-marketplace', { category: 'all', tab: 'shop' });
@@ -339,8 +350,30 @@ const router = useRouter();
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Marketplace</h1>
-                    <p style={S.pageSubtitle}>Spend Your Chips On Exclusive Items</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '8px' }}>
+                        <div>
+                            <h1 style={{ ...S.pageTitle, marginBottom: '4px' }}>Marketplace</h1>
+                            <p style={{ ...S.pageSubtitle, marginBottom: 0 }}>Spend Your Chips On Exclusive Items</p>
+                        </div>
+                        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? '#2374E1' : '#242526', border: `1px solid ${showWallet ? '#2374E1' : '#3E4042'}`, color: showWallet ? '#fff' : '#B0B3B8', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                        </button>
+                    </div>
+
+                    {showWallet && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                            <DynamicWallet
+                                {...walletData}
+                                onOpenBBJ={() => { }}
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onTapSlot={(slot) => {
+                                    if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${clubIdParam}`);
+                                    if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${clubIdParam}`);
+                                    if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${clubIdParam}`);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {isLoading ? (
                         <div style={S.loading}>Loading Shop...</div>

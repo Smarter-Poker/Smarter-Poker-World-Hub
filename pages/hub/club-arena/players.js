@@ -4,6 +4,7 @@
  ═══════════════════════════════════════════════════════════════════════════════ */
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import SEOHead from '../../../src/components/seo/SEOHead';
 import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
@@ -14,6 +15,12 @@ import usePersistedFilters from '../../../src/hooks/usePersistedFilters';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import useWalletData from '../../../src/hooks/useWalletData';
+
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -56,6 +63,10 @@ export default function Players() {
     const [filteredMembers, setFilteredMembers] = useState([]);
     const [currentUserRole, setCurrentUserRole] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Wallet data (real-time balances)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
@@ -335,8 +346,30 @@ export default function Players() {
                         &#8592; Back to Lobby
                     </button>
 
-                    <h1 style={S.pageTitle}>Players</h1>
-                    <p style={S.memberCount}>{members.length} members in this club</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: showWallet ? '8px' : '8px' }}>
+                        <div>
+                            <h1 style={{ ...S.pageTitle, marginBottom: '4px' }}>Players</h1>
+                            <p style={{ ...S.memberCount, marginBottom: 0 }}>{members.length} members in this club</p>
+                        </div>
+                        <button onClick={() => setShowWallet(prev => !prev)} style={{ background: showWallet ? FB.primary : FB.cardBg, border: `1px solid ${showWallet ? FB.primary : FB.border}`, color: showWallet ? '#fff' : FB.textSecondary, padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+                            💰 {showWallet ? 'Hide' : 'Wallet'}
+                        </button>
+                    </div>
+
+                    {showWallet && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                            <DynamicWallet
+                                {...walletData}
+                                onOpenBBJ={() => { }}
+                                onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                                onTapSlot={(slot) => {
+                                    if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${clubIdParam}`);
+                                    if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${clubIdParam}`);
+                                    if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${clubIdParam}`);
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Search */}
                     <div style={S.searchBox}>

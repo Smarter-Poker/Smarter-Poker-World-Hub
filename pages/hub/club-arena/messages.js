@@ -19,6 +19,7 @@ import usePersistedState from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus } from '../../../src/engine/EventBus';
 import { resolveAvatarDisplay } from '../../../src/lib/resolveAvatarDisplay';
+import useWalletData from '../../../src/hooks/useWalletData';
 // Local helper — reads token from localStorage (same pattern as other club-arena pages)
 const getAccessToken = () => {
     try {
@@ -32,6 +33,11 @@ const getAccessToken = () => {
 const LiveKitCall = dynamic(
     () => import('../../../src/components/video/LiveKitCall'),
     { ssr: false }
+);
+
+const DynamicWallet = dynamic(
+    () => import('../../../src/components/club-arena/DynamicWallet'),
+    { ssr: false, loading: () => null }
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -363,6 +369,10 @@ export default function ClubMessages() {
     const [showUserInfo, setShowUserInfo] = useState(false);
     const [showMessageSearch, setShowMessageSearch] = useState(false);
     const [incomingCall, setIncomingCall] = useState(null); // { callerId, callerName, callerAvatar, callType, roomName }
+    const [showWallet, setShowWallet] = useState(false);
+
+    // Wallet data (real-time balances)
+    const walletData = useWalletData({ supabase, userId: user?.id, clubId: club?.id });
 
     // ═══════════════════════════════════════════════════════════════════════
     //  BULLETPROOF AUTH
@@ -918,7 +928,6 @@ export default function ClubMessages() {
                     title="Club Arena — Messages"
                     description="View Your Club Arena Messages."
                     canonical="/hub/club-arena/messages"
-                    noindex={true}
                 />
                 <div style={S.page}>
                     <UniversalHeader pageDepth={2} />
@@ -1053,10 +1062,30 @@ export default function ClubMessages() {
 
                 <div style={S.header}>
                     <span style={S.headerTitle}>Chats</span>
-                    <button onClick={() => { }} style={S.newBtn} title="New Message">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button onClick={() => setShowWallet(prev => !prev)} style={{ ...S.newBtn, background: showWallet ? '#2374E1' : 'transparent' }} title="Wallet">
+                            💰
+                        </button>
+                        <button onClick={() => { }} style={S.newBtn} title="New Message">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill={C.blue}><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" /></svg>
+                        </button>
+                    </div>
                 </div>
+
+                {showWallet && (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 16px 12px' }}>
+                        <DynamicWallet
+                            {...walletData}
+                            onOpenBBJ={() => { }}
+                            onBuyDiamonds={() => router.push('/hub/diamond-store')}
+                            onTapSlot={(slot) => {
+                                if (slot === 'chips' || slot === 'promo') router.push(`/hub/club-arena/cashier?club=${clubIdParam}`);
+                                if (slot === 'clubBank') router.push(`/hub/club-arena/admin?club=${clubIdParam}`);
+                                if (slot === 'agent') router.push(`/hub/club-arena/agent-dashboard?club=${clubIdParam}`);
+                            }}
+                        />
+                    </div>
+                )}
 
                 <div style={S.searchBar}>
                     <input type="text" placeholder="  Search Club Members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />

@@ -90,7 +90,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
           const parsed = JSON.parse(localStorage.getItem(key) || '{}');
           if (parsed?.access_token) { tokenRef.current = parsed.access_token; break; }
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     // Listen for refreshes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -181,7 +181,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         if (data.yourCards) setMyCards(data.yourCards);
         // Track session: record initial buy-in on first state with our seat
         if (!sessionStatsRef.current.sessionStart && data.seats) {
-          const mySeat = data.seats.find(s => s.player?.id === userId);
+          const mySeat = data.seats.find(s => s.player?.id != null && String(s.player.id) === String(userId));
           if (mySeat && mySeat.stack > 0) {
             sessionStatsRef.current.initialBuyIn = mySeat.stack;
             sessionStatsRef.current.sessionStart = Date.now();
@@ -199,7 +199,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         setLegalActions(data.legalActions);
         break;
       case 'action_required':
-        if (data.playerId !== userId) setLegalActions(null);
+        if (String(data.playerId) !== String(userId)) setLegalActions(null);
         // Initial timer — remaining comes from first timer_update tick
         setTimerState({ playerId: data.playerId, remaining: data.turnTime || 30, isTimebank: false });
         // If it's our turn, fetch legal actions via authenticated API (not broadcast)
@@ -208,7 +208,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         }
         break;
       case 'action_processed':
-        if (data.playerId === userId) setLegalActions(null);
+        if (String(data.playerId) === String(userId)) setLegalActions(null);
         requestState();
         break;
       case 'timer_update':
