@@ -102,7 +102,7 @@ export default function ClubLobby() {
     const [creatingTable, setCreatingTable] = useState(false);
     const [isEditingDescription, setIsEditingDescription] = useState(false);
     const [newDescription, setNewDescription] = useState('');
-    const [announcements, setAnnouncements] = useState([]);
+
     const [showWallet, setShowWallet] = useState(false);
 
     // Real-time wallet data (diamonds, BBJ, chips, agent, promo)
@@ -316,17 +316,6 @@ export default function ClubLobby() {
                 table: 'club_tournaments',
                 filter: `club_id=eq.${club.id}`,
             }, () => { loadClubData(); })
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'club_announcements',
-                filter: `club_id=eq.${club.id}`,
-            }, () => {
-                // Re-fetch announcements live — new announcements appear without refresh
-                apiGet(`/api/club-arena/announcements?clubId=${club.id}`)
-                    .then(d => setAnnouncements(d.announcements || []))
-                    .catch(() => { });
-            })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
 
@@ -436,7 +425,7 @@ export default function ClubLobby() {
                 setClub(clubData);
 
                 // Parallelize: tables + tournaments + announcements + membership all fire at once
-                const [tableResult, tournResult, annResult, memberResult] = await Promise.allSettled([
+                const [tableResult, tournResult, memberResult] = await Promise.allSettled([
                     supabase.from('tables').select('*').eq('club_id', clubData.id).neq('status', 'deleted').neq('status', 'closed').limit(100),
                     (async () => {
                         const token = await getAuthToken().catch(() => null);
@@ -448,7 +437,6 @@ export default function ClubLobby() {
                         });
                         return res.ok ? res.json() : { tournaments: [] };
                     })(),
-                    apiGet(`/api/club-arena/announcements?clubId=${clubData.id}`).catch(() => ({})),
                     authUser
                         ? supabase.from('club_members').select('chip_balance, role').eq('club_id', clubData.id).eq('user_id', authUser.id).maybeSingle()
                         : Promise.resolve(null),
@@ -456,7 +444,7 @@ export default function ClubLobby() {
 
                 if (tableResult.status === 'fulfilled') setTables(tableResult.value?.data || []);
                 if (tournResult.status === 'fulfilled') setTournaments(tournResult.value?.tournaments || tournResult.value?.data || []);
-                if (annResult.status === 'fulfilled') setAnnouncements(annResult.value?.announcements || []);
+
                 if (memberResult.status === 'fulfilled' && memberResult.value?.data) {
                     setMembership(memberResult.value.data);
                     setChipBalance(memberResult.value.data.chip_balance || 0);
@@ -590,27 +578,7 @@ export default function ClubLobby() {
                                 )}
                             </div>
 
-                            {/* Club Announcements */}
-                            {announcements.length > 0 && (
-                                <div style={{ marginBottom: '16px' }}>
-                                    {announcements.slice(0, 3).map(ann => (
-                                        <div key={ann.id} style={{
-                                            background: 'rgba(35,116,225,0.08)', borderRadius: '8px',
-                                            padding: '10px 14px', marginBottom: '6px',
-                                            border: `1px solid rgba(35,116,225,0.2)`,
-                                        }}>
-                                            <div style={{ fontSize: '13px', fontWeight: 700, color: FB.textPrimary }}>
-                                                {ann.title}
-                                            </div>
-                                            {ann.content && (
-                                                <div style={{ fontSize: '12px', color: FB.textSecondary, marginTop: '2px' }}>
-                                                    {ann.content.length > 120 ? ann.content.slice(0, 120) + '...' : ann.content}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+
 
                             {/* Bad Beat Jackpot Banner */}
                             {bbjData && bbjData.pool?.amount > 0 && (

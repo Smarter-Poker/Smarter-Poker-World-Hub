@@ -120,8 +120,8 @@ export default function TrainingCalendarPage() {
   }, [fetchData]);
   useEffect(() => {
     const h = () => fetchData();
-    eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+    return () => unsub();
   }, [fetchData]);
 
   // Generate calendar grid (last 16 weeks)

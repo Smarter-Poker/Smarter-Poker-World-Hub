@@ -280,6 +280,7 @@ export default function UnionGames() {
       try {
         const res = await api('cancel_tournament', { unionId, tournamentId: id });
         showToast(`Cancelled — ${res.refunded || 0} players refunded`);
+        busEmit.dataMutated('tournament_cancelled');
         loadData();
       } catch (e) { showToast(e.message || 'Failed to cancel tournament', 'error'); }
     });
@@ -289,6 +290,7 @@ export default function UnionGames() {
     try {
       await api('open_registration', { unionId, tournamentId: id });
       showToast('Registration opened');
+      busEmit.dataMutated('tournament_registration_opened');
       loadData();
     } catch (e) { showToast(e.message || 'Failed to open registration', 'error'); }
   };
@@ -298,6 +300,7 @@ export default function UnionGames() {
       try {
         await api('close_table', { unionId, tableId: id });
         showToast('Table closed');
+        busEmit.dataMutated('table_action');
         loadData();
       } catch (e) { showToast(e.message || 'Failed to close table', 'error'); }
     });
@@ -309,6 +312,7 @@ export default function UnionGames() {
       try {
         await api('pause_tournament', { unionId, tournamentId: id });
         showToast('Tournament paused');
+        busEmit.dataMutated('tournament_paused');
         loadData();
       } catch (e) { showToast(e.message || 'Failed to pause tournament', 'error'); }
     });
@@ -318,6 +322,7 @@ export default function UnionGames() {
     try {
       await api('resume_tournament', { unionId, tournamentId: id });
       showToast('Tournament resumed');
+      busEmit.dataMutated('tournament_resumed');
       loadData();
     } catch (e) { showToast(e.message || 'Failed to resume tournament', 'error'); }
   };

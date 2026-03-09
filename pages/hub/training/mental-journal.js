@@ -52,8 +52,8 @@ export default function MentalJournalPage() {
 
   useEffect(() => {
     const h = () => {};
-    eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+    return () => unsub();
   }, []);
 
   // Fetch history on mount or when switching to 'history'

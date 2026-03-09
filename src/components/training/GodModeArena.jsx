@@ -886,10 +886,10 @@ function GodModeArenaInner({
             setTimeout(() => setAdaptiveToast(null), 3000);
         };
         if (typeof window !== 'undefined' && window.eventBus) {
-            window.eventBus.on('adaptiveDifficultyChange', handler);
-            return () => window.eventBus.off('adaptiveDifficultyChange', handler);
+            const unsub = window.eventBus.on('adaptiveDifficultyChange', handler);
+            return () => unsub();
         }
-    }, []);
+    }, [loadAnalysis]);
 
     // Auto-transition to review when game completes + emit bus event
     useEffect(() => {

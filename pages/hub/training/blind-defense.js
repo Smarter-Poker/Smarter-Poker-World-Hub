@@ -75,8 +75,8 @@ export default function BlindDefensePage() {
 
   useEffect(() => {
     const h = () => {};
-    eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+    return () => unsub();
   }, []);
 
   const handleAction = (action) => {

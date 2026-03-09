@@ -123,8 +123,8 @@ export default function RangeExplorerPage() {
 
   useEffect(() => {
     const h = () => {};
-    eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
-    return () => eventBus.off(EventType?.SESSION_END || 'training:session-complete', h);
+    const unsub = eventBus.on(EventType?.SESSION_END || 'training:session-complete', h);
+    return () => unsub();
   }, []);
 
   const matrix = [];
