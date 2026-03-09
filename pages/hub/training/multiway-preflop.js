@@ -218,6 +218,16 @@ function RangeGrid({ rangeStr, color, label }) {
 export default function MultiwayPreflopPage() {
     const router = useRouter();
     useTrainingBus('multiway-preflop');
+
+    // Listen for session events from other training pages
+    useEffect(() => {
+        const unsub = eventBus.on(EventType.SESSION_END, (event) => {
+            const source = event?.source;
+            if (source === 'MultiwayQuiz') return; // Ignore our own emits
+        });
+        return unsub;
+    }, []);
+
     const [selectedScenario, setSelectedScenario] = useState('btn_open_sb_3bet_bb_cold');
     const [quizHand, setQuizHand] = useState(null);
     const [quizAnswer, setQuizAnswer] = useState(null);
