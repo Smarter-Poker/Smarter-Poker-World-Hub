@@ -2656,7 +2656,20 @@ function LivePokerTable({
     setBuyInSeat(null);
   }, [send, buyInSeat, displayName, avatarUrl]);
 
-  const handleStandUp = useCallback(() => send('stand_up', {}), [send]);
+  const [sessionSummary, setSessionSummary] = useState(null);
+  const handleStandUp = useCallback(() => {
+    // Calculate session summary before leaving
+    const stats = sessionStats;
+    const stack = mySeat?.stack || 0;
+    if (stats && stats.initialBuyIn > 0) {
+      const pnl = stack - stats.initialBuyIn - (stats.totalAdded || 0);
+      const hrs = stats.sessionStart ? ((Date.now() - stats.sessionStart) / 3600000).toFixed(1) : '0';
+      const sign = pnl >= 0 ? '+' : '';
+      setSessionSummary({ pnl, hands: stats.handsPlayed, hrs, message: `Session: ${sign}${pnl.toLocaleString()} chips | ${stats.handsPlayed} hands | ${hrs}hr` });
+      setTimeout(() => setSessionSummary(null), 8000);
+    }
+    send('stand_up', {});
+  }, [send, sessionStats, mySeat?.stack]);
   const handleSitOut = useCallback(() => send('sit_out', {}), [send]);
   const handleSitIn = useCallback(() => send('sit_in', {}), [send]);
   const [straddleOn, setStraddleOn] = useState(false);
@@ -2916,6 +2929,28 @@ function LivePokerTable({
             {tableAlert.type === 'removed' && '🚪 '}
             {tableAlert.type === 'extended' && '🔄 '}
             {tableAlert.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Session summary banner (shown when standing up) */}
+      <AnimatePresence>
+        {sessionSummary && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            style={{
+              position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)',
+              zIndex: 300, padding: '12px 24px', borderRadius: 12,
+              background: sessionSummary.pnl >= 0 ? 'rgba(76,175,80,0.95)' : 'rgba(244,67,54,0.95)',
+              color: '#fff', fontSize: 14, fontWeight: 700,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(8px)', textAlign: 'center', maxWidth: 340,
+            }}
+          >
+            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>Session Complete</div>
+            {sessionSummary.message}
           </motion.div>
         )}
       </AnimatePresence>
@@ -3563,6 +3598,13 @@ function LivePokerTable({
         targetPlayer={noteTarget}
         supabase={supabase}
       />
+
+      {/* Global keyframes for table animations */}
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+        @keyframes winGlow { 0% { filter: drop-shadow(0 0 8px #FFD700); } 100% { filter: drop-shadow(0 0 20px #FFD700) drop-shadow(0 0 40px rgba(255,215,0,0.4)); } }
+      `}</style>
     </div>
   );
 }

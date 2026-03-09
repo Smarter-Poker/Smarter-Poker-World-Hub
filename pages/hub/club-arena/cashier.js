@@ -591,7 +591,7 @@ const router = useRouter();
                                             border: `1px solid ${co.status === 'approved' ? FB.success : '#F5A623'}`,
                                             background: co.status === 'approved' ? 'rgba(49,162,76,0.08)' : 'rgba(245,166,35,0.08)',
                                         }}>
-                                            <div>
+                                            <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '14px', fontWeight: 600, color: FB.textPrimary }}>
                                                     {co.status === 'pending' ? ' Awaiting Agent Approval' : ' Approved'}
                                                 </div>
@@ -600,11 +600,38 @@ const router = useRouter();
                                                     {co.agent_note ? ` · ${co.agent_note}` : ''}
                                                 </div>
                                             </div>
-                                            <div style={{
-                                                fontSize: '16px', fontWeight: 700,
-                                                color: co.status === 'approved' ? FB.success : '#F5A623',
-                                            }}>
-                                                {(co.amount || 0).toLocaleString()} chips
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{
+                                                    fontSize: '16px', fontWeight: 700,
+                                                    color: co.status === 'approved' ? FB.success : '#F5A623',
+                                                }}>
+                                                    {(co.amount || 0).toLocaleString()}
+                                                </div>
+                                                {co.status === 'pending' && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (processing) return;
+                                                            setProcessing(true);
+                                                            try {
+                                                                const result = await apiCall('/api/club-arena/cancel-my-cashout', { cashoutId: co.id });
+                                                                showToast(result.message || 'Cashout cancelled — chips returned', 'success');
+                                                                busEmit.dataMutated('cashout_cancelled');
+                                                                loadData();
+                                                            } catch (e) {
+                                                                showToast(e.message || 'Cancel failed', 'error');
+                                                            } finally { setProcessing(false); }
+                                                        }}
+                                                        disabled={processing}
+                                                        style={{
+                                                            background: 'rgba(250,56,62,0.1)', border: '1px solid rgba(250,56,62,0.3)',
+                                                            color: '#FA383E', borderRadius: 6, padding: '4px 10px',
+                                                            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                                            opacity: processing ? 0.5 : 1,
+                                                        }}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

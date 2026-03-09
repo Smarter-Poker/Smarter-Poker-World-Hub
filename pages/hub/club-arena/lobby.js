@@ -827,7 +827,16 @@ const router = useRouter();
                                         )}
                                     </div>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                                        {tournaments.slice(0, 6).map(t => (
+                                        {[...tournaments].sort((a, b) => {
+                                            // Live/running first
+                                            const aLive = a.status === 'active' || a.status === 'running' ? 0 : 1;
+                                            const bLive = b.status === 'active' || b.status === 'running' ? 0 : 1;
+                                            if (aLive !== bLive) return aLive - bLive;
+                                            // Then by scheduled start (soonest first)
+                                            const aTime = new Date(a.scheduled_start || a.start_time || '9999').getTime();
+                                            const bTime = new Date(b.scheduled_start || b.start_time || '9999').getTime();
+                                            return aTime - bTime;
+                                        }).slice(0, 6).map(t => (
                                             <GameCard
                                                 key={t.id}
                                                 game={{ ...t, game_type: t.type || t.game_type || 'mtt' }}
