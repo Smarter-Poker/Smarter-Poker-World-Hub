@@ -35,6 +35,16 @@ import React, { useState, useEffect } from 'react';
 import { getGameStickers } from '../../lib/stickerOrchestrator';
 import { resolveAvatarDisplay } from '../../lib/resolveAvatarDisplay';
 
+// ── Global keyframe injection (once, not per-card) ──────────────────
+let _kfInjected = false;
+function ensureLivePulse() {
+  if (_kfInjected || typeof document === 'undefined') return;
+  _kfInjected = true;
+  const s = document.createElement('style');
+  s.textContent = '@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }';
+  document.head.appendChild(s);
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // VARIANT CONFIG
 // ─────────────────────────────────────────────────────────────────────
@@ -299,7 +309,7 @@ function CashCard({ table: t, assetMap, onPress, avgVpip }) {
         <span style={S.dimText}>{ago}</span>
       </div>
 
-      {isLive && <style>{`@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>}
+      {isLive && ensureLivePulse()}
     </button>
   );
 }
@@ -331,7 +341,7 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
     : (t.guaranteed_prize || t.settings?.gtd_amount || 0);
 
   // Type badge
-  const typeLabel = isSpin ? 'Spin-' + vc.label : isMTT ? 'XMTT' + vc.label : 'SNG-' + vc.label;
+  const typeLabel = isSpin ? 'SPIN' : isMTT ? 'MTT' : 'SNG';
 
   // Countdown
   const countdown = useCountdown(isLive ? null : startDate);
@@ -417,7 +427,7 @@ function TournamentCard({ tournament: t, assetMap, onPress }) {
         <span style={S.dimText}>{maxP} Max</span>
       </div>
 
-      {isLive && <style>{`@keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>}
+      {isLive && ensureLivePulse()}
     </button>
   );
 }

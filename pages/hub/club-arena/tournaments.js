@@ -13,10 +13,13 @@ import { getAccessToken } from '../../../src/lib/authUtils';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useWalletData from '../../../src/hooks/useWalletData';
 import dynamic from 'next/dynamic';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
+const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 const MysteryBountyReveal = dynamic(() => import('../../../src/components/club-arena/MysteryBountyReveal'), { ssr: false });
 const GameCard = dynamic(() => import('../../../src/components/club-arena/GameCard'), { ssr: false });
 
@@ -61,6 +64,7 @@ export default function TournamentsPage() {
   const { club: clubId } = router.query;
 
   const [user, setUser] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [clubInfo, setClubInfo] = useState(null);
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -214,7 +218,16 @@ export default function TournamentsPage() {
       <SEOHead title={`Tournaments | ${clubInfo?.name || 'Club Arena'}`} description="Browse and register for poker tournaments." canonical="/hub/club-arena/tournaments" noindex />
 
       {/* Global Header */}
-      <UniversalHeader pageDepth={2} />
+      <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+      <HamburgerMenu
+        isOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        direction="left"
+        theme="dark"
+        user={user}
+        showProfile={true}
+        {...getMenuConfig('club-arena', user, {}, {})}
+      />
 
       {/* Page Navigation Bar */}
       <div style={{ background: FB.card, padding: '16px 24px', borderBottom: `1px solid ${FB.border}`, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -243,6 +256,10 @@ export default function TournamentsPage() {
           />
         </div>
       )}
+
+      <div style={{ padding: '8px 16px 0' }}>
+        <ClubAnnouncementBanner clubId={clubId} userRole={isAdmin ? 'admin' : 'player'} />
+      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${FB.border}`, background: FB.card }}>
@@ -614,6 +631,13 @@ function TournamentDetailModal({ tournament: t, chipBalance, userId, isAdmin, on
         // Emit bus events for cross-page reactivity
         if (evt === 'bounty_awarded' && payload.payload) {
           busEmit.bountyAwarded(payload.payload.playerName, payload.payload.amount, payload.payload.type);
+        }
+        if (evt === 'tournament_started') {
+          busEmit.tournamentStarted(t.name, payload.payload?.totalEntries || 0);
+          busEmit.dataMutated('tournament_started');
+        }
+        if (evt === 'level_change' && payload.payload) {
+          busEmit.tournamentLevelChange(payload.payload.level, payload.payload.blinds);
         }
         if (evt === 'tournament_complete' && payload.payload) {
           busEmit.tournamentComplete(t.name, payload.payload.winner?.playerName);

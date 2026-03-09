@@ -15,6 +15,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 const getAuthToken = async () => {
     // 1. Fast path: read from localStorage cache (instant, no network round-trip)
@@ -374,6 +378,8 @@ export default function Marketplace() {
                             />
                         </div>
                     )}
+
+                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
 
                     {isLoading ? (
                         <div style={S.loading}>Loading Shop...</div>

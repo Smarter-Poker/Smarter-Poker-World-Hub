@@ -613,6 +613,23 @@ function CommunityCards({ cards = [], boards }) {
         zIndex: 15,
       }}
     >
+      {/* Ambient glow behind cards */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 0.4, scale: 1 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        style={{
+          position: 'absolute',
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: `${cards.length * 58 + 40}px`,
+          height: '90px',
+          background: `radial-gradient(ellipse, ${T.accent}30 0%, transparent 70%)`,
+          borderRadius: '50%',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
+      />
       {cards.map((card, i) => (
         <CardImg key={`cc-${i}`} card={card} width={52} delay={i * 0.12} />
       ))}

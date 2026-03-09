@@ -1048,6 +1048,25 @@ function TournamentDetailModal({ t, unionId, clubs, onClose, onAction }) {
     for (const evt of liveEvents) {
       tCh.on('broadcast', { event: evt }, (payload) => {
         setTourneyState(prev => ({ ...prev, ...payload.payload, _lastEvent: evt }));
+
+        // Emit bus events for cross-page reactivity parity with tournaments.js
+        if (evt === 'bounty_awarded' && payload.payload) {
+          busEmit.bountyAwarded(payload.payload.playerName, payload.payload.amount, payload.payload.type);
+        }
+        if (evt === 'mystery_bounty_awarded' && payload.payload?.reveal) {
+          busEmit.mysteryBountyRevealed(payload.payload.reveal?.playerName, payload.payload.reveal?.amount, payload.payload.reveal?.tierLabel);
+        }
+        if (evt === 'tournament_started') {
+          busEmit.tournamentStarted(t.name, payload.payload?.totalEntries || 0);
+          busEmit.dataMutated('tournament_started');
+        }
+        if (evt === 'level_change' && payload.payload) {
+          busEmit.tournamentLevelChange(payload.payload.level, payload.payload.blinds);
+        }
+        if (evt === 'tournament_complete' && payload.payload) {
+          busEmit.tournamentComplete(t.name, payload.payload.winner?.playerName);
+          busEmit.dataMutated('tournament_complete');
+        }
       });
     }
     tCh.subscribe();

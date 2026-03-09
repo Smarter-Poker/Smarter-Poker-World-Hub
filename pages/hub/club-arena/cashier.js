@@ -8,12 +8,15 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
 import { busEmit, eventBus, EventType } from '../../../src/engine/EventBus';
 import dynamic from 'next/dynamic';
 import useWalletData from '../../../src/hooks/useWalletData';
 const DynamicWallet = dynamic(() => import('../../../src/components/club-arena/DynamicWallet'), { ssr: false });
+const ClubAnnouncementBanner = dynamic(() => import('../../../src/components/club-arena/ClubAnnouncementBanner'), { ssr: false });
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -43,7 +46,7 @@ const getAuthToken = async () => {
                 const parsed = JSON.parse(cached);
                 if (parsed?.access_token) return parsed.access_token;
             }
-        } catch(e) { /* corrupted auth cache */ }
+        } catch (e) { /* corrupted auth cache */ }
     } catch (_) { /* localStorage unavailable */ }
 
     // 2. Slow path: ask Supabase (handles token refresh)
@@ -64,19 +67,20 @@ const apiCall = async (endpoint, body) => {
         body: JSON.stringify(body),
     });
     let data;
-    try { data = await res.json(); } catch(e) { throw new Error('Server returned invalid response'); }
+    try { data = await res.json(); } catch (e) { throw new Error('Server returned invalid response'); }
     if (!res.ok) throw new Error(data.error || 'API call failed');
     return data;
 };
 
 export default function Cashier() {
-        useTrainingBus('club-arena-cashier');
+    useTrainingBus('club-arena-cashier');
 
-const router = useRouter();
+    const router = useRouter();
     const clubIdParam = router.query?.club || null;
 
     // State
     const [user, setUser] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [club, setClub] = useState(null);
     const [membership, setMembership] = useState(null);
     const [chipBalance, setChipBalance] = useState(0);
@@ -212,7 +216,7 @@ const router = useRouter();
                 } catch (e) { /* rakeback is optional */ }
             }
         } catch (e) {
-            
+
         } finally {
             setIsLoading(false);
         }
@@ -243,7 +247,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -262,7 +266,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -281,7 +285,7 @@ const router = useRouter();
             })
             .subscribe((status) => {
                 if (status !== 'SUBSCRIBED') {
-                    
+
                 }
             });
 
@@ -291,7 +295,7 @@ const router = useRouter();
             bc = new BroadcastChannel('smarter_poker_chips_sync');
             bc.onmessage = (event) => {
                 if (event.data === 'refresh') {
-                    
+
                     loadData();
                 }
             };
@@ -528,7 +532,16 @@ const router = useRouter();
             />
 
             <div style={S.page}>
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
 
                 <div style={S.container}>
                     <button onClick={() => router.push(`/hub/club-arena/lobby?club=${clubIdParam}`)} style={S.backBtn}>
@@ -559,6 +572,8 @@ const router = useRouter();
                                     }}
                                 />
                             </div>
+
+                            <ClubAnnouncementBanner clubId={club?.id || clubIdParam} userRole={membership?.role} />
 
                             {/* Action Buttons */}
                             <div style={S.actionGrid}>
@@ -782,37 +797,37 @@ const router = useRouter();
 
                 <ClubArenaBottomNav clubId={clubIdParam} activePage="cashier" userRole={membership?.role} />
 
-            {/* ═══════════════════════════════════════════════════════════════════════
+                {/* ═══════════════════════════════════════════════════════════════════════
                 LEAVE CLUB MODAL
             ═══════════════════════════════════════════════════════════════════════ */}
-            {showLeaveModal && (
-                <div style={S.modalOverlay} onClick={() => !leavePending && setShowLeaveModal(false)}>
-                    <div style={{ ...S.modal, maxWidth: 380 }} onClick={e => e.stopPropagation()}>
-                        <div style={S.modalHeader}>
-                            <span style={S.modalTitle}>Leave Club</span>
-                            <button style={S.modalClose} onClick={() => !leavePending && setShowLeaveModal(false)}>&times;</button>
-                        </div>
-                        <div style={S.modalBody}>
-                            <p style={{ color: FB.textPrimary, fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>
-                                Are you sure you want to leave this club?
-                            </p>
-                            <div style={{ background: 'rgba(250,56,62,0.08)', border: '1px solid rgba(250,56,62,0.25)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#FA383E', lineHeight: 1.6 }}>
-                                <strong>Your entire chip balance ({chipBalance.toLocaleString()} chips) will be returned to the club treasury.</strong>
-                                {' '}Any pending cashout requests will be cancelled. This action cannot be undone.
+                {showLeaveModal && (
+                    <div style={S.modalOverlay} onClick={() => !leavePending && setShowLeaveModal(false)}>
+                        <div style={{ ...S.modal, maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+                            <div style={S.modalHeader}>
+                                <span style={S.modalTitle}>Leave Club</span>
+                                <button style={S.modalClose} onClick={() => !leavePending && setShowLeaveModal(false)}>&times;</button>
+                            </div>
+                            <div style={S.modalBody}>
+                                <p style={{ color: FB.textPrimary, fontSize: 14, lineHeight: 1.6, marginBottom: 12 }}>
+                                    Are you sure you want to leave this club?
+                                </p>
+                                <div style={{ background: 'rgba(250,56,62,0.08)', border: '1px solid rgba(250,56,62,0.25)', borderRadius: 10, padding: '12px 14px', fontSize: 12, color: '#FA383E', lineHeight: 1.6 }}>
+                                    <strong>Your entire chip balance ({chipBalance.toLocaleString()} chips) will be returned to the club treasury.</strong>
+                                    {' '}Any pending cashout requests will be cancelled. This action cannot be undone.
+                                </div>
+                            </div>
+                            <div style={S.modalFooter}>
+                                <button
+                                    style={{ ...S.modalSubmit, background: '#FA383E', opacity: leavePending ? 0.5 : 1 }}
+                                    onClick={handleLeaveClub}
+                                    disabled={leavePending}
+                                >
+                                    {leavePending ? 'Processing...' : 'Confirm — Leave Club'}
+                                </button>
                             </div>
                         </div>
-                        <div style={S.modalFooter}>
-                            <button
-                                style={{ ...S.modalSubmit, background: '#FA383E', opacity: leavePending ? 0.5 : 1 }}
-                                onClick={handleLeaveClub}
-                                disabled={leavePending}
-                            >
-                                {leavePending ? 'Processing...' : 'Confirm — Leave Club'}
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                )}
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════════════

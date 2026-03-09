@@ -203,6 +203,10 @@ function TabBar({ tables, activeIndex, actionNeeded, onSwitch, onClose, viewMode
           0%, 100% { opacity: 1; transform: scale(1); }
           50% { opacity: 0.5; transform: scale(1.3); }
         }
+        @keyframes tileActionPulse {
+          0% { box-shadow: 0 0 8px rgba(35,116,225,0.4), inset 0 0 4px rgba(35,116,225,0.1); }
+          100% { box-shadow: 0 0 18px rgba(35,116,225,0.7), inset 0 0 10px rgba(35,116,225,0.2); }
+        }
       `}</style>
     </div>
   );
@@ -391,6 +395,7 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
         {tables.map((table, idx) => (
           <div
             key={table.tableId}
+            onClick={() => viewMode === 'tile' && switchTo(idx)}
             style={{
               display: viewMode === 'single' && idx !== activeIndex ? 'none' : 'block',
               width: '100%',
@@ -398,6 +403,18 @@ export default function MultiTableView({ supabase, userId, initialTable, onExit 
               position: viewMode === 'single' ? 'absolute' : 'relative',
               inset: viewMode === 'single' ? 0 : undefined,
               overflow: 'hidden',
+              cursor: viewMode === 'tile' ? 'pointer' : 'default',
+              border: viewMode === 'tile' && actionNeeded.has(table.tableId)
+                ? '2px solid #2374E1'
+                : viewMode === 'tile' ? '1px solid #3E4042' : 'none',
+              borderRadius: viewMode === 'tile' ? 4 : 0,
+              boxShadow: viewMode === 'tile' && actionNeeded.has(table.tableId)
+                ? '0 0 12px rgba(35,116,225,0.6), inset 0 0 8px rgba(35,116,225,0.15)'
+                : 'none',
+              animation: viewMode === 'tile' && actionNeeded.has(table.tableId)
+                ? 'tileActionPulse 1.5s ease-in-out infinite alternate'
+                : 'none',
+              transition: 'border 0.3s, box-shadow 0.3s',
             }}
           >
             <TableSlot

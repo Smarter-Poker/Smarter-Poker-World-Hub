@@ -21,6 +21,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -370,6 +374,8 @@ export default function Players() {
                             />
                         </div>
                     )}
+
+                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserRole} />
 
                     {/* Search */}
                     <div style={S.searchBox}>

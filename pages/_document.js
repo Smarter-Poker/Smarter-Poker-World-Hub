@@ -59,8 +59,65 @@ export default class MyDocument extends Document {
 
                     {/* OpenCV.js — WASM for document detection (receipt scanner) */}
                     <script async src="https://docs.opencv.org/4.9.0/opencv.js"></script>
+
+                    {/* ═══ PWA STALE CACHE BUSTER ═════════════════════════════════
+                         If Vercel deployed a new build, old PWA service workers
+                         will try to request obsolete Next.js chunk files, getting 404s
+                         and causing a blank white screen. This interceptor catches
+                         script load failures, nukes the Service Worker, and hard-reloads.
+                    ═══════════════════════════════════════════════════════════════ */}
+                    <script dangerouslySetInnerHTML={{
+                        __html: `
+                            window.addEventListener('error', function(e) {
+                                if (e.target && e.target.tagName === 'SCRIPT') {
+                                    var src = e.target.src || '';
+                                    if (src.includes('_next/static/chunks')) {
+                                        console.warn('⚠️ Stale chunk failed. Nuking PWA cache & reloading...');
+                                        if ('serviceWorker' in navigator) {
+                                            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                                                for (let r of regs) { r.unregister(); }
+                                                window.location.href = window.location.href;
+                                            });
+                                        } else {
+                                            window.location.href = window.location.href;
+                                        }
+                                    }
+                                }
+                            }, true);
+                        `
+                    }} />
                 </Head>
                 <body>
+                    {/* ═══ NUCLEAR CSS FAILSAFE ═══════════════════════════════════
+                         next/font/google wraps content in visibility:hidden during SSR.
+                         Client JS is supposed to swap it to visible during hydration.
+                         If JS fails (stale PWA cache, chunk error, JS crash), the page
+                         stays PERMANENTLY INVISIBLE — producing blank white screens.
+                         
+                         This pure-CSS animation forces visibility after 2 seconds,
+                         guaranteeing content shows even if JavaScript completely fails.
+                         The 2s delay avoids FOUC during normal fast hydration.
+                    ═══════════════════════════════════════════════════════════════ */}
+                    <style dangerouslySetInnerHTML={{
+                        __html: `
+                        @keyframes forceVisible {
+                            to { visibility: visible !important; opacity: 1 !important; }
+                        }
+                        #__next > div[style*="visibility:hidden"],
+                        #__next > div[style*="visibility: hidden"] {
+                            animation: forceVisible 0s forwards;
+                            animation-delay: 2s;
+                        }
+                        /* Also override the data-next-hide-fouc body display:none */
+                        @keyframes forceDisplay {
+                            to { display: block !important; }
+                        }
+                        body[style*="display:none"],
+                        body[style*="display: none"] {
+                            animation: forceDisplay 0s forwards;
+                            animation-delay: 2s;
+                        }
+                    `}} />
                     <Main />
                     <NextScript />
                 </body>

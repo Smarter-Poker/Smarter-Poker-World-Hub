@@ -21,6 +21,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -41,8 +45,9 @@ const FB = {
 const LEADERBOARD_TYPES = [
     { id: 'chips', label: 'Chip Balance', field: 'chip_balance', desc: 'Highest chip counts' },
     { id: 'profit', label: 'Profit', field: 'total_profit', desc: 'Most profitable players' },
-    { id: 'hands', label: '🃏 Hands Played', field: 'hands_played', desc: 'Most active players' },
+    { id: 'hands', label: 'Hands Played', field: 'hands_played', desc: 'Most active players' },
     { id: 'wins', label: 'Win Rate', field: 'win_rate', desc: 'Highest win percentages' },
+    { id: 'bounties', label: 'Bounty Hunters', field: 'bounty_earnings', desc: 'Top bounty earners' },
 ];
 
 const TIME_PERIODS = [
@@ -169,9 +174,29 @@ export default function Leaderboard() {
                         }
                     }
 
+                    // ── Bounty Earnings: aggregate from completed tournament results ──
+                    const bountyByUser = {};
+                    try {
+                        const { data: bTourns } = await supabase
+                            .from('club_tournaments')
+                            .select('settings')
+                            .eq('club_id', clubData.id)
+                            .eq('status', 'complete')
+                            .limit(100);
+                        for (const bt of (bTourns || [])) {
+                            const br = bt.settings?.bounty_results;
+                            if (!br?.leaderboard) continue;
+                            for (const entry of br.leaderboard) {
+                                const pid = String(entry.playerId);
+                                bountyByUser[pid] = (bountyByUser[pid] || 0) + (entry.totalBounties || 0);
+                            }
+                        }
+                    } catch (_) { /* non-fatal */ }
+
                     // Compute stats for each member
                     const membersWithStats = memberData.map(member => {
                         const userStats = statsByUser[String(member.user_id)] || { handsPlayed: 0, wins: 0, totalProfit: 0 };
+                        const bountyEarned = bountyByUser[String(member.user_id)] || 0;
                         return {
                             ...member,
                             stats: {
@@ -179,6 +204,7 @@ export default function Leaderboard() {
                                 total_profit: Math.round(userStats.totalProfit),
                                 hands_played: userStats.handsPlayed,
                                 win_rate: userStats.handsPlayed > 0 ? Math.round((userStats.wins / userStats.handsPlayed) * 100) : 0,
+                                bounty_earnings: bountyEarned,
                             },
                         };
                     });
@@ -235,7 +261,9 @@ export default function Leaderboard() {
             if (relevant.includes(e?.payload?.entity)) loadData();
         });
         const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => loadData());
-        return () => { unsub(); unsub2(); };
+        const unsub3 = eventBus.on(EventType.BOUNTY_AWARDED, () => loadData());
+        const unsub4 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => loadData());
+        return () => { unsub(); unsub2(); unsub3(); unsub4(); };
     }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -347,6 +375,8 @@ export default function Leaderboard() {
                             />
                         </div>
                     )}
+
+                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserRole} />
 
                     {/* Board Type Selector */}
                     <div style={S.boardSelector}>

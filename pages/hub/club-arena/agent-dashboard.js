@@ -9,6 +9,8 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../src/lib/authUtils';
 import UniversalHeader from '../../../src/components/ui/UniversalHeader';
+import HamburgerMenu from '../../../src/components/ui/HamburgerMenu';
+import { getMenuConfig } from '../../../src/config/hamburgerMenus';
 import ClubArenaBottomNav from '../../../src/components/club-arena/ClubArenaBottomNav';
 import InviteFriendsModal from '../../../src/components/ui/InviteFriendsModal';
 import useDebounce from '../../../src/hooks/useDebounce';
@@ -95,6 +97,7 @@ export default function AgentDashboard() {
     const clubIdParam = router.query?.club || null;
 
     const [user, setUser] = useState(null);
+    const [menuOpen, setMenuOpen] = useState(false);
     const [dashboard, setDashboard] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = usePersistedState('sp-filters-ca-agent-tab', 'overview');
@@ -361,7 +364,16 @@ export default function AgentDashboard() {
         return (
             <div style={{ background: FB.background, minHeight: '100vh' }}>
                 <SEOHead title="Agent Dashboard | Club Arena" description="Manage player chips, cashouts, and club operations." canonical="/hub/club-arena/agent-dashboard" noindex />
-                <UniversalHeader pageDepth={2} />
+                <UniversalHeader pageDepth={2} onMenuClick={() => setMenuOpen(true)} />
+                <HamburgerMenu
+                    isOpen={menuOpen}
+                    onClose={() => setMenuOpen(false)}
+                    direction="left"
+                    theme="dark"
+                    user={user}
+                    showProfile={true}
+                    {...getMenuConfig('club-arena', user, {}, {})}
+                />
                 <div style={{ textAlign: 'center', padding: '80px 20px', color: FB.textSecondary }}>
                     <div style={{ fontSize: 18, marginBottom: 12 }}>No club specified.</div>
                     <button onClick={() => router.push('/hub/club-arena')} style={{ background: FB.primary, color: '#fff', border: 'none', padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontWeight: 700 }}>

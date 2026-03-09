@@ -236,9 +236,38 @@ class TournamentBridge {
       this._persistBountyAward(data);
     });
 
-    t.on('mystery_bounty_awarded', (data) => {
+    t.on('mystery_bounty_awarded', async (data) => {
       this._broadcastTournament('mystery_bounty_awarded', data);
-      this._persistBountyAward(data);
+      await this._persistBountyAward(data);
+
+      // Phase 7: Club-wide announcement for Jackpot bounties
+      if (data.reveal?.isJackpot && this.supabase && this.tournament.clubId) {
+        try {
+          const title = `🎰 JACKPOT BOUNTY: ${data.amount.toLocaleString()} Chips!`;
+          const content = `${data.playerName} just won a massive ${data.reveal.tierLabel} Mystery Bounty by knocking out ${data.eliminatedName} in ${this.tournament.name}!`;
+
+          await this.supabase.from('club_announcements').insert({
+            club_id: this.tournament.clubId,
+            author_id: data.playerId, // Associate with the winner
+            title,
+            content,
+            pinned: false
+          });
+
+          // Optionally notify clients via realtime if they are listening to the club table,
+          // but ClubAnnouncementBanner already listens to CLUB_ANNOUNCEMENT_REFRESH internally or polls.
+          // We can broadcast a trigger to the club channel:
+          const clubChannel = this.supabase.channel(`club:${this.tournament.clubId}`);
+          await clubChannel.send({
+            type: 'broadcast',
+            event: 'new_announcement',
+            payload: { title }
+          });
+          this.supabase.removeChannel(clubChannel);
+        } catch (err) {
+          console.error('[TournamentBridge] Jackpot announcement failed:', err.message);
+        }
+      }
     });
   }
 
@@ -407,20 +436,23 @@ class TournamentBridge {
           bountyResults = {
             bountyType: bm.bountyType || t.bountyType || null,
             totalBountyPool: bm.totalBountyPool || 0,
+            totalBountiesAwarded: bm.totalBountiesAwarded || 0,
             mysteryPhaseActive: bm.mysteryPhaseActive || false,
-            mysteryEnvelopesRemaining: bm.mysteryEnvelopes?.length || 0,
-            awards: (bm.bountyLog || []).map(a => ({
-              playerId: a.playerId,
-              playerName: a.playerName || null,
+            mysteryEnvelopesRemaining: bm._mysteryEnvelopes?.length || 0,
+            awards: (bm.bountyHistory || []).map(a => ({
+              playerId: a.eliminatorId,
               eliminatedId: a.eliminatedId || null,
               amount: a.amount,
               type: a.type,
               timestamp: a.timestamp || null,
             })),
-            leaderboard: Object.entries(bm.bountyEarnings || {}).map(([pid, amt]) => ({
-              playerId: pid,
-              totalBounties: amt,
-            })).sort((a, b) => b.totalBounties - a.totalBounties),
+            leaderboard: [...(bm.playerBounties?.values() || [])].filter(p => p.bountyEarnings > 0)
+              .map(p => ({
+                playerId: p.playerId,
+                playerName: p.playerName || null,
+                totalBounties: p.bountyEarnings,
+                eliminationCount: p.eliminationCount || 0,
+              })).sort((a, b) => b.totalBounties - a.totalBounties),
           };
         } catch (bErr) {
           console.error('[TournamentBridge] Bounty results capture error:', bErr.message);

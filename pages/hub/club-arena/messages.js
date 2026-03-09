@@ -39,6 +39,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  SMARTERPOKER DARK COLOR PALETTE
@@ -1086,6 +1090,8 @@ export default function ClubMessages() {
                         />
                     </div>
                 )}
+
+                <ClubAnnouncementBanner clubId={clubIdParam} userRole={currentUserMembership?.role} />
 
                 <div style={S.searchBar}>
                     <input type="text" placeholder="  Search Club Members..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={S.searchInput} />

@@ -14,9 +14,15 @@ import SEOHead from '../../../../src/components/seo/SEOHead';
 import { supabase } from '../../../../src/lib/supabase';
 import { getAuthUser, getAccessToken } from '../../../../src/lib/authUtils';
 import useTrainingBus from '../../../../src/hooks/useTrainingBus';
+import { busEmit, eventBus, EventType } from '../../../../src/engine/EventBus';
 
 const MultiTableView = dynamic(
   () => import('../../../../src/components/poker/MultiTableView'),
+  { ssr: false }
+);
+
+const MysteryBountyReveal = dynamic(
+  () => import('../../../../src/components/club-arena/MysteryBountyReveal'),
   { ssr: false }
 );
 
@@ -85,6 +91,10 @@ export default function ClubArenaTable() {
   const [loading, setLoading] = useState(true);
   const [connectStatus, setConnectStatus] = useState('Connecting to table…');
   const retryRef = useRef(false);
+
+  // Bounty overlay state
+  const [bountyReveal, setBountyReveal] = useState(null);
+  const bountyTimerRef = useRef(null);
 
   // Auth guard
   useEffect(() => {
@@ -187,10 +197,34 @@ export default function ClubArenaTable() {
           }
         }
       )
-      .subscribe((_status) => {});
+      .subscribe((_status) => { });
 
     return () => supabase.removeChannel(ch);
   }, [tableId, initialTable]);
+
+  // ── Bounty reveal: listen for mystery_bounty_awarded broadcasts ──
+  useEffect(() => {
+    if (!tableId) return;
+    const bCh = supabase
+      .channel(`bounty-reveal:${tableId}`)
+      .on('broadcast', { event: 'mystery_bounty_awarded' }, ({ payload }) => {
+        if (!payload) return;
+        setBountyReveal(payload);
+        // Auto-dismiss after 8 seconds
+        if (bountyTimerRef.current) clearTimeout(bountyTimerRef.current);
+        bountyTimerRef.current = setTimeout(() => setBountyReveal(null), 8000);
+        // Emit to EventBus for cross-page reactivity
+        try { busEmit.mysteryBountyRevealed?.(payload); } catch (_) { }
+      })
+      .on('broadcast', { event: 'bounty_awarded' }, ({ payload }) => {
+        try { busEmit.bountyAwarded?.(payload); } catch (_) { }
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(bCh);
+      if (bountyTimerRef.current) clearTimeout(bountyTimerRef.current);
+    };
+  }, [tableId]);
 
   const handleExit = useCallback(() => {
     const cid = initialTable?.clubId;
@@ -301,6 +335,21 @@ export default function ClubArenaTable() {
         initialTable={initialTable}
         onExit={handleExit}
       />
+      {/* Mystery Bounty Reveal Overlay */}
+      {bountyReveal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.75)',
+          animation: 'fadeIn 0.3s ease-out',
+        }}>
+          <MysteryBountyReveal
+            award={bountyReveal}
+            onComplete={() => setBountyReveal(null)}
+          />
+        </div>
+      )}
+      <style>{`@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
     </>
   );
 

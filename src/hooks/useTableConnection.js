@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getDeviceFingerprint, getGPSLocation } from '../lib/anti-cheat/deviceFingerprint';
+import { busEmit } from '../engine/EventBus';
 
 const HEARTBEAT_MS = 10000;
 const API_BASE = '/api/poker/engine';
@@ -223,6 +224,8 @@ export function useTableConnection({ supabase, tableId, userId }) {
         sessionStatsRef.current.handsPlayed++;
         if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
         resultTimeoutRef.current = setTimeout(() => setResult(null), 5000);
+        // Bridge to platform EventBus so hand-histories/leaderboard react
+        try { busEmit.handComplete(tableId, data); } catch (_) { }
         requestState();
         break;
       case 'payout':
@@ -382,6 +385,7 @@ export function useTableConnection({ supabase, tableId, userId }) {
         break;
       case 'table_closed':
         setTableAlert({ type: 'removed', message: 'This table has been closed' });
+        try { busEmit.tableClosed(tableId); } catch (_) { }
         requestState();
         break;
       case 'seat_offered':

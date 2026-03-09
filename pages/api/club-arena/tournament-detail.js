@@ -124,6 +124,20 @@ export default async function handler(req, res) {
       // Non-fatal — respond without bounty state
     }
 
+    // If no live bounty state, try persisted bounty results from completed tournaments
+    if (!bountyState) {
+      try {
+        const { data: tourn2 } = await supabaseAdmin
+          .from('club_tournaments')
+          .select('status, settings')
+          .eq('id', tournamentId)
+          .maybeSingle();
+        if (tourn2?.settings?.bounty_results) {
+          bountyState = { ...tourn2.settings.bounty_results, isHistorical: true };
+        }
+      } catch (_) { /* non-fatal */ }
+    }
+
     return res.status(200).json({
       success: true,
       registrations,

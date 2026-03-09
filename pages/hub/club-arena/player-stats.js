@@ -19,6 +19,10 @@ const DynamicWallet = dynamic(
     () => import('../../../src/components/club-arena/DynamicWallet'),
     { ssr: false, loading: () => null }
 );
+const ClubAnnouncementBanner = dynamic(
+    () => import('../../../src/components/club-arena/ClubAnnouncementBanner'),
+    { ssr: false, loading: () => null }
+);
 
 // SmarterPoker Dark Color Scheme
 const FB = {
@@ -138,6 +142,14 @@ export default function PlayerStats() {
     });
     const [recentActivity, setRecentActivity] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Bounty stats
+    const [bountyStats, setBountyStats] = useState({
+        totalBountyEarnings: 0,
+        bountiesCollected: 0,
+        biggestBounty: 0,
+        mysteryBountiesWon: 0,
+    });
 
     // Time period filter
     const [period, setPeriod] = usePersistedState('sp-filters-ca-player-stats', 'all'); // 'week' | 'month' | 'all'
@@ -318,6 +330,47 @@ export default function PlayerStats() {
                             })));
                         }
                     }
+
+                    // ── Load bounty stats from completed tournaments ──
+                    try {
+                        const { data: regs } = await supabase
+                            .from('tournament_registrations')
+                            .select('tournament_id, payout_amount')
+                            .eq('user_id', authUser.id)
+                            .gt('payout_amount', 0);
+
+                        // Fetch bounty_results from completed tournaments in this club
+                        const { data: bTourns } = await supabase
+                            .from('club_tournaments')
+                            .select('id, settings')
+                            .eq('club_id', clubData.id)
+                            .eq('status', 'complete')
+                            .limit(100);
+
+                        let totalBE = 0, bCount = 0, bigB = 0, mysteryB = 0;
+                        for (const bt of (bTourns || [])) {
+                            const br = bt.settings?.bounty_results;
+                            if (!br?.leaderboard) continue;
+                            const userEntry = br.leaderboard.find(e => String(e.playerId) === String(authUser.id));
+                            if (userEntry) {
+                                totalBE += userEntry.totalBounties || 0;
+                                bCount += userEntry.eliminationCount || 0;
+                            }
+                            // Find biggest single bounty from awards
+                            for (const a of (br.awards || [])) {
+                                if (String(a.playerId) === String(authUser.id)) {
+                                    bigB = Math.max(bigB, a.amount || 0);
+                                    if (a.type === 'mystery' || a.type === 'mystery_bounty') mysteryB++;
+                                }
+                            }
+                        }
+                        setBountyStats({
+                            totalBountyEarnings: totalBE,
+                            bountiesCollected: bCount,
+                            biggestBounty: bigB,
+                            mysteryBountiesWon: mysteryB,
+                        });
+                    } catch (_) { /* non-fatal */ }
                 }
             }
         } catch (e) {
@@ -356,7 +409,9 @@ export default function PlayerStats() {
             if (relevant.includes(e?.payload?.entity)) loadData();
         });
         const unsub2 = eventBus.on(EventType.HAND_COMPLETE, () => loadData());
-        return () => { unsub(); unsub2(); };
+        const unsub3 = eventBus.on(EventType.BOUNTY_AWARDED, () => loadData());
+        const unsub4 = eventBus.on(EventType.TOURNAMENT_COMPLETE, () => loadData());
+        return () => { unsub(); unsub2(); unsub3(); unsub4(); };
     }, [loadData]);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -468,6 +523,8 @@ export default function PlayerStats() {
                         </div>
                     )}
 
+                    <ClubAnnouncementBanner clubId={clubIdParam} userRole={membership?.role} />
+
                     {/* Period Tabs */}
                     <div style={S.periodTabs}>
                         {[
@@ -546,6 +603,37 @@ export default function PlayerStats() {
                                         <span style={{ fontSize: '18px', fontWeight: 700, color: FB.gold }}>
                                             {formatHandRank(stats.bestHand)}
                                         </span>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Bounty Stats */}
+                            {bountyStats.totalBountyEarnings > 0 && (
+                                <>
+                                    <h2 style={S.sectionTitle}>Bounty Stats</h2>
+                                    <div style={S.statsGrid}>
+                                        <div style={S.statCard}>
+                                            <div style={S.statIcon}>💰</div>
+                                            <div style={{ ...S.statValue, color: FB.gold }}>{bountyStats.totalBountyEarnings.toLocaleString()}</div>
+                                            <div style={S.statLabel}>Bounty Earnings</div>
+                                        </div>
+                                        <div style={S.statCard}>
+                                            <div style={S.statIcon}>🎯</div>
+                                            <div style={S.statValue}>{bountyStats.bountiesCollected}</div>
+                                            <div style={S.statLabel}>Bounties Collected</div>
+                                        </div>
+                                        <div style={S.statCard}>
+                                            <div style={S.statIcon}>🏆</div>
+                                            <div style={{ ...S.statValue, color: FB.gold }}>{bountyStats.biggestBounty.toLocaleString()}</div>
+                                            <div style={S.statLabel}>Biggest Bounty</div>
+                                        </div>
+                                        {bountyStats.mysteryBountiesWon > 0 && (
+                                            <div style={S.statCard}>
+                                                <div style={S.statIcon}>🎁</div>
+                                                <div style={{ ...S.statValue, color: '#9333EA' }}>{bountyStats.mysteryBountiesWon}</div>
+                                                <div style={S.statLabel}>Mystery Bounties</div>
+                                            </div>
+                                        )}
                                     </div>
                                 </>
                             )}
