@@ -519,7 +519,7 @@ function EVLossGraph({ handHistory }) {
 // F7: DRILL FILTERS — Pre-session position/street filter modal
 // ═══════════════════════════════════════════════════════════════════════════
 
-function DrillFilters({ show, onClose, onApply }) {
+function DrillFilters({ show, onClose, onApply, difficulty, setDifficulty, timerMode, setTimerMode }) {
     const [positions, setPositions] = useState(['all']);
     const [streets, setStreets] = useState(['all']);
 
@@ -590,6 +590,40 @@ function DrillFilters({ show, onClose, onApply }) {
                                 border: `1px solid ${streets.includes(s) ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
                                 cursor: 'pointer', textTransform: 'capitalize',
                             }}>{s}</button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Difficulty</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        {['beginner', 'standard', 'expert'].map(d => (
+                            <button key={d} onClick={() => setDifficulty(d)} style={{
+                                flex: 1, padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 'bold',
+                                background: difficulty === d ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: difficulty === d ? '#00d4ff' : '#94a3b8',
+                                border: `1px solid ${difficulty === d ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                cursor: 'pointer', textTransform: 'capitalize'
+                            }}>{d}</button>
+                        ))}
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 'bold', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Timer Mode</div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                        {[
+                            { id: 'relaxed', label: 'Relaxed (∞)' },
+                            { id: 'standard', label: 'Standard (60s)' },
+                            { id: 'blitz', label: 'Blitz (15s)' }
+                        ].map(t => (
+                            <button key={t.id} onClick={() => setTimerMode(t.id)} style={{
+                                flex: 1, padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 'bold',
+                                background: timerMode === t.id ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: timerMode === t.id ? '#ef4444' : '#94a3b8',
+                                border: `1px solid ${timerMode === t.id ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                                cursor: 'pointer'
+                            }}>{t.label}</button>
                         ))}
                     </div>
                 </div>
@@ -1525,6 +1559,10 @@ function GodModeArena({
                             show={showDrillFilters}
                             onClose={() => setShowDrillFilters(false)}
                             onApply={(filters) => setDrillFilters(filters)}
+                            difficulty={difficulty}
+                            setDifficulty={setDifficulty}
+                            timerMode={timerMode}
+                            setTimerMode={setTimerMode}
                         />
                     </AnimatePresence>
                 </div>
