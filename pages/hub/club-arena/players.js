@@ -169,7 +169,7 @@ const router = useRouter();
     // ── Event Bus: refresh on cross-page data mutations ───────────────────
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['chips_distributed', 'cashout_approved', 'player_note_saved', 'union_club_added', 'union_club_removed'];
+            const relevant = ['chips_distributed', 'chips_minted', 'cashout_approved', 'cashout_cancelled', 'player_note_saved', 'union_club_added', 'union_club_removed'];
             if (relevant.includes(e?.payload?.entity)) loadData();
         });
         return () => unsub();

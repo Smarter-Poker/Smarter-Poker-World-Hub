@@ -297,7 +297,7 @@ const router = useRouter();
     // ── Event Bus: refresh admin on cross-page mutations ──────────────────
     useEffect(() => {
         const unsub = eventBus.on(EventType.DATA_MUTATED, (e) => {
-            const relevant = ['tournament_created', 'tournament_registration', 'chips_distributed', 'cashout_requested', 'cashout_approved', 'marketplace_purchase', 'union_club_added'];
+            const relevant = ['tournament_created', 'tournament_registration', 'chips_distributed', 'chips_minted', 'cashout_requested', 'cashout_approved', 'cashout_cancelled', 'rakeback_distributed', 'marketplace_purchase', 'union_club_added'];
             if (relevant.includes(e?.payload?.entity)) loadData();
         });
         return () => unsub();
