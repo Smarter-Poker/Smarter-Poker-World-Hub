@@ -875,39 +875,144 @@ export default function TriviaLobby({ userDiamonds = 0, isVip = false, dailyComp
                 @keyframes spin {
                     to { transform: rotate(360deg); }
                 }
+
+                /* ═══════ DYNAMIC DIAMOND MODAL ═══════ */
+                .diamond-modal {
+                    position: relative;
+                    width: 90%;
+                    max-width: 440px;
+                    margin: 0 auto;
+                    /* the image has built-in translucent/neon edges, so no background/border needed */
+                }
+
+                .diamond-modal__bg {
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                    user-select: none;
+                    -webkit-user-drag: none;
+                }
+
+                /* Base Hitbox */
+                .dm-hitbox {
+                    position: absolute;
+                    cursor: pointer;
+                    background: transparent;
+                    border: none;
+                    outline: none;
+                    padding: 0;
+                    -webkit-tap-highlight-color: transparent;
+                }
+                
+                /* Remove hover effects per requirements */
+                .dm-hitbox:hover {
+                    transform: none;
+                    box-shadow: none;
+                    background: transparent;
+                }
+
+                /* Hitbox regions (percentages tuned to the 946x1024 image) */
+                .dm-close {
+                    top: 15%;
+                    right: 14%;
+                    width: 12%;
+                    height: 10%;
+                    border-radius: 50%;
+                }
+
+                .dm-vip {
+                    top: 69.5%;
+                    left: 20%;
+                    width: 29%;
+                    height: 9%;
+                    border-radius: 12px;
+                }
+
+                .dm-accept {
+                    top: 69.5%;
+                    right: 18%;
+                    width: 32%;
+                    height: 9%;
+                    border-radius: 12px;
+                }
+                .dm-accept:disabled {
+                    cursor: wait;
+                }
+
+                /* Dynamic Balance Box */
+                .dm-balance {
+                    position: absolute;
+                    bottom: 12.5%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 45%;
+                    height: 7%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: transparent;
+                    color: #4df8ff;
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 18px;
+                    font-weight: 700;
+                    text-shadow: 0 0 10px rgba(77, 248, 255, 0.4);
+                    pointer-events: none;
+                }
             `}</style>
 
             {/* ═══════ DIAMOND CHARGE POPUP (first-time only) ═══════ */}
             {
                 showChargePopup && (
                     <div className="gate-overlay" onClick={() => { setShowChargePopup(false); setPendingMode(null); }}>
-                        <div className="gate-card" onClick={e => e.stopPropagation()}>
-                            <div className="gate-icon">💎</div>
-                            <div className="gate-title">Diamond Entry Fee</div>
-                            <div className="gate-desc">
-                                This game mode costs diamonds to play. Your diamonds will be automatically deducted for future games.
+                        <div className="diamond-modal" onClick={e => e.stopPropagation()}>
+                            <img
+                                src="/images/trivia/diamond-entry-modal.png"
+                                alt="Diamond Entry Modal"
+                                className="diamond-modal__bg"
+                            />
+
+                            {/* Close Button hit area */}
+                            <button
+                                className="dm-hitbox dm-close"
+                                onClick={() => {
+                                    navigator.vibrate?.(50);
+                                    setShowChargePopup(false);
+                                    setPendingMode(null);
+                                }}
+                                aria-label="Close"
+                            />
+
+                            {/* Upgrade to VIP hit area */}
+                            <button
+                                className="dm-hitbox dm-vip"
+                                onClick={() => {
+                                    navigator.vibrate?.(50);
+                                    router.push('/hub/vip');
+                                }}
+                                aria-label="Upgrade to VIP"
+                            />
+
+                            {/* Accept & Play hit area */}
+                            <button
+                                className="dm-hitbox dm-accept"
+                                onClick={() => {
+                                    navigator.vibrate?.(50);
+                                    handleChargeAccept();
+                                }}
+                                disabled={isDeducting}
+                                aria-label="Accept and Play"
+                            />
+
+                            {/* Dynamic Diamond Balance */}
+                            <div className="dm-balance">
+                                {userDiamonds} 💎
                             </div>
-                            <div className="gate-cost">
-                                <Gem size={22} /> {GAME_COST} Diamonds
-                            </div>
-                            <div className="gate-buttons">
-                                <button
-                                    className="gate-btn gate-btn--cancel"
-                                    onClick={() => { setShowChargePopup(false); setPendingMode(null); }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="gate-btn gate-btn--accept"
-                                    onClick={handleChargeAccept}
-                                    disabled={isDeducting}
-                                >
-                                    {isDeducting ? 'Processing...' : 'Accept & Play'}
-                                </button>
-                            </div>
-                            <div className="gate-balance">
-                                Your balance: {userDiamonds} 💎
-                            </div>
+
+                            {isDeducting && (
+                                <div className="dm-spinner-overlay">
+                                    <div className="deducting-spinner" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 )

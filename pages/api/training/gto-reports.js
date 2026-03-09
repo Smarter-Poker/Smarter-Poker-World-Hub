@@ -33,6 +33,12 @@ const GTO_BASELINES = {
         checkRaise: 8,   // Average check-raise frequency
         foldToCSbet: 40, // Average fold to C-bet
     },
+    // Institutional GTO Baselines for Scorecard Visualizer
+    scorecard: {
+        vpip: 22.5, // optimal VPIP for 6-max
+        pfr: 18.0,  // optimal PFR for 6-max
+        threeBet: 8.5 // optimal 3-Bet for 6-max
+    }
 };
 
 export default async function handler(req, res) {
@@ -63,7 +69,7 @@ export default async function handler(req, res) {
         // Fetch training sessions
         let query = supabase
             .from('training_sessions')
-            .select('id, game_id, accuracy, total_questions, correct_answers, best_answers, position_stats, classification_breakdown, created_at')
+            .select('id, game_id, accuracy, total_questions, correct_answers, best_answers, position_stats, classification_breakdown, hand_history, created_at')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
@@ -117,6 +123,58 @@ export default async function handler(req, res) {
             }
         });
 
+        // ♠️ Scorecard Stat Calculation (VPIP, PFR, 3Bet)
+        let totalPreflopHands = 0;
+        let vpipCount = 0;
+        let pfrCount = 0;
+        let threeBetOppCount = 0;
+        let threeBetCount = 0;
+
+        (sessions || []).forEach(session => {
+            const hhs = session.hand_history || [];
+            if (Array.isArray(hhs)) {
+                hhs.forEach(hand => {
+                    if (hand.actionHistory) {
+                        totalPreflopHands++;
+
+                        // Parse preflop hero actions
+                        const heroPreActions = hand.actionHistory.filter(a => a.player === 'hero' && a.street === 'preflop');
+                        if (heroPreActions.length > 0) {
+                            const firstAction = heroPreActions[0].action;
+
+                            // Voluntarily Put Money in Pot (any call, bet, raise, allin)
+                            if (['call', 'bet', 'raise', 'allin'].includes(firstAction)) {
+                                vpipCount++;
+                            }
+
+                            // Preflop Raise (any bet, raise, allin)
+                            if (['bet', 'raise', 'allin'].includes(firstAction)) {
+                                pfrCount++;
+                            }
+
+                            // 3-Bet Opportunity & Action (simplistic logic: if previous villain action was raise)
+                            const villainPreActions = hand.actionHistory.filter(a => a.player === 'villain' && a.street === 'preflop');
+                            const facedRaise = villainPreActions.some(a => ['raise', 'bet', 'allin'].includes(a.action));
+
+                            if (facedRaise) {
+                                threeBetOppCount++;
+                                if (['raise', 'allin'].includes(firstAction)) {
+                                    threeBetCount++;
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        const scorecardStats = {
+            vpip: totalPreflopHands > 0 ? (vpipCount / totalPreflopHands) * 100 : 0,
+            pfr: totalPreflopHands > 0 ? (pfrCount / totalPreflopHands) * 100 : 0,
+            threeBet: threeBetOppCount > 0 ? (threeBetCount / threeBetOppCount) * 100 : 0,
+            totalAnalyzed: totalPreflopHands
+        };
+
         // Calculate per-position accuracy and deviation from GTO
         const positionReport = {};
         Object.entries(positionAgg).forEach(([pos, data]) => {
@@ -163,6 +221,7 @@ export default async function handler(req, res) {
                 positionReport,
                 classifications: classAgg,
                 gtoBaselines: GTO_BASELINES,
+                scorecardStats,
             },
         });
 

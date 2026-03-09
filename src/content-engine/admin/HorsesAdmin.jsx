@@ -309,15 +309,6 @@ function HorsesDashboard({ user, onLogout }) {
 
     const activeCount = personas.filter(p => p.is_active).length;
 
-    if (loading) {
-        return (
-            <div className="horses-loading">
-                <span className="logo spinning">🐴</span>
-                <p>Loading Stable...</p>
-            </div>
-        );
-    }
-
     return (
         <div className="horses-dashboard">
             {/* Notification */}
@@ -327,7 +318,6 @@ function HorsesDashboard({ user, onLogout }) {
                 </div>
             )}
 
-            {/* HEADER */}
             <header className="dashboard-header">
                 <div className="header-left">
                     <span className="logo">🐴</span>
@@ -731,95 +721,91 @@ function HorsesDashboard({ user, onLogout }) {
                     </div>
                 )}
             </main>
-                )}
-        </main>
 
-            {/* CREATE MODAL */ }
-    {
-        showCreateModal && (
-            <div className="modal-overlay">
-                <div className="modal-content">
-                    <div className="modal-header">
-                        <h2>🐴 New Horse</h2>
-                        <button className="close-btn" onClick={() => setShowCreateModal(false)}>×</button>
+            {/* CREATE MODAL */}
+            {showCreateModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h2>🐴 New Horse</h2>
+                            <button className="close-btn" onClick={() => setShowCreateModal(false)}>×</button>
+                        </div>
+                        <form onSubmit={handleCreate}>
+                            <div className="form-group">
+                                <label>Name</label>
+                                <input
+                                    type="text"
+                                    value={newPersona.name}
+                                    onChange={e => setNewPersona({ ...newPersona, name: e.target.value })}
+                                    placeholder="e.g. Johnny Sticks"
+                                    required
+                                />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Gender</label>
+                                    <select
+                                        value={newPersona.gender}
+                                        onChange={e => setNewPersona({ ...newPersona, gender: e.target.value })}
+                                    >
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Location</label>
+                                    <input
+                                        type="text"
+                                        value={newPersona.location}
+                                        onChange={e => setNewPersona({ ...newPersona, location: e.target.value })}
+                                        placeholder="e.g. Austin, TX"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Bio</label>
+                                <textarea
+                                    value={newPersona.bio}
+                                    onChange={e => setNewPersona({ ...newPersona, bio: e.target.value })}
+                                    placeholder="Brief Backstory..."
+                                    rows="3"
+                                    required
+                                />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label>Specialty</label>
+                                    <select
+                                        value={newPersona.specialty}
+                                        onChange={e => setNewPersona({ ...newPersona, specialty: e.target.value })}
+                                    >
+                                        <option value="cash_games">Cash Games</option>
+                                        <option value="tournaments">Tournaments</option>
+                                        <option value="plo">PLO</option>
+                                        <option value="online">Online</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label>Stakes</label>
+                                    <input
+                                        type="text"
+                                        value={newPersona.stakes}
+                                        onChange={e => setNewPersona({ ...newPersona, stakes: e.target.value })}
+                                        placeholder="e.g. 2/5 NLH"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                                <button type="submit" className="btn-submit">Stabling Horse</button>
+                            </div>
+                        </form>
                     </div>
-                    <form onSubmit={handleCreate}>
-                        <div className="form-group">
-                            <label>Name</label>
-                            <input
-                                type="text"
-                                value={newPersona.name}
-                                onChange={e => setNewPersona({ ...newPersona, name: e.target.value })}
-                                placeholder="e.g. Johnny Sticks"
-                                required
-                            />
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Gender</label>
-                                <select
-                                    value={newPersona.gender}
-                                    onChange={e => setNewPersona({ ...newPersona, gender: e.target.value })}
-                                >
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Location</label>
-                                <input
-                                    type="text"
-                                    value={newPersona.location}
-                                    onChange={e => setNewPersona({ ...newPersona, location: e.target.value })}
-                                    placeholder="e.g. Austin, TX"
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <div className="form-group">
-                            <label>Bio</label>
-                            <textarea
-                                value={newPersona.bio}
-                                onChange={e => setNewPersona({ ...newPersona, bio: e.target.value })}
-                                placeholder="Brief Backstory..."
-                                rows="3"
-                                required
-                            />
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Specialty</label>
-                                <select
-                                    value={newPersona.specialty}
-                                    onChange={e => setNewPersona({ ...newPersona, specialty: e.target.value })}
-                                >
-                                    <option value="cash_games">Cash Games</option>
-                                    <option value="tournaments">Tournaments</option>
-                                    <option value="plo">PLO</option>
-                                    <option value="online">Online</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label>Stakes</label>
-                                <input
-                                    type="text"
-                                    value={newPersona.stakes}
-                                    onChange={e => setNewPersona({ ...newPersona, stakes: e.target.value })}
-                                    placeholder="e.g. 2/5 NLH"
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <div className="form-actions">
-                            <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
-                            <button type="submit" className="btn-submit">Stabling Horse</button>
-                        </div>
-                    </form>
                 </div>
-            </div>
-        )
-    }
-        </div >
+            )}
+        </div>
     );
 }
 

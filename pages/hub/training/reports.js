@@ -11,9 +11,9 @@ import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { getAuthUser } from '../../../src/lib/authUtils';
-import { eventBus, EventType } from '../../../src/engine/EventBus';
 import { usePersistedState } from '../../../src/hooks/usePersistedState';
 import useTrainingBus from '../../../src/hooks/useTrainingBus';
+import GTODeviationHeatmap from '../../../src/components/training/GTODeviationHeatmap';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CLASSIFICATION CONFIG
@@ -427,6 +427,43 @@ export default function GTOReports() {
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* ♠️ GTO Scorecard: VPIP / PFR / 3Bet deviations */}
+                                {report.scorecardStats && report.scorecardStats.totalAnalyzed > 0 && (
+                                    <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <div style={{
+                                            fontSize: 12, fontWeight: 800, color: '#e2e8f0',
+                                            letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12,
+                                            fontFamily: "'Orbitron', monospace",
+                                        }}>
+                                            GTO Deviation Scorecard
+                                        </div>
+                                        <div style={{ fontSize: 10, color: '#94a3b8', marginBottom: 16 }}>
+                                            Based on {report.scorecardStats.totalAnalyzed} preflop hands played across your tracked sessions.
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                            <GTODeviationHeatmap
+                                                label="VPIP (Voluntarily Put In Pot)"
+                                                description="Measures how often you enter the pot. High VPIP means you play too many hands."
+                                                actualPct={report.scorecardStats.vpip}
+                                                gtoPct={report.gtoBaselines?.scorecard?.vpip || 22.5}
+                                            />
+                                            <GTODeviationHeatmap
+                                                label="PFR (Preflop Raise)"
+                                                description="Measures aggression preflop. Should closely mirror your VPIP."
+                                                actualPct={report.scorecardStats.pfr}
+                                                gtoPct={report.gtoBaselines?.scorecard?.pfr || 18.0}
+                                            />
+                                            <GTODeviationHeatmap
+                                                label="3-Bet %"
+                                                description="Frequency of re-raising an open. Key indicator of aggression."
+                                                actualPct={report.scorecardStats.threeBet}
+                                                gtoPct={report.gtoBaselines?.scorecard?.threeBet || 8.5}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* 🔥 Weakest Spots Heatmap */}
                                 {report.positionReport && (() => {

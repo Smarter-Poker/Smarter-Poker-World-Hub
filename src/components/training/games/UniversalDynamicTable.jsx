@@ -1030,11 +1030,8 @@ function UniversalDynamicTable({
     }, [showFeedback, selectedAnswer, onNextHand, onAnswer, question]);
 
     // ════════════════════════════════════════════════════════════════════════
-    // LOADING STATE — Show skeleton while question is being fetched
+    // DYNAMIC DATA EXTRACTION FROM QUESTION
     // ════════════════════════════════════════════════════════════════════════
-    if (!question) {
-        return <LoadingSkeleton />;
-    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // DYNAMIC DATA EXTRACTION FROM QUESTION
@@ -1347,6 +1344,11 @@ function UniversalDynamicTable({
     // ═══════════════════════════════════════════════════════════════════════
     // RENDER
     // ═══════════════════════════════════════════════════════════════════════
+
+    // Early return for loading state (must happen after all hooks)
+    if (!question) {
+        return <LoadingSkeleton />;
+    }
 
     return (
         <div style={styles.container}>
