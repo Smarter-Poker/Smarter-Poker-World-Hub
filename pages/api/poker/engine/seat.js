@@ -94,6 +94,22 @@ export default async function handler(req, res) {
         }
         if (!buyIn) return res.status(400).json({ error: 'buyIn required' });
 
+        // TOS gate — player must accept Club Arena TOS before sitting down
+        if (clubId) {
+          const { data: tosProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('club_arena_tos_accepted_at')
+            .eq('id', playerId)
+            .maybeSingle();
+          if (!tosProfile?.club_arena_tos_accepted_at) {
+            return res.status(403).json({
+              success: false,
+              error: 'You must accept the Club Arena Terms of Service before playing.',
+              code: 'TOS_NOT_ACCEPTED',
+            });
+          }
+        }
+
         const buyInAmount = parseFloat(buyIn);
 
         // Anti-cheat pre-join check (IP, device, GPS, downline, emulator, rate limit)

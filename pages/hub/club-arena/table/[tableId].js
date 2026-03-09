@@ -89,7 +89,20 @@ export default function ClubArenaTable() {
   // Auth guard
   useEffect(() => {
     const authUser = getAuthUser();
-    if (authUser) setUser(authUser);
+    if (authUser) {
+      setUser(authUser);
+      // TOS gate — redirect if not accepted
+      supabase
+        .from('profiles')
+        .select('club_arena_tos_accepted_at')
+        .eq('id', authUser.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!data?.club_arena_tos_accepted_at) {
+            router.replace('/hub/club-arena');
+          }
+        });
+    }
     else router.push('/auth/login');
   }, []);
 

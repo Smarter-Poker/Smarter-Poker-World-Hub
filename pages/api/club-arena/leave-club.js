@@ -80,6 +80,38 @@ export default async function handler(req, res) {
     if (lockCheck.locked) return sendLockedResponse(res, lockCheck);
 
     // ═══════════════════════════════════════════════════════════════
+    // 3b. BLOCK IF SEATED AT TABLE — Chips locked in escrow would be lost
+    // ═══════════════════════════════════════════════════════════════
+    const { data: activeEscrow } = await supabaseAdmin
+      .from('chip_escrow')
+      .select('id, table_id, amount')
+      .eq('player_id', user.id)
+      .eq('status', 'locked')
+      .limit(5);
+
+    // Filter to escrow records belonging to tables in THIS club
+    if (activeEscrow && activeEscrow.length > 0) {
+      const { data: clubTables } = await supabaseAdmin
+        .from('tables')
+        .select('id')
+        .eq('club_id', clubId)
+        .in('id', activeEscrow.map(e => e.table_id));
+
+      const lockedAtClubTables = (clubTables || []).map(t => t.id);
+      const clubEscrow = activeEscrow.filter(e => lockedAtClubTables.includes(e.table_id));
+
+      if (clubEscrow.length > 0) {
+        const totalLocked = clubEscrow.reduce((s, e) => s + (e.amount || 0), 0);
+        return res.status(400).json({
+          success: false,
+          error: 'You are currently seated at a table. Stand up from all tables before leaving the club.',
+          lockedChips: totalLocked,
+          tables: clubEscrow.map(e => e.table_id),
+        });
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // 4. CANCEL PENDING CASHOUT REQUESTS
     //    Return held_chips back to chip_balance first so we can
     //    sweep everything to treasury in one shot.

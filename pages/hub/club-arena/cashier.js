@@ -125,10 +125,16 @@ const router = useRouter();
                 // Get user's diamond balance from profiles
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('diamonds')
+                    .select('diamonds, club_arena_tos_accepted_at')
                     .eq('id', authUser.id)
                     .maybeSingle();
                 setDiamondBalance(profile?.diamonds || 0);
+
+                // TOS gate — redirect if not accepted
+                if (!profile?.club_arena_tos_accepted_at) {
+                    router.replace('/hub/club-arena');
+                    return;
+                }
 
                 // Get club data
                 const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clubIdParam);
